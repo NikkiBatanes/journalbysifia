@@ -975,6 +975,43 @@ function splitQuestionPromptText(value: string): string[] {
   return questions.length > 0 ? questions : [String(value || '').trim()].filter(Boolean);
 }
 
+function isAskPromptQualifierLine(line: string): boolean {
+  return /^(?:for\s+each(?:\s+(?:one|declaration|item|thought|belief|sentence|step))?|for\s+every(?:\s+(?:one|declaration|item|thought|belief|sentence|step))?|for\s+each\s+of\s+them),\s*$/i.test(line.trim());
+}
+
+function askPromptQualifierLabel(line: string): string {
+  return capitalizeFirstLetter(line.trim().replace(/,\s*$/, ''));
+}
+
+function combineAskPromptLabel(qualifier: string | null, label: string): string {
+  if (!qualifier) {
+    return label;
+  }
+
+  return `${qualifier}, ${label.charAt(0).toLowerCase()}${label.slice(1)}`;
+}
+
+function isPromptQuestionLine(line: string): boolean {
+  return /\?\s*$/.test(stripBalancedActionQuotes(line.trim()));
+}
+
+function collectPromptQuestions(lines: string[], startIndex: number): { questions: string[]; nextIndex: number } {
+  const questions: string[] = [];
+  let cursor = startIndex;
+
+  while (cursor < lines.length) {
+    const line = lines[cursor]?.trim() || '';
+    if (!isPromptQuestionLine(line)) {
+      break;
+    }
+
+    questions.push(stripBalancedActionQuotes(line));
+    cursor++;
+  }
+
+  return { questions, nextIndex: cursor };
+}
+
 function splitHintTextFromTrailingInstruction(value: string): { hintText: string; trailingText: string } {
   const parts = String(value || '')
     .trim()
@@ -1175,6 +1212,9 @@ function splitReadableActionLine(line: string): string[] {
     .map(part => part.trim())
     .filter(Boolean);
   if (sentenceParts.length >= 2 && sentenceParts.some(part => isAskPromptIntroLine(part))) {
+    return sentenceParts.flatMap(part => splitReadableActionLine(part));
+  }
+  if (sentenceParts.length >= 2 && isAskPromptQualifierLine(sentenceParts[sentenceParts.length - 1])) {
     return sentenceParts.flatMap(part => splitReadableActionLine(part));
   }
   if (sentenceParts.length >= 2 && sentenceParts.some(part => isChecklistIntroLine(part))) {
@@ -1408,6 +1448,7 @@ function detectBodyLines(lines: string[]): BodyLine[] {
   let expectingPromptQuestion = false;
   let inChecklist = false;
   let inWriteDownList = false;
+  let pendingAskPromptQualifier: string | null = null;
 
   for (let idx = 0; idx < lines.length; idx++) {
     const raw = lines[idx];
@@ -1535,6 +1576,47 @@ function detectBodyLines(lines: string[]): BodyLine[] {
       continue;
     }
 
+    if (isAskPromptQualifierLine(line)) {
+      if (isAskPromptIntroLine(nextLine)) {
+        pendingAskPromptQualifier = askPromptQualifierLabel(line);
+      } else {
+        out.push({ text: `${askPromptQualifierLabel(line)}:`, type: 'intro' });
+        pendingAskPromptQualifier = null;
+      }
+      expectingPromptQuestion = false;
+      inChecklist = false;
+      inWriteDownList = false;
+      continue;
+    }
+
+    if (isAskPromptIntroLine(line)) {
+      const { questions, nextIndex } = collectPromptQuestions(lines, idx + 1);
+      out.push({
+        label: combineAskPromptLabel(pendingAskPromptQualifier, askPromptLabel(line)),
+        text: '',
+        type: 'ask',
+      });
+      pendingAskPromptQualifier = null;
+
+      if (questions.length > 0) {
+        out.push({ label: 'Ask', text: questions.join('\n\n'), type: 'script' });
+        idx = nextIndex - 1;
+        expectingPromptQuestion = false;
+      } else {
+        expectingPromptQuestion = true;
+      }
+      inChecklist = false;
+      inWriteDownList = false;
+      continue;
+    }
+
+    if (expectingPromptQuestion && isPromptQuestionLine(line)) {
+      out.push({ label: 'Ask', text: stripBalancedActionQuotes(line), type: 'script' });
+      inChecklist = false;
+      inWriteDownList = false;
+      continue;
+    }
+
     if (isScriptIntroLine(line) && isQuotedActionLine(nextLine)) {
       out.push({
         label: scriptLabelForIntro(line),
@@ -1562,21 +1644,6 @@ function detectBodyLines(lines: string[]): BodyLine[] {
         type: inChecklist ? 'checklistItem' : 'bullet',
       });
       expectingPromptQuestion = false;
-      inWriteDownList = false;
-      continue;
-    }
-
-    if (isAskPromptIntroLine(line)) {
-      out.push({ label: askPromptLabel(line), text: '', type: 'ask' });
-      expectingPromptQuestion = true;
-      inChecklist = false;
-      inWriteDownList = false;
-      continue;
-    }
-
-    if (expectingPromptQuestion && line.endsWith('?')) {
-      out.push({ text: line, type: 'question' });
-      inChecklist = false;
       inWriteDownList = false;
       continue;
     }

@@ -313,6 +313,48 @@ function formatScriptureCardStep(reference: string, version: string, scriptureTe
   return `Scripture ${displayReference}: ${text}`;
 }
 
+function stripDeclarationBoundaryQuotes(text: string): string {
+  return cleanOutputText(text, 320)
+    .replace(/^Declaration\s*:\s*/i, '')
+    .replace(/^["'“”‘’]\s*/, '')
+    .replace(/\s*["'“”‘’]$/, '')
+    .trim();
+}
+
+function fallbackDeclarationForScripture(result: { text: string; reference: string; version: string }): string {
+  const combined = `${result.reference} ${result.text}`.toLowerCase();
+
+  if (/philippians\s+4:19|supply all your needs/.test(combined)) {
+    return 'I can trust God to supply what I truly need in Christ.';
+  }
+  if (/john\s+14:27|peace i leave|do not let your hearts be troubled/.test(combined)) {
+    return 'Jesus gives me His peace, so I do not have to let my heart be troubled or afraid.';
+  }
+  if (/proverbs\s+3:5|trust in the lord/.test(combined)) {
+    return 'I will trust the Lord with all my heart instead of leaning on my own understanding.';
+  }
+  if (/romans\s+8:28|work together for good/.test(combined)) {
+    return 'God is able to work even this for good as I love Him and follow His purpose.';
+  }
+  if (/2\s*timothy\s+1:7|spirit of fear|sound mind|discipline/.test(combined)) {
+    return 'God has not given me a spirit of fear, so I can respond with power, love, and a sound mind.';
+  }
+
+  return `I will bring this declaration under ${formatScriptureDisplayReference(result.reference, result.version)} and align my words with God's truth.`;
+}
+
+function fallbackDeclarationScriptureWisdom(
+  scriptureResults: Array<{ text: string; reference: string; version: string }>,
+): { intro: string; steps: string[] } {
+  return {
+    intro: 'Here are declarations paired with the verses that support them.',
+    steps: scriptureResults.flatMap(result => [
+      `Declaration: "${fallbackDeclarationForScripture(result)}"`,
+      formatScriptureCardStep(result.reference, result.version, result.text),
+    ]),
+  };
+}
+
 function extractScriptureLineSegments(scriptureText: string, maxSegments = 6): string[] {
   const normalized = cleanLongOutputText(scriptureText, 3000)
     .replace(/\s*\*\s*/g, ' ')
@@ -359,6 +401,19 @@ function normalizeScriptureQuestionIntent(question: string): string {
     .replace(/[^a-z0-9]+/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
+}
+
+function isDeclarationRequest(question: string): boolean {
+  const normalized = normalizeScriptureQuestionIntent(question);
+  return /\b(?:declar\w*|affirmation|affirmations)\b/i.test(normalized)
+    || /\bwords?\s+(?:to\s+)?(?:speak|say)\b/i.test(normalized)
+    || /\bspeak\s+over\b/i.test(normalized);
+}
+
+function isDeclarationScriptureRequest(question: string): boolean {
+  const normalized = normalizeScriptureQuestionIntent(question);
+  const asksForScripture = /\b(?:scripture|scriptures|bible|verse|verses|passage|passages|reference|references)\b/i.test(normalized);
+  return asksForScripture && isDeclarationRequest(question);
 }
 
 function isScriptureExplanationRequest(question: string): boolean {
@@ -418,6 +473,13 @@ function serializeWisdomThread(thread: WisdomThreadEntry[]): string {
   return thread
     .map(entry => `User: ${entry.question}\nsiFia: ${entry.wisdom.trim()}`)
     .join('\n\n');
+}
+
+const WISDOM_SCRIPTURE_REFERENCE_REGEX =
+  /\b(?:[1-3]\s*)?[a-z]+(?:\s+[a-z]+){0,3}\s+\d+(?::\d+(?:-\d+)?|\s+verses?\s+\d+(?:-\d+)?)/i;
+
+function hasWisdomScriptureReference(value: string): boolean {
+  return WISDOM_SCRIPTURE_REFERENCE_REGEX.test(value);
 }
 
 function isWeakWisdomAnswer(wisdom: { intro: string; steps: string[] }, userQuestion: string, actionContext = ''): boolean {
@@ -492,7 +554,19 @@ function isWeakWisdomAnswer(wisdom: { intro: string; steps: string[] }, userQues
     return true;
   }
 
-  if (/\b(scripture|bible|verse|verses)\b/.test(question) && !/\b(?:[1-3]\s*)?[a-z]+\s+\d+:\d+\b/i.test(combined)) {
+  if (/\b(scripture|bible|verse|verses)\b/.test(question) && !hasWisdomScriptureReference(combined)) {
+    return true;
+  }
+
+  if (isDeclarationScriptureRequest(userQuestion)
+    && (!/\bDeclaration\s*:/i.test(`${wisdom.intro} ${wisdom.steps.join(' ')}`)
+      || !hasWisdomScriptureReference(combined))) {
+    return true;
+  }
+
+  if (isDeclarationRequest(userQuestion)
+    && !/\bDeclaration\s*:/i.test(`${wisdom.intro} ${wisdom.steps.join(' ')}`)
+    && !/\bI\s+(?:can|will|choose|trust|declare|believe|receive|am)\b/i.test(combined)) {
     return true;
   }
 
@@ -834,6 +908,114 @@ async function suggestScriptureReferencesWithAI(args: {
   }
 }
 
+async function buildDeclarationScriptureWisdom(args: {
+  playbookTitle: string;
+  truthSummary: string;
+  truthInLove: string;
+  actionTitle: string;
+  actionBody: string;
+  userQuestion: string;
+  scriptureResults: Array<{ text: string; reference: string; version: string }>;
+}): Promise<{ intro: string; steps: string[] }> {
+  const fallback = fallbackDeclarationScriptureWisdom(args.scriptureResults);
+  const openAIKey = Deno.env.get('OPENAI_API_KEY');
+
+  if (!openAIKey || args.scriptureResults.length === 0) {
+    return fallback;
+  }
+
+  const scriptureList = args.scriptureResults
+    .map((result, index) => [
+      `${index + 1}. ${formatScriptureDisplayReference(result.reference, result.version)}`,
+      result.text,
+    ].join('\n'))
+    .join('\n\n');
+
+  const prompt = [
+    'The user asked for declarations AND Bible verses. Provide both.',
+    '',
+    'Create one first-person Christian declaration for each exact Scripture below.',
+    '',
+    'Rules:',
+    '- Return exactly one declaration per Scripture, in the same order as the Scripture list.',
+    '- Do not return Scripture text in the declarations array. The app will attach the exact Scripture text separately.',
+    '- Each declaration must be grounded in the verse, biblically humble, and ready for the user to speak.',
+    '- Do not promise outcomes the verse does not promise.',
+    '- Do not return only verses.',
+    '- Do not use markdown.',
+    '',
+    'Context:',
+    `Playbook: ${cleanText(args.playbookTitle, 180)}`,
+    `Truth: ${cleanText(args.truthSummary, 500)}`,
+    args.truthInLove ? `Truth in Love: ${cleanText(args.truthInLove, 500)}` : '',
+    `Action: ${cleanText(args.actionTitle, 180)}`,
+    `Action description: ${cleanActionBody(args.actionBody, 1500)}`,
+    `User asks: ${cleanText(args.userQuestion, 500)}`,
+    '',
+    'Scriptures:',
+    scriptureList,
+    '',
+    'Return ONLY valid JSON in this exact shape:',
+    '{"intro":"one short sentence","declarations":["first declaration","second declaration"]}',
+  ].filter(Boolean).join('\n');
+
+  try {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${openAIKey}`,
+      },
+      body: JSON.stringify({
+        model: 'gpt-4.1-mini',
+        messages: [
+          {
+            role: 'system',
+            content: 'You write concise, biblically grounded first-person declarations. Return only valid JSON.',
+          },
+          {
+            role: 'user',
+            content: prompt,
+          },
+        ],
+        temperature: 0.25,
+        top_p: 1,
+        max_completion_tokens: 700,
+        response_format: { type: 'json_object' },
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('[Get-Action-Guidance] Declaration generation OpenAI error:', errorText);
+      return fallback;
+    }
+
+    const data = await response.json();
+    const raw = data.choices?.[0]?.message?.content || '';
+    const parsed = JSON.parse(raw);
+    const generatedDeclarations = Array.isArray(parsed.declarations)
+      ? parsed.declarations.map(stripDeclarationBoundaryQuotes).filter(Boolean)
+      : [];
+
+    const steps = args.scriptureResults.flatMap((result, index) => {
+      const declaration = generatedDeclarations[index] || fallbackDeclarationForScripture(result);
+      return [
+        `Declaration: "${declaration}"`,
+        formatScriptureCardStep(result.reference, result.version, result.text),
+      ];
+    });
+
+    return {
+      intro: cleanOutputText(parsed.intro, 240) || fallback.intro,
+      steps,
+    };
+  } catch (error) {
+    console.error('[Get-Action-Guidance] Declaration generation failed:', error);
+    return fallback;
+  }
+}
+
 function buildWisdomPrompt(args: {
   playbookTitle: string;
   truthSummary: string;
@@ -1105,6 +1287,7 @@ serve(async (req: Request) => {
     let scriptureText = '';
     const scriptureResults: Array<{ text: string; reference: string; version: string }> = [];
     let isPureScriptureRequest = false;
+    const declarationScriptureRequest = isDeclarationScriptureRequest(userQuestion);
 
     if (scriptureRequest.isScripture) {
       const startingReferences = scriptureRequest.references?.length
@@ -1176,8 +1359,19 @@ serve(async (req: Request) => {
         steps: scriptureCardSteps,
       });
 
-      // If explanation is requested, get it from OpenAI and append
-      if (!isPureScriptureRequest) {
+      if (declarationScriptureRequest) {
+        const declarationWisdom = await buildDeclarationScriptureWisdom({
+          playbookTitle: playbook.title || '',
+          truthSummary,
+          truthInLove,
+          actionTitle,
+          actionBody,
+          userQuestion,
+          scriptureResults,
+        });
+        wisdom = formatWisdomText(declarationWisdom);
+      } else if (!isPureScriptureRequest) {
+        // If explanation is requested, get it from OpenAI and append
         console.log('[Get-Action-Guidance] Explanation requested, getting from OpenAI');
         const isLineByLineRequest = isScriptureLineByLineRequest(userQuestion);
         const explanationPrompt = [

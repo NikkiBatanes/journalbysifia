@@ -137,6 +137,54 @@ const cleanExampleItem = (text: string): string =>
     .replace(/[,;.!?]+$/g, '')
     .trim());
 
+const stripContrastExampleBoundaryQuotes = (text: string): string =>
+  stripBalancedExampleQuotes(String(text || '').trim())
+    .replace(/^["“”]\s*/, '')
+    .replace(/\s*["“”]\s*([.!?])$/, '$1')
+    .replace(/\s*["“”]$/, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+const isLikelyContrastStatement = (text: string): boolean => {
+  const cleaned = stripContrastExampleBoundaryQuotes(text);
+  return cleaned.length >= 8 &&
+    cleaned.length <= 180 &&
+    /^(?:I|I'm|I’m|I'll|I’ll|I've|I’ve|We|We're|We’re|You|You're|You’re|My|This|That)\b/i.test(cleaned);
+};
+
+const normalizeQuotedContrastExample = (text: string): string | null => {
+  const source = String(text || '').trim();
+  const separatorMatch = source.match(/\s+(versus|vs\.?|instead of)\s+/i);
+  if (!separatorMatch || separatorMatch.index === undefined) {
+    return null;
+  }
+
+  const before = source.slice(0, separatorMatch.index).trim();
+  const after = source.slice(separatorMatch.index + separatorMatch[0].length).trim();
+  const hasBoundaryQuote =
+    /^["“”]/.test(before) ||
+    /["“”]$/.test(before) ||
+    /^["“”]/.test(after) ||
+    /["“”]$/.test(after);
+
+  if (!before || !after) {
+    return null;
+  }
+
+  const first = stripContrastExampleBoundaryQuotes(before);
+  const second = stripContrastExampleBoundaryQuotes(after);
+  if (!first || !second) {
+    return null;
+  }
+
+  if (!hasBoundaryQuote && !(isLikelyContrastStatement(first) && isLikelyContrastStatement(second))) {
+    return null;
+  }
+
+  const separator = /^vs/i.test(separatorMatch[1]) ? 'versus' : separatorMatch[1].toLowerCase();
+  return `"${first}" ${separator} "${second}"`;
+};
+
 const extractStandaloneQuotedExampleItems = (text: string): string[] => {
   const source = String(text || '').trim();
   const items: string[] = [];
@@ -181,7 +229,15 @@ const extractStandaloneQuotedExampleItems = (text: string): string[] => {
 const cleanActionExampleText = (text: string): string => {
   const source = cleanMarkdown(String(text || ''))
     .replace(/^Example:\s*/i, '')
+    .replace(/\\"/g, '"')
+    .replace(/\\'/g, "'")
+    .replace(/&quot;|&#34;/gi, '"')
     .trim();
+  const quotedContrast = normalizeQuotedContrastExample(source);
+  if (quotedContrast) {
+    return quotedContrast;
+  }
+
   const quotedItems = extractStandaloneQuotedExampleItems(source);
   return quotedItems.length >= 2 ? quotedItems.join('; ') : stripBalancedExampleQuotes(source);
 };

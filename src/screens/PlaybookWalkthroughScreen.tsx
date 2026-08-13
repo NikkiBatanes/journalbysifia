@@ -1336,6 +1336,55 @@ function stripWrappingQuotesUnlessList(text: string): string {
   return stripBalancedActionQuotes(value);
 }
 
+function stripContrastExampleBoundaryQuotes(text: string): string {
+  return stripBalancedActionQuotes(String(text || '').trim())
+    .replace(/^["“”]\s*/, '')
+    .replace(/\s*["“”]\s*([.!?])$/, '$1')
+    .replace(/\s*["“”]$/, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function isLikelyContrastStatement(text: string): boolean {
+  const cleaned = stripContrastExampleBoundaryQuotes(text);
+  return cleaned.length >= 8 &&
+    cleaned.length <= 180 &&
+    /^(?:I|I'm|I’m|I'll|I’ll|I've|I’ve|We|We're|We’re|You|You're|You’re|My|This|That)\b/i.test(cleaned);
+}
+
+function normalizeQuotedContrastExample(value: string): string | null {
+  const source = String(value || '').trim();
+  const separatorMatch = source.match(/\s+(versus|vs\.?|instead of)\s+/i);
+  if (!separatorMatch || separatorMatch.index === undefined) {
+    return null;
+  }
+
+  const before = source.slice(0, separatorMatch.index).trim();
+  const after = source.slice(separatorMatch.index + separatorMatch[0].length).trim();
+  const hasBoundaryQuote =
+    /^["“”]/.test(before) ||
+    /["“”]$/.test(before) ||
+    /^["“”]/.test(after) ||
+    /["“”]$/.test(after);
+
+  if (!before || !after) {
+    return null;
+  }
+
+  const first = stripContrastExampleBoundaryQuotes(before);
+  const second = stripContrastExampleBoundaryQuotes(after);
+  if (!first || !second) {
+    return null;
+  }
+
+  if (!hasBoundaryQuote && !(isLikelyContrastStatement(first) && isLikelyContrastStatement(second))) {
+    return null;
+  }
+
+  const separator = /^vs/i.test(separatorMatch[1]) ? 'versus' : separatorMatch[1].toLowerCase();
+  return `"${first}" ${separator} "${second}"`;
+}
+
 function removeDecorativeActionSingleQuotes(text: string): string {
   let out = '';
   const source = String(text || '');
@@ -1475,6 +1524,43 @@ function splitQuestionPromptText(value: string): string[] {
     .map(part => part.trim())
     .filter(Boolean);
   return questions.length > 0 ? questions : [String(value || '').trim()].filter(Boolean);
+}
+
+function isAskPromptQualifierLine(line: string): boolean {
+  return /^(?:for\s+each(?:\s+(?:one|declaration|item|thought|belief|sentence|step))?|for\s+every(?:\s+(?:one|declaration|item|thought|belief|sentence|step))?|for\s+each\s+of\s+them),\s*$/i.test(line.trim());
+}
+
+function askPromptQualifierLabel(line: string): string {
+  return capitalizeFirstLetter(line.trim().replace(/,\s*$/, ''));
+}
+
+function combineAskPromptLabel(qualifier: string | null, label: string): string {
+  if (!qualifier) {
+    return label;
+  }
+
+  return `${qualifier}, ${label.charAt(0).toLowerCase()}${label.slice(1)}`;
+}
+
+function isPromptQuestionLine(line: string): boolean {
+  return /\?\s*$/.test(stripBalancedActionQuotes(line.trim()));
+}
+
+function collectPromptQuestions(lines: string[], startIndex: number): { questions: string[]; nextIndex: number } {
+  const questions: string[] = [];
+  let cursor = startIndex;
+
+  while (cursor < lines.length) {
+    const line = lines[cursor]?.trim() || '';
+    if (!isPromptQuestionLine(line)) {
+      break;
+    }
+
+    questions.push(stripBalancedActionQuotes(line));
+    cursor++;
+  }
+
+  return { questions, nextIndex: cursor };
 }
 
 function splitHintTextFromTrailingInstruction(value: string): { hintText: string; trailingText: string } {
@@ -2132,7 +2218,11 @@ function cleanActionDisplaySegment(value: string, preserveBulletMarkers = false)
 }
 
 function normalizeActionExampleDisplayText(example: string): string {
-  let value = String(example || '').trim();
+  let value = String(example || '')
+    .replace(/\\"/g, '"')
+    .replace(/\\'/g, "'")
+    .replace(/&quot;|&#34;/gi, '"')
+    .trim();
   const bareYesNoAnswers = value.replace(/[.!?]+$/g, '').match(/^(yes|no)(?:\s*,\s*(yes|no))+$/i);
   if (bareYesNoAnswers) {
     const answers = value
@@ -2142,6 +2232,11 @@ function normalizeActionExampleDisplayText(example: string): string {
     return answers
       .map((answer, index) => `Question ${index + 1}: ${answer}`)
       .join('\n');
+  }
+
+  const quotedContrast = normalizeQuotedContrastExample(value);
+  if (quotedContrast) {
+    return quotedContrast;
   }
 
   const quotedItems = [...value.matchAll(/["“]([^"”]+)["”]/g)].map(match => match[1].trim()).filter(Boolean);
@@ -2234,6 +2329,39 @@ function normalizeActionExampleDisplayText(example: string): string {
   }
 
   return value;
+}
+
+function getPrimaryActionExample(rawExamples: unknown, subTasks?: ActionStep['subTasks']): string | null {
+  let candidates: string[] = [];
+
+  if (typeof rawExamples === 'string') {
+    const source = rawExamples.trim();
+    if (ACTION_EXAMPLE_MARKER_REGEX.test(source)) {
+      candidates = source
+        .split(ACTION_EXAMPLE_MARKER_REGEX)
+        .filter(part => part.trim().length > 0);
+    } else if (source.includes(';')) {
+      candidates = source.split(';');
+    } else if (source) {
+      candidates = [source];
+    }
+  } else if (Array.isArray(rawExamples)) {
+    candidates = rawExamples.map(example => String(example || ''));
+  } else if (subTasks && subTasks.length > 0) {
+    candidates = subTasks
+      .filter(subTask => typeof subTask.text === 'string' && subTask.text.toLowerCase().startsWith('example:'))
+      .map(subTask => subTask.text);
+  }
+
+  const cleanedCandidates = candidates
+    .map(candidate => candidate.replace(/^Example\s*[:：]\s*/i, '').trim())
+    .filter(Boolean);
+  const preferred =
+    cleanedCandidates.find(candidate => normalizeQuotedContrastExample(candidate)) ||
+    cleanedCandidates.find(candidate => /^["“]/.test(candidate)) ||
+    cleanedCandidates[0];
+
+  return preferred ? normalizeActionExampleDisplayText(preferred) : null;
 }
 
 function splitActionDescription(value: string): { body: string; example?: string } {
@@ -2333,6 +2461,9 @@ function splitReadableActionLine(line: string): string[] {
     .map(part => part.trim())
     .filter(Boolean);
   if (sentenceParts.length >= 2 && sentenceParts.some(part => isAskPromptIntroLine(part))) {
+    return sentenceParts.flatMap(part => splitReadableActionLine(part));
+  }
+  if (sentenceParts.length >= 2 && isAskPromptQualifierLine(sentenceParts[sentenceParts.length - 1])) {
     return sentenceParts.flatMap(part => splitReadableActionLine(part));
   }
   if (sentenceParts.length >= 2 && sentenceParts.some(part => isChecklistIntroLine(part))) {
@@ -2709,6 +2840,7 @@ function detectBodyLines(lines: string[], actionType: string): BodyLine[] {
   let expectingPromptQuestion = false;
   let inChecklist = false;
   let inWriteDownList = false;
+  let pendingAskPromptQualifier: string | null = null;
 
   for (let idx = 0; idx < lines.length; idx++) {
     const raw = lines[idx];
@@ -2836,6 +2968,47 @@ function detectBodyLines(lines: string[], actionType: string): BodyLine[] {
       continue;
     }
 
+    if (isAskPromptQualifierLine(line)) {
+      if (isAskPromptIntroLine(nextLine)) {
+        pendingAskPromptQualifier = askPromptQualifierLabel(line);
+      } else {
+        out.push({ text: `${askPromptQualifierLabel(line)}:`, type: 'intro' });
+        pendingAskPromptQualifier = null;
+      }
+      expectingPromptQuestion = false;
+      inChecklist = false;
+      inWriteDownList = false;
+      continue;
+    }
+
+    if (isAskPromptIntroLine(line)) {
+      const { questions, nextIndex } = collectPromptQuestions(lines, idx + 1);
+      out.push({
+        label: combineAskPromptLabel(pendingAskPromptQualifier, askPromptLabel(line)),
+        text: '',
+        type: 'ask',
+      });
+      pendingAskPromptQualifier = null;
+
+      if (questions.length > 0) {
+        out.push({ label: 'Ask', text: questions.join('\n\n'), type: 'script' });
+        idx = nextIndex - 1;
+        expectingPromptQuestion = false;
+      } else {
+        expectingPromptQuestion = true;
+      }
+      inChecklist = false;
+      inWriteDownList = false;
+      continue;
+    }
+
+    if (expectingPromptQuestion && isPromptQuestionLine(line)) {
+      out.push({ label: 'Ask', text: stripBalancedActionQuotes(line), type: 'script' });
+      inChecklist = false;
+      inWriteDownList = false;
+      continue;
+    }
+
     if (isScriptIntroLine(line) && isQuotedActionLine(nextLine)) {
       out.push({
         label: scriptLabelForIntro(line),
@@ -2864,21 +3037,6 @@ function detectBodyLines(lines: string[], actionType: string): BodyLine[] {
         type: inChecklist ? 'checklistItem' : 'bullet',
       });
       expectingPromptQuestion = false;
-      inWriteDownList = false;
-      continue;
-    }
-
-    if (isAskPromptIntroLine(line)) {
-      out.push({ label: askPromptLabel(line), text: '', type: 'ask' });
-      expectingPromptQuestion = true;
-      inChecklist = false;
-      inWriteDownList = false;
-      continue;
-    }
-
-    if (expectingPromptQuestion && line.endsWith('?')) {
-      out.push({ text: line, type: 'question' });
-      inChecklist = false;
       inWriteDownList = false;
       continue;
     }
@@ -3862,7 +4020,9 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
   const rawDescription = currentStep.description ?? currentStep.subTasks?.map(s => s.text).join('\n') ?? '';
   const actionDescription = splitActionDescription(rawDescription);
   const rawMainBody = actionDescription.body;
-  const exampleText = actionDescription.example ? capitalizeFirstLetter(actionDescription.example) : null;
+  const fallbackExample = getPrimaryActionExample((currentStep as any).examples, currentStep.subTasks);
+  const resolvedExample = actionDescription.example || fallbackExample;
+  const exampleText = resolvedExample ? capitalizeFirstLetter(normalizeActionExampleDisplayText(resolvedExample)) : null;
   const exampleFieldLines = exampleText ? parseExampleFieldLines(exampleText) : [];
 
   // Process lines individually — preserve '* ' bullet markers, strip inline markers from the rest
