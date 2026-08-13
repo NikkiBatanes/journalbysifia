@@ -569,10 +569,66 @@ type ScriptureDetectionResult = {
   isScripture: boolean;
   reference?: string;
   references?: string[];
+  requestedCount?: number | null;
   isFullChapter: boolean;
 };
 
 const BIBLE_REFERENCE_REGEX = /\b(genesis|exodus|leviticus|numbers|deuteronomy|joshua|judges|ruth|1\s*samuel|2\s*samuel|1\s*kings|2\s*kings|1\s*chronicles|2\s*chronicles|ezra|nehemiah|esther|job|psalm|proverbs|ecclesiastes|song\s*of\s*solomon|isaiah|jeremiah|lamentations|ezekiel|daniel|hosea|joel|amos|obadiah|jonah|micah|nahum|habakkuk|zephaniah|haggai|zechariah|malachi|matthew|mark|luke|john|acts|romans|1\s*corinthians|2\s*corinthians|galatians|ephesians|philippians|colossians|1\s*thessalonians|2\s*thessalonians|1\s*timothy|2\s*timothy|titus|philemon|hebrews|james|1\s*peter|2\s*peter|1\s*john|2\s*john|3\s*john|jude|revelation)\s+\d+(?::\d+(?:-\d+)?)?/gi;
+
+const SCRIPTURE_COUNT_WORDS: Record<string, number> = {
+  one: 1,
+  two: 2,
+  three: 3,
+  four: 4,
+  five: 5,
+  six: 6,
+  seven: 7,
+  eight: 8,
+};
+
+function normalizeReferenceKey(reference: string): string {
+  return String(reference || '').replace(/\s+/g, ' ').trim().toLowerCase();
+}
+
+function requestedScriptureCount(question: string, actionContext = ''): number | null {
+  const q = String(question || '').toLowerCase();
+  const context = String(actionContext || '').toLowerCase();
+  const countPattern = /\b(\d+|one|two|three|four|five|six|seven|eight)\s+(?:scriptures?|verses?|passages?|references?)\b/i;
+  const questionMatch = q.match(countPattern);
+  const contextMatch = context.match(countPattern);
+  const match = questionMatch || (/\b(?:verses|scriptures|passages|references|all|these|those)\b/i.test(q) ? contextMatch : null);
+  const rawCount = match?.[1];
+
+  if (!rawCount) {
+    return null;
+  }
+
+  const parsed = /^\d+$/.test(rawCount)
+    ? Number(rawCount)
+    : SCRIPTURE_COUNT_WORDS[rawCount];
+
+  return Number.isFinite(parsed) ? Math.max(1, Math.min(parsed, 6)) : null;
+}
+
+function appendUniqueReferences(base: string[], additions: string[], limit: number): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+
+  for (const reference of [...base, ...additions]) {
+    const cleaned = String(reference || '').replace(/\s+/g, ' ').trim();
+    const key = normalizeReferenceKey(cleaned);
+    if (!cleaned || seen.has(key)) {
+      continue;
+    }
+    seen.add(key);
+    out.push(cleaned);
+    if (out.length >= limit) {
+      break;
+    }
+  }
+
+  return out;
+}
 
 function extractScriptureReferences(value: string): string[] {
   const seen = new Set<string>();
@@ -588,6 +644,11 @@ function extractScriptureReferences(value: string): string[] {
   }
 
   return references;
+}
+
+function normalizeSuggestedScriptureReference(value: unknown): string {
+  const [reference] = extractScriptureReferences(String(value || ''));
+  return reference || '';
 }
 
 function detectScriptureRequest(question: string, actionContext?: string): ScriptureDetectionResult {
@@ -609,23 +670,23 @@ function detectScriptureRequest(question: string, actionContext?: string): Scrip
   
   const questionReferences = extractScriptureReferences(q);
   const contextReferences = extractScriptureReferences(context);
-  const hasBookReference = questionReferences.length > 0 || contextReferences.length > 0;
+  const requestedCount = requestedScriptureCount(q, context);
+  const asksForScriptureReference = /\b(?:scripture|scriptures|bible|verse|verses|passage|passages|reference|references)\b/i.test(q);
+  const wantsMultipleReferences = (requestedCount || 0) > 1 || /\b(?:verses|scriptures|passages|references|all|both|these|those)\b/i.test(q);
+  const canSelectContextualReferences = asksForScriptureReference && context.trim().length > 0;
+  const hasScriptureSource = questionReferences.length > 0 || contextReferences.length > 0 || canSelectContextualReferences;
   
-  console.log('[Get-Action-Guidance] scriptureKeywords:', scriptureKeywords, 'hasBookReference:', hasBookReference);
+  console.log('[Get-Action-Guidance] scriptureKeywords:', scriptureKeywords, 'hasScriptureSource:', hasScriptureSource, 'requestedCount:', requestedCount);
   
-  if (!scriptureKeywords || !hasBookReference) {
+  if (!scriptureKeywords || !hasScriptureSource) {
     return { isScripture: false, isFullChapter: false };
   }
 
-  const wantsMultipleReferences = /\b(?:verses|scriptures|passages|references|all|both|these|those)\b/i.test(q);
   const references = questionReferences.length > 0
     ? (wantsMultipleReferences ? questionReferences : [questionReferences[0]])
-    : (wantsMultipleReferences ? contextReferences.slice(0, 4) : [contextReferences[0]]);
-
-  if (references.length === 0 || !references[0]) {
-    console.log('[Get-Action-Guidance] No reference match found');
-    return { isScripture: false, isFullChapter: false };
-  }
+    : contextReferences.length > 0
+      ? (wantsMultipleReferences ? contextReferences.slice(0, requestedCount || 4) : [contextReferences[0]])
+      : [];
 
   const reference = references[0];
   console.log('[Get-Action-Guidance] References extracted:', references);
@@ -648,7 +709,7 @@ function detectScriptureRequest(question: string, actionContext?: string): Scrip
   const isFullChapter = explicitFullChapterRequest || explicitVerseRangeRequest || bareChapterRequest;
 
   console.log('[Get-Action-Guidance] isFullChapter:', isFullChapter);
-  return { isScripture: true, reference, references, isFullChapter };
+  return { isScripture: true, reference, references, requestedCount, isFullChapter };
 }
 
 async function fetchScriptureText(reference: string, preferredTranslation?: string): Promise<{ text: string; reference: string; version: string }> {
@@ -665,6 +726,111 @@ async function fetchScriptureText(reference: string, preferredTranslation?: stri
   } catch (error) {
     console.error('[Get-Action-Guidance] Failed to fetch scripture:', error);
     throw error;
+  }
+}
+
+async function suggestScriptureReferencesWithAI(args: {
+  playbookTitle: string;
+  truthSummary: string;
+  truthInLove: string;
+  actionTitle: string;
+  actionBody: string;
+  userQuestion: string;
+  existingReferences: string[];
+  requestedCount: number;
+}): Promise<string[]> {
+  const openAIKey = Deno.env.get('OPENAI_API_KEY');
+  const targetCount = Math.max(1, Math.min(args.requestedCount || 3, 6));
+  const candidateLimit = Math.min(targetCount + 2, 8);
+
+  if (!openAIKey) {
+    console.warn('[Get-Action-Guidance] Missing OpenAI API key for scripture reference selection.');
+    return appendUniqueReferences([], args.existingReferences, candidateLimit);
+  }
+
+  const prompt = [
+    'Choose Bible references for this one faithful action.',
+    '',
+    `Need: ${targetCount} ${targetCount === 1 ? 'reference' : 'references'}.`,
+    args.existingReferences.length
+      ? `Existing starter references to preserve if relevant: ${args.existingReferences.join(', ')}`
+      : 'There are no starter references.',
+    '',
+    'Rules:',
+    '- Return references only, never verse text.',
+    '- Match the current action topic, not a generic fixed theme.',
+    '- Prefer individual verses. Use a 2-verse range only if both verses are needed.',
+    '- Do not use chapter-length ranges unless the user explicitly asked for a chapter.',
+    '- Use the Protestant Bible canon.',
+    '- Return a few extra candidates if helpful so the app can still fetch enough exact text.',
+    '',
+    'Context:',
+    `Playbook: ${cleanText(args.playbookTitle, 180)}`,
+    `Truth: ${cleanText(args.truthSummary, 500)}`,
+    args.truthInLove ? `Truth in Love: ${cleanText(args.truthInLove, 500)}` : '',
+    `Action: ${cleanText(args.actionTitle, 180)}`,
+    `Action description: ${cleanActionBody(args.actionBody, 1500)}`,
+    `User asks: ${cleanText(args.userQuestion, 500)}`,
+    '',
+    'Return ONLY valid JSON in this exact shape:',
+    '{"references":["Book chapter:verse","Book chapter:verse"]}',
+  ].filter(Boolean).join('\n');
+
+  try {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${openAIKey}`,
+      },
+      body: JSON.stringify({
+        model: 'gpt-4.1-mini',
+        messages: [
+          {
+            role: 'system',
+            content: 'You select Bible references for a Christian app. Return only valid JSON and do not provide verse text.',
+          },
+          {
+            role: 'user',
+            content: prompt,
+          },
+        ],
+        temperature: 0.20,
+        top_p: 1,
+        max_completion_tokens: 500,
+        response_format: { type: 'json_object' },
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('[Get-Action-Guidance] Scripture reference selection OpenAI error:', errorText);
+      return appendUniqueReferences([], args.existingReferences, candidateLimit);
+    }
+
+    const data = await response.json();
+    const raw = data.choices?.[0]?.message?.content || '';
+    console.log('[Get-Action-Guidance] Scripture reference selection raw response:', raw);
+
+    let parsed: Record<string, unknown> = {};
+    try {
+      parsed = JSON.parse(raw);
+    } catch (error) {
+      console.error('[Get-Action-Guidance] Scripture reference selection JSON parse failed:', error);
+      return appendUniqueReferences([], args.existingReferences, candidateLimit);
+    }
+
+    const normalizedReferences = Array.isArray(parsed.references)
+      ? parsed.references
+        .map(normalizeSuggestedScriptureReference)
+        .filter(Boolean)
+      : [];
+    const references = appendUniqueReferences(args.existingReferences, normalizedReferences, candidateLimit);
+    console.log('[Get-Action-Guidance] Contextual scripture references selected:', references);
+    return references;
+  } catch (error) {
+    console.error('[Get-Action-Guidance] Scripture reference selection failed:', error);
+    return appendUniqueReferences([], args.existingReferences, candidateLimit);
   }
 }
 
@@ -940,16 +1106,39 @@ serve(async (req: Request) => {
     const scriptureResults: Array<{ text: string; reference: string; version: string }> = [];
     let isPureScriptureRequest = false;
 
-    if (scriptureRequest.isScripture && scriptureRequest.reference) {
-      const requestedReferences = scriptureRequest.references?.length
+    if (scriptureRequest.isScripture) {
+      const startingReferences = scriptureRequest.references?.length
         ? scriptureRequest.references
-        : [scriptureRequest.reference];
+        : (scriptureRequest.reference ? [scriptureRequest.reference] : []);
+      const pluralReferenceRequest = /\b(?:verses|scriptures|passages|references)\b/i.test(userQuestion);
+      const targetReferenceCount = scriptureRequest.requestedCount
+        || (startingReferences.length > 1 ? startingReferences.length : (pluralReferenceRequest ? 3 : 1));
+      const candidateReferenceLimit = Math.min(targetReferenceCount + 2, 8);
+      let requestedReferences = appendUniqueReferences([], startingReferences, candidateReferenceLimit);
+
+      if (requestedReferences.length < targetReferenceCount) {
+        requestedReferences = await suggestScriptureReferencesWithAI({
+          playbookTitle: playbook.title || '',
+          truthSummary,
+          truthInLove,
+          actionTitle,
+          actionBody,
+          userQuestion,
+          existingReferences: requestedReferences,
+          requestedCount: targetReferenceCount,
+        });
+      }
+
       console.log('[Get-Action-Guidance] Scripture request detected:', requestedReferences);
 
       // Check if it's a pure scripture request (no explanation asked)
       isPureScriptureRequest = !isScriptureExplanationRequest(userQuestion);
 
       for (const requestedReference of requestedReferences) {
+        if (scriptureResults.length >= targetReferenceCount) {
+          break;
+        }
+
         try {
           const scriptureResult = await fetchScriptureText(requestedReference, preferredBibleTranslation);
           scriptureResults.push(scriptureResult);
