@@ -574,6 +574,51 @@ Never say: "God allowed this for a reason," "God is teaching you something throu
 Never minimize trauma. Never rush the healing process.
 `;
 
+export const SUICIDE_BEREAVEMENT_THEOLOGY_RULES = `=== SUICIDE BEREAVEMENT AND THEOLOGY MODULE ===
+Use this module when the user asks about suicide in relation to heaven, hell, salvation, forgiveness, judgment, God's mercy, God's justice, or a loved one/person who died by suicide.
+
+This is not the same as active suicidal ideation. If the user says they want to die, want to kill themselves, might hurt themselves, cannot stay safe, or has a current plan or intent, SAFETY RULES override this module.
+
+REQUIRED THEOLOGICAL POSTURE:
+- Answer directly, but do not pronounce a specific deceased person saved or condemned.
+- Say that suicide is a grave tragedy and a sin against the gift of life, but Scripture does not teach that suicide itself is uniquely unforgivable or an automatic verdict of hell.
+- Say salvation rests in Christ, not in the circumstances or emotional state of a person's final moments.
+- Say judgment belongs to God, who is perfectly just and merciful.
+- Do not offer automatic assurance that the person is in heaven. Do not offer automatic condemnation that the person is in hell.
+- Do not use the bereaved person's desire for comfort as an accusation.
+- Do not write in a way that can be heard as permission, safety, or spiritual license for a living person to choose suicide.
+- Say plainly that a living person must never reason, "Jesus will forgive me, so I can take my life." That is presumption, not faith.
+- Say that genuine trust in Christ calls a suffering person toward staying alive, bringing despair into the light, asking for help, and refusing to obey self-destructive thoughts.
+- Do not argue that because someone died by suicide, they must not have trusted Christ. Severe anguish, mental illness, panic, trauma, or despair can distort a person's judgment, and God alone knows the heart. But do not use that truth to soften the warning owed to the living.
+- Hold both pastoral aims together: comfort the grieving without declaring a verdict, and warn the living without giving despair the final word.
+
+ANTI-LICENSE SAFETY LINE:
+Every playbook in this module must include this idea in natural language: "This is not permission for anyone alive to choose suicide. If that thought is present, the next step is immediate safety, not theological reasoning."
+If the user's input includes first-person or current-tense intent, planning, desire, or temptation toward suicide, do not use this module as the main response. Use SAFETY RULES.
+
+PRAYER CLARITY:
+- Do not tell the user to pray for the soul of the dead, pray over the dead, pray for mercy over a dead soul, or pray as if post-death standing can be changed by prayer.
+- It is biblically sound to entrust the deceased person to God, lament before God, and pray for the living: grieving family, friends, pastors, counselors, first responders, and anyone still in despair.
+- Use language like "entrust them to God" and "pray for those who are grieving", not "pray for their soul."
+- Do not write "pray for those lost without faith", "pray for the lost", "pray for lost souls", or any phrase that implies praying for deceased unbelievers.
+- Avoid using "lost" as a noun for dead people in this module. If you mean living unbelievers, say "living people who do not know Christ" and keep it separate from the deceased person.
+- For the deceased, the permitted language is entrust, grieve, lament, and leave the verdict with God. For prayer, direct the user toward the living only.
+
+TONE:
+- Gentle, sober, and biblically clear. Avoid courtroom-like certainty where Scripture has not given it.
+- Do not use shame, threat, or blunt verdict language.
+- Avoid phrases like "false assurance", "comforting lies", "wishful thinking", "grief rewriting truth", "do not let grief rewrite God's truth", "those lost by suicide", or "God's mercy extends only through faith" as a declaration line in this context.
+- Prefer "died by suicide" or "took their own life." Do not use "committed suicide" in user-facing output.
+- Avoid standalone lines like "what matters is whether they trusted Christ" unless you immediately add the anti-license warning for the living and the humility that God alone knows the heart.
+
+REQUIRED OUTPUT BEHAVIOR:
+- truth_summary should hold three truths: suicide is tragic, Scripture does not make it the final verdict, and judgment belongs to God.
+- truth_in_love must directly answer the question in the first paragraph without declaring the person's eternal state.
+- truth_in_love must include the anti-license safety line before the final paragraph.
+- faithful_actions should include separating revealed truth from speculation, rejecting presumption, entrusting judgment to God, praying for the living/grieving, speaking without verdicts, checking for present danger, and asking a pastor or biblical counselor for help if needed.
+- If the user is grieving a loved one, category should usually be "Grief & Loss" rather than "Faith & Obedience."
+`;
+
 export const FINANCE_RULES = `=== FINANCE RULES MODULE ===
 Use this module when the input involves money, debt, payment, cash flow, business obligations, borrowing, cutting expenses, or pricing.
 
@@ -925,9 +970,33 @@ export function detectDoctrine(input: string): boolean {
   return result;
 }
 
+function detectLiveSelfHarm(input: string): boolean {
+  const text = input.toLowerCase();
+  return /\b(?:i|i'm|im|me|myself)\b[\s\S]{0,80}\b(?:suicidal|suicide|kill myself|end my life|want to die|hurt myself|harm myself|self-harm|self harm|cannot stay safe|can't stay safe)\b/i.test(text)
+    || /\b(?:kill myself|end my life|want to die|i am suicidal|i'm suicidal|im suicidal|i might hurt myself|i may hurt myself|i will hurt myself|i cannot stay safe|i can't stay safe)\b/i.test(text)
+    || /\b(?:my|our|a|the)?\s*(?:friend|son|daughter|brother|sister|mother|father|husband|wife|spouse|child|teen|pastor|student|roommate|coworker)\b[\s\S]{0,80}\b(?:is suicidal|wants to die|wants to kill (?:himself|herself|themself|themselves)|might hurt (?:himself|herself|themself|themselves)|cannot stay safe|can't stay safe)\b/i.test(text);
+}
+
+export function detectSuicideBereavementOrTheology(input: string): boolean {
+  const text = input.toLowerCase();
+  if (detectLiveSelfHarm(input)) return false;
+
+  const suicideTopic = /\b(?:suicide|suicidal|self[-\s]?harm|died by suicide|death by suicide|took (?:his|her|their|my|our) own life|take (?:his|her|their|my|our) own life|takes (?:his|her|their|my|our) own life|taking (?:his|her|their|my|our) own life|committed suicide|commit suicide|killed (?:himself|herself|themself|themselves)|kills (?:himself|herself|themself|themselves))\b/i.test(text);
+  if (!suicideTopic) return false;
+
+  const bereavementContext = /\b(?:died|dead|death|passed away|lost|grieving|grieve|loved one|friend|family|son|daughter|brother|sister|mother|father|husband|wife|spouse|someone|person|people|those who|who died|after death)\b/i.test(text);
+  const theologyContext = /\b(?:heaven|hell|saved|salvation|forgiven|forgive|unforgivable|mercy|justice|judgment|judge|eternal|soul|afterlife|sin|biblical|scripture|god|jesus|christ)\b/i.test(text);
+  const hypotheticalAfterlifeQuestion = /\b(?:go to heaven|go to hell|goes to heaven|goes to hell|went to heaven|went to hell)\b/i.test(text);
+
+  const result = bereavementContext || theologyContext || hypotheticalAfterlifeQuestion;
+  if (result) console.log('[Detection] SUICIDE_BEREAVEMENT_THEOLOGY module triggered');
+  return result;
+}
+
 export function detectSafety(input: string): boolean {
   const text = input.toLowerCase();
-  const result = /(suicide|kill myself|end my life|want to die|self-harm|hurt myself|cannot stay safe|abuse|hit me|hits me|hit my|threatened|unsafe|violence|physical danger|immediate danger|i am in danger|afraid of him|afraid of her|rape|sexual assault|molested|abused sexually|sexual trauma|trauma from abuse|traumatized by abuse)/i.test(text);
+  const dangerOrAbuse = /(abuse|hit me|hits me|hit my|threatened|unsafe|violence|physical danger|immediate danger|i am in danger|afraid of him|afraid of her|rape|sexual assault|molested|abused sexually|sexual trauma|trauma from abuse|traumatized by abuse)/i.test(text);
+  const result = detectLiveSelfHarm(input) || dangerOrAbuse || (/(suicide|self-harm)/i.test(text) && !detectSuicideBereavementOrTheology(input));
   if (result) console.log('[Detection] SAFETY module triggered');
   return result;
 }
@@ -993,9 +1062,13 @@ export function buildGuidedPlaybookPrompt(
   const modules = [BASE_PROMPT];
   console.log('[Prompt Builder] BASE_PROMPT included | chars:', BASE_PROMPT.length, '| est. tokens:', Math.round(BASE_PROMPT.length / 4));
 
-  // Priority order: SAFETY > DOCTRINE > SPIRITUAL_DISCERNMENT > JUDAISM > CHURCH_ORDER > MINISTRY_STEWARDSHIP > FINANCE > MARRIAGE > MARITAL_INTIMACY > GENDER_SEXUALITY
+  // Priority order: SAFETY > SUICIDE_BEREAVEMENT_THEOLOGY > DOCTRINE > SPIRITUAL_DISCERNMENT > JUDAISM > CHURCH_ORDER > MINISTRY_STEWARDSHIP > FINANCE > MARRIAGE > MARITAL_INTIMACY > GENDER_SEXUALITY
   if (detectSafety(userInput)) {
     modules.push(SAFETY_RULES);
+  }
+
+  if (detectSuicideBereavementOrTheology(userInput)) {
+    modules.push(SUICIDE_BEREAVEMENT_THEOLOGY_RULES);
   }
 
   if (detectDoctrine(userInput)) {
@@ -1039,8 +1112,8 @@ export function buildGuidedPlaybookPrompt(
     // Reserved for future retry examples. No examples are appended yet.
   }
 
-  const finalPrompt = modules.filter(Boolean).join("\n\n");
+  const finalPrompt = modules.filter(Boolean).join('\n\n');
   console.log('[Prompt Builder] Total modules:', modules.length, '| Final prompt length:', finalPrompt.length, 'chars (est. tokens:', Math.round(finalPrompt.length / 4), ')');
-  
+
   return finalPrompt;
 }

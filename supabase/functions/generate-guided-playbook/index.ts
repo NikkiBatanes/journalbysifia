@@ -598,6 +598,11 @@ const MARRIAGE_EXPLICIT_REGEX = /\b(husband|wife|spouse|marriage|married|divorce
 const AMBIGUOUS_RELATIONSHIP_REGEX = /\b(relationship|partner|dating|boyfriend|girlfriend|fiance|fiancee)\b/i;
 const NEGATED_MARRIAGE_REGEX = /\b(?:not|never|no longer|isn't|is not|wasn't|was not|aren't|are not)\s+(?:married|in a marriage|my husband|my wife|my spouse)\b|\bnot\s+(?:my\s+)?(?:husband|wife|spouse)\b|\bnot\s+about\s+(?:marriage|my marriage)\b/i;
 const CHILD_EARLY_RELATIONSHIP_FAMILY_OPPOSES_REGEX = /\b(?:child|daughter|son|kid|teen)\b[\s\S]{0,160}\b(?:relationship|boyfriend|girlfriend|dating)\b[\s\S]{0,200}\b(?:sisters?|family|parents?|relatives?)\b[\s\S]{0,160}\b(?:against|oppose|opposing|not agree|disagree|concerned)\b[\s\S]{0,160}\b(?:open(?:s|ing)?\s+doors?|doorway|temptation|sin|spiritual attack|enemy)\b/i;
+const LIVE_SELF_HARM_REGEX = /\b(?:i|i'm|im|me|myself)\b[\s\S]{0,80}\b(?:suicidal|suicide|kill myself|end my life|want to die|hurt myself|harm myself|self-harm|self harm|cannot stay safe|can't stay safe)\b|\b(?:kill myself|end my life|want to die|i am suicidal|i'm suicidal|im suicidal|i might hurt myself|i may hurt myself|i will hurt myself|i cannot stay safe|i can't stay safe)\b|\b(?:my|our|a|the)?\s*(?:friend|son|daughter|brother|sister|mother|father|husband|wife|spouse|child|teen|pastor|student|roommate|coworker)\b[\s\S]{0,80}\b(?:is suicidal|wants to die|wants to kill (?:himself|herself|themself|themselves)|might hurt (?:himself|herself|themself|themselves)|cannot stay safe|can't stay safe)\b/i;
+const SUICIDE_TOPIC_REGEX = /\b(?:suicide|suicidal|self[-\s]?harm|died by suicide|death by suicide|took (?:his|her|their|my|our) own life|take (?:his|her|their|my|our) own life|takes (?:his|her|their|my|our) own life|taking (?:his|her|their|my|our) own life|committed suicide|commit suicide|killed (?:himself|herself|themself|themselves)|kills (?:himself|herself|themself|themselves))\b/i;
+const SUICIDE_BEREAVEMENT_CONTEXT_REGEX = /\b(?:died|dead|death|passed away|lost|grieving|grieve|loved one|friend|family|son|daughter|brother|sister|mother|father|husband|wife|spouse|someone|person|people|those who|who died|after death)\b/i;
+const SUICIDE_THEOLOGY_CONTEXT_REGEX = /\b(?:heaven|hell|saved|salvation|forgiven|forgive|unforgivable|mercy|justice|judgment|judge|eternal|soul|afterlife|sin|biblical|scripture|god|jesus|christ|go to heaven|go to hell|goes to heaven|goes to hell|went to heaven|went to hell)\b/i;
+const SUICIDE_BEREAVEMENT_FORBIDDEN_OUTPUT_REGEX = /\b(?:false assurance|comforting lies|wishful thinking|grief rewrite|grief rewriting|do not let grief rewrite|lost by suicide|those lost by suicide|committed suicide|does not promise heaven to those who take their own lives|no second chances after physical death|definitely in heaven|definitely in hell|what matters is whether (?:he|she|they|the person|someone) trusted christ|(?:not|no one is)?\s*automatically saved or lost because of suicide itself|pray(?:ing)? for (?:the )?(?:soul|souls) of (?:the )?dead|pray(?:ing)? (?:over|for) (?:a|the)?\s*dead soul|pray(?:ing)? for mercy over (?:a|the)?\s*(?:dead|deceased) soul|pray(?:ing)? for (?:those|people|ones|souls|the) (?:who are )?lost(?: without faith| in unbelief)?|pray(?:ing)? for lost souls|pray(?:ing)? for (?:those|people|ones) who died without faith|mercy extends only through faith in christ)\b/i;
 const CHURCH_ORDER_OUTPUT_VIOLATION_REGEX = /\b(?:gender bias contradicts|gender bias.*contradicts|distorted view.*because you are a woman|regardless of gender|because of my gender|because you are a woman|beyond gender|beyond gender roles|transcends (?:cultural assumptions about )?gender roles|supporting women.?s roles in ministry|defend(?:ing)? (?:my|your) calling to (?:pastor|pastoring)|(?:my|your) role as pastor|pastoral calling beyond gender|defining pastoral calling beyond gender|called to (?:serve as )?(?:a )?pastor|calling to (?:serve as )?(?:a )?pastor|women(?:'s)? (?:pastoral|pastor|elder|overseer) (?:calling|office|authority|role)|women (?:may|can|should) (?:serve as )?(?:pastors|elders|overseers)|opposition rooted in gender bias|God'?s call transcends cultural assumptions about gender roles)\b/i;
 const ACTION_EXAMPLE_MARKER_REGEX = /Example(?:\s+(?:prayer|message|text|words|script|sentence|phrase|loop|action|question|questions))?\s*[:：]\s*/i;
 const INDIRECT_TRUTH_OPENERS = [
@@ -616,6 +621,15 @@ const SOFT_ACTION_VERBS = ['reflect', 'consider', 'practice', 'remember', 'think
 const SHARP_ACTION_VERBS = ['name', 'separate', 'stop', 'write', 'ask', 'say', 'face', 'choose', 'refuse', 'tell', 'confront', 'cut', 'bring', 'identify', 'commit'];
 const COUNSELOR_SUPPORT_PERSON_REGEX = /\b(?:trusted\s+)?(?:(?:christian|biblical)\s+)?couns(?:el|ell)(?:or|ors|ing|ling)\b|\b(?:pastors?|elders?|church leaders?|discipleship leaders?|small group leaders?|biblical community|christian mentors?|mature believers?)\b/i;
 const COUNSELOR_SUPPORT_ACTION_REGEX = /\b(?:ask|tell|message|text|call|meet|meeting|bring|involve|share|speak|talk|contact|schedule|sit with|reach out)\b/i;
+
+function isSuicideBereavementOrTheologyInput(input: string): boolean {
+  const text = String(input || '');
+  if (!SUICIDE_TOPIC_REGEX.test(text) || LIVE_SELF_HARM_REGEX.test(text)) {
+    return false;
+  }
+
+  return SUICIDE_BEREAVEMENT_CONTEXT_REGEX.test(text) || SUICIDE_THEOLOGY_CONTEXT_REGEX.test(text);
+}
 
 function faithfulActionText(action: any): string {
   return [
@@ -1002,6 +1016,9 @@ function validatePlaybook(json: Record<string, any>, originalInput = ''): Valida
   if (CHURCH_ORDER_OUTPUT_VIOLATION_REGEX.test(allText)) {
     hardIssues.push('church order violation: output affirmed or defended a woman holding the pastor/elder/overseer office');
   }
+  if (isSuicideBereavementOrTheologyInput(originalInput) && SUICIDE_BEREAVEMENT_FORBIDDEN_OUTPUT_REGEX.test(allText)) {
+    softIssues.push('Suicide bereavement/theology drift detected — will repair harsh verdict language and post-death prayer language');
+  }
   const driftFound = DRIFT_PHRASES.filter(p => allText.includes(p));
   if (driftFound.length > 0) {
     softIssues.push(`Abstraction drift detected — forbidden phrases: ${driftFound.join(', ')}`);
@@ -1146,9 +1163,122 @@ function injectLocalRequiredFieldFallbacks(target: Record<string, any>): void {
   );
 }
 
+function repairSuicideBereavementTheologyPlaybook(target: Record<string, any>, originalInput = ''): void {
+  if (!isSuicideBereavementOrTheologyInput(originalInput)) {
+    return;
+  }
+
+  const allText = JSON.stringify(target).toLowerCase();
+  if (!SUICIDE_BEREAVEMENT_FORBIDDEN_OUTPUT_REGEX.test(allText)) {
+    return;
+  }
+
+  target.playbook_title = 'Entrusting a Suicide Loss to God';
+  target.category = 'Grief & Loss';
+  target.truth_summary = '[User\'s Name], suicide is tragic, Scripture gives no automatic verdict, and grace is never permission for the living to choose death.';
+  target.truth_in_love = [
+    'Do not answer this by declaring a person in heaven or in hell. Scripture teaches that salvation is through Christ, and it also teaches that God judges with perfect justice and mercy. It does not give you permission to turn suicide itself into an automatic eternal verdict.',
+    'Suicide is a grievous act against the gift of life, but the Bible does not teach that it is uniquely unforgivable. A person dying by suicide does not prove by itself that they did not belong to Christ, because severe anguish can distort judgment in ways only God fully sees. At the same time, you should not manufacture certainty where God has not given it.',
+    'This is not permission for anyone alive to choose suicide. If someone thinks, "Jesus will forgive me, so I can take my life," that is not faith speaking clearly. That is deadly presumption, and the next step is immediate safety, honesty, and help, not more theological reasoning.',
+    'The faithful path is to entrust the person to the Lord, grieve honestly, and care for the living who are carrying the shock and questions. Pray for those who are grieving and for anyone still in despair, not for a deceased soul as though prayer changes a person after death.',
+  ].join('\n\n');
+  target.transition_line = 'Take this slowly and speak with restraint.';
+  target.bible_verse = {
+    reference: 'Genesis 18:25',
+    text: 'Shall not the Judge of all the earth deal justly?',
+  };
+  target.scripture_note_lines = [
+    'God judges more rightly than grief can.',
+    'Grace is never permission to choose death.',
+    'Trust refuses denial, condemnation, and presumption.',
+  ];
+  target.faithful_actions = [
+    {
+      title: 'Separate revealed truth',
+      description: 'Refuse false certainty about what God has hidden.',
+      body: 'Use this decision filter before you speak:\nWhat has Scripture clearly revealed?\nWhat am I only assuming?\nWhat verdict belongs to God alone?\n\nExample: Revealed: salvation is in Christ. Assumed: I know the final state. God alone: the eternal verdict.',
+      primary_button: 'I separated',
+      secondary_button: 'Not yet',
+    },
+    {
+      title: 'Reject deadly presumption',
+      description: 'Refuse to treat grace as permission.',
+      body: 'Write this boundary in the journal:\nGrace does not give me permission to choose death.\nThen add one sentence about why life still belongs to God, not to despair.\n\nExample: Grace calls me to run to Christ and people, not to end my life.',
+      primary_button: 'I rejected',
+      secondary_button: 'Not yet',
+    },
+    {
+      title: 'Entrust judgment to God',
+      description: 'Hand the hidden verdict back to the Lord.',
+      body: 'Say plainly:\n"Lord, I do not know what You have not revealed. I entrust this person to Your justice and mercy."\nThen stop trying to pronounce the verdict yourself.\n\nExample: Say the sentence once slowly before you continue.',
+      primary_button: 'I entrusted',
+      secondary_button: 'Not yet',
+    },
+    {
+      title: 'Speak without verdicts',
+      description: 'Prepare words that are biblical and restrained.',
+      body: 'When someone asks, say:\n"I cannot declare what God has not revealed. I know salvation is in Christ, and I trust God to judge rightly."\nUse this instead of saying the person is certainly in heaven or hell.\n\nExample: Practice the sentence aloud once.',
+      primary_button: 'I practiced',
+      secondary_button: 'Not yet',
+    },
+    {
+      title: 'Check present danger',
+      description: 'Treat current suicidal thoughts as urgent.',
+      body: 'Ask this plainly:\nIs this only a question about someone who died?\nAm I thinking about harming myself?\nIs someone near me in danger right now?\nIf danger is present, stop here and tell a real person immediately.\n\nExample: If the answer is yes, say, "I am not safe alone right now. Please stay with me."',
+      primary_button: 'I checked',
+      secondary_button: 'Not yet',
+    },
+    {
+      title: 'Pray for the living',
+      description: 'Pray where Scripture gives you responsibility now.',
+      body: 'Do this:\n* Pray for the family grieving\n* Pray for anyone tempted toward despair\n* Ask God to make you gentle and truthful\n* Do not pray as if the person can be changed after death\n\nExample: Pray for one grieving person by name today.',
+      primary_button: 'I prayed',
+      secondary_button: 'Not yet',
+    },
+    {
+      title: 'Remove harsh speech',
+      description: 'Use careful wording around suicide and grief.',
+      body: 'Stop using language that treats the death like a public verdict. Start saying "died by suicide" and speaking with sobriety, hope, and restraint.\n\nExample: Rewrite one sentence using "died by suicide" before you say it to anyone.',
+      primary_button: 'I replaced',
+      secondary_button: 'Not yet',
+    },
+    {
+      title: 'Ask for wise counsel',
+      description: 'Bring the question to mature biblical care.',
+      body: 'Message a pastor or biblical counselor:\n"I need help speaking biblically and gently about suicide, judgment, and grief. Can we talk this week?"\nBring your questions, but do not ask them to give a verdict on the person.\n\nExample: Send the message to one pastor or biblical counselor.',
+      primary_button: 'I sent it',
+      secondary_button: 'Not yet',
+    },
+  ];
+  target.prayer = [
+    'Heavenly Father,',
+    '',
+    'I do not want to speak with certainty where You have not spoken. Help me honor the seriousness of suicide without making myself the judge of a person. Teach me to entrust this loss to Your justice and mercy, and to pray for the living who are grieving and vulnerable. Keep me from ever treating grace as permission for death, and make my words truthful, gentle, and protective.',
+    '',
+    'In Jesus\' Name,',
+    'Amen',
+  ].join('\n');
+  target.words_to_speak = [
+    'Christ alone is Savior and Judge.',
+    'I will not declare what God has hidden.',
+    'Grace is not permission to choose death.',
+    'I will pray for the living with compassion.',
+  ];
+  target.closing = 'Grieve honestly, warn the living clearly, and leave the hidden verdict with God.';
+  target.completion = {
+    question: 'Where do I need to hold comfort and warning together?',
+    lines: [
+      'Entrust the person to God.',
+      'Reject deadly presumption.',
+      'Pray for the living.',
+      'Speak with restraint.',
+    ],
+  };
+}
+
 // ─── Repair JSON playbook response ───────────────────────────────────────────
 
-function repairPlaybook(json: Record<string, any>): Record<string, any> {
+function repairPlaybook(json: Record<string, any>, originalInput = ''): Record<string, any> {
   // Deep-replace em dashes and stray markdown in all string values
   const fix = (val: any): any => {
     if (typeof val === 'string') {
@@ -1167,6 +1297,8 @@ function repairPlaybook(json: Record<string, any>): Record<string, any> {
   };
 
   const repaired = fix(json);
+
+  repairSuicideBereavementTheologyPlaybook(repaired, originalInput);
 
   if (!repaired.truth_summary || countWords(String(repaired.truth_summary)) < 8) {
     const truthOpening = getOpeningSentence(String(repaired.truth_in_love || ''));
@@ -1441,16 +1573,20 @@ serve(async (req: Request) => {
   const detectionInput = typeof promptDetectionInput === 'string' && promptDetectionInput.trim()
     ? promptDetectionInput.trim()
     : userInput;
+  const isSuicideBereavementTheologyContext = isSuicideBereavementOrTheologyInput(detectionInput);
 
   // Content safety check
   const contentAnalysis = analyzeContent(detectionInput);
-  const providerFilterShouldBlockUser = contentAnalysis.shouldBlock || [
-    'self_harm',
-    'violence',
-    'sexual_assault',
-    'harassment',
-    'hate_speech',
-  ].includes(contentAnalysis.category || '');
+  const providerFilterShouldBlockUser = contentAnalysis.shouldBlock || (
+    [
+      'self_harm',
+      'violence',
+      'sexual_assault',
+      'harassment',
+      'hate_speech',
+    ].includes(contentAnalysis.category || '') &&
+    !(isSuicideBereavementTheologyContext && contentAnalysis.category === 'self_harm')
+  );
   const selfHarmSafetyMessage =
     "Your life matters deeply to God. If you might hurt yourself, don't stay alone: tell a trusted person now and contact local emergency services, the nearest emergency room, or a suicide crisis line. If you're in the U.S., call or text 988.";
 
@@ -2190,7 +2326,7 @@ serve(async (req: Request) => {
     }
 
     // Repair (em dash removal, completion prefix, prayer closing strip)
-    const repairedJson = repairPlaybook(parsedJson!);
+    const repairedJson = repairPlaybook(parsedJson!, validationInput);
 
     // Build Playbook object from JSON (store original userInput, not paraphrased)
     let playbook = parseJsonPlaybook(repairedJson, userName, userInput, preferredBibleVersion);
