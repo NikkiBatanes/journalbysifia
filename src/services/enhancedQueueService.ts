@@ -445,7 +445,7 @@ export class EnhancedQueueService {
 
         // Race between actual call and timeout
         const result = await Promise.race([
-          supabase.functions.invoke('generate-guided-playbook', {
+          supabase.functions.invoke('generate-guided-playbook-v146test', {
             body: {
               userInput: item.userInput,
               userName: item.userName,

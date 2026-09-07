@@ -83,6 +83,7 @@ function transformPlaybookRow(
   const directChallenge = playbookRow.direct_challenge;
   const directChallengeObject = directChallenge && typeof directChallenge === 'object' ? directChallenge : null;
   const bibleVerseObject = bibleVerse && typeof bibleVerse === 'object' ? bibleVerse : null;
+  const storedCover = directChallengeObject?.cover;
   const wordToSpeak = playbookRow.word_to_speak || directChallengeObject?.wordToSpeak || '';
   const wordsToSpeak = Array.isArray(playbookRow.words_to_speak)
     ? playbookRow.words_to_speak
@@ -149,6 +150,17 @@ function transformPlaybookRow(
     truthInLove: playbookRow.truth_in_love,
     bibleVerse,
     bibleVerseReflection: playbookRow.bible_verse_reflection || bibleVerseObject?.reflection || '',
+    cover: storedCover?.title && storedCover?.subtitle
+      ? {
+          title: String(storedCover.title),
+          subtitle: String(storedCover.subtitle),
+          estimatedMinutes: Number.isFinite(Number(storedCover.estimatedMinutes))
+            ? Number(storedCover.estimatedMinutes)
+            : Number.isFinite(Number(storedCover.estimated_minutes))
+              ? Number(storedCover.estimated_minutes)
+              : undefined,
+        }
+      : undefined,
     directChallenge: directChallengeObject
       ? { text: directChallengeObject.text || '', summary: directChallengeObject.summary || '' }
       : directChallenge,
@@ -318,6 +330,10 @@ export async function getPlaybooks(userId: string, lightweight: boolean = false)
           completed: affirmation.completed,
           orderIndex: affirmation.order_index,
         }));
+      const directChallengeObject = !lightweight && playbookRow.direct_challenge && typeof playbookRow.direct_challenge === 'object'
+        ? playbookRow.direct_challenge
+        : null;
+      const storedCover = directChallengeObject?.cover;
 
       return {
         id: playbookRow.id,
@@ -330,6 +346,17 @@ export async function getPlaybooks(userId: string, lightweight: boolean = false)
         bibleVerse: lightweight ? { text: '', reference: '' } : (playbookRow.bible_verse || { text: '', reference: '' }),
         directChallenge: lightweight ? '' : (playbookRow.direct_challenge || ''),
         challengeCTA: lightweight ? '' : (playbookRow.challenge_cta || ''),
+        cover: storedCover?.title && storedCover?.subtitle
+          ? {
+              title: String(storedCover.title),
+              subtitle: String(storedCover.subtitle),
+              estimatedMinutes: Number.isFinite(Number(storedCover.estimatedMinutes))
+                ? Number(storedCover.estimatedMinutes)
+                : Number.isFinite(Number(storedCover.estimated_minutes))
+                  ? Number(storedCover.estimated_minutes)
+                  : undefined,
+            }
+          : undefined,
         status: playbookRow.status,
         progress: playbookRow.progress || 0,
         totalTasks: playbookRow.total_tasks || 0,
@@ -455,6 +482,17 @@ export async function createPlaybook(playbook: Omit<Playbook, 'id' | 'createdAt'
   await supabase.auth.getSession();
 
   try {
+    const rawDirectChallenge = playbook.directChallenge;
+    const directChallengeToSave = (() => {
+      const base: Record<string, any> = typeof rawDirectChallenge === 'object' && rawDirectChallenge !== null
+        ? { ...(rawDirectChallenge as any) }
+        : { text: typeof rawDirectChallenge === 'string' ? rawDirectChallenge : '', summary: '' };
+      if (playbook.cover?.title && playbook.cover?.subtitle) {
+        base.cover = playbook.cover;
+      }
+      return base;
+    })();
+
     // Start a transaction by creating the main playbook first
     const { data: createdPlaybook, error: playbookError } = await supabase
       .from('playbooks')
@@ -465,7 +503,7 @@ export async function createPlaybook(playbook: Omit<Playbook, 'id' | 'createdAt'
         category: playbook.category || null,
         truth_in_love: playbook.truthInLove,
         bible_verse: playbook.bibleVerse,
-        direct_challenge: playbook.directChallenge,
+        direct_challenge: directChallengeToSave,
         challenge_cta: playbook.challengeCTA,
         transition_line: (playbook as any).transitionLine || '',
         status: playbook.status || 'ongoing',

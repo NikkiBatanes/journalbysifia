@@ -216,7 +216,7 @@ export class EnhancedGenerationService {
         throw new Error('Missing environment configuration');
       }
 
-      const functionUrl = `${env.SUPABASE_URL}/functions/v1/generate-guided-playbook`;
+      const functionUrl = `${env.SUPABASE_URL}/functions/v1/generate-guided-playbook-v146test`;
 
       // Resolve bible version preference (default NASB)
       const bibleVersion = await this.getPreferredBibleVersion();
@@ -302,6 +302,7 @@ export class EnhancedGenerationService {
           directChallenge: result.directChallenge,
           prayer: result.prayer,
           wordToSpeak: result.wordToSpeak,
+          cover: result.cover,
           transitionLine: result.transition_line || '',
           challengeCTA: result.challengeCTA || '',
           status: 'ongoing' as const,

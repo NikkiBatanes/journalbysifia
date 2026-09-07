@@ -38,10 +38,8 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
   const navigationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isNavigatingRef = useRef(false);
 
-  // Consistent 200x200 logo across all devices
-  const { width: screenWidth } = Dimensions.get('window');
-  const isTablet = screenWidth >= 768;
-  const logoSize = isTablet ? 180 : 150; // Increased logo size for splash screen
+  // Match native splash logo size on both iOS and Android
+  const logoSize = 150;
 
 
   useEffect(() => {

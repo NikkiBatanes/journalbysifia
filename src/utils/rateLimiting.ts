@@ -102,6 +102,10 @@ function normalizeRateLimitTier(tier: SubscriptionTier | string | null | undefin
   return RATE_LIMIT_TIER_ALIASES[String(tier || 'seeker')] || 'seeker';
 }
 
+function shouldBypassRateLimitForDevelopment(): boolean {
+  return __DEV__;
+}
+
 interface RateLimitEntry {
   timestamp: number;
   count: number;
@@ -463,6 +467,22 @@ export async function checkAndRecordRequest(
   message?: string;
   waitSeconds?: number;
 }> {
+  if (shouldBypassRateLimitForDevelopment()) {
+    Logger.info(`🧪 Skipping client rate limit for ${operationType} in development`, {
+      component: 'rateLimiting',
+      data: {
+        userId,
+        tier,
+        rateLimitTier: normalizeRateLimitTier(tier),
+        operationType,
+      },
+    });
+
+    return {
+      allowed: true,
+    };
+  }
+
   const check = await rateLimiter.canMakeRequest(userId, tier, operationType);
 
   if (!check.allowed) {

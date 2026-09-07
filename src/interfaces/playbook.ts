@@ -29,15 +29,83 @@ export interface ActionStep {
   secondaryButton?: string; // Custom secondary button label
 }
 
+export type TruthBeatPresentation =
+  | 'statement'
+  | 'statement_reveal'
+  | 'two_truths'
+  | 'examine'
+  | 'untangle'
+  | 'contrast'
+  | 'truth_card'
+  | 'grace_truth'
+  | 'boundary'
+  | 'path'
+  | 'hold_entrust';
+
+export interface TruthBeat {
+  enhancement?: import('../../supabase/functions/_shared/truthScreenEnhancement').TruthScreenEnhancement;
+  label: string;
+  primaryTruth: string;
+  supportingTruth?: string;
+  reveal?: {
+    label: string;
+    content: string;
+  };
+  presentation?: TruthBeatPresentation;
+  contrast?: {
+    notThis?: string;
+    butThis?: string;
+  };
+  boundary?: {
+    clear?: string;
+    caution?: string;
+  };
+  twoTruths?: Array<{
+    label: string;
+    text: string;
+  }>;
+  untangle?: {
+    style: 'compare' | 'stack' | 'collapsible';
+    items: Array<{ label: string; text: string }>;
+  };
+  path?: {
+    fromTitle: string;
+    toTitle: string;
+    fromSteps: string[];
+    toSteps: string[];
+    isLoop?: boolean;
+    selfRecognition?: string;
+  };
+  holdEntrust?: {
+    holdLabel: string;
+    holdStatement: string;
+    entrustLabel: string;
+    entrustStatement: string;
+    handoffLabel: string;
+    handoffBody: string;
+    cta: string;
+  };
+  reflectionQuestions?: string[];
+}
+
 export interface TruthInLove {
+  summaryEnhancement?: import('../../supabase/functions/_shared/truthScreenEnhancement').TruthScreenEnhancement;
   text: string;
   summary: string;
+  beats?: TruthBeat[];
+  truthToCarry?: string;
 }
 
 export interface Affirmation {
   id: string;
   text: string;
   completed: boolean;
+}
+
+export interface PlaybookCover {
+  title: string;
+  subtitle: string;
+  estimatedMinutes?: number;
 }
 
 export interface Playbook {
@@ -59,6 +127,7 @@ export interface Playbook {
   bibleVerseReflection?: string; // 2-3 short reflection lines shown below the verse (Screen 2)
   faithfulActionsIntro?: string; // One-line framing sentence before action steps (Screen 3)
   transitionLine?: string; // Calm bridge line shown between Step 0 (Enter the Moment) and Step 1 (Truth in Love)
+  cover?: PlaybookCover; // Optional generated cover page metadata. Missing on legacy playbooks.
   refinementCount?: number; // Number of refinements used for this playbook
   refinementLimit?: number; // Refinements allowed for this playbook based on tier
   lastRefinedAt?: string | null; // ISO timestamp of latest refinement

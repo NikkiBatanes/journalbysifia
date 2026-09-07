@@ -340,6 +340,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
 
   const [currencyInfo, setCurrencyInfo] = useState<LocationPricing | null>(null);
   const [isPurchasing, setIsPurchasing] = useState(false);
+  const purchaseInFlightRef = useRef(false);
   const [loadingStep, setLoadingStep] = useState<'processing' | 'validating' | 'activating' | 'completing'>('processing');
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [purchaseValidated, setPurchaseValidated] = useState(false);
@@ -982,18 +983,14 @@ const OnboardingSalesOfferScreen: React.FC = () => {
     });
 
     // Prevent multiple simultaneous purchases
-    if (isPurchasing) {
+    if (purchaseInFlightRef.current) {
       logger.debug('Purchase already in progress, ignoring');
       return;
     }
 
-    // Safety timeout to prevent infinite loading
-    const safetyTimeout = setTimeout(() => {
-      logger.error('⚠️ Purchase timeout - resetting state');
-      setIsPurchasing(false);
-      setLoadingStep('processing');
-      Alert.alert('Timeout', 'Purchase took too long. Please try again.');
-    }, 30000); // 30 second timeout
+    // The payment service owns store timeouts. Keep the operation locked while
+    // awaiting store confirmation and account updates, including between renders.
+    purchaseInFlightRef.current = true;
 
     try {
       triggerLightHaptic();
@@ -1062,7 +1059,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           cachedCount: cachedProducts.length,
           timestamp: new Date().toISOString(),
         });
-        throw new Error('Failed to load products. Please try again.');
+        throw new Error('Unable to load subscriptions from the store. Please check your connection and try again.');
       }
 
       // DEBUG: Log all available products to verify App Store Connect configuration
@@ -1342,8 +1339,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           const isCancelled =
             purchaseError?.message === 'USER_CANCELLED' ||
             purchaseError?.code === 'USER_CANCELLED' ||
-            purchaseError?.message?.toLowerCase().includes('cancel') ||
-            purchaseError?.message?.toLowerCase().includes('timeout');
+            purchaseError?.message?.toLowerCase().includes('cancel');
 
           if (isCancelled) {
             logger.debug('User cancelled upgrade - silently continuing');
@@ -1592,7 +1588,6 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             purchaseError?.message === 'USER_CANCELLED' ||
             purchaseError?.code === 'USER_CANCELLED' ||
             purchaseError?.message?.toLowerCase().includes('cancel') ||
-            purchaseError?.message?.toLowerCase().includes('timeout') ||
             purchaseError?.message === 'STALE_PURCHASE_CACHE';
 
           if (isCancelled) {
@@ -1628,8 +1623,15 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           setLoadingStep('processing');
         }
       }
+    } catch (error) {
+      logger.error('Failed to prepare purchase', error as Error);
+      Alert.alert(
+        'Purchase Unavailable',
+        error instanceof Error ? error.message : 'Unable to start your purchase. Please try again.'
+      );
+      setLoadingStep('processing');
     } finally {
-      clearTimeout(safetyTimeout);
+      purchaseInFlightRef.current = false;
       setIsPurchasing(false);
     }
   };

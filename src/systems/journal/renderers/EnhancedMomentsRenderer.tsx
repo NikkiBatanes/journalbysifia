@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect, useRef } from 'react';
+import React, { useCallback, useMemo, useState, useEffect, useRef } from 'react';
 import { Logger } from '../../../utils/ProductionLogger';
 import { View, StyleSheet, SectionList, RefreshControlProps, TouchableOpacity } from 'react-native';
 import { Feather } from 'lucide-react-native';
@@ -2472,6 +2472,16 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
     </View>
   ), [emptySubtitleText, onAddPress, styles.emptyButton, styles.emptyButtonText, styles.emptyIcon, styles.emptyState, styles.emptySubtitle, styles.emptyTitle]);
 
+  const viewabilityConfig = useMemo(() => ({ itemVisiblePercentThreshold: 1 }), []);
+  const onViewableItemsChanged = useCallback(({ viewableItems }: any) => {
+    const header = viewableItems.find((v: any) => !v.item && v.section && typeof (v.section as any).key === 'string');
+    if (header && (header.section as any).key) {
+      setCurrentStickyKey((header.section as any).key as string);
+    } else if (viewableItems[0]?.section && (viewableItems[0].section as any).key) {
+      setCurrentStickyKey((viewableItems[0].section as any).key as string);
+    }
+  }, [setCurrentStickyKey]);
+
   // Show skeleton during loading instead of empty state
   if (_loading) {
     return (
@@ -2496,16 +2506,12 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
         contentInset={{ top: 0, bottom: 0, left: 0, right: 0 }}
         scrollIndicatorInsets={{ top: 0, bottom: 0, left: 0, right: 0 }}
         ListEmptyComponent={ListEmpty}
-        onViewableItemsChanged={({ viewableItems }) => {
-          // Pick the first visible header's section key, else fall back to first visible item's section key
-          const header = viewableItems.find(v => !v.item && v.section && typeof (v.section as any).key === 'string');
-          if (header && (header.section as any).key) {
-            setCurrentStickyKey((header.section as any).key as string);
-          } else if (viewableItems[0]?.section && (viewableItems[0].section as any).key) {
-            setCurrentStickyKey((viewableItems[0].section as any).key as string);
-          }
-        }}
-        viewabilityConfig={{ itemVisiblePercentThreshold: 1 }}
+        onViewableItemsChanged={onViewableItemsChanged}
+        viewabilityConfig={viewabilityConfig}
+        windowSize={5}
+        maxToRenderPerBatch={8}
+        initialNumToRender={6}
+        updateCellsBatchingPeriod={50}
         keyExtractor={(item, index) => {
           if (groupBy === 'week') {
             const anyItem = item as any;

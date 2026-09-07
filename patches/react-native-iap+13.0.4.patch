@@ -106,3 +106,39 @@ index 70149d2..c1a0599 100644
      }
  
      @ReactMethod
+diff --git a/node_modules/react-native-iap/ios/LatestPromiseKeeper.swift b/node_modules/react-native-iap/ios/LatestPromiseKeeper.swift
+--- a/node_modules/react-native-iap/ios/LatestPromiseKeeper.swift
++++ b/node_modules/react-native-iap/ios/LatestPromiseKeeper.swift
+@@ -45,6 +45,13 @@
+         clearLatestPromiseAndRequest()
+     }
+ 
++    func rejectIfRequestMatches(matchingRequest: SKProductsRequest, code: String, error: NSError) {
++        guard latestRequest.value === matchingRequest else { return }
++        let reject = latestPromise.value?.1
++        clearLatestPromiseAndRequest()
++        reject?(code, error.localizedDescription, error)
++    }
++
+     private func clearLatestPromiseAndRequest() {
+         latestPromise.atomically { $0 = nil }
+         latestRequest.atomically { $0 = nil }
+diff --git a/node_modules/react-native-iap/ios/RNIapIos.swift b/node_modules/react-native-iap/ios/RNIapIos.swift
+--- a/node_modules/react-native-iap/ios/RNIapIos.swift
++++ b/node_modules/react-native-iap/ios/RNIapIos.swift
+@@ -375,6 +375,15 @@
+ 
+     func request(_ request: SKRequest, didFailWithError error: Error) {
+         let nsError = error as NSError
++
++        if let productRequest = request as? SKProductsRequest {
++            self.latestPromiseKeeper.rejectIfRequestMatches(
++                matchingRequest: productRequest,
++                code: standardErrorCode(nsError.code) ?? "E_UNKNOWN",
++                error: nsError
++            )
++            return
++        }
+ 
+         if request is SKReceiptRefreshRequest {
+             if let receiptBlock = self.receiptBlock {

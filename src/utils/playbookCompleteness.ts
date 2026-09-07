@@ -56,15 +56,24 @@ export function findIncompletePlaybookFields(result: PlaybookGenerationResult): 
     incompleteFields.push('wordsToSpeak');
   }
 
-  const dc = result.directChallenge;
-  const dcText = typeof dc === 'string'
-    ? dc
-    : (dc && typeof dc === 'object' ? String((dc as { text?: unknown }).text ?? '') : '');
-  // The backend serializes completion as "Before you close:\n{question}\n\n{lines}".
-  // A header-only string ("Before you close:" with nothing after) means completion is empty.
-  const dcAfterHeader = dcText.replace(/^before you close:\s*/i, '').trim();
-  if (dcAfterHeader.length < MIN_COMPLETION_AFTER_HEADER) {
-    incompleteFields.push('completion');
+  // v1.4.6 beat-based playbooks do not use the legacy directChallenge points list.
+  // The pastoral closing is stored in challenge_cta, so completion is not required.
+  const isBeatBased =
+    result.truthInLove && typeof result.truthInLove === 'object' &&
+    Array.isArray((result.truthInLove as { beats?: unknown }).beats) &&
+    (result.truthInLove as { beats?: any[] }).beats!.length > 0;
+
+  if (!isBeatBased) {
+    const dc = result.directChallenge;
+    const dcText = typeof dc === 'string'
+      ? dc
+      : (dc && typeof dc === 'object' ? String((dc as { text?: unknown }).text ?? '') : '');
+    // The backend serializes completion as "Before you close:\n{question}\n\n{lines}".
+    // A header-only string ("Before you close:" with nothing after) means completion is empty.
+    const dcAfterHeader = dcText.replace(/^before you close:\s*/i, '').trim();
+    if (dcAfterHeader.length < MIN_COMPLETION_AFTER_HEADER) {
+      incompleteFields.push('completion');
+    }
   }
 
   return incompleteFields;

@@ -20,7 +20,6 @@ const {
   finishTransaction,
   purchaseUpdatedListener,
   purchaseErrorListener,
-  getAvailablePurchases,
   getReceiptIOS,
   validateReceiptIos,
 } = RNIapModule;
@@ -112,6 +111,7 @@ export class AppleStoreKitService {
   private pendingPurchaseResolvers: Map<string, { resolve: (value: PurchaseResult) => void; reject: (error: any) => void }> = new Map();
   private purchaseRetryCount: Map<string, number> = new Map(); // Track retry attempts
   private currentPurchaseEligibility: boolean | undefined; // Store trial eligibility for current purchase
+  private initializationInFlight: Promise<boolean> | null = null;
   private productsInFlight: Promise<StoreProduct[]> | null = null; // Dedup concurrent product fetches
 
   // Product IDs for subscription tiers
@@ -147,44 +147,31 @@ export class AppleStoreKitService {
    * Initialize the connection to the App Store
    */
   async initialize(): Promise<boolean> {
-    try {
-      Logger.info('[StoreKit] 🔧 Starting IAP initialization', {
-        component: 'AppleStoreKitService',
-        isInitialized: this.isInitialized,
-        timestamp: new Date().toISOString(),
-      });
+    if (this.isInitialized) { return true; }
+    if (this.initializationInFlight) { return this.initializationInFlight; }
 
-      if (this.isInitialized) {
-        Logger.info('[StoreKit] ✅ Already initialized', {
+    this.initializationInFlight = this.doInitialize()
+      .catch(error => {
+        Logger.error('[StoreKit] Initialization failed', error as Error, {
           component: 'AppleStoreKitService',
-        });
-        return true;
-      }
-
-      // CRITICAL: Add timeout to prevent hanging
-      const initPromise = this.doInitialize();
-      const timeoutPromise = new Promise<boolean>((_, reject) => {
-        setTimeout(() => reject(new Error('IAP initialization timeout after 15 seconds')), 15000);
-      });
-
-      try {
-        const result = await Promise.race([initPromise, timeoutPromise]);
-        return result;
-      } catch (error) {
-        Logger.error('[StoreKit] ❌ IAP initialization failed or timed out', error as Error, {
-          component: 'AppleStoreKitService',
-          errorMessage: error instanceof Error ? error.message : 'Unknown error',
-          timestamp: new Date().toISOString(),
         });
         return false;
-      }
-    } catch (error) {
-      Logger.error('[StoreKit] ❌ IAP initialization failed', error as Error, {
-        component: 'AppleStoreKitService',
-        errorMessage: error instanceof Error ? error.message : 'Unknown error',
-        timestamp: new Date().toISOString(),
-      });
-      return false;
+      })
+      .finally(() => { this.initializationInFlight = null; });
+    return this.initializationInFlight;
+  }
+
+  private async withTimeout<T>(operation: PromiseLike<T>, ms: number, message: string): Promise<T> {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      return await Promise.race([
+        Promise.resolve(operation),
+        new Promise<never>((_, reject) => {
+          timer = setTimeout(() => reject(new Error(message)), ms);
+        }),
+      ]);
+    } finally {
+      if (timer) { clearTimeout(timer); }
     }
   }
 
@@ -210,7 +197,7 @@ export class AppleStoreKitService {
     try {
       Logger.debug('[StoreKit] About to call initConnection()', { component: 'AppleStoreKitService' });
       const startTime = Date.now();
-      await initConnection();
+      await this.withTimeout(initConnection(), 15000, 'App Store connection timed out. Please try again.');
       const endTime = Date.now();
       Logger.info('[StoreKit] initConnection() completed', { component: 'AppleStoreKitService', duration: endTime - startTime });
 
@@ -235,22 +222,8 @@ export class AppleStoreKitService {
 
     Logger.info('[StoreKit] Step 2: Purchase listeners set up', { component: 'AppleStoreKitService' });
 
-    // Clear any old cached transactions on startup (with timeout)
-    Logger.debug('[StoreKit] Step 3: Clearing old transactions', { component: 'AppleStoreKitService' });
-
-    try {
-      const clearPromise = this.clearOldTransactions();
-      const timeoutPromise = new Promise<void>((_, reject) => {
-        setTimeout(() => reject(new Error('clearOldTransactions timeout')), 10000);
-      });
-
-      await Promise.race([clearPromise, timeoutPromise]);
-      Logger.info('[StoreKit] Step 3: Old transactions cleared', { component: 'AppleStoreKitService' });
-    } catch (error) {
-      Logger.warn('[StoreKit] Step 3: Skipping old transaction cleanup (timeout or error)', { component: 'AppleStoreKitService' });
-      // Continue anyway - this is not critical for IAP to work
-    }
-
+    // Purchase listeners handle transactions. Do not restore and finish purchase
+    // history during initialization: native restore requests can remain pending.
     this.isInitialized = true;
 
     Logger.info('[StoreKit] 🎉 IAP initialization completed successfully', {
@@ -261,65 +234,6 @@ export class AppleStoreKitService {
     return true;
   }
 
-  /**
-   * Clear old cached transactions that are older than 5 minutes
-   * This prevents stale purchases from being processed on app restart
-   */
-  private async clearOldTransactions(): Promise<void> {
-    try {
-      Logger.debug('[StoreKit] Step 3.1: Getting available purchases', { component: 'AppleStoreKitService' });
-
-      const availablePurchases = await getAvailablePurchases();
-
-      Logger.debug('[StoreKit] Step 3.1: Available purchases retrieved', { component: 'AppleStoreKitService', count: availablePurchases.length });
-
-      if (availablePurchases.length === 0) {
-        Logger.debug('[StoreKit] Step 3.2: No old transactions to clear', { component: 'AppleStoreKitService' });
-        return;
-      }
-
-      Logger.debug('[StoreKit] Step 3.2: Processing old transactions', { component: 'AppleStoreKitService', count: availablePurchases.length });
-
-      // CRITICAL: Finish ALL available purchases to ensure clean state
-      // This is more aggressive but prevents stale transactions from interfering
-      const finishPromises = availablePurchases.map(async (purchase) => {
-        try {
-          const purchaseTime = new Date(purchase.transactionDate).getTime();
-          const purchaseAge = Date.now() - purchaseTime;
-
-          // Clear transactions older than 2 minutes
-          if (purchaseAge > 2 * 60 * 1000) {
-            Logger.debug('[StoreKit] Clearing old cached transaction', {
-              component: 'AppleStoreKitService',
-              productId: purchase.productId,
-              ageMinutes: Math.round(purchaseAge / 60000),
-            });
-
-            await finishTransaction({ purchase, isConsumable: false });
-          }
-        } catch (err) {
-          Logger.warn('[StoreKit] Failed to finish transaction', {
-            component: 'AppleStoreKitService',
-            productId: purchase.productId,
-            error: err instanceof Error ? err : new Error('Unknown'),
-          });
-        }
-      });
-
-      // Wait for all finish operations to complete
-      await Promise.all(finishPromises);
-
-      Logger.info('[StoreKit] All old transactions processed', { component: 'AppleStoreKitService' });
-    } catch (error) {
-      Logger.error('[StoreKit] Error clearing old transactions', error as Error, {
-        component: 'AppleStoreKitService',
-      });
-    }
-  }
-
-  /**
-   * Set up purchase event listeners
-   */
   private setupPurchaseListeners(): void {
     this.purchaseUpdateSubscription = purchaseUpdatedListener(
       async (purchase: ProductPurchase) => {
@@ -378,7 +292,7 @@ export class AppleStoreKitService {
     // Retry up to 3 times for network resilience
     for (let attempt = 1; attempt <= 3; attempt++) {
       try {
-        await this.initialize();
+        if (!await this.initialize()) { throw new Error('Unable to connect to the App Store.'); }
 
         const productIds = Object.values(AppleStoreKitService.PRODUCT_IDS);
 
@@ -394,7 +308,7 @@ export class AppleStoreKitService {
           throw new Error('RNIap.getSubscriptions not available - library not properly initialized');
         }
 
-        const products = await getSubscriptions({ skus: productIds });
+        const products = await this.withTimeout(getSubscriptions({ skus: productIds }), 15000, 'App Store product loading timed out.');
 
         Logger.info('[StoreKit] Raw products from App Store', {
           component: 'AppleStoreKitService',
@@ -469,27 +383,11 @@ export class AppleStoreKitService {
       }
     }
 
-    // All attempts failed. Do not return mock iOS products here: native
-    // StoreKit can only purchase products fetched from App Store Connect.
-    if (ENV.APP_ENV === 'development') {
-      Logger.warn('[StoreKit] 🧪 All product fetch attempts failed; returning no products for iOS purchase safety', {
-        component: 'AppleStoreKitService',
-        totalAttempts: 3,
-        finalError: lastError?.message,
-        errorDetails: lastError?.message,
-      });
-
-      return [];
-    }
-
-    // In production, return empty array
-    Logger.error('[StoreKit] ❌ All product fetch attempts failed', lastError as Error, {
+    Logger.error('[StoreKit] All product fetch attempts failed', lastError as Error, {
       component: 'AppleStoreKitService',
-      totalAttempts: 3,
       finalError: lastError?.message,
     });
-
-    return [];
+    throw lastError || new Error('Unable to load App Store products.');
   }
 
   /**
@@ -524,18 +422,19 @@ export class AppleStoreKitService {
     userId: string,
     offerIdentifier?: string
   ): Promise<PurchaseResult> {
+    let purchaseTimer: ReturnType<typeof setTimeout> | undefined;
     try {
-      await this.initialize();
+      if (!await this.initialize()) { throw new Error('Unable to connect to the App Store.'); }
 
       // All iOS subscription SKUs currently include `.freetrial`.
       // Only block when the caller is explicitly trying to start a new free trial.
       // Ineligible/past-trial users still need to purchase these same SKUs as paid upgrades.
       if (productId.includes('freetrial') && this.currentPurchaseEligibility === true) {
-        const { data: existingSub } = await supabase
+        const { data: existingSub } = await this.withTimeout(supabase
           .from('user_subscriptions_new')
           .select('tier, trial_start_date, trial_converted_date, trial_cancelled_date, original_transaction_id')
           .eq('user_id', userId)
-          .single();
+          .single(), 15000, 'Checking trial eligibility timed out. Please try again.');
         const hasTrialHistory = Boolean(
           existingSub?.trial_start_date ||
           existingSub?.trial_converted_date ||
@@ -567,16 +466,6 @@ export class AppleStoreKitService {
         this.setupPurchaseListeners();
       }
 
-      // Clear stale transactions in background - don't block payment sheet
-      Logger.info('[StoreKit] 🧹 Starting background cleanup of stale transactions', {
-        component: 'AppleStoreKitService',
-        productId,
-      });
-
-      this.clearOldTransactions().catch(() => {
-        Logger.warn('[StoreKit] Background transaction cleanup failed (non-blocking)', { component: 'AppleStoreKitService' });
-      });
-
       // Store userId for purchase update handler
       this.currentUserId = userId;
 
@@ -591,11 +480,12 @@ export class AppleStoreKitService {
 
       // Create a promise that will be resolved by the purchase listener
       const purchasePromise = new Promise<PurchaseResult>((resolve, reject) => {
-        this.pendingPurchaseResolvers.set(productId, { resolve, reject });
+        const resolver = { resolve, reject };
+        this.pendingPurchaseResolvers.set(productId, resolver);
 
         // Set a timeout to prevent hanging forever
-        setTimeout(() => {
-          if (this.pendingPurchaseResolvers.has(productId)) {
+        purchaseTimer = setTimeout(() => {
+          if (this.pendingPurchaseResolvers.get(productId) === resolver) {
             this.pendingPurchaseResolvers.delete(productId);
             reject(new Error('Purchase timeout - no response from App Store'));
           }
@@ -646,7 +536,7 @@ export class AppleStoreKitService {
         });
 
         try {
-          const requestResult = await requestSubscription(purchaseParams);
+          const requestResult = await Promise.race([requestSubscription(purchaseParams), purchasePromise]);
           Logger.info('[StoreKit] ✅ Payment sheet request sent successfully', {
             component: 'AppleStoreKitService',
             result: requestResult,
@@ -724,6 +614,8 @@ export class AppleStoreKitService {
         error: analysis.userFriendlyMessage, // Use user-friendly message
         errorCode: purchaseError.code,
       };
+    } finally {
+      if (purchaseTimer) { clearTimeout(purchaseTimer); }
     }
   }
 

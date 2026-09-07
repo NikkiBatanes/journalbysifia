@@ -256,7 +256,7 @@ export class UnifiedGenerationService {
       // Get user subscription for tier-based key selection
       const subscription = await subscriptionService.getUserSubscription(request.userId);
 
-      const functionUrl = `${env.SUPABASE_URL}/functions/v1/generate-guided-playbook`;
+      const functionUrl = `${env.SUPABASE_URL}/functions/v1/generate-guided-playbook-v146test`;
       const bibleVersion = await this.getPreferredBibleVersion();
       const userMetadata = await this.getUserMetadata(request.userId);
       const generationContext = {
@@ -372,6 +372,7 @@ export class UnifiedGenerationService {
         directChallenge: result.directChallenge,
         prayer: result.prayer,
         wordToSpeak: result.wordToSpeak,
+        cover: result.cover,
         transitionLine: result.transitionLine || result.transition_line || '',
         challengeCTA: result.challengeCTA || '',
         status: 'ongoing' as const,

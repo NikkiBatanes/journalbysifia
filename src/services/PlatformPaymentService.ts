@@ -216,7 +216,7 @@ export class PlatformPaymentService {
         return this.cachedProducts;
       }
 
-      return [];
+      throw error;
     }
   }
 

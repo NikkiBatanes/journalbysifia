@@ -253,7 +253,8 @@ async function generatePlaybookInternal(
     throw new Error(AUTH_ERROR_MESSAGES.INVALID_TOKEN);
   }
 
-  const functionUrl = `${process.env.SUPABASE_URL || 'https://aesmrjinczhknchlrsmt.supabase.co'}/functions/v1/generate-guided-playbook`;
+  const guidedPlaybookFunctionName = 'generate-guided-playbook-v146test';
+  const functionUrl = `${process.env.SUPABASE_URL || 'https://aesmrjinczhknchlrsmt.supabase.co'}/functions/v1/${guidedPlaybookFunctionName}`;
   let lastError: Error | null = null;
 
   // Retry logic with exponential backoff
@@ -325,7 +326,7 @@ async function generatePlaybookInternal(
         });
 
         const sdkResponse = await withTimeout(
-          supabase.functions.invoke('generate-guided-playbook', {
+          supabase.functions.invoke(guidedPlaybookFunctionName, {
             body: {
               userInput,
               userName,
@@ -617,6 +618,7 @@ export async function savePlaybook(playbook: Playbook, userId: string): Promise<
       if (playbook.prayer) { base.prayer = playbook.prayer; }
       if (playbook.wordToSpeak) { base.wordToSpeak = playbook.wordToSpeak; }
       if (playbook.faithfulActionsIntro) { base.faithfulActionsIntro = playbook.faithfulActionsIntro; }
+      if (playbook.cover?.title && playbook.cover?.subtitle) { base.cover = playbook.cover; }
       return base;
     })();
 
@@ -1129,6 +1131,10 @@ export async function getPlaybooks(userId: string): Promise<Playbook[]> {
     // Calculate accurate progress including subtasks
     const { completed, total } = calculateTaskStats(item.action_steps || []);
     const accurateProgress = total > 0 ? Math.round((completed / total) * 100) : 0;
+    const directChallengeObject = item.direct_challenge && typeof item.direct_challenge === 'object'
+      ? item.direct_challenge
+      : null;
+    const storedCover = directChallengeObject?.cover;
 
     return {
       id: item.id,
@@ -1140,6 +1146,17 @@ export async function getPlaybooks(userId: string): Promise<Playbook[]> {
       bibleVerse: item.bible_verse || { text: '', reference: '' },
       directChallenge: item.direct_challenge,
       challengeCTA: item.challenge_cta,
+      cover: storedCover?.title && storedCover?.subtitle
+        ? {
+            title: String(storedCover.title),
+            subtitle: String(storedCover.subtitle),
+            estimatedMinutes: Number.isFinite(Number(storedCover.estimatedMinutes))
+              ? Number(storedCover.estimatedMinutes)
+              : Number.isFinite(Number(storedCover.estimated_minutes))
+                ? Number(storedCover.estimated_minutes)
+                : undefined,
+          }
+        : undefined,
       profileImage: item.profile_image,
       progress: accurateProgress, // Use calculated progress, not stored progress
       totalTasks: total,
@@ -1349,7 +1366,13 @@ export async function getPlaybook(
 
     const rawTruth = safeParse(data.truth_in_love);
     const normalizedTruth = rawTruth && typeof rawTruth === 'object'
-      ? { text: rawTruth.text || '', summary: rawTruth.summary || '' }
+      ? {
+          ...rawTruth,
+          text: rawTruth.text || '',
+          summary: rawTruth.summary || '',
+          beats: rawTruth.beats || rawTruth.truth_beats,
+          truthToCarry: rawTruth.truthToCarry || rawTruth.truth_to_carry,
+        }
       : { text: typeof rawTruth === 'string' ? rawTruth : '', summary: '' };
 
     const rawBible = safeParse(data.bible_verse);
@@ -1379,6 +1402,20 @@ export async function getPlaybook(
       rawChallenge && typeof rawChallenge === 'object' && rawChallenge.faithfulActionsIntro
         ? String(rawChallenge.faithfulActionsIntro)
         : undefined;
+    const storedCover = rawChallenge && typeof rawChallenge === 'object' && rawChallenge.cover && typeof rawChallenge.cover === 'object'
+      ? rawChallenge.cover
+      : undefined;
+    const cover = storedCover?.title && storedCover?.subtitle
+      ? {
+          title: String(storedCover.title),
+          subtitle: String(storedCover.subtitle),
+          estimatedMinutes: Number.isFinite(Number(storedCover.estimatedMinutes))
+            ? Number(storedCover.estimatedMinutes)
+            : Number.isFinite(Number(storedCover.estimated_minutes))
+              ? Number(storedCover.estimated_minutes)
+              : undefined,
+        }
+      : undefined;
 
     // Transform to Playbook interface
     const playbook: Playbook = {
@@ -1396,6 +1433,7 @@ export async function getPlaybook(
       wordToSpeak: storedWordToSpeak,
       bibleVerseReflection: storedBibleVerseReflection,
       faithfulActionsIntro: storedFaithfulActionsIntro,
+      cover,
       profileImage: '', // Not stored in current schema
       progress: progress, // Calculated manually
       totalTasks: totalTasks, // Calculated manually

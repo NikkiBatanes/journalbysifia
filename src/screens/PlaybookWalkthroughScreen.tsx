@@ -3,6 +3,9 @@
 import * as React from 'react';
 import { useState, useRef, useCallback, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getPlaybookReadingMinutes } from '../utils/playbookReadingTime';
+import TruthScreenElement from '../components/TruthScreenElement';
+import { normalizeTruthScreenEnhancement } from '../../supabase/functions/_shared/truthScreenEnhancement';
 import {
   View,
   StyleSheet,
@@ -23,7 +26,6 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { BlurView } from '@react-native-community/blur';
 
 import { Colors } from '../theme/colors';
 import ThemedText from '../components/common/ThemedText';
@@ -61,7 +63,7 @@ import ShareDropdownModal from '../components/ShareDropdownModal';
 import { refinePlaybook, type PlaybookCorrectionType } from '../services/playbookRefinementService';
 
 import type { RootStackParamList } from '../navigation/types';
-import type { ActionStep } from '../interfaces/playbook';
+import type { ActionStep, PlaybookCover, TruthBeat } from '../interfaces/playbook';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import FontAwesome6 from 'react-native-vector-icons/FontAwesome6';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -71,17 +73,18 @@ const IS_IPAD = Platform.OS === 'ios' && (Platform as any).isPad === true;
 
 type Props = NativeStackScreenProps<RootStackParamList, 'PlaybookWalkthrough'>;
 
+const COVER_STEP_INDEX = -1;
 const TOTAL_STEPS = 7;
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
-const REFINEMENT_OPTIONS: Array<{ type: PlaybookCorrectionType; label: string }> = [
-  { type: 'missing_detail', label: 'Missing important detail' },
-  { type: 'wrong_assumption', label: 'Wrong assumption' },
-  { type: 'wrong_tone', label: 'Tone feels off' },
-  { type: 'explain_more', label: 'I need to explain more' },
+const REFINEMENT_OPTIONS: Array<{ id: string; type: PlaybookCorrectionType; label: string }> = [
+  { id: 'not_what_i_meant', type: 'wrong_assumption', label: "That's not what I meant" },
+  { id: 'more_to_situation', type: 'missing_detail', label: "There's more to the situation" },
+  { id: 'wrong_focus', type: 'wrong_assumption', label: "This isn't what I'm struggling with most" },
+  { id: 'something_else', type: 'explain_more', label: 'Something else' },
 ];
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -369,38 +372,214 @@ const StepFadeIn: React.FC<StepFadeInProps> = ({ delay = 0, children, style }) =
   );
 };
 
-// ─── Step 0: Enter the Moment ────────────────────────────────────────────────
+const getPlaybookCover = (playbook: any): PlaybookCover | null => {
+  const cover = playbook?.cover;
+  if (!cover || typeof cover !== 'object') {
+    return null;
+  }
 
-interface EnterMomentProps {
-  title: string;
+  const title = String(cover.title || '').trim();
+  const subtitle = String(cover.subtitle || '').trim();
+  if (!title || !subtitle) {
+    return null;
+  }
+
+  return {
+    title,
+    subtitle,
+    estimatedMinutes: getPlaybookReadingMinutes(playbook),
+  };
+};
+
+const stripGeneratedListMarker = (value: string): string =>
+  String(value || '')
+    .replace(/^\s*[-•+*]+\s*/, '')
+    .replace(/\s*[-•+*]+\s*$/g, '')
+    .replace(/\s+[-•+]\s+/g, ' ')
+    .trim();
+
+const getCleanOptionalText = (value: unknown): string | undefined => {
+  const text = stripGeneratedListMarker(String(value || '').trim());
+  return text || undefined;
+};
+
+const getCleanTextArray = (value: unknown): string[] | undefined => {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+
+  const items = value
+    .map(item => String(item || '').trim())
+    .filter(Boolean)
+    .slice(0, 4);
+  return items.length > 0 ? items : undefined;
+};
+
+const normalizeHoldEntrustForClient = (raw: any): TruthBeat['holdEntrust'] => {
+  if (!raw || typeof raw !== 'object') return undefined;
+  const holdLabel = getCleanOptionalText(raw.holdLabel ?? raw.hold_label) || 'What will you hold?';
+  const holdStatement = getCleanOptionalText(raw.holdStatement ?? raw.hold_statement);
+  const entrustLabel = getCleanOptionalText(raw.entrustLabel ?? raw.entrust_label) || 'What will you entrust?';
+  const entrustStatement = getCleanOptionalText(raw.entrustStatement ?? raw.entrust_statement);
+  if (!holdStatement || !entrustStatement) return undefined;
+  return {
+    holdLabel,
+    holdStatement,
+    entrustLabel,
+    entrustStatement,
+    handoffLabel: getCleanOptionalText(raw.handoffLabel ?? raw.handoff_label) || 'Now anchor this in Scripture',
+    handoffBody: getCleanOptionalText(raw.handoffBody ?? raw.handoff_body) || 'You\'ve reflected on what you\'re carrying. Now bring what you\'ve seen under the authority of God\'s Word.',
+    cta: getCleanOptionalText(raw.cta ?? raw.ctaLabel) || 'Continue to Scripture',
+  };
+};
+
+const normalizePathForClient = (raw: any): TruthBeat['path'] => {
+  if (!raw || typeof raw !== 'object') return undefined;
+  const fromSteps = Array.isArray(raw.fromSteps ?? raw.from_steps)
+    ? (raw.fromSteps ?? raw.from_steps).map(getCleanOptionalText).filter(Boolean).slice(0, 6)
+    : [];
+  const toSteps = Array.isArray(raw.toSteps ?? raw.to_steps)
+    ? (raw.toSteps ?? raw.to_steps).map(getCleanOptionalText).filter(Boolean).slice(0, 6)
+    : [];
+  if (fromSteps.length < 2 || toSteps.length < 2) return undefined;
+  return {
+    fromTitle: getCleanOptionalText(raw.fromTitle ?? raw.from_title) || 'Notice where this leads',
+    toTitle: getCleanOptionalText(raw.toTitle ?? raw.to_title) || 'See another direction',
+    fromSteps,
+    toSteps,
+    isLoop: Boolean(raw.isLoop ?? raw.is_loop),
+    selfRecognition: getCleanOptionalText(raw.selfRecognition ?? raw.self_recognition) || '',
+  };
+};
+
+const normalizeTruthBeat = (beat: any): TruthBeat | null => {
+  if (!beat || typeof beat !== 'object') {
+    return null;
+  }
+
+  const label = getCleanOptionalText(beat.label) || '';
+  const primaryTruth = getCleanOptionalText(beat.primaryTruth ?? beat.primary_truth) || '';
+  if (!primaryTruth) {
+    return null;
+  }
+
+  const revealLabel = getCleanOptionalText(beat.reveal?.label ?? beat.reveal_label);
+  const revealContent = getCleanOptionalText(beat.reveal?.content ?? beat.reveal_content);
+  const truthOneLabel = getCleanOptionalText(beat.twoTruths?.[0]?.label ?? beat.truth_one_label);
+  const truthOne = getCleanOptionalText(beat.twoTruths?.[0]?.text ?? beat.truth_one);
+  const truthTwoLabel = getCleanOptionalText(beat.twoTruths?.[1]?.label ?? beat.truth_two_label);
+  const truthTwo = getCleanOptionalText(beat.twoTruths?.[1]?.text ?? beat.truth_two);
+  const rawUntangleItems = beat.untangle?.items ?? beat.untangle_items;
+  const untangleItems = Array.isArray(rawUntangleItems)
+    ? rawUntangleItems
+        .map((item: any) => ({
+          label: getCleanOptionalText(item?.label) || '',
+          text: getCleanOptionalText(item?.text) || '',
+        }))
+        .filter((item: { label: string; text: string }) => item.label && item.text)
+        .slice(0, 4)
+    : [];
+  const rawUntangleStyle = String(beat.untangle?.style ?? beat.untangle_style ?? '').toLowerCase();
+  const untangleStyle: 'compare' | 'stack' | 'collapsible' =
+    rawUntangleStyle === 'compare' || rawUntangleStyle === 'stack' || rawUntangleStyle === 'collapsible'
+      ? rawUntangleStyle
+      : untangleItems.length === 2 ? 'compare' : untangleItems.length >= 4 ? 'collapsible' : 'stack';
+
+  return {
+    label,
+    primaryTruth,
+    supportingTruth: getCleanOptionalText(beat.supportingTruth ?? beat.supporting_truth),
+    enhancement: normalizeTruthScreenEnhancement(beat.enhancement),
+    reveal: revealLabel && revealContent ? { label: revealLabel, content: revealContent } : undefined,
+    presentation: getCleanOptionalText(beat.presentation) as TruthBeat['presentation'],
+    contrast: {
+      notThis: getCleanOptionalText(beat.contrast?.notThis ?? beat.contrast_not),
+      butThis: getCleanOptionalText(beat.contrast?.butThis ?? beat.contrast_but),
+    },
+    boundary: {
+      clear: getCleanOptionalText(beat.boundary?.clear ?? beat.boundary_clear),
+      caution: getCleanOptionalText(beat.boundary?.caution ?? beat.boundary_caution),
+    },
+    twoTruths: truthOne && truthTwo
+      ? [
+          { label: truthOneLabel || 'Truth one', text: truthOne },
+          { label: truthTwoLabel || 'Truth two', text: truthTwo },
+        ]
+      : undefined,
+    untangle: untangleItems.length >= 2 ? { style: untangleStyle, items: untangleItems } : undefined,
+    path: normalizePathForClient(beat.path),
+    holdEntrust: normalizeHoldEntrustForClient(beat.holdEntrust ?? beat.hold_entrust),
+    reflectionQuestions: getCleanTextArray(beat.reflectionQuestions ?? beat.reflection_questions),
+  };
+};
+
+const getTruthBeats = (playbook: any): TruthBeat[] => {
+  const rawBeats = playbook?.truthInLove?.beats ?? playbook?.truthInLove?.truth_beats ?? playbook?.truthBeats;
+  if (!Array.isArray(rawBeats)) {
+    return [];
+  }
+
+  const hasSummary = typeof playbook?.truthInLove === 'object' && !!playbook?.truthInLove?.summary;
+  const beatLimit = hasSummary ? 5 : 6;
+  const normalizedBeats = rawBeats
+    .map(normalizeTruthBeat)
+    .filter(Boolean)
+    .slice(0, beatLimit) as TruthBeat[];
+
+  if (!hasSummary) {
+    return normalizedBeats;
+  }
+
+  const summaryText = getCleanOptionalText(playbook.truthInLove.summary);
+  if (!summaryText) {
+    return normalizedBeats;
+  }
+
+  const firstPeriod = summaryText.indexOf('.');
+  const hasSupportingText = firstPeriod > 0 && firstPeriod < summaryText.length - 1;
+  const primaryTruth = hasSupportingText ? summaryText.slice(0, firstPeriod + 1).trim() : summaryText;
+  const supportingTruth = hasSupportingText ? summaryText.slice(firstPeriod + 1).trim() : '';
+
+  const summaryBeat: TruthBeat = {
+    label: '',
+    primaryTruth,
+    enhancement: normalizeTruthScreenEnhancement(playbook.truthInLove.summaryEnhancement),
+    ...(supportingTruth ? { supportingTruth } : {}),
+  };
+
+  return [summaryBeat, ...normalizedBeats];
+};
+
+const getTruthToCarry = (playbook: any): string | undefined => {
+  return getCleanOptionalText(
+    playbook?.truthInLove?.truthToCarry ??
+    playbook?.truthInLove?.truth_to_carry ??
+    playbook?.truthToCarry
+  );
+};
+
+interface PlaybookInputToggleProps {
   userInput: string;
   refinementNote?: string | null;
-  summary: string;
-  userName: string;
-  transitionLine?: string;
-  showSafetyHelp?: boolean;
-  onContinue: () => void;
   onEditUserInput?: () => void;
-  insets: { top: number };
+  style?: any;
 }
 
-const EnterMomentStep: React.FC<EnterMomentProps> = ({
-  title,
+const PlaybookInputToggle: React.FC<PlaybookInputToggleProps> = ({
   userInput,
   refinementNote,
-  summary,
-  userName,
-  transitionLine,
-  showSafetyHelp = false,
-  onContinue: _onContinue,
-  onEditUserInput: _onEditUserInput,
-  insets,
+  onEditUserInput,
+  style,
 }) => {
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';
   const fontFamily = getFontFamily(fontKey, 'regular');
   const [showUserInput, setShowUserInput] = useState(false);
   const chevronAnim = useRef(new Animated.Value(0)).current;
+  const cleanRefinementNote = String(refinementNote || '').trim();
+  const momentCopyText = cleanRefinementNote
+    ? `${userInput}\n\nRefined:\n${cleanRefinementNote}`
+    : userInput;
 
   const toggleUserInput = () => {
     triggerLightHaptic();
@@ -417,14 +596,216 @@ const EnterMomentStep: React.FC<EnterMomentProps> = ({
     outputRange: ['0deg', '180deg'],
   });
 
+  return (
+    <StepFadeIn delay={0} style={style}>
+      <TouchableOpacity
+        style={styles.playbookLabelContainer}
+        onPress={toggleUserInput}
+        activeOpacity={0.7}
+        hitSlop={{ top: 8, bottom: 8, left: 16, right: 16 }}
+      >
+        <ThemedText weight="semiBold" style={styles.playbookLabel}>
+          PLAYBOOK
+        </ThemedText>
+        <Animated.View style={{ transform: [{ rotate: chevronRotate }] }}>
+          <Ionicons name="chevron-down" size={16} color="rgba(255,255,255,0.7)" />
+        </Animated.View>
+      </TouchableOpacity>
+
+      {showUserInput && (
+        <TouchableOpacity
+          style={styles.userInputCard}
+          onLongPress={() => {
+            triggerLightHaptic();
+            Alert.alert(
+              'Moment you shared',
+              'What would you like to do?',
+              [
+                {
+                  text: 'Copy',
+                  onPress: () => {
+                    triggerLightHaptic();
+                    Clipboard.setString(momentCopyText);
+                    Alert.alert('Copied', 'Moment copied to clipboard');
+                  },
+                },
+                {
+                  text: 'Edit',
+                  onPress: () => {
+                    triggerLightHaptic();
+                    onEditUserInput?.();
+                  },
+                },
+                {
+                  text: 'Cancel',
+                  style: 'cancel',
+                },
+              ],
+              { cancelable: true }
+            );
+          }}
+          activeOpacity={0.7}
+        >
+          {Platform.OS === 'ios' ? (
+            <TextInput
+              value={userInput}
+              editable={false}
+              multiline={true}
+              scrollEnabled={false}
+              contextMenuHidden={true}
+              selectTextOnFocus={false}
+              pointerEvents="none"
+              textAlignVertical="top"
+              style={[styles.userInputText, { fontFamily, padding: 0, margin: 0 }]}
+            />
+          ) : (
+            <ThemedText style={styles.userInputText} selectable={false}>{userInput}</ThemedText>
+          )}
+
+          {cleanRefinementNote ? (
+            <View style={styles.refinedInputBlock}>
+              <View style={styles.refinedInputLabelRow}>
+                <Ionicons name="refresh-outline" size={12} color="rgba(255,255,255,0.72)" />
+                <ThemedText weight="semiBold" style={styles.refinedInputLabel}>REFINED</ThemedText>
+              </View>
+              {Platform.OS === 'ios' ? (
+                <TextInput
+                  value={cleanRefinementNote}
+                  editable={false}
+                  multiline={true}
+                  scrollEnabled={false}
+                  contextMenuHidden={true}
+                  selectTextOnFocus={false}
+                  pointerEvents="none"
+                  textAlignVertical="top"
+                  style={[styles.refinedInputText, { fontFamily, padding: 0, margin: 0 }]}
+                />
+              ) : (
+                <ThemedText style={styles.refinedInputText} selectable={false}>{cleanRefinementNote}</ThemedText>
+              )}
+            </View>
+          ) : null}
+        </TouchableOpacity>
+      )}
+    </StepFadeIn>
+  );
+};
+
+interface CoverStepProps {
+  cover: PlaybookCover;
+  userInput: string;
+  refinementNote?: string | null;
+  onBegin: () => void;
+  onEditUserInput?: () => void;
+  insets: { top: number; bottom: number };
+}
+
+const CoverStep: React.FC<CoverStepProps> = ({
+  cover,
+  userInput,
+  refinementNote,
+  onBegin,
+  onEditUserInput,
+  insets,
+}) => {
+  const estimatedMinutes = cover.estimatedMinutes ?? 1;
+
+  return (
+    <ScrollView
+      style={styles.stepScroll}
+      contentContainerStyle={[
+        styles.coverContent,
+        IS_IPAD && styles.stepContentPad,
+        {
+          paddingTop: insets.top + (IS_IPAD ? 34 : 18),
+          paddingBottom: insets.bottom + 28,
+        },
+      ]}
+      showsVerticalScrollIndicator={false}
+    >
+      <View style={styles.coverCenter}>
+        <PlaybookInputToggle
+          userInput={userInput}
+          refinementNote={refinementNote}
+          onEditUserInput={onEditUserInput}
+          style={styles.coverInputToggle}
+        />
+
+        <StepFadeIn delay={90} style={styles.coverTextBlock}>
+          <ThemedText weight="bold" style={styles.coverTitle} selectable={true}>
+            {cover.title}
+          </ThemedText>
+        </StepFadeIn>
+
+        <StepFadeIn delay={180} style={styles.coverTextBlock}>
+          <ThemedText style={styles.coverSubtitle} selectable={true}>
+            {cover.subtitle}
+          </ThemedText>
+        </StepFadeIn>
+
+        <StepFadeIn delay={260}>
+          <View style={styles.coverTimePill}>
+            <Ionicons name="time-outline" size={15} color="rgba(255,255,255,0.72)" />
+            <ThemedText weight="medium" style={styles.coverTimeText}>
+              about {estimatedMinutes} min read
+            </ThemedText>
+          </View>
+        </StepFadeIn>
+
+        <StepFadeIn delay={340} style={styles.coverButtonBlock}>
+          <TouchableOpacity
+            style={[styles.primaryButton, styles.finishButton, styles.coverBeginButton]}
+            onPress={onBegin}
+            activeOpacity={0.85}
+          >
+            <ThemedText weight="semiBold" style={styles.primaryButtonText}>
+              Begin
+            </ThemedText>
+          </TouchableOpacity>
+        </StepFadeIn>
+      </View>
+    </ScrollView>
+  );
+};
+
+// ─── Step 0: Enter the Moment ────────────────────────────────────────────────
+
+interface EnterMomentProps {
+  title: string;
+  userInput: string;
+  refinementNote?: string | null;
+  summary: string;
+  userName: string;
+  transitionLine?: string;
+  showSafetyHelp?: boolean;
+  showInputToggle?: boolean;
+  showSummary?: boolean;
+  onContinue: () => void;
+  onEditUserInput?: () => void;
+  insets: { top: number };
+}
+
+const EnterMomentStep: React.FC<EnterMomentProps> = ({
+  title,
+  userInput,
+  refinementNote,
+  summary,
+  userName,
+  transitionLine,
+  showSafetyHelp = false,
+  showInputToggle = true,
+  showSummary = true,
+  onContinue: _onContinue,
+  onEditUserInput: _onEditUserInput,
+  insets,
+}) => {
+  const { currentFont } = useTheme();
+  const fontKey = currentFont || 'lexend';
+  const fontFamily = getFontFamily(fontKey, 'regular');
   const personalizedTitle = personalizeEntryTitle(title, userName);
   const personalized = keepOnlyOpeningUserName(summary, userName);
   // Cap to 2 paragraphs — this is an entry moment, not the full truth section
   const paragraphs = splitParagraphs(personalized).slice(0, 2);
-  const cleanRefinementNote = String(refinementNote || '').trim();
-  const momentCopyText = cleanRefinementNote
-    ? `${userInput}\n\nRefined:\n${cleanRefinementNote}`
-    : userInput;
 
   return (
     <ScrollView
@@ -432,99 +813,13 @@ const EnterMomentStep: React.FC<EnterMomentProps> = ({
       contentContainerStyle={[styles.stepContent, IS_IPAD && styles.stepContentPad, { paddingTop: insets.top + (IS_IPAD ? 28 : 8) }]}
       showsVerticalScrollIndicator={false}
     >
-      {/* Centered PLAYBOOK label + animated chevron */}
-      <StepFadeIn delay={0}>
-        <TouchableOpacity
-          style={styles.playbookLabelContainer}
-          onPress={toggleUserInput}
-          activeOpacity={0.7}
-          hitSlop={{ top: 8, bottom: 8, left: 16, right: 16 }}
-        >
-          <ThemedText weight="semiBold" style={styles.playbookLabel}>
-            PLAYBOOK
-          </ThemedText>
-          <Animated.View style={{ transform: [{ rotate: chevronRotate }] }}>
-            <Ionicons name="chevron-down" size={16} color="rgba(255,255,255,0.7)" />
-          </Animated.View>
-        </TouchableOpacity>
-
-        {/* User input card — revealed when chevron is tapped */}
-        {showUserInput && (
-          <TouchableOpacity
-            style={styles.userInputCard}
-            onLongPress={() => {
-              triggerLightHaptic();
-              Alert.alert(
-                'Moment you shared',
-                'What would you like to do?',
-                [
-                  {
-                    text: 'Copy',
-                    onPress: () => {
-                      triggerLightHaptic();
-                      Clipboard.setString(momentCopyText);
-                      Alert.alert('Copied', 'Moment copied to clipboard');
-                    },
-                  },
-                  {
-                    text: 'Edit',
-                    onPress: () => {
-                      triggerLightHaptic();
-                      _onEditUserInput?.();
-                    },
-                  },
-                  {
-                    text: 'Cancel',
-                    style: 'cancel',
-                  },
-                ],
-                { cancelable: true }
-              );
-            }}
-            activeOpacity={0.7}
-          >
-            {Platform.OS === 'ios' ? (
-              <TextInput
-                value={userInput}
-                editable={false}
-                multiline={true}
-                scrollEnabled={false}
-                contextMenuHidden={true}
-                selectTextOnFocus={false}
-                pointerEvents="none"
-                textAlignVertical="top"
-                style={[styles.userInputText, { fontFamily, padding: 0, margin: 0 }]}
-              />
-            ) : (
-              <ThemedText style={styles.userInputText} selectable={false}>{userInput}</ThemedText>
-            )}
-
-            {cleanRefinementNote ? (
-              <View style={styles.refinedInputBlock}>
-                <View style={styles.refinedInputLabelRow}>
-                  <Ionicons name="refresh-outline" size={12} color="rgba(255,255,255,0.72)" />
-                  <ThemedText weight="semiBold" style={styles.refinedInputLabel}>REFINED</ThemedText>
-                </View>
-                {Platform.OS === 'ios' ? (
-                  <TextInput
-                    value={cleanRefinementNote}
-                    editable={false}
-                    multiline={true}
-                    scrollEnabled={false}
-                    contextMenuHidden={true}
-                    selectTextOnFocus={false}
-                    pointerEvents="none"
-                    textAlignVertical="top"
-                    style={[styles.refinedInputText, { fontFamily, padding: 0, margin: 0 }]}
-                  />
-                ) : (
-                  <ThemedText style={styles.refinedInputText} selectable={false}>{cleanRefinementNote}</ThemedText>
-                )}
-              </View>
-            ) : null}
-          </TouchableOpacity>
-        )}
-      </StepFadeIn>
+      {showInputToggle ? (
+        <PlaybookInputToggle
+          userInput={userInput}
+          refinementNote={refinementNote}
+          onEditUserInput={_onEditUserInput}
+        />
+      ) : null}
 
       <StepFadeIn delay={80}>
         {Platform.OS === 'ios' ? (
@@ -540,24 +835,26 @@ const EnterMomentStep: React.FC<EnterMomentProps> = ({
         )}
       </StepFadeIn>
 
-      <StepFadeIn delay={160} style={{ marginTop: 40 }}>
-        {paragraphs.map((paragraph, index) => (
-          Platform.OS === 'ios' ? (
-            <TextInput
-              key={index}
-              value={paragraph}
-              editable={false}
-              multiline={true}
-              scrollEnabled={false}
-              style={[styles.summaryLead, (index === 1 || index === 2) && { fontSize: 16 }, index === 1 && { marginBottom: 4 }, index === 0 && { fontWeight: '600' as any }, { fontFamily }]}
-            />
-          ) : (
-            <ThemedText key={index} style={[styles.summaryLead, (index === 1 || index === 2) && { fontSize: 16 }, index === 1 && { marginBottom: 4 }]} weight={index === 0 ? 'semiBold' : undefined} selectable={true}>
-              {paragraph}
-            </ThemedText>
-          )
-        ))}
-      </StepFadeIn>
+      {showSummary && paragraphs.length > 0 ? (
+        <StepFadeIn delay={160} style={{ marginTop: 40 }}>
+          {paragraphs.map((paragraph, index) => (
+            Platform.OS === 'ios' ? (
+              <TextInput
+                key={index}
+                value={paragraph}
+                editable={false}
+                multiline={true}
+                scrollEnabled={false}
+                style={[styles.summaryLead, (index === 1 || index === 2) && { fontSize: 16 }, index === 1 && { marginBottom: 4 }, index === 0 && { fontWeight: '600' as any }, { fontFamily }]}
+              />
+            ) : (
+              <ThemedText key={index} style={[styles.summaryLead, (index === 1 || index === 2) && { fontSize: 16 }, index === 1 && { marginBottom: 4 }]} weight={index === 0 ? 'semiBold' : undefined} selectable={true}>
+                {paragraph}
+              </ThemedText>
+            )
+          ))}
+        </StepFadeIn>
+      ) : null}
 
       {showSafetyHelp ? (
         <StepFadeIn delay={420} style={styles.crisisHelpOnMoment}>
@@ -590,15 +887,750 @@ const EnterMomentStep: React.FC<EnterMomentProps> = ({
 interface TruthStepProps {
   text: string;
   userName: string;
+  beats?: TruthBeat[];
+  truthToCarry?: string;
+  beatIndex?: number;
   showSafetyHelp?: boolean;
   onNext: () => void;
+  onBeatNext?: () => void;
+  onBeatBack?: () => void;
+  onGoToScripture?: () => void;
+  onOpenRefinement?: () => void;
   insets: { top: number; bottom: number };
 }
 
 const TRUTH_PREVIEW_COUNT = 2; // paragraphs visible before "Read more"
 const MAX_PARAGRAPH_LENGTH = 300; // Maximum characters for paragraphs when collapsed
 
-const TruthInLoveStep: React.FC<TruthStepProps> = ({
+interface TruthBeatStepProps extends TruthStepProps {
+  beats: TruthBeat[];
+  beatIndex: number;
+  onBeatNext: () => void;
+  onBeatBack: () => void;
+  onGoToScripture?: () => void;
+}
+
+const TruthBeatStep: React.FC<TruthBeatStepProps> = ({
+  beats,
+  truthToCarry,
+  beatIndex,
+  showSafetyHelp = false,
+  onBeatNext,
+  onBeatBack,
+  onGoToScripture,
+  onOpenRefinement,
+  insets,
+}) => {
+  const [revealedBeats, setRevealedBeats] = useState<Record<number, boolean>>({});
+  const [openUntangleItems, setOpenUntangleItems] = useState<Record<string, boolean>>({});
+  const [selectedPathStep, setSelectedPathStep] = useState<string | null>(null);
+  const [selectedHoldEntrust, setSelectedHoldEntrust] = useState<{ hold: boolean; entrust: boolean }>({ hold: false, entrust: false });
+  const [scriptureConfirmOpen, setScriptureConfirmOpen] = useState(false);
+  const scriptureConfirmAnim = useRef(new Animated.Value(0)).current;
+  const truthNavCollapseAnim = useRef(new Animated.Value(0)).current;
+  const lastTruthScrollYRef = useRef(0);
+  const truthNavHiddenRef = useRef(false);
+  const truthContentHeightRef = useRef(0);
+  const truthViewportHeightRef = useRef(0);
+  const collapseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [truthNavCollapsed, setTruthNavCollapsed] = useState(false);
+  const currentIndex = Math.min(Math.max(beatIndex, 0), beats.length - 1);
+  const currentBeat = beats[currentIndex];
+  const primaryText = currentBeat.primaryTruth;
+  const supportingText = currentBeat.supportingTruth;
+  const isLastBeat = currentIndex >= beats.length - 1;
+  const presentation = currentBeat.presentation || 'statement';
+  const reveal = currentBeat.reveal;
+  const revealOpen = !!revealedBeats[currentIndex];
+  const isExamineBeat = presentation === 'examine';
+  const contrastNot = currentBeat.contrast?.notThis;
+  const contrastBut = currentBeat.contrast?.butThis;
+  const boundaryClear = currentBeat.boundary?.clear;
+  const boundaryCaution = currentBeat.boundary?.caution;
+  const twoTruths = currentBeat.twoTruths || [];
+  const untangle = currentBeat.untangle;
+  const untangleItems = untangle?.items || [];
+  const showUntangle = untangleItems.length >= 2 && presentation === 'untangle';
+  const path = currentBeat.path;
+  const pathFrom = path?.fromSteps || [];
+  const pathTo = path?.toSteps || [];
+  const showPath = presentation === 'path' && pathFrom.length >= 2 && pathTo.length >= 2;
+  const holdEntrust = currentBeat.holdEntrust;
+  const showHoldEntrust = presentation === 'hold_entrust' && !!holdEntrust;
+  const holdEntrustSelected = selectedHoldEntrust.hold && selectedHoldEntrust.entrust;
+  const reflectionQuestions = currentBeat.reflectionQuestions || [];
+  const hasExamineQuestions = isExamineBeat && reflectionQuestions.length > 0;
+  const rawRevealLabel = String(reveal?.label || '').trim().replace(/:$/, '');
+  const revealButtonLabel = hasExamineQuestions
+    ? (/^consider these questions$/i.test(rawRevealLabel) || !rawRevealLabel ? 'Examine this gently' : rawRevealLabel)
+    : rawRevealLabel || 'Reveal more';
+  const shouldShowReveal = hasExamineQuestions || !!reveal?.content;
+  const primaryButtonLabel = isLastBeat ? (holdEntrust?.cta || 'Scripture') : 'Continue';
+  const TRUTH_NAV_PILL_WIDTH = SCREEN_WIDTH - 32;
+  const TRUTH_NAV_CIRCLE_RATIO = 56 / TRUTH_NAV_PILL_WIDTH;
+  const truthNavContentOpacity = truthNavCollapseAnim.interpolate({ inputRange: [0, 0.35], outputRange: [1, 0], extrapolate: 'clamp' });
+  const truthNavShapeOpacity = truthNavCollapseAnim.interpolate({ inputRange: [0, 0.7], outputRange: [1, 0], extrapolate: 'clamp' });
+  const truthNavCircleOpacity = truthNavCollapseAnim.interpolate({ inputRange: [0.5, 1], outputRange: [0, 1], extrapolate: 'clamp' });
+  const truthNavShapeScaleX = truthNavCollapseAnim.interpolate({ inputRange: [0, 1], outputRange: [1, TRUTH_NAV_CIRCLE_RATIO], extrapolate: 'clamp' });
+  const truthNavShapeTranslateX = truthNavCollapseAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, -(TRUTH_NAV_PILL_WIDTH / 2) * (1 - TRUTH_NAV_CIRCLE_RATIO)],
+    extrapolate: 'clamp',
+  });
+
+  useEffect(() => {
+    if (scriptureConfirmOpen) {
+      scriptureConfirmAnim.setValue(0);
+      Animated.spring(scriptureConfirmAnim, {
+        toValue: 1,
+        tension: 80,
+        friction: 9,
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [scriptureConfirmOpen, scriptureConfirmAnim]);
+
+  useEffect(() => {
+    if (collapseTimerRef.current) {
+      clearTimeout(collapseTimerRef.current);
+      collapseTimerRef.current = null;
+    }
+    truthNavHiddenRef.current = false;
+    lastTruthScrollYRef.current = 0;
+    truthContentHeightRef.current = 0;
+    setTruthNavCollapsed(false);
+    truthNavCollapseAnim.setValue(0);
+    return () => {
+      if (collapseTimerRef.current) {
+        clearTimeout(collapseTimerRef.current);
+        collapseTimerRef.current = null;
+      }
+    };
+  }, [currentIndex, truthNavCollapseAnim]);
+
+  const expandTruthNav = useCallback(() => {
+    if (collapseTimerRef.current) {
+      clearTimeout(collapseTimerRef.current);
+      collapseTimerRef.current = null;
+    }
+    truthNavHiddenRef.current = false;
+    setTruthNavCollapsed(false);
+    Animated.spring(truthNavCollapseAnim, {
+      toValue: 0,
+      useNativeDriver: true,
+      tension: 65,
+      friction: 13,
+    }).start();
+  }, [truthNavCollapseAnim]);
+
+  const collapseTruthNav = useCallback(() => {
+    if (collapseTimerRef.current) {
+      clearTimeout(collapseTimerRef.current);
+      collapseTimerRef.current = null;
+    }
+    truthNavHiddenRef.current = true;
+    setTruthNavCollapsed(true);
+    Animated.spring(truthNavCollapseAnim, {
+      toValue: 1,
+      useNativeDriver: true,
+      tension: 55,
+      friction: 14,
+    }).start();
+  }, [truthNavCollapseAnim]);
+
+  const handleTruthScroll = useCallback((event: any) => {
+    const currentY = event.nativeEvent.contentOffset.y;
+    const contentHeight = event.nativeEvent.contentSize.height;
+    const viewportHeight = event.nativeEvent.layoutMeasurement.height;
+    const canScroll = contentHeight > viewportHeight + 8;
+    const isScrollingUp = currentY < lastTruthScrollYRef.current;
+
+    lastTruthScrollYRef.current = currentY;
+    truthContentHeightRef.current = contentHeight;
+    truthViewportHeightRef.current = viewportHeight;
+
+    if (canScroll && currentY > 60 && !truthNavHiddenRef.current) {
+      collapseTruthNav();
+    } else if (isScrollingUp && currentY <= 0 && truthNavHiddenRef.current) {
+      expandTruthNav();
+    }
+  }, [collapseTruthNav, expandTruthNav]);
+
+  const autoCollapseTruthNavIfNeeded = useCallback(() => {
+    if (collapseTimerRef.current) {
+      clearTimeout(collapseTimerRef.current);
+      collapseTimerRef.current = null;
+    }
+    const canScroll = truthContentHeightRef.current > truthViewportHeightRef.current + 8;
+    if (canScroll && !truthNavHiddenRef.current) {
+      collapseTimerRef.current = setTimeout(() => {
+        collapseTimerRef.current = null;
+        if (!truthNavHiddenRef.current) {
+          collapseTruthNav();
+        }
+      }, 1200);
+    }
+  }, [collapseTruthNav]);
+
+  const toggleReveal = () => {
+    triggerLightHaptic();
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setRevealedBeats(prev => ({ ...prev, [currentIndex]: !prev[currentIndex] }));
+  };
+
+  const openScriptureConfirm = () => {
+    triggerLightHaptic();
+    setScriptureConfirmOpen(true);
+  };
+
+  const closeScriptureConfirm = () => {
+    triggerLightHaptic();
+    setScriptureConfirmOpen(false);
+  };
+
+  const confirmGoToScripture = () => {
+    triggerLightHaptic();
+    setScriptureConfirmOpen(false);
+    onGoToScripture?.();
+  };
+
+  const toggleUntangleItem = (key: string) => {
+    triggerLightHaptic();
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setOpenUntangleItems(prev => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  const togglePathStep = (step: string) => {
+    triggerLightHaptic();
+    setSelectedPathStep(prev => (prev === step ? null : step));
+  };
+
+  const renderUntangle = () => {
+    if (!showUntangle || !untangle) return null;
+    if (untangle.style === 'compare') {
+      return (
+        <StepFadeIn delay={230} style={styles.truthBeatBlockGap}>
+          {untangleItems.slice(0, 2).map((item, idx) => (
+            <React.Fragment key={`${item.label}-${idx}`}>
+              {idx === 1 ? (
+                <View style={styles.truthUntangleVersusRow}>
+                  <View style={styles.truthUntangleVersusLine} />
+                  <ThemedText weight="semiBold" style={styles.truthUntangleVersus}>versus</ThemedText>
+                  <View style={styles.truthUntangleVersusLine} />
+                </View>
+              ) : null}
+              <View style={[styles.truthUntangleCard, idx === 1 && styles.truthUntangleCardAlt]}>
+                <ThemedText weight="semiBold" style={[styles.truthUntangleLabel, idx === 1 && styles.truthUntangleLabelAlt]}>
+                  {item.label}
+                </ThemedText>
+                <ThemedText style={styles.truthUntangleText} selectable={true}>{item.text}</ThemedText>
+              </View>
+            </React.Fragment>
+          ))}
+        </StepFadeIn>
+      );
+    }
+    if (untangle.style === 'collapsible') {
+      return (
+        <StepFadeIn delay={230} style={styles.truthBeatBlockGap}>
+          {untangleItems.map((item, idx) => {
+            const key = `${currentIndex}-${idx}`;
+            const open = !!openUntangleItems[key];
+            return (
+              <TouchableOpacity
+                key={key}
+                style={[styles.truthUntangleRow, open && styles.truthUntangleRowOpen]}
+                onPress={() => toggleUntangleItem(key)}
+                activeOpacity={0.8}
+              >
+                <View style={styles.truthUntangleRowHeader}>
+                  <ThemedText weight="semiBold" style={[styles.truthUntangleLabel, { marginBottom: open ? 6 : 0 }]}>{item.label}</ThemedText>
+                  <Ionicons name={open ? 'remove' : 'add'} size={18} color="rgba(255,255,255,0.7)" />
+                </View>
+                {open ? (
+                  <ThemedText style={styles.truthUntangleText} selectable={true}>{item.text}</ThemedText>
+                ) : null}
+              </TouchableOpacity>
+            );
+          })}
+        </StepFadeIn>
+      );
+    }
+    return (
+      <StepFadeIn delay={230} style={styles.truthBeatBlockGap}>
+        {untangleItems.map((item, idx) => (
+          <View key={`${item.label}-${idx}`} style={[styles.truthUntangleCard, idx === untangleItems.length - 1 && untangleItems.length >= 3 && styles.truthUntangleCardAlt]}>
+            <ThemedText weight="semiBold" style={[styles.truthUntangleLabel, idx === untangleItems.length - 1 && untangleItems.length >= 3 && styles.truthUntangleLabelAlt]}>
+              {item.label}
+            </ThemedText>
+            <ThemedText style={styles.truthUntangleText} selectable={true}>{item.text}</ThemedText>
+          </View>
+        ))}
+      </StepFadeIn>
+    );
+  };
+
+  const renderPath = () => {
+    if (!showPath || !path) return null;
+    const { fromTitle, toTitle, selfRecognition } = path;
+    const renderStep = (step: string, isAlt = false) => {
+      const selected = selectedPathStep === step;
+      return (
+        <TouchableOpacity
+          key={step}
+          onPress={() => togglePathStep(step)}
+          activeOpacity={0.7}
+          style={[styles.truthPathStep, isAlt && styles.truthPathStepAlt, selected && styles.truthPathStepSelected]}
+        >
+          <ThemedText style={[styles.truthPathStepText, selected && styles.truthPathStepTextSelected]}>{step}</ThemedText>
+        </TouchableOpacity>
+      );
+    };
+    return (
+      <StepFadeIn delay={230} style={styles.truthBeatBlockGap}>
+        <View style={styles.truthPathColumns}>
+          <View style={styles.truthPathColumn}>
+            <ThemedText weight="semiBold" style={styles.truthPathColumnTitle}>{fromTitle || 'Notice where this leads'}</ThemedText>
+            <View style={styles.truthPathSteps}>
+              {pathFrom.map((step, i) => (
+                <React.Fragment key={step}>
+                  {renderStep(step)}
+                  {i < pathFrom.length - 1 ? (
+                    <Ionicons name={path?.isLoop && i === pathFrom.length - 2 ? 'refresh' : 'arrow-down'} size={14} color="rgba(255,255,255,0.35)" style={styles.truthPathArrow} />
+                  ) : null}
+                </React.Fragment>
+              ))}
+            </View>
+          </View>
+          <View style={styles.truthPathColumnSpacer} />
+          <View style={styles.truthPathColumn}>
+            <ThemedText weight="semiBold" style={[styles.truthPathColumnTitle, styles.truthPathColumnTitleAlt]}>{toTitle || 'See another direction'}</ThemedText>
+            <View style={styles.truthPathSteps}>
+              {pathTo.map((step, i) => (
+                <React.Fragment key={step}>
+                  {renderStep(step, true)}
+                  {i < pathTo.length - 1 ? (
+                    <Ionicons name="arrow-down" size={14} color="rgba(255,255,255,0.35)" style={styles.truthPathArrow} />
+                  ) : null}
+                </React.Fragment>
+              ))}
+            </View>
+          </View>
+        </View>
+        {selfRecognition ? (
+          <View style={styles.truthPathReflectBlock}>
+            <ThemedText weight="semiBold" style={styles.truthPathReflectLabel}>{selfRecognition}</ThemedText>
+          </View>
+        ) : null}
+      </StepFadeIn>
+    );
+  };
+
+  const toggleHold = () => {
+    triggerLightHaptic();
+    setSelectedHoldEntrust(prev => ({ ...prev, hold: !prev.hold }));
+  };
+
+  const toggleEntrust = () => {
+    triggerLightHaptic();
+    setSelectedHoldEntrust(prev => ({ ...prev, entrust: !prev.entrust }));
+  };
+
+  const renderHoldEntrust = () => {
+    if (!showHoldEntrust || !holdEntrust) return null;
+    const { holdLabel, holdStatement, entrustLabel, entrustStatement, handoffLabel, handoffBody } = holdEntrust;
+    const bothSelected = holdEntrustSelected;
+    return (
+      <StepFadeIn delay={230} style={styles.truthBeatBlockGap}>
+        <View style={styles.truthHoldEntrustRow}>
+          <TouchableOpacity
+            onPress={toggleHold}
+            activeOpacity={0.7}
+            style={[styles.truthHoldEntrustCard, selectedHoldEntrust.hold && styles.truthHoldEntrustCardSelected]}
+          >
+            <ThemedText weight="semiBold" style={styles.truthHoldEntrustLabel}>{holdLabel}</ThemedText>
+            <ThemedText style={[styles.truthHoldEntrustText, selectedHoldEntrust.hold && styles.truthHoldEntrustTextSelected]}>{holdStatement}</ThemedText>
+            {selectedHoldEntrust.hold ? (
+              <View style={styles.truthHoldEntrustCheck}>
+                <Ionicons name="checkmark" size={14} color={Colors.faithGold} />
+              </View>
+            ) : null}
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={toggleEntrust}
+            activeOpacity={0.7}
+            style={[styles.truthHoldEntrustCard, styles.truthHoldEntrustCardAlt, selectedHoldEntrust.entrust && styles.truthHoldEntrustCardSelectedAlt]}
+          >
+            <ThemedText weight="semiBold" style={[styles.truthHoldEntrustLabel, styles.truthHoldEntrustLabelAlt]}>{entrustLabel}</ThemedText>
+            <ThemedText style={[styles.truthHoldEntrustText, styles.truthHoldEntrustTextAlt, selectedHoldEntrust.entrust && styles.truthHoldEntrustTextSelectedAlt]}>{entrustStatement}</ThemedText>
+            {selectedHoldEntrust.entrust ? (
+              <View style={styles.truthHoldEntrustCheck}>
+                <Ionicons name="checkmark" size={14} color={Colors.faithGold} />
+              </View>
+            ) : null}
+          </TouchableOpacity>
+        </View>
+        {bothSelected ? (
+          <View style={styles.truthHandoffBlock}>
+            <ThemedText weight="semiBold" style={styles.truthHandoffLabel}>{handoffLabel}</ThemedText>
+            <ThemedText style={styles.truthHandoffBody}>{handoffBody}</ThemedText>
+          </View>
+        ) : null}
+      </StepFadeIn>
+    );
+  };
+
+  const renderSupportingText = () => (
+    supportingText ? (
+      <StepFadeIn key={`truth-supporting-${currentIndex}`} delay={190}>
+        <ThemedText style={styles.truthBeatSupporting} selectable={true}>
+          {supportingText}
+        </ThemedText>
+      </StepFadeIn>
+    ) : null
+  );
+
+  const scrollView = useRef<ScrollView>(null);
+
+  return (
+    <>
+      <ScrollView
+        ref={scrollView}
+        style={styles.stepScroll}
+        onScroll={handleTruthScroll}
+        onContentSizeChange={(w, h) => {
+          truthContentHeightRef.current = h;
+          autoCollapseTruthNavIfNeeded();
+        }}
+        onLayout={(event) => {
+          truthViewportHeightRef.current = event.nativeEvent.layout.height;
+          autoCollapseTruthNavIfNeeded();
+        }}
+        scrollEventThrottle={16}
+        contentContainerStyle={[styles.stepContent, IS_IPAD && styles.stepContentPad, { paddingTop: insets.top + (IS_IPAD ? 28 : 8), paddingBottom: 150 }]}
+        showsVerticalScrollIndicator={false}
+      >
+        <StepFadeIn delay={0} style={styles.stepLabelRow}>
+          <Ionicons name="heart" size={18} color={Colors.alertCoral} />
+          <ThemedText weight="semiBold" style={styles.stepLabelWhite}>
+            Truth in Love
+          </ThemedText>
+        </StepFadeIn>
+
+        <StepFadeIn delay={60}>
+          <ThemedText style={styles.actionCounter} selectable={true}>
+            {currentIndex + 1} of {beats.length}
+          </ThemedText>
+        </StepFadeIn>
+
+        <StepFadeIn delay={80}>
+          <View style={styles.actionProgressBar}>
+            <View style={[styles.actionProgressFill, { width: `${((currentIndex + 1) / beats.length) * 100}%` }]} />
+          </View>
+        </StepFadeIn>
+
+        {showSafetyHelp ? (
+          <StepFadeIn delay={60} style={styles.crisisHelpOnTruth}>
+            <CrisisHelpPills />
+          </StepFadeIn>
+        ) : null}
+
+        {currentBeat.label ? (
+          <StepFadeIn delay={130}>
+            <View style={[styles.truthBeatShell, presentation === 'truth_card' && styles.truthBeatShellQuiet]}>
+              <View style={styles.truthBeatIconCircle}>
+                <Ionicons
+                  name={
+                    presentation === 'boundary' ? 'shield-checkmark-outline' :
+                    presentation === 'contrast' ? 'swap-horizontal-outline' :
+                    presentation === 'examine' ? 'search-outline' :
+                    presentation === 'untangle' ? 'git-branch-outline' :
+                    presentation === 'path' ? 'trail-sign-outline' :
+                    presentation === 'hold_entrust' ? 'archive-outline' :
+                    presentation === 'two_truths' ? 'git-compare-outline' :
+                    presentation === 'grace_truth' ? 'heart-circle-outline' :
+                    'sparkles-outline'
+                  }
+                  size={18}
+                  color={Colors.alertCoral}
+                />
+              </View>
+              <ThemedText weight="semiBold" style={styles.truthBeatLabel} selectable={true}>
+                {currentBeat.label}
+              </ThemedText>
+            </View>
+          </StepFadeIn>
+        ) : null}
+
+        <StepFadeIn key={`truth-primary-${currentIndex}`} delay={110}>
+          <View style={styles.truthBeatPrimaryRow}>
+            {primaryText ? (
+              <ThemedText weight="bold" style={styles.truthBeatPrimary} selectable={true}>
+                {primaryText}
+              </ThemedText>
+            ) : null}
+          </View>
+        </StepFadeIn>
+
+        {renderSupportingText()}
+
+        {currentBeat.enhancement ? (
+          <StepFadeIn key={`truth-enhancement-${currentIndex}`} delay={280}>
+            <TruthScreenElement element={currentBeat.enhancement} />
+          </StepFadeIn>
+        ) : null}
+
+        {renderUntangle()}
+
+        {renderPath()}
+
+        {renderHoldEntrust()}
+
+        {presentation === 'contrast' && (contrastNot || contrastBut) ? (
+          <StepFadeIn delay={230} style={styles.truthBeatBlockGap}>
+            {contrastNot ? (
+              <View style={styles.truthContrastCard}>
+                <ThemedText weight="semiBold" style={styles.truthContrastLabel}>Not this</ThemedText>
+                <ThemedText style={styles.truthContrastText} selectable={true}>{contrastNot}</ThemedText>
+              </View>
+            ) : null}
+            {contrastBut ? (
+              <View style={[styles.truthContrastCard, styles.truthContrastCardAffirm]}>
+                <ThemedText weight="semiBold" style={styles.truthContrastLabelAffirm}>But this</ThemedText>
+                <ThemedText style={styles.truthContrastText} selectable={true}>{contrastBut}</ThemedText>
+              </View>
+            ) : null}
+          </StepFadeIn>
+        ) : null}
+
+        {presentation === 'boundary' && (boundaryClear || boundaryCaution) ? (
+          <StepFadeIn delay={230} style={styles.truthBeatBlockGap}>
+            {boundaryClear ? (
+              <View style={styles.truthBoundaryCard}>
+                <ThemedText weight="semiBold" style={styles.truthBoundaryLabel}>Scripture makes clear</ThemedText>
+                <ThemedText style={styles.truthBoundaryText} selectable={true}>{boundaryClear}</ThemedText>
+              </View>
+            ) : null}
+            {boundaryCaution ? (
+              <View style={styles.truthBoundaryCard}>
+                <ThemedText weight="semiBold" style={styles.truthBoundaryLabel}>Do not overclaim</ThemedText>
+                <ThemedText style={styles.truthBoundaryText} selectable={true}>{boundaryCaution}</ThemedText>
+              </View>
+            ) : null}
+          </StepFadeIn>
+        ) : null}
+
+        {presentation === 'two_truths' && twoTruths.length >= 2 ? (
+          <StepFadeIn delay={230} style={styles.truthTwoCards}>
+            {twoTruths.slice(0, 2).map(item => (
+              <View key={`${item.label}-${item.text}`} style={styles.truthTwoCard}>
+                <ThemedText weight="semiBold" style={styles.truthTwoLabel}>{item.label}</ThemedText>
+                <ThemedText style={styles.truthTwoText} selectable={true}>{item.text}</ThemedText>
+              </View>
+            ))}
+          </StepFadeIn>
+        ) : null}
+
+        {shouldShowReveal ? (
+          <StepFadeIn delay={280}>
+            <TouchableOpacity
+              style={styles.truthRevealButton}
+              onPress={toggleReveal}
+              activeOpacity={0.78}
+            >
+              <ThemedText weight="semiBold" style={styles.truthRevealButtonText}>
+                {revealOpen ? 'Show less' : revealButtonLabel}
+              </ThemedText>
+              <Ionicons
+                name={revealOpen ? 'chevron-up' : 'chevron-down'}
+                size={16}
+                color="rgba(255,255,255,0.72)"
+              />
+            </TouchableOpacity>
+            {revealOpen && hasExamineQuestions ? (
+              <View style={styles.truthQuestionsBlock}>
+                <ThemedText weight="semiBold" style={styles.truthQuestionsLabel}>Examine this gently</ThemedText>
+                {reflectionQuestions.map(question => (
+                  <View key={question} style={styles.truthQuestionRow}>
+                    <ThemedText weight="bold" style={styles.truthQuestionMark}>?</ThemedText>
+                    <ThemedText style={styles.truthQuestionText} selectable={true}>{question}</ThemedText>
+                  </View>
+                ))}
+              </View>
+            ) : revealOpen && reveal?.content ? (
+              <View style={styles.truthRevealCard}>
+                <ThemedText style={styles.truthRevealText} selectable={true}>
+                  {reveal.content}
+                </ThemedText>
+              </View>
+            ) : null}
+          </StepFadeIn>
+        ) : null}
+
+        {isLastBeat && truthToCarry ? (
+          <StepFadeIn delay={360}>
+            <View style={styles.truthCarryCard}>
+              <View style={styles.truthCarryHeader}>
+                <Ionicons name="bookmark-outline" size={14} color={Colors.faithGold} />
+                <ThemedText weight="semiBold" style={styles.truthCarryLabel}>Truth to Carry</ThemedText>
+              </View>
+              <ThemedText weight="semiBold" style={styles.truthCarryText} selectable={true}>
+                {truthToCarry}
+              </ThemedText>
+            </View>
+          </StepFadeIn>
+        ) : null}
+      </ScrollView>
+
+      <Animated.View style={[styles.truthBeatNav, { bottom: insets.bottom + 20 }]}>
+        <Animated.View
+          style={[
+            styles.truthBeatNavRow,
+            {
+              opacity: truthNavShapeOpacity,
+              transform: [{ translateX: truthNavShapeTranslateX }, { scaleX: truthNavShapeScaleX }],
+            },
+          ]}
+          pointerEvents={truthNavCollapsed ? 'none' : 'box-none'}
+        >
+          <Animated.View style={[styles.truthBeatNavRowContent, { opacity: truthNavContentOpacity }]}>
+            {onOpenRefinement ? (
+              <TouchableOpacity
+                style={styles.truthBeatRefineButton}
+                onPress={onOpenRefinement}
+                activeOpacity={0.7}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                accessibilityRole="button"
+                accessibilityLabel="That’s not quite it"
+              >
+                <Ionicons name="sparkles" size={14} color={Colors.alertCoral} />
+              </TouchableOpacity>
+            ) : null}
+
+            {currentIndex > 0 ? (
+              <TouchableOpacity
+                style={styles.truthBeatIconButton}
+                onPress={onBeatBack}
+                activeOpacity={0.7}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                accessibilityRole="button"
+                accessibilityLabel="Previous Truth in Love page"
+              >
+                <Ionicons name="chevron-back" size={18} color="rgba(255,255,255,0.68)" />
+              </TouchableOpacity>
+            ) : null}
+
+            <TouchableOpacity
+              style={styles.truthBeatPrimaryButton}
+              onPress={onBeatNext}
+              activeOpacity={0.85}
+            >
+              {isLastBeat ? (
+                <MaterialCommunityIcons name="script-text" size={16} color={Colors.hopeWhite} />
+              ) : (
+                <Ionicons name="heart" size={15} color={Colors.hopeWhite} />
+              )}
+              <ThemedText weight="semiBold" style={styles.actionFABDoneText} numberOfLines={1}>
+                {primaryButtonLabel}
+              </ThemedText>
+            </TouchableOpacity>
+
+            {!isLastBeat && onGoToScripture ? (
+              <TouchableOpacity
+                style={styles.truthBeatScriptureLink}
+                onPress={openScriptureConfirm}
+                activeOpacity={0.75}
+                hitSlop={{ top: 8, bottom: 8, left: 16, right: 16 }}
+                accessibilityRole="button"
+                accessibilityLabel="Go to Scripture"
+              >
+                <MaterialCommunityIcons name="script-text" size={15} color={Colors.hopeWhite} />
+                <ThemedText weight="medium" style={styles.truthBeatScriptureLinkText}>Scripture</ThemedText>
+              </TouchableOpacity>
+            ) : null}
+          </Animated.View>
+        </Animated.View>
+
+        <Animated.View
+          style={[styles.truthBeatNavCollapsedCircle, { opacity: truthNavCircleOpacity }]}
+          pointerEvents={truthNavCollapsed ? 'box-none' : 'none'}
+        >
+          <TouchableOpacity
+            style={styles.truthBeatNavCollapsedTouchable}
+            onPress={() => {
+              triggerLightHaptic();
+              expandTruthNav();
+            }}
+            activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel="Show Truth in Love actions"
+          >
+            <Ionicons name="ellipsis-horizontal" size={20} color={Colors.hopeWhite} />
+          </TouchableOpacity>
+        </Animated.View>
+      </Animated.View>
+
+      {scriptureConfirmOpen ? (
+        <View style={styles.truthScriptureConfirmOverlay}>
+          <TouchableOpacity
+            style={styles.truthScriptureConfirmBackdrop}
+            activeOpacity={1}
+            onPress={closeScriptureConfirm}
+          />
+          <Animated.View
+            style={[
+              styles.truthScriptureConfirmSheet,
+              {
+                paddingBottom: insets.bottom + 18,
+                opacity: scriptureConfirmAnim,
+                transform: [
+                  {
+                    translateY: scriptureConfirmAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [10, 0],
+                    }),
+                  },
+                ],
+              },
+            ]}
+          >
+            <ThemedText weight="bold" style={styles.truthScriptureConfirmTitle}>
+              Ready to go to Scripture?
+            </ThemedText>
+            <ThemedText style={styles.truthScriptureConfirmText}>
+              You can move to Scripture now and return to Truth in Love anytime.
+            </ThemedText>
+            <StepFadeIn delay={90}>
+              <TouchableOpacity
+                style={styles.truthScriptureConfirmPrimary}
+                onPress={confirmGoToScripture}
+                activeOpacity={0.85}
+              >
+                <MaterialCommunityIcons name="script-text" size={16} color={Colors.hopeWhite} />
+                <ThemedText weight="semiBold" style={styles.truthScriptureConfirmPrimaryText}>
+                  Go to Scripture
+                </ThemedText>
+              </TouchableOpacity>
+            </StepFadeIn>
+            <StepFadeIn delay={135}>
+              <TouchableOpacity
+                style={styles.truthScriptureConfirmSecondary}
+                onPress={closeScriptureConfirm}
+                activeOpacity={0.75}
+              >
+                <ThemedText weight="medium" style={styles.truthScriptureConfirmSecondaryText}>
+                  Keep reflecting
+                </ThemedText>
+              </TouchableOpacity>
+            </StepFadeIn>
+          </Animated.View>
+        </View>
+      ) : null}
+    </>
+  );
+};
+
+const LegacyTruthInLoveStep: React.FC<TruthStepProps> = ({
   text,
   userName,
   showSafetyHelp = false,
@@ -711,29 +1743,45 @@ const TruthInLoveStep: React.FC<TruthStepProps> = ({
   );
 };
 
+const TruthInLoveStep: React.FC<TruthStepProps> = (props) => {
+  const beats = (props.beats || []).filter(beat => beat.primaryTruth);
+  if (beats.length > 0) {
+    return (
+      <TruthBeatStep
+        {...props}
+        beats={beats}
+        beatIndex={props.beatIndex ?? 0}
+        onBeatNext={props.onBeatNext || props.onNext}
+        onBeatBack={props.onBeatBack || (() => {})}
+        onGoToScripture={props.onGoToScripture}
+      />
+    );
+  }
+
+  return <LegacyTruthInLoveStep {...props} />;
+};
+
 interface FloatingRefinementControlProps {
-  active: boolean;
-  refinementsRemaining: number;
+  open: boolean;
+  onClose: () => void;
   isRefining: boolean;
+  refinementsRemaining: number;
   insets: { bottom: number };
   onRefineSubmit: (correctionType: PlaybookCorrectionType, clarification: string) => Promise<boolean>;
-  onUpgradeNeeded: () => void;
 }
 
 const FloatingRefinementControl: React.FC<FloatingRefinementControlProps> = ({
-  active,
-  refinementsRemaining,
+  open,
+  onClose,
   isRefining,
+  refinementsRemaining,
   insets,
   onRefineSubmit,
-  onUpgradeNeeded,
 }) => {
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';
   const fontFamily = getFontFamily(fontKey, 'regular');
-  const [visible, setVisible] = useState(false);
-  const [refinementOpen, setRefinementOpen] = useState(false);
-  const [selectedRefinementType, setSelectedRefinementType] = useState<PlaybookCorrectionType | null>(null);
+  const [selectedRefinementOptionId, setSelectedRefinementOptionId] = useState<string | null>(null);
   const [refinementText, setRefinementText] = useState('');
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const revealAnim = useRef(new Animated.Value(0)).current;
@@ -741,45 +1789,24 @@ const FloatingRefinementControl: React.FC<FloatingRefinementControlProps> = ({
   const refiningAnim = useRef(new Animated.Value(1)).current;
   const dotAnim = useRef(new Animated.Value(0)).current;
   const [dotIndex, setDotIndex] = useState(0);
-  const selectedOption = REFINEMENT_OPTIONS.find(option => option.type === selectedRefinementType);
-  const canShowButton = active;
-  const bottomOffset = insets.bottom + 20;
-  const keyboardLift = keyboardHeight > 0 ? Math.max(0, keyboardHeight - insets.bottom - 12) : 0;
-  const panelGap = keyboardHeight > 0 ? 10 : 56;
-  const panelWidth = Math.min(SCREEN_WIDTH - 40, 360);
+  const selectedOption = REFINEMENT_OPTIONS.find(option => option.id === selectedRefinementOptionId);
+  const selectedRefinementType = selectedOption?.type ?? null;
+  const keyboardLift = keyboardHeight > 0 ? Math.max(0, keyboardHeight - insets.bottom) : 0;
   const panelMaxHeight = keyboardHeight > 0
-    ? Math.max(260, SCREEN_HEIGHT - keyboardHeight - 72)
-    : SCREEN_HEIGHT - bottomOffset - 100;
+    ? Math.max(260, SCREEN_HEIGHT - keyboardHeight - 42)
+    : SCREEN_HEIGHT - 82;
+  const remainingLabel = `${Math.max(0, refinementsRemaining)} refinement${refinementsRemaining === 1 ? '' : 's'} left`;
 
   useEffect(() => {
-    let timeout: ReturnType<typeof setTimeout> | undefined;
-
-    if (canShowButton) {
-      revealAnim.setValue(0);
-      setVisible(false);
-      timeout = setTimeout(() => {
-        setVisible(true);
-        Animated.spring(revealAnim, {
-          toValue: 1,
-          tension: 80,
-          friction: 9,
-          useNativeDriver: true,
-        }).start();
-      }, 3000);
-    } else {
-      setVisible(false);
-      setRefinementOpen(false);
-      setSelectedRefinementType(null);
-      setRefinementText('');
-      revealAnim.setValue(0);
+    if (open) {
+      Animated.spring(revealAnim, {
+        toValue: 1,
+        tension: 80,
+        friction: 9,
+        useNativeDriver: true,
+      }).start();
     }
-
-    return () => {
-      if (timeout) {
-        clearTimeout(timeout);
-      }
-    };
-  }, [canShowButton, revealAnim]);
+  }, [open, revealAnim]);
 
   useEffect(() => {
     const animation = Animated.loop(
@@ -852,34 +1879,13 @@ const FloatingRefinementControl: React.FC<FloatingRefinementControlProps> = ({
   }, []);
 
   useEffect(() => {
-    if (selectedRefinementType && inputRef.current) {
+    if (selectedRefinementOptionId && inputRef.current) {
       const timeout = setTimeout(() => {
         inputRef.current?.focus();
       }, 100);
       return () => clearTimeout(timeout);
     }
-  }, [selectedRefinementType]);
-
-  const handleToggle = () => {
-    triggerLightHaptic();
-    if (isRefining) {
-      return;
-    }
-
-    if (refinementsRemaining === 0) {
-      onUpgradeNeeded();
-      return;
-    }
-
-    setRefinementOpen(prev => {
-      const next = !prev;
-      if (!next) {
-        setSelectedRefinementType(null);
-        setRefinementText('');
-      }
-      return next;
-    });
-  };
+  }, [selectedRefinementOptionId]);
 
   const handleCloseRefinement = () => {
     if (isRefining) {
@@ -888,183 +1894,157 @@ const FloatingRefinementControl: React.FC<FloatingRefinementControlProps> = ({
 
     triggerLightHaptic();
     Keyboard.dismiss();
-    setRefinementOpen(false);
-    setSelectedRefinementType(null);
+    setSelectedRefinementOptionId(null);
     setRefinementText('');
+    onClose();
   };
 
-  const handleReasonPress = (type: PlaybookCorrectionType) => {
+  const handleReasonPress = (optionId: string) => {
     triggerLightHaptic();
-    setSelectedRefinementType(type);
+    setSelectedRefinementOptionId(optionId);
   };
 
   const handleSubmit = async () => {
-    if (!selectedRefinementType || isRefining) {
+    if (!selectedOption || !selectedRefinementType || isRefining) {
       return;
     }
 
     triggerMediumHaptic();
-    const refined = await onRefineSubmit(selectedRefinementType, refinementText);
+    const refined = await onRefineSubmit(
+      selectedRefinementType,
+      `${selectedOption.label}: ${refinementText.trim()}`
+    );
     if (refined) {
-      setRefinementOpen(false);
-      setSelectedRefinementType(null);
+      setSelectedRefinementOptionId(null);
       setRefinementText('');
+      onClose();
     }
   };
 
-  if (!visible || !canShowButton) {
+  if (!open) {
     return null;
   }
 
   return (
     <>
-      {refinementOpen ? (
-        <TouchableOpacity
-          style={styles.refinementBackdrop}
-          activeOpacity={1}
-          onPress={handleCloseRefinement}
-          disabled={isRefining}
+      <TouchableOpacity
+        style={styles.refinementBackdrop}
+        activeOpacity={1}
+        onPress={handleCloseRefinement}
+        disabled={isRefining}
+      />
+
+      <Animated.View
+        style={[
+          styles.floatingRefinementPanel,
+          {
+            bottom: keyboardLift,
+            maxHeight: panelMaxHeight,
+            paddingBottom: insets.bottom + 16,
+            opacity: revealAnim,
+            transform: [
+              {
+                translateY: revealAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [10, 0],
+                }),
+              },
+            ],
+          },
+        ]}
+      >
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
         >
-          <BlurView
-            style={styles.refinementBackdropBlur}
-            blurType="dark"
-            blurAmount={9}
-            reducedTransparencyFallbackColor="rgba(0,0,0,0.58)"
-          />
-          <View style={styles.refinementBackdropTint} />
-        </TouchableOpacity>
-      ) : null}
-
-      {refinementOpen ? (
-        <Animated.View
-          style={[
-            styles.floatingRefinementPanel,
-            {
-              bottom: bottomOffset + panelGap + keyboardLift,
-              width: panelWidth,
-              maxHeight: panelMaxHeight,
-              opacity: revealAnim,
-              transform: [
-                {
-                  translateY: revealAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [10, 0],
-                  }),
-                },
-              ],
-            },
-          ]}
-        >
-          <ScrollView
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
-          >
-            <View style={styles.floatingRefinementReasons}>
-              {REFINEMENT_OPTIONS.map((option, index) => {
-                const selected = selectedRefinementType === option.type;
-                return (
-                  <StepFadeIn key={option.type} delay={index * 45}>
-                    <TouchableOpacity
-                      style={[styles.refinementReasonButton, selected && styles.refinementReasonButtonSelected]}
-                      onPress={() => handleReasonPress(option.type)}
-                      activeOpacity={0.82}
-                      disabled={isRefining}
-                    >
-                      <ThemedText weight={selected ? 'semiBold' : 'regular'} style={[styles.refinementReasonText, selected && styles.refinementReasonTextSelected]}>
-                        {option.label}
-                      </ThemedText>
-                      {selected ? (
-                        <Ionicons name="checkmark" size={16} color={Colors.hopeWhite} />
-                      ) : null}
-                    </TouchableOpacity>
-                  </StepFadeIn>
-                );
-              })}
-            </View>
-
-            {selectedRefinementType ? (
-              <StepFadeIn delay={260} style={styles.refinementFloatingInputBlock}>
-                <TextInput
-                  ref={inputRef}
-                  value={refinementText}
-                  onChangeText={setRefinementText}
-                  editable={!isRefining}
-                  multiline
-                  placeholder={`What should siFia understand about "${selectedOption?.label || 'this'}"?`}
-                  placeholderTextColor="rgba(255,255,255,0.45)"
-                  keyboardAppearance="dark"
-                  textAlignVertical="top"
-                  autoFocus
-                  style={[styles.refinementInput, { fontFamily }]}
-                />
-
-                <TouchableOpacity
-                  style={[styles.refinementSubmitButton, (!refinementText.trim() || isRefining) && styles.refinementSubmitButtonDisabled]}
-                  onPress={handleSubmit}
-                  activeOpacity={0.82}
-                  disabled={!refinementText.trim() || isRefining}
-                >
-                  {isRefining ? (
-                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                      <Animated.Text
-                        style={[styles.refinementSubmitButtonText, { opacity: refiningAnim, fontFamily, fontWeight: '500' }]}
-                      >
-                        Refining
-                      </Animated.Text>
-                      <Animated.Text
-                        style={[styles.refinementSubmitButtonText, { opacity: refiningAnim, fontFamily, width: 20, textAlign: 'left', fontWeight: '500' }]}
-                      >
-                        {'.'.repeat(dotIndex + 1)}
-                      </Animated.Text>
-                    </View>
-                  ) : (
-                    <>
-                      <Ionicons name="refresh-outline" size={16} color={Colors.hopeWhite} />
-                      <ThemedText weight="semiBold" style={styles.refinementSubmitButtonText}>Refine Playbook</ThemedText>
-                    </>
-                  )}
-                </TouchableOpacity>
-              </StepFadeIn>
-            ) : null}
-          </ScrollView>
-        </Animated.View>
-      ) : null}
-
-      {keyboardHeight === 0 ? (
-        <Animated.View
-          style={[
-            styles.floatingRefinementButtonWrap,
-            {
-              bottom: bottomOffset,
-              opacity: revealAnim,
-              transform: [
-                {
-                  scale: revealAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [0.7, 1],
-                  }),
-                },
-              ],
-            },
-          ]}
-        >
-          <TouchableOpacity
-            style={[styles.floatingRefinementButton, refinementOpen && styles.floatingRefinementButtonOpen]}
-            onPress={handleToggle}
-            activeOpacity={0.82}
-            disabled={isRefining}
-          >
-            <Ionicons name="refresh-outline" size={15} color="rgba(255,255,255,0.9)" />
-            {refinementsRemaining > 0 && (
+          <View style={styles.floatingRefinementHeader}>
+            <View style={styles.refinementSheetTitleRow}>
+              <ThemedText weight="bold" style={styles.refinementSheetTitle}>
+                Help siFia understand
+              </ThemedText>
               <View style={styles.refinementCountBadge}>
                 <ThemedText weight="semiBold" style={styles.refinementCountBadgeText}>
-                  {refinementsRemaining === Number.MAX_SAFE_INTEGER ? '∞' : refinementsRemaining}
+                  {remainingLabel}
                 </ThemedText>
               </View>
-            )}
-          </TouchableOpacity>
-        </Animated.View>
-      ) : null}
+            </View>
+            <ThemedText style={styles.refinementSheetPrompt}>
+              What did we miss?
+            </ThemedText>
+          </View>
+
+          <View style={styles.floatingRefinementReasons}>
+            {REFINEMENT_OPTIONS.map((option, index) => {
+              const selected = selectedRefinementOptionId === option.id;
+              return (
+                <StepFadeIn key={option.id} delay={index * 45}>
+                  <TouchableOpacity
+                    style={[styles.refinementReasonButton, selected && styles.refinementReasonButtonSelected]}
+                    onPress={() => handleReasonPress(option.id)}
+                    activeOpacity={0.82}
+                    disabled={isRefining}
+                  >
+                    <Ionicons
+                      name={selected ? 'radio-button-on' : 'radio-button-off'}
+                      size={18}
+                      color={selected ? Colors.alertCoral : 'rgba(255,255,255,0.42)'}
+                      style={styles.refinementReasonRadio}
+                    />
+                    <ThemedText weight={selected ? 'semiBold' : 'regular'} style={[styles.refinementReasonText, selected && styles.refinementReasonTextSelected]}>
+                      {option.label}
+                    </ThemedText>
+                  </TouchableOpacity>
+                </StepFadeIn>
+              );
+            })}
+          </View>
+
+          {selectedRefinementType ? (
+            <StepFadeIn delay={260} style={styles.refinementFloatingInputBlock}>
+              <TextInput
+                ref={inputRef}
+                value={refinementText}
+                onChangeText={setRefinementText}
+                editable={!isRefining}
+                multiline
+                placeholder="Tell siFia more..."
+                placeholderTextColor="rgba(255,255,255,0.45)"
+                keyboardAppearance="dark"
+                textAlignVertical="top"
+                autoFocus
+                style={[styles.refinementInput, { fontFamily }]}
+              />
+
+              <TouchableOpacity
+                style={[styles.refinementSubmitButton, (!refinementText.trim() || isRefining) && styles.refinementSubmitButtonDisabled]}
+                onPress={handleSubmit}
+                activeOpacity={0.82}
+                disabled={!refinementText.trim() || isRefining}
+              >
+                {isRefining ? (
+                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <Animated.Text
+                      style={[styles.refinementSubmitButtonText, { opacity: refiningAnim, fontFamily, fontWeight: '500' }]}
+                    >
+                      Refining
+                    </Animated.Text>
+                    <Animated.Text
+                      style={[styles.refinementSubmitButtonText, { opacity: refiningAnim, fontFamily, width: 20, textAlign: 'left', fontWeight: '500' }]}
+                    >
+                      {'.'.repeat(dotIndex + 1)}
+                    </Animated.Text>
+                  </View>
+                ) : (
+                  <>
+                    <Ionicons name="refresh-outline" size={16} color={Colors.hopeWhite} />
+                    <ThemedText weight="semiBold" style={styles.refinementSubmitButtonText}>Refine Playbook</ThemedText>
+                  </>
+                )}
+              </TouchableOpacity>
+            </StepFadeIn>
+          ) : null}
+        </ScrollView>
+      </Animated.View>
     </>
   );
 };
@@ -3477,6 +4457,7 @@ let persistedCompletionChoice: string | null = null;
 // and full navigation exits.
 
 const getSessionKey = (id: string) => `playbook_session_${id}`;
+const getPositionKey = (id: string) => `playbook_position_${id}`;
 
 const saveCurrentSession = () => {
   if (!persistedPlaybookId) { return; }
@@ -5703,6 +6684,7 @@ interface CompletionStepProps {
   devotionalGenerated?: boolean;
   isCompleted?: boolean;
   isOnboarding?: boolean;
+  isBeatBased?: boolean;
   navigation: any;
   fromNotification?: boolean;
 }
@@ -5721,6 +6703,7 @@ const CompletionStep: React.FC<CompletionStepProps> = ({
   devotionalGenerated = false,
   isCompleted = false,
   isOnboarding = false,
+  isBeatBased = false,
   navigation,
   fromNotification = false,
 }) => {
@@ -5795,10 +6778,12 @@ const CompletionStep: React.FC<CompletionStepProps> = ({
     return { contextLine, questionLine, actionLines, isChoicePills };
   };
 
-  const { contextLine, questionLine, actionLines, isChoicePills } = parseCompletionText(closingText);
+  const { contextLine, questionLine, actionLines, isChoicePills } = isBeatBased
+    ? { contextLine: undefined, questionLine: undefined, actionLines: [] as string[], isChoicePills: false }
+    : parseCompletionText(closingText);
 
-  return (
-    <View style={[styles.stepScroll, styles.stepContent, IS_IPAD && styles.stepContentPad, { paddingTop: insets.top + (IS_IPAD ? 20 : 0) }]}>
+  const content = (
+    <>
       <StepFadeIn delay={0}>
         <Animated.View style={{ transform: [{ translateY: headerAnim }] }}>
           <View style={styles.completionHeaderContainer}>
@@ -5846,118 +6831,132 @@ const CompletionStep: React.FC<CompletionStepProps> = ({
               editable={false}
               multiline={true}
               scrollEnabled={false}
-              style={[styles.completionPastoralClosing, { fontFamily }]}
+              style={[
+                styles.completionPastoralClosing,
+                isBeatBased && styles.completionPastoralClosingBeat,
+                { fontFamily },
+              ]}
             />
           ) : (
-            <ThemedText style={styles.completionPastoralClosing} selectable={true}>{cleanPastoralClosing}</ThemedText>
+            <ThemedText
+              weight={isBeatBased ? 'bold' : undefined}
+              style={[styles.completionPastoralClosing, isBeatBased && styles.completionPastoralClosingBeat]}
+              selectable={true}
+            >
+              {cleanPastoralClosing}
+            </ThemedText>
           )}
         </StepFadeIn>
       ) : null}
 
-      <StepFadeIn delay={100}>
-        <>
-          {contextLine && (
-            Platform.OS === 'ios' ? (
-              <TextInput
-                value={contextLine}
-                editable={false}
-                multiline={true}
-                scrollEnabled={false}
-                style={[styles.completionContext, { fontFamily }]}
-              />
-            ) : (
-              <ThemedText style={styles.completionContext} selectable={true}>{contextLine}</ThemedText>
-            )
-          )}
-          {questionLine && (
-            Platform.OS === 'ios' ? (
-              <TextInput
-                value={questionLine}
-                editable={false}
-                multiline={true}
-                scrollEnabled={false}
-                style={[styles.completionQuestion, { fontFamily }]}
-              />
-            ) : (
-              <ThemedText style={styles.completionQuestion} selectable={true}>{questionLine}</ThemedText>
-            )
-          )}
-        </>
-      </StepFadeIn>
+      {!isBeatBased && (
+        <StepFadeIn delay={100}>
+          <>
+            {contextLine && (
+              Platform.OS === 'ios' ? (
+                <TextInput
+                  value={contextLine}
+                  editable={false}
+                  multiline={true}
+                  scrollEnabled={false}
+                  style={[styles.completionContext, { fontFamily }]}
+                />
+              ) : (
+                <ThemedText style={styles.completionContext} selectable={true}>{contextLine}</ThemedText>
+              )
+            )}
+            {questionLine && (
+              Platform.OS === 'ios' ? (
+                <TextInput
+                  value={questionLine}
+                  editable={false}
+                  multiline={true}
+                  scrollEnabled={false}
+                  style={[styles.completionQuestion, { fontFamily }]}
+                />
+              ) : (
+                <ThemedText style={styles.completionQuestion} selectable={true}>{questionLine}</ThemedText>
+              )
+            )}
+          </>
+        </StepFadeIn>
+      )}
 
-      <StepFadeIn delay={160}>
-        <>
-          {isChoicePills && actionLines.length > 0 ? (
-            <View style={styles.completionChoicesContainer}>
-              {actionLines.map((choice, index) => (
-                <TouchableOpacity
-                  key={index}
-                  style={[
-                    styles.completionChoicePill,
-                    selectedChoice === choice && styles.completionChoicePillActive,
-                  ]}
-                  onPress={() => {
-                    triggerLightHaptic();
-                    setSelectedChoice(choice);
-                    persistedCompletionChoice = choice;
-                    saveCurrentSession();
-                  }}
-                  activeOpacity={0.8}
-                >
-                  {Platform.OS === 'ios' ? (
-                    <TextInput
-                      value={choice}
-                      editable={false}
-                      multiline={true}
-                      scrollEnabled={false}
-                      style={[
-                        styles.completionChoiceText,
-                        selectedChoice === choice && styles.completionChoiceTextActive,
-                        selectedChoice === choice && { fontWeight: '600' as any },
-                        { fontFamily },
-                      ]}
-                    />
-                  ) : (
-                    <ThemedText
-                      weight={selectedChoice === choice ? 'semiBold' : undefined}
-                      style={[
-                        styles.completionChoiceText,
-                        selectedChoice === choice && styles.completionChoiceTextActive,
-                      ]}
-                      selectable={true}
-                    >
-                      {choice}
-                    </ThemedText>
-                  )}
-                </TouchableOpacity>
-              ))}
-            </View>
-          ) : actionLines.length > 0 && (
-            <View style={styles.completionActionsContainer}>
-              {actionLines.map((line, index) => (
-                <View key={index} style={styles.completionActionItem}>
-                  <View style={styles.completionActionCircle}>
-                    <Ionicons name="sparkles" size={14} color={Colors.alertCoral} />
+      {!isBeatBased && (
+        <StepFadeIn delay={160}>
+          <>
+            {isChoicePills && actionLines.length > 0 ? (
+              <View style={styles.completionChoicesContainer}>
+                {actionLines.map((choice, index) => (
+                  <TouchableOpacity
+                    key={index}
+                    style={[
+                      styles.completionChoicePill,
+                      selectedChoice === choice && styles.completionChoicePillActive,
+                    ]}
+                    onPress={() => {
+                      triggerLightHaptic();
+                      setSelectedChoice(choice);
+                      persistedCompletionChoice = choice;
+                      saveCurrentSession();
+                    }}
+                    activeOpacity={0.8}
+                  >
+                    {Platform.OS === 'ios' ? (
+                      <TextInput
+                        value={choice}
+                        editable={false}
+                        multiline={true}
+                        scrollEnabled={false}
+                        style={[
+                          styles.completionChoiceText,
+                          selectedChoice === choice && styles.completionChoiceTextActive,
+                          selectedChoice === choice && { fontWeight: '600' as any },
+                          { fontFamily },
+                        ]}
+                      />
+                    ) : (
+                      <ThemedText
+                        weight={selectedChoice === choice ? 'semiBold' : undefined}
+                        style={[
+                          styles.completionChoiceText,
+                          selectedChoice === choice && styles.completionChoiceTextActive,
+                        ]}
+                        selectable={true}
+                      >
+                        {choice}
+                      </ThemedText>
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </View>
+            ) : actionLines.length > 0 && (
+              <View style={styles.completionActionsContainer}>
+                {actionLines.map((line, index) => (
+                  <View key={index} style={styles.completionActionItem}>
+                    <View style={styles.completionActionCircle}>
+                      <Ionicons name="sparkles" size={14} color={Colors.alertCoral} />
+                    </View>
+                    {Platform.OS === 'ios' ? (
+                      <TextInput
+                        value={line}
+                        editable={false}
+                        multiline={true}
+                        scrollEnabled={false}
+                        style={[styles.completionActionLine, { fontFamily }]}
+                      />
+                    ) : (
+                      <ThemedText style={styles.completionActionLine} selectable={true}>
+                        {line}
+                      </ThemedText>
+                    )}
                   </View>
-                  {Platform.OS === 'ios' ? (
-                    <TextInput
-                      value={line}
-                      editable={false}
-                      multiline={true}
-                      scrollEnabled={false}
-                      style={[styles.completionActionLine, { fontFamily }]}
-                    />
-                  ) : (
-                    <ThemedText style={styles.completionActionLine} selectable={true}>
-                      {line}
-                    </ThemedText>
-                  )}
-                </View>
-              ))}
-            </View>
-          )}
-        </>
-      </StepFadeIn>
+                ))}
+              </View>
+            )}
+          </>
+        </StepFadeIn>
+      )}
 
       <StepFadeIn delay={220}>
         <Animated.View style={{ transform: [{ translateY: buttonsAnim }] }}>
@@ -5998,6 +6997,20 @@ const CompletionStep: React.FC<CompletionStepProps> = ({
           )}
         </Animated.View>
       </StepFadeIn>
+    </>
+  );
+
+  return isBeatBased ? (
+    <ScrollView
+      style={styles.stepScroll}
+      contentContainerStyle={[styles.stepContent, IS_IPAD && styles.stepContentPad, { paddingTop: insets.top + (IS_IPAD ? 20 : 0) }]}
+      showsVerticalScrollIndicator={false}
+    >
+      {content}
+    </ScrollView>
+  ) : (
+    <View style={[styles.stepScroll, styles.stepContent, IS_IPAD && styles.stepContentPad, { paddingTop: insets.top + (IS_IPAD ? 20 : 0) }]}>
+      {content}
     </View>
   );
 };
@@ -6010,6 +7023,8 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
   const initialStep = route.params?.initialStep;
   const initialActionIndex = route.params?.initialActionIndex;
   const fromNotification = route.params?.fromNotification;
+  const routeCoverPage = getPlaybookCover(routePlaybook);
+  const routeHasTruthBeats = getTruthBeats(routePlaybook).length > 0;
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -6017,13 +7032,16 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
   const fabCollapseAnimRef = useRef(new Animated.Value(1));
   const [stepIndex, setStepIndex] = useState(() => {
     if (initialStep !== undefined && initialStep >= 0 && initialStep < TOTAL_STEPS) {
-      return initialStep;
+      return routeHasTruthBeats && initialStep === 0 ? 1 : initialStep;
     }
-    if (!routePlaybook || routePlaybook.status === 'completed') { return 0; }
+    if (routeCoverPage && routePlaybook?.status !== 'completed' && (routePlaybook.walkthroughProgress ?? -1) < 0 && !fromNotification) {
+      return COVER_STEP_INDEX;
+    }
+    if (!routePlaybook || routePlaybook.status === 'completed') { return routeHasTruthBeats ? 1 : 0; }
     const wp = routePlaybook.walkthroughProgress ?? -1;
-    if (wp < 0) { return 0; }
+    if (wp < 0) { return routeHasTruthBeats ? 1 : 0; }
     // wp = last step where Next was pressed → resume at wp + 1, capped at step 5 (never auto-land on completion)
-    return Math.min(wp + 1, TOTAL_STEPS - 2);
+    return Math.min(Math.max(wp + 1, routeHasTruthBeats ? 1 : 0), TOTAL_STEPS - 2);
   });
   const [actionStepIndex, setActionStepIndex] = useState(() => {
     if (initialActionIndex !== undefined && initialActionIndex >= 0) {
@@ -6031,6 +7049,7 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
     }
     return persistedActionStepIndex;
   });
+  const [truthBeatIndex, setTruthBeatIndex] = useState(0);
   const [sessionLoaded, setSessionLoaded] = useState(false);
   const [showDevotionalModal, setShowDevotionalModal] = useState(false);
   const [devotionalGenerated, setDevotionalGenerated] = useState(false);
@@ -6039,6 +7058,8 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
   const [isRefining, setIsRefining] = useState(false);
   const [refinementCount, setRefinementCount] = useState(0);
   const [refinementLimit, setRefinementLimit] = useState(0);
+  const [refinementOpen, setRefinementOpen] = useState(false);
+  const [positionLoadedFor, setPositionLoadedFor] = useState<string | null>(null);
 
 
   // ── Onboarding "playbook ready" overlay — shown for all onboarding users ──
@@ -6095,10 +7116,93 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
   });
 
   const playbook = (refinedPlaybookOverride || (isFullPlaybook ? routePlaybook : fetchedPlaybook)) as typeof routePlaybook;
+  const coverPage = getPlaybookCover(playbook);
+  const truthBeats = getTruthBeats(playbook);
+  const truthToCarry = getTruthToCarry(playbook);
+  const hasLoadedPlaybook = !!playbook;
 
   const refinementsRemaining = refinementLimit === -1
     ? Number.MAX_SAFE_INTEGER
     : Math.max(0, refinementLimit - refinementCount);
+
+  useEffect(() => {
+    if (!playbookId || !playbook) { return; }
+    let cancelled = false;
+    setPositionLoadedFor(null);
+
+    const restorePosition = async () => {
+      let saved: { stepIndex?: number; truthBeatIndex?: number } | null = null;
+      try {
+        const raw = await AsyncStorage.getItem(getPositionKey(playbookId));
+        saved = raw ? JSON.parse(raw) : null;
+      } catch (_) {
+        // Missing or damaged local position falls back to database progress.
+      }
+      if (cancelled) { return; }
+
+      const firstStep = truthBeats.length > 0 ? 1 : 0;
+      const explicitStep = initialStep !== undefined && initialStep >= 0 && initialStep < TOTAL_STEPS;
+      if (explicitStep) {
+        setStepIndex(initialStep === 0 ? firstStep : initialStep);
+        setTruthBeatIndex(0);
+      } else if (!fromNotification) {
+        const progress = playbook.walkthroughProgress ?? -1;
+        let nextStep = playbook.status === 'completed'
+          ? firstStep
+          : progress >= 0
+            ? Math.min(Math.max(progress + 1, firstStep), TOTAL_STEPS - 2)
+            : coverPage ? COVER_STEP_INDEX : firstStep;
+        const savedStep = saved?.stepIndex;
+        if (playbook.status !== 'completed' && typeof savedStep === 'number' &&
+          Number.isInteger(savedStep) && savedStep >= COVER_STEP_INDEX && savedStep < TOTAL_STEPS) {
+          nextStep = savedStep === COVER_STEP_INDEX
+            ? coverPage ? COVER_STEP_INDEX : firstStep
+            : Math.min(Math.max(savedStep, firstStep), TOTAL_STEPS - 2);
+        }
+        setStepIndex(nextStep);
+        const beat = saved?.truthBeatIndex;
+        setTruthBeatIndex(playbook.status !== 'completed' && typeof beat === 'number' && Number.isInteger(beat)
+          ? Math.max(0, Math.min(beat, truthBeats.length - 1)) : 0);
+      }
+      setPositionLoadedFor(playbookId);
+    };
+    restorePosition();
+    return () => { cancelled = true; };
+    // Restore once when this playbook's full content becomes available, not on
+    // later query updates or refinement (which deliberately resets the position).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [playbookId, hasLoadedPlaybook]);
+
+  useEffect(() => {
+    if (!playbookId || positionLoadedFor !== playbookId) { return; }
+    AsyncStorage.setItem(getPositionKey(playbookId), JSON.stringify({ stepIndex, truthBeatIndex })).catch(() => {});
+  }, [playbookId, positionLoadedFor, stepIndex, truthBeatIndex]);
+
+  useEffect(() => {
+    if (!playbook || truthBeats.length === 0 || stepIndex !== 0) {
+      return;
+    }
+    if (
+      coverPage &&
+      initialStep === undefined &&
+      !fromNotification &&
+      playbook.status !== 'completed' &&
+      (playbook.walkthroughProgress ?? -1) < 0
+    ) {
+      return;
+    }
+
+    setStepIndex(1);
+  }, [coverPage, fromNotification, initialStep, playbook, stepIndex, truthBeats.length]);
+
+  useEffect(() => {
+    if (truthBeats.length === 0) {
+      setTruthBeatIndex(0);
+      return;
+    }
+
+    setTruthBeatIndex(current => Math.min(current, truthBeats.length - 1));
+  }, [truthBeats.length]);
 
   const loadRefinementUsage = useCallback(() => {
     if (!userId) {
@@ -6230,9 +7334,9 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
     }
   }, [stepIndex, shareButtonAnim]);
 
-  // Animate screen 0 close and next buttons with staggered timing
+  // Animate cover/screen 0 close and next buttons with staggered timing
   useEffect(() => {
-    if (stepIndex === 0) {
+    if (stepIndex === COVER_STEP_INDEX || stepIndex === 0) {
       screen0CloseAnim.setValue(0);
       screen0NextAnim.setValue(0);
       Animated.parallel([
@@ -6467,13 +7571,15 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
         clarification,
         dateOfBirth,
         isOnboarding: source === 'onboarding',
+        isBeatBased: truthBeats.length > 0,
       });
 
       setRefinedPlaybookOverride(result.playbook as any);
       setRefinementCount(result.refinementCount);
       setRefinementLimit(result.refinementLimit);
-      setStepIndex(0);
+      setStepIndex(getPlaybookCover(result.playbook) ? COVER_STEP_INDEX : 0);
       setActionStepIndex(0);
+      setTruthBeatIndex(0);
 
       persistedCommittedSteps = {};
       persistedActionStepIndex = 0;
@@ -6501,7 +7607,7 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
     } finally {
       setIsRefining(false);
     }
-  }, [playbook, userId, user, userName, queryClient, source]);
+  }, [playbook, userId, user, userName, queryClient, source, truthBeats]);
 
   const handleFinish = useCallback(async () => {
     triggerMediumHaptic();
@@ -6588,9 +7694,25 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
 
   const goNext = useCallback(() => {
     triggerLightHaptic();
+    if (stepIndex === COVER_STEP_INDEX) {
+      setTruthBeatIndex(0);
+      animateStep(truthBeats.length > 0 ? 1 : 0, 'forward');
+      return;
+    }
+    if (stepIndex === 1 && truthBeats.length > 0) {
+      if (truthBeatIndex < truthBeats.length - 1) {
+        setTruthBeatIndex(current => Math.min(current + 1, truthBeats.length - 1));
+        return;
+      }
+      if (playbookId) {
+        updateWalkthroughProgress(playbookId, stepIndex).catch(() => {});
+      }
+      animateStep(2, 'forward');
+      return;
+    }
     if (stepIndex < TOTAL_STEPS - 1) {
       // Record this step as completed (Next was pressed)
-      if (playbookId) {
+      if (playbookId && stepIndex >= 0) {
         updateWalkthroughProgress(playbookId, stepIndex).catch(() => {});
       }
       // Animate next button out on scripture anchor step (step 2)
@@ -6615,14 +7737,40 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
         // Skip prayer step (4) if this playbook has no prayer
         const hasPrayer = (playbook?.prayer || '').length > 0;
         const next = !hasPrayer && stepIndex === 3 ? 5 : stepIndex + 1;
+        if (next === 1 && truthBeats.length > 0) {
+          setTruthBeatIndex(0);
+        }
         animateStep(next, 'forward');
       }
     }
-  }, [stepIndex, animateStep, playbook?.prayer, scriptureNextAnim, playbookId]);
+  }, [stepIndex, animateStep, truthBeats.length, truthBeatIndex, playbookId, playbook?.prayer, scriptureNextAnim]);
+
+  const goToScriptureFromTruth = useCallback(() => {
+    if (playbookId) {
+      updateWalkthroughProgress(playbookId, 1).catch(() => {});
+    }
+    animateStep(2, 'forward');
+  }, [animateStep, playbookId]);
 
   const goBack = useCallback(() => {
     triggerLightHaptic();
-    if (stepIndex === 0) {
+    if (stepIndex === COVER_STEP_INDEX) {
+      navigation.goBack();
+    } else if (stepIndex === 0) {
+      if (coverPage && initialStep === undefined && !fromNotification && playbook?.status !== 'completed') {
+        animateStep(COVER_STEP_INDEX, 'back');
+        return;
+      }
+      navigation.goBack();
+    } else if (stepIndex === 1 && truthBeats.length > 0) {
+      if (truthBeatIndex > 0) {
+        setTruthBeatIndex(current => Math.max(0, current - 1));
+        return;
+      }
+      if (coverPage && initialStep === undefined && !fromNotification && playbook?.status !== 'completed') {
+        animateStep(COVER_STEP_INDEX, 'back');
+        return;
+      }
       navigation.goBack();
     } else {
       // Collapse FAB when leaving Faithful Actions (step 3) via back
@@ -6632,9 +7780,12 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
       // Skip back over prayer step (4) if this playbook has no prayer
       const hasPrayer = (playbook?.prayer || '').length > 0;
       const prev = !hasPrayer && stepIndex === 5 ? 3 : stepIndex - 1;
+      if (prev === 1 && truthBeats.length > 0) {
+        setTruthBeatIndex(current => Math.min(current, truthBeats.length - 1));
+      }
       animateStep(prev, 'back');
     }
-  }, [stepIndex, animateStep, navigation, playbook?.prayer]);
+  }, [stepIndex, animateStep, navigation, playbook?.prayer, coverPage, initialStep, fromNotification, playbook?.status, truthBeats.length, truthBeatIndex]);
 
   // Back within faithful actions sub-steps (or go to previous main step if at sub-step 0)
   const goBackActionStep = useCallback(() => {
@@ -6716,7 +7867,7 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
   );
 
   // Show loading state while fetching the full playbook from DB or awaiting session load
-  const loadingGatePassed = sessionLoaded && !isLoading && !(shouldFetch && !playbook);
+  const loadingGatePassed = sessionLoaded && (!playbookId || positionLoadedFor === playbookId) && !isLoading && !(shouldFetch && !playbook);
 
   if (!loadingGatePassed) {
     return (
@@ -6761,10 +7912,12 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
           ? playbook.affirmations.map((a: any) => a.text).join('\n')
           : ''));
 
+  const isBeatBased = truthBeats.length > 0;
   const pastoralClosing = playbook.challengeCTA || '';
-  const closingText =
-    getDirectChallengeText(playbook.directChallenge) ||
-    'Carry what God has shown you into the room.';
+  const closingText = isBeatBased
+    ? ''
+    : getDirectChallengeText(playbook.directChallenge) ||
+      'Carry what God has shown you into the room.';
   const showSafetyHelp = isSelfHarmCrisisPlaybook([
     playbook.title,
     playbook.category,
@@ -6782,9 +7935,13 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
     ]),
   ]);
 
-  // Only Completion (step 6) handles its own CTA — all other steps get the floating next
-  // Faithful Actions (step 3) has its own Done/Skip buttons, so hide the floating next
-  const hasFloatingNext = stepIndex !== 6 && stepIndex !== 3;
+  // Completion, Faithful Actions, and beat-based Truth in Love handle their own CTAs.
+  const hasFloatingNext =
+    stepIndex !== COVER_STEP_INDEX &&
+    stepIndex !== 6 &&
+    stepIndex !== 3 &&
+    !(stepIndex === 0 && truthBeats.length > 0) &&
+    !(stepIndex === 1 && truthBeats.length > 0);
 
   return (
     <>
@@ -6795,7 +7952,20 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
       <Animated.View
         style={[styles.stepContainer, { transform: [{ translateX: slideAnim }] }]}
       >
-            {stepIndex === 0 && (
+            {stepIndex === COVER_STEP_INDEX && coverPage && (
+              <CoverStep
+                cover={coverPage}
+                userInput={playbook.userInput}
+                refinementNote={playbook.latestRefinementNote}
+                onBegin={goNext}
+                onEditUserInput={() => {
+                  navigation.navigate('UserInput' as any, { initialText: playbook.userInput });
+                }}
+                insets={insets}
+              />
+            )}
+
+            {stepIndex === 0 && truthBeats.length === 0 && (
               <EnterMomentStep
                 title={playbook.title}
                 userInput={playbook.userInput}
@@ -6804,6 +7974,8 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
                 userName={userName}
                 transitionLine={transitionLine}
                 showSafetyHelp={showSafetyHelp}
+                showInputToggle={!coverPage}
+                showSummary={truthBeats.length === 0}
                 onContinue={goNext}
                 onEditUserInput={() => {
                   navigation.navigate('UserInput' as any, { initialText: playbook.userInput });
@@ -6816,8 +7988,29 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
               <TruthInLoveStep
                 text={playbook.truthInLove?.text || ''}
                 userName={userName}
+                beats={truthBeats}
+                truthToCarry={truthToCarry}
+                beatIndex={truthBeatIndex}
                 showSafetyHelp={showSafetyHelp}
                 onNext={goNext}
+                onBeatNext={goNext}
+                onBeatBack={goBack}
+                onGoToScripture={goToScriptureFromTruth}
+                onOpenRefinement={() => {
+                  triggerLightHaptic();
+                  if (refinementsRemaining === 0) {
+                    navigation.navigate('OnboardingSalesOffer' as any, {
+                      upgradeMode: true,
+                      source: 'refinement_limit',
+                      feature: 'refinement',
+                      featureType: 'refinement',
+                      skipNotificationPreference: true,
+                      dismissBehavior: 'goBack',
+                    });
+                  } else {
+                    setRefinementOpen(true);
+                  }
+                }}
                 insets={insets}
               />
             )}
@@ -6897,23 +8090,24 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
                 devotionalGenerated={devotionalGenerated}
                 isCompleted={routePlaybook?.status === 'completed'}
                 isOnboarding={source === 'onboarding'}
+                isBeatBased={isBeatBased}
                 navigation={navigation}
                 fromNotification={fromNotification}
               />
             )}
           </Animated.View>
 
-      {/* Floating close button — top left (steps 0–5), always closes the screen */}
+      {/* Floating close button — top right (cover and steps 0-5), always closes the screen */}
       {stepIndex !== 6 && (source as any) !== 'onboarding' && (
         <Animated.View
           style={[
             styles.closeButton,
             { top: insets.top + 8 },
             {
-              opacity: stepIndex === 0 ? screen0CloseAnim : 1,
+              opacity: stepIndex === COVER_STEP_INDEX || stepIndex === 0 ? screen0CloseAnim : 1,
               transform: [
                 {
-                  scale: stepIndex === 0 ? screen0CloseAnim.interpolate({
+                  scale: stepIndex === COVER_STEP_INDEX || stepIndex === 0 ? screen0CloseAnim.interpolate({
                     inputRange: [0, 1],
                     outputRange: [0.6, 1],
                   }) : 1,
@@ -7002,21 +8196,12 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
 
 
       <FloatingRefinementControl
-        active={stepIndex === 1}
-        refinementsRemaining={refinementsRemaining}
+        open={refinementOpen && stepIndex === 1}
+        onClose={() => setRefinementOpen(false)}
         isRefining={isRefining}
+        refinementsRemaining={refinementsRemaining}
         insets={insets}
         onRefineSubmit={handleRefinePlaybook}
-        onUpgradeNeeded={() => {
-          navigation.navigate('OnboardingSalesOffer' as any, {
-            upgradeMode: true,
-            source: 'refinement_limit',
-            feature: 'refinement',
-            featureType: 'refinement',
-            skipNotificationPreference: true,
-            dismissBehavior: 'goBack',
-          });
-        }}
       />
 
 
@@ -7200,6 +8385,78 @@ const styles = StyleSheet.create({
     paddingHorizontal: 96,
   },
 
+  // Cover
+  coverContent: {
+    flexGrow: 1,
+    paddingHorizontal: 28,
+    minHeight: SCREEN_HEIGHT,
+    justifyContent: 'space-between',
+  },
+  coverCenter: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingTop: 40,
+    paddingBottom: 34,
+  },
+  coverInputToggle: {
+    width: '100%',
+    marginBottom: 14,
+  },
+  coverTextBlock: {
+    width: '100%',
+    alignItems: 'center',
+  },
+  coverKicker: {
+    fontSize: 11,
+    letterSpacing: 0,
+    color: 'rgba(255,255,255,0.7)',
+    textTransform: 'uppercase',
+  },
+  coverTitle: {
+    width: '100%',
+    fontSize: 31,
+    color: Colors.hopeWhite,
+    lineHeight: 39,
+    textAlign: 'center',
+    marginTop: 22,
+    flexShrink: 1,
+  },
+  coverSubtitle: {
+    width: '100%',
+    fontSize: 17,
+    color: 'rgba(255,255,255,0.72)',
+    lineHeight: 25,
+    textAlign: 'center',
+    marginTop: 18,
+    flexShrink: 1,
+  },
+  coverTimePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.13)',
+    paddingHorizontal: 13,
+    paddingVertical: 8,
+    marginTop: 24,
+  },
+  coverTimeText: {
+    fontSize: 13,
+    lineHeight: 17,
+    color: 'rgba(255,255,255,0.72)',
+  },
+  coverButtonBlock: {
+    width: '100%',
+  },
+  coverBeginButton: {
+    alignSelf: 'stretch',
+    minHeight: 54,
+    marginTop: 28,
+  },
+
   // Enter the Moment
   playbookLabelContainer: {
     flexDirection: 'row',
@@ -7303,6 +8560,617 @@ const styles = StyleSheet.create({
     lineHeight: 26,
     opacity: 0.9,
   },
+  truthBeatCounter: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.62)',
+    lineHeight: 18,
+    marginTop: 18,
+  },
+  truthBeatProgressBar: {
+    height: 5,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.09)',
+    overflow: 'hidden',
+    marginTop: 10,
+    marginBottom: 32,
+  },
+  truthBeatProgressFill: {
+    height: '100%',
+    borderRadius: 999,
+    backgroundColor: Colors.alertCoral,
+  },
+  truthBeatShell: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 18,
+  },
+  truthBeatShellQuiet: {
+    opacity: 0.9,
+  },
+  truthBeatIconCircle: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,107,107,0.13)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,107,107,0.22)',
+  },
+  truthBeatLabel: {
+    flex: 1,
+    fontSize: 15,
+    lineHeight: 20,
+    color: 'rgba(255,255,255,0.74)',
+  },
+  truthBeatPrimary: {
+    fontSize: 28,
+    lineHeight: 36,
+    color: Colors.hopeWhite,
+  },
+  truthBeatSupporting: {
+    fontSize: 17,
+    lineHeight: 25,
+    color: 'rgba(255,255,255,0.78)',
+    marginTop: 22,
+  },
+  truthBeatBlockGap: {
+    gap: 10,
+    marginTop: 22,
+  },
+  truthContrastCard: {
+    borderRadius: 8,
+    padding: 14,
+    backgroundColor: 'rgba(255,255,255,0.055)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.10)',
+  },
+  truthContrastCardAffirm: {
+    backgroundColor: 'rgba(255,107,107,0.12)',
+    borderColor: 'rgba(255,107,107,0.22)',
+  },
+  truthContrastLabel: {
+    fontSize: 12,
+    lineHeight: 16,
+    color: 'rgba(255,255,255,0.56)',
+    marginBottom: 8,
+  },
+  truthContrastLabelAffirm: {
+    fontSize: 12,
+    lineHeight: 16,
+    color: Colors.alertCoral,
+    marginBottom: 8,
+  },
+  truthContrastText: {
+    fontSize: 16,
+    lineHeight: 23,
+    color: 'rgba(255,255,255,0.84)',
+  },
+  truthBoundaryCard: {
+    borderRadius: 8,
+    padding: 14,
+    backgroundColor: 'rgba(255,255,255,0.055)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.10)',
+  },
+  truthBoundaryLabel: {
+    fontSize: 12,
+    lineHeight: 16,
+    color: Colors.faithGold,
+    marginBottom: 8,
+  },
+  truthBoundaryText: {
+    fontSize: 16,
+    lineHeight: 23,
+    color: 'rgba(255,255,255,0.84)',
+  },
+  truthTwoCards: {
+    gap: 10,
+    marginTop: 22,
+  },
+  truthTwoCard: {
+    borderRadius: 8,
+    padding: 14,
+    backgroundColor: 'rgba(255,255,255,0.055)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.10)',
+  },
+  truthTwoLabel: {
+    fontSize: 12,
+    lineHeight: 16,
+    color: Colors.faithGold,
+    marginBottom: 8,
+  },
+  truthTwoText: {
+    fontSize: 16,
+    lineHeight: 23,
+    color: 'rgba(255,255,255,0.84)',
+  },
+  truthQuestionsBlock: {
+    gap: 10,
+    marginTop: 22,
+    borderRadius: 8,
+    padding: 14,
+    backgroundColor: 'rgba(255,255,255,0.055)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.10)',
+  },
+  truthQuestionsLabel: {
+    fontSize: 12,
+    lineHeight: 16,
+    color: Colors.faithGold,
+  },
+  truthQuestionRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 9,
+  },
+  truthQuestionMark: {
+    width: 22,
+    fontSize: 17,
+    lineHeight: 23,
+    color: Colors.alertCoral,
+    textAlign: 'center',
+  },
+  truthQuestionText: {
+    flex: 1,
+    fontSize: 16,
+    lineHeight: 23,
+    color: 'rgba(255,255,255,0.84)',
+  },
+  truthRevealButton: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    borderRadius: 999,
+    paddingHorizontal: 13,
+    paddingVertical: 9,
+    marginTop: 24,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.13)',
+  },
+  truthRevealButtonText: {
+    fontSize: 13,
+    lineHeight: 17,
+    color: 'rgba(255,255,255,0.74)',
+  },
+  truthRevealCard: {
+    borderRadius: 8,
+    padding: 14,
+    backgroundColor: 'rgba(255,255,255,0.055)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.10)',
+    marginTop: 12,
+  },
+  truthRevealText: {
+    fontSize: 16,
+    lineHeight: 24,
+    color: 'rgba(255,255,255,0.78)',
+  },
+  truthBeatPrimaryRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: 12,
+    marginTop: 18,
+  },
+  truthUntangleCard: {
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.12)',
+    marginBottom: 10,
+  },
+  truthUntangleCardAlt: {
+    backgroundColor: 'rgba(255,107,107,0.10)',
+    borderColor: 'rgba(255,107,107,0.26)',
+  },
+  truthUntangleLabel: {
+    fontSize: 11,
+    lineHeight: 14,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    color: 'rgba(150,190,255,0.95)',
+    marginBottom: 6,
+  },
+  truthUntangleLabelAlt: {
+    color: 'rgba(255,140,140,0.95)',
+  },
+  truthUntangleText: {
+    fontSize: 15,
+    lineHeight: 22,
+    color: 'rgba(255,255,255,0.86)',
+  },
+  truthUntangleVersusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 10,
+    marginTop: -2,
+  },
+  truthUntangleVersusLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+  },
+  truthUntangleVersus: {
+    fontSize: 11,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    color: 'rgba(255,255,255,0.45)',
+  },
+  truthPathColumns: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+  },
+  truthPathColumn: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  truthPathColumnSpacer: {
+    width: 10,
+  },
+  truthPathColumnTitle: {
+    fontSize: 11,
+    lineHeight: 14,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    color: 'rgba(255,255,255,0.55)',
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  truthPathColumnTitleAlt: {
+    color: 'rgba(120,210,180,0.95)',
+  },
+  truthPathSteps: {
+    width: '100%',
+    alignItems: 'center',
+  },
+  truthPathStep: {
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.12)',
+    width: '100%',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  truthPathStepAlt: {
+    backgroundColor: 'rgba(120,210,180,0.10)',
+    borderColor: 'rgba(120,210,180,0.22)',
+  },
+  truthPathStepSelected: {
+    backgroundColor: 'rgba(255,255,255,0.16)',
+    borderColor: 'rgba(255,255,255,0.40)',
+  },
+  truthPathStepText: {
+    fontSize: 13,
+    lineHeight: 18,
+    color: 'rgba(255,255,255,0.84)',
+    textAlign: 'center',
+  },
+  truthPathStepTextSelected: {
+    color: 'rgba(255,255,255,1)',
+    fontWeight: '600',
+  },
+  truthPathArrow: {
+    marginVertical: 4,
+  },
+  truthPathReflectBlock: {
+    marginTop: 18,
+    borderRadius: 10,
+    padding: 14,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.10)',
+  },
+  truthPathReflectLabel: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: 'rgba(255,255,255,0.70)',
+    textAlign: 'center',
+  },
+  truthHoldEntrustRow: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    gap: 10,
+  },
+  truthHoldEntrustCard: {
+    flex: 1,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 14,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.12)',
+    alignItems: 'center',
+  },
+  truthHoldEntrustCardAlt: {
+    backgroundColor: 'rgba(120,170,255,0.08)',
+    borderColor: 'rgba(120,170,255,0.22)',
+  },
+  truthHoldEntrustCardSelected: {
+    backgroundColor: 'rgba(255,255,255,0.14)',
+    borderColor: 'rgba(255,255,255,0.45)',
+  },
+  truthHoldEntrustCardSelectedAlt: {
+    backgroundColor: 'rgba(120,170,255,0.16)',
+    borderColor: 'rgba(120,170,255,0.45)',
+  },
+  truthHoldEntrustLabel: {
+    fontSize: 11,
+    lineHeight: 14,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    color: 'rgba(255,255,255,0.60)',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  truthHoldEntrustLabelAlt: {
+    color: 'rgba(150,190,255,0.95)',
+  },
+  truthHoldEntrustText: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: 'rgba(255,255,255,0.84)',
+    textAlign: 'center',
+  },
+  truthHoldEntrustTextAlt: {
+    color: 'rgba(255,255,255,0.84)',
+  },
+  truthHoldEntrustTextSelected: {
+    color: 'rgba(255,255,255,1)',
+    fontWeight: '600',
+  },
+  truthHoldEntrustTextSelectedAlt: {
+    color: 'rgba(255,255,255,1)',
+    fontWeight: '600',
+  },
+  truthHoldEntrustCheck: {
+    marginTop: 10,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: 'rgba(255,255,255,0.10)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  truthHandoffBlock: {
+    marginTop: 18,
+    borderRadius: 10,
+    padding: 16,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.10)',
+    alignItems: 'center',
+  },
+  truthHandoffLabel: {
+    fontSize: 12,
+    lineHeight: 16,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    color: 'rgba(150,190,255,0.95)',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  truthHandoffBody: {
+    fontSize: 14,
+    lineHeight: 21,
+    color: 'rgba(255,255,255,0.72)',
+    textAlign: 'center',
+  },
+  truthUntangleRow: {
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.12)',
+    marginBottom: 8,
+  },
+  truthUntangleRowOpen: {
+    backgroundColor: 'rgba(120,170,255,0.08)',
+    borderColor: 'rgba(120,170,255,0.24)',
+  },
+  truthUntangleRowHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  truthCarryCard: {
+    borderRadius: 8,
+    padding: 16,
+    marginTop: 26,
+    backgroundColor: 'rgba(255,204,102,0.10)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,204,102,0.22)',
+  },
+  truthCarryHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    marginBottom: 10,
+  },
+  truthCarryLabel: {
+    fontSize: 12,
+    lineHeight: 16,
+    color: Colors.faithGold,
+  },
+  truthCarryText: {
+    fontSize: 18,
+    lineHeight: 26,
+    color: Colors.hopeWhite,
+  },
+  truthBeatNav: {
+    position: 'absolute',
+    left: 16,
+    right: 16,
+    height: 56,
+    zIndex: 95,
+  },
+  truthBeatNavRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 0,
+    paddingVertical: 4,
+  },
+  truthBeatNavRowContent: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  truthBeatNavCollapsedCircle: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 60,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  truthBeatNavCollapsedTouchable: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(38, 71, 119, 0.95)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  truthBeatRefineButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#2c4b78',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  truthBeatRefineButtonText: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: Colors.hopeWhite,
+    opacity: 0.9,
+  },
+  truthBeatIconButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#2c4b78',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  truthBeatPrimaryButton: {
+    flex: 1,
+    height: 48,
+    backgroundColor: Colors.alertCoral,
+    borderRadius: 24,
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 7,
+    borderWidth: 0,
+  },
+  truthBeatScriptureLink: {
+    minWidth: 104,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#2c4b78',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.15)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    flexShrink: 0,
+  },
+  truthBeatScriptureLinkText: {
+    fontSize: 13,
+    lineHeight: 18,
+    color: Colors.hopeWhite,
+  },
+  truthScriptureConfirmOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 115,
+    justifyContent: 'flex-end',
+  },
+  truthScriptureConfirmBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.28)',
+  },
+  truthScriptureConfirmSheet: {
+    marginHorizontal: 0,
+    marginBottom: 0,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
+    backgroundColor: Colors.anchorBlue,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.14)',
+    paddingTop: 22,
+    paddingHorizontal: 18,
+    gap: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.26,
+    shadowRadius: 18,
+    elevation: 12,
+  },
+  truthScriptureConfirmTitle: {
+    fontSize: 19,
+    lineHeight: 25,
+    color: Colors.hopeWhite,
+  },
+  truthScriptureConfirmText: {
+    fontSize: 14,
+    lineHeight: 21,
+    color: 'rgba(255,255,255,0.72)',
+  },
+  truthScriptureConfirmPrimary: {
+    height: 46,
+    borderRadius: 23,
+    backgroundColor: '#2c4b78',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.16)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 7,
+    marginTop: 4,
+  },
+  truthScriptureConfirmPrimaryText: {
+    fontSize: 15,
+    lineHeight: 20,
+    color: Colors.hopeWhite,
+  },
+  truthScriptureConfirmSecondary: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 6,
+  },
+  truthScriptureConfirmSecondaryText: {
+    fontSize: 14,
+    lineHeight: 19,
+    color: 'rgba(255,255,255,0.68)',
+  },
   crisisHelpOnMoment: {
     marginTop: 2,
     marginBottom: 6,
@@ -7349,13 +9217,7 @@ const styles = StyleSheet.create({
   refinementBackdrop: {
     ...StyleSheet.absoluteFillObject,
     zIndex: 120,
-  },
-  refinementBackdropBlur: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  refinementBackdropTint: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.22)',
+    backgroundColor: 'rgba(0,0,0,0.28)',
   },
   floatingRefinementButtonWrap: {
     position: 'absolute',
@@ -7395,29 +9257,62 @@ const styles = StyleSheet.create({
   },
   floatingRefinementPanel: {
     position: 'absolute',
-    right: 20,
+    left: 0,
+    right: 0,
     zIndex: 125,
-    borderRadius: 28,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
     backgroundColor: Colors.anchorBlue,
-    padding: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.14)',
+    paddingTop: 18,
+    paddingHorizontal: 20,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
+    shadowOffset: { width: 0, height: -8 },
     shadowOpacity: 0.28,
     shadowRadius: 14,
     elevation: 10,
+  },
+  floatingRefinementHeader: {
+    paddingHorizontal: 2,
+    paddingBottom: 14,
+  },
+  refinementSheetTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+  refinementSheetTitle: {
+    flex: 1,
+    fontSize: 19,
+    lineHeight: 25,
+    color: Colors.hopeWhite,
+  },
+  refinementSheetPrompt: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: 'rgba(255,255,255,0.68)',
+    marginTop: 4,
   },
   floatingRefinementReasons: {
     gap: 8,
   },
   refinementCountBadge: {
     borderRadius: 999,
-    backgroundColor: 'rgba(76, 184, 144, 0.34)',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.12)',
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    flexShrink: 0,
   },
   refinementCountBadgeText: {
-    color: Colors.hopeWhite,
+    color: 'rgba(255,255,255,0.72)',
     fontSize: 11,
+    lineHeight: 14,
   },
   refinementReasonButton: {
     minHeight: 44,
@@ -7429,7 +9324,6 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     gap: 10,
   },
   refinementReasonButtonSelected: {
@@ -7439,10 +9333,14 @@ const styles = StyleSheet.create({
   refinementReasonText: {
     color: 'rgba(255,255,255,0.74)',
     fontSize: 13,
+    lineHeight: 18,
     flexShrink: 1,
   },
   refinementReasonTextSelected: {
     color: Colors.hopeWhite,
+  },
+  refinementReasonRadio: {
+    flexShrink: 0,
   },
   refinementFloatingInputBlock: {
     marginTop: 10,
@@ -8866,6 +10764,14 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     marginBottom: 28,
     opacity: 0.88,
+  },
+  completionPastoralClosingBeat: {
+    fontSize: 28,
+    fontWeight: '700',
+    lineHeight: 36,
+    textAlign: 'center',
+    marginBottom: 36,
+    opacity: 1,
   },
   completionContext: {
     fontSize: 14,

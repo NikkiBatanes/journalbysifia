@@ -16,6 +16,7 @@ export interface RefinePlaybookRequest {
   bibleVersion?: string;
   dateOfBirth?: string;
   isOnboarding?: boolean;
+  isBeatBased?: boolean;
 }
 
 export interface RefinePlaybookResponse {
@@ -41,7 +42,9 @@ export async function refinePlaybook(request: RefinePlaybookRequest): Promise<Re
   const bibleVersion = request.bibleVersion || await getPreferredBibleVersion();
   const defaultMessage = 'siFia could not revise this playbook right now. Your current playbook is still here. Please try again in a moment.';
 
-  const { data, error } = await supabase.functions.invoke('refine-guided-playbook', {
+  const functionName = request.isBeatBased ? 'refine-guided-playbook-v146test' : 'refine-guided-playbook';
+
+  const { data, error } = await supabase.functions.invoke(functionName, {
     body: {
       ...request,
       bibleVersion,

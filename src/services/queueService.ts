@@ -438,7 +438,7 @@ export class QueueService {
     const supabaseUrl = env.SUPABASE_URL;
     const supabaseKey = env.SUPABASE_ANON_KEY;
 
-    const functionUrl = `${supabaseUrl}/functions/v1/generate-guided-playbook`;
+    const functionUrl = `${supabaseUrl}/functions/v1/generate-guided-playbook-v146test`;
 
     // Get user subscription for tier-based key selection
     const subscription = await subscriptionService.getUserSubscription(item.user_id);
@@ -528,6 +528,7 @@ export class QueueService {
         directChallenge: result.directChallenge,
         prayer: result.prayer,
         wordToSpeak: result.wordToSpeak,
+        cover: result.cover,
         transitionLine: result.transition_line || '',
         challengeCTA: result.challengeCTA || '',
         status: 'ongoing' as const,
