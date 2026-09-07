@@ -12,6 +12,7 @@ import { faithPointsEvents, FAITH_POINTS_EVENTS } from './faithPointsEvents';
 import { milestoneCelebrationService } from './milestoneCelebrationService';
 import { streakTrackingService, StreakType } from './streakTrackingService';
 import { requestReview } from './reviewPromptService';
+import { v4 as uuidv4 } from 'uuid';
 
 export interface FaithPointsProfile {
   userId: string;
@@ -513,67 +514,67 @@ export class FaithPointsService {
 
       // ENTERPRISE-GRADE: Defer badge checking with debouncing to prevent UI freeze and duplicates
       // Use lightweight queries and longer delay for critical operations
-      if (!_metadata?.suppressNotification) {
-        Logger.debug('[FaithPointsService] DEBUG: Badge checking not suppressed, setting up timer', {
+      const suppressBadgeNotification = !!_metadata?.suppressNotification;
+      Logger.debug('[FaithPointsService] DEBUG: Setting up badge check timer', {
+        component: 'faithPointsService',
+        userId,
+        activity,
+        suppressBadgeNotification,
+      });
+
+      // Clear any existing timer for this user
+      const existingTimer = FaithPointsService.badgeCheckTimers.get(userId);
+      if (existingTimer) {
+        Logger.debug('[FaithPointsService] DEBUG: Clearing existing timer', {
+          component: 'faithPointsService',
+          userId,
+        });
+        clearTimeout(existingTimer);
+      }
+
+      // CRITICAL FIX: For onboarding, check badges immediately to ensure First Steps badge is awarded
+      // But prevent duplicate checks during the same onboarding session
+      if (isOnboarding && activity === 'playbook_generated') {
+        Logger.debug('[FaithPointsService] DEBUG: Immediate badge check for onboarding playbook generation', {
           component: 'faithPointsService',
           userId,
           activity,
         });
 
-        // Clear any existing timer for this user
-        const existingTimer = FaithPointsService.badgeCheckTimers.get(userId);
-        if (existingTimer) {
-          Logger.debug('[FaithPointsService] DEBUG: Clearing existing timer', {
-            component: 'faithPointsService',
-            userId,
+        // Prevent duplicate badge checks during onboarding
+        const onboardingBadgeKey = `onboarding_badge_check_${userId}`;
+        if (!FaithPointsService.onboardingBadgeChecks.has(onboardingBadgeKey)) {
+          FaithPointsService.onboardingBadgeChecks.add(onboardingBadgeKey);
+
+          // Run immediately for onboarding to ensure First Steps badge
+          setImmediate(async () => {
+            await this.performBadgeCheck(userId, newTotalPoints, activity, undefined, suppressBadgeNotification);
           });
-          clearTimeout(existingTimer);
-        }
-
-        // CRITICAL FIX: For onboarding, check badges immediately to ensure First Steps badge is awarded
-        // But prevent duplicate checks during the same onboarding session
-        if (isOnboarding && activity === 'playbook_generated') {
-          Logger.debug('[FaithPointsService] DEBUG: Immediate badge check for onboarding playbook generation', {
-            component: 'faithPointsService',
-            userId,
-            activity,
-          });
-
-          // Prevent duplicate badge checks during onboarding
-          const onboardingBadgeKey = `onboarding_badge_check_${userId}`;
-          if (!FaithPointsService.onboardingBadgeChecks.has(onboardingBadgeKey)) {
-            FaithPointsService.onboardingBadgeChecks.add(onboardingBadgeKey);
-
-            // Run immediately for onboarding to ensure First Steps badge
-            setImmediate(async () => {
-              await this.performBadgeCheck(userId, newTotalPoints, activity, undefined);
-            });
-          } else {
-            Logger.debug('[FaithPointsService] DEBUG: Skipping duplicate onboarding badge check', {
-              component: 'faithPointsService',
-              userId,
-            });
-          }
         } else {
-          // CRITICAL FIX: Defer badge check to next idle frame to prevent blocking navigation
-          const scheduleBadgeCheck = () => {
-            // Use requestAnimationFrame (or setTimeout fallback) to ensure badge check runs on the next idle frame
-            const raf = typeof requestAnimationFrame === 'function'
-              ? requestAnimationFrame
-              : (cb: (time?: number) => void) => setTimeout(() => cb(), 16);
-            raf(async () => {
-              await this.performBadgeCheck(userId, newTotalPoints, activity, timer);
-            });
-          };
-
-          // Enhanced debouncing for rapid completion scenarios
-          const timer = setTimeout(() => {
-            scheduleBadgeCheck();
-          }, 3000); // INCREASED: 3000ms delay for rapid completion scenarios
-
-          // Store timer reference for cleanup
-          FaithPointsService.badgeCheckTimers.set(userId, timer);
+          Logger.debug('[FaithPointsService] DEBUG: Skipping duplicate onboarding badge check', {
+            component: 'faithPointsService',
+            userId,
+          });
         }
+      } else {
+        // CRITICAL FIX: Defer badge check to next idle frame to prevent blocking navigation
+        const scheduleBadgeCheck = () => {
+          // Use requestAnimationFrame (or setTimeout fallback) to ensure badge check runs on the next idle frame
+          const raf = typeof requestAnimationFrame === 'function'
+            ? requestAnimationFrame
+            : (cb: (time?: number) => void) => setTimeout(() => cb(), 16);
+          raf(async () => {
+            await this.performBadgeCheck(userId, newTotalPoints, activity, timer, suppressBadgeNotification);
+          });
+        };
+
+        // Enhanced debouncing for rapid completion scenarios
+        const timer = setTimeout(() => {
+          scheduleBadgeCheck();
+        }, 3000); // INCREASED: 3000ms delay for rapid completion scenarios
+
+        // Store timer reference for cleanup
+        FaithPointsService.badgeCheckTimers.set(userId, timer);
       }
 
       Logger.debug('[FaithPointsService] BEFORE milestone check', {
@@ -724,7 +725,7 @@ export class FaithPointsService {
       }
 
       // Transform database badges to Badge interface
-      return badges.map(badge => ({
+      const dbBadges = badges.map(badge => ({
         id: badge.id, // Keep UUID from database
         name: badge.name,
         description: badge.description,
@@ -732,6 +733,18 @@ export class FaithPointsService {
         rarity: badge.rarity as 'common' | 'rare' | 'epic' | 'legendary',
         pointsRequired: badge.faith_points_reward,
       }));
+
+      // Ensure any hard-coded fallback badges are available even if the table is only partially seeded.
+      const fallbackBadges = this.getFallbackBadges();
+      const dbIds = new Set(dbBadges.map(b => b.id));
+      const dbNames = new Set(dbBadges.map(b => b.name.toLowerCase()));
+      for (const fb of fallbackBadges) {
+        if (!dbIds.has(fb.id) && !dbNames.has(fb.name.toLowerCase())) {
+          dbBadges.push(fb);
+        }
+      }
+
+      return dbBadges;
     } catch (error) {
       Logger.error('[FaithPointsService] Exception in getAvailableBadges', error as Error, {
         component: 'faithPointsService',
@@ -1313,7 +1326,8 @@ export class FaithPointsService {
     userId: string,
     totalPoints: number,
     activity: string,
-    timer: NodeJS.Timeout | undefined
+    timer: NodeJS.Timeout | undefined,
+    suppressNotification: boolean = false
   ): Promise<void> {
     try {
       // Clean up timer reference
@@ -1363,8 +1377,10 @@ export class FaithPointsService {
             userId,
           });
 
-          // Show badge notification
-          notificationService.showBadgeNotification(badge);
+          // Show badge notification unless suppressed
+          if (!suppressNotification) {
+            notificationService.showBadgeNotification(badge);
+          }
 
           // Save badge to database (using awardBadge method which has correct schema)
           try {
@@ -1454,7 +1470,7 @@ export class FaithPointsService {
         // Batch fetch all relevant activity counts in one query
         const startTime = Date.now();
         const { data: transactions } = await supabase
-          .from('faith_points_transactions')
+          .from('faith_points_log')
           .select('activity_type')
           .eq('user_id', userId);
 
@@ -1903,20 +1919,48 @@ export class FaithPointsService {
       try {
         // PREVENT DUPLICATES: Check if user already has this badge
         // First get the badge UUID from badges table
-        const { data: badgeRecord, error: lookupError } = await supabase
+        let { data: badgeRecord, error: lookupError } = await supabase
           .from('badges')
           .select('id')
           .eq('name', badge.name)
           .single();
 
+        // If the badge isn't in the database yet, create it from the fallback definition
+        // so activity-based badges like "First Steps" can still unlock without a seeded table.
         if (lookupError || !badgeRecord) {
-          Logger.error('[FaithPointsService] Badge not found in badges table', lookupError as Error, {
+          const isValidUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(badge.id);
+          const newBadgeId = isValidUUID ? badge.id : uuidv4();
+          Logger.info('[FaithPointsService] Badge not found in badges table, creating from fallback', {
             component: 'faithPointsService',
             badgeName: badge.name,
             badgeId: badge.id,
-            errorDetails: lookupError,
+            newBadgeId,
           });
-          return;
+
+          const { data: insertedBadge, error: insertBadgeError } = await supabase
+            .from('badges')
+            .upsert({
+              id: newBadgeId,
+              name: badge.name,
+              description: badge.description,
+              icon: badge.icon,
+              rarity: badge.rarity,
+              faith_points_reward: badge.pointsRequired,
+            })
+            .select('id')
+            .single();
+
+          if (insertBadgeError || !insertedBadge) {
+            Logger.error('[FaithPointsService] Failed to create fallback badge', insertBadgeError as Error, {
+              component: 'faithPointsService',
+              badgeName: badge.name,
+              badgeId: badge.id,
+              errorDetails: insertBadgeError,
+            });
+            return;
+          }
+
+          badgeRecord = insertedBadge;
         }
 
         // Now check if user already has this badge in database

@@ -1114,3 +1114,174 @@ export async function updatePlaybookActionSteps(
     throw error;
   }
 }
+
+/**
+ * Replace a previously stored user name inside all of the user's playbook
+ * content. Older playbooks were generated with the user's real name baked into
+ * the text (instead of the [User's Name] placeholder), so a profile name change
+ * never reached them. This rewrites every stored occurrence of the old first
+ * name to the new one so completed playbooks stay personalized.
+ */
+export async function replaceStoredUserNameInPlaybooks(
+  userId: string,
+  oldName: string,
+  newName: string
+): Promise<void> {
+  const oldClean = String(oldName || '').trim();
+  const newClean = String(newName || '').trim();
+  if (!userId || oldClean.length < 2 || newClean.length < 2 || oldClean === newClean) {
+    return;
+  }
+
+  const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const nameRegex = new RegExp(`\\b${escapeRegExp(oldClean)}\\b('s|’s)?`, 'g');
+
+  const transform = (value: any): any => {
+    if (typeof value === 'string') {
+      return value.replace(nameRegex, (_match, possessive) => `${newClean}${possessive || ''}`);
+    }
+    if (Array.isArray(value)) {
+      return value.map(transform);
+    }
+    if (value && typeof value === 'object') {
+      const next: Record<string, any> = {};
+      for (const key of Object.keys(value)) {
+        next[key] = transform(value[key]);
+      }
+      return next;
+    }
+    return value;
+  };
+
+  const valuesEqual = (a: any, b: any): boolean => {
+    if (typeof a === 'object' && typeof b === 'object' && a !== null && b !== null) {
+      return JSON.stringify(a) === JSON.stringify(b);
+    }
+    return a === b;
+  };
+
+  const now = new Date().toISOString();
+
+  try {
+    const { data: playbooks, error: playbooksError } = await supabase
+      .from('playbooks')
+      .select('id, title, user_input, truth_in_love, bible_verse_reflection, direct_challenge, challenge_cta, transition_line, prayer, word_to_speak, words_to_speak, faithful_actions_intro')
+      .eq('user_id', userId);
+
+    if (playbooksError) {
+      Logger.error('[replaceStoredUserNameInPlaybooks] Error fetching playbooks', playbooksError as Error, {
+        component: 'supabaseApiNormalized',
+        action: 'replaceStoredUserNameInPlaybooks',
+      });
+      return;
+    }
+
+    const playbookIds: string[] = [];
+    const playbookTextFields = [
+      'title', 'user_input', 'truth_in_love', 'bible_verse_reflection',
+      'direct_challenge', 'challenge_cta', 'transition_line', 'prayer',
+      'word_to_speak', 'words_to_speak', 'faithful_actions_intro',
+    ];
+
+    for (const row of playbooks || []) {
+      const patch: Record<string, any> = {};
+      for (const field of playbookTextFields) {
+        const current = (row as any)[field];
+        if (current === null || current === undefined) { continue; }
+        const next = transform(current);
+        if (!valuesEqual(current, next)) {
+          patch[field] = next;
+        }
+      }
+
+      if (Object.keys(patch).length > 0) {
+        patch.updated_at = now;
+        const { error } = await supabase
+          .from('playbooks')
+          .update(patch)
+          .eq('id', row.id);
+        if (error) {
+          Logger.error('[replaceStoredUserNameInPlaybooks] Error updating playbook', error as Error, {
+            component: 'supabaseApiNormalized',
+            action: 'replaceStoredUserNameInPlaybooks',
+            playbookId: row.id,
+          });
+        }
+      }
+
+      playbookIds.push(row.id);
+    }
+
+    if (playbookIds.length === 0) { return; }
+
+    const { data: actionSteps, error: stepsError } = await supabase
+      .from('playbook_action_steps')
+      .select('id, text, examples, description, wisdom_text')
+      .in('playbook_id', playbookIds);
+
+    if (stepsError) {
+      Logger.error('[replaceStoredUserNameInPlaybooks] Error fetching action steps', stepsError as Error, {
+        component: 'supabaseApiNormalized',
+        action: 'replaceStoredUserNameInPlaybooks',
+      });
+    } else {
+      const stepIds: string[] = [];
+      for (const step of actionSteps || []) {
+        stepIds.push(step.id);
+        const patch: Record<string, any> = {};
+        for (const field of ['text', 'examples', 'description', 'wisdom_text']) {
+          const current = (step as any)[field];
+          if (current === null || current === undefined) { continue; }
+          const next = transform(current);
+          if (next !== current) {
+            patch[field] = next;
+          }
+        }
+        if (Object.keys(patch).length > 0) {
+          patch.updated_at = now;
+          await supabase
+            .from('playbook_action_steps')
+            .update(patch)
+            .eq('id', step.id);
+        }
+      }
+
+      if (stepIds.length > 0) {
+        const { data: subTasks } = await supabase
+          .from('playbook_sub_tasks')
+          .select('id, text')
+          .in('action_step_id', stepIds);
+
+        for (const subTask of subTasks || []) {
+          const next = transform(subTask.text);
+          if (next !== subTask.text) {
+            await supabase
+              .from('playbook_sub_tasks')
+              .update({ text: next, updated_at: now })
+              .eq('id', subTask.id);
+          }
+        }
+      }
+    }
+
+    const { data: affirmations } = await supabase
+      .from('playbook_affirmations')
+      .select('id, text')
+      .in('playbook_id', playbookIds);
+
+    for (const affirmation of affirmations || []) {
+      const next = transform(affirmation.text);
+      if (next !== affirmation.text) {
+        await supabase
+          .from('playbook_affirmations')
+          .update({ text: next, updated_at: now })
+          .eq('id', affirmation.id);
+      }
+    }
+  } catch (error) {
+    Logger.error('[replaceStoredUserNameInPlaybooks] Unexpected error', error as Error, {
+      component: 'supabaseApiNormalized',
+      action: 'replaceStoredUserNameInPlaybooks',
+    });
+  }
+}

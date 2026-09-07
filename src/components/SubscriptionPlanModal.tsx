@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   ScrollView,
   TouchableOpacity,
   StyleSheet,
   Animated,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -143,6 +144,34 @@ const isAnnualBillingCycle = (billingCycle?: string | null): boolean => {
   return normalized === 'annual' || normalized === 'yearly' || normalized === 'year';
 };
 
+const getNextUsageResetDate = (subscription?: Subscription | null): Date => {
+  const now = new Date();
+  const tier = subscription?.tier?.replace(/_annual$/, '') || 'seeker';
+
+  if (tier === 'seeker') {
+    const anchorValue = subscription?.last_usage_reset || subscription?.created_at;
+    if (!anchorValue) {
+      return new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+    }
+    let resetDate = new Date(new Date(anchorValue).getTime() + 30 * 24 * 60 * 60 * 1000);
+    while (resetDate <= now) {
+      resetDate = new Date(resetDate.getTime() + 30 * 24 * 60 * 60 * 1000);
+    }
+    return resetDate;
+  }
+
+  const anchor = new Date(subscription?.subscription_start_date || subscription?.created_at || now);
+  const anchorDay = anchor.getDate();
+  const thisMonthDay = Math.min(anchorDay, new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate());
+  const thisMonthReset = new Date(now.getFullYear(), now.getMonth(), thisMonthDay);
+  if (thisMonthReset > now) {
+    return thisMonthReset;
+  }
+  const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  const nextMonthDay = Math.min(anchorDay, new Date(nextMonth.getFullYear(), nextMonth.getMonth() + 1, 0).getDate());
+  return new Date(nextMonth.getFullYear(), nextMonth.getMonth(), nextMonthDay);
+};
+
 interface SubscriptionPlanModalProps {
   visible: boolean;
   onClose: () => void;
@@ -179,6 +208,10 @@ interface Subscription {
   has_used_trial?: boolean;
   current_period_start?: string;
   current_period_end?: string;
+  subscription_start_date?: string;
+  subscription_end_date?: string;
+  last_usage_reset?: string;
+  created_at?: string;
   trial_end_date?: string;
   cancel_at_period_end?: boolean;
 }
@@ -199,6 +232,7 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
   const { user } = useAuth();
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [loading, setLoading] = useState(false);
+  const [allUsageExpanded, setAllUsageExpanded] = useState(false);
 
   // Check if in test mode
   const isTestMode = !!testModeTier;
@@ -273,6 +307,7 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
   // Force refresh to get latest data after purchases
   useEffect(() => {
     if (visible && (user?.id || isTestMode)) {
+      setAllUsageExpanded(false);
       loadSubscriptionData(true); // Force fresh read to catch post-purchase updates
     }
   }, [visible, user?.id, isTestMode, loadSubscriptionData]);
@@ -289,6 +324,7 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
   const getTierInfo = (tier: string): {
     name: string;
     description: string;
+    secondaryDescription?: string;
     features: string[];
     limits: {
       playbooks: number;
@@ -305,15 +341,7 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
         return {
           name: 'siFia Seeker',
           description: 'A quiet place to begin',
-          features: [
-            '2 playbooks each month',
-            '1 devotional each month',
-            '2 how-to\'s for faithful actions each month',
-            '1 playbook refinement each month',
-            'Basic journaling for personal reflection',
-            'A quiet space to write and process what\'s on your heart',
-            'Begin exploring siFia\'s approach to reflection and discernment',
-          ],
+          features: ['Basic Journaling'],
           limits: {
             playbooks: 2,
             devotionals: 1,
@@ -327,17 +355,10 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
           name: 'siFia Spark',
           description: 'For getting started',
           features: [
-            '10 playbooks each month',
-            '10 devotionals each month',
-            '5 how-to\'s for faithful actions each month',
-            '3 playbook refinements each month',
-            'Access 1-day and 3-day devotionals',
-            'Gentle reminders',
-            'Track your progress week by week',
-            'Plan Ahead inside your journal',
-            'Copy To-Dos to other dates',
-            'Guided prompts',
+            'Guided Prompts',
             'Smart Journaling',
+            'Plan Ahead',
+            'Copy To-Dos',
           ],
           limits: {
             playbooks: 10,
@@ -350,21 +371,15 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
       case 'growth':
         return {
           name: 'siFia Growth',
-          description: 'For deeper transformation',
+          description: 'For regular reflection',
+          secondaryDescription: 'Return to siFia as new situations, decisions, and struggles come up.',
           features: [
-            '25 playbooks each month',
-            '25 devotionals each month',
-            '12 how-to\'s for faithful actions each month',
-            '6 playbook refinements each month',
-            'Access 1-day, 3-day, and 5-day devotionals',
-            'Gentle reminders',
-            'Track your progress week by week',
-            'Plan Ahead inside your journal',
-            'Copy To-Dos to other dates',
-            'Guided prompts',
+            'Guided Prompts',
             'Smart Journaling',
+            'Plan Ahead',
+            'Copy To-Dos',
             'Calendar Auto-Sync',
-            'Export to PDF',
+            'PDF Export',
           ],
           limits: {
             playbooks: 25,
@@ -377,22 +392,16 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
       case 'transformation':
         return {
           name: 'siFia Transformation',
-          description: 'For a life transformed in spirit and purpose',
+          description: 'For deeper, ongoing use',
+          secondaryDescription: 'The most room for frequent reflection, longer devotionals, and continued use.',
           features: [
-            '60 playbooks each month',
-            '60 devotionals each month',
-            '25 how-to\'s for faithful actions each month',
-            '15 playbook refinements each month',
-            'Access 1-day, 3-day, 5-day, and 7-day devotionals',
-            'Gentle reminders',
-            'Track your progress week by week',
-            'Plan Ahead inside your journal',
-            'Copy To-Dos to other dates',
-            'Guided prompts',
+            'Guided Prompts',
             'Smart Journaling',
+            'Plan Ahead',
+            'Copy To-Dos',
             'Calendar Auto-Sync',
-            'Export to PDF',
-            'Priority support',
+            'PDF Export',
+            'Priority Support',
           ],
           limits: {
             playbooks: 60,
@@ -560,6 +569,17 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
   const tierInfo = subscription ? getTierInfo(subscription.tier) : getTierInfo('seeker');
   const statusInfo = subscription ? getStatusInfo(subscription.status, subscription) : { text: 'Loading...', color: Colors.textGray };
   const isTrial = subscription?.tier === 'free_trial';
+  const nextResetDate = getNextUsageResetDate(subscription).toLocaleDateString('en-US', {
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+  });
+  const currentPlanUsage = [
+    { label: 'Playbooks', used: subscription?.playbooks_used || 0, limit: tierInfo.limits.playbooks },
+    { label: 'Devotionals', used: subscription?.devotionals_used || 0, limit: tierInfo.limits.devotionals },
+    { label: 'Faithful Action How-Tos', used: subscription?.wisdom_count || 0, limit: tierInfo.limits.wisdom },
+    { label: 'Playbook Refinements', used: subscription?.refinement_count || 0, limit: tierInfo.limits.refinement },
+  ];
 
   // Determine billing period
   const tierBase = normalizePaidPlanTier(subscription?.tier) || subscription?.tier?.replace(/_annual$/, '') || 'seeker';
@@ -568,6 +588,14 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
     ? isAnnualBillingCycle(subscription?.billing_cycle)
     : Boolean(subscription?.tier?.includes('_annual') || isAnnualBillingCycle(subscription?.billing_cycle));
   const billingPeriod = isAnnual ? 'Annual' : 'Monthly';
+  const includedWithTitle = (() => {
+    if (tierBase === 'seeker') {return 'Included with Seeker';}
+    if (tierBase === 'free_trial') {
+      const chosenTier = normalizePaidPlanTier(subscription?.trial_chosen_tier) || 'growth';
+      return `Included with ${chosenTier.charAt(0).toUpperCase() + chosenTier.slice(1)} Trial`;
+    }
+    return `Included with ${tierBase.charAt(0).toUpperCase() + tierBase.slice(1)}`;
+  })();
   const currentTrialPlanTier = normalizePaidPlanTier(subscription?.trial_chosen_tier) || 'growth';
   const currentTrialBillingCycle = isAnnualBillingCycle(subscription?.billing_cycle) || isAnnual ? 'annual' : 'monthly';
   const isHighestAnnualPlan = tierBase === 'transformation' && isAnnual;
@@ -593,6 +621,15 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
       default:
         return 'View Plans';
     }
+  };
+
+  // Holds the sales-offer navigation until the modal has fully dismissed,
+  // so the new screen never presents behind the still-closing pageSheet.
+  const pendingSalesOfferNav = useRef<(() => void) | null>(null);
+  const runPendingSalesOfferNav = () => {
+    const nav = pendingSalesOfferNav.current;
+    pendingSalesOfferNav.current = null;
+    if (nav) { nav(); }
   };
 
   const handleUpgradePress = () => {
@@ -640,8 +677,7 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
         dismissBehavior: 'goBack',
       };
 
-      onClose();
-      setTimeout(() => {
+      pendingSalesOfferNav.current = () => {
         if (onOpenSalesOffer) {
           onOpenSalesOffer(params);
           return;
@@ -654,7 +690,12 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
             component: 'SubscriptionPlanModal',
           });
         }
-      }, 500);
+      };
+      onClose();
+      // Android: onDismiss is iOS-only, so fall back to a timed delay
+      if (Platform.OS === 'android') {
+        setTimeout(runPendingSalesOfferNav, 350);
+      }
     } else {
       onClose();
     }
@@ -666,6 +707,7 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
       animationType="slide"
       presentationStyle="pageSheet"
       onRequestClose={onClose}
+      onDismiss={runPendingSalesOfferNav}
     >
       <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
         {/* Header */}
@@ -699,7 +741,7 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
                   <View style={styles.trialEndsPillContainer}>
                     <View style={styles.trialEndsPill}>
                       <ThemedText style={styles.trialEndsPillText}>
-                        {statusInfo.text}
+                        {`${statusInfo.text}${tierBase !== 'seeker' ? ` • ${billingPeriod}` : ''}`}
                       </ThemedText>
                     </View>
                   </View>
@@ -710,7 +752,7 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
                   <View style={styles.badgeContainer}>
                     <View style={[styles.statusBadge, { backgroundColor: statusInfo.color }]}>
                       <ThemedText style={styles.statusBadgeText}>
-                        {statusInfo.text}
+                        {`${statusInfo.text}${tierBase !== 'seeker' ? ` • ${billingPeriod}` : ''}`}
                       </ThemedText>
                     </View>
                   </View>
@@ -724,13 +766,11 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
                     <ThemedText style={styles.planDescription}>
                       {tierInfo.description}
                     </ThemedText>
-                    {tierBase !== 'seeker' && (
-                  <View style={styles.billingPeriodBadge}>
-                    <ThemedText style={styles.billingPeriodBadgeText}>
-                      {billingPeriod}
-                    </ThemedText>
-                  </View>
-                )}
+                    {tierInfo.secondaryDescription && (
+                      <ThemedText style={styles.planSecondaryDescription}>
+                        {tierInfo.secondaryDescription}
+                      </ThemedText>
+                    )}
                   </View>
                 </View>
 
@@ -744,14 +784,46 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
                 )}
               </View>
 
+              {tierBase !== 'free_trial' && (
+                <View style={styles.seekerUsageSection}>
+                  <ThemedText weight="semiBold" style={styles.sectionTitle}>Your usage</ThemedText>
+                  <View style={styles.seekerUsageCard}>
+                    {currentPlanUsage.slice(0, allUsageExpanded ? currentPlanUsage.length : 2).map(item => {
+                      const progress = item.limit > 0 ? Math.min(item.used / item.limit, 1) : 0;
+                      return (
+                        <View key={item.label} style={styles.seekerUsageItem}>
+                          <View style={styles.seekerUsageHeader}>
+                            <ThemedText weight="semiBold" style={styles.seekerUsageLabel}>{item.label}</ThemedText>
+                          </View>
+                          <View style={styles.seekerUsageTrack}>
+                            <View style={[styles.seekerUsageFill, { width: `${progress * 100}%` }]} />
+                          </View>
+                        </View>
+                      );
+                    })}
+                    <TouchableOpacity
+                      style={styles.viewAllUsageButton}
+                      onPress={() => {
+                        try { triggerLightHaptic(); } catch {}
+                        setAllUsageExpanded(previous => !previous);
+                      }}
+                      activeOpacity={0.8}
+                    >
+                      <ThemedText style={styles.viewAllUsageText}>{allUsageExpanded ? 'Show less usage' : 'View all usage'}</ThemedText>
+                    </TouchableOpacity>
+                  </View>
+                  <ThemedText style={styles.usageResetText}>Resets {nextResetDate}</ThemedText>
+                </View>
+              )}
+
               {/* Features Section */}
               <View style={styles.section}>
                 <ThemedText weight="semiBold" style={styles.sectionTitle}>
-                  Plan Features
+                  {includedWithTitle}
                 </ThemedText>
                 {tierInfo.features.map((feature: string, index: number) => (
                   <View key={index} style={styles.featureItem}>
-                    <Ionicons name="checkmark-circle" size={20} color={Colors.alertCoral} />
+                    <Ionicons name="heart" size={16} color={Colors.alertCoral} />
                     <ThemedText style={styles.featureText}>{feature}</ThemedText>
                   </View>
                 ))}
@@ -922,19 +994,14 @@ const styles = StyleSheet.create({
     opacity: 0.8,
     marginBottom: 4,
   },
-  billingPeriodBadge: {
-    borderWidth: 1,
-    borderColor: Colors.hopeWhite,
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    marginTop: 8,
-    alignSelf: 'center',
-  },
-  billingPeriodBadgeText: {
-    fontSize: 11,
+  planSecondaryDescription: {
+    fontSize: 13,
+    lineHeight: 19,
     color: Colors.hopeWhite,
-    fontWeight: '600',
+    opacity: 0.68,
+    textAlign: 'center',
+    marginTop: 4,
+    marginBottom: 4,
   },
   statusContainer: {
     flexDirection: 'row',
@@ -968,6 +1035,59 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: Colors.hopeWhite,
     marginBottom: 16,
+  },
+  seekerUsageSection: {
+    marginBottom: 24,
+  },
+  seekerUsageCard: {
+    padding: 16,
+    backgroundColor: 'rgba(255,255,255,0.07)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.22)',
+    borderRadius: 20,
+  },
+  seekerUsageItem: {
+    marginBottom: 18,
+  },
+  seekerUsageHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  seekerUsageLabel: {
+    fontSize: 14,
+    color: Colors.hopeWhite,
+  },
+  seekerUsageTrack: {
+    height: 8,
+    overflow: 'hidden',
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    borderRadius: 4,
+  },
+  seekerUsageFill: {
+    height: '100%',
+    backgroundColor: Colors.growthGreen,
+    borderRadius: 4,
+  },
+  viewAllUsageButton: {
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.24)',
+    borderRadius: 16,
+    marginTop: 4,
+  },
+  viewAllUsageText: {
+    fontSize: 13,
+    color: Colors.hopeWhite,
+  },
+  usageResetText: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.62)',
+    marginTop: 12,
+    marginLeft: 2,
   },
   featureItem: {
     flexDirection: 'row',

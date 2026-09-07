@@ -15,7 +15,7 @@ export interface ProfileStatsLite {
   badgesCount?: number;
 }
 
-interface UsageSummary {
+export interface UsageSummary {
   playbooks: { used: number; limit: number };
   devotionals: { used: number; limit: number };
   refinements: { used: number; limit: number };
@@ -33,16 +33,21 @@ interface Props {
   isLoading?: boolean; // Add loading state
 }
 
-const ProfileHeader: React.FC<Props> = ({ user, stats, onEditPress, onEditAvatar: _onEditAvatar, plan, usage, subscription, isLoading = false }) => {
+export const ProfilePlanUsage: React.FC<Pick<Props, 'plan' | 'usage' | 'subscription' | 'stats' | 'isLoading'> & { placement?: 'header' | 'body' }> = ({
+  plan,
+  usage,
+  subscription,
+  stats,
+  isLoading = false,
+  placement = 'header',
+}) => {
   const theme = useTheme();
   const font = useMemo(() => ({ fontFamily: theme.fontFamily }), [theme.fontFamily]);
-
-  // Tooltip state
   const [tooltipVisible, setTooltipVisible] = useState(false);
   const [tooltipType, setTooltipType] = useState<TooltipType | null>(null);
-  // Badges modal state
   const [badgesModalVisible, setBadgesModalVisible] = useState(false);
-  const [imageLoadFailed, setImageLoadFailed] = useState(false);
+  const points = stats?.faithPoints ?? 0;
+  const badgesCount = stats?.badgesCount ?? 0;
 
   const showTooltip = (type: TooltipType) => {
     try { triggerLightHaptic(); } catch {}
@@ -52,14 +57,88 @@ const ProfileHeader: React.FC<Props> = ({ user, stats, onEditPress, onEditAvatar
 
   const hideTooltip = () => {
     setTooltipVisible(false);
-    // Clear type after animation completes to prevent flash
     setTimeout(() => setTooltipType(null), 300);
   };
 
-  const showBadgesModal = () => {
-    try { triggerLightHaptic(); } catch {}
-    setBadgesModalVisible(true);
-  };
+  if (isLoading) {
+    return (
+      <View style={[styles.planAndUsageRow, placement === 'body' && styles.planAndUsageBody]}>
+        <View style={[styles.planPill, placement === 'body' && styles.planPillBody, styles.skeletonPill]}>
+          <View style={styles.skeletonText} />
+          <View style={styles.pillsRow}>
+            {[1, 2, 3, 4].map(i => (
+              <View key={i} style={[styles.usagePill, styles.skeletonUsagePill]}>
+                <View style={styles.skeletonUsageItem} />
+              </View>
+            ))}
+          </View>
+        </View>
+      </View>
+    );
+  }
+
+  if (!plan && !usage) { return null; }
+
+  return (
+    <>
+      <View style={[styles.planAndUsageRow, placement === 'body' && styles.planAndUsageBody]}>
+        {!!plan && (
+          <View style={[styles.planPill, placement === 'body' && styles.planPillBody]}>
+            <Text style={[styles.planText, font]}>{String(plan)}</Text>
+            {!!usage && (
+              <View style={styles.pillsRow}>
+                <TouchableOpacity style={styles.usagePill} onPress={() => showTooltip('playbooks')} activeOpacity={0.7}>
+                  <View style={styles.usageItemRow}>
+                    <MaterialCommunityIcons name="clipboard-text-play" size={12} color={Colors.hopeWhite} />
+                    <Text style={[styles.usageText, font]}>{usage.playbooks.used}{usage.playbooks.limit >= 0 ? `/${usage.playbooks.limit}` : '/∞'}</Text>
+                  </View>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.usagePill} onPress={() => showTooltip('devotionals')} activeOpacity={0.7}>
+                  <View style={styles.usageItemRow}>
+                    <MaterialCommunityIcons name="book" size={12} color={Colors.hopeWhite} />
+                    <Text style={[styles.usageText, font]}>{usage.devotionals.used}{usage.devotionals.limit >= 0 ? `/${usage.devotionals.limit}` : '/∞'}</Text>
+                  </View>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.usagePill} onPress={() => showTooltip('refinements')} activeOpacity={0.7}>
+                  <View style={styles.usageItemRow}>
+                    <MaterialCommunityIcons name="auto-fix" size={12} color={Colors.hopeWhite} />
+                    <Text style={[styles.usageText, font]}>{usage.refinements.used}{usage.refinements.limit >= 0 ? `/${usage.refinements.limit}` : '/∞'}</Text>
+                  </View>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.usagePill} onPress={() => showTooltip('wisdom')} activeOpacity={0.7}>
+                  <View style={styles.usageItemRow}>
+                    <MaterialCommunityIcons name="lightbulb" size={12} color={Colors.hopeWhite} />
+                    <Text style={[styles.usageText, font]}>{usage.wisdom.used}{usage.wisdom.limit >= 0 ? `/${usage.wisdom.limit}` : '/∞'}</Text>
+                  </View>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.usagePill} onPress={() => showTooltip('faithPoints')} activeOpacity={0.7}>
+                  <View style={styles.usageItemRow}>
+                    <MaterialCommunityIcons name="star-four-points" size={12} color={Colors.hopeWhite} />
+                    <Text style={[styles.usageText, font]}>{points} FP</Text>
+                  </View>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.usagePill} onPress={() => { try { triggerLightHaptic(); } catch {} setBadgesModalVisible(true); }} activeOpacity={0.7}>
+                  <View style={styles.usageItemRow}>
+                    <MaterialCommunityIcons name="trophy" size={12} color={Colors.hopeWhite} />
+                    <Text style={[styles.usageText, font]}>{badgesCount}</Text>
+                  </View>
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
+        )}
+      </View>
+      <UsageTooltipModal visible={tooltipVisible} type={tooltipType} onClose={hideTooltip} subscription={subscription || null} usage={usage || null} stats={stats || null} />
+      <BadgesModal visible={badgesModalVisible} onClose={() => setBadgesModalVisible(false)} />
+    </>
+  );
+};
+
+const ProfileHeader: React.FC<Props> = ({ user, onEditPress, onEditAvatar: _onEditAvatar }) => {
+  const theme = useTheme();
+  const font = useMemo(() => ({ fontFamily: theme.fontFamily }), [theme.fontFamily]);
+
+  const [imageLoadFailed, setImageLoadFailed] = useState(false);
   const displayName = useMemo(() => {
     const meta = (user as any)?.user_metadata || {};
     return (
@@ -70,9 +149,6 @@ const ProfileHeader: React.FC<Props> = ({ user, stats, onEditPress, onEditAvatar
       'User'
     );
   }, [user]);
-
-  const points = stats?.faithPoints ?? 0;
-  const badgesCount = (stats as any)?.badgesCount ?? (user as any)?.badgesCount ?? 0;
 
   // Use custom avatar URL from user profile if available, but only allow local file URIs
   const avatarUrl = (user as any)?.user_metadata?.avatar_url;
@@ -87,132 +163,8 @@ const ProfileHeader: React.FC<Props> = ({ user, stats, onEditPress, onEditAvatar
     setImageLoadFailed(false);
   }, [user, safeAvatarUrl]);
 
-  // Skeleton loading component
-  const renderSkeleton = () => (
-    <View style={styles.planAndUsageRow}>
-      <View style={[styles.planPill, styles.skeletonPill]}>
-        <View style={styles.skeletonText} />
-        <View style={styles.pillsRow}>
-          {[1, 2, 3, 4].map((i) => (
-            <View key={i} style={[styles.usagePill, styles.skeletonUsagePill]}>
-              <View style={styles.skeletonUsageItem} />
-            </View>
-          ))}
-        </View>
-      </View>
-    </View>
-  );
-
   return (
     <View style={styles.headerGradient}>
-      {isLoading ? renderSkeleton() : (!!plan || !!usage) && (
-        <View style={styles.planAndUsageRow}>
-          {!!plan && (
-            <View style={styles.planPill}>
-              <Text style={[styles.planText, font]}>{String(plan)}</Text>
-              {!!usage && (
-                <View style={styles.pillsRow}>
-                  <TouchableOpacity
-                    style={styles.usagePill}
-                    onPress={() => { try { triggerLightHaptic(); } catch {} showTooltip('playbooks'); }}
-                    activeOpacity={0.7}
-                  >
-                    <View style={styles.usageItemRow}>
-                      <MaterialCommunityIcons name="clipboard-text-play" size={12} color={Colors.hopeWhite} />
-                      <Text style={[styles.usageText, font]}>
-                        {usage.playbooks.used}
-                        {usage.playbooks.limit >= 0 ? `/${usage.playbooks.limit}` : '/∞'}
-                      </Text>
-                    </View>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.usagePill}
-                    onPress={() => { try { triggerLightHaptic(); } catch {} showTooltip('devotionals'); }}
-                    activeOpacity={0.7}
-                  >
-                    <View style={styles.usageItemRow}>
-                      <MaterialCommunityIcons name="book" size={12} color={Colors.hopeWhite} />
-                      <Text style={[styles.usageText, font]}>
-                        {usage.devotionals.used}
-                        {usage.devotionals.limit >= 0 ? `/${usage.devotionals.limit}` : '/∞'}
-                      </Text>
-                    </View>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.usagePill}
-                    onPress={() => { try { triggerLightHaptic(); } catch {} showTooltip('refinements'); }}
-                    activeOpacity={0.7}
-                  >
-                    <View style={styles.usageItemRow}>
-                      <MaterialCommunityIcons name="auto-fix" size={12} color={Colors.hopeWhite} />
-                      <Text style={[styles.usageText, font]}>
-                        {usage.refinements.used}
-                        {usage.refinements.limit >= 0 ? `/${usage.refinements.limit}` : '/∞'}
-                      </Text>
-                    </View>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.usagePill}
-                    onPress={() => { try { triggerLightHaptic(); } catch {} showTooltip('wisdom'); }}
-                    activeOpacity={0.7}
-                  >
-                    <View style={styles.usageItemRow}>
-                      <MaterialCommunityIcons name="lightbulb" size={12} color={Colors.hopeWhite} />
-                      <Text style={[styles.usageText, font]}>
-                        {usage.wisdom.used}
-                        {usage.wisdom.limit >= 0 ? `/${usage.wisdom.limit}` : '/∞'}
-                      </Text>
-                    </View>
-                  </TouchableOpacity>
-                  {/* Usage stats: Playbooks, Devotionals, Refinements, Wisdom, Faith Points, Badges */}
-                  <TouchableOpacity
-                    style={styles.usagePill}
-                    onPress={() => { try { triggerLightHaptic(); } catch {} showTooltip('faithPoints'); }}
-                    activeOpacity={0.7}
-                  >
-                    <View style={styles.usageItemRow}>
-                      <MaterialCommunityIcons name="star-four-points" size={12} color={Colors.hopeWhite} />
-                      <Text style={[styles.usageText, font]}>{points} FP</Text>
-                    </View>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.usagePill}
-                    onPress={showBadgesModal}
-                    activeOpacity={0.7}
-                  >
-                    <View style={styles.usageItemRow}>
-                      <MaterialCommunityIcons name="trophy" size={12} color={Colors.hopeWhite} />
-                      <Text style={[styles.usageText, font]}>{badgesCount}</Text>
-                    </View>
-                  </TouchableOpacity>
-                </View>
-              )}
-            </View>
-          )}
-          {!plan && !!usage && (
-            <>
-              <View style={styles.usagePill}>
-                <View style={styles.usageItemRow}>
-                  <MaterialCommunityIcons name="clipboard-text-play" size={12} color={Colors.hopeWhite} />
-                  <Text style={[styles.usageText, font]}>
-                    {usage.playbooks.used}
-                    {usage.playbooks.limit >= 0 ? `/${usage.playbooks.limit}` : '/∞'}
-                  </Text>
-                </View>
-              </View>
-              <View style={styles.usagePill}>
-                <View style={styles.usageItemRow}>
-                  <MaterialCommunityIcons name="book" size={12} color={Colors.hopeWhite} />
-                  <Text style={[styles.usageText, font]}>
-                    {usage.devotionals.used}
-                    {usage.devotionals.limit >= 0 ? `/${usage.devotionals.limit}` : '/∞'}
-                  </Text>
-                </View>
-              </View>
-            </>
-          )}
-        </View>
-      )}
       <View style={styles.profileHeader}>
         <TouchableOpacity
           style={styles.avatarContainer}
@@ -273,22 +225,6 @@ const ProfileHeader: React.FC<Props> = ({ user, stats, onEditPress, onEditAvatar
 
         {/* Right-side edit pencil removed per request */}
       </View>
-
-      {/* Tooltip Modal */}
-      <UsageTooltipModal
-        visible={tooltipVisible}
-        type={tooltipType}
-        onClose={hideTooltip}
-        subscription={subscription || null}
-        usage={usage || null}
-        stats={stats}
-      />
-
-      {/* Badges Modal */}
-      <BadgesModal
-        visible={badgesModalVisible}
-        onClose={() => setBadgesModalVisible(false)}
-      />
     </View>
   );
 };
@@ -298,7 +234,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.hopeWhite,
     overflow: 'visible',
     paddingTop: 0,
-    paddingBottom: 40,
+    paddingBottom: 30,
   },
   profileHeader: {
     flexDirection: 'row',
@@ -368,6 +304,14 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 4 },
     elevation: 4,
+  },
+  planPillBody: {
+    width: '100%',
+    backgroundColor: 'transparent',
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 0,
   },
   planText: {
     fontSize: 14,
@@ -444,6 +388,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8 as any,
+  },
+  planAndUsageBody: {
+    position: 'relative',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 0,
+    elevation: 0,
+    paddingHorizontal: 0,
   },
   levelContainer: {
     marginTop: 0,

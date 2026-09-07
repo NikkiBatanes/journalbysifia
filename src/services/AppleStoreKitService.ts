@@ -1820,9 +1820,9 @@ export class AppleStoreKitService {
     isEligibleForTrial?: boolean
   ): Promise<ServerValidationResult> {
     try {
-      // Add 10 second timeout to prevent hanging
+      // Add 30 second timeout to prevent hanging
       const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('Server validation timeout after 10s')), 10000)
+        setTimeout(() => reject(new Error('Server validation timeout after 30s')), 30000)
       );
 
       const eligibilityForValidation = isEligibleForTrial ?? this.currentPurchaseEligibility;

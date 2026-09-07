@@ -65,15 +65,15 @@ const BadgesModal: React.FC<BadgesModalProps> = ({ visible, onClose }) => {
 
 
       // Parse user badges from database
-      let unlockedBadges: (Badge & { unlockedAt: string })[] = [];
+      let unlockedBadges: (Badge & { unlockedAt?: string })[] = [];
 
       if (badgeRows && badgeRows.length > 0) {
 
         // First, get all available badges once if we need them
-        let allBadges: Badge[] = [];
+        let dbAllBadges: Badge[] = [];
         const needsServiceLookup = badgeRows.some(row => row.badge_id && !row.badge_data);
         if (needsServiceLookup) {
-          allBadges = await faithPointsService.getAvailableBadges();
+          dbAllBadges = await faithPointsService.getAvailableBadges();
         }
 
         unlockedBadges = badgeRows.map(row => {
@@ -86,7 +86,7 @@ const BadgesModal: React.FC<BadgesModalProps> = ({ visible, onClose }) => {
               badgeData = typeof row.badge_data === 'string' ? JSON.parse(row.badge_data) : row.badge_data;
             } else if (row.badge_id) {
               // If only badge_id exists, get the full badge data from the service
-              const fullBadge = allBadges.find(b => b.id === row.badge_id);
+              const fullBadge = dbAllBadges.find(b => b.id === row.badge_id);
               if (fullBadge) {
                 badgeData = fullBadge;
               } else {
@@ -106,54 +106,100 @@ const BadgesModal: React.FC<BadgesModalProps> = ({ visible, onClose }) => {
 
             return {
               ...badgeData,
-              unlockedAt: unlockedAt,
+              unlockedAt: unlockedAt || undefined,
             };
           } catch (parseError) {
                         return null;
           }
         }).filter(Boolean);
-      } else {
-              }
+      }
+
+      // Match userApi fallback: if no user_badges, try legacy user_profiles.badges
+      if (unlockedBadges.length === 0) {
+        try {
+          const { data: profileRow, error: profileError } = await supabase
+            .from('user_profiles')
+            .select('badges')
+            .eq('id', user.id)
+            .single();
+
+          if (!profileError && profileRow && Array.isArray(profileRow.badges) && profileRow.badges.length > 0) {
+            unlockedBadges = profileRow.badges.map((b: any) => ({
+              id: b.id || `legacy_${Math.random().toString(36).slice(2)}`,
+              name: b.name || 'Badge',
+              description: b.description || '',
+              icon: b.icon || '⭐',
+              rarity: b.rarity || 'common',
+              pointsRequired: b.pointsRequired || 0,
+              unlockedAt: b.unlockedAt || b.earned_at || undefined,
+            }));
+          } else {
+            // Final fallback: every user has the Beginning badge
+            unlockedBadges = [{
+              id: 'beginning',
+              name: 'Beginning',
+              description: 'Beginning your faith journey',
+              icon: '🌱',
+              rarity: 'common' as const,
+              pointsRequired: 0,
+              unlockedAt: undefined,
+            }];
+          }
+        } catch {
+          // Defensive: ensure at least the Beginning badge is unlocked
+          unlockedBadges = [{
+            id: 'beginning',
+            name: 'Beginning',
+            description: 'Beginning your faith journey',
+            icon: '🌱',
+            rarity: 'common' as const,
+            pointsRequired: 0,
+            unlockedAt: undefined,
+          }];
+        }
+      }
 
       // Get all available badges
       const allBadges = await faithPointsService.getAvailableBadges();
 
-      if (!allBadges || allBadges.length === 0) {
-                // Use fallback badges for testing
-        const fallbackBadges = [
-          {
-            id: 'test_badge_1',
-            name: 'Test Badge 1',
-            description: 'This is a test badge',
-            icon: '⭐',
-            rarity: 'common' as const,
-            pointsRequired: 10,
-            unlocked: false,
-          },
-          {
-            id: 'test_badge_2',
-            name: 'Test Badge 2',
-            description: 'Another test badge',
-            icon: '🎯',
-            rarity: 'rare' as const,
-            pointsRequired: 25,
-            unlocked: false,
-          },
-        ];
-        setAvailableBadges(fallbackBadges);
-        setUserBadges([]);
-        return;
+      // Build a full list that includes any unlocked badges missing from the service list,
+      // matching by id, name, or description to avoid duplicates (e.g., two "Beginning" badges).
+      const normalize = (str?: string) => (str || '').trim().toLowerCase();
+      const badgeMatches = (a: Badge, b: Badge) => {
+        if (a.id && a.id === b.id) {return true;}
+        const aName = normalize(a.name);
+        const bName = normalize(b.name);
+        const aDesc = normalize(a.description);
+        const bDesc = normalize(b.description);
+        if (aName && bName && aName === bName) {return true;}
+        if (aName && bDesc && aName === bDesc) {return true;}
+        if (bName && aDesc && bName === aDesc) {return true;}
+        if (aDesc && bDesc && aDesc === bDesc) {return true;}
+        return false;
+      };
+
+      const mergedAllBadges: Badge[] = allBadges && allBadges.length > 0 ? [...allBadges] : [];
+      for (const ub of unlockedBadges) {
+        const existing = mergedAllBadges.find(b => badgeMatches(ub, b));
+        if (!existing) {
+          mergedAllBadges.push(ub);
+        }
       }
 
+      // If no badges are available at all, use the unlocked badges as the fallback list
+      const finalAllBadges = mergedAllBadges.length > 0 ? mergedAllBadges : unlockedBadges;
+
+      const isUnlocked = (badge: Badge) => unlockedBadges.some(ub => badgeMatches(ub, badge));
+      const getUnlockedAt = (badge: Badge) => unlockedBadges.find(ub => badgeMatches(ub, badge))?.unlockedAt;
+
       // Mark which badges are unlocked
-      const availableWithStatus = allBadges.map(badge => ({
+      const availableWithStatus = finalAllBadges.map(badge => ({
         ...badge,
-        unlocked: unlockedBadges.some(ub => ub.id === badge.id),
-        unlockedAt: unlockedBadges.find(ub => ub.id === badge.id)?.unlockedAt,
+        unlocked: isUnlocked(badge),
+        unlockedAt: getUnlockedAt(badge),
       }));
 
-      // Use the same counting method as userApi for consistency
-      const count = badgeRows?.length || 0;
+      const count = availableWithStatus.filter(b => b.unlocked).length;
       setBadgeCount(count); // Store in state for display
 
       setAvailableBadges(availableWithStatus);

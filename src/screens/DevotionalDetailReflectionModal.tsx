@@ -305,6 +305,15 @@ const DevotionalDetailReflectionModal: React.FC<DevotionalDetailReflectionModalP
         onDismiss={() => {}}
       >
         <View style={[styles.modalView, Platform.OS === 'android' && styles.androidFullScreenModalView]}>
+          {/* iOS: render inside the editor modal so it presents on top of the fullscreen modal */}
+          {Platform.OS === 'ios' && (
+            <NewSuccessModal
+              visible={successModal.isVisible}
+              config={successModal.config}
+              onDone={successModal.handleDone}
+              onEdit={successModal.handleEdit}
+            />
+          )}
           <ReflectionLogEditor
             initialTitle={question}
             initialEntry={existingEntry ? {
@@ -338,12 +347,14 @@ const DevotionalDetailReflectionModal: React.FC<DevotionalDetailReflectionModalP
       </Modal>
 
       {/* Keep the success overlay outside the Android editor modal so its backdrop fills the whole screen. */}
-      <NewSuccessModal
-        visible={successModal.isVisible}
-        config={successModal.config}
-        onDone={successModal.handleDone}
-        onEdit={successModal.handleEdit}
-      />
+      {Platform.OS === 'android' && (
+        <NewSuccessModal
+          visible={successModal.isVisible}
+          config={successModal.config}
+          onDone={successModal.handleDone}
+          onEdit={successModal.handleEdit}
+        />
+      )}
     </>
   );
 };

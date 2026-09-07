@@ -29,6 +29,10 @@ export interface LogMetadata {
     message: string;
     stack?: string;
     name: string;
+    code?: string;
+    details?: string;
+    hint?: string;
+    status?: number;
   };
 }
 
@@ -229,6 +233,16 @@ class ProductionLogger {
         message: error.message,
         stack: error.stack,
         name: error.name,
+      };
+    } else if (error && typeof error === 'object') {
+      const value = error as Record<string, unknown>;
+      errorMeta.error = {
+        message: typeof value.message === 'string' ? value.message : JSON.stringify(value),
+        name: typeof value.name === 'string' ? value.name : 'Unknown',
+        code: typeof value.code === 'string' ? value.code : undefined,
+        details: typeof value.details === 'string' ? value.details : undefined,
+        hint: typeof value.hint === 'string' ? value.hint : undefined,
+        status: typeof value.status === 'number' ? value.status : undefined,
       };
     } else if (error) {
       errorMeta.error = { message: String(error), name: 'Unknown' };

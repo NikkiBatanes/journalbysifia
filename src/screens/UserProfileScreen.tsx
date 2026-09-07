@@ -34,15 +34,16 @@ import { useAuth } from '../context/IndustryStandardAuthContext';
 import { withErrorBoundary } from '../components/ErrorBoundary/withErrorBoundary';
 import { userApi } from '../services/userApi';
 import ProfileHeader from '../components/profile/ProfileHeader';
+import StreakTracker from '../components/dashboard/StreakTracker';
 import { pickImageLocal, uploadAvatar } from '../services/avatarService';
 import { NewSubscriptionService } from '../services/NewSubscriptionService';
 import PlatformPaymentService from '../services/PlatformPaymentService';
 import { faithPointsEvents, FAITH_POINTS_EVENTS } from '../services/faithPointsEvents';
 import { accountDeletionService } from '../services/accountDeletionService';
 import SubscriptionPlanModal from '../components/SubscriptionPlanModal';
+import BadgesModal from '../components/BadgesModal';
 import PlatformPageSheetModal from '../components/common/PlatformPageSheetModal';
 import { UserProgress, UserPreferences } from '../types/auth';
-import StreakTracker from '../components/dashboard/StreakTracker';
 // Types for subscription - using inline types to avoid import issues
 interface Subscription {
   id: string;
@@ -76,6 +77,8 @@ import { triggerLightHaptic, triggerSuccessHaptic } from '../utils/haptics';
 import { pushNotificationService } from '../services/pushNotificationService';
 import { navigateFromRoot } from '../utils/navigationHelpers';
 import { openStoreReview } from '../services/reviewPromptService';
+import { replaceStoredUserNameInPlaybooks } from '../services/supabaseApiNormalized';
+import { useQueryClient } from '@tanstack/react-query';
 
 const { width } = Dimensions.get('window');
 
@@ -101,6 +104,7 @@ interface ProfileStats {
 
 const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
   const { user, signOut, updatePreferences, updateProfile } = useAuth();
+  const queryClient = useQueryClient();
   const insets = useSafeAreaInsets();
   const theme = useTheme();
   const font = useMemo(() => ({ fontFamily: theme.fontFamily }), [theme.fontFamily]);
@@ -184,7 +188,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
   const [_userProgress, setUserProgress] = useState<UserProgress | null>(null);
   const [profileStats, setProfileStats] = useState<ProfileStats | null>(null);
   const [subscription, setSubscription] = useState<Subscription | null>(null);
-  const [usage, setUsage] = useState<UsageTracking | null>(null);
+  const [_usage, setUsage] = useState<UsageTracking | null>(null);
   // Form states
   const [profileForm, setProfileForm] = useState({
     firstName: (user as any)?.firstName || (user as any)?.user_metadata?.first_name || '',
@@ -240,7 +244,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
     const name = [first, last].filter(Boolean).join(' ') || fallback;
     return String(name).trim().charAt(0).toUpperCase();
   }, [profileForm, user]);
-  const [loading, setLoading] = useState(true);
+  const [_loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   useFocusEffect(
@@ -282,6 +286,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
   const [showInlineYearPicker, setShowInlineYearPicker] = useState(false);
   const [systemPermissionsModal, setSystemPermissionsModal] = useState(false);
   const [subscriptionPlanModal, setSubscriptionPlanModal] = useState(false);
+  const [badgesModalVisible, setBadgesModalVisible] = useState(false);
   const [tempBirthDate, setTempBirthDate] = useState<Date>(() => {
     const birthDateStr = (user as any)?.user_metadata?.birth_date || (profileForm as any)?.birthDate;
     if (birthDateStr) {
@@ -1186,6 +1191,10 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
         }
       }
 
+      const previousFirstName = String(
+        (user as any)?.user_metadata?.first_name || (user as any)?.firstName || ''
+      ).trim();
+
       // Persist to Supabase auth user_metadata via context
       const result = await (updateProfile as any)({
         full_name: full || undefined,
@@ -1218,6 +1227,20 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           action: 'sync_profile_data',
           details: e instanceof Error ? e.message : String(e),
         } as any);
+      }
+
+      // If the first name changed, rewrite it inside stored playbook content so
+      // existing (e.g. completed) playbooks reflect the new name. Older playbooks
+      // were generated with the real name baked into the text rather than a
+      // dynamic placeholder, so they never updated on their own.
+      if (user?.id && previousFirstName && first && previousFirstName !== first) {
+        const userId = user.id;
+        replaceStoredUserNameInPlaybooks(userId, previousFirstName, first)
+          .then(() => {
+            queryClient.invalidateQueries({ queryKey: ['playbooks'] });
+            queryClient.invalidateQueries({ queryKey: ['playbook'] });
+          })
+          .catch(() => {});
       }
 
       // Close modal
@@ -1417,89 +1440,20 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
     }
   };
 
-  const renderProfileHeader = () => {
-    // Determine plan label for header pill (siFia-branded)
-    let planLabel: string | undefined;
-    if (subscription) {
-      const rawTier = subscription.tier || '';
-      const tierBase = rawTier.replace(/_annual$/, '');
-
-      // Use subscription_display_name if available
-      const branded = (() => {
-        if ((subscription as any)?.subscription_display_name) {
-          return (subscription as any).subscription_display_name;
-        }
-
-        // Fallback to tier-based logic
-        switch (tierBase) {
-          // Legacy IDs
-          case 'basic':
-            return 'siFia Seeker';
-          case 'seeker':
-            return 'siFia Seeker';
-          case 'spark':
-            return 'siFia Spark';
-          case 'growth':
-            return 'siFia Growth';
-          case 'transformation':
-            return 'siFia Transformation';
-          // POST-LAUNCH: case 'family':
-          //   return 'siFia Family';
-          case 'free_trial':
-            {
-              const chosen = (subscription as any)?.trial_chosen_tier || 'growth';
-              const tierName = String(chosen).charAt(0).toUpperCase() + String(chosen).slice(1);
-              return `siFia ${tierName} Trial`;
-            }
-          default:
-            return undefined;
-        }
-      })();
-
-      // If canceled, user effectively falls back to free tier presentation
-      planLabel = subscription.status === 'canceled' ? 'siFia Seeker' : (branded || 'siFia Seeker');
-
-      // Add "Usage" to the plan label
-      planLabel = `${planLabel} Usage`;
-    }
-    return (
-      <ProfileHeader
-        user={user}
-        stats={{
-          faithPoints: profileStats?.faithPoints ?? 0,
-          level: profileStats?.level ?? 1,
-          badgesCount: profileStats?.totalBadges ?? 0,
-        }}
-        onEditPress={() => { try { triggerLightHaptic(); } catch {} setEditProfileModal(true); }}
-        onEditAvatar={handleEditAvatar}
-        plan={planLabel}
-        usage={usageSummary}
-        subscription={subscription} // Pass subscription for tooltips
-        isLoading={loading || !subscription || !usage}
-      />
-    );
-  };
+  const renderProfileHeader = () => (
+    <ProfileHeader
+      user={user}
+      stats={{
+        faithPoints: profileStats?.faithPoints ?? 0,
+        level: profileStats?.level ?? 1,
+        badgesCount: profileStats?.totalBadges ?? 0,
+      }}
+      onEditPress={() => { try { triggerLightHaptic(); } catch {} setEditProfileModal(true); }}
+      onEditAvatar={handleEditAvatar}
+    />
+  );
 
   // Removed compact stats cards (flame/trophy) per design update
-
-  const usageSummary = useMemo(() => {
-    if (!subscription || !usage) {return null;}
-    const normalizeLimit = (limitValue?: number | null) => {
-      if (typeof limitValue !== 'number') {return 0;}
-      if (limitValue < 0) {return -1;}
-      return limitValue;
-    };
-    const playbookLimitNum = normalizeLimit(subscription.limits?.playbooks);
-    const devotionalLimitNum = normalizeLimit(subscription.limits?.devotionals);
-    const refinementLimitNum = normalizeLimit(subscription.refinement_limit);
-    const wisdomLimitNum = normalizeLimit(subscription.wisdom_limit);
-    return {
-      playbooks: { used: usage.playbooks_generated || 0, limit: playbookLimitNum },
-      devotionals: { used: usage.devotionals_generated || 0, limit: devotionalLimitNum },
-      refinements: { used: usage.refinements_generated || 0, limit: refinementLimitNum },
-      wisdom: { used: usage.wisdom_generated || 0, limit: wisdomLimitNum },
-    } as const;
-  }, [subscription, usage]);
 
   const renderCommunitySection = () => (
     <View>
@@ -2663,7 +2617,12 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.streakSection}>
-            <StreakTracker />
+            <StreakTracker
+              showProfileStats
+              faithPoints={profileStats?.faithPoints ?? 0}
+              badgesCount={profileStats?.totalBadges ?? 0}
+              onBadgesPress={() => { try { triggerLightHaptic(); } catch {} setBadgesModalVisible(true); }}
+            />
           </View>
           {renderSubscriptionSection()}
           {renderMenuOptions()}
@@ -2697,6 +2656,11 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           dismissAndroidRoute();
         }}
         navigation={navigation}
+      />
+
+      <BadgesModal
+        visible={badgesModalVisible}
+        onClose={() => setBadgesModalVisible(false)}
       />
     </>
   );

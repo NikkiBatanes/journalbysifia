@@ -257,9 +257,10 @@ export async function getPlaybooks(
     showUserFeedback?: boolean;
     onAuthRequired?: () => void;
     lightweight?: boolean;
+    retryAttempts?: number;
   } = {}
 ): Promise<any[]> {
-  const { showUserFeedback = false, onAuthRequired, lightweight = false } = options;
+  const { showUserFeedback = false, onAuthRequired, lightweight = false, retryAttempts = 1 } = options;
 
   try {
 
@@ -294,7 +295,8 @@ export async function getPlaybooks(
       return result;
     } catch (error: any) {
       // Handle specific authentication errors
-      if (error.message.includes('session') || error.message.includes('token')) {
+      const errorMessage = typeof error?.message === 'string' ? error.message.toLowerCase() : '';
+      if (errorMessage.includes('session') || errorMessage.includes('token')) {
         const result = await authErrorHandler.handleApiError(error, {
           operationName: 'loading playbooks',
           showUserFeedback,
@@ -320,13 +322,13 @@ export async function getPlaybooks(
     const result = await authErrorHandler.handleApiError(error, {
       operationName: 'loading playbooks',
       showUserFeedback,
-      retryAttempts: 1,
+      retryAttempts,
       onAuthRequired,
     });
 
     if (result.shouldRetry) {
-
-      return getPlaybooks(userId, options);
+      await new Promise(resolve => setTimeout(resolve, 500));
+      return getPlaybooks(userId, { ...options, retryAttempts: retryAttempts - 1 });
     }
 
     if (!result.handled) {

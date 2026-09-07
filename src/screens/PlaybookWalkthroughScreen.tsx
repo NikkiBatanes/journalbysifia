@@ -23,6 +23,7 @@ import {
   Clipboard,
   PanResponder,
   Keyboard,
+  Easing,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -260,6 +261,26 @@ const replaceNamePlaceholdersWith = (text: string, userName: string): string =>
   text.replace(USER_NAME_PLACEHOLDER_REGEX, (match) =>
     match.endsWith("'s") || match.endsWith('’s') ? `${userName}'s` : userName
   );
+
+const personalizeTruthContent = <T,>(value: T, userName: string): T => {
+  const cleanName = userName.trim();
+  if (!cleanName || /^unknown$/i.test(cleanName)) {
+    return value;
+  }
+  if (typeof value === 'string') {
+    return replaceNamePlaceholdersWith(value, cleanName)
+      .replace(/\bUnknown\b('s|’s)?/gi, (_match, possessive) => `${cleanName}${possessive || ''}`) as T;
+  }
+  if (Array.isArray(value)) {
+    return value.map(item => personalizeTruthContent(item, cleanName)) as T;
+  }
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, item]) => [key, personalizeTruthContent(item, cleanName)])
+    ) as T;
+  }
+  return value;
+};
 
 const personalizeEntryTitle = (text: string, userName: string): string => {
   const cleanName = userName.trim();
@@ -513,7 +534,7 @@ const normalizeTruthBeat = (beat: any): TruthBeat | null => {
   };
 };
 
-const getTruthBeats = (playbook: any): TruthBeat[] => {
+const getTruthBeats = (playbook: any, userName = ''): TruthBeat[] => {
   const rawBeats = playbook?.truthInLove?.beats ?? playbook?.truthInLove?.truth_beats ?? playbook?.truthBeats;
   if (!Array.isArray(rawBeats)) {
     return [];
@@ -530,10 +551,13 @@ const getTruthBeats = (playbook: any): TruthBeat[] => {
     return normalizedBeats;
   }
 
-  const summaryText = getCleanOptionalText(playbook.truthInLove.summary);
-  if (!summaryText) {
+  const rawSummaryText = getCleanOptionalText(playbook.truthInLove.summary);
+  if (!rawSummaryText) {
     return normalizedBeats;
   }
+  const summaryText = userName
+    ? replaceOpeningHardcodedName(personalizeTruthContent(rawSummaryText, userName), userName)
+    : rawSummaryText;
 
   const firstPeriod = summaryText.indexOf('.');
   const hasSupportingText = firstPeriod > 0 && firstPeriod < summaryText.length - 1;
@@ -902,6 +926,40 @@ interface TruthStepProps {
 const TRUTH_PREVIEW_COUNT = 2; // paragraphs visible before "Read more"
 const MAX_PARAGRAPH_LENGTH = 300; // Maximum characters for paragraphs when collapsed
 
+const PathArrow: React.FC<{ name: string; phase?: number; style?: any; size?: number; color?: string }> = ({
+  name,
+  phase = 0,
+  style,
+  size = 14,
+  color = 'rgba(255,255,255,0.35)',
+}) => {
+  const arrowAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const animation = Animated.loop(
+      Animated.timing(arrowAnim, {
+        toValue: 1,
+        duration: 1000,
+        easing: Easing.linear,
+        useNativeDriver: true,
+      })
+    );
+    animation.start();
+    return () => animation.stop();
+  }, [arrowAnim]);
+
+  const translateY = Animated.modulo(Animated.add(arrowAnim, phase), 1).interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 14],
+  });
+
+  return (
+    <Animated.View style={[style, { transform: [{ translateY }] }]}>
+      <Ionicons name={name as any} size={size} color={color} />
+    </Animated.View>
+  );
+};
+
 interface TruthBeatStepProps extends TruthStepProps {
   beats: TruthBeat[];
   beatIndex: number;
@@ -926,6 +984,9 @@ const TruthBeatStep: React.FC<TruthBeatStepProps> = ({
   const [selectedPathStep, setSelectedPathStep] = useState<string | null>(null);
   const [selectedHoldEntrust, setSelectedHoldEntrust] = useState<{ hold: boolean; entrust: boolean }>({ hold: false, entrust: false });
   const [scriptureConfirmOpen, setScriptureConfirmOpen] = useState(false);
+  const [lastBeatRevealKey, setLastBeatRevealKey] = useState<string | null>(null);
+  const [lastBeatSupportingRevealed, setLastBeatSupportingRevealed] = useState(false);
+  const lastBeatPrimaryAnim = useRef(new Animated.Value(0)).current;
   const scriptureConfirmAnim = useRef(new Animated.Value(0)).current;
   const truthNavCollapseAnim = useRef(new Animated.Value(0)).current;
   const lastTruthScrollYRef = useRef(0);
@@ -939,6 +1000,11 @@ const TruthBeatStep: React.FC<TruthBeatStepProps> = ({
   const primaryText = currentBeat.primaryTruth;
   const supportingText = currentBeat.supportingTruth;
   const isLastBeat = currentIndex >= beats.length - 1;
+  const currentLastBeatRevealKey = `${currentIndex}:${primaryText || ''}`;
+  const isCurrentLastBeatReveal = lastBeatRevealKey === currentLastBeatRevealKey;
+  const showSupportingText = !isLastBeat || (isCurrentLastBeatReveal && lastBeatSupportingRevealed);
+  const lastBeatPrimaryTranslateY = lastBeatPrimaryAnim.interpolate({ inputRange: [0, 1], outputRange: [18, 0] });
+  const lastBeatPrimaryScale = lastBeatPrimaryAnim.interpolate({ inputRange: [0, 1], outputRange: [0.96, 1] });
   const presentation = currentBeat.presentation || 'statement';
   const reveal = currentBeat.reveal;
   const revealOpen = !!revealedBeats[currentIndex];
@@ -977,6 +1043,36 @@ const TruthBeatStep: React.FC<TruthBeatStepProps> = ({
     outputRange: [0, -(TRUTH_NAV_PILL_WIDTH / 2) * (1 - TRUTH_NAV_CIRCLE_RATIO)],
     extrapolate: 'clamp',
   });
+
+  useEffect(() => {
+    if (!isLastBeat) { return; }
+
+    setLastBeatRevealKey(currentLastBeatRevealKey);
+    setRevealedPrimaryWordCount(0);
+    setLastBeatSupportingRevealed(false);
+
+    if (primaryWordCount === 0) {
+      setLastBeatSupportingRevealed(true);
+      return;
+    }
+
+    let revealedWordCount = 0;
+    let revealTimer: ReturnType<typeof setTimeout>;
+    const wordDelay = Math.max(70, Math.min(130, 1800 / primaryWordCount));
+    const revealNextWord = () => {
+      revealedWordCount += 1;
+      setRevealedPrimaryWordCount(revealedWordCount);
+      revealTimer = setTimeout(
+        revealedWordCount < primaryWordCount
+          ? revealNextWord
+          : () => setLastBeatSupportingRevealed(true),
+        revealedWordCount < primaryWordCount ? wordDelay : 280
+      );
+    };
+
+    revealTimer = setTimeout(revealNextWord, 220);
+    return () => clearTimeout(revealTimer);
+  }, [currentLastBeatRevealKey, isLastBeat, primaryWordCount]);
 
   useEffect(() => {
     if (scriptureConfirmOpen) {
@@ -1196,7 +1292,13 @@ const TruthBeatStep: React.FC<TruthBeatStepProps> = ({
                 <React.Fragment key={step}>
                   {renderStep(step)}
                   {i < pathFrom.length - 1 ? (
-                    <Ionicons name={path?.isLoop && i === pathFrom.length - 2 ? 'refresh' : 'arrow-down'} size={14} color="rgba(255,255,255,0.35)" style={styles.truthPathArrow} />
+                    <PathArrow
+                      name={path?.isLoop && i === pathFrom.length - 2 ? 'refresh' : 'arrow-down'}
+                      phase={i / (pathFrom.length - 1)}
+                      size={14}
+                      color="rgba(255,255,255,0.35)"
+                      style={styles.truthPathArrow}
+                    />
                   ) : null}
                 </React.Fragment>
               ))}
@@ -1210,7 +1312,13 @@ const TruthBeatStep: React.FC<TruthBeatStepProps> = ({
                 <React.Fragment key={step}>
                   {renderStep(step, true)}
                   {i < pathTo.length - 1 ? (
-                    <Ionicons name="arrow-down" size={14} color="rgba(255,255,255,0.35)" style={styles.truthPathArrow} />
+                    <PathArrow
+                      name="arrow-down"
+                      phase={i / (pathTo.length - 1)}
+                      size={14}
+                      color="rgba(255,255,255,0.35)"
+                      style={styles.truthPathArrow}
+                    />
                   ) : null}
                 </React.Fragment>
               ))}
@@ -1281,8 +1389,8 @@ const TruthBeatStep: React.FC<TruthBeatStepProps> = ({
   };
 
   const renderSupportingText = () => (
-    supportingText ? (
-      <StepFadeIn key={`truth-supporting-${currentIndex}`} delay={190}>
+    supportingText && showSupportingText ? (
+      <StepFadeIn key={`truth-supporting-${currentIndex}`} delay={isLastBeat ? 0 : 190}>
         <ThemedText style={styles.truthBeatSupporting} selectable={true}>
           {supportingText}
         </ThemedText>
@@ -1366,7 +1474,11 @@ const TruthBeatStep: React.FC<TruthBeatStepProps> = ({
           <View style={styles.truthBeatPrimaryRow}>
             {primaryText ? (
               <ThemedText weight="bold" style={styles.truthBeatPrimary} selectable={true}>
-                {primaryText}
+                {isLastBeat
+                  ? primaryWords.slice(0, isCurrentLastBeatReveal ? revealedPrimaryWordCount : 0).map((word, index) => (
+                      <BouncyWord key={`${currentLastBeatRevealKey}-${index}`} text={word} />
+                    ))
+                  : visiblePrimaryText}
               </ThemedText>
             ) : null}
           </View>
@@ -1640,7 +1752,10 @@ const LegacyTruthInLoveStep: React.FC<TruthStepProps> = ({
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';
   const fontFamily = getFontFamily(fontKey, 'regular');
-  const personalized = removeUserNameReferences(text, userName);
+  const personalized = removeUserNameReferences(
+    replaceOpeningHardcodedName(personalizeTruthContent(text, userName), userName),
+    userName
+  );
   const paragraphs = splitParagraphs(personalized);
   const [expanded, setExpanded] = useState(false);
   const hasMore = !IS_IPAD && paragraphs.length > TRUTH_PREVIEW_COUNT;
@@ -7111,8 +7226,8 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
 
   const playbook = (refinedPlaybookOverride || (isFullPlaybook ? routePlaybook : fetchedPlaybook)) as typeof routePlaybook;
   const coverPage = getPlaybookCover(playbook);
-  const truthBeats = getTruthBeats(playbook);
-  const truthToCarry = getTruthToCarry(playbook);
+  const truthBeats = personalizeTruthContent(getTruthBeats(playbook, userName), userName);
+  const truthToCarry = personalizeTruthContent(getTruthToCarry(playbook), userName);
   const hasLoadedPlaybook = !!playbook;
 
   const refinementsRemaining = refinementLimit === -1
@@ -7886,14 +8001,18 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
   const userMetadata = (user as any)?.user_metadata || {};
   const dateOfBirth = userMetadata.birth_date || userMetadata.dateOfBirth || userMetadata.birthDate || '';
   const preferredBibleTranslation = userMetadata.preferences?.content?.bibleVersion || 'NASB';
-  const truthInLoveText =
+  const truthInLoveText = personalizeTruthContent(
     typeof playbook.truthInLove === 'string'
       ? playbook.truthInLove
-      : playbook.truthInLove?.text || '';
-  const truthInLoveSummary =
+      : playbook.truthInLove?.text || '',
+    userName
+  );
+  const truthInLoveSummary = personalizeTruthContent(
     typeof playbook.truthInLove === 'string'
       ? ''
-      : playbook.truthInLove?.summary || '';
+      : playbook.truthInLove?.summary || '',
+    userName
+  );
   const prayerText = playbook.prayer || '';
 
   const transitionLine: string = playbook.transitionLine?.trim() || '';
@@ -7964,7 +8083,7 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
                 title={playbook.title}
                 userInput={playbook.userInput}
                 refinementNote={playbook.latestRefinementNote}
-                summary={playbook.truthInLove?.summary || ''}
+                summary={truthInLoveSummary}
                 userName={userName}
                 transitionLine={transitionLine}
                 showSafetyHelp={showSafetyHelp}
@@ -7980,7 +8099,7 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
 
             {stepIndex === 1 && (
               <TruthInLoveStep
-                text={playbook.truthInLove?.text || ''}
+                text={truthInLoveText}
                 userName={userName}
                 beats={truthBeats}
                 truthToCarry={truthToCarry}
