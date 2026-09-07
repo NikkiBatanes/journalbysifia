@@ -6961,12 +6961,6 @@ const CompletionStep: React.FC<CompletionStepProps> = ({
       <StepFadeIn delay={220}>
         <Animated.View style={{ transform: [{ translateY: buttonsAnim }] }}>
           {!fromNotification && (
-            <ThemedText style={styles.completionStayNote}>
-              Need to stay with this a little longer?
-            </ThemedText>
-          )}
-
-          {!fromNotification && (
             <TouchableOpacity
               style={[styles.primaryButton, styles.finishButton]}
               onPress={isCompleted ? () => {
@@ -10762,6 +10756,7 @@ const styles = StyleSheet.create({
     fontWeight: '400',
     color: Colors.hopeWhite,
     lineHeight: 24,
+    marginTop: 60,
     marginBottom: 28,
     opacity: 0.88,
   },
@@ -10770,6 +10765,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     lineHeight: 36,
     textAlign: 'center',
+    marginTop: 100,
     marginBottom: 36,
     opacity: 1,
   },
