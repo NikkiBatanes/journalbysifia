@@ -15,6 +15,7 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
+  Text,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -22,6 +23,8 @@ import Share from 'react-native-share';
 import ViewShot, { captureRef } from 'react-native-view-shot';
 import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { Pencil, PencilOff } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ENV } from '../config/environment';
 import { NewSubscriptionService } from '../services/NewSubscriptionService';
@@ -32,8 +35,28 @@ import { Logger } from '../utils/ProductionLogger';
 import ThemedText from './common/ThemedText';
 
 const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get('window');
-const CARD_WIDTH = Math.min(SCREEN_WIDTH - 72, 300);
+const CAROUSEL_VIEWPORT_WIDTH = Math.min(SCREEN_WIDTH, 480);
+const CARD_WIDTH = Math.min(CAROUSEL_VIEWPORT_WIDTH - 72, 300);
 const CARD_HEIGHT = CARD_WIDTH * 1.25;
+const CARD_GAP = 12;
+const CAROUSEL_ITEM_WIDTH = CARD_WIDTH + CARD_GAP;
+const CAROUSEL_SIDE_INSET = (CAROUSEL_VIEWPORT_WIDTH - CAROUSEL_ITEM_WIDTH) / 2;
+
+type ShareTextAlign = 'left' | 'center' | 'right';
+type ShareTextSize = 'small' | 'standard' | 'large';
+type ShareTypography = 'classic' | 'modern' | 'script';
+
+const TEXT_SIZE_SCALE: Record<ShareTextSize, number> = {
+  small: 0.84,
+  standard: 1,
+  large: 1.16,
+};
+
+const TYPOGRAPHY_OPTIONS: Array<{ id: ShareTypography; label: string }> = [
+  { id: 'classic', label: 'Classic' },
+  { id: 'modern', label: 'Modern' },
+  { id: 'script', label: 'Script' },
+];
 
 const PHOTO_TEMPLATES: ImageSourcePropType[] = [
   require('../../assets/images/share/sifiashare_1.png'),
@@ -92,21 +115,27 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
 }) => {
   const insets = useSafeAreaInsets();
   const sheetAnim = useRef(new Animated.Value(0)).current;
+  const editorAnim = useRef(new Animated.Value(0)).current;
   const closing = useRef(false);
   const cardRefs = useRef<Array<ViewShot | null>>([]);
+  const carouselRef = useRef<FlatList<ShareTemplate>>(null);
   const pendingUpgrade = useRef(false);
   const [templates, setTemplates] = useState<ShareTemplate[]>(buildTemplates);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [isSeeker, setIsSeeker] = useState<boolean | null>(null);
+  const [textSize, setTextSize] = useState<ShareTextSize>('standard');
+  const [typography, setTypography] = useState<ShareTypography>('classic');
+  const [textAlign, setTextAlign] = useState<ShareTextAlign>('center');
+  const [editorOpen, setEditorOpen] = useState(false);
   const [sharingAction, setSharingAction] = useState<string | null>(null);
 
   const openComposer = useCallback(() => {
     closing.current = false;
     sheetAnim.setValue(0);
-    Animated.spring(sheetAnim, {
+    Animated.timing(sheetAnim, {
       toValue: 1,
-      tension: 50,
-      friction: 7,
+      duration: 340,
+      easing: Easing.bezier(0.22, 1, 0.36, 1),
       useNativeDriver: true,
     }).start();
   }, [sheetAnim]);
@@ -117,6 +146,12 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
     setTemplates(buildTemplates());
     setSelectedIndex(0);
     setIsSeeker(null);
+    setTextSize('standard');
+    setTypography('classic');
+    setTextAlign('center');
+    setEditorOpen(false);
+    editorAnim.setValue(0);
+    requestAnimationFrame(() => carouselRef.current?.scrollToOffset({ offset: 0, animated: false }));
 
     let cancelled = false;
     if (userId) {
@@ -138,7 +173,19 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [userId, visible]);
+  }, [editorAnim, userId, visible]);
+
+  const toggleEditor = useCallback(() => {
+    const opening = !editorOpen;
+    triggerLightHaptic();
+    setEditorOpen(opening);
+    Animated.timing(editorAnim, {
+      toValue: opening ? 1 : 0,
+      duration: opening ? 240 : 180,
+      easing: opening ? Easing.out(Easing.cubic) : Easing.in(Easing.cubic),
+      useNativeDriver: false,
+    }).start();
+  }, [editorAnim, editorOpen]);
 
   const closeComposer = useCallback((afterClose?: () => void) => {
     if (closing.current) { return; }
@@ -278,6 +325,39 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
       : textLength > 170
         ? styles.shareTextMedium
         : styles.shareTextLarge;
+    const baseText = StyleSheet.flatten(textStyle);
+    const sizeScale = TEXT_SIZE_SCALE[textSize];
+    const [primaryText, ...supportingParts] = text.split(/\n\s*\n/).map(part => part.trim()).filter(Boolean);
+    const supportingText = supportingParts.join('\n\n');
+    const typographyStyle = typography === 'classic'
+      ? {
+        primary: getFontFamily('lora', 'bold'),
+        supporting: getFontFamily('lora', 'regular'),
+      }
+      : typography === 'modern'
+        ? {
+          primary: getFontFamily('poppins', 'semiBold'),
+          supporting: getFontFamily('poppins', 'regular'),
+        }
+        : {
+          primary: 'GreatVibes-Regular',
+          supporting: getFontFamily('lora', 'regular'),
+        };
+    const scriptBoost = typography === 'script' ? 1.22 : 1;
+    const primaryFontSize = (baseText?.fontSize ?? 17) * sizeScale * scriptBoost;
+    const primaryLineHeight = (baseText?.lineHeight ?? 24) * sizeScale * scriptBoost;
+    const primaryTextStyle = {
+      fontFamily: typographyStyle.primary,
+      fontSize: primaryFontSize,
+      lineHeight: primaryLineHeight,
+      textAlign,
+    };
+    const supportingTextStyle = {
+      fontFamily: typographyStyle.supporting,
+      fontSize: Math.max(11, primaryFontSize * 0.67),
+      lineHeight: Math.max(16, primaryLineHeight * 0.72),
+      textAlign,
+    };
 
     const content = (
       <View style={styles.cardContent}>
@@ -285,7 +365,15 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
           <View style={[styles.cardLabelRule, { backgroundColor: watermarkColor }]} />
           <ThemedText weight="semiBold" style={[styles.cardLabel, { color: watermarkColor }]}>siFia REFLECTION</ThemedText>
         </View>
-        <ThemedText weight="semiBold" style={[styles.shareText, textStyle]}>{text}</ThemedText>
+        <View style={styles.shareCopy}>
+          <Text style={[styles.shareText, primaryTextStyle]}>{primaryText || text}</Text>
+          {supportingText ? (
+            <>
+              <View style={[styles.supportingRule, textAlign === 'left' && styles.supportingRuleLeft, textAlign === 'right' && styles.supportingRuleRight]} />
+              <Text style={[styles.shareText, styles.supportingText, supportingTextStyle]}>{supportingText}</Text>
+            </>
+          ) : null}
+        </View>
         <View style={styles.watermarkRow}>
           {isSeeker ? (
             <>
@@ -326,7 +414,7 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
         </View>
       </View>
     );
-  }, [isSeeker, text]);
+  }, [isSeeker, text, textAlign, textSize, typography]);
 
   const shareActions = [
     { id: 'instagram', label: 'Instagram', icon: 'logo-instagram', onPress: shareToInstagram },
@@ -367,9 +455,13 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
             {
               maxHeight: SCREEN_HEIGHT - Math.max(insets.top, 16) - 12,
               paddingBottom: Math.max(insets.bottom, 16),
+              opacity: sheetAnim.interpolate({
+                inputRange: [0, 0.4, 1],
+                outputRange: [0, 1, 1],
+              }),
               transform: [{ translateY: sheetAnim.interpolate({
                 inputRange: [0, 1],
-                outputRange: [SCREEN_HEIGHT, 0],
+                outputRange: [80, 0],
               }) }],
             },
           ]}
@@ -390,36 +482,131 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
             showsVerticalScrollIndicator={false}
             bounces={false}
           >
-          <View style={styles.pagination}>
-            <View style={styles.paginationTrack}>
-              <View
-                style={[
-                  styles.paginationFill,
-                  { width: `${((selectedIndex + 1) / templates.length) * 100}%` },
-                ]}
-              />
-            </View>
-          </View>
-
+          <View style={styles.carouselWrap}>
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel={editorOpen ? 'Close post editor' : 'Edit post style'}
+            accessibilityState={{ expanded: editorOpen }}
+            activeOpacity={0.72}
+            onPress={toggleEditor}
+            style={[styles.editFloatingButton, editorOpen && styles.editFloatingButtonActive]}
+          >
+            {editorOpen ? (
+              <PencilOff size={18} color={Colors.alertCoral} />
+            ) : (
+              <Pencil size={18} color={Colors.hopeWhite} />
+            )}
+          </TouchableOpacity>
           <FlatList
+            ref={carouselRef}
             data={templates}
             horizontal
-            pagingEnabled
+            accessibilityLabel="Swipe left or right to choose a template"
+            snapToInterval={CAROUSEL_ITEM_WIDTH}
+            snapToAlignment="start"
+            decelerationRate="fast"
             bounces={false}
             showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ paddingHorizontal: CAROUSEL_SIDE_INSET }}
             keyExtractor={item => item.id}
             renderItem={renderCard}
             initialNumToRender={1}
             maxToRenderPerBatch={2}
             windowSize={3}
             style={styles.carousel}
-            getItemLayout={(_, index) => ({ length: CARD_WIDTH, offset: CARD_WIDTH * index, index })}
+            getItemLayout={(_, index) => ({ length: CAROUSEL_ITEM_WIDTH, offset: CAROUSEL_ITEM_WIDTH * index, index })}
             onMomentumScrollEnd={event => {
-              const nextIndex = Math.round(event.nativeEvent.contentOffset.x / CARD_WIDTH);
+              const nextIndex = Math.round(event.nativeEvent.contentOffset.x / CAROUSEL_ITEM_WIDTH);
               setSelectedIndex(Math.min(Math.max(nextIndex, 0), templates.length - 1));
               triggerLightHaptic();
             }}
           />
+          </View>
+
+          <Animated.View
+            pointerEvents={editorOpen ? 'auto' : 'none'}
+            accessibilityElementsHidden={!editorOpen}
+            importantForAccessibility={editorOpen ? 'auto' : 'no-hide-descendants'}
+            style={[
+              styles.editorPanel,
+              {
+                maxHeight: editorAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 120] }),
+                marginBottom: editorAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 18] }),
+                opacity: editorAnim,
+                transform: [{
+                  translateY: editorAnim.interpolate({ inputRange: [0, 1], outputRange: [-8, 0] }),
+                }],
+              },
+            ]}
+          >
+            <View style={styles.editorSection}>
+              <View style={styles.segmentedControl}>
+                {TYPOGRAPHY_OPTIONS.map(option => (
+                  <TouchableOpacity
+                    key={option.id}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Use ${option.label} text style`}
+                    accessibilityState={{ selected: typography === option.id }}
+                    onPress={() => {
+                      setTypography(option.id);
+                      triggerLightHaptic();
+                    }}
+                    style={[styles.segmentButton, typography === option.id && styles.segmentButtonActive]}
+                  >
+                    <ThemedText weight="semiBold" style={[styles.segmentText, typography === option.id && styles.segmentTextActive]}>
+                      {option.label}
+                    </ThemedText>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            <View style={styles.editorUtilityRow}>
+              <View style={styles.utilityGroup}>
+                <View style={styles.iconSegments}>
+                  {(['small', 'standard', 'large'] as ShareTextSize[]).map((size, index) => (
+                    <TouchableOpacity
+                      key={size}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Use ${size} text size`}
+                      accessibilityState={{ selected: textSize === size }}
+                      onPress={() => {
+                        setTextSize(size);
+                        triggerLightHaptic();
+                      }}
+                      style={[styles.iconSegmentButton, textSize === size && styles.iconSegmentButtonActive]}
+                    >
+                      <ThemedText weight="semiBold" style={[styles.sizeGlyph, { fontSize: 11 + index * 2 }, textSize === size && styles.segmentTextActive]}>A</ThemedText>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              <View style={styles.utilityGroup}>
+                <View style={styles.iconSegments}>
+                  {(['left', 'center', 'right'] as ShareTextAlign[]).map(align => (
+                    <TouchableOpacity
+                      key={align}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Align text ${align}`}
+                      accessibilityState={{ selected: textAlign === align }}
+                      onPress={() => {
+                        setTextAlign(align);
+                        triggerLightHaptic();
+                      }}
+                      style={[styles.iconSegmentButton, textAlign === align && styles.iconSegmentButtonActive]}
+                    >
+                      <MaterialCommunityIcons
+                        name={`format-align-${align}`}
+                        size={15}
+                        color={textAlign === align ? Colors.alertCoral : 'rgba(255,255,255,0.62)'}
+                      />
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+            </View>
+          </Animated.View>
 
           <ThemedText weight="semiBold" style={styles.sectionLabel}>Share to</ThemedText>
           <View style={styles.actionsRow}>
@@ -515,14 +702,19 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.09)',
   },
   carousel: {
-    width: CARD_WIDTH,
+    width: CAROUSEL_VIEWPORT_WIDTH,
     height: CARD_HEIGHT,
     alignSelf: 'center',
-    borderRadius: 22,
+  },
+  carouselWrap: {
+    width: '100%',
+    marginBottom: 14,
+    position: 'relative',
   },
   carouselPage: {
-    width: CARD_WIDTH,
+    width: CAROUSEL_ITEM_WIDTH,
     height: CARD_HEIGHT,
+    alignItems: 'center',
   },
   shareCard: {
     width: CARD_WIDTH,
@@ -575,6 +767,25 @@ const styles = StyleSheet.create({
     textShadowRadius: 4,
     paddingHorizontal: 2,
   },
+  shareCopy: {
+    width: '100%',
+  },
+  supportingRule: {
+    width: 28,
+    height: 1,
+    marginVertical: 14,
+    alignSelf: 'center',
+    backgroundColor: 'rgba(255,255,255,0.48)',
+  },
+  supportingRuleLeft: {
+    alignSelf: 'flex-start',
+  },
+  supportingRuleRight: {
+    alignSelf: 'flex-end',
+  },
+  supportingText: {
+    color: 'rgba(255,255,255,0.88)',
+  },
   shareTextLarge: {
     fontSize: 20,
     lineHeight: 28,
@@ -602,22 +813,94 @@ const styles = StyleSheet.create({
     lineHeight: 14,
     letterSpacing: 0.2,
   },
-  pagination: {
+  editFloatingButton: {
+    position: 'absolute',
+    top: 12,
+    right: (CAROUSEL_VIEWPORT_WIDTH - CARD_WIDTH) / 2 + 12,
+    zIndex: 5,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     alignItems: 'center',
-    paddingTop: 9,
-    paddingBottom: 10,
+    justifyContent: 'center',
+    backgroundColor: 'rgba(10,24,46,0.72)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.16)',
   },
-  paginationTrack: {
-    width: 64,
-    height: 3,
-    borderRadius: 2,
-    backgroundColor: 'rgba(255,255,255,0.18)',
-    overflow: 'hidden',
+  editFloatingButtonActive: {
+    backgroundColor: 'rgba(10,24,46,0.86)',
+    borderColor: 'rgba(255,107,107,0.38)',
   },
-  paginationFill: {
-    height: '100%',
-    borderRadius: 2,
-    backgroundColor: Colors.alertCoral,
+  editorPanel: {
+    marginHorizontal: 18,
+    marginBottom: 18,
+    paddingHorizontal: 4,
+  },
+  editorSection: {
+    gap: 7,
+  },
+  editorLabel: {
+    color: 'rgba(255,255,255,0.55)',
+    fontSize: 10,
+    lineHeight: 14,
+    letterSpacing: 0.4,
+    textTransform: 'uppercase',
+  },
+  segmentedControl: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.10)',
+  },
+  segmentButton: {
+    flex: 1,
+    minHeight: 34,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+  },
+  segmentButtonActive: {
+    borderBottomColor: Colors.alertCoral,
+  },
+  segmentText: {
+    color: 'rgba(255,255,255,0.58)',
+    fontSize: 11,
+    lineHeight: 15,
+  },
+  segmentTextActive: {
+    color: Colors.alertCoral,
+  },
+  editorUtilityRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 12,
+    marginTop: 12,
+  },
+  utilityGroup: {
+    flex: 1,
+    gap: 7,
+    alignItems: 'center',
+  },
+  iconSegments: {
+    flexDirection: 'row',
+    alignSelf: 'center',
+    padding: 3,
+    borderRadius: 12,
+    backgroundColor: 'rgba(0,0,0,0.16)',
+  },
+  iconSegmentButton: {
+    width: 34,
+    height: 30,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  iconSegmentButtonActive: {
+    backgroundColor: 'rgba(255,255,255,0.12)',
+  },
+  sizeGlyph: {
+    color: 'rgba(255,255,255,0.62)',
+    lineHeight: 17,
   },
   sectionLabel: {
     color: Colors.hopeWhite,

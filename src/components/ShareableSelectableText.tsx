@@ -10,7 +10,6 @@ interface ShareableSelectableTextProps {
   style?: StyleProp<TextStyle>;
   containerStyle?: StyleProp<ViewStyle>;
   weight?: 'regular' | 'medium' | 'semiBold' | 'bold';
-  transformSharedText?: (text: string) => string;
 }
 
 export default function ShareableSelectableText({
@@ -19,7 +18,6 @@ export default function ShareableSelectableText({
   style,
   containerStyle,
   weight = 'regular',
-  transformSharedText,
 }: ShareableSelectableTextProps) {
   const { currentFont } = useTheme();
   const [selectedText, setSelectedText] = useState('');
@@ -41,7 +39,7 @@ export default function ShareableSelectableText({
 
   const share = () => {
     const requestedText = selectedTextRef.current || text;
-    const shareText = (transformSharedText ? transformSharedText(requestedText) : requestedText).trim();
+    const shareText = requestedText.trim();
     if (shareText) {
       onShare?.(shareText);
     }
@@ -57,7 +55,6 @@ export default function ShareableSelectableText({
         multiline
         scrollEnabled={false}
         contextMenuHidden={false}
-        selectionColor="rgba(232,184,109,0.55)"
         onSelectionChange={handleSelectionChange}
         style={[
           styles.text,
@@ -85,7 +82,8 @@ export default function ShareableSelectableText({
 const styles = StyleSheet.create({
   container: {
     position: 'relative',
-    flexGrow: 1,
+    flexShrink: 1,
+    width: '100%',
   },
   text: {
     padding: 0,

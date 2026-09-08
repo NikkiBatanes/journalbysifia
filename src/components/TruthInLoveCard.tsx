@@ -1,12 +1,14 @@
-import React from 'react';
+import React, { useState } from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { View, StyleSheet, ViewStyle, StyleProp, Platform } from 'react-native';
+import { NavigationProp, useNavigation } from '@react-navigation/native';
 
 import { Colors } from '../theme';
 import { replaceAllNamePlaceholders } from '../utils/nameReplacement';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import ThemedText from './common/ThemedText';
-import ThemedTextInput from './common/ThemedTextInput';
+import ShareableSelectableText from './ShareableSelectableText';
+import TruthToCarryShareComposer from './TruthToCarryShareComposer';
 
 type TruthInLoveCardProps = {
   truth: string;
@@ -42,6 +44,13 @@ export default function TruthInLoveCard({
   headingStyle,
 }: TruthInLoveCardProps & { numberOfLines?: number; ellipsizeMode?: 'head' | 'middle' | 'tail' | 'clip' }) {
   const { user } = useAuth();
+  const navigation = useNavigation<NavigationProp<any>>();
+  const [shareText, setShareText] = useState('');
+  const [composerVisible, setComposerVisible] = useState(false);
+  const openShareComposer = (textToShare: string) => {
+    setShareText(textToShare);
+    setComposerVisible(true);
+  };
   // Use only parent-controlled expansion
   const isExpanded = expanded;
   // Use fresh user data from auth context, fallback to currentUser prop
@@ -109,13 +118,11 @@ export default function TruthInLoveCard({
         </View>
         {isExpanded && Platform.OS === 'ios' ? (
           <>
-            <ThemedTextInput
+            <ShareableSelectableText
               weight="bold"
-              value={summaryText}
-              editable={false}
-              multiline={true}
-              scrollEnabled={false}
+              text={summaryText}
               style={[styles.content, styles.contentWithMargin, styles.summary, { color: textColor }]}
+              onShare={openShareComposer}
             />
             {cueText ? (
               <ThemedText
@@ -150,26 +157,21 @@ export default function TruthInLoveCard({
         <View style={styles.textContainer}>
           {isExpanded
             ? (Platform.OS === 'ios' ? (
-                <ThemedTextInput
+                <ShareableSelectableText
                   weight="regular"
-                  value={processedTruth}
-                  editable={false}
-                  multiline={true}
-                  scrollEnabled={false}
+                  text={processedTruth}
                   style={[styles.truth, { color: textColor }]}
+                  onShare={openShareComposer}
                 />
               ) : (
                 truthParagraphs.map((paragraph, index) => (
-                  <ThemedText
+                  <ShareableSelectableText
                     weight="regular"
+                    text={paragraph}
                     style={[styles.truth, styles.truthParagraph, { color: textColor }]}
                     key={`truth-paragraph-${index}`}
-                    textBreakStrategy="highQuality"
-                    allowFontScaling={true}
-                    adjustsFontSizeToFit={false}
-                  >
-                    {paragraph}
-                  </ThemedText>
+                    onShare={openShareComposer}
+                  />
                 ))
               ))
             : (
@@ -188,6 +190,23 @@ export default function TruthInLoveCard({
         </View>
       </View>
 
+      <TruthToCarryShareComposer
+        visible={composerVisible}
+        text={shareText}
+        userId={(user as any)?.id || ''}
+        onClose={() => setComposerVisible(false)}
+        onUpgrade={() => {
+          navigation.navigate('OnboardingSalesOffer' as never, {
+            upgradeMode: true,
+            currentTier: 'seeker',
+            selectedTier: 'growth',
+            source: 'sifia_reflection_watermark',
+            feature: 'remove_share_watermark',
+            skipNotificationPreference: true,
+            dismissBehavior: 'goBack',
+          } as never);
+        }}
+      />
     </View>
   );
 }

@@ -30,6 +30,7 @@
 		AFC685DFDB184B2AA9A3469B /* Lexend-SemiBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 43D1FCFBE4BC418F8F1B879C /* Lexend-SemiBold.ttf */; };
 		ED3D520D83354468A016F1B8 /* Lora-SemiBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 0236ACB8DAE6421C87EDBC23 /* Lora-SemiBold.ttf */; };
 		FFDBD14C30E442AF93231B7C /* Poppins-SemiBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 884EE6073AEE4AC7BB2FD40A /* Poppins-SemiBold.ttf */; };
+		F64F75FDC2374FD8B050C0A7 /* GreatVibes-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 5608835C08AD4377BE0FE566 /* GreatVibes-Regular.ttf */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -64,6 +65,7 @@
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
 		F3E5E6C36DE54FF0A0AB4FA4 /* Lexend-Medium.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Lexend-Medium.ttf"; path = "../assets/fonts/Lexend/Lexend-Medium.ttf"; sourceTree = "<group>"; };
 		FEF5C05996784F21B3BF2BB0 /* Lexend-Bold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Lexend-Bold.ttf"; path = "../assets/fonts/Lexend/Lexend-Bold.ttf"; sourceTree = "<group>"; };
+		5608835C08AD4377BE0FE566 /* GreatVibes-Regular.ttf */ = {isa = PBXFileReference; name = "GreatVibes-Regular.ttf"; path = "../assets/fonts/GreatVibes/GreatVibes-Regular.ttf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -165,6 +167,7 @@
 				9D531852859B4AC5BDC9CCE0 /* Poppins-Medium.ttf */,
 				69025D5AE32D4F0C9E300580 /* Poppins-Regular.ttf */,
 				884EE6073AEE4AC7BB2FD40A /* Poppins-SemiBold.ttf */,
+				5608835C08AD4377BE0FE566 /* GreatVibes-Regular.ttf */,
 			);
 			name = Resources;
 			sourceTree = "<group>";
@@ -248,6 +251,7 @@
 				5D3BECA3F76C47EA978B5F3D /* Poppins-Medium.ttf in Resources */,
 				1EAD0C3167834E3FA012806E /* Poppins-Regular.ttf in Resources */,
 				FFDBD14C30E442AF93231B7C /* Poppins-SemiBold.ttf in Resources */,
+				F64F75FDC2374FD8B050C0A7 /* GreatVibes-Regular.ttf in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

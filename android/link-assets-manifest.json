@@ -2,6 +2,10 @@
   "migIndex": 1,
   "data": [
     {
+      "path": "assets/fonts/GreatVibes/GreatVibes-Regular.ttf",
+      "sha1": "7904ee6600d331678424b639ca85dcfc36b5d12c"
+    },
+    {
       "path": "assets/fonts/Lexend/Lexend-Bold.ttf",
       "sha1": "df3c3feab8ac51ab6f8d6a01f3b3a0e19dc88d03"
     },

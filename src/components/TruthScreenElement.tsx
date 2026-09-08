@@ -45,7 +45,7 @@ export default function TruthScreenElement({ element, onShare }: TruthScreenElem
           }}
           style={styles.header}
         >
-          <ThemedText weight="semiBold" style={styles.label}>{expanded ? 'Show less' : 'Explore this thought'}</ThemedText>
+          <ThemedText selectable weight="semiBold" style={styles.label}>{expanded ? 'Show less' : 'Explore this thought'}</ThemedText>
           <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={18} color="#E8B86D" />
         </TouchableOpacity>
         {expanded ? <ShareableSelectableText text={element.text} style={styles.body} onShare={share} /> : null}
@@ -56,14 +56,14 @@ export default function TruthScreenElement({ element, onShare }: TruthScreenElem
   return (
     <View style={styles.card}>
       <View style={styles.header}>
-        <ThemedText weight="semiBold" style={styles.label}>
+        <ThemedText selectable weight="semiBold" style={styles.label}>
           {element.kind === 'takeaway' ? 'A thought to carry' : element.kind === 'flow' ? 'See the progression' : 'Notice the distinction'}
         </ThemedText>
       </View>
       {element.kind === 'takeaway' ? (
         <>
           <ShareableSelectableText text={element.text} weight="semiBold" style={styles.body} onShare={share} />
-          <ThemedText style={styles.attribution}>siFia reflection</ThemedText>
+          <ThemedText selectable style={styles.attribution}>siFia reflection</ThemedText>
         </>
       ) : element.items.map((item, index) => (
         <React.Fragment key={`${index}-${item}`}>

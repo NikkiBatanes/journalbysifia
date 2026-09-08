@@ -5,6 +5,7 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getPlaybookReadingMinutes } from '../utils/playbookReadingTime';
 import TruthScreenElement from '../components/TruthScreenElement';
+import ShareableSelectableText from '../components/ShareableSelectableText';
 import { normalizeTruthScreenEnhancement } from '../../supabase/functions/_shared/truthScreenEnhancement';
 import {
   View,
@@ -43,6 +44,7 @@ import { getActionWisdom } from '../services/actionWisdomService';
 import { NewSubscriptionService } from '../services/NewSubscriptionService';
 import { triggerLightHaptic, triggerMediumHaptic, triggerSuccessHaptic } from '../utils/haptics';
 import { parseCanonicalQuotedInstructionLine } from '../utils/actionWisdomParsing';
+import { buildTruthPostText } from '../utils/truthSharing';
 import { replaceAllNamePlaceholders } from '../utils/nameReplacement';
 import { pdfExportService } from '../utils/pdfExportService';
 import { useAuth } from '../context/IndustryStandardAuthContext';
@@ -973,6 +975,7 @@ interface TruthBeatStepProps extends TruthStepProps {
 const TruthBeatStep: React.FC<TruthBeatStepProps> = ({
   beats,
   truthToCarry,
+  userName,
   beatIndex,
   showSafetyHelp = false,
   onBeatNext,
@@ -1135,8 +1138,14 @@ const TruthBeatStep: React.FC<TruthBeatStepProps> = ({
   }, [collapseTruthNav]);
 
   const toggleReveal = () => {
-    triggerLightHaptic();
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    if (!revealOpen) {
+      triggerLightHaptic();
+    }
+    LayoutAnimation.configureNext({
+      duration: revealOpen ? 160 : 220,
+      update: { type: LayoutAnimation.Types.easeInEaseOut },
+      create: { type: LayoutAnimation.Types.easeInEaseOut, property: LayoutAnimation.Properties.opacity },
+    });
     setRevealedBeats(prev => ({ ...prev, [currentIndex]: !prev[currentIndex] }));
   };
 
@@ -1157,8 +1166,15 @@ const TruthBeatStep: React.FC<TruthBeatStepProps> = ({
   };
 
   const toggleUntangleItem = (key: string) => {
-    triggerLightHaptic();
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    const isOpen = !!openUntangleItems[key];
+    if (!isOpen) {
+      triggerLightHaptic();
+    }
+    LayoutAnimation.configureNext({
+      duration: isOpen ? 160 : 220,
+      update: { type: LayoutAnimation.Types.easeInEaseOut },
+      create: { type: LayoutAnimation.Types.easeInEaseOut, property: LayoutAnimation.Properties.opacity },
+    });
     setOpenUntangleItems(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
@@ -1177,15 +1193,15 @@ const TruthBeatStep: React.FC<TruthBeatStepProps> = ({
               {idx === 1 ? (
                 <View style={styles.truthUntangleVersusRow}>
                   <View style={styles.truthUntangleVersusLine} />
-                  <ThemedText weight="semiBold" style={styles.truthUntangleVersus}>versus</ThemedText>
+                  <ThemedText selectable weight="semiBold" style={styles.truthUntangleVersus}>versus</ThemedText>
                   <View style={styles.truthUntangleVersusLine} />
                 </View>
               ) : null}
               <View style={[styles.truthUntangleCard, idx === 1 && styles.truthUntangleCardAlt]}>
-                <ThemedText weight="semiBold" style={[styles.truthUntangleLabel, idx === 1 && styles.truthUntangleLabelAlt]}>
+                <ThemedText selectable weight="semiBold" style={[styles.truthUntangleLabel, idx === 1 && styles.truthUntangleLabelAlt]}>
                   {item.label}
                 </ThemedText>
-                <ThemedText style={styles.truthUntangleText} selectable={true}>{item.text}</ThemedText>
+                <ShareableSelectableText text={item.text} style={styles.truthUntangleText} onShare={onShareReflection} />
               </View>
             </React.Fragment>
           ))}
@@ -1199,20 +1215,22 @@ const TruthBeatStep: React.FC<TruthBeatStepProps> = ({
             const key = `${currentIndex}-${idx}`;
             const open = !!openUntangleItems[key];
             return (
-              <TouchableOpacity
+              <View
                 key={key}
                 style={[styles.truthUntangleRow, open && styles.truthUntangleRowOpen]}
-                onPress={() => toggleUntangleItem(key)}
-                activeOpacity={0.8}
               >
-                <View style={styles.truthUntangleRowHeader}>
-                  <ThemedText weight="semiBold" style={[styles.truthUntangleLabel, { marginBottom: open ? 6 : 0 }]}>{item.label}</ThemedText>
+                <TouchableOpacity
+                  style={styles.truthUntangleRowHeader}
+                  onPress={() => toggleUntangleItem(key)}
+                  activeOpacity={0.8}
+                >
+                  <ThemedText selectable weight="semiBold" style={[styles.truthUntangleLabel, { marginBottom: open ? 6 : 0 }]}>{item.label}</ThemedText>
                   <Ionicons name={open ? 'remove' : 'add'} size={18} color="rgba(255,255,255,0.7)" />
-                </View>
+                </TouchableOpacity>
                 {open ? (
-                  <ThemedText style={styles.truthUntangleText} selectable={true}>{item.text}</ThemedText>
+                  <ShareableSelectableText text={item.text} style={styles.truthUntangleText} onShare={onShareReflection} />
                 ) : null}
-              </TouchableOpacity>
+              </View>
             );
           })}
         </StepFadeIn>
@@ -1222,10 +1240,10 @@ const TruthBeatStep: React.FC<TruthBeatStepProps> = ({
       <StepFadeIn delay={230} style={styles.truthBeatBlockGap}>
         {untangleItems.map((item, idx) => (
           <View key={`${item.label}-${idx}`} style={[styles.truthUntangleCard, idx === untangleItems.length - 1 && untangleItems.length >= 3 && styles.truthUntangleCardAlt]}>
-            <ThemedText weight="semiBold" style={[styles.truthUntangleLabel, idx === untangleItems.length - 1 && untangleItems.length >= 3 && styles.truthUntangleLabelAlt]}>
+            <ThemedText selectable weight="semiBold" style={[styles.truthUntangleLabel, idx === untangleItems.length - 1 && untangleItems.length >= 3 && styles.truthUntangleLabelAlt]}>
               {item.label}
             </ThemedText>
-            <ThemedText style={styles.truthUntangleText} selectable={true}>{item.text}</ThemedText>
+            <ShareableSelectableText text={item.text} style={styles.truthUntangleText} onShare={onShareReflection} />
           </View>
         ))}
       </StepFadeIn>
@@ -1244,7 +1262,11 @@ const TruthBeatStep: React.FC<TruthBeatStepProps> = ({
           activeOpacity={0.7}
           style={[styles.truthPathStep, isAlt && styles.truthPathStepAlt, selected && styles.truthPathStepSelected]}
         >
-          <ThemedText style={[styles.truthPathStepText, selected && styles.truthPathStepTextSelected]}>{step}</ThemedText>
+          <ShareableSelectableText
+            text={step}
+            style={[styles.truthPathStepText, selected && styles.truthPathStepTextSelected]}
+            onShare={onShareReflection}
+          />
         </TouchableOpacity>
       );
     };
@@ -1252,7 +1274,7 @@ const TruthBeatStep: React.FC<TruthBeatStepProps> = ({
       <StepFadeIn delay={230} style={styles.truthBeatBlockGap}>
         <View style={styles.truthPathColumns}>
           <View style={styles.truthPathColumn}>
-            <ThemedText weight="semiBold" style={styles.truthPathColumnTitle}>{fromTitle || 'Notice where this leads'}</ThemedText>
+            <ThemedText selectable weight="semiBold" style={styles.truthPathColumnTitle}>{fromTitle || 'Notice where this leads'}</ThemedText>
             <View style={styles.truthPathSteps}>
               {pathFrom.map((step, i) => (
                 <React.Fragment key={step}>
@@ -1272,7 +1294,7 @@ const TruthBeatStep: React.FC<TruthBeatStepProps> = ({
           </View>
           <View style={styles.truthPathColumnSpacer} />
           <View style={styles.truthPathColumn}>
-            <ThemedText weight="semiBold" style={[styles.truthPathColumnTitle, styles.truthPathColumnTitleAlt]}>{toTitle || 'See another direction'}</ThemedText>
+            <ThemedText selectable weight="semiBold" style={[styles.truthPathColumnTitle, styles.truthPathColumnTitleAlt]}>{toTitle || 'See another direction'}</ThemedText>
             <View style={styles.truthPathSteps}>
               {pathTo.map((step, i) => (
                 <React.Fragment key={step}>
@@ -1293,7 +1315,7 @@ const TruthBeatStep: React.FC<TruthBeatStepProps> = ({
         </View>
         {selfRecognition ? (
           <View style={styles.truthPathReflectBlock}>
-            <ThemedText weight="semiBold" style={styles.truthPathReflectLabel}>{selfRecognition}</ThemedText>
+            <ShareableSelectableText text={selfRecognition} weight="semiBold" style={styles.truthPathReflectLabel} onShare={onShareReflection} />
           </View>
         ) : null}
       </StepFadeIn>
@@ -1322,8 +1344,8 @@ const TruthBeatStep: React.FC<TruthBeatStepProps> = ({
             activeOpacity={0.7}
             style={[styles.truthHoldEntrustCard, selectedHoldEntrust.hold && styles.truthHoldEntrustCardSelected]}
           >
-            <ThemedText weight="semiBold" style={styles.truthHoldEntrustLabel}>{holdLabel}</ThemedText>
-            <ThemedText style={[styles.truthHoldEntrustText, selectedHoldEntrust.hold && styles.truthHoldEntrustTextSelected]}>{holdStatement}</ThemedText>
+            <ThemedText selectable weight="semiBold" style={styles.truthHoldEntrustLabel}>{holdLabel}</ThemedText>
+            <ShareableSelectableText text={holdStatement} style={[styles.truthHoldEntrustText, selectedHoldEntrust.hold && styles.truthHoldEntrustTextSelected]} onShare={onShareReflection} />
             {selectedHoldEntrust.hold ? (
               <View style={styles.truthHoldEntrustCheck}>
                 <Ionicons name="checkmark" size={14} color={Colors.faithGold} />
@@ -1335,8 +1357,8 @@ const TruthBeatStep: React.FC<TruthBeatStepProps> = ({
             activeOpacity={0.7}
             style={[styles.truthHoldEntrustCard, styles.truthHoldEntrustCardAlt, selectedHoldEntrust.entrust && styles.truthHoldEntrustCardSelectedAlt]}
           >
-            <ThemedText weight="semiBold" style={[styles.truthHoldEntrustLabel, styles.truthHoldEntrustLabelAlt]}>{entrustLabel}</ThemedText>
-            <ThemedText style={[styles.truthHoldEntrustText, styles.truthHoldEntrustTextAlt, selectedHoldEntrust.entrust && styles.truthHoldEntrustTextSelectedAlt]}>{entrustStatement}</ThemedText>
+            <ThemedText selectable weight="semiBold" style={[styles.truthHoldEntrustLabel, styles.truthHoldEntrustLabelAlt]}>{entrustLabel}</ThemedText>
+            <ShareableSelectableText text={entrustStatement} style={[styles.truthHoldEntrustText, styles.truthHoldEntrustTextAlt, selectedHoldEntrust.entrust && styles.truthHoldEntrustTextSelectedAlt]} onShare={onShareReflection} />
             {selectedHoldEntrust.entrust ? (
               <View style={styles.truthHoldEntrustCheck}>
                 <Ionicons name="checkmark" size={14} color={Colors.faithGold} />
@@ -1346,8 +1368,8 @@ const TruthBeatStep: React.FC<TruthBeatStepProps> = ({
         </View>
         {bothSelected ? (
           <View style={styles.truthHandoffBlock}>
-            <ThemedText weight="semiBold" style={styles.truthHandoffLabel}>{handoffLabel}</ThemedText>
-            <ThemedText style={styles.truthHandoffBody}>{handoffBody}</ThemedText>
+            <ThemedText selectable weight="semiBold" style={styles.truthHandoffLabel}>{handoffLabel}</ThemedText>
+            <ShareableSelectableText text={handoffBody} style={styles.truthHandoffBody} onShare={onShareReflection} />
           </View>
         ) : null}
       </StepFadeIn>
@@ -1357,9 +1379,10 @@ const TruthBeatStep: React.FC<TruthBeatStepProps> = ({
   const renderSupportingText = () => (
     supportingText ? (
       <StepFadeIn key={`truth-supporting-${currentIndex}`} delay={190}>
-        <ThemedText style={styles.truthBeatSupporting} selectable={true}>
-          {supportingText}
-        </ThemedText>
+        <ShareableSelectableText
+          text={supportingText}
+          style={styles.truthBeatSupporting}
+        />
       </StepFadeIn>
     ) : null
   );
@@ -1439,14 +1462,34 @@ const TruthBeatStep: React.FC<TruthBeatStepProps> = ({
         <StepFadeIn key={`truth-primary-${currentIndex}`} delay={110}>
           <View style={styles.truthBeatPrimaryRow}>
             {primaryText ? (
-              <ThemedText weight="bold" style={styles.truthBeatPrimary} selectable={true}>
-                {primaryText}
-              </ThemedText>
+              <ShareableSelectableText
+                text={primaryText}
+                weight="bold"
+                style={styles.truthBeatPrimary}
+              />
             ) : null}
           </View>
         </StepFadeIn>
 
         {renderSupportingText()}
+
+        {onShareReflection ? (
+          <StepFadeIn key={`truth-create-post-${currentIndex}`} delay={240}>
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel="Create post from primary and supporting truth"
+              activeOpacity={0.72}
+              style={styles.truthCreatePostButton}
+              onPress={() => {
+                triggerLightHaptic();
+                onShareReflection(buildTruthPostText(primaryText, supportingText, userName));
+              }}
+            >
+              <MaterialCommunityIcons name="star-four-points" size={16} color={Colors.faithGold} />
+              <ThemedText weight="semiBold" style={styles.truthCreatePostText}>Create post</ThemedText>
+            </TouchableOpacity>
+          </StepFadeIn>
+        ) : null}
 
         {currentBeat.enhancement ? (
           <StepFadeIn key={`truth-enhancement-${currentIndex}`} delay={280}>
@@ -1464,14 +1507,14 @@ const TruthBeatStep: React.FC<TruthBeatStepProps> = ({
           <StepFadeIn delay={230} style={styles.truthBeatBlockGap}>
             {contrastNot ? (
               <View style={styles.truthContrastCard}>
-                <ThemedText weight="semiBold" style={styles.truthContrastLabel}>Not this</ThemedText>
-                <ThemedText style={styles.truthContrastText} selectable={true}>{contrastNot}</ThemedText>
+                <ThemedText selectable weight="semiBold" style={styles.truthContrastLabel}>Not this</ThemedText>
+                <ShareableSelectableText text={contrastNot} style={styles.truthContrastText} onShare={onShareReflection} />
               </View>
             ) : null}
             {contrastBut ? (
               <View style={[styles.truthContrastCard, styles.truthContrastCardAffirm]}>
-                <ThemedText weight="semiBold" style={styles.truthContrastLabelAffirm}>But this</ThemedText>
-                <ThemedText style={styles.truthContrastText} selectable={true}>{contrastBut}</ThemedText>
+                <ThemedText selectable weight="semiBold" style={styles.truthContrastLabelAffirm}>But this</ThemedText>
+                <ShareableSelectableText text={contrastBut} style={styles.truthContrastText} onShare={onShareReflection} />
               </View>
             ) : null}
           </StepFadeIn>
@@ -1481,14 +1524,14 @@ const TruthBeatStep: React.FC<TruthBeatStepProps> = ({
           <StepFadeIn delay={230} style={styles.truthBeatBlockGap}>
             {boundaryClear ? (
               <View style={styles.truthBoundaryCard}>
-                <ThemedText weight="semiBold" style={styles.truthBoundaryLabel}>Scripture makes clear</ThemedText>
-                <ThemedText style={styles.truthBoundaryText} selectable={true}>{boundaryClear}</ThemedText>
+                <ThemedText selectable weight="semiBold" style={styles.truthBoundaryLabel}>Scripture makes clear</ThemedText>
+                <ShareableSelectableText text={boundaryClear} style={styles.truthBoundaryText} onShare={onShareReflection} />
               </View>
             ) : null}
             {boundaryCaution ? (
               <View style={styles.truthBoundaryCard}>
-                <ThemedText weight="semiBold" style={styles.truthBoundaryLabel}>Do not overclaim</ThemedText>
-                <ThemedText style={styles.truthBoundaryText} selectable={true}>{boundaryCaution}</ThemedText>
+                <ThemedText selectable weight="semiBold" style={styles.truthBoundaryLabel}>Do not overclaim</ThemedText>
+                <ShareableSelectableText text={boundaryCaution} style={styles.truthBoundaryText} onShare={onShareReflection} />
               </View>
             ) : null}
           </StepFadeIn>
@@ -1498,8 +1541,8 @@ const TruthBeatStep: React.FC<TruthBeatStepProps> = ({
           <StepFadeIn delay={230} style={styles.truthTwoCards}>
             {twoTruths.slice(0, 2).map(item => (
               <View key={`${item.label}-${item.text}`} style={styles.truthTwoCard}>
-                <ThemedText weight="semiBold" style={styles.truthTwoLabel}>{item.label}</ThemedText>
-                <ThemedText style={styles.truthTwoText} selectable={true}>{item.text}</ThemedText>
+                <ThemedText selectable weight="semiBold" style={styles.truthTwoLabel}>{item.label}</ThemedText>
+                <ShareableSelectableText text={item.text} style={styles.truthTwoText} onShare={onShareReflection} />
               </View>
             ))}
           </StepFadeIn>
@@ -1523,19 +1566,17 @@ const TruthBeatStep: React.FC<TruthBeatStepProps> = ({
             </TouchableOpacity>
             {revealOpen && hasExamineQuestions ? (
               <View style={styles.truthQuestionsBlock}>
-                <ThemedText weight="semiBold" style={styles.truthQuestionsLabel}>Examine this gently</ThemedText>
+                <ThemedText selectable weight="semiBold" style={styles.truthQuestionsLabel}>Examine this gently</ThemedText>
                 {reflectionQuestions.map(question => (
                   <View key={question} style={styles.truthQuestionRow}>
                     <ThemedText weight="bold" style={styles.truthQuestionMark}>?</ThemedText>
-                    <ThemedText style={styles.truthQuestionText} selectable={true}>{question}</ThemedText>
+                    <ShareableSelectableText text={question} style={styles.truthQuestionText} containerStyle={styles.truthQuestionTextContainer} onShare={onShareReflection} />
                   </View>
                 ))}
               </View>
             ) : revealOpen && reveal?.content ? (
               <View style={styles.truthRevealCard}>
-                <ThemedText style={styles.truthRevealText} selectable={true}>
-                  {reveal.content}
-                </ThemedText>
+                <ShareableSelectableText text={reveal.content} style={styles.truthRevealText} onShare={onShareReflection} />
               </View>
             ) : null}
           </StepFadeIn>
@@ -1546,11 +1587,9 @@ const TruthBeatStep: React.FC<TruthBeatStepProps> = ({
             <View style={styles.truthCarryCard}>
               <View style={styles.truthCarryHeader}>
                 <Ionicons name="bookmark-outline" size={14} color={Colors.faithGold} />
-                <ThemedText weight="semiBold" style={styles.truthCarryLabel}>Truth to Carry</ThemedText>
+                <ThemedText selectable weight="semiBold" style={styles.truthCarryLabel}>Truth to Carry</ThemedText>
               </View>
-              <ThemedText weight="semiBold" style={styles.truthCarryText} selectable={true}>
-                {truthToCarry}
-              </ThemedText>
+              <ShareableSelectableText text={truthToCarry} weight="semiBold" style={styles.truthCarryText} onShare={onShareReflection} />
             </View>
           </StepFadeIn>
         ) : null}
@@ -1709,11 +1748,9 @@ const LegacyTruthInLoveStep: React.FC<TruthStepProps> = ({
   userName,
   showSafetyHelp = false,
   onNext: _onNext,
+  onShareReflection,
   insets,
 }) => {
-  const { currentFont } = useTheme();
-  const fontKey = currentFont || 'lexend';
-  const fontFamily = getFontFamily(fontKey, 'regular');
   const personalized = removeUserNameReferences(
     replaceOpeningHardcodedName(personalizeTruthContent(text, userName), userName),
     userName
@@ -1769,17 +1806,7 @@ const LegacyTruthInLoveStep: React.FC<TruthStepProps> = ({
         <View style={styles.textBlock}>
           {visible.map((para, i) => (
             <StepFadeIn key={i} delay={100 + (i * 80)}>
-              {Platform.OS === 'ios' ? (
-                <TextInput
-                  value={para}
-                  editable={false}
-                  multiline={true}
-                  scrollEnabled={false}
-                  style={[styles.bodyText, { fontFamily }]}
-                />
-              ) : (
-                <ThemedText style={styles.bodyText} selectable={true}>{para}</ThemedText>
-              )}
+              <ShareableSelectableText text={para} style={styles.bodyText} onShare={onShareReflection} />
             </StepFadeIn>
           ))}
         </View>
@@ -8696,6 +8723,24 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.78)',
     marginTop: 22,
   },
+  truthCreatePostButton: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    marginTop: 16,
+    paddingHorizontal: 13,
+    paddingVertical: 9,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: 'rgba(245,166,35,0.28)',
+    backgroundColor: 'rgba(232,184,109,0.07)',
+  },
+  truthCreatePostText: {
+    color: Colors.faithGold,
+    fontSize: 13,
+    lineHeight: 18,
+  },
   truthBeatBlockGap: {
     gap: 10,
     marginTop: 22,
@@ -8799,6 +8844,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 23,
     color: 'rgba(255,255,255,0.84)',
+  },
+  truthQuestionTextContainer: {
+    flex: 1,
+    width: undefined,
   },
   truthRevealButton: {
     alignSelf: 'flex-start',

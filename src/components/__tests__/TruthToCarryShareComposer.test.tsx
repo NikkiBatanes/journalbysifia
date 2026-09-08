@@ -1,5 +1,5 @@
 import React from 'react';
-import { Alert, Platform } from 'react-native';
+import { Alert, Platform, StyleSheet } from 'react-native';
 import { fireEvent, render, waitFor } from '@testing-library/react-native';
 import Share from 'react-native-share';
 import { captureRef } from 'react-native-view-shot';
@@ -43,6 +43,30 @@ describe('Truth to Carry Message sharing', () => {
   it('uses an uppercase reflection label on the share card', () => {
     const screen = render(<TruthToCarryShareComposer visible text="A truth to carry." userId="" onClose={jest.fn()} onUpgrade={jest.fn()} />);
     expect(screen.getByText('siFia REFLECTION')).toBeTruthy();
+  });
+
+  it('lets the user choose typography and separates supporting truth', async () => {
+    const screen = render(
+      <TruthToCarryShareComposer
+        visible
+        text={'Jesus calls you to rest.\n\nYou do not need to earn his grace.'}
+        userId=""
+        onClose={jest.fn()}
+        onUpgrade={jest.fn()}
+      />
+    );
+    expect(screen.getByText('Jesus calls you to rest.')).toBeTruthy();
+    expect(screen.getByText('You do not need to earn his grace.')).toBeTruthy();
+    expect(screen.queryByLabelText('Use Script text style')).toBeNull();
+    expect(screen.getByLabelText('Swipe left or right to choose a template')).toBeTruthy();
+    fireEvent.press(screen.getByLabelText('Edit post style'));
+    const scriptButton = await screen.findByText('Script');
+    expect(StyleSheet.flatten(screen.getByText('Jesus calls you to rest.').props.style).fontFamily).toBe('Lora-Bold');
+    fireEvent.press(scriptButton);
+    expect(StyleSheet.flatten(screen.getByText('Jesus calls you to rest.').props.style).fontFamily)
+      .not.toBe('Lora-Bold');
+    fireEvent.press(screen.getByLabelText('Close post editor'));
+    await waitFor(() => expect(screen.queryByLabelText('Use Script text style')).toBeNull());
   });
 
   it('closes without haptic feedback', () => {
