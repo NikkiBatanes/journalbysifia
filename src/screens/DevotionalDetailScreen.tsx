@@ -59,6 +59,8 @@ import { useFeatureAccess } from '../hooks/useFeatureAccess';
 import { Alert } from 'react-native';
 import { PDF_EXPORT_UPGRADE_PROMPT } from '../services/tierRestrictionService';
 import ShareDropdownModal from '../components/ShareDropdownModal';
+import TruthToCarryShareComposer from '../components/TruthToCarryShareComposer';
+import ScriptureReaderModal from '../components/ScriptureReaderModal';
 
 const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, navigation }) => {
 
@@ -210,6 +212,13 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
   const [showCopyrightModal, setShowCopyrightModal] = useState(false);
   // Share dropdown modal state
   const [showShareDropdown, setShowShareDropdown] = useState(false);
+
+  // Share composer for prayer and scripture
+  const [shareComposerVisible, setShareComposerVisible] = useState(false);
+  const [shareComposerText, setShareComposerText] = useState('');
+
+  // Scripture reader modal for today's scripture
+  const [scriptureReaderVisible, setScriptureReaderVisible] = useState(false);
 
   const triggerSuccessHaptic = () => {
     try {
@@ -1099,7 +1108,7 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
               }}
 
             >
-              <Ionicons name="share-outline" size={18} color="rgba(255,255,255,0.65)" />
+              <Ionicons name="paper-plane-outline" size={18} color="rgba(255,255,255,0.65)" />
             </TouchableOpacity>
           )}
         </View>
@@ -1155,6 +1164,30 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
           title: currentDay?.title || devotional.title,
         }}
       />
+
+      <TruthToCarryShareComposer
+        visible={shareComposerVisible}
+        text={shareComposerText}
+        textColor={Colors.alertCoral}
+        userId={userId || ''}
+        onClose={() => setShareComposerVisible(false)}
+        onUpgrade={() => {}}
+      />
+
+      {currentDay?.scripture?.reference && (
+        <ScriptureReaderModal
+          visible={scriptureReaderVisible}
+          passages={[{ reference: currentDay.scripture.reference }]}
+          initialIndex={0}
+          version={currentDay.scripture.version || 'NASB'}
+          onClose={() => setScriptureReaderVisible(false)}
+          onShareScripture={scriptureText => {
+            setShareComposerText(scriptureText);
+            setScriptureReaderVisible(false);
+            setShareComposerVisible(true);
+          }}
+        />
+      )}
 
       {/* Main content */}
       <View
@@ -1296,6 +1329,20 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
                 </ThemedText>
               )}
               <View style={styles.scriptureReferenceContainer}>
+                {day.scripture?.reference && (
+                  <TouchableOpacity
+                    style={styles.scriptureReaderButton}
+                    onPress={() => {
+                      triggerLightHaptic();
+                      setScriptureReaderVisible(true);
+                    }}
+                    activeOpacity={0.72}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Open reader for ${day.scripture.reference}`}
+                  >
+                    <MaterialCommunityIcons name="book-open-variant" size={18} color={Colors.hopeWhite} />
+                  </TouchableOpacity>
+                )}
                 <ThemedText weight="bold" style={styles.scriptureReference} selectable={true}>
                   {(day.scripture?.reference || '').toUpperCase()}{day.scripture?.version ? ` ${day.scripture.version}` : ''}
                 </ThemedText>
@@ -1418,6 +1465,21 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
               variant="tintOnBlue"
             >
               <View style={styles.prayerContainer}>
+                {formattedPrayer.length > 0 && (
+                  <TouchableOpacity
+                    style={styles.prayerShareButton}
+                    onPress={() => {
+                      triggerLightHaptic();
+                      setShareComposerText(formattedPrayer);
+                      setShareComposerVisible(true);
+                    }}
+                    activeOpacity={0.72}
+                    accessibilityRole="button"
+                    accessibilityLabel="Share this prayer"
+                  >
+                    <Ionicons name="paper-plane-outline" size={16} color={Colors.hopeWhite} />
+                  </TouchableOpacity>
+                )}
                 {Platform.OS === 'ios' ? (
                   <ThemedTextInput
                     value={formattedPrayer.length > 0
@@ -1866,6 +1928,18 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     zIndex: 4,
   },
+  prayerShareButton: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    zIndex: 5,
+  },
   prayerText: {
     fontSize: 16,
     lineHeight: 24,
@@ -1915,6 +1989,10 @@ const styles = StyleSheet.create({
   infoIcon: {
     marginLeft: 6,
     padding: 2,
+  },
+  scriptureReaderButton: {
+    marginRight: 6,
+    padding: 4,
   },
   dayNavigation: {
     position: 'absolute',
