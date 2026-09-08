@@ -31,7 +31,7 @@ interface ScriptureReaderModalProps {
   initialIndex: number;
   version?: string;
   onClose: () => void;
-  onShareScripture: (text: string) => void;
+  onShareScripture?: (text: string) => void;
 }
 
 const SCREEN_HEIGHT = Dimensions.get('window').height;
@@ -101,6 +101,7 @@ const ScriptureReaderModal: React.FC<ScriptureReaderModalProps> = ({
   const [readerLineSpacing, setReaderLineSpacing] = useState(0);
   const [readerLetterSpacing, setReaderLetterSpacing] = useState(0);
   const [loadedPreferencesKey, setLoadedPreferencesKey] = useState<string | null>(null);
+  const [advancedSettingsOpen, setAdvancedSettingsOpen] = useState(false);
   const preferencesStorageKey = `scripture-reader-preferences:${user?.id || 'guest'}`;
 
   const selectedPassage = passages[Math.min(Math.max(initialIndex, 0), Math.max(passages.length - 1, 0))];
@@ -152,6 +153,7 @@ const ScriptureReaderModal: React.FC<ScriptureReaderModalProps> = ({
     closingRef.current = false;
     setShowFullChapter(false);
     setSettingsOpen(false);
+    setAdvancedSettingsOpen(false);
     setHeaderCollapsedState(false);
     setShowCopyright(false);
     sheetExpandedRef.current = false;
@@ -206,7 +208,7 @@ const ScriptureReaderModal: React.FC<ScriptureReaderModalProps> = ({
   }, [onClose, sheetAnim]);
 
   const shareCurrentVerse = useCallback(() => {
-    if (!result?.text || closingRef.current) { return; }
+    if (!onShareScripture || !result?.text || closingRef.current) { return; }
     const shareText = `${result.text}\n\n— ${result.reference || requestedReference}`;
     triggerLightHaptic();
     closingRef.current = true;
@@ -237,50 +239,71 @@ const ScriptureReaderModal: React.FC<ScriptureReaderModalProps> = ({
   };
 
   const increaseFontSize = () => {
+    triggerLightHaptic();
     const currentIndex = FONT_SIZES.indexOf(readerFontSize);
     const nextIndex = Math.min(currentIndex + 1, FONT_SIZES.length - 1);
     setReaderFontSize(FONT_SIZES[nextIndex]);
   };
 
   const decreaseFontSize = () => {
+    triggerLightHaptic();
     const currentIndex = FONT_SIZES.indexOf(readerFontSize);
     const prevIndex = Math.max(currentIndex - 1, 0);
     setReaderFontSize(FONT_SIZES[prevIndex]);
   };
 
-  const toggleReaderBold = () => setReaderBold(current => !current);
+  const toggleReaderBold = () => {
+    triggerLightHaptic();
+    setReaderBold(current => !current);
+  };
+
+  const selectReaderFont = (font: FontFamily) => {
+    triggerLightHaptic();
+    setReaderFont(font);
+  };
+
+  const selectReaderAlign = (align: TextAlign) => {
+    triggerLightHaptic();
+    setReaderAlign(align);
+  };
 
   const increaseLineSpacing = () => {
+    triggerLightHaptic();
     const currentIndex = LINE_SPACING_OPTIONS.indexOf(readerLineSpacing);
     const nextIndex = Math.min(currentIndex + 1, LINE_SPACING_OPTIONS.length - 1);
     setReaderLineSpacing(LINE_SPACING_OPTIONS[nextIndex]);
   };
 
   const decreaseLineSpacing = () => {
+    triggerLightHaptic();
     const currentIndex = LINE_SPACING_OPTIONS.indexOf(readerLineSpacing);
     const prevIndex = Math.max(currentIndex - 1, 0);
     setReaderLineSpacing(LINE_SPACING_OPTIONS[prevIndex]);
   };
 
   const increaseLetterSpacing = () => {
+    triggerLightHaptic();
     const currentIndex = LETTER_SPACING_OPTIONS.indexOf(readerLetterSpacing);
     const nextIndex = Math.min(currentIndex + 1, LETTER_SPACING_OPTIONS.length - 1);
     setReaderLetterSpacing(LETTER_SPACING_OPTIONS[nextIndex]);
   };
 
   const decreaseLetterSpacing = () => {
+    triggerLightHaptic();
     const currentIndex = LETTER_SPACING_OPTIONS.indexOf(readerLetterSpacing);
     const prevIndex = Math.max(currentIndex - 1, 0);
     setReaderLetterSpacing(LETTER_SPACING_OPTIONS[prevIndex]);
   };
 
   const increaseIndent = () => {
+    triggerLightHaptic();
     const currentIndex = INDENT_OPTIONS.indexOf(readerIndent);
     const nextIndex = Math.min(currentIndex + 1, INDENT_OPTIONS.length - 1);
     setReaderIndent(INDENT_OPTIONS[nextIndex]);
   };
 
   const decreaseIndent = () => {
+    triggerLightHaptic();
     const currentIndex = INDENT_OPTIONS.indexOf(readerIndent);
     const prevIndex = Math.max(currentIndex - 1, 0);
     setReaderIndent(INDENT_OPTIONS[prevIndex]);
@@ -466,33 +489,52 @@ const ScriptureReaderModal: React.FC<ScriptureReaderModalProps> = ({
             ]}
           >
             <View style={styles.settingsPanel}>
-              <View style={styles.settingsRow}>
-                <ThemedText style={styles.settingsLabel}>Size</ThemedText>
-                <View style={styles.sizeControls}>
+              <View style={styles.appearanceTopRow}>
+                <View style={styles.quickControls}>
+                  <View style={styles.sizeControls}>
+                    <TouchableOpacity
+                      style={styles.controlButton}
+                      onPress={decreaseFontSize}
+                      activeOpacity={0.72}
+                      accessibilityRole="button"
+                      accessibilityLabel="Decrease font size"
+                    >
+                      <ThemedText weight="semiBold" style={styles.decreaseFontIcon}>A</ThemedText>
+                    </TouchableOpacity>
+                    <ThemedText weight="semiBold" style={styles.fontSizeLabel}>{readerFontSize}</ThemedText>
+                    <TouchableOpacity
+                      style={styles.controlButton}
+                      onPress={increaseFontSize}
+                      activeOpacity={0.72}
+                      accessibilityRole="button"
+                      accessibilityLabel="Increase font size"
+                    >
+                      <ThemedText weight="semiBold" style={styles.increaseFontIcon}>A</ThemedText>
+                    </TouchableOpacity>
+                  </View>
                   <TouchableOpacity
-                    style={styles.controlButton}
-                    onPress={decreaseFontSize}
+                    style={[styles.boldToggle, readerBold && styles.boldToggleActive]}
+                    onPress={toggleReaderBold}
                     activeOpacity={0.72}
                     accessibilityRole="button"
-                    accessibilityLabel="Decrease font size"
+                    accessibilityLabel="Bold text"
+                    accessibilityState={{ selected: readerBold }}
                   >
-                    <ThemedText weight="semiBold" style={styles.controlButtonText}>A−</ThemedText>
-                  </TouchableOpacity>
-                  <ThemedText weight="semiBold" style={styles.fontSizeLabel}>{readerFontSize}</ThemedText>
-                  <TouchableOpacity
-                    style={styles.controlButton}
-                    onPress={increaseFontSize}
-                    activeOpacity={0.72}
-                    accessibilityRole="button"
-                    accessibilityLabel="Increase font size"
-                  >
-                    <ThemedText weight="semiBold" style={styles.controlButtonText}>A+</ThemedText>
+                    <ThemedText weight="semiBold" style={[styles.boldToggleText, readerBold && styles.boldToggleTextActive]}>Bold</ThemedText>
                   </TouchableOpacity>
                 </View>
+                <TouchableOpacity
+                  style={styles.resetIconButton}
+                  onPress={resetReaderPreferences}
+                  activeOpacity={0.72}
+                  accessibilityRole="button"
+                  accessibilityLabel="Reset reader settings"
+                >
+                  <Ionicons name="refresh-outline" size={15} color="rgba(242,245,247,0.52)" />
+                </TouchableOpacity>
               </View>
 
-              <View style={styles.settingsRow}>
-                <ThemedText style={styles.settingsLabel}>Font</ThemedText>
+              <View style={styles.optionGroup}>
                 <View style={styles.fontControls}>
                   {FONT_OPTIONS.map(option => {
                     const isActive = option.key === readerFont;
@@ -500,7 +542,7 @@ const ScriptureReaderModal: React.FC<ScriptureReaderModalProps> = ({
                       <TouchableOpacity
                         key={option.key}
                         style={[styles.fontChip, isActive && styles.fontChipActive]}
-                        onPress={() => setReaderFont(option.key)}
+                        onPress={() => selectReaderFont(option.key)}
                         activeOpacity={0.72}
                         accessibilityRole="button"
                         accessibilityLabel={`Set font to ${option.label}`}
@@ -515,83 +557,15 @@ const ScriptureReaderModal: React.FC<ScriptureReaderModalProps> = ({
                     );
                   })}
                 </View>
-              </View>
-
-              <View style={styles.settingsRow}>
-                <ThemedText style={styles.settingsLabel}>Bold</ThemedText>
-                <View style={styles.styleControls}>
-                  <TouchableOpacity
-                    style={[styles.controlButton, readerBold && styles.controlButtonActive]}
-                    onPress={toggleReaderBold}
-                    activeOpacity={0.72}
-                    accessibilityRole="button"
-                    accessibilityLabel="Toggle bold"
-                  >
-                    <ThemedText weight="bold" style={[styles.controlButtonText, readerBold && styles.controlButtonTextActive]}>B</ThemedText>
-                  </TouchableOpacity>
-                </View>
-              </View>
-
-              <View style={styles.settingsRow}>
-                <ThemedText style={styles.settingsLabel}>Vertical</ThemedText>
-                <View style={styles.sizeControls}>
-                  <TouchableOpacity
-                    style={styles.controlButton}
-                    onPress={decreaseLineSpacing}
-                    activeOpacity={0.72}
-                    accessibilityRole="button"
-                    accessibilityLabel="Decrease line spacing"
-                  >
-                    <ThemedText weight="semiBold" style={styles.controlButtonText}>−</ThemedText>
-                  </TouchableOpacity>
-                  <ThemedText weight="semiBold" style={styles.fontSizeLabel}>{readerLineSpacing}</ThemedText>
-                  <TouchableOpacity
-                    style={styles.controlButton}
-                    onPress={increaseLineSpacing}
-                    activeOpacity={0.72}
-                    accessibilityRole="button"
-                    accessibilityLabel="Increase line spacing"
-                  >
-                    <ThemedText weight="semiBold" style={styles.controlButtonText}>+</ThemedText>
-                  </TouchableOpacity>
-                </View>
-              </View>
-
-              <View style={styles.settingsRow}>
-                <ThemedText style={styles.settingsLabel}>Horizontal</ThemedText>
-                <View style={styles.sizeControls}>
-                  <TouchableOpacity
-                    style={styles.controlButton}
-                    onPress={decreaseLetterSpacing}
-                    activeOpacity={0.72}
-                    accessibilityRole="button"
-                    accessibilityLabel="Decrease letter spacing"
-                  >
-                    <ThemedText weight="semiBold" style={styles.controlButtonText}>−</ThemedText>
-                  </TouchableOpacity>
-                  <ThemedText weight="semiBold" style={styles.fontSizeLabel}>{readerLetterSpacing}</ThemedText>
-                  <TouchableOpacity
-                    style={styles.controlButton}
-                    onPress={increaseLetterSpacing}
-                    activeOpacity={0.72}
-                    accessibilityRole="button"
-                    accessibilityLabel="Increase letter spacing"
-                  >
-                    <ThemedText weight="semiBold" style={styles.controlButtonText}>+</ThemedText>
-                  </TouchableOpacity>
-                </View>
-              </View>
-
-              <View style={styles.settingsRow}>
-                <ThemedText style={styles.settingsLabel}>Align</ThemedText>
+                <View style={styles.optionDivider} />
                 <View style={styles.alignControls}>
                   {ALIGN_OPTIONS.map(option => {
                     const isActive = option.key === readerAlign;
                     return (
                       <TouchableOpacity
                         key={option.key}
-                        style={[styles.fontChip, isActive && styles.fontChipActive]}
-                        onPress={() => setReaderAlign(option.key)}
+                        style={[styles.alignButton, isActive && styles.fontChipActive]}
+                        onPress={() => selectReaderAlign(option.key)}
                         activeOpacity={0.72}
                         accessibilityRole="button"
                         accessibilityLabel={`Align ${option.label}`}
@@ -607,42 +581,97 @@ const ScriptureReaderModal: React.FC<ScriptureReaderModalProps> = ({
                 </View>
               </View>
 
-              <View style={styles.settingsRow}>
-                <ThemedText style={styles.settingsLabel}>Indent</ThemedText>
-                <View style={styles.sizeControls}>
-                  <TouchableOpacity
-                    style={styles.controlButton}
-                    onPress={decreaseIndent}
-                    activeOpacity={0.72}
-                    accessibilityRole="button"
-                    accessibilityLabel="Decrease indent"
-                  >
-                    <ThemedText weight="semiBold" style={styles.controlButtonText}>−</ThemedText>
-                  </TouchableOpacity>
-                  <ThemedText weight="semiBold" style={styles.fontSizeLabel}>{readerIndent}</ThemedText>
-                  <TouchableOpacity
-                    style={styles.controlButton}
-                    onPress={increaseIndent}
-                    activeOpacity={0.72}
-                    accessibilityRole="button"
-                    accessibilityLabel="Increase indent"
-                  >
-                    <ThemedText weight="semiBold" style={styles.controlButtonText}>+</ThemedText>
-                  </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.advancedButton}
+                onPress={() => {
+                  triggerLightHaptic();
+                  setAdvancedSettingsOpen(current => !current);
+                }}
+                activeOpacity={0.72}
+                accessibilityRole="button"
+                accessibilityLabel="Toggle advanced text settings"
+                accessibilityState={{ expanded: advancedSettingsOpen }}
+              >
+                <ThemedText style={styles.advancedButtonText}>Advanced</ThemedText>
+                <Ionicons name={advancedSettingsOpen ? 'chevron-up' : 'chevron-down'} size={14} color="rgba(242,245,247,0.62)" />
+              </TouchableOpacity>
+              {advancedSettingsOpen && (
+                <View style={styles.advancedSettings}>
+                  <View style={styles.settingsRow}>
+                    <ThemedText style={styles.settingsLabel}>Lines</ThemedText>
+                    <View style={styles.sizeControls}>
+                      <TouchableOpacity
+                        style={styles.controlButton}
+                        onPress={decreaseLineSpacing}
+                        activeOpacity={0.72}
+                        accessibilityRole="button"
+                        accessibilityLabel="Decrease line spacing"
+                      >
+                        <ThemedText weight="semiBold" style={styles.controlButtonText}>−</ThemedText>
+                      </TouchableOpacity>
+                      <ThemedText weight="semiBold" style={styles.fontSizeLabel}>{readerLineSpacing}</ThemedText>
+                      <TouchableOpacity
+                        style={styles.controlButton}
+                        onPress={increaseLineSpacing}
+                        activeOpacity={0.72}
+                        accessibilityRole="button"
+                        accessibilityLabel="Increase line spacing"
+                      >
+                        <ThemedText weight="semiBold" style={styles.controlButtonText}>+</ThemedText>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+
+                  <View style={styles.settingsRow}>
+                    <ThemedText style={styles.settingsLabel}>Letters</ThemedText>
+                    <View style={styles.sizeControls}>
+                      <TouchableOpacity
+                        style={styles.controlButton}
+                        onPress={decreaseLetterSpacing}
+                        activeOpacity={0.72}
+                        accessibilityRole="button"
+                        accessibilityLabel="Decrease letter spacing"
+                      >
+                        <ThemedText weight="semiBold" style={styles.controlButtonText}>−</ThemedText>
+                      </TouchableOpacity>
+                      <ThemedText weight="semiBold" style={styles.fontSizeLabel}>{readerLetterSpacing}</ThemedText>
+                      <TouchableOpacity
+                        style={styles.controlButton}
+                        onPress={increaseLetterSpacing}
+                        activeOpacity={0.72}
+                        accessibilityRole="button"
+                        accessibilityLabel="Increase letter spacing"
+                      >
+                        <ThemedText weight="semiBold" style={styles.controlButtonText}>+</ThemedText>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                  <View style={styles.settingsRow}>
+                    <ThemedText style={styles.settingsLabel}>Indent</ThemedText>
+                    <View style={styles.sizeControls}>
+                      <TouchableOpacity
+                        style={styles.controlButton}
+                        onPress={decreaseIndent}
+                        activeOpacity={0.72}
+                        accessibilityRole="button"
+                        accessibilityLabel="Decrease indent"
+                      >
+                        <ThemedText weight="semiBold" style={styles.controlButtonText}>−</ThemedText>
+                      </TouchableOpacity>
+                      <ThemedText weight="semiBold" style={styles.fontSizeLabel}>{readerIndent}</ThemedText>
+                      <TouchableOpacity
+                        style={styles.controlButton}
+                        onPress={increaseIndent}
+                        activeOpacity={0.72}
+                        accessibilityRole="button"
+                        accessibilityLabel="Increase indent"
+                      >
+                        <ThemedText weight="semiBold" style={styles.controlButtonText}>+</ThemedText>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
                 </View>
-              </View>
-              <View style={styles.resetRow}>
-                <TouchableOpacity
-                  style={styles.resetButton}
-                  onPress={resetReaderPreferences}
-                  activeOpacity={0.72}
-                  accessibilityRole="button"
-                  accessibilityLabel="Reset reader settings"
-                >
-                  <Ionicons name="refresh-outline" size={14} color={Colors.alertCoral} />
-                  <ThemedText style={styles.resetButtonText}>Reset</ThemedText>
-                </TouchableOpacity>
-              </View>
+              )}
             </View>
           </Animated.View>
 
@@ -832,7 +861,11 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   settingsPanel: {
-    paddingVertical: 8,
+    marginTop: 12,
+    paddingTop: 14,
+    paddingBottom: 8,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: 'rgba(242,245,247,0.16)',
     gap: 12,
   },
   settingsRow: {
@@ -859,32 +892,56 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: 'rgba(255,255,255,0.09)',
   },
-  controlButtonActive: {
-    backgroundColor: 'rgba(245,166,35,0.28)',
-  },
   controlButtonText: {
     fontSize: 14,
     color: Colors.hopeWhite,
   },
-  controlButtonTextActive: {
-    color: Colors.faithGold,
+  decreaseFontIcon: {
+    fontSize: 12,
+    color: 'rgba(242,245,247,0.72)',
   },
-  resetRow: {
-    alignItems: 'flex-end',
-    marginTop: 4,
+  increaseFontIcon: {
+    fontSize: 18,
+    color: Colors.hopeWhite,
   },
-  resetButton: {
+  appearanceTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.09)',
+    justifyContent: 'space-between',
   },
-  resetButtonText: {
-    fontSize: 11,
-    color: Colors.alertCoral,
+  quickControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  boldToggle: {
+    height: 34,
+    paddingHorizontal: 13,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(242,245,247,0.12)',
+    backgroundColor: 'rgba(255,255,255,0.06)',
+  },
+  boldToggleActive: {
+    borderColor: 'rgba(245,166,35,0.42)',
+    backgroundColor: 'rgba(245,166,35,0.22)',
+  },
+  boldToggleText: {
+    fontSize: 12,
+    color: 'rgba(242,245,247,0.72)',
+  },
+  boldToggleTextActive: {
+    color: Colors.faithGold,
+  },
+  resetIconButton: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.06)',
   },
   fontSizeLabel: {
     width: 28,
@@ -892,25 +949,47 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: Colors.faithGold,
   },
+  optionGroup: {
+    padding: 8,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+  },
   fontControls: {
-    flex: 1,
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'flex-start',
+    justifyContent: 'space-between',
     gap: 6,
   },
-  styleControls: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+  optionDivider: {
+    height: StyleSheet.hairlineWidth,
+    marginVertical: 8,
+    backgroundColor: 'rgba(242,245,247,0.12)',
   },
   alignControls: {
-    flex: 1,
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'flex-start',
+    justifyContent: 'space-between',
     gap: 6,
+  },
+  alignButton: {
+    flex: 1,
+    height: 30,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  advancedButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+    paddingVertical: 5,
+  },
+  advancedButtonText: {
+    fontSize: 11,
+    color: 'rgba(242,245,247,0.62)',
+  },
+  advancedSettings: {
+    paddingTop: 2,
+    gap: 10,
   },
   fontChip: {
     paddingHorizontal: 10,
