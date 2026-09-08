@@ -449,7 +449,7 @@ const ScriptureReaderModal: React.FC<ScriptureReaderModalProps> = ({
                 accessibilityRole="button"
                 accessibilityLabel={showFullChapter ? 'Back to selected verse' : 'Read full chapter'}
               >
-                <MaterialCommunityIcons name="format-list-bulleted" size={14} color={Colors.faithGold} />
+                <MaterialCommunityIcons name="format-list-bulleted" size={14} color="rgba(255,255,255,0.65)" />
                 <ThemedText weight="semiBold" style={styles.toolbarButtonText}>
                   {showFullChapter ? 'Verse' : 'Full chapter'}
                 </ThemedText>
@@ -461,7 +461,7 @@ const ScriptureReaderModal: React.FC<ScriptureReaderModalProps> = ({
                 accessibilityRole="button"
                 accessibilityLabel={showFullChapter ? 'Share full chapter' : 'Share verse'}
               >
-                <Ionicons name="paper-plane-outline" size={14} color={Colors.faithGold} />
+                <Ionicons name="paper-plane-outline" size={14} color="rgba(255,255,255,0.65)" />
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.closeButton}
@@ -745,7 +745,7 @@ const ScriptureReaderModal: React.FC<ScriptureReaderModalProps> = ({
           >
             {loading ? (
               <View style={styles.loadingBlock}>
-                <ActivityIndicator color={Colors.faithGold} />
+                <ActivityIndicator color={Colors.alertCoral} />
                 <ThemedText style={styles.loadingText}>Loading Scripture…</ThemedText>
               </View>
             ) : error ? (
@@ -852,10 +852,10 @@ const styles = StyleSheet.create({
   },
   toolbarButtonText: {
     fontSize: 12,
-    color: Colors.faithGold,
+    color: 'rgba(255,255,255,0.65)',
   },
   toolbarButtonTextActive: {
-    color: Colors.hopeWhite,
+    color: 'rgba(255,255,255,0.85)',
   },
   settingsReveal: {
     overflow: 'hidden',
@@ -1014,7 +1014,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     lineHeight: 15,
     letterSpacing: 1.5,
-    color: Colors.faithGold,
+    color: Colors.alertCoral,
   },
   reference: {
     fontSize: 27,
