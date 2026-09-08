@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -11,11 +11,11 @@ import {
   ImageSourcePropType,
   Linking,
   Modal,
+  PanResponder,
   Platform,
   Pressable,
   ScrollView,
   StyleSheet,
-  Text,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -43,20 +43,21 @@ const CAROUSEL_ITEM_WIDTH = CARD_WIDTH + CARD_GAP;
 const CAROUSEL_SIDE_INSET = (CAROUSEL_VIEWPORT_WIDTH - CAROUSEL_ITEM_WIDTH) / 2;
 
 type ShareTextAlign = 'left' | 'center' | 'right';
-type ShareTextSize = 'small' | 'standard' | 'large';
-type ShareTypography = 'classic' | 'modern' | 'script';
+type ShareTypography = 'classic' | 'modern' | 'script' | 'handwritten';
 
-const TEXT_SIZE_SCALE: Record<ShareTextSize, number> = {
-  small: 0.84,
-  standard: 1,
-  large: 1.16,
-};
+const MIN_TEXT_SCALE = 0.4;
+const MAX_TEXT_SCALE = 1.18;
+const TEXT_SCALE_STEP = 0.04;
 
 const TYPOGRAPHY_OPTIONS: Array<{ id: ShareTypography; label: string }> = [
   { id: 'classic', label: 'Classic' },
   { id: 'modern', label: 'Modern' },
   { id: 'script', label: 'Script' },
+  { id: 'handwritten', label: 'Handwritten' },
 ];
+
+const toDisplayCase = (value: string): string =>
+  value.toLowerCase().replace(/\b[a-z]/g, char => char.toUpperCase());
 
 const PHOTO_TEMPLATES: ImageSourcePropType[] = [
   require('../../assets/images/share/sifiashare_1.png'),
@@ -123,14 +124,18 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
   const sheetAnim = useRef(new Animated.Value(0)).current;
   const editorAnim = useRef(new Animated.Value(0)).current;
   const watermarkUpsellAnim = useRef(new Animated.Value(0)).current;
+  const textScaleAnim = useRef(new Animated.Value(1)).current;
+  const liveTextScale = useRef(1);
   const closing = useRef(false);
   const cardRefs = useRef<Array<ViewShot | null>>([]);
   const carouselRef = useRef<FlatList<ShareTemplate>>(null);
+  const sizeSliderWidth = useRef(112);
   const pendingUpgrade = useRef(false);
   const [templates, setTemplates] = useState<ShareTemplate[]>(buildTemplates);
   const [selectedIndex, setSelectedIndex] = useState(0);
-  const [isSeeker, setIsSeeker] = useState<boolean | null>(null);
-  const [textSize, setTextSize] = useState<ShareTextSize>('standard');
+  const lastScrollHapticIndex = useRef(0);
+  const [showWatermark, setShowWatermark] = useState<boolean | null>(null);
+  const [textScale, setTextScale] = useState(1);
   const [typography, setTypography] = useState<ShareTypography>('classic');
   const [textAlign, setTextAlign] = useState<ShareTextAlign>('center');
   const [editorOpen, setEditorOpen] = useState(false);
@@ -152,8 +157,11 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
 
     setTemplates(buildTemplates());
     setSelectedIndex(0);
-    setIsSeeker(null);
-    setTextSize('standard');
+    lastScrollHapticIndex.current = 0;
+    setShowWatermark(null);
+    setTextScale(1);
+    liveTextScale.current = 1;
+    textScaleAnim.setValue(1);
     setTypography('classic');
     setTextAlign('center');
     setEditorOpen(false);
@@ -166,36 +174,37 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
       NewSubscriptionService.getUserSubscription(userId)
         .then(subscription => {
           if (!cancelled) {
-            setIsSeeker(subscription.tier === 'seeker');
+            const baseTier = subscription.tier.replace('_annual', '');
+            setShowWatermark(baseTier !== 'growth' && baseTier !== 'transformation');
           }
         })
         .catch(() => {
           if (!cancelled) {
-            setIsSeeker(true);
+            setShowWatermark(true);
           }
         });
     } else {
-      setIsSeeker(true);
+      setShowWatermark(true);
     }
 
     return () => {
       cancelled = true;
     };
-  }, [editorAnim, userId, visible, watermarkUpsellAnim]);
+  }, [editorAnim, textScaleAnim, userId, visible, watermarkUpsellAnim]);
 
   useEffect(() => {
-    if (isSeeker !== true) {
+    if (showWatermark === null) {
       watermarkUpsellAnim.setValue(0);
       return;
     }
     Animated.timing(watermarkUpsellAnim, {
-      toValue: 1,
-      duration: 320,
-      delay: 100,
+      toValue: showWatermark ? 1 : -1,
+      duration: showWatermark ? 320 : 220,
+      delay: showWatermark ? 100 : 0,
       easing: Easing.out(Easing.cubic),
       useNativeDriver: false,
     }).start();
-  }, [isSeeker, watermarkUpsellAnim]);
+  }, [showWatermark, watermarkUpsellAnim]);
 
   const toggleEditor = useCallback(() => {
     const opening = !editorOpen;
@@ -208,6 +217,44 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
       useNativeDriver: false,
     }).start();
   }, [editorAnim, editorOpen]);
+
+  const updateTextScale = useCallback((locationX: number) => {
+    const ratio = Math.max(0, Math.min(1, locationX / sizeSliderWidth.current));
+    const nextScale = MIN_TEXT_SCALE + ratio * (MAX_TEXT_SCALE - MIN_TEXT_SCALE);
+    liveTextScale.current = nextScale;
+    textScaleAnim.setValue(nextScale);
+  }, [textScaleAnim]);
+
+  const finishTextScaleAdjustment = useCallback(() => {
+    setTextScale(liveTextScale.current);
+    triggerLightHaptic();
+  }, []);
+
+  const sizeSliderResponder = useMemo(() => PanResponder.create({
+    onStartShouldSetPanResponder: () => true,
+    onMoveShouldSetPanResponder: () => true,
+    onPanResponderGrant: event => updateTextScale(event.nativeEvent.locationX),
+    onPanResponderMove: event => updateTextScale(event.nativeEvent.locationX),
+    onPanResponderRelease: finishTextScaleAdjustment,
+    onPanResponderTerminate: finishTextScaleAdjustment,
+  }), [finishTextScaleAdjustment, updateTextScale]);
+
+  const adjustTextScale = useCallback((direction: number) => {
+    const nextScale = Math.max(
+      MIN_TEXT_SCALE,
+      Math.min(MAX_TEXT_SCALE, liveTextScale.current + direction * TEXT_SCALE_STEP)
+    );
+    liveTextScale.current = nextScale;
+    textScaleAnim.setValue(nextScale);
+    setTextScale(nextScale);
+    triggerLightHaptic();
+  }, [textScaleAnim]);
+
+  const textScaleProgress = textScaleAnim.interpolate({
+    inputRange: [MIN_TEXT_SCALE, MAX_TEXT_SCALE],
+    outputRange: [0, 1],
+    extrapolate: 'clamp',
+  });
 
   const closeComposer = useCallback((afterClose?: () => void) => {
     if (closing.current) { return; }
@@ -248,7 +295,7 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
     action: string,
     share: (uri: string) => Promise<unknown>
   ) => {
-    if (sharingAction || isSeeker === null) { return; }
+    if (sharingAction || showWatermark === null) { return; }
     triggerLightHaptic();
     setSharingAction(action);
     try {
@@ -270,7 +317,7 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
     } finally {
       setSharingAction(null);
     }
-  }, [captureSelectedCard, isSeeker, sharingAction]);
+  }, [captureSelectedCard, showWatermark, sharingAction]);
 
   const shareToInstagram = useCallback(() => runShareAction('instagram', uri => Share.shareSingle({
     social: Share.Social.INSTAGRAM_STORIES,
@@ -317,7 +364,35 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
     failOnCancel: false,
   })), [runShareAction]);
 
+  const shareAsText = useCallback(async () => {
+    if (sharingAction || showWatermark === null) { return; }
+    triggerLightHaptic();
+    setSharingAction('text');
+    try {
+      await Share.open({
+        title: 'Share your siFia reflection',
+        subject: 'A reflection from siFia',
+        message: text,
+        failOnCancel: false,
+      });
+      triggerSuccessHaptic();
+    } catch (error: any) {
+      const message = String(error?.message || 'Unknown share error');
+      if (!message.toLowerCase().includes('cancel') && message !== 'User did not share') {
+        Logger.error(
+          '[TruthToCarryShareComposer] Share as text failed',
+          error instanceof Error ? error : new Error(message),
+          { component: 'TruthToCarryShareComposer', action: 'text', code: error?.code, nativeError: error?.nativeErrorMessage }
+        );
+        Alert.alert('Unable to share', __DEV__ ? message : 'Please try again.');
+      }
+    } finally {
+      setSharingAction(null);
+    }
+  }, [sharingAction, showWatermark, text]);
+
   const handleUpgrade = useCallback(() => {
+    triggerLightHaptic();
     closeComposer(onUpgrade);
   }, [closeComposer, onUpgrade]);
 
@@ -329,7 +404,7 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
   }, [onUpgrade]);
 
   const renderCard = useCallback(({ item, index }: { item: ShareTemplate; index: number }) => {
-    if (isSeeker === null) {
+    if (showWatermark === null) {
       return (
         <View style={styles.carouselPage}>
           <View style={[styles.shareCard, styles.templateLoading]}>
@@ -339,8 +414,6 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
       );
     }
 
-    const isAnchorBlue = !item.image;
-    const watermarkColor = isAnchorBlue ? Colors.alertCoral : Colors.hopeWhite;
     const textLength = text.trim().length;
     const textStyle = textLength > 260
       ? styles.shareTextSmall
@@ -348,9 +421,10 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
         ? styles.shareTextMedium
         : styles.shareTextLarge;
     const baseText = StyleSheet.flatten(textStyle);
-    const sizeScale = TEXT_SIZE_SCALE[textSize];
+    const shouldNormalizeCase = noSplit && (typography === 'script' || typography === 'handwritten');
+    const displayText = shouldNormalizeCase ? toDisplayCase(text.trim()) : text.trim();
     const shareParts = noSplit
-      ? [text.trim()]
+      ? [displayText]
       : text.split(/\n\s*\n/).map(part => part.trim()).filter(Boolean);
     const primaryText = shareParts[0] || '';
     const supportingText = noSplit ? '' : shareParts.slice(1).join('\n\n');
@@ -364,13 +438,20 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
           primary: getFontFamily('poppins', 'semiBold'),
           supporting: getFontFamily('poppins', 'regular'),
         }
-        : {
-          primary: 'AlexBrush-Regular',
-          supporting: getFontFamily('lora', 'regular'),
-        };
-    const scriptBoost = typography === 'script' ? 1.5 : 1;
-    const primaryFontSize = (baseText?.fontSize ?? 17) * sizeScale * scriptBoost;
-    const primaryLineHeight = (baseText?.lineHeight ?? 24) * sizeScale * scriptBoost * (lineHeightMultiplier ?? 1);
+        : typography === 'script'
+          ? {
+            primary: 'OleoScriptSwashCaps-Bold',
+            supporting: getFontFamily('lora', 'regular'),
+          }
+          : {
+            primary: 'IndieFlower',
+            supporting: getFontFamily('lora', 'regular'),
+          };
+    const scriptBoost = typography === 'script' || typography === 'handwritten' ? 1.5 : 1;
+    const primaryBaseFontSize = (baseText?.fontSize ?? 17) * scriptBoost;
+    const primaryBaseLineHeight = (baseText?.lineHeight ?? 24) * scriptBoost * (lineHeightMultiplier ?? 1);
+    const primaryFontSize = Animated.multiply(textScaleAnim, primaryBaseFontSize);
+    const primaryLineHeight = Animated.multiply(textScaleAnim, primaryBaseLineHeight);
     const primaryTextStyle = {
       fontFamily: typographyStyle.primary,
       fontSize: primaryFontSize,
@@ -378,10 +459,13 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
       textAlign,
     };
     const supportingRatio = typography === 'script' ? 0.55 : 0.67;
+    const scriptureRefScale = textColor === Colors.alertCoral ? 0.85 : 1;
+    const supportingBaseFontSize = Math.max(10, primaryBaseFontSize * supportingRatio * scriptureRefScale);
+    const supportingBaseLineHeight = Math.max(14, primaryBaseLineHeight * supportingRatio * scriptureRefScale);
     const supportingTextStyle = {
       fontFamily: typographyStyle.supporting,
-      fontSize: Math.max(11, primaryFontSize * supportingRatio),
-      lineHeight: Math.max(16, primaryLineHeight * supportingRatio),
+      fontSize: Animated.multiply(textScaleAnim, supportingBaseFontSize),
+      lineHeight: Animated.multiply(textScaleAnim, supportingBaseLineHeight),
       textAlign,
     };
 
@@ -389,26 +473,26 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
       <View style={styles.cardContent}>
 
         <View style={styles.shareCopy}>
-          <Text style={[styles.shareText, { color: Colors.hopeWhite }, primaryTextStyle]}>{primaryText || text}</Text>
+          <Animated.Text style={[styles.shareText, { color: Colors.hopeWhite }, primaryTextStyle]}>{primaryText || displayText}</Animated.Text>
           {supportingText ? (
             <>
               <View style={[styles.supportingRule, textAlign === 'left' && styles.supportingRuleLeft, textAlign === 'right' && styles.supportingRuleRight]} />
-              <Text style={[styles.shareText, styles.supportingText, { color: textColor ?? 'rgba(255,255,255,0.88)' }, supportingTextStyle]}>{supportingText}</Text>
+              <Animated.Text style={[styles.shareText, styles.supportingText, { color: textColor ?? 'rgba(255,255,255,0.88)' }, supportingTextStyle]}>{supportingText}</Animated.Text>
             </>
           ) : null}
         </View>
-        <View style={styles.watermarkRow}>
-          {isSeeker ? (
+        {showWatermark ? (
+          <View style={styles.watermarkRow}>
             <>
               <Image
                 source={require('../../assets/icons/siFia-logo-white.png')}
                 resizeMode="contain"
                 style={styles.watermarkLogo}
               />
-              <ThemedText weight="medium" style={[styles.watermarkUrl, { color: watermarkColor }]}>www.sifia.app</ThemedText>
+              <ThemedText weight="medium" style={styles.watermarkUrl}>www.sifia.app</ThemedText>
             </>
-          ) : null}
-        </View>
+          </View>
+        ) : null}
       </View>
     );
 
@@ -437,12 +521,13 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
         </View>
       </View>
     );
-  }, [isSeeker, text, textAlign, textSize, typography, textColor, lineHeightMultiplier, noSplit]);
+  }, [showWatermark, text, textAlign, typography, textColor, lineHeightMultiplier, noSplit, textScaleAnim]);
 
   const shareActions = [
     { id: 'instagram', label: 'Instagram', icon: 'logo-instagram', onPress: shareToInstagram },
     { id: 'facebook', label: 'Facebook', icon: 'logo-facebook', onPress: shareToFacebook },
     { id: 'messages', label: 'Message', icon: 'chatbubble-outline', onPress: shareToMessages },
+    { id: 'text', label: 'Text', icon: 'text', onPress: shareAsText },
     { id: 'more', label: 'More', icon: 'ellipsis-horizontal', onPress: shareMore },
   ];
 
@@ -494,7 +579,7 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
               <ThemedText weight="bold" style={styles.title}>Share your reflection</ThemedText>
               <ThemedText style={styles.subtitle}>Choose a template</ThemedText>
             </View>
-            <TouchableOpacity style={styles.closeButton} onPress={() => closeComposer()} accessibilityLabel="Close share composer">
+            <TouchableOpacity style={styles.closeButton} onPress={() => { triggerLightHaptic(); closeComposer(); }} accessibilityLabel="Close share composer">
               <Ionicons name="close" size={18} color="rgba(255,255,255,0.7)" />
             </TouchableOpacity>
           </View>
@@ -537,11 +622,18 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
             maxToRenderPerBatch={2}
             windowSize={3}
             style={styles.carousel}
+            scrollEventThrottle={16}
             getItemLayout={(_, index) => ({ length: CAROUSEL_ITEM_WIDTH, offset: CAROUSEL_ITEM_WIDTH * index, index })}
+            onScroll={event => {
+              const nextIndex = Math.round(event.nativeEvent.contentOffset.x / CAROUSEL_ITEM_WIDTH);
+              if (nextIndex !== lastScrollHapticIndex.current) {
+                lastScrollHapticIndex.current = nextIndex;
+                triggerLightHaptic();
+              }
+            }}
             onMomentumScrollEnd={event => {
               const nextIndex = Math.round(event.nativeEvent.contentOffset.x / CAROUSEL_ITEM_WIDTH);
               setSelectedIndex(Math.min(Math.max(nextIndex, 0), templates.length - 1));
-              triggerLightHaptic();
             }}
           />
           </View>
@@ -585,24 +677,40 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
             </View>
 
             <View style={styles.editorUtilityRow}>
-              <View style={styles.utilityGroup}>
-                <View style={styles.iconSegments}>
-                  {(['small', 'standard', 'large'] as ShareTextSize[]).map((size, index) => (
-                    <TouchableOpacity
-                      key={size}
-                      accessibilityRole="button"
-                      accessibilityLabel={`Use ${size} text size`}
-                      accessibilityState={{ selected: textSize === size }}
-                      onPress={() => {
-                        setTextSize(size);
-                        triggerLightHaptic();
-                      }}
-                      style={[styles.iconSegmentButton, textSize === size && styles.iconSegmentButtonActive]}
-                    >
-                      <ThemedText weight="semiBold" style={[styles.sizeGlyph, { fontSize: 11 + index * 2 }, textSize === size && styles.segmentTextActive]}>A</ThemedText>
-                    </TouchableOpacity>
-                  ))}
+              <View style={[styles.utilityGroup, styles.sizeSliderGroup]}>
+                <ThemedText weight="semiBold" style={[styles.sizeGlyph, styles.sizeGlyphSmall]}>A</ThemedText>
+                <View
+                  accessible
+                  accessibilityRole="adjustable"
+                  accessibilityLabel="Text size"
+                  accessibilityValue={{
+                    min: Math.round(MIN_TEXT_SCALE * 100),
+                    max: Math.round(MAX_TEXT_SCALE * 100),
+                    now: Math.round(textScale * 100),
+                    text: `${Math.round(textScale * 100)} percent`,
+                  }}
+                  accessibilityActions={[{ name: 'decrement' }, { name: 'increment' }]}
+                  onAccessibilityAction={event => adjustTextScale(event.nativeEvent.actionName === 'increment' ? 1 : -1)}
+                  onLayout={event => { sizeSliderWidth.current = Math.max(event.nativeEvent.layout.width, 1); }}
+                  style={styles.sizeSlider}
+                  {...sizeSliderResponder.panHandlers}
+                >
+                  <View style={styles.sizeSliderTrack}>
+                    <Animated.View
+                      style={[
+                        styles.sizeSliderFill,
+                        { width: textScaleProgress.interpolate({ inputRange: [0, 1], outputRange: [0, 112] }) },
+                      ]}
+                    />
+                    <Animated.View
+                      style={[
+                        styles.sizeSliderThumb,
+                        { transform: [{ translateX: textScaleProgress.interpolate({ inputRange: [0, 1], outputRange: [0, 112] }) }] },
+                      ]}
+                    />
+                  </View>
                 </View>
+                <ThemedText weight="semiBold" style={[styles.sizeGlyph, styles.sizeGlyphLarge]}>A</ThemedText>
               </View>
 
               <View style={styles.utilityGroup}>
@@ -636,9 +744,9 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
             {shareActions.map(action => (
               <TouchableOpacity
                 key={action.id}
-                style={[styles.action, isSeeker === null && styles.actionDisabled]}
+                style={[styles.action, showWatermark === null && styles.actionDisabled]}
                 onPress={action.onPress}
-                disabled={!!sharingAction || isSeeker === null}
+                disabled={!!sharingAction || showWatermark === null}
                 accessibilityLabel={action.label}
               >
                 <View style={styles.actionIcon}>
@@ -653,34 +761,52 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
             ))}
           </View>
 
-          {isSeeker ? (
-            <Animated.View
-              style={[
-                styles.upgradeReveal,
-                {
-                  maxHeight: watermarkUpsellAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 90] }),
-                  marginTop: watermarkUpsellAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 16] }),
-                  opacity: watermarkUpsellAnim,
-                  transform: [{
-                    translateY: watermarkUpsellAnim.interpolate({ inputRange: [0, 1], outputRange: [8, 0] }),
-                  }],
-                },
-              ]}
+          <Animated.View
+            pointerEvents={showWatermark ? 'auto' : 'none'}
+            accessibilityElementsHidden={!showWatermark}
+            importantForAccessibility={showWatermark ? 'auto' : 'no-hide-descendants'}
+            style={[
+              styles.upgradeReveal,
+              {
+                height: watermarkUpsellAnim.interpolate({
+                  inputRange: [-1, 0, 1],
+                  outputRange: [0, 60, 60],
+                }),
+                marginTop: watermarkUpsellAnim.interpolate({
+                  inputRange: [-1, 0, 1],
+                  outputRange: [0, 16, 16],
+                }),
+                opacity: watermarkUpsellAnim.interpolate({
+                  inputRange: [-1, 0, 1],
+                  outputRange: [0, 0, 1],
+                }),
+                transform: [{
+                  translateY: watermarkUpsellAnim.interpolate({
+                    inputRange: [-1, 0, 1],
+                    outputRange: [0, 6, 0],
+                  }),
+                }],
+              },
+            ]}
+          >
+            <TouchableOpacity
+              style={styles.upgradeRow}
+              onPress={handleUpgrade}
+              activeOpacity={0.75}
+              disabled={!showWatermark}
             >
-              <TouchableOpacity style={styles.upgradeRow} onPress={handleUpgrade} activeOpacity={0.75}>
-                <View style={styles.upgradeIcon}>
-                  <Ionicons name="eye-off-outline" size={18} color={Colors.alertCoral} />
-                </View>
-                <View style={styles.upgradeCopy}>
-                  <ThemedText weight="semiBold" style={styles.upgradeTitle}>Hide the siFia watermark</ThemedText>
-                  <ThemedText style={styles.upgradeSubtitle}>Available with Growth</ThemedText>
-                </View>
-                <View style={styles.growthPill}>
-                  <ThemedText weight="semiBold" style={styles.growthPillText}>Get Growth</ThemedText>
-                </View>
-              </TouchableOpacity>
-            </Animated.View>
-          ) : null}
+              <View style={styles.upgradeIcon}>
+                <Ionicons name="eye-off-outline" size={18} color={Colors.alertCoral} />
+              </View>
+              <View style={styles.upgradeCopy}>
+                <ThemedText weight="semiBold" style={styles.upgradeTitle}>Hide the siFia watermark</ThemedText>
+                <ThemedText style={styles.upgradeSubtitle}>Available with Growth</ThemedText>
+              </View>
+              <View style={styles.growthPill}>
+                <ThemedText weight="semiBold" style={styles.growthPillText}>Get Growth</ThemedText>
+              </View>
+            </TouchableOpacity>
+          </Animated.View>
           </ScrollView>
         </Animated.View>
       </View>
@@ -747,13 +873,6 @@ const styles = StyleSheet.create({
     width: '100%',
     marginBottom: 14,
     position: 'relative',
-  },
-  cardBrandMark: {
-    position: 'absolute',
-    bottom: 30,
-    alignSelf: 'center',
-    width: 44,
-    height: 18,
   },
   carouselPage: {
     width: CAROUSEL_ITEM_WIDTH,
@@ -841,6 +960,7 @@ const styles = StyleSheet.create({
     height: 22,
   },
   watermarkUrl: {
+    color: Colors.hopeWhite,
     fontSize: 10,
     lineHeight: 14,
     letterSpacing: 0.2,
@@ -905,6 +1025,35 @@ const styles = StyleSheet.create({
   utilityGroup: {
     alignItems: 'center',
   },
+  sizeSliderGroup: {
+    flexDirection: 'row',
+    gap: 7,
+  },
+  sizeSlider: {
+    width: 112,
+    height: 34,
+    justifyContent: 'center',
+  },
+  sizeSliderTrack: {
+    width: '100%',
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+  },
+  sizeSliderFill: {
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: Colors.alertCoral,
+  },
+  sizeSliderThumb: {
+    position: 'absolute',
+    top: -6,
+    width: 16,
+    height: 16,
+    marginLeft: -8,
+    borderRadius: 8,
+    backgroundColor: Colors.alertCoral,
+  },
   iconSegments: {
     flexDirection: 'row',
     alignSelf: 'center',
@@ -925,6 +1074,12 @@ const styles = StyleSheet.create({
   sizeGlyph: {
     color: 'rgba(255,255,255,0.62)',
     lineHeight: 17,
+  },
+  sizeGlyphSmall: {
+    fontSize: 10,
+  },
+  sizeGlyphLarge: {
+    fontSize: 16,
   },
   sectionLabel: {
     color: Colors.hopeWhite,

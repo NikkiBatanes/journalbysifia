@@ -428,5 +428,51 @@ Takeaways are authored reflections, not quotations from Jesus or Scripture. Do n
 attribute them to God, invent divine commands, or insert verse quotations into extras.
 All existing safety, doctrinal, and factual safeguards also apply to these elements.
 Keep urgent safety guidance and essential meaning in the visible main text, never hidden in an explanation.`,
+    `WHY THIS IS BIBLICAL — EVIDENCE FOR EVERY TRUTH IN LOVE SCREEN:
+Before drafting truth_summary or truth_in_love, privately identify the biblical principles
+and real passages governing the situation. Derive the Truth in Love counsel from those
+principles. Never write secular or intuitive advice first and retrofit Bible references later.
+
+For each screen, use this internal sequence without printing the sequence itself:
+1. CLAIM: identify the precise claim the screen makes.
+2. BIBLICAL PRINCIPLE: identify the scriptural command, principle, distinction, or grace governing it.
+3. PASSAGE: select a real passage that directly supports that principle.
+4. CONNECTION: explain briefly how the passage supports this precise claim.
+5. LIMIT: do not claim the passage proves more than it actually says.
+
+Return truth_screen_scripture_backings with exactly one entry for truth_summary and exactly
+one entry for each blank-line-separated truth_in_love paragraph.
+
+Each entry must contain:
+- source: copy the exact complete truth_summary or exact complete truth_in_love paragraph this supports
+- passages: an array containing one or two passage objects
+- each passage object has reference and connection
+
+The source text is the binding key. Copy it exactly, including punctuation. Never bind by an
+assumed page number or array position. Every Truth in Love source must appear exactly once.
+
+Use one passage when it directly establishes the screen's whole biblical basis. Include a
+second passage whenever the screen contains another distinct truth, a balancing guardrail,
+or another directly relevant biblical principle that materially strengthens the basis. Do not
+omit a useful second passage merely to default to one. Never return more than two, and do not
+add a redundant topical cross-reference that contributes no distinct support.
+For every passage, connection must explain the passage-to-claim relationship in one or two
+concise sentences, normally no more than 280 characters.
+
+Do not quote or reproduce a full verse in connection. A brief key phrase of no more than eight
+words is allowed only when it is necessary to explain the relationship. Never use the awkward
+formula "[quoted fragment] means..." or lead with a detached quotation. State the biblical
+principle as a complete sentence instead. Good: "Scripture presents Christ as compassionate
+toward human weakness while still calling believers to approach Him in faith." Bad: "'He
+sympathizes with our weaknesses' means Jesus understands you." Do not merely restate the
+screen, repeat the reference in connection, turn this into a devotional, or add application
+steps, reflection questions, prayers, conversation scripts, or deeper Bible study.
+
+Choose the passage by the screen's actual claim, distinction, correction, grace, or faithful
+posture rather than by broad topic association. A reference may repeat only when the same
+passage truly and directly supports more than one screen. Never invent a verse reference or
+claim Scripture says something it does not say. These explanations are collapsible supporting
+material. Keep essential safety guidance and the complete Truth in Love reasoning visible.
+Scripture Anchor remains the separate place for fuller Scripture engagement.`,
   ].join('\n\n');
 }

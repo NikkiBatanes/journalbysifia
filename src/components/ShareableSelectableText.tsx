@@ -1,8 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, StyleProp, StyleSheet, Text, TextInput, TextStyle, TouchableOpacity, View, ViewStyle } from 'react-native';
+import { Animated, DeviceEventEmitter, StyleProp, StyleSheet, Text, TextInput, TextStyle, TouchableOpacity, View, ViewStyle } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useTheme } from '../hooks/useTheme';
 import { getFontFamily } from '../theme/fonts';
+import { Colors } from '../theme/colors';
+import { triggerLightHaptic } from '../utils/haptics';
 
 interface ShareableSelectableTextProps {
   text: string;
@@ -11,7 +13,11 @@ interface ShareableSelectableTextProps {
   containerStyle?: StyleProp<ViewStyle>;
   weight?: 'regular' | 'medium' | 'semiBold' | 'bold';
   showShareButton?: boolean;
+  shareIconColor?: string;
 }
+
+const SHAREABLE_TEXT_OPENED_EVENT = 'shareableSelectableText.opened';
+let shareableTextInstanceCounter = 0;
 
 export default function ShareableSelectableText({
   text,
@@ -20,12 +26,30 @@ export default function ShareableSelectableText({
   containerStyle,
   weight = 'regular',
   showShareButton = true,
+  shareIconColor = Colors.hopeWhite,
 }: ShareableSelectableTextProps) {
   const { currentFont } = useTheme();
   const [selectedText, setSelectedText] = useState('');
   const [pillVisible, setPillVisible] = useState(false);
   const selectedTextRef = useRef('');
+  const instanceIdRef = useRef(`shareable-text-${++shareableTextInstanceCounter}`);
   const pillAnim = useRef(new Animated.Value(0)).current;
+
+  const openPill = () => {
+    DeviceEventEmitter.emit(SHAREABLE_TEXT_OPENED_EVENT, instanceIdRef.current);
+    setPillVisible(true);
+  };
+
+  useEffect(() => {
+    const subscription = DeviceEventEmitter.addListener(SHAREABLE_TEXT_OPENED_EVENT, (openedId: string) => {
+      if (openedId !== instanceIdRef.current) {
+        selectedTextRef.current = '';
+        setSelectedText('');
+        setPillVisible(false);
+      }
+    });
+    return () => subscription.remove();
+  }, []);
 
   useEffect(() => {
     Animated.spring(pillAnim, {
@@ -48,7 +72,7 @@ export default function ShareableSelectableText({
       const selection = text.slice(start, end).trim();
       selectedTextRef.current = selection;
       setSelectedText(selection);
-      setPillVisible(true);
+      openPill();
     }
   };
 
@@ -73,11 +97,12 @@ export default function ShareableSelectableText({
         selectedTextRef.current = full;
         setSelectedText(full);
       }
-      setPillVisible(true);
+      openPill();
     }
   };
 
   const share = () => {
+    triggerLightHaptic();
     const requestedText = selectedTextRef.current || text;
     const shareText = requestedText.trim();
     if (shareText) {
@@ -128,17 +153,17 @@ export default function ShareableSelectableText({
               activeOpacity={0.85}
               style={styles.floatingPillShare}
             >
-              <Ionicons name="share-outline" size={16} color="#E8B86D" />
-              <Text style={styles.floatingPillText}>Share</Text>
+              <Ionicons name="paper-plane-outline" size={16} color={shareIconColor} />
+              <Text style={[styles.floatingPillText, { color: shareIconColor }]}>Share</Text>
             </TouchableOpacity>
             <TouchableOpacity
               accessibilityRole="button"
               accessibilityLabel="Dismiss share"
-              onPress={clearSelection}
+              onPress={() => { triggerLightHaptic(); clearSelection(); }}
               activeOpacity={0.7}
               hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
             >
-              <Ionicons name="close" size={14} color="rgba(232,184,109,0.7)" />
+              <Ionicons name="close" size={14} color="rgba(255,255,255,0.7)" />
             </TouchableOpacity>
           </View>
         </Animated.View>
@@ -152,7 +177,7 @@ export default function ShareableSelectableText({
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           style={[styles.shareButton, selectedText ? styles.shareButtonSelected : null]}
         >
-          <Ionicons name="share-outline" size={18} color="#E8B86D" />
+          <Ionicons name="paper-plane-outline" size={18} color={shareIconColor} />
         </TouchableOpacity>
       ) : null}
     </View>
@@ -177,7 +202,7 @@ const styles = StyleSheet.create({
   },
   shareButton: {
     position: 'absolute',
-    top: 0,
+    bottom: 0,
     right: 0,
     width: 34,
     height: 34,
@@ -186,7 +211,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   shareButtonSelected: {
-    backgroundColor: 'rgba(232,184,109,0.14)',
+    backgroundColor: 'rgba(255,255,255,0.12)',
   },
   floatingPillWrap: {
     position: 'absolute',
@@ -205,7 +230,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     backgroundColor: 'rgba(14, 24, 42, 0.92)',
     borderWidth: 1,
-    borderColor: 'rgba(232,184,109,0.35)',
+    borderColor: 'rgba(255,255,255,0.25)',
     shadowColor: '#000',
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -217,7 +242,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   floatingPillText: {
-    color: '#E8B86D',
+    color: Colors.hopeWhite,
     fontSize: 13,
     fontWeight: '600',
     letterSpacing: 0.2,

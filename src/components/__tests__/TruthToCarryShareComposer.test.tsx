@@ -5,6 +5,7 @@ import Share from 'react-native-share';
 import { captureRef } from 'react-native-view-shot';
 import TruthToCarryShareComposer from '../TruthToCarryShareComposer';
 import { triggerLightHaptic } from '../../utils/haptics';
+import { NewSubscriptionService } from '../../services/NewSubscriptionService';
 
 jest.mock('react-native-share', () => ({
   __esModule: true,
@@ -28,7 +29,9 @@ jest.mock('react-native-safe-area-context', () => ({
 }));
 jest.mock('../common/ThemedText', () => require('react-native').Text);
 jest.mock('../../config/environment', () => ({ ENV: {} }));
-jest.mock('../../services/NewSubscriptionService', () => ({ NewSubscriptionService: {} }));
+jest.mock('../../services/NewSubscriptionService', () => ({
+  NewSubscriptionService: { getUserSubscription: jest.fn() },
+}));
 jest.mock('../../utils/haptics', () => ({ triggerLightHaptic: jest.fn(), triggerSuccessHaptic: jest.fn() }));
 jest.mock('../../utils/ProductionLogger', () => ({ Logger: { error: jest.fn() } }));
 
@@ -67,6 +70,36 @@ describe('Truth to Carry Message sharing', () => {
       .not.toBe('Lora-Bold');
     fireEvent.press(screen.getByLabelText('Close post editor'));
     await waitFor(() => expect(screen.queryByLabelText('Use Script text style')).toBeNull());
+  });
+
+  it('adjusts share-card text with a continuous size control', () => {
+    const screen = render(<TruthToCarryShareComposer visible text="A truth to carry." userId="" onClose={jest.fn()} onUpgrade={jest.fn()} />);
+    fireEvent.press(screen.getByLabelText('Edit post style'));
+
+    const initialSize = StyleSheet.flatten(screen.getByText('A truth to carry.').props.style).fontSize;
+    const slider = screen.getByLabelText('Text size');
+    fireEvent(slider, 'accessibilityAction', { nativeEvent: { actionName: 'decrement' } });
+
+    expect(slider.props.accessibilityValue.now).toBe(96);
+    expect(StyleSheet.flatten(screen.getByText('A truth to carry.').props.style).fontSize).toBeLessThan(initialSize);
+    expect(triggerLightHaptic).toHaveBeenCalled();
+  });
+
+  it('removes all share-card branding for Growth accounts', async () => {
+    jest.mocked(NewSubscriptionService.getUserSubscription).mockResolvedValueOnce({ tier: 'growth' } as any);
+    const screen = render(<TruthToCarryShareComposer visible text="A truth to carry." userId="paid-user" onClose={jest.fn()} onUpgrade={jest.fn()} />);
+
+    await waitFor(() => expect(screen.getByLabelText('Message').props.accessibilityState.disabled).toBe(false));
+    expect(screen.queryByText('www.sifia.app')).toBeNull();
+    expect(screen.queryByText('Hide the siFia watermark')).toBeNull();
+  });
+
+  it('keeps share-card branding for Spark accounts', async () => {
+    jest.mocked(NewSubscriptionService.getUserSubscription).mockResolvedValueOnce({ tier: 'spark' } as any);
+    const screen = render(<TruthToCarryShareComposer visible text="A truth to carry." userId="spark-user" onClose={jest.fn()} onUpgrade={jest.fn()} />);
+
+    await waitFor(() => expect(screen.getByText('www.sifia.app')).toBeTruthy());
+    expect(screen.getByText('Hide the siFia watermark')).toBeTruthy();
   });
 
   it('closes without haptic feedback', () => {

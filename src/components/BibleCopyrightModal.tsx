@@ -9,6 +9,7 @@ interface BibleCopyrightModalProps {
   visible: boolean;
   onClose: () => void;
   bibleVersion: string;
+  contained?: boolean;
 }
 
 const getBibleCopyrightInfo = (version: string) => {
@@ -66,49 +67,52 @@ export const BibleCopyrightModal: React.FC<BibleCopyrightModalProps> = ({
   visible,
   onClose,
   bibleVersion,
+  contained = false,
 }) => {
   const copyrightInfo = getBibleCopyrightInfo(bibleVersion);
+  if (!visible) { return null; }
+
+  const content = (
+    <View style={[styles.modalContainer, { backgroundColor: Colors.anchorBlue }]}>
+      <View style={styles.header}>
+        <ThemedText weight="semiBold" style={[styles.title, { color: Colors.hopeWhite }]}>
+          Bible Translation Information
+        </ThemedText>
+        <TouchableOpacity onPress={() => {
+          triggerLightHaptic();
+          onClose();
+        }} style={styles.closeButton}>
+          <Ionicons
+            name="close"
+            size={24}
+            color={Colors.hopeWhite}
+          />
+        </TouchableOpacity>
+      </View>
+
+      <ScrollView style={styles.content}>
+        <ThemedText weight="medium" style={[styles.versionName, { color: Colors.hopeWhite }]}>
+          {copyrightInfo.name} ({bibleVersion})
+        </ThemedText>
+
+        <ThemedText style={[styles.publisher, { color: Colors.hopeWhite }]}>
+          Publisher: {copyrightInfo.publisher}
+        </ThemedText>
+
+        <ThemedText style={[styles.copyrightText, { color: Colors.hopeWhite }]}>
+          {copyrightInfo.copyright}
+        </ThemedText>
+      </ScrollView>
+    </View>
+  );
+
+  if (contained) {
+    return <View style={[styles.overlay, styles.containedOverlay]}>{content}</View>;
+  }
 
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="fade"
-      onRequestClose={onClose}
-    >
-      <View style={styles.overlay}>
-        <View style={[styles.modalContainer, { backgroundColor: Colors.anchorBlue }]}>
-          <View style={styles.header}>
-            <ThemedText weight="semiBold" style={[styles.title, { color: Colors.hopeWhite }]}>
-              Bible Translation Information
-            </ThemedText>
-            <TouchableOpacity onPress={() => {
-              triggerLightHaptic();
-              onClose();
-            }} style={styles.closeButton}>
-              <Ionicons
-                name="close"
-                size={24}
-                color={Colors.hopeWhite}
-              />
-            </TouchableOpacity>
-          </View>
-
-          <ScrollView style={styles.content}>
-            <ThemedText weight="medium" style={[styles.versionName, { color: Colors.hopeWhite }]}>
-              {copyrightInfo.name} ({bibleVersion})
-            </ThemedText>
-
-            <ThemedText style={[styles.publisher, { color: Colors.hopeWhite }]}>
-              Publisher: {copyrightInfo.publisher}
-            </ThemedText>
-
-            <ThemedText style={[styles.copyrightText, { color: Colors.hopeWhite }]}>
-              {copyrightInfo.copyright}
-            </ThemedText>
-          </ScrollView>
-        </View>
-      </View>
+    <Modal visible transparent animationType="fade" onRequestClose={onClose}>
+      <View style={styles.overlay}>{content}</View>
     </Modal>
   );
 };
@@ -120,6 +124,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
+  },
+  containedOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 100,
+    elevation: 100,
   },
   modalContainer: {
     width: '100%',

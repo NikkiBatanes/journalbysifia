@@ -34,6 +34,9 @@
 		1CC5CB56316943A7A38E8663 /* DancingScript-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 41BBBFAE4F8542B4BA2367E9 /* DancingScript-Regular.ttf */; };
 		1E6A7623AF6A40AF892E71B3 /* Allura-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = BBABE04A412440D3BC974702 /* Allura-Regular.ttf */; };
 		F54AE62EBA9E4307958CDFDB /* AlexBrush-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = A541C99736F94480818FEB74 /* AlexBrush-Regular.ttf */; };
+		9473976BF4F447CAA858DB7D /* OleoScriptSwashCaps-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = AD38D622C38A421A8B70F4F6 /* OleoScriptSwashCaps-Bold.ttf */; };
+		B8CE4D9A00F44E6791846BFA /* OleoScriptSwashCaps-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 3FC4D19ABE124930A1FA5919 /* OleoScriptSwashCaps-Regular.ttf */; };
+		DEC88A0E5D7A4B109D7344A9 /* IndieFlower.ttf in Resources */ = {isa = PBXBuildFile; fileRef = B87BB3F4758C430CAFB73965 /* IndieFlower.ttf */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -72,6 +75,9 @@
 		41BBBFAE4F8542B4BA2367E9 /* DancingScript-Regular.ttf */ = {isa = PBXFileReference; name = "DancingScript-Regular.ttf"; path = "../assets/fonts/DancingScript/DancingScript-Regular.ttf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
 		BBABE04A412440D3BC974702 /* Allura-Regular.ttf */ = {isa = PBXFileReference; name = "Allura-Regular.ttf"; path = "../assets/fonts/Allura/Allura-Regular.ttf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
 		A541C99736F94480818FEB74 /* AlexBrush-Regular.ttf */ = {isa = PBXFileReference; name = "AlexBrush-Regular.ttf"; path = "../assets/fonts/AlexBrush/AlexBrush-Regular.ttf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
+		AD38D622C38A421A8B70F4F6 /* OleoScriptSwashCaps-Bold.ttf */ = {isa = PBXFileReference; name = "OleoScriptSwashCaps-Bold.ttf"; path = "../assets/fonts/OleoScriptSwashCaps/OleoScriptSwashCaps-Bold.ttf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
+		3FC4D19ABE124930A1FA5919 /* OleoScriptSwashCaps-Regular.ttf */ = {isa = PBXFileReference; name = "OleoScriptSwashCaps-Regular.ttf"; path = "../assets/fonts/OleoScriptSwashCaps/OleoScriptSwashCaps-Regular.ttf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
+		B87BB3F4758C430CAFB73965 /* IndieFlower.ttf */ = {isa = PBXFileReference; name = "IndieFlower.ttf"; path = "../assets/fonts/IndieFlower/IndieFlower.ttf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -177,6 +183,9 @@
 				41BBBFAE4F8542B4BA2367E9 /* DancingScript-Regular.ttf */,
 				BBABE04A412440D3BC974702 /* Allura-Regular.ttf */,
 				A541C99736F94480818FEB74 /* AlexBrush-Regular.ttf */,
+				AD38D622C38A421A8B70F4F6 /* OleoScriptSwashCaps-Bold.ttf */,
+				3FC4D19ABE124930A1FA5919 /* OleoScriptSwashCaps-Regular.ttf */,
+				B87BB3F4758C430CAFB73965 /* IndieFlower.ttf */,
 			);
 			name = Resources;
 			sourceTree = "<group>";
@@ -264,6 +273,9 @@
 				1CC5CB56316943A7A38E8663 /* DancingScript-Regular.ttf in Resources */,
 				1E6A7623AF6A40AF892E71B3 /* Allura-Regular.ttf in Resources */,
 				F54AE62EBA9E4307958CDFDB /* AlexBrush-Regular.ttf in Resources */,
+				9473976BF4F447CAA858DB7D /* OleoScriptSwashCaps-Bold.ttf in Resources */,
+				B8CE4D9A00F44E6791846BFA /* OleoScriptSwashCaps-Regular.ttf in Resources */,
+				DEC88A0E5D7A4B109D7344A9 /* IndieFlower.ttf in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

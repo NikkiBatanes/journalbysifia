@@ -49,6 +49,12 @@ interface PlaybookCover {
 
 interface TruthBeat {
   enhancement?: TruthScreenEnhancement;
+  scriptureBacking?: {
+    passages: Array<{
+      reference: string;
+      connection: string;
+    }>;
+  };
   label: string;
   primaryTruth: string;
   supportingTruth?: string;
@@ -63,6 +69,12 @@ interface Playbook {
   category?: string;
   truthInLove: {
     summaryEnhancement?: TruthScreenEnhancement;
+    summaryScriptureBacking?: {
+      passages: Array<{
+        reference: string;
+        connection: string;
+      }>;
+    };
     summary: string;
     text: string;
     beats?: TruthBeat[];
@@ -159,6 +171,33 @@ const PLAYBOOK_JSON_SCHEMA = {
           additionalProperties: false,
         },
       },
+      truth_screen_scripture_backings: {
+        type: 'array',
+        minItems: 3,
+        maxItems: 6,
+        items: {
+          type: 'object',
+          properties: {
+            source: { type: 'string' },
+            passages: {
+              type: 'array',
+              minItems: 1,
+              maxItems: 2,
+              items: {
+                type: 'object',
+                properties: {
+                  reference: { type: 'string', minLength: 3, maxLength: 60 },
+                  connection: { type: 'string', minLength: 20, maxLength: 320 },
+                },
+                required: ['reference', 'connection'],
+                additionalProperties: false,
+              },
+            },
+          },
+          required: ['source', 'passages'],
+          additionalProperties: false,
+        },
+      },
       transition_line: { type: 'string' },
       bible_verse: {
         type: 'object',
@@ -223,6 +262,7 @@ const PLAYBOOK_JSON_SCHEMA = {
       'truth_summary',
       'truth_in_love',
       'truth_screen_enhancements',
+      'truth_screen_scripture_backings',
       'transition_line',
       'bible_verse',
       'scripture_note_lines',
@@ -1068,6 +1108,35 @@ function validatePlaybook(json: Record<string, any>, originalInput = ''): Valida
   if (!json.truth_in_love || String(json.truth_in_love).length < TRUTH_IN_LOVE_MIN_CHARS) {
     hardIssues.push(`truth_in_love is too short (${String(json.truth_in_love || '').length} chars, min ${TRUTH_IN_LOVE_MIN_CHARS} — must be direct but substantive)`);
   }
+  const truthParagraphs = String(json.truth_in_love || '')
+    .split(/\r?\n[ \t]*\r?\n(?:[ \t]*\r?\n)*/)
+    .map(paragraph => paragraph.trim())
+    .filter(Boolean);
+  const scriptureBackings = Array.isArray(json.truth_screen_scripture_backings)
+    ? json.truth_screen_scripture_backings
+    : [];
+  const backingSources = [String(json.truth_summary || '').trim(), ...truthParagraphs];
+  const expectedBackingCount = backingSources.length;
+  if (scriptureBackings.length !== expectedBackingCount) {
+    hardIssues.push(`truth_screen_scripture_backings has ${scriptureBackings.length} items (need ${expectedBackingCount}: one for truth_summary and one per truth_in_love paragraph)`);
+  }
+  scriptureBackings.forEach((backing: any, index: number) => {
+    const passages = Array.isArray(backing?.passages) ? backing.passages : [];
+    const invalidPassage = passages.some((passage: any) => {
+      const connection = String(passage?.connection || '').trim();
+      const quotedFragmentGloss = /^(?:["“'‘].{2,120}["”'’]|[^.!?]{2,120}["”'’])\s+(?:means|shows|says|teaches)\b/i.test(connection);
+      return !String(passage?.reference || '').trim() || countWords(connection) < 5 || quotedFragmentGloss;
+    });
+    if (!String(backing?.source || '').trim() || passages.length < 1 || passages.length > 2 || invalidPassage) {
+      hardIssues.push(`truth_screen_scripture_backings item ${index + 1} needs an exact source and one or two valid passage connections`);
+    }
+  });
+  backingSources.forEach((source, index) => {
+    const matches = scriptureBackings.filter((backing: any) => String(backing?.source || '').trim() === source);
+    if (matches.length !== 1) {
+      hardIssues.push(`truth_screen_scripture_backings must contain exactly one source match for Truth in Love screen ${index + 1}`);
+    }
+  });
   if (!json.transition_line || String(json.transition_line).trim().length < 5) {
     hardIssues.push('transition_line is missing');
   }
@@ -1611,9 +1680,38 @@ function parseJsonPlaybook(
   // Sanitize yoga → gentle stretching (brand safety)
   sanitizePlaybook(playbook);
   playbook.truthInLove.beats = paginateTruthInLove(playbook.truthInLove.text);
+  const rawScriptureBackings = Array.isArray(json.truth_screen_scripture_backings)
+    ? json.truth_screen_scripture_backings
+    : [];
+  const scriptureBackingFor = (source: string) => {
+    const matches = rawScriptureBackings.filter((backing: any) => (
+      typeof backing?.source === 'string' && backing.source.trim() === source.trim()
+    ));
+    if (matches.length !== 1) return undefined;
+    const raw = matches[0];
+    const passages = (Array.isArray(raw?.passages) ? raw.passages : [])
+      .map((passage: any) => {
+        const reference = sanitizeText(cleanMarkdown(String(passage?.reference || '')))
+          .replace(/^in\s+/i, '')
+          .replace(/[\s:—–-]+$/, '')
+          .trim();
+        const connection = sanitizeText(cleanMarkdown(String(passage?.connection || ''))).trim();
+        return reference && connection ? { reference, connection } : null;
+      })
+      .filter(Boolean)
+      .slice(0, 2) as Array<{ reference: string; connection: string }>;
+    return passages.length > 0 ? { passages } : undefined;
+  };
+  const sourceParagraphs = String(json.truth_in_love || '')
+    .split(/\r?\n[ \t]*\r?\n(?:[ \t]*\r?\n)*/)
+    .map(paragraph => paragraph.trim())
+    .filter(Boolean);
+  playbook.truthInLove.summaryScriptureBacking = scriptureBackingFor(String(json.truth_summary || ''));
+  playbook.truthInLove.beats.forEach((beat, index) => {
+    beat.scriptureBacking = scriptureBackingFor(sourceParagraphs[index] || '');
+  });
   // Bind extras to their source paragraph, never to a presumed reasoning role.
   // A repair that changes the source invalidates the extra rather than misplacing it.
-  const sourceParagraphs = String(json.truth_in_love || '').split(/\r?\n[ \t]*\r?\n(?:[ \t]*\r?\n)*/).map(p => p.trim()).filter(Boolean);
   const extras = Array.isArray(json.truth_screen_enhancements) ? json.truth_screen_enhancements : [];
   const enhancementFor = (source: string) => {
     const matches = extras.filter((extra: any) => typeof extra?.source === 'string' && extra.source.trim() === source.trim());
@@ -2230,7 +2328,10 @@ serve(async (req: Request) => {
     if (hardIssues.length > 0) {
       console.error('[Generate-Playbook] Hard validation failures:', hardIssues);
       const criticalFails = hardIssues.filter(i =>
-        i.includes('playbook_title') || i.includes('generation failure') || i.includes('church order violation')
+        i.includes('playbook_title') ||
+        i.includes('generation failure') ||
+        i.includes('church order violation') ||
+        i.includes('truth_screen_scripture_backings')
       );
       if (criticalFails.length > 0) {
         throw new Error(`AI failed validation: ${criticalFails.join(', ')}`);

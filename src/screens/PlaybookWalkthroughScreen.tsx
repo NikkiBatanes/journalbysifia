@@ -46,6 +46,7 @@ import { triggerLightHaptic, triggerMediumHaptic, triggerSuccessHaptic } from '.
 import { parseCanonicalQuotedInstructionLine } from '../utils/actionWisdomParsing';
 import { buildTruthPostText } from '../utils/truthSharing';
 import { replaceAllNamePlaceholders } from '../utils/nameReplacement';
+import { normalizePrayerText } from '../utils/prayerFormatting';
 import { pdfExportService } from '../utils/pdfExportService';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { useCreateJournalEntry } from '../services/hooks/useJournalData';
@@ -64,6 +65,7 @@ import DevotionalModal from '../components/DevotionalModal';
 import PlaybookReadyOverlay from '../components/PlaybookReadyOverlay';
 import ShareDropdownModal from '../components/ShareDropdownModal';
 import TruthToCarryShareComposer from '../components/TruthToCarryShareComposer';
+import ScriptureReaderModal from '../components/ScriptureReaderModal';
 import { refinePlaybook, type PlaybookCorrectionType } from '../services/playbookRefinementService';
 
 import type { RootStackParamList } from '../navigation/types';
@@ -439,6 +441,27 @@ const getCleanTextArray = (value: unknown): string[] | undefined => {
   return items.length > 0 ? items : undefined;
 };
 
+const normalizeScriptureBackingForClient = (raw: any): TruthBeat['scriptureBacking'] => {
+  if (!raw || typeof raw !== 'object') return undefined;
+  const rawPassages = Array.isArray(raw.passages)
+    ? raw.passages
+    : raw.reference && raw.significance
+      ? [{ reference: raw.reference, connection: raw.significance }]
+      : [];
+  const passages = rawPassages
+    .map((passage: any) => {
+      const reference = getCleanOptionalText(passage?.reference)
+        ?.replace(/^in\s+/i, '')
+        .replace(/[\s:—–-]+$/, '')
+        .trim();
+      const connection = getCleanOptionalText(passage?.connection ?? passage?.significance);
+      return reference && connection ? { reference, connection } : null;
+    })
+    .filter(Boolean)
+    .slice(0, 2) as Array<{ reference: string; connection: string }>;
+  return passages.length > 0 ? { passages } : undefined;
+};
+
 const normalizeHoldEntrustForClient = (raw: any): TruthBeat['holdEntrust'] => {
   if (!raw || typeof raw !== 'object') return undefined;
   const holdLabel = getCleanOptionalText(raw.holdLabel ?? raw.hold_label) || 'What will you hold?';
@@ -514,6 +537,7 @@ const normalizeTruthBeat = (beat: any): TruthBeat | null => {
     primaryTruth,
     supportingTruth: getCleanOptionalText(beat.supportingTruth ?? beat.supporting_truth),
     enhancement: normalizeTruthScreenEnhancement(beat.enhancement),
+    scriptureBacking: normalizeScriptureBackingForClient(beat.scriptureBacking ?? beat.scripture_backing),
     reveal: revealLabel && revealContent ? { label: revealLabel, content: revealContent } : undefined,
     presentation: getCleanOptionalText(beat.presentation) as TruthBeat['presentation'],
     contrast: {
@@ -571,6 +595,9 @@ const getTruthBeats = (playbook: any, userName = ''): TruthBeat[] => {
     label: '',
     primaryTruth,
     enhancement: normalizeTruthScreenEnhancement(playbook.truthInLove.summaryEnhancement),
+    scriptureBacking: normalizeScriptureBackingForClient(
+      playbook.truthInLove.summaryScriptureBacking ?? playbook.truthInLove.summary_scripture_backing
+    ),
     ...(supportingTruth ? { supportingTruth } : {}),
   };
 
@@ -922,8 +949,10 @@ interface TruthStepProps {
   onBeatNext?: () => void;
   onBeatBack?: () => void;
   onGoToScripture?: () => void;
+  bibleVersion?: string;
   onOpenRefinement?: () => void;
   onShareReflection?: (text: string) => void;
+  onShareScripture?: (text: string) => void;
   insets: { top: number; bottom: number };
 }
 
@@ -975,21 +1004,25 @@ interface TruthBeatStepProps extends TruthStepProps {
 const TruthBeatStep: React.FC<TruthBeatStepProps> = ({
   beats,
   truthToCarry,
-  userName,
+  userName: _userName,
   beatIndex,
   showSafetyHelp = false,
   onBeatNext,
   onBeatBack,
   onGoToScripture,
+  bibleVersion,
   onOpenRefinement,
   onShareReflection,
+  onShareScripture,
   insets,
 }) => {
   const [revealedBeats, setRevealedBeats] = useState<Record<number, boolean>>({});
+  const [openScriptureBackings, setOpenScriptureBackings] = useState<Record<number, boolean>>({});
   const [openUntangleItems, setOpenUntangleItems] = useState<Record<string, boolean>>({});
   const [selectedPathStep, setSelectedPathStep] = useState<string | null>(null);
   const [selectedHoldEntrust, setSelectedHoldEntrust] = useState<{ hold: boolean; entrust: boolean }>({ hold: false, entrust: false });
   const [scriptureConfirmOpen, setScriptureConfirmOpen] = useState(false);
+  const [scriptureReaderIndex, setScriptureReaderIndex] = useState<number | null>(null);
   const scriptureConfirmAnim = useRef(new Animated.Value(0)).current;
   const truthNavCollapseAnim = useRef(new Animated.Value(0)).current;
   const lastTruthScrollYRef = useRef(0);
@@ -1002,6 +1035,8 @@ const TruthBeatStep: React.FC<TruthBeatStepProps> = ({
   const currentBeat = beats[currentIndex];
   const primaryText = currentBeat.primaryTruth;
   const supportingText = currentBeat.supportingTruth;
+  const scriptureBacking = currentBeat.scriptureBacking;
+  const scriptureBackingOpen = !!openScriptureBackings[currentIndex];
   const isLastBeat = currentIndex >= beats.length - 1;
   const presentation = currentBeat.presentation || 'statement';
   const reveal = currentBeat.reveal;
@@ -1147,6 +1182,22 @@ const TruthBeatStep: React.FC<TruthBeatStepProps> = ({
       create: { type: LayoutAnimation.Types.easeInEaseOut, property: LayoutAnimation.Properties.opacity },
     });
     setRevealedBeats(prev => ({ ...prev, [currentIndex]: !prev[currentIndex] }));
+  };
+
+  const toggleScriptureBacking = () => {
+    if (!scriptureBackingOpen) {
+      triggerLightHaptic();
+    }
+    LayoutAnimation.configureNext({
+      duration: scriptureBackingOpen ? 160 : 220,
+      update: { type: LayoutAnimation.Types.easeInEaseOut },
+      create: { type: LayoutAnimation.Types.easeInEaseOut, property: LayoutAnimation.Properties.opacity },
+      delete: { type: LayoutAnimation.Types.easeInEaseOut, property: LayoutAnimation.Properties.opacity },
+    });
+    setOpenScriptureBackings(previous => ({
+      ...previous,
+      [currentIndex]: !previous[currentIndex],
+    }));
   };
 
   const openScriptureConfirm = () => {
@@ -1477,7 +1528,99 @@ const TruthBeatStep: React.FC<TruthBeatStepProps> = ({
 
         {renderSupportingText()}
 
-
+        {scriptureBacking ? (
+          <StepFadeIn key={`truth-scripture-backing-${currentIndex}`} delay={240}>
+            <View style={styles.truthScriptureBackingLayer}>
+              <TouchableOpacity
+                style={styles.truthScriptureBackingHeader}
+                onPress={toggleScriptureBacking}
+                activeOpacity={0.78}
+                accessibilityRole="button"
+                accessibilityLabel="Why is this biblical?"
+                accessibilityState={{ expanded: scriptureBackingOpen }}
+              >
+                <View style={styles.truthScriptureBackingTitleRow}>
+                  <MaterialCommunityIcons name="script-text" size={14} color={Colors.faithGold} />
+                  <ThemedText weight="semiBold" style={styles.truthScriptureBackingTitle}>
+                    Why is this biblical?
+                  </ThemedText>
+                </View>
+                <Ionicons
+                  name={scriptureBackingOpen ? 'chevron-down' : 'chevron-forward'}
+                  size={14}
+                  color={Colors.faithGold}
+                />
+              </TouchableOpacity>
+              {scriptureBackingOpen ? (
+                <View style={styles.truthScriptureBackingBody}>
+                  {scriptureBacking.passages.map((passage, passageIndex) => (
+                    <View
+                      key={`${passage.reference}-${passageIndex}`}
+                      style={[
+                        styles.truthScripturePassage,
+                        passageIndex > 0 && styles.truthScripturePassageDivider,
+                      ]}
+                    >
+                      <View style={styles.truthScriptureReferenceRow}>
+                        <ThemedText selectable weight="bold" style={styles.truthScriptureReference}>
+                          {passage.reference}
+                        </ThemedText>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
+                          <TouchableOpacity
+                            style={styles.truthScriptureReadButton}
+                            onPress={() => {
+                              triggerLightHaptic();
+                              setScriptureReaderIndex(passageIndex);
+                            }}
+                            activeOpacity={0.72}
+                            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                            accessibilityRole="button"
+                            accessibilityLabel={`Read ${passage.reference}`}
+                          >
+                            <MaterialCommunityIcons
+                              name="script-text"
+                              size={16}
+                              color={Colors.faithGold}
+                            />
+                          </TouchableOpacity>
+                          {onShareScripture ? (
+                            <TouchableOpacity
+                              style={styles.truthScriptureReadButton}
+                              onPress={() => {
+                                triggerLightHaptic();
+                                onShareScripture(`${passage.connection}\n\n— ${passage.reference}`);
+                              }}
+                              activeOpacity={0.72}
+                              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                              accessibilityRole="button"
+                              accessibilityLabel={`Share ${passage.reference}`}
+                            >
+                              <Ionicons
+                                name="paper-plane-outline"
+                                size={16}
+                                color={Colors.faithGold}
+                              />
+                            </TouchableOpacity>
+                          ) : null}
+                        </View>
+                      </View>
+                      <ShareableSelectableText
+                        text={passage.connection}
+                        style={styles.truthScriptureBackingText}
+                        showShareButton={false}
+                        onShare={shareText => {
+                          triggerLightHaptic();
+                          onShareScripture?.(`${shareText}\n\n— ${passage.reference}`);
+                        }}
+                        shareIconColor={Colors.faithGold}
+                      />
+                    </View>
+                  ))}
+                </View>
+              ) : null}
+            </View>
+          </StepFadeIn>
+        ) : null}
 
         {currentBeat.enhancement ? (
           <StepFadeIn key={`truth-enhancement-${currentIndex}`} delay={280}>
@@ -1496,13 +1639,13 @@ const TruthBeatStep: React.FC<TruthBeatStepProps> = ({
             {contrastNot ? (
               <View style={styles.truthContrastCard}>
                 <ThemedText selectable weight="semiBold" style={styles.truthContrastLabel}>Not this</ThemedText>
-                <ShareableSelectableText text={contrastNot} style={styles.truthContrastText} onShare={onShareReflection} />
+                <ShareableSelectableText text={contrastNot} style={styles.truthContrastText} onShare={onShareReflection} shareIconColor={Colors.faithGold} />
               </View>
             ) : null}
             {contrastBut ? (
               <View style={[styles.truthContrastCard, styles.truthContrastCardAffirm]}>
                 <ThemedText selectable weight="semiBold" style={styles.truthContrastLabelAffirm}>But this</ThemedText>
-                <ShareableSelectableText text={contrastBut} style={styles.truthContrastText} onShare={onShareReflection} />
+                <ShareableSelectableText text={contrastBut} style={styles.truthContrastText} onShare={onShareReflection} shareIconColor={Colors.faithGold} />
               </View>
             ) : null}
           </StepFadeIn>
@@ -1513,13 +1656,13 @@ const TruthBeatStep: React.FC<TruthBeatStepProps> = ({
             {boundaryClear ? (
               <View style={styles.truthBoundaryCard}>
                 <ThemedText selectable weight="semiBold" style={styles.truthBoundaryLabel}>Scripture makes clear</ThemedText>
-                <ShareableSelectableText text={boundaryClear} style={styles.truthBoundaryText} onShare={onShareReflection} />
+                <ShareableSelectableText text={boundaryClear} style={styles.truthBoundaryText} onShare={onShareReflection} shareIconColor={Colors.faithGold} />
               </View>
             ) : null}
             {boundaryCaution ? (
               <View style={styles.truthBoundaryCard}>
                 <ThemedText selectable weight="semiBold" style={styles.truthBoundaryLabel}>Do not overclaim</ThemedText>
-                <ShareableSelectableText text={boundaryCaution} style={styles.truthBoundaryText} onShare={onShareReflection} />
+                <ShareableSelectableText text={boundaryCaution} style={styles.truthBoundaryText} onShare={onShareReflection} shareIconColor={Colors.faithGold} />
               </View>
             ) : null}
           </StepFadeIn>
@@ -1530,7 +1673,7 @@ const TruthBeatStep: React.FC<TruthBeatStepProps> = ({
             {twoTruths.slice(0, 2).map(item => (
               <View key={`${item.label}-${item.text}`} style={styles.truthTwoCard}>
                 <ThemedText selectable weight="semiBold" style={styles.truthTwoLabel}>{item.label}</ThemedText>
-                <ShareableSelectableText text={item.text} style={styles.truthTwoText} onShare={onShareReflection} />
+                <ShareableSelectableText text={item.text} style={styles.truthTwoText} onShare={onShareReflection} shareIconColor={Colors.faithGold} />
               </View>
             ))}
           </StepFadeIn>
@@ -1558,13 +1701,13 @@ const TruthBeatStep: React.FC<TruthBeatStepProps> = ({
                 {reflectionQuestions.map(question => (
                   <View key={question} style={styles.truthQuestionRow}>
                     <ThemedText weight="bold" style={styles.truthQuestionMark}>?</ThemedText>
-                    <ShareableSelectableText text={question} style={styles.truthQuestionText} containerStyle={styles.truthQuestionTextContainer} onShare={onShareReflection} />
+                    <ShareableSelectableText text={question} style={styles.truthQuestionText} containerStyle={styles.truthQuestionTextContainer} onShare={onShareReflection} shareIconColor={Colors.faithGold} />
                   </View>
                 ))}
               </View>
             ) : revealOpen && reveal?.content ? (
               <View style={styles.truthRevealCard}>
-                <ShareableSelectableText text={reveal.content} style={styles.truthRevealText} onShare={onShareReflection} />
+                <ShareableSelectableText text={reveal.content} style={styles.truthRevealText} onShare={onShareReflection} shareIconColor={Colors.faithGold} />
               </View>
             ) : null}
           </StepFadeIn>
@@ -1577,7 +1720,7 @@ const TruthBeatStep: React.FC<TruthBeatStepProps> = ({
                 <Ionicons name="bookmark-outline" size={14} color={Colors.faithGold} />
                 <ThemedText selectable weight="semiBold" style={styles.truthCarryLabel}>Truth to Carry</ThemedText>
               </View>
-              <ShareableSelectableText text={truthToCarry} weight="semiBold" style={styles.truthCarryText} onShare={onShareReflection} />
+              <ShareableSelectableText text={truthToCarry} weight="semiBold" style={styles.truthCarryText} onShare={onShareReflection} shareIconColor={Colors.faithGold} />
             </View>
           </StepFadeIn>
         ) : null}
@@ -1672,6 +1815,14 @@ const TruthBeatStep: React.FC<TruthBeatStepProps> = ({
           </TouchableOpacity>
         </Animated.View>
       </Animated.View>
+
+      <ScriptureReaderModal
+        visible={scriptureReaderIndex !== null}
+        passages={scriptureBacking?.passages || []}
+        initialIndex={scriptureReaderIndex || 0}
+        version={bibleVersion}
+        onClose={() => setScriptureReaderIndex(null)}
+      />
 
       {scriptureConfirmOpen ? (
         <View style={styles.truthScriptureConfirmOverlay}>
@@ -1848,6 +1999,7 @@ const TruthInLoveStep: React.FC<TruthStepProps> = (props) => {
         onBeatNext={props.onBeatNext || props.onNext}
         onBeatBack={props.onBeatBack || (() => {})}
         onGoToScripture={props.onGoToScripture}
+        bibleVersion={props.bibleVersion}
       />
     );
   }
@@ -2226,7 +2378,7 @@ const ScriptureAnchorStep: React.FC<ScriptureStepProps> = ({ reference, text, ve
                 accessibilityRole="button"
                 accessibilityLabel="Share this Scripture"
               >
-                <Ionicons name="share-outline" size={15} color={Colors.faithGold} />
+                <Ionicons name="paper-plane-outline" size={15} color={Colors.hopeWhite} />
               </TouchableOpacity>
             ) : null}
           </View>
@@ -2252,26 +2404,24 @@ const ScriptureAnchorStep: React.FC<ScriptureStepProps> = ({ reference, text, ve
         bibleVersion={version || 'NASB'}
       />
 
-      <View style={[styles.reflectionBlock, { marginLeft: 12 }]}>
+      <View style={styles.reflectionBlock}>
         {reflectionLines.map((line, i) => (
-          <StepFadeIn key={i} delay={190 + i * 60}>
+          <StepFadeIn
+            key={i}
+            delay={190 + i * 60}
+            style={[styles.scriptureNoteItem, i > 0 && styles.scriptureNoteDivider]}
+          >
             <View style={styles.completionActionItem}>
               <View style={[styles.completionActionCircle, { width: 22, height: 22, borderRadius: 11 }]}>
                 <Ionicons name="sparkles" size={11} color={Colors.alertCoral} />
               </View>
-              {Platform.OS === 'ios' ? (
-                <TextInput
-                  value={line}
-                  editable={false}
-                  multiline={true}
-                  scrollEnabled={false}
-                  style={[styles.completionActionLine, { fontFamily }]}
-                />
-              ) : (
-                <ThemedText style={styles.completionActionLine} selectable={true}>
-                  {line}
-                </ThemedText>
-              )}
+              <ShareableSelectableText
+                text={line}
+                style={[styles.completionActionLine, { flex: undefined }]}
+                containerStyle={{ flex: 1 }}
+                onShare={onShareScripture}
+                showShareButton={false}
+              />
             </View>
           </StepFadeIn>
         ))}
@@ -6475,22 +6625,35 @@ const PrayerStep: React.FC<PrayerStepProps> = ({ prayer, playbookTitle, playbook
   const fontFamily = getFontFamily(fontKey, 'regular');
   const [hasPrayed, setHasPrayed] = useState(persistedHasPrayed);
   const [showButton, setShowButton] = useState(persistedHasPrayed); // show immediately if already prayed
-  const fadeAnim = useRef(new Animated.Value(persistedHasPrayed ? 1 : 0)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const shareFadeAnim = useRef(new Animated.Value(0)).current;
   const createPrayerMutation = useCreateDevotionalPrayer();
 
   useEffect(() => {
-    if (persistedHasPrayed) { return; } // already visible, skip delay
-    const timer = setTimeout(() => {
+    const animateIn = () => {
       setShowButton(true);
-      Animated.spring(fadeAnim, {
-        toValue: 1,
-        tension: 80,
-        friction: 8,
-        useNativeDriver: true,
-      }).start();
-    }, 600);
+      Animated.stagger(220, [
+        Animated.spring(fadeAnim, {
+          toValue: 1,
+          tension: 80,
+          friction: 8,
+          useNativeDriver: true,
+        }),
+        Animated.spring(shareFadeAnim, {
+          toValue: 1,
+          tension: 80,
+          friction: 8,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    };
+    if (persistedHasPrayed) {
+      animateIn(); // already prayed — still animate, just skip the delay
+      return;
+    }
+    const timer = setTimeout(animateIn, 600);
     return () => clearTimeout(timer);
-  }, [fadeAnim]);
+  }, [fadeAnim, shareFadeAnim]);
 
   // Ensure prayer always ends with the closing — append for old playbooks that don't have it
   const fullPrayer = /In Jesus'? [Nn]ame|[Aa]men/i.test(prayer)
@@ -6645,17 +6808,32 @@ const PrayerStep: React.FC<PrayerStepProps> = ({ prayer, playbookTitle, playbook
             </TouchableOpacity>
           </View>
           {onSharePrayer ? (
-            <View style={styles.prayerActionSharePill}>
+            <Animated.View
+              style={[
+                styles.prayerActionSharePill,
+                {
+                  opacity: shareFadeAnim,
+                  transform: [
+                    {
+                      scale: shareFadeAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0.6, 1],
+                      }),
+                    },
+                  ],
+                },
+              ]}
+            >
               <TouchableOpacity
-                onPress={() => { triggerLightHaptic(); onSharePrayer(fullPrayer.replace(/\n{2,}/g, '\n')); }}
+                onPress={() => { triggerLightHaptic(); onSharePrayer(normalizePrayerText(fullPrayer).trim()); }}
                 activeOpacity={0.7}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 accessibilityRole="button"
                 accessibilityLabel="Share this prayer"
               >
-                <Ionicons name="share-outline" size={17} color={Colors.faithGold} />
+                <Ionicons name="paper-plane-outline" size={17} color={Colors.hopeWhite} />
               </TouchableOpacity>
-            </View>
+            </Animated.View>
           ) : null}
         </Animated.View>
       )}
@@ -6674,26 +6852,39 @@ interface WordToSpeakStepProps {
 }
 
 const WordToSpeakStep: React.FC<WordToSpeakStepProps> = ({ word, playbookId, onShareWord, onNext: _onNext, insets }) => {
-  const { currentFont } = useTheme();
-  const fontKey = currentFont || 'lexend';
-  const fontFamily = getFontFamily(fontKey, 'regular');
   const [hasRead, setHasRead] = useState(persistedHasRead);
   const [showButton, setShowButton] = useState(persistedHasRead); // show immediately if already read
-  const fadeAnim = useRef(new Animated.Value(persistedHasRead ? 1 : 0)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const shareFadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    if (persistedHasRead) { return; } // already visible, skip delay
-    const timer = setTimeout(() => {
+    const animateIn = () => {
       setShowButton(true);
-      Animated.spring(fadeAnim, {
-        toValue: 1,
-        tension: 80,
-        friction: 8,
-        useNativeDriver: true,
-      }).start();
-    }, 600);
+      Animated.stagger(220, [
+        Animated.spring(fadeAnim, {
+          toValue: 1,
+          tension: 80,
+          friction: 8,
+          useNativeDriver: true,
+        }),
+        Animated.spring(shareFadeAnim, {
+          toValue: 1,
+          tension: 80,
+          friction: 8,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    };
+    if (persistedHasRead) {
+      animateIn(); // already read — still animate, just skip the delay
+      return;
+    }
+    const timer = setTimeout(animateIn, 600);
     return () => clearTimeout(timer);
-  }, [fadeAnim]);
+  }, [fadeAnim, shareFadeAnim]);
+
+  const wordLines = splitParagraphs(word);
+  const wordShareText = `WORDS TO SPEAK OVER YOURSELF\n\n${wordLines.map((line, i) => `${i + 1}. ${line}`).join('\n\n')}`;
 
   const handleRead = () => {
     const nowRead = !hasRead;
@@ -6726,7 +6917,7 @@ const WordToSpeakStep: React.FC<WordToSpeakStepProps> = ({ word, playbookId, onS
 
         {/* Word card */}
         <StepFadeIn delay={100} style={[styles.wordBlock, { marginTop: 32 }]}>
-          {splitParagraphs(word).map((line, i) => (
+          {wordLines.map((line, i) => (
             <View key={i} style={styles.wordLineRow}>
               <View style={styles.wordNumberContainer}>
                 <View style={styles.wordNumberCircle}>
@@ -6735,19 +6926,14 @@ const WordToSpeakStep: React.FC<WordToSpeakStepProps> = ({ word, playbookId, onS
                   </ThemedText>
                 </View>
               </View>
-              {Platform.OS === 'ios' ? (
-                <TextInput
-                  value={line}
-                  editable={false}
-                  multiline={true}
-                  scrollEnabled={false}
-                  style={[styles.wordText, { fontWeight: '500' as any, fontFamily }]}
-                />
-              ) : (
-                <ThemedText weight="medium" style={styles.wordText} selectable={true}>
-                  {line}
-                </ThemedText>
-              )}
+              <ShareableSelectableText
+                text={line}
+                weight="medium"
+                style={[styles.wordText, { flex: undefined }]}
+                containerStyle={{ flex: 1 }}
+                onShare={onShareWord ? () => onShareWord(wordShareText) : undefined}
+                showShareButton={false}
+              />
             </View>
           ))}
         </StepFadeIn>
@@ -6794,17 +6980,32 @@ const WordToSpeakStep: React.FC<WordToSpeakStepProps> = ({ word, playbookId, onS
             </TouchableOpacity>
           </View>
           {onShareWord ? (
-            <View style={styles.prayerActionSharePill}>
+            <Animated.View
+              style={[
+                styles.prayerActionSharePill,
+                {
+                  opacity: shareFadeAnim,
+                  transform: [
+                    {
+                      scale: shareFadeAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0.6, 1],
+                      }),
+                    },
+                  ],
+                },
+              ]}
+            >
               <TouchableOpacity
-                onPress={() => { triggerLightHaptic(); onShareWord(`WORDS TO SPEAK OVER MYSELF\n\n${splitParagraphs(word).map((line, i) => `${i + 1}. ${line}`).join('\n\n')}`); }}
+                onPress={() => { triggerLightHaptic(); onShareWord(wordShareText); }}
                 activeOpacity={0.7}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 accessibilityRole="button"
                 accessibilityLabel="Share this declaration"
               >
-                <Ionicons name="share-outline" size={17} color={Colors.faithGold} />
+                <Ionicons name="paper-plane-outline" size={17} color={Colors.hopeWhite} />
               </TouchableOpacity>
-            </View>
+            </Animated.View>
           ) : null}
         </Animated.View>
       )}
@@ -7515,7 +7716,7 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
       toValue: 1,
       tension: 60,
       friction: 6,
-      delay: 250,
+      delay: 600,
       useNativeDriver: true,
     }).start();
     const collapseTimer = setTimeout(() => {
@@ -8206,6 +8407,7 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
                 onBeatNext={goNext}
                 onBeatBack={goBack}
                 onGoToScripture={goToScriptureFromTruth}
+                bibleVersion={preferredBibleTranslation}
                 onOpenRefinement={() => {
                   triggerLightHaptic();
                   if (refinementsRemaining === 0) {
@@ -8224,6 +8426,13 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
                 onShareReflection={reflectionText => {
                   setShareReflectionText(reflectionText);
                   setShareTextColor(undefined);
+                  setShareLineHeightMultiplier(undefined);
+                  setShareNoSplit(undefined);
+                  setShowTruthShareComposer(true);
+                }}
+                onShareScripture={scriptureText => {
+                  setShareReflectionText(scriptureText);
+                  setShareTextColor(Colors.alertCoral);
                   setShareLineHeightMultiplier(undefined);
                   setShareNoSplit(undefined);
                   setShowTruthShareComposer(true);
@@ -8428,7 +8637,7 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}
             >
-              <Ionicons name="share-outline" size={17} color="rgba(255,255,255,0.65)" />
+              <Ionicons name="paper-plane-outline" size={17} color="rgba(255,255,255,0.65)" />
             </TouchableOpacity>
           </Animated.View>
         </>
@@ -8917,13 +9126,13 @@ const styles = StyleSheet.create({
   truthContrastLabel: {
     fontSize: 12,
     lineHeight: 16,
-    color: 'rgba(255,255,255,0.56)',
+    color: Colors.faithGold,
     marginBottom: 8,
   },
   truthContrastLabelAffirm: {
     fontSize: 12,
     lineHeight: 16,
-    color: Colors.alertCoral,
+    color: Colors.faithGold,
     marginBottom: 8,
   },
   truthContrastText: {
@@ -9006,6 +9215,75 @@ const styles = StyleSheet.create({
   truthQuestionTextContainer: {
     flex: 1,
     width: undefined,
+  },
+  truthScriptureBackingLayer: {
+    marginTop: 18,
+    alignSelf: 'stretch',
+  },
+  truthScriptureBackingHeader: {
+    alignSelf: 'flex-start',
+    minHeight: 32,
+    paddingVertical: 5,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+  },
+  truthScriptureBackingTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  truthScriptureBackingTitle: {
+    fontSize: 12,
+    lineHeight: 17,
+    color: Colors.faithGold,
+    letterSpacing: 0.8,
+  },
+  truthScriptureBackingBody: {
+    marginTop: 7,
+    paddingLeft: 12,
+    paddingRight: 4,
+    borderLeftWidth: 2,
+    borderLeftColor: 'rgba(255,204,102,0.38)',
+  },
+  truthScriptureBackingEyebrow: {
+    marginBottom: 4,
+    fontSize: 10,
+    lineHeight: 14,
+    letterSpacing: 0.9,
+    color: 'rgba(255,204,102,0.74)',
+  },
+  truthScripturePassage: {
+    paddingVertical: 8,
+  },
+  truthScripturePassageDivider: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: 'rgba(255,255,255,0.12)',
+  },
+  truthScriptureReference: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: Colors.hopeWhite,
+  },
+  truthScriptureReferenceRow: {
+    minHeight: 28,
+    marginBottom: 3,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+  },
+  truthScriptureReadButton: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,204,102,0.08)',
+  },
+  truthScriptureBackingText: {
+    fontSize: 14,
+    lineHeight: 21,
+    color: 'rgba(255,255,255,0.74)',
   },
   truthRevealButton: {
     alignSelf: 'flex-start',
@@ -9714,9 +9992,20 @@ const styles = StyleSheet.create({
     lineHeight: 28,
   },
   reflectionBlock: {
-    gap: 8,
+    marginHorizontal: 12,
     marginBottom: 40,
-    paddingHorizontal: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.16)',
+    borderRadius: 18,
+    overflow: 'hidden',
+  },
+  scriptureNoteItem: {
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+  },
+  scriptureNoteDivider: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: 'rgba(255,255,255,0.14)',
   },
   reflectionNote: {
     fontSize: 16,

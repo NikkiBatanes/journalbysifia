@@ -44,6 +44,12 @@ export type TruthBeatPresentation =
 
 export interface TruthBeat {
   enhancement?: import('../../supabase/functions/_shared/truthScreenEnhancement').TruthScreenEnhancement;
+  scriptureBacking?: {
+    passages: Array<{
+      reference: string;
+      connection: string;
+    }>;
+  };
   label: string;
   primaryTruth: string;
   supportingTruth?: string;
@@ -90,6 +96,12 @@ export interface TruthBeat {
 
 export interface TruthInLove {
   summaryEnhancement?: import('../../supabase/functions/_shared/truthScreenEnhancement').TruthScreenEnhancement;
+  summaryScriptureBacking?: {
+    passages: Array<{
+      reference: string;
+      connection: string;
+    }>;
+  };
   text: string;
   summary: string;
   beats?: TruthBeat[];
