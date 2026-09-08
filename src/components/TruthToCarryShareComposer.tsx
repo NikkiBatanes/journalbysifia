@@ -1129,7 +1129,7 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     backgroundColor: 'rgba(255,255,255,0.07)',
     borderWidth: 1,
-    borderColor: 'rgba(255,107,107,0.22)',
+    borderColor: 'rgba(255,255,255,0.15)',
   },
   upgradeIcon: {
     width: 34,
@@ -1161,7 +1161,7 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
   },
   growthPillText: {
-    color: Colors.anchorBlue,
+    color: Colors.hopeWhite,
     fontFamily: getFontFamily('lexend', 'semiBold'),
     fontSize: 10,
     lineHeight: 13,
