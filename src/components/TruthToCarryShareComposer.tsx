@@ -340,10 +340,10 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
           supporting: getFontFamily('poppins', 'regular'),
         }
         : {
-          primary: 'GreatVibes-Regular',
+          primary: 'AlexBrush-Regular',
           supporting: getFontFamily('lora', 'regular'),
         };
-    const scriptBoost = typography === 'script' ? 1.22 : 1;
+    const scriptBoost = typography === 'script' ? 1.5 : 1;
     const primaryFontSize = (baseText?.fontSize ?? 17) * sizeScale * scriptBoost;
     const primaryLineHeight = (baseText?.lineHeight ?? 24) * sizeScale * scriptBoost;
     const primaryTextStyle = {
@@ -352,19 +352,17 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
       lineHeight: primaryLineHeight,
       textAlign,
     };
+    const supportingRatio = typography === 'script' ? 0.55 : 0.67;
     const supportingTextStyle = {
       fontFamily: typographyStyle.supporting,
-      fontSize: Math.max(11, primaryFontSize * 0.67),
-      lineHeight: Math.max(16, primaryLineHeight * 0.72),
+      fontSize: Math.max(11, primaryFontSize * supportingRatio),
+      lineHeight: Math.max(16, primaryLineHeight * supportingRatio),
       textAlign,
     };
 
     const content = (
       <View style={styles.cardContent}>
-        <View style={styles.cardLabelRow}>
-          <View style={[styles.cardLabelRule, { backgroundColor: watermarkColor }]} />
-          <ThemedText weight="semiBold" style={[styles.cardLabel, { color: watermarkColor }]}>siFia REFLECTION</ThemedText>
-        </View>
+
         <View style={styles.shareCopy}>
           <Text style={[styles.shareText, primaryTextStyle]}>{primaryText || text}</Text>
           {supportingText ? (
@@ -374,6 +372,11 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
             </>
           ) : null}
         </View>
+        <Image
+          source={require('../../assets/icons/siFia-logo-white.png')}
+          resizeMode="contain"
+          style={styles.cardBrandMark}
+        />
         <View style={styles.watermarkRow}>
           {isSeeker ? (
             <>
@@ -711,6 +714,13 @@ const styles = StyleSheet.create({
     marginBottom: 14,
     position: 'relative',
   },
+  cardBrandMark: {
+    position: 'absolute',
+    bottom: 30,
+    alignSelf: 'center',
+    width: 44,
+    height: 18,
+  },
   carouselPage: {
     width: CAROUSEL_ITEM_WIDTH,
     height: CARD_HEIGHT,
@@ -744,21 +754,7 @@ const styles = StyleSheet.create({
     paddingTop: 30,
     paddingBottom: 22,
   },
-  cardLabelRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  cardLabelRule: {
-    width: 24,
-    height: 2,
-    borderRadius: 1,
-  },
-  cardLabel: {
-    fontSize: 10,
-    lineHeight: 14,
-    letterSpacing: 1.4,
-  },
+
   shareText: {
     color: Colors.hopeWhite,
     textAlign: 'center',
@@ -769,6 +765,8 @@ const styles = StyleSheet.create({
   },
   shareCopy: {
     width: '100%',
+    flex: 1,
+    justifyContent: 'center',
   },
   supportingRule: {
     width: 28,

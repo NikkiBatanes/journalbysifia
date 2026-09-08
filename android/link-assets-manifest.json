@@ -2,6 +2,18 @@
   "migIndex": 1,
   "data": [
     {
+      "path": "assets/fonts/AlexBrush/AlexBrush-Regular.ttf",
+      "sha1": "c4bf8b453fa5138537f8c3f5dd0adb87337c23bc"
+    },
+    {
+      "path": "assets/fonts/Allura/Allura-Regular.ttf",
+      "sha1": "b301dc43880e7597184f2e3acc11270ef6cbab4c"
+    },
+    {
+      "path": "assets/fonts/DancingScript/DancingScript-Regular.ttf",
+      "sha1": "7b57f8d314ea7782e26c2fa7e7a06ba4db564724"
+    },
+    {
       "path": "assets/fonts/GreatVibes/GreatVibes-Regular.ttf",
       "sha1": "7904ee6600d331678424b639ca85dcfc36b5d12c"
     },

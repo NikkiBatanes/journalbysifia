@@ -1473,23 +1473,7 @@ const TruthBeatStep: React.FC<TruthBeatStepProps> = ({
 
         {renderSupportingText()}
 
-        {onShareReflection ? (
-          <StepFadeIn key={`truth-create-post-${currentIndex}`} delay={240}>
-            <TouchableOpacity
-              accessibilityRole="button"
-              accessibilityLabel="Create post from primary and supporting truth"
-              activeOpacity={0.72}
-              style={styles.truthCreatePostButton}
-              onPress={() => {
-                triggerLightHaptic();
-                onShareReflection(buildTruthPostText(primaryText, supportingText, userName));
-              }}
-            >
-              <MaterialCommunityIcons name="star-four-points" size={16} color={Colors.faithGold} />
-              <ThemedText weight="semiBold" style={styles.truthCreatePostText}>Create post</ThemedText>
-            </TouchableOpacity>
-          </StepFadeIn>
-        ) : null}
+
 
         {currentBeat.enhancement ? (
           <StepFadeIn key={`truth-enhancement-${currentIndex}`} delay={280}>
@@ -1594,6 +1578,8 @@ const TruthBeatStep: React.FC<TruthBeatStepProps> = ({
           </StepFadeIn>
         ) : null}
       </ScrollView>
+
+
 
       <Animated.View style={[styles.truthBeatNav, { bottom: insets.bottom + 20 }]}>
         <Animated.View
@@ -7251,6 +7237,9 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
   const coverPage = getPlaybookCover(playbook);
   const truthBeats = personalizeTruthContent(getTruthBeats(playbook, userName), userName);
   const truthToCarry = personalizeTruthContent(getTruthToCarry(playbook), userName);
+  const currentTruthBeatForShare = truthBeats[Math.min(Math.max(truthBeatIndex, 0), truthBeats.length - 1)];
+  const currentTruthBeatPrimary = currentTruthBeatForShare?.primaryTruth || '';
+  const currentTruthBeatSupporting = currentTruthBeatForShare?.supportingTruth;
   const hasLoadedPlaybook = !!playbook;
 
   const refinementsRemaining = refinementLimit === -1
@@ -7447,6 +7436,45 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
   const scriptureNextAnim = useRef(new Animated.Value(1)).current;
   // Prayer (step 4) next button animates in
   const prayerNextAnim = useRef(new Animated.Value(0)).current;
+  // Create-post pill: bounces in on step entry, then collapses to icon after a delay
+  const [showCreatePostPill, setShowCreatePostPill] = useState(false);
+  const createPostLabelAnim = useRef(new Animated.Value(1)).current;
+  const createPostEntranceAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (stepIndex !== 1 || truthBeats.length === 0) {
+      if (showCreatePostPill) {
+        Animated.timing(createPostEntranceAnim, {
+          toValue: 0,
+          duration: 260,
+          easing: Easing.in(Easing.cubic),
+          useNativeDriver: true,
+        }).start(({ finished }) => {
+          if (finished) { setShowCreatePostPill(false); }
+        });
+      }
+      return;
+    }
+    setShowCreatePostPill(true);
+    createPostLabelAnim.setValue(1);
+    createPostEntranceAnim.setValue(0);
+    Animated.spring(createPostEntranceAnim, {
+      toValue: 1,
+      tension: 60,
+      friction: 6,
+      delay: 250,
+      useNativeDriver: true,
+    }).start();
+    const collapseTimer = setTimeout(() => {
+      Animated.timing(createPostLabelAnim, {
+        toValue: 0,
+        duration: 320,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: false,
+      }).start();
+    }, 1800);
+    return () => clearTimeout(collapseTimer);
+  }, [stepIndex, createPostLabelAnim, createPostEntranceAnim, truthBeats.length, showCreatePostPill]);
 
 
   // Animate share button in when we hit step 6
@@ -8249,6 +8277,48 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
           </TouchableOpacity>
         </View>
 
+      {/* Create post — top right, Truth in Love beat pages only */}
+      {showCreatePostPill && (
+        <Animated.View
+          style={[
+            styles.truthCreatePostFloating,
+            { top: insets.top + 8 },
+            {
+              opacity: createPostEntranceAnim,
+              transform: [
+                { translateX: createPostEntranceAnim.interpolate({ inputRange: [0, 1], outputRange: [60, 0] }) },
+                { scale: createPostEntranceAnim.interpolate({ inputRange: [0, 1], outputRange: [0.5, 1] }) },
+              ],
+            },
+          ]}
+          pointerEvents="box-none"
+        >
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel="Create post from primary and supporting truth"
+            activeOpacity={0.72}
+            style={styles.truthCreatePostPill}
+            onPress={() => {
+              triggerLightHaptic();
+              setShareReflectionText(buildTruthPostText(currentTruthBeatPrimary, currentTruthBeatSupporting, userName));
+              setShowTruthShareComposer(true);
+            }}
+          >
+            <MaterialCommunityIcons name="star-four-points" size={16} color={Colors.faithGold} />
+            <Animated.View
+              style={{
+                overflow: 'hidden',
+                opacity: createPostLabelAnim,
+                maxWidth: createPostLabelAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 90] }),
+                marginLeft: createPostLabelAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 7] }),
+              }}
+            >
+              <ThemedText weight="semiBold" style={styles.truthCreatePostText} numberOfLines={1}>Create post</ThemedText>
+            </Animated.View>
+          </TouchableOpacity>
+        </Animated.View>
+      )}
+
       {/* Animated share button — top left, completion page only */}
       {stepIndex === 6 && (
         <>
@@ -8723,18 +8793,23 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.78)',
     marginTop: 22,
   },
-  truthCreatePostButton: {
-    alignSelf: 'flex-start',
+  truthCreatePostFloating: {
+    position: 'absolute',
+    right: 70,
+    height: 42,
+    justifyContent: 'center',
+    zIndex: 100,
+  },
+  truthCreatePostPill: {
+    height: 42,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 7,
-    marginTop: 16,
+    justifyContent: 'center',
     paddingHorizontal: 13,
-    paddingVertical: 9,
-    borderRadius: 999,
+    borderRadius: 21,
     borderWidth: 1,
     borderColor: 'rgba(245,166,35,0.28)',
-    backgroundColor: 'rgba(232,184,109,0.07)',
+    backgroundColor: 'rgba(232,184,109,0.10)',
   },
   truthCreatePostText: {
     color: Colors.faithGold,

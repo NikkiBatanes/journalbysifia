@@ -31,6 +31,9 @@
 		ED3D520D83354468A016F1B8 /* Lora-SemiBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 0236ACB8DAE6421C87EDBC23 /* Lora-SemiBold.ttf */; };
 		FFDBD14C30E442AF93231B7C /* Poppins-SemiBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 884EE6073AEE4AC7BB2FD40A /* Poppins-SemiBold.ttf */; };
 		F64F75FDC2374FD8B050C0A7 /* GreatVibes-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 5608835C08AD4377BE0FE566 /* GreatVibes-Regular.ttf */; };
+		1CC5CB56316943A7A38E8663 /* DancingScript-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 41BBBFAE4F8542B4BA2367E9 /* DancingScript-Regular.ttf */; };
+		1E6A7623AF6A40AF892E71B3 /* Allura-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = BBABE04A412440D3BC974702 /* Allura-Regular.ttf */; };
+		F54AE62EBA9E4307958CDFDB /* AlexBrush-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = A541C99736F94480818FEB74 /* AlexBrush-Regular.ttf */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -66,6 +69,9 @@
 		F3E5E6C36DE54FF0A0AB4FA4 /* Lexend-Medium.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Lexend-Medium.ttf"; path = "../assets/fonts/Lexend/Lexend-Medium.ttf"; sourceTree = "<group>"; };
 		FEF5C05996784F21B3BF2BB0 /* Lexend-Bold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Lexend-Bold.ttf"; path = "../assets/fonts/Lexend/Lexend-Bold.ttf"; sourceTree = "<group>"; };
 		5608835C08AD4377BE0FE566 /* GreatVibes-Regular.ttf */ = {isa = PBXFileReference; name = "GreatVibes-Regular.ttf"; path = "../assets/fonts/GreatVibes/GreatVibes-Regular.ttf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
+		41BBBFAE4F8542B4BA2367E9 /* DancingScript-Regular.ttf */ = {isa = PBXFileReference; name = "DancingScript-Regular.ttf"; path = "../assets/fonts/DancingScript/DancingScript-Regular.ttf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
+		BBABE04A412440D3BC974702 /* Allura-Regular.ttf */ = {isa = PBXFileReference; name = "Allura-Regular.ttf"; path = "../assets/fonts/Allura/Allura-Regular.ttf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
+		A541C99736F94480818FEB74 /* AlexBrush-Regular.ttf */ = {isa = PBXFileReference; name = "AlexBrush-Regular.ttf"; path = "../assets/fonts/AlexBrush/AlexBrush-Regular.ttf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -168,6 +174,9 @@
 				69025D5AE32D4F0C9E300580 /* Poppins-Regular.ttf */,
 				884EE6073AEE4AC7BB2FD40A /* Poppins-SemiBold.ttf */,
 				5608835C08AD4377BE0FE566 /* GreatVibes-Regular.ttf */,
+				41BBBFAE4F8542B4BA2367E9 /* DancingScript-Regular.ttf */,
+				BBABE04A412440D3BC974702 /* Allura-Regular.ttf */,
+				A541C99736F94480818FEB74 /* AlexBrush-Regular.ttf */,
 			);
 			name = Resources;
 			sourceTree = "<group>";
@@ -252,6 +261,9 @@
 				1EAD0C3167834E3FA012806E /* Poppins-Regular.ttf in Resources */,
 				FFDBD14C30E442AF93231B7C /* Poppins-SemiBold.ttf in Resources */,
 				F64F75FDC2374FD8B050C0A7 /* GreatVibes-Regular.ttf in Resources */,
+				1CC5CB56316943A7A38E8663 /* DancingScript-Regular.ttf in Resources */,
+				1E6A7623AF6A40AF892E71B3 /* Allura-Regular.ttf in Resources */,
+				F54AE62EBA9E4307958CDFDB /* AlexBrush-Regular.ttf in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
