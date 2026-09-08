@@ -101,6 +101,9 @@ const buildTemplates = (): ShareTemplate[] => {
 interface TruthToCarryShareComposerProps {
   visible: boolean;
   text: string;
+  textColor?: string;
+  lineHeightMultiplier?: number;
+  noSplit?: boolean;
   userId: string;
   onClose: () => void;
   onUpgrade: () => void;
@@ -109,6 +112,9 @@ interface TruthToCarryShareComposerProps {
 const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
   visible,
   text,
+  textColor,
+  lineHeightMultiplier,
+  noSplit,
   userId,
   onClose,
   onUpgrade,
@@ -116,6 +122,7 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
   const insets = useSafeAreaInsets();
   const sheetAnim = useRef(new Animated.Value(0)).current;
   const editorAnim = useRef(new Animated.Value(0)).current;
+  const watermarkUpsellAnim = useRef(new Animated.Value(0)).current;
   const closing = useRef(false);
   const cardRefs = useRef<Array<ViewShot | null>>([]);
   const carouselRef = useRef<FlatList<ShareTemplate>>(null);
@@ -151,6 +158,7 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
     setTextAlign('center');
     setEditorOpen(false);
     editorAnim.setValue(0);
+    watermarkUpsellAnim.setValue(0);
     requestAnimationFrame(() => carouselRef.current?.scrollToOffset({ offset: 0, animated: false }));
 
     let cancelled = false;
@@ -173,7 +181,21 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [editorAnim, userId, visible]);
+  }, [editorAnim, userId, visible, watermarkUpsellAnim]);
+
+  useEffect(() => {
+    if (isSeeker !== true) {
+      watermarkUpsellAnim.setValue(0);
+      return;
+    }
+    Animated.timing(watermarkUpsellAnim, {
+      toValue: 1,
+      duration: 320,
+      delay: 100,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: false,
+    }).start();
+  }, [isSeeker, watermarkUpsellAnim]);
 
   const toggleEditor = useCallback(() => {
     const opening = !editorOpen;
@@ -327,8 +349,11 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
         : styles.shareTextLarge;
     const baseText = StyleSheet.flatten(textStyle);
     const sizeScale = TEXT_SIZE_SCALE[textSize];
-    const [primaryText, ...supportingParts] = text.split(/\n\s*\n/).map(part => part.trim()).filter(Boolean);
-    const supportingText = supportingParts.join('\n\n');
+    const shareParts = noSplit
+      ? [text.trim()]
+      : text.split(/\n\s*\n/).map(part => part.trim()).filter(Boolean);
+    const primaryText = shareParts[0] || '';
+    const supportingText = noSplit ? '' : shareParts.slice(1).join('\n\n');
     const typographyStyle = typography === 'classic'
       ? {
         primary: getFontFamily('lora', 'bold'),
@@ -345,7 +370,7 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
         };
     const scriptBoost = typography === 'script' ? 1.5 : 1;
     const primaryFontSize = (baseText?.fontSize ?? 17) * sizeScale * scriptBoost;
-    const primaryLineHeight = (baseText?.lineHeight ?? 24) * sizeScale * scriptBoost;
+    const primaryLineHeight = (baseText?.lineHeight ?? 24) * sizeScale * scriptBoost * (lineHeightMultiplier ?? 1);
     const primaryTextStyle = {
       fontFamily: typographyStyle.primary,
       fontSize: primaryFontSize,
@@ -364,26 +389,21 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
       <View style={styles.cardContent}>
 
         <View style={styles.shareCopy}>
-          <Text style={[styles.shareText, primaryTextStyle]}>{primaryText || text}</Text>
+          <Text style={[styles.shareText, { color: Colors.hopeWhite }, primaryTextStyle]}>{primaryText || text}</Text>
           {supportingText ? (
             <>
               <View style={[styles.supportingRule, textAlign === 'left' && styles.supportingRuleLeft, textAlign === 'right' && styles.supportingRuleRight]} />
-              <Text style={[styles.shareText, styles.supportingText, supportingTextStyle]}>{supportingText}</Text>
+              <Text style={[styles.shareText, styles.supportingText, { color: textColor ?? 'rgba(255,255,255,0.88)' }, supportingTextStyle]}>{supportingText}</Text>
             </>
           ) : null}
         </View>
-        <Image
-          source={require('../../assets/icons/siFia-logo-white.png')}
-          resizeMode="contain"
-          style={styles.cardBrandMark}
-        />
         <View style={styles.watermarkRow}>
           {isSeeker ? (
             <>
               <Image
                 source={require('../../assets/icons/siFia-logo-white.png')}
                 resizeMode="contain"
-                style={[styles.watermarkLogo, { tintColor: watermarkColor }]}
+                style={styles.watermarkLogo}
               />
               <ThemedText weight="medium" style={[styles.watermarkUrl, { color: watermarkColor }]}>www.sifia.app</ThemedText>
             </>
@@ -417,7 +437,7 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
         </View>
       </View>
     );
-  }, [isSeeker, text, textAlign, textSize, typography]);
+  }, [isSeeker, text, textAlign, textSize, typography, textColor, lineHeightMultiplier, noSplit]);
 
   const shareActions = [
     { id: 'instagram', label: 'Instagram', icon: 'logo-instagram', onPress: shareToInstagram },
@@ -634,18 +654,32 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
           </View>
 
           {isSeeker ? (
-            <TouchableOpacity style={styles.upgradeRow} onPress={handleUpgrade} activeOpacity={0.75}>
-              <View style={styles.upgradeIcon}>
-                <Ionicons name="eye-off-outline" size={18} color={Colors.alertCoral} />
-              </View>
-              <View style={styles.upgradeCopy}>
-                <ThemedText weight="semiBold" style={styles.upgradeTitle}>Hide the siFia watermark</ThemedText>
-                <ThemedText style={styles.upgradeSubtitle}>Available with Growth</ThemedText>
-              </View>
-              <View style={styles.growthPill}>
-                <ThemedText weight="semiBold" style={styles.growthPillText}>Get Growth</ThemedText>
-              </View>
-            </TouchableOpacity>
+            <Animated.View
+              style={[
+                styles.upgradeReveal,
+                {
+                  maxHeight: watermarkUpsellAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 90] }),
+                  marginTop: watermarkUpsellAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 16] }),
+                  opacity: watermarkUpsellAnim,
+                  transform: [{
+                    translateY: watermarkUpsellAnim.interpolate({ inputRange: [0, 1], outputRange: [8, 0] }),
+                  }],
+                },
+              ]}
+            >
+              <TouchableOpacity style={styles.upgradeRow} onPress={handleUpgrade} activeOpacity={0.75}>
+                <View style={styles.upgradeIcon}>
+                  <Ionicons name="eye-off-outline" size={18} color={Colors.alertCoral} />
+                </View>
+                <View style={styles.upgradeCopy}>
+                  <ThemedText weight="semiBold" style={styles.upgradeTitle}>Hide the siFia watermark</ThemedText>
+                  <ThemedText style={styles.upgradeSubtitle}>Available with Growth</ThemedText>
+                </View>
+                <View style={styles.growthPill}>
+                  <ThemedText weight="semiBold" style={styles.growthPillText}>Get Growth</ThemedText>
+                </View>
+              </TouchableOpacity>
+            </Animated.View>
           ) : null}
           </ScrollView>
         </Animated.View>
@@ -837,13 +871,6 @@ const styles = StyleSheet.create({
   editorSection: {
     gap: 7,
   },
-  editorLabel: {
-    color: 'rgba(255,255,255,0.55)',
-    fontSize: 10,
-    lineHeight: 14,
-    letterSpacing: 0.4,
-    textTransform: 'uppercase',
-  },
   segmentedControl: {
     flexDirection: 'row',
     borderBottomWidth: 1,
@@ -870,13 +897,12 @@ const styles = StyleSheet.create({
   },
   editorUtilityRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 16,
     marginTop: 12,
   },
   utilityGroup: {
-    flex: 1,
-    gap: 7,
     alignItems: 'center',
   },
   iconSegments: {
@@ -937,11 +963,13 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 6,
   },
+  upgradeReveal: {
+    overflow: 'hidden',
+  },
   upgradeRow: {
     flexDirection: 'row',
     alignItems: 'center',
     marginHorizontal: 18,
-    marginTop: 16,
     padding: 12,
     borderRadius: 18,
     backgroundColor: 'rgba(255,255,255,0.07)',

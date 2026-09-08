@@ -1382,6 +1382,8 @@ const TruthBeatStep: React.FC<TruthBeatStepProps> = ({
         <ShareableSelectableText
           text={supportingText}
           style={styles.truthBeatSupporting}
+          onShare={onShareReflection}
+          showShareButton={false}
         />
       </StepFadeIn>
     ) : null
@@ -1466,6 +1468,8 @@ const TruthBeatStep: React.FC<TruthBeatStepProps> = ({
                 text={primaryText}
                 weight="bold"
                 style={styles.truthBeatPrimary}
+                onShare={onShareReflection}
+                showShareButton={false}
               />
             ) : null}
           </View>
@@ -2147,10 +2151,11 @@ interface ScriptureStepProps {
   version?: string;
   reflection?: string;
   onNext: () => void;
+  onShareScripture?: (text: string) => void;
   insets: { top: number };
 }
 
-const ScriptureAnchorStep: React.FC<ScriptureStepProps> = ({ reference, text, version, reflection, onNext: _onNext, insets }) => {
+const ScriptureAnchorStep: React.FC<ScriptureStepProps> = ({ reference, text, version, reflection, onNext: _onNext, onShareScripture, insets }) => {
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';
   const fontFamily = getFontFamily(fontKey, 'regular');
@@ -2209,6 +2214,21 @@ const ScriptureAnchorStep: React.FC<ScriptureStepProps> = ({ reference, text, ve
             >
               <Ionicons name="information-circle-outline" size={12} color="rgba(255,255,255,0.5)" />
             </TouchableOpacity>
+            {onShareScripture ? (
+              <TouchableOpacity
+                onPress={() => {
+                  triggerLightHaptic();
+                  onShareScripture(`${stripVerseQuotes(text)}\n\n— ${reference}`);
+                }}
+                activeOpacity={0.7}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                style={{ marginLeft: 8, alignSelf: 'center' }}
+                accessibilityRole="button"
+                accessibilityLabel="Share this Scripture"
+              >
+                <Ionicons name="share-outline" size={15} color={Colors.faithGold} />
+              </TouchableOpacity>
+            ) : null}
           </View>
         </View>
         {Platform.OS === 'ios' ? (
@@ -6445,10 +6465,11 @@ interface PrayerStepProps {
   playbookId?: string;
   userId: string;
   onNext: () => void;
+  onSharePrayer?: (text: string) => void;
   insets: { top: number; bottom: number };
 }
 
-const PrayerStep: React.FC<PrayerStepProps> = ({ prayer, playbookTitle, playbookId, userId, insets }) => {
+const PrayerStep: React.FC<PrayerStepProps> = ({ prayer, playbookTitle, playbookId, userId, onSharePrayer, onNext: _onNext, insets }) => {
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';
   const fontFamily = getFontFamily(fontKey, 'regular');
@@ -6590,9 +6611,8 @@ const PrayerStep: React.FC<PrayerStepProps> = ({ prayer, playbookTitle, playbook
       {showButton && (
         <Animated.View
           style={[
-            styles.prayerActionButtonFloating,
+            styles.prayerActionRow,
             { bottom: insets.bottom + 20, opacity: fadeAnim },
-            hasPrayed && styles.prayerActionButtonActive,
             {
               transform: [
                 {
@@ -6605,23 +6625,38 @@ const PrayerStep: React.FC<PrayerStepProps> = ({ prayer, playbookTitle, playbook
             },
           ]}
         >
-          <TouchableOpacity
-            style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}
-            onPress={handlePrayed}
-            activeOpacity={0.8}
-          >
-            <MaterialCommunityIcons
-              name="hands-pray"
-              size={18}
-              color={hasPrayed ? Colors.alertCoral : Colors.hopeWhite}
-            />
-            <ThemedText
-              weight="medium"
-              style={[styles.prayerActionText, hasPrayed && styles.prayerActionTextActive]}
+          <View style={[styles.prayerActionPill, hasPrayed && styles.prayerActionButtonActive]}>
+            <TouchableOpacity
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}
+              onPress={handlePrayed}
+              activeOpacity={0.8}
             >
-              {hasPrayed ? 'Prayed' : 'I prayed this'}
-            </ThemedText>
-          </TouchableOpacity>
+              <MaterialCommunityIcons
+                name="hands-pray"
+                size={18}
+                color={hasPrayed ? Colors.alertCoral : Colors.hopeWhite}
+              />
+              <ThemedText
+                weight="medium"
+                style={[styles.prayerActionText, hasPrayed && styles.prayerActionTextActive]}
+              >
+                {hasPrayed ? 'Prayed' : 'I prayed this'}
+              </ThemedText>
+            </TouchableOpacity>
+          </View>
+          {onSharePrayer ? (
+            <View style={styles.prayerActionSharePill}>
+              <TouchableOpacity
+                onPress={() => { triggerLightHaptic(); onSharePrayer(fullPrayer.replace(/\n{2,}/g, '\n')); }}
+                activeOpacity={0.7}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                accessibilityRole="button"
+                accessibilityLabel="Share this prayer"
+              >
+                <Ionicons name="share-outline" size={17} color={Colors.faithGold} />
+              </TouchableOpacity>
+            </View>
+          ) : null}
         </Animated.View>
       )}
     </>
@@ -6634,10 +6669,11 @@ interface WordToSpeakStepProps {
   word: string;
   playbookId?: string;
   onNext: () => void;
+  onShareWord?: (text: string) => void;
   insets: { top: number; bottom: number };
 }
 
-const WordToSpeakStep: React.FC<WordToSpeakStepProps> = ({ word, playbookId, insets }) => {
+const WordToSpeakStep: React.FC<WordToSpeakStepProps> = ({ word, playbookId, onShareWord, onNext: _onNext, insets }) => {
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';
   const fontFamily = getFontFamily(fontKey, 'regular');
@@ -6724,9 +6760,8 @@ const WordToSpeakStep: React.FC<WordToSpeakStepProps> = ({ word, playbookId, ins
       {showButton && (
         <Animated.View
           style={[
-            styles.prayerActionButtonFloating,
+            styles.prayerActionRow,
             { bottom: insets.bottom + 20, opacity: fadeAnim },
-            hasRead && styles.prayerActionButtonActive,
             {
               transform: [
                 {
@@ -6739,23 +6774,38 @@ const WordToSpeakStep: React.FC<WordToSpeakStepProps> = ({ word, playbookId, ins
             },
           ]}
         >
-          <TouchableOpacity
-            style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}
-            onPress={handleRead}
-            activeOpacity={0.8}
-          >
-            <Ionicons
-              name="chatbubble-ellipses-outline"
-              size={16}
-              color={hasRead ? Colors.alertCoral : Colors.hopeWhite}
-            />
-            <ThemedText
-              weight="medium"
-              style={[styles.prayerActionText, hasRead && styles.prayerActionTextActive]}
+          <View style={[styles.prayerActionPill, hasRead && styles.prayerActionButtonActive]}>
+            <TouchableOpacity
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}
+              onPress={handleRead}
+              activeOpacity={0.8}
             >
-              {hasRead ? 'Read aloud' : "I've read this aloud"}
-            </ThemedText>
-          </TouchableOpacity>
+              <Ionicons
+                name="chatbubble-ellipses-outline"
+                size={16}
+                color={hasRead ? Colors.alertCoral : Colors.hopeWhite}
+              />
+              <ThemedText
+                weight="medium"
+                style={[styles.prayerActionText, hasRead && styles.prayerActionTextActive]}
+              >
+                {hasRead ? 'Read aloud' : "I've read this aloud"}
+              </ThemedText>
+            </TouchableOpacity>
+          </View>
+          {onShareWord ? (
+            <View style={styles.prayerActionSharePill}>
+              <TouchableOpacity
+                onPress={() => { triggerLightHaptic(); onShareWord(`WORDS TO SPEAK OVER MYSELF\n\n${splitParagraphs(word).map((line, i) => `${i + 1}. ${line}`).join('\n\n')}`); }}
+                activeOpacity={0.7}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                accessibilityRole="button"
+                accessibilityLabel="Share this declaration"
+              >
+                <Ionicons name="share-outline" size={17} color={Colors.faithGold} />
+              </TouchableOpacity>
+            </View>
+          ) : null}
         </Animated.View>
       )}
     </>
@@ -7172,6 +7222,9 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
   const [showShareDropdown, setShowShareDropdown] = useState(false);
   const [showTruthShareComposer, setShowTruthShareComposer] = useState(false);
   const [shareReflectionText, setShareReflectionText] = useState('');
+  const [shareTextColor, setShareTextColor] = useState<string | undefined>(undefined);
+  const [shareLineHeightMultiplier, setShareLineHeightMultiplier] = useState<number | undefined>(undefined);
+  const [shareNoSplit, setShareNoSplit] = useState<boolean | undefined>(undefined);
   const [refinedPlaybookOverride, setRefinedPlaybookOverride] = useState<typeof routePlaybook | null>(null);
   const [isRefining, setIsRefining] = useState(false);
   const [refinementCount, setRefinementCount] = useState(0);
@@ -8170,6 +8223,9 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
                 }}
                 onShareReflection={reflectionText => {
                   setShareReflectionText(reflectionText);
+                  setShareTextColor(undefined);
+                  setShareLineHeightMultiplier(undefined);
+                  setShareNoSplit(undefined);
                   setShowTruthShareComposer(true);
                 }}
                 insets={insets}
@@ -8183,6 +8239,13 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
                 version={playbook.bibleVerse?.version}
                 reflection={playbook.bibleVerseReflection}
                 onNext={goNext}
+                onShareScripture={scriptureText => {
+                  setShareReflectionText(scriptureText);
+                  setShareTextColor(Colors.alertCoral);
+                  setShareLineHeightMultiplier(undefined);
+                  setShareNoSplit(undefined);
+                  setShowTruthShareComposer(true);
+                }}
                 insets={insets}
               />
             )}
@@ -8227,6 +8290,13 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
                 playbookId={playbook.id}
                 userId={userId}
                 onNext={goNext}
+                onSharePrayer={prayerTextToShare => {
+                  setShareReflectionText(prayerTextToShare);
+                  setShareTextColor(undefined);
+                  setShareLineHeightMultiplier(undefined);
+                  setShareNoSplit(undefined);
+                  setShowTruthShareComposer(true);
+                }}
                 insets={insets}
               />
             )}
@@ -8236,6 +8306,13 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
                 word={wordToSpeak}
                 playbookId={playbook.id}
                 onNext={goNext}
+                onShareWord={wordToShare => {
+                  setShareReflectionText(wordToShare);
+                  setShareTextColor(undefined);
+                  setShareLineHeightMultiplier(undefined);
+                  setShareNoSplit(true);
+                  setShowTruthShareComposer(true);
+                }}
                 insets={insets}
               />
             )}
@@ -8301,6 +8378,9 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
             onPress={() => {
               triggerLightHaptic();
               setShareReflectionText(buildTruthPostText(currentTruthBeatPrimary, currentTruthBeatSupporting, userName));
+              setShareTextColor(undefined);
+              setShareLineHeightMultiplier(undefined);
+              setShareNoSplit(undefined);
               setShowTruthShareComposer(true);
             }}
           >
@@ -8425,6 +8505,9 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
     <TruthToCarryShareComposer
       visible={showTruthShareComposer}
       text={shareReflectionText}
+      textColor={shareTextColor}
+      lineHeightMultiplier={shareLineHeightMultiplier}
+      noSplit={shareNoSplit}
       userId={userId}
       onClose={() => setShowTruthShareComposer(false)}
       onUpgrade={() => {
@@ -10881,6 +10964,36 @@ const styles = StyleSheet.create({
   },
   prayerActionTextActive: {
     color: Colors.alertCoral,
+  },
+  prayerActionRow: {
+    position: 'absolute',
+    left: 20,
+    bottom: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  prayerActionPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 13,
+    paddingHorizontal: 18,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.15)',
+  },
+  prayerActionSharePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 13,
+    paddingHorizontal: 14,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.15)',
   },
 
   // Word to Speak
