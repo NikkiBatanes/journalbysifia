@@ -53,6 +53,10 @@ const BadgesModal: React.FC<BadgesModalProps> = ({ visible, onClose }) => {
       // Retroactively award level badges for existing users
       await faithPointsService.retroactivelyAwardLevelBadges(user.id);
 
+      // Retroactively catch up badges that were missed by older code.
+      await faithPointsService.retroactivelyAwardFirstSteps(user.id);
+      await faithPointsService.retroactivelyAwardSeeker(user.id);
+
       // Get user's unlocked badges from database
       const { data: badgeRows, error: badgeError } = await supabase
         .from('user_badges')

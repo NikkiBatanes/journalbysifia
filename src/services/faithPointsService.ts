@@ -755,6 +755,16 @@ export class FaithPointsService {
 
   private getFallbackBadges(): Badge[] {
     return [
+      // Onboarding / Core Badges
+      {
+        id: 'seeker',
+        name: 'Seeker',
+        description: 'Started your faith journey',
+        icon: '🔎',
+        rarity: 'common',
+        pointsRequired: 0,
+      },
+
       // Playbook Generation Badges
       {
         id: 'first_playbook',
@@ -1010,6 +1020,83 @@ export class FaithPointsService {
       });
     } catch (error) {
       Logger.error('[FaithPointsService] Error in retroactive badge awarding', error as Error, {
+        component: 'faithPointsService',
+        userId,
+      });
+    }
+  }
+
+  /**
+   * Retroactively award the First Steps badge if a playbook was already generated
+   * (e.g., users who went through onboarding before the badge check was fixed).
+   */
+  async retroactivelyAwardFirstSteps(userId: string): Promise<void> {
+    try {
+      const playbookGeneratedCount = await this.getActivityCount(userId, 'playbook_generated');
+      if (playbookGeneratedCount < 1) {
+        return;
+      }
+
+      const availableBadges = await this.getAvailableBadges();
+      const firstStepsBadge = availableBadges.find(b => b.name === 'First Steps');
+      if (!firstStepsBadge) {
+        return;
+      }
+
+      const userBadges = await this.getUserBadges(userId);
+      if (userBadges.some(b => b.name === 'First Steps')) {
+        return;
+      }
+
+      Logger.info('[FaithPointsService] Retroactively awarding First Steps badge', {
+        component: 'faithPointsService',
+        userId,
+        playbookGeneratedCount,
+      });
+
+      await this.awardBadge(userId, firstStepsBadge);
+    } catch (error) {
+      Logger.error('[FaithPointsService] Error retroactively awarding First Steps', error as Error, {
+        component: 'faithPointsService',
+        userId,
+      });
+    }
+  }
+
+  /**
+   * Retroactively award the Seeker badge if the user profile exists
+   * (e.g., older accounts where createUserProfile could not find the badge).
+   */
+  async retroactivelyAwardSeeker(userId: string): Promise<void> {
+    try {
+      const { data: profile } = await supabase
+        .from('faith_points_profiles')
+        .select('user_id')
+        .eq('user_id', userId)
+        .single();
+      if (!profile) {
+        return;
+      }
+
+      const availableBadges = await this.getAvailableBadges();
+      const seekerBadge = availableBadges.find(b => b.id === 'seeker' || b.name === 'Seeker');
+      if (!seekerBadge) {
+        return;
+      }
+
+      const userBadges = await this.getUserBadges(userId);
+      if (userBadges.some(b => b.name === 'Seeker')) {
+        return;
+      }
+
+      Logger.info('[FaithPointsService] Retroactively awarding Seeker badge', {
+        component: 'faithPointsService',
+        userId,
+      });
+
+      await this.awardBadge(userId, seekerBadge);
+    } catch (error) {
+      Logger.error('[FaithPointsService] Error retroactively awarding Seeker', error as Error, {
         component: 'faithPointsService',
         userId,
       });

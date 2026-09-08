@@ -61,6 +61,7 @@ import { BibleCopyrightModal } from '../components/BibleCopyrightModal';
 import DevotionalModal from '../components/DevotionalModal';
 import PlaybookReadyOverlay from '../components/PlaybookReadyOverlay';
 import ShareDropdownModal from '../components/ShareDropdownModal';
+import TruthToCarryShareComposer from '../components/TruthToCarryShareComposer';
 import { refinePlaybook, type PlaybookCorrectionType } from '../services/playbookRefinementService';
 
 import type { RootStackParamList } from '../navigation/types';
@@ -920,6 +921,7 @@ interface TruthStepProps {
   onBeatBack?: () => void;
   onGoToScripture?: () => void;
   onOpenRefinement?: () => void;
+  onShareReflection?: (text: string) => void;
   insets: { top: number; bottom: number };
 }
 
@@ -977,6 +979,7 @@ const TruthBeatStep: React.FC<TruthBeatStepProps> = ({
   onBeatBack,
   onGoToScripture,
   onOpenRefinement,
+  onShareReflection,
   insets,
 }) => {
   const [revealedBeats, setRevealedBeats] = useState<Record<number, boolean>>({});
@@ -984,9 +987,6 @@ const TruthBeatStep: React.FC<TruthBeatStepProps> = ({
   const [selectedPathStep, setSelectedPathStep] = useState<string | null>(null);
   const [selectedHoldEntrust, setSelectedHoldEntrust] = useState<{ hold: boolean; entrust: boolean }>({ hold: false, entrust: false });
   const [scriptureConfirmOpen, setScriptureConfirmOpen] = useState(false);
-  const [lastBeatRevealKey, setLastBeatRevealKey] = useState<string | null>(null);
-  const [lastBeatSupportingRevealed, setLastBeatSupportingRevealed] = useState(false);
-  const lastBeatPrimaryAnim = useRef(new Animated.Value(0)).current;
   const scriptureConfirmAnim = useRef(new Animated.Value(0)).current;
   const truthNavCollapseAnim = useRef(new Animated.Value(0)).current;
   const lastTruthScrollYRef = useRef(0);
@@ -1000,11 +1000,6 @@ const TruthBeatStep: React.FC<TruthBeatStepProps> = ({
   const primaryText = currentBeat.primaryTruth;
   const supportingText = currentBeat.supportingTruth;
   const isLastBeat = currentIndex >= beats.length - 1;
-  const currentLastBeatRevealKey = `${currentIndex}:${primaryText || ''}`;
-  const isCurrentLastBeatReveal = lastBeatRevealKey === currentLastBeatRevealKey;
-  const showSupportingText = !isLastBeat || (isCurrentLastBeatReveal && lastBeatSupportingRevealed);
-  const lastBeatPrimaryTranslateY = lastBeatPrimaryAnim.interpolate({ inputRange: [0, 1], outputRange: [18, 0] });
-  const lastBeatPrimaryScale = lastBeatPrimaryAnim.interpolate({ inputRange: [0, 1], outputRange: [0.96, 1] });
   const presentation = currentBeat.presentation || 'statement';
   const reveal = currentBeat.reveal;
   const revealOpen = !!revealedBeats[currentIndex];
@@ -1044,35 +1039,6 @@ const TruthBeatStep: React.FC<TruthBeatStepProps> = ({
     extrapolate: 'clamp',
   });
 
-  useEffect(() => {
-    if (!isLastBeat) { return; }
-
-    setLastBeatRevealKey(currentLastBeatRevealKey);
-    setRevealedPrimaryWordCount(0);
-    setLastBeatSupportingRevealed(false);
-
-    if (primaryWordCount === 0) {
-      setLastBeatSupportingRevealed(true);
-      return;
-    }
-
-    let revealedWordCount = 0;
-    let revealTimer: ReturnType<typeof setTimeout>;
-    const wordDelay = Math.max(70, Math.min(130, 1800 / primaryWordCount));
-    const revealNextWord = () => {
-      revealedWordCount += 1;
-      setRevealedPrimaryWordCount(revealedWordCount);
-      revealTimer = setTimeout(
-        revealedWordCount < primaryWordCount
-          ? revealNextWord
-          : () => setLastBeatSupportingRevealed(true),
-        revealedWordCount < primaryWordCount ? wordDelay : 280
-      );
-    };
-
-    revealTimer = setTimeout(revealNextWord, 220);
-    return () => clearTimeout(revealTimer);
-  }, [currentLastBeatRevealKey, isLastBeat, primaryWordCount]);
 
   useEffect(() => {
     if (scriptureConfirmOpen) {
@@ -1389,8 +1355,8 @@ const TruthBeatStep: React.FC<TruthBeatStepProps> = ({
   };
 
   const renderSupportingText = () => (
-    supportingText && showSupportingText ? (
-      <StepFadeIn key={`truth-supporting-${currentIndex}`} delay={isLastBeat ? 0 : 190}>
+    supportingText ? (
+      <StepFadeIn key={`truth-supporting-${currentIndex}`} delay={190}>
         <ThemedText style={styles.truthBeatSupporting} selectable={true}>
           {supportingText}
         </ThemedText>
@@ -1474,11 +1440,7 @@ const TruthBeatStep: React.FC<TruthBeatStepProps> = ({
           <View style={styles.truthBeatPrimaryRow}>
             {primaryText ? (
               <ThemedText weight="bold" style={styles.truthBeatPrimary} selectable={true}>
-                {isLastBeat
-                  ? primaryWords.slice(0, isCurrentLastBeatReveal ? revealedPrimaryWordCount : 0).map((word, index) => (
-                      <BouncyWord key={`${currentLastBeatRevealKey}-${index}`} text={word} />
-                    ))
-                  : visiblePrimaryText}
+                {primaryText}
               </ThemedText>
             ) : null}
           </View>
@@ -1488,7 +1450,7 @@ const TruthBeatStep: React.FC<TruthBeatStepProps> = ({
 
         {currentBeat.enhancement ? (
           <StepFadeIn key={`truth-enhancement-${currentIndex}`} delay={280}>
-            <TruthScreenElement element={currentBeat.enhancement} />
+            <TruthScreenElement element={currentBeat.enhancement} onShare={onShareReflection} />
           </StepFadeIn>
         ) : null}
 
@@ -6828,6 +6790,7 @@ const CompletionStep: React.FC<CompletionStepProps> = ({
   const [selectedChoice, setSelectedChoice] = useState<string | null>(persistedCompletionChoice);
   const headerAnim = useRef(new Animated.Value(40)).current;
   const buttonsAnim = useRef(new Animated.Value(30)).current;
+  const iconAnim = useRef(new Animated.Value(0)).current;
   const cleanPastoralClosing = stripLeadingCompletionPunctuation(pastoralClosing || '');
 
   useEffect(() => {
@@ -6849,6 +6812,17 @@ const CompletionStep: React.FC<CompletionStepProps> = ({
       useNativeDriver: true,
     }).start();
   }, [buttonsAnim]);
+
+  useEffect(() => {
+    iconAnim.setValue(0);
+    Animated.timing(iconAnim, {
+      toValue: 1,
+      duration: 900,
+      easing: Easing.out(Easing.cubic),
+      delay: 160,
+      useNativeDriver: true,
+    }).start();
+  }, [iconAnim]);
 
   // Parse completion text to extract question and action lines
   const parseCompletionText = (text: string) => {
@@ -6903,7 +6877,27 @@ const CompletionStep: React.FC<CompletionStepProps> = ({
         <Animated.View style={{ transform: [{ translateY: headerAnim }] }}>
           <View style={styles.completionHeaderContainer}>
             <View style={styles.stepLabelRow}>
-              <Ionicons name="flash" size={18} color={Colors.alertCoral} />
+              <Animated.View
+                style={{
+                  opacity: iconAnim,
+                  transform: [
+                    {
+                      rotate: iconAnim.interpolate({
+                        inputRange: [0, 0.45, 1],
+                        outputRange: ['-25deg', '0deg', '0deg'],
+                      }),
+                    },
+                    {
+                      scale: iconAnim.interpolate({
+                        inputRange: [0, 0.45, 0.65, 0.85, 1],
+                        outputRange: [0.4, 0.4, 1.3, 1.1, 1],
+                      }),
+                    },
+                  ],
+                }}
+              >
+                <Ionicons name="flash" size={18} color={Colors.alertCoral} />
+              </Animated.View>
               {!fromNotification && (
                 Platform.OS === 'ios' ? (
                   <TextInput
@@ -7163,6 +7157,8 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
   const [showDevotionalModal, setShowDevotionalModal] = useState(false);
   const [devotionalGenerated, setDevotionalGenerated] = useState(false);
   const [showShareDropdown, setShowShareDropdown] = useState(false);
+  const [showTruthShareComposer, setShowTruthShareComposer] = useState(false);
+  const [shareReflectionText, setShareReflectionText] = useState('');
   const [refinedPlaybookOverride, setRefinedPlaybookOverride] = useState<typeof routePlaybook | null>(null);
   const [isRefining, setIsRefining] = useState(false);
   const [refinementCount, setRefinementCount] = useState(0);
@@ -7418,8 +7414,7 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
   const slideAnim = useRef(new Animated.Value(0)).current;
   // Share button scales + fades in when completion page is reached
   const shareButtonAnim = useRef(new Animated.Value(0)).current;
-  // Screen 0 close and next buttons animate in with fade + scale
-  const screen0CloseAnim = useRef(new Animated.Value(0)).current;
+  // Screen 0 next button animates in with fade + scale
   const screen0NextAnim = useRef(new Animated.Value(0)).current;
   // Scripture anchor (step 2) next button animates out when pressed
   const scriptureNextAnim = useRef(new Animated.Value(1)).current;
@@ -7443,19 +7438,11 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
     }
   }, [stepIndex, shareButtonAnim]);
 
-  // Animate cover/screen 0 close and next buttons with staggered timing
+  // Animate the cover/screen 0 next button
   useEffect(() => {
     if (stepIndex === COVER_STEP_INDEX || stepIndex === 0) {
-      screen0CloseAnim.setValue(0);
       screen0NextAnim.setValue(0);
       Animated.parallel([
-        Animated.spring(screen0CloseAnim, {
-          toValue: 1,
-          tension: 80,
-          friction: 8,
-          delay: 300,
-          useNativeDriver: true,
-        }),
         Animated.spring(screen0NextAnim, {
           toValue: 1,
           tension: 80,
@@ -7465,10 +7452,9 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
         }),
       ]).start();
     } else {
-      screen0CloseAnim.setValue(0);
       screen0NextAnim.setValue(0);
     }
-  }, [stepIndex, screen0CloseAnim, screen0NextAnim]);
+  }, [stepIndex, screen0NextAnim]);
 
 
   // Reset journalCollapseComplete when journal expands
@@ -7982,7 +7968,10 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
     return (
       <View style={{ flex: 1, backgroundColor: '#1a3c6d' }}>
         <StatusBar hidden={true} />
-        <PlaybookSkeletonLoader />
+        <PlaybookSkeletonLoader
+          variant={routeCoverPage ? 'cover' : 'legacy'}
+          showClose={source !== 'onboarding'}
+        />
       </View>
     );
   }
@@ -8124,6 +8113,10 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
                     setRefinementOpen(true);
                   }
                 }}
+                onShareReflection={reflectionText => {
+                  setShareReflectionText(reflectionText);
+                  setShowTruthShareComposer(true);
+                }}
                 insets={insets}
               />
             )}
@@ -8210,75 +8203,32 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
             )}
           </Animated.View>
 
-      {/* Floating close button — top right (cover and steps 0-5), always closes the screen */}
-      {stepIndex !== 6 && (source as any) !== 'onboarding' && (
-        <Animated.View
+      {/* Keep the close control visible independently of page entrance animations. */}
+        <View
           style={[
             styles.closeButton,
             { top: insets.top + 8 },
-            {
-              opacity: stepIndex === COVER_STEP_INDEX || stepIndex === 0 ? screen0CloseAnim : 1,
-              transform: [
-                {
-                  scale: stepIndex === COVER_STEP_INDEX || stepIndex === 0 ? screen0CloseAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [0.6, 1],
-                  }) : 1,
-                },
-              ],
-            },
           ]}
         >
           <TouchableOpacity
             onPress={source === 'onboarding' ? handleSkipWalkthrough : () => { triggerLightHaptic(); navigation.goBack(); }}
+            accessibilityRole="button"
+            accessibilityLabel="Close playbook walkthrough"
             style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}
             activeOpacity={0.7}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
             <Ionicons name={source === 'onboarding' ? 'close-outline' : 'close'} size={17} color="rgba(255,255,255,0.65)" />
           </TouchableOpacity>
-        </Animated.View>
-      )}
+        </View>
 
       {/* Animated share button — top left, completion page only */}
       {stepIndex === 6 && (
         <>
-          {/* Close button for notification deep links — beside share button */}
-          {fromNotification && (
-            <Animated.View
-              style={[
-                styles.closeButton,
-                { top: insets.top + 8, right: 20 },
-                {
-                  opacity: shareButtonAnim,
-                  transform: [
-                    {
-                      scale: shareButtonAnim.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [0.4, 1],
-                      }),
-                    },
-                  ],
-                },
-              ]}
-            >
-              <TouchableOpacity
-                onPress={() => {
-                  triggerLightHaptic();
-                  navigation.goBack();
-                }}
-                activeOpacity={0.7}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}
-              >
-                <Ionicons name="close" size={17} color="rgba(255,255,255,0.65)" />
-              </TouchableOpacity>
-            </Animated.View>
-          )}
           <Animated.View
             style={[
               styles.closeButton,
-              { top: insets.top + 8, right: fromNotification ? 70 : 20 },
+              { top: insets.top + 8, right: 70 },
               {
                 opacity: shareButtonAnim,
                 transform: [
@@ -8373,6 +8323,24 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
       onClose={() => setShowShareDropdown(false)}
       onExportPDF={handleExportPDF}
       playbookTitle={playbook?.title}
+    />
+
+    <TruthToCarryShareComposer
+      visible={showTruthShareComposer}
+      text={shareReflectionText}
+      userId={userId}
+      onClose={() => setShowTruthShareComposer(false)}
+      onUpgrade={() => {
+        navigation.navigate('OnboardingSalesOffer', {
+          upgradeMode: true,
+          currentTier: 'seeker',
+          selectedTier: 'growth',
+          source: 'sifia_reflection_watermark',
+          feature: 'remove_share_watermark',
+          skipNotificationPreference: true,
+          dismissBehavior: 'goBack',
+        });
+      }}
     />
 
     {/* Onboarding-only "Your playbook is ready" overlay — appears once */}
@@ -10837,7 +10805,7 @@ const styles = StyleSheet.create({
     gap: 8,
     marginBottom: 28,
     alignItems: 'center',
-    marginTop: -8,
+    marginTop: 22,
   },
   completionHeaderRow: {
     flexDirection: 'row',
@@ -10875,7 +10843,7 @@ const styles = StyleSheet.create({
     fontWeight: '400',
     color: Colors.hopeWhite,
     lineHeight: 24,
-    marginTop: 60,
+    marginTop: 28,
     marginBottom: 28,
     opacity: 0.88,
   },
@@ -10884,7 +10852,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     lineHeight: 36,
     textAlign: 'center',
-    marginTop: 100,
+    marginTop: 36,
     marginBottom: 36,
     opacity: 1,
   },

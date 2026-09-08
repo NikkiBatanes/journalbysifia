@@ -54,7 +54,7 @@
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>siFia connects to the local development server when running debug builds.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>This app may save images to your photo library when updating your profile picture.</string>
+	<string>siFia saves profile and shareable faith images to your photo library when you choose Save Photo.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>This app needs access to your photo library to let you choose a profile picture.</string>
 	<key>NSUserNotificationsUsageDescription</key>
@@ -134,6 +134,10 @@
 		<string>fb-messenger-share-api</string>
 		<string>fbauth2</string>
 		<string>fbshareextension</string>
+		<string>fb</string>
+		<string>facebook-stories</string>
+		<string>instagram</string>
+		<string>instagram-stories</string>
 	</array>
 	<key>CFBundleURLTypes</key>
 	<array>
@@ -190,7 +194,7 @@
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>siFia may access your location to personalize your experience (for example, local pricing and regional content). Location is only used to improve the app experience and is not shared.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>This app may save images to your photo library when updating your profile picture.</string>
+	<string>siFia saves profile and shareable faith images to your photo library when you choose Save Photo.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>This app needs access to your photo library to let you choose a profile picture.</string>
 	<key>NSUserNotificationsUsageDescription</key>

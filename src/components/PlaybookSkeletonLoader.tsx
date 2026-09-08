@@ -10,9 +10,21 @@ interface SkeletonBoxProps {
   height: number;
   style?: ViewStyle;
   backgroundColor?: string;
+  borderRadius?: number;
 }
 
-const SkeletonBox: React.FC<SkeletonBoxProps> = ({ width, height, style, backgroundColor = 'rgba(255,255,255,0.18)' }) => {
+interface PlaybookSkeletonLoaderProps {
+  variant?: 'legacy' | 'cover';
+  showClose?: boolean;
+}
+
+const SkeletonBox: React.FC<SkeletonBoxProps> = ({
+  width,
+  height,
+  style,
+  backgroundColor = 'rgba(255,255,255,0.18)',
+  borderRadius = 10,
+}) => {
   // Dark-theme friendly shimmer range
   const pulseAnim = useRef(new Animated.Value(0.25)).current;
   const isMounted = useRef(true);
@@ -62,7 +74,7 @@ const SkeletonBox: React.FC<SkeletonBoxProps> = ({ width, height, style, backgro
           ...widthStyle,
           height,
           backgroundColor,
-          borderRadius: 10,
+          borderRadius,
           opacity: pulseAnim,
         } as ViewStyle,
         style,
@@ -71,8 +83,52 @@ const SkeletonBox: React.FC<SkeletonBoxProps> = ({ width, height, style, backgro
   );
 };
 
-const PlaybookSkeletonLoader = () => {
+const PlaybookSkeletonLoader: React.FC<PlaybookSkeletonLoaderProps> = ({ variant = 'legacy', showClose = true }) => {
   const insets = useSafeAreaInsets();
+
+  if (variant === 'cover') {
+    return (
+      <View style={styles.container}>
+        <View style={[styles.coverContent, IS_IPAD && styles.coverContentPad, { paddingTop: insets.top + 18, paddingBottom: insets.bottom + 28 }]}>
+          {showClose && (
+            <View style={[styles.coverCloseButton, { top: insets.top + 8 }]}>
+              <SkeletonBox width={17} height={17} borderRadius={9} backgroundColor="rgba(255,255,255,0.3)" />
+            </View>
+          )}
+
+          <View style={styles.coverCenter}>
+            <View style={styles.coverPlaybookLabel}>
+              <SkeletonBox width={64} height={11} borderRadius={5} backgroundColor="rgba(255,255,255,0.22)" />
+              <SkeletonBox width={16} height={16} borderRadius={8} backgroundColor="rgba(255,255,255,0.18)" />
+            </View>
+
+            <View style={styles.coverTitleBlock}>
+              <SkeletonBox width="86%" height={31} borderRadius={12} backgroundColor="rgba(255,255,255,0.24)" />
+              <SkeletonBox width="62%" height={31} borderRadius={12} style={styles.coverTitleLine} backgroundColor="rgba(255,255,255,0.24)" />
+            </View>
+
+            <View style={styles.coverSubtitleBlock}>
+              <SkeletonBox width="92%" height={17} borderRadius={8} backgroundColor="rgba(255,255,255,0.16)" />
+              <SkeletonBox width="76%" height={17} borderRadius={8} style={styles.coverSubtitleLine} backgroundColor="rgba(255,255,255,0.14)" />
+            </View>
+
+            <View style={styles.coverTimePill}>
+              <SkeletonBox width={15} height={15} borderRadius={8} backgroundColor="rgba(255,255,255,0.22)" />
+              <SkeletonBox width={104} height={13} borderRadius={7} backgroundColor="rgba(255,255,255,0.2)" />
+            </View>
+
+            <SkeletonBox
+              width="100%"
+              height={54}
+              borderRadius={50}
+              style={styles.coverBeginButton}
+              backgroundColor="rgba(255,255,255,0.2)"
+            />
+          </View>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -119,6 +175,68 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.anchorBlue,
+  },
+  coverContent: {
+    flex: 1,
+    paddingHorizontal: 28,
+  },
+  coverContentPad: {
+    paddingHorizontal: 96,
+  },
+  coverCloseButton: {
+    position: 'absolute',
+    right: 20,
+    width: 42,
+    height: 42,
+    borderRadius: 999,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.09)',
+  },
+  coverCenter: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingTop: 40,
+    paddingBottom: 34,
+  },
+  coverPlaybookLabel: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    marginBottom: 14,
+  },
+  coverTitleBlock: {
+    width: '100%',
+    alignItems: 'center',
+    marginTop: 22,
+  },
+  coverTitleLine: {
+    marginTop: 8,
+  },
+  coverSubtitleBlock: {
+    width: '100%',
+    alignItems: 'center',
+    marginTop: 18,
+  },
+  coverSubtitleLine: {
+    marginTop: 8,
+  },
+  coverTimePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.13)',
+    paddingHorizontal: 13,
+    paddingVertical: 8,
+    marginTop: 24,
+  },
+  coverBeginButton: {
+    marginTop: 28,
   },
   contentContainer: {
     flex: 1,

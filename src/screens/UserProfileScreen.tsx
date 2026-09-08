@@ -79,6 +79,7 @@ import { navigateFromRoot } from '../utils/navigationHelpers';
 import { openStoreReview } from '../services/reviewPromptService';
 import { replaceStoredUserNameInPlaybooks } from '../services/supabaseApiNormalized';
 import { useQueryClient } from '@tanstack/react-query';
+import { faithPointsService } from '../services/faithPointsService';
 
 const { width } = Dimensions.get('window');
 
@@ -466,6 +467,15 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
 
     try {
       setLoading(true);
+
+      // Retroactively catch up badges that were missed by older code
+      // (First Steps from onboarding, Seeker from profile creation).
+      try {
+        await faithPointsService.retroactivelyAwardFirstSteps(user.id);
+        await faithPointsService.retroactivelyAwardSeeker(user.id);
+      } catch {
+        /* Non-blocking: don't let badge catch-up break profile loading */
+      }
 
       // Parallel loading for better performance
       const [progressResponse, statsResponse] = await Promise.allSettled([

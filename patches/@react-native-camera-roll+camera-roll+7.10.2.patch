@@ -1,0 +1,25 @@
+diff --git a/node_modules/@react-native-camera-roll/camera-roll/ios/RNCCameraRoll.mm b/node_modules/@react-native-camera-roll/camera-roll/ios/RNCCameraRoll.mm
+--- a/node_modules/@react-native-camera-roll/camera-roll/ios/RNCCameraRoll.mm
++++ b/node_modules/@react-native-camera-roll/camera-roll/ios/RNCCameraRoll.mm
+@@ -209,6 +209,12 @@
+       }
+     } completionHandler:^(BOOL success, NSError *error) {
+       if (success) {
++        // Saving with add-only access does not grant permission to fetch the
++        // created asset. Callers that only need write confirmation can skip it.
++        if ([options[@"saveOnly"] boolValue]) {
++          resolve([NSString stringWithFormat:@"ph://%@", placeholder.localIdentifier]);
++          return;
++        }
+         PHFetchOptions *options = [PHFetchOptions new];
+         options.includeHiddenAssets = YES;
+         options.includeAllBurstAssets = YES;
+@@ -230,7 +236,7 @@
+                                                   includeSourceType:YES];
+         resolve(dictionary);
+       } else {
+-        reject(kErrorUnableToSave, nil, error);
++        reject(kErrorUnableToSave, error.localizedDescription ?: @"Photos could not save this image", error);
+       }
+     }];
+   };

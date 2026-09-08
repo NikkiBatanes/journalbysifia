@@ -4,12 +4,23 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import ThemedText from './common/ThemedText';
 import type { TruthScreenEnhancement } from '../../supabase/functions/_shared/truthScreenEnhancement';
 import { triggerLightHaptic } from '../utils/haptics';
+import ShareableSelectableText from './ShareableSelectableText';
 
-export default function TruthScreenElement({ element }: { element: TruthScreenEnhancement }) {
+interface TruthScreenElementProps {
+  element: TruthScreenEnhancement;
+  onShare?: (text: string) => void;
+}
+
+export default function TruthScreenElement({ element, onShare }: TruthScreenElementProps) {
   const [expanded, setExpanded] = useState(false);
-  const share = async () => {
+  const share = async (textToShare: string) => {
+    triggerLightHaptic();
+    if (onShare) {
+      onShare(textToShare);
+      return;
+    }
     try {
-      await Share.share({ message: `${element.text}\n\n— siFia reflection` });
+      await Share.share({ message: `${textToShare}\n\n— siFia reflection` });
     } catch {
       Alert.alert('Unable to share', 'Please try again.');
     }
@@ -22,8 +33,14 @@ export default function TruthScreenElement({ element }: { element: TruthScreenEn
           accessibilityRole="button"
           accessibilityState={{ expanded }}
           onPress={() => {
-            triggerLightHaptic();
-            LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+            if (!expanded) {
+              triggerLightHaptic();
+            }
+            LayoutAnimation.configureNext({
+              duration: expanded ? 160 : 220,
+              update: { type: LayoutAnimation.Types.easeInEaseOut },
+              create: { type: LayoutAnimation.Types.easeInEaseOut, property: LayoutAnimation.Properties.opacity },
+            });
             setExpanded(value => !value);
           }}
           style={styles.header}
@@ -31,7 +48,7 @@ export default function TruthScreenElement({ element }: { element: TruthScreenEn
           <ThemedText weight="semiBold" style={styles.label}>{expanded ? 'Show less' : 'Explore this thought'}</ThemedText>
           <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={18} color="#E8B86D" />
         </TouchableOpacity>
-        {expanded ? <ThemedText selectable style={styles.body}>{element.text}</ThemedText> : null}
+        {expanded ? <ShareableSelectableText text={element.text} style={styles.body} onShare={share} /> : null}
       </View>
     );
   }
@@ -42,21 +59,16 @@ export default function TruthScreenElement({ element }: { element: TruthScreenEn
         <ThemedText weight="semiBold" style={styles.label}>
           {element.kind === 'takeaway' ? 'A thought to carry' : element.kind === 'flow' ? 'See the progression' : 'Notice the distinction'}
         </ThemedText>
-        {element.kind === 'takeaway' ? (
-          <TouchableOpacity accessibilityRole="button" accessibilityLabel="Share this siFia reflection" onPress={share} style={styles.share}>
-            <Ionicons name="share-outline" size={20} color="#E8B86D" />
-          </TouchableOpacity>
-        ) : null}
       </View>
       {element.kind === 'takeaway' ? (
         <>
-          <ThemedText selectable weight="semiBold" style={styles.body}>{element.text}</ThemedText>
+          <ShareableSelectableText text={element.text} weight="semiBold" style={styles.body} onShare={share} />
           <ThemedText style={styles.attribution}>siFia reflection</ThemedText>
         </>
       ) : element.items.map((item, index) => (
         <React.Fragment key={`${index}-${item}`}>
           {index > 0 && element.kind === 'flow' ? <Ionicons accessibilityLabel="Then" name="arrow-down-outline" size={20} color="#E8B86D" style={styles.arrow} /> : null}
-          <View style={styles.item}><ThemedText selectable style={styles.itemText}>{item}</ThemedText></View>
+          <View style={styles.item}><ShareableSelectableText text={item} style={styles.itemText} onShare={share} /></View>
         </React.Fragment>
       ))}
     </View>
