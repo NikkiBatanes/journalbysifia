@@ -1329,23 +1329,38 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
                 </ThemedText>
               )}
               <View style={styles.scriptureReferenceContainer}>
-                {day.scripture?.reference && (
-                  <TouchableOpacity
-                    style={styles.scriptureReaderButton}
-                    onPress={() => {
-                      triggerLightHaptic();
-                      setScriptureReaderVisible(true);
-                    }}
-                    activeOpacity={0.72}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Open reader for ${day.scripture.reference}`}
-                  >
-                    <MaterialCommunityIcons name="book-open-variant" size={18} color={Colors.hopeWhite} />
-                  </TouchableOpacity>
-                )}
                 <ThemedText weight="bold" style={styles.scriptureReference} selectable={true}>
                   {(day.scripture?.reference || '').toUpperCase()}{day.scripture?.version ? ` ${day.scripture.version}` : ''}
                 </ThemedText>
+                {day.scripture?.reference && (
+                  <View style={styles.scriptureActions}>
+                    <TouchableOpacity
+                      style={styles.scriptureAction}
+                      onPress={() => {
+                        triggerLightHaptic();
+                        setScriptureReaderVisible(true);
+                      }}
+                      activeOpacity={0.72}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Read ${day.scripture.reference}`}
+                    >
+                      <MaterialCommunityIcons name="script-text" size={16} color={Colors.alertCoral} />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.scriptureAction}
+                      onPress={() => {
+                        triggerLightHaptic();
+                        setShareComposerText(day.scripture?.text || '');
+                        setShareComposerVisible(true);
+                      }}
+                      activeOpacity={0.72}
+                      accessibilityRole="button"
+                      accessibilityLabel="Share this Scripture"
+                    >
+                      <Ionicons name="paper-plane-outline" size={16} color={Colors.alertCoral} />
+                    </TouchableOpacity>
+                  </View>
+                )}
                 {day.scripture?.version && (
                   <TouchableOpacity
                     style={styles.infoIcon}
@@ -1465,21 +1480,6 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
               variant="tintOnBlue"
             >
               <View style={styles.prayerContainer}>
-                {formattedPrayer.length > 0 && (
-                  <TouchableOpacity
-                    style={styles.prayerShareButton}
-                    onPress={() => {
-                      triggerLightHaptic();
-                      setShareComposerText(formattedPrayer);
-                      setShareComposerVisible(true);
-                    }}
-                    activeOpacity={0.72}
-                    accessibilityRole="button"
-                    accessibilityLabel="Share this prayer"
-                  >
-                    <Ionicons name="paper-plane-outline" size={16} color={Colors.hopeWhite} />
-                  </TouchableOpacity>
-                )}
                 {Platform.OS === 'ios' ? (
                   <ThemedTextInput
                     value={formattedPrayer.length > 0
@@ -1498,25 +1498,45 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
                   </ThemedText>
                 )}
                 <View pointerEvents="box-none" style={styles.prayerButtonWrapper}>
-                  <TouchableOpacity
-                  style={[
-                    styles.prayerButton,
-                    prayedDays[`${devotional?.id}-${currentDayIndex}`] && styles.prayerButtonActive,
-                  ]}
-                  onPress={onPrayPress}
-                >
-                  <MaterialCommunityIcons
-                    name="hands-pray"
-                    size={18}
-                    color={prayedDays[`${devotional?.id}-${currentDayIndex}`] ? Colors.alertCoral : Colors.hopeWhite}
-                  />
-                  <ThemedText weight="medium" style={[
-                    styles.prayerButtonText,
-                    prayedDays[`${devotional?.id}-${currentDayIndex}`] && styles.prayerButtonTextActive,
-                  ]}>
-                    {prayedDays[`${devotional?.id}-${currentDayIndex}`] ? 'Prayed' : 'I prayed this'}
-                  </ThemedText>
-                  </TouchableOpacity>
+                  <View style={styles.prayerActions}>
+                    <TouchableOpacity
+                      style={[
+                        styles.prayerButton,
+                        prayedDays[`${devotional?.id}-${currentDayIndex}`] && styles.prayerButtonActive,
+                      ]}
+                      onPress={onPrayPress}
+                    >
+                      <MaterialCommunityIcons
+                        name="hands-pray"
+                        size={18}
+                        color={prayedDays[`${devotional?.id}-${currentDayIndex}`] ? Colors.alertCoral : Colors.hopeWhite}
+                      />
+                      <ThemedText weight="medium" style={[
+                        styles.prayerButtonText,
+                        prayedDays[`${devotional?.id}-${currentDayIndex}`] && styles.prayerButtonTextActive,
+                      ]}>
+                        {prayedDays[`${devotional?.id}-${currentDayIndex}`] ? 'Prayed' : 'I prayed this'}
+                      </ThemedText>
+                    </TouchableOpacity>
+                    {formattedPrayer.length > 0 && (
+                      <TouchableOpacity
+                        style={[
+                          styles.prayerButton,
+                          styles.prayerShareButton,
+                        ]}
+                        onPress={() => {
+                          triggerLightHaptic();
+                          setShareComposerText(formattedPrayer);
+                          setShareComposerVisible(true);
+                        }}
+                        activeOpacity={0.72}
+                        accessibilityRole="button"
+                        accessibilityLabel="Share this prayer"
+                      >
+                        <Ionicons name="paper-plane-outline" size={16} color={Colors.hopeWhite} />
+                      </TouchableOpacity>
+                    )}
+                  </View>
                 </View>
               </View>
             </DevotionalSectionCard>
@@ -1896,9 +1916,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   prayerButton: {
-    position: 'absolute',
-    right: 20,
-    bottom: 20,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
@@ -1908,7 +1925,6 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.15)',
-    zIndex: 10,
   },
   prayerButtonActive: {
     backgroundColor: 'rgba(255, 107, 107, 0.15)',
@@ -1925,20 +1941,24 @@ const styles = StyleSheet.create({
     marginRight: 0,
   },
   prayerButtonWrapper: {
-    ...StyleSheet.absoluteFillObject,
+    position: 'absolute',
+    bottom: 16,
+    left: 0,
+    right: 0,
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+    paddingHorizontal: CARD_HORIZONTAL_PADDING,
     zIndex: 4,
   },
-  prayerShareButton: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+  prayerActions: {
+    width: '100%',
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    zIndex: 5,
+    justifyContent: 'flex-end',
+    gap: 10,
+  },
+  prayerShareButton: {
+    paddingHorizontal: 12,
   },
   prayerText: {
     fontSize: 16,
@@ -1990,8 +2010,12 @@ const styles = StyleSheet.create({
     marginLeft: 6,
     padding: 2,
   },
-  scriptureReaderButton: {
-    marginRight: 6,
+  scriptureActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+  },
+  scriptureAction: {
     padding: 4,
   },
   dayNavigation: {

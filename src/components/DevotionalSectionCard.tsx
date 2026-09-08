@@ -13,6 +13,7 @@ interface DevotionalSectionCardProps {
   style?: object;
   subtitleStyle?: object;
   variant?: 'blue' | 'tintOnBlue';
+  rightAction?: React.ReactNode;
 }
 
 const DevotionalSectionCard: React.FC<DevotionalSectionCardProps> = ({
@@ -23,6 +24,7 @@ const DevotionalSectionCard: React.FC<DevotionalSectionCardProps> = ({
   style = {},
   subtitleStyle = {},
   variant = 'blue',
+  rightAction,
 }) => (
   <View style={[styles.card, variant === 'tintOnBlue' ? styles.cardTintOnBlue : null, style]}>
     <View style={styles.headerRow}>
@@ -33,6 +35,11 @@ const DevotionalSectionCard: React.FC<DevotionalSectionCardProps> = ({
         <ThemedText weight="bold" style={styles.title}>{title}</ThemedText>
         <ThemedText weight="regular" style={[styles.subtitle, subtitleStyle]} numberOfLines={2}>{subtitle}</ThemedText>
       </View>
+      {rightAction && (
+        <View style={styles.rightAction}>
+          {rightAction}
+        </View>
+      )}
     </View>
     <View style={styles.content}>
       {typeof children === 'string' ? <ThemedText style={styles.defaultText}>{children}</ThemedText> : children}
@@ -72,6 +79,12 @@ const styles = StyleSheet.create({
   },
   titleContainer: {
     flex: 1,
+  },
+  rightAction: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginLeft: 8,
   },
   title: {
     fontSize: 18,
