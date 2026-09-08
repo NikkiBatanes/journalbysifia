@@ -1822,6 +1822,7 @@ const TruthBeatStep: React.FC<TruthBeatStepProps> = ({
         initialIndex={scriptureReaderIndex || 0}
         version={bibleVersion}
         onClose={() => setScriptureReaderIndex(null)}
+        onShareScripture={onShareScripture}
       />
 
       {scriptureConfirmOpen ? (
@@ -2312,6 +2313,7 @@ const ScriptureAnchorStep: React.FC<ScriptureStepProps> = ({ reference, text, ve
   const fontKey = currentFont || 'lexend';
   const fontFamily = getFontFamily(fontKey, 'regular');
   const [showCopyright, setShowCopyright] = useState(false);
+  const [showScriptureReader, setShowScriptureReader] = useState(false);
   const reflectionLines = reflection ? splitParagraphs(reflection) : [];
 
   return (
@@ -2366,6 +2368,19 @@ const ScriptureAnchorStep: React.FC<ScriptureStepProps> = ({ reference, text, ve
             >
               <Ionicons name="information-circle-outline" size={12} color="rgba(255,255,255,0.5)" />
             </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => {
+                triggerLightHaptic();
+                setShowScriptureReader(true);
+              }}
+              activeOpacity={0.7}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              style={{ marginLeft: 8, alignSelf: 'center' }}
+              accessibilityRole="button"
+              accessibilityLabel={`Read ${reference}`}
+            >
+              <MaterialCommunityIcons name="script-text" size={15} color={Colors.alertCoral} />
+            </TouchableOpacity>
             {onShareScripture ? (
               <TouchableOpacity
                 onPress={() => {
@@ -2402,6 +2417,15 @@ const ScriptureAnchorStep: React.FC<ScriptureStepProps> = ({ reference, text, ve
         visible={showCopyright}
         onClose={() => setShowCopyright(false)}
         bibleVersion={version || 'NASB'}
+      />
+
+      <ScriptureReaderModal
+        visible={showScriptureReader}
+        passages={[{ reference }]}
+        initialIndex={0}
+        version={version || 'NASB'}
+        onClose={() => setShowScriptureReader(false)}
+        onShareScripture={onShareScripture}
       />
 
       <View style={styles.reflectionBlock}>

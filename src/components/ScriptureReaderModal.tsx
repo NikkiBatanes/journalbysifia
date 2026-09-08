@@ -12,11 +12,14 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
 import { Colors } from '../theme/colors';
 import { Fonts, type FontFamily, getFontFamily } from '../theme/fonts';
+import { useAuth } from '../context/IndustryStandardAuthContext';
 import { triggerLightHaptic } from '../utils/haptics';
 import { getScripturePassage, type ScriptureReaderResult } from '../services/scriptureReaderService';
 import ThemedText from './common/ThemedText';
@@ -28,6 +31,7 @@ interface ScriptureReaderModalProps {
   initialIndex: number;
   version?: string;
   onClose: () => void;
+  onShareScripture: (text: string) => void;
 }
 
 const SCREEN_HEIGHT = Dimensions.get('window').height;
@@ -46,11 +50,11 @@ const FONT_OPTIONS: { key: FontFamily; label: string }[] = [
 
 type TextAlign = 'left' | 'center' | 'right' | 'justify';
 
-const ALIGN_OPTIONS: { key: TextAlign; label: string }[] = [
-  { key: 'left', label: 'Left' },
-  { key: 'center', label: 'Center' },
-  { key: 'right', label: 'Right' },
-  { key: 'justify', label: 'Justify' },
+const ALIGN_OPTIONS: { key: TextAlign; icon: string; label: string }[] = [
+  { key: 'left', icon: 'format-align-left', label: 'Left' },
+  { key: 'center', icon: 'format-align-center', label: 'Center' },
+  { key: 'right', icon: 'format-align-right', label: 'Right' },
+  { key: 'justify', icon: 'format-align-justify', label: 'Justify' },
 ];
 
 const INDENT_OPTIONS = [0, 16, 32];
@@ -68,8 +72,10 @@ const ScriptureReaderModal: React.FC<ScriptureReaderModalProps> = ({
   initialIndex,
   version = 'NASB',
   onClose,
+  onShareScripture,
 }) => {
   const insets = useSafeAreaInsets();
+  const { user } = useAuth();
   const sheetAnim = useRef(new Animated.Value(0)).current;
   const scrollExpansion = useRef(new Animated.Value(0)).current;
   const settingsAnim = useRef(new Animated.Value(0)).current;
@@ -94,6 +100,8 @@ const ScriptureReaderModal: React.FC<ScriptureReaderModalProps> = ({
   const [readerIndent, setReaderIndent] = useState(0);
   const [readerLineSpacing, setReaderLineSpacing] = useState(0);
   const [readerLetterSpacing, setReaderLetterSpacing] = useState(0);
+  const [loadedPreferencesKey, setLoadedPreferencesKey] = useState<string | null>(null);
+  const preferencesStorageKey = `scripture-reader-preferences:${user?.id || 'guest'}`;
 
   const selectedPassage = passages[Math.min(Math.max(initialIndex, 0), Math.max(passages.length - 1, 0))];
   const chapterReference = useMemo(
@@ -101,6 +109,43 @@ const ScriptureReaderModal: React.FC<ScriptureReaderModalProps> = ({
     [selectedPassage?.reference],
   );
   const requestedReference = showFullChapter ? chapterReference : selectedPassage?.reference || '';
+
+  useEffect(() => {
+    let active = true;
+    setLoadedPreferencesKey(null);
+    AsyncStorage.getItem(preferencesStorageKey)
+      .then(stored => {
+        if (!active || !stored) { return; }
+        const preferences = JSON.parse(stored);
+        if (FONT_SIZES.includes(preferences.fontSize)) { setReaderFontSize(preferences.fontSize); }
+        if (FONT_OPTIONS.some(option => option.key === preferences.font)) { setReaderFont(preferences.font); }
+        if (typeof preferences.bold === 'boolean') { setReaderBold(preferences.bold); }
+        if (ALIGN_OPTIONS.some(option => option.key === preferences.align)) { setReaderAlign(preferences.align); }
+        if (INDENT_OPTIONS.includes(preferences.indent)) { setReaderIndent(preferences.indent); }
+        if (LINE_SPACING_OPTIONS.includes(preferences.lineSpacing)) { setReaderLineSpacing(preferences.lineSpacing); }
+        if (LETTER_SPACING_OPTIONS.includes(preferences.letterSpacing)) { setReaderLetterSpacing(preferences.letterSpacing); }
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (active) { setLoadedPreferencesKey(preferencesStorageKey); }
+      });
+    return () => {
+      active = false;
+    };
+  }, [preferencesStorageKey]);
+
+  useEffect(() => {
+    if (loadedPreferencesKey !== preferencesStorageKey) { return; }
+    AsyncStorage.setItem(preferencesStorageKey, JSON.stringify({
+      fontSize: readerFontSize,
+      font: readerFont,
+      bold: readerBold,
+      align: readerAlign,
+      indent: readerIndent,
+      lineSpacing: readerLineSpacing,
+      letterSpacing: readerLetterSpacing,
+    })).catch(() => {});
+  }, [loadedPreferencesKey, preferencesStorageKey, readerAlign, readerBold, readerFont, readerFontSize, readerIndent, readerLetterSpacing, readerLineSpacing]);
 
   useEffect(() => {
     if (!visible) { return; }
@@ -159,6 +204,21 @@ const ScriptureReaderModal: React.FC<ScriptureReaderModalProps> = ({
       useNativeDriver: false,
     }).start(onClose);
   }, [onClose, sheetAnim]);
+
+  const shareCurrentVerse = useCallback(() => {
+    if (!result?.text || closingRef.current) { return; }
+    const shareText = `${result.text}\n\n— ${result.reference || requestedReference}`;
+    triggerLightHaptic();
+    closingRef.current = true;
+    Animated.timing(sheetAnim, {
+      toValue: 0,
+      duration: 190,
+      useNativeDriver: false,
+    }).start(() => {
+      onClose();
+      setTimeout(() => onShareScripture(shareText), 250);
+    });
+  }, [onClose, onShareScripture, requestedReference, result, sheetAnim]);
 
   const toggleReadingMode = () => {
     triggerLightHaptic();
@@ -224,6 +284,17 @@ const ScriptureReaderModal: React.FC<ScriptureReaderModalProps> = ({
     const currentIndex = INDENT_OPTIONS.indexOf(readerIndent);
     const prevIndex = Math.max(currentIndex - 1, 0);
     setReaderIndent(INDENT_OPTIONS[prevIndex]);
+  };
+
+  const resetReaderPreferences = () => {
+    triggerLightHaptic();
+    setReaderFontSize(24);
+    setReaderFont('lora');
+    setReaderBold(false);
+    setReaderAlign('left');
+    setReaderIndent(0);
+    setReaderLineSpacing(0);
+    setReaderLetterSpacing(0);
   };
 
   const setSheetExpanded = useCallback((expanded: boolean) => {
@@ -355,10 +426,19 @@ const ScriptureReaderModal: React.FC<ScriptureReaderModalProps> = ({
                 accessibilityRole="button"
                 accessibilityLabel={showFullChapter ? 'Back to selected verse' : 'Read full chapter'}
               >
-                <Ionicons name="book-outline" size={14} color={Colors.faithGold} />
+                <MaterialCommunityIcons name="format-list-bulleted" size={14} color={Colors.faithGold} />
                 <ThemedText weight="semiBold" style={styles.toolbarButtonText}>
                   {showFullChapter ? 'Verse' : 'Full chapter'}
                 </ThemedText>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.toolbarButton}
+                onPress={shareCurrentVerse}
+                activeOpacity={0.72}
+                accessibilityRole="button"
+                accessibilityLabel={showFullChapter ? 'Share full chapter' : 'Share verse'}
+              >
+                <Ionicons name="paper-plane-outline" size={14} color={Colors.faithGold} />
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.closeButton}
@@ -377,7 +457,7 @@ const ScriptureReaderModal: React.FC<ScriptureReaderModalProps> = ({
             style={[
               styles.settingsReveal,
               {
-                maxHeight: settingsAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 380] }),
+                maxHeight: settingsAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 400] }),
                 opacity: settingsAnim,
                 transform: [{
                   translateY: settingsAnim.interpolate({ inputRange: [0, 1], outputRange: [-8, 0] }),
@@ -516,12 +596,11 @@ const ScriptureReaderModal: React.FC<ScriptureReaderModalProps> = ({
                         accessibilityRole="button"
                         accessibilityLabel={`Align ${option.label}`}
                       >
-                        <ThemedText
-                          weight="semiBold"
-                          style={[styles.fontChipText, isActive && styles.fontChipTextActive]}
-                        >
-                          {option.label}
-                        </ThemedText>
+                        <MaterialCommunityIcons
+                          name={option.icon}
+                          size={16}
+                          color={isActive ? Colors.faithGold : 'rgba(242,245,247,0.72)'}
+                        />
                       </TouchableOpacity>
                     );
                   })}
@@ -551,6 +630,18 @@ const ScriptureReaderModal: React.FC<ScriptureReaderModalProps> = ({
                     <ThemedText weight="semiBold" style={styles.controlButtonText}>+</ThemedText>
                   </TouchableOpacity>
                 </View>
+              </View>
+              <View style={styles.resetRow}>
+                <TouchableOpacity
+                  style={styles.resetButton}
+                  onPress={resetReaderPreferences}
+                  activeOpacity={0.72}
+                  accessibilityRole="button"
+                  accessibilityLabel="Reset reader settings"
+                >
+                  <Ionicons name="refresh-outline" size={14} color={Colors.alertCoral} />
+                  <ThemedText style={styles.resetButtonText}>Reset</ThemedText>
+                </TouchableOpacity>
               </View>
             </View>
           </Animated.View>
@@ -778,6 +869,23 @@ const styles = StyleSheet.create({
   controlButtonTextActive: {
     color: Colors.faithGold,
   },
+  resetRow: {
+    alignItems: 'flex-end',
+    marginTop: 4,
+  },
+  resetButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.09)',
+  },
+  resetButtonText: {
+    fontSize: 11,
+    color: Colors.alertCoral,
+  },
   fontSizeLabel: {
     width: 28,
     textAlign: 'center',
@@ -808,6 +916,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 999,
+    alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: 'rgba(255,255,255,0.09)',
   },
   fontChipActive: {
