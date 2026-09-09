@@ -30,17 +30,15 @@ interface UseSubscriptionResult {
 
   // Usage checks
   canGeneratePlaybook: boolean;
-  canGenerateDevotional: boolean;
   canUseSmartJournaling: boolean;
   playbooksRemaining: number;
-  devotionalsRemaining: number;
 
   // Actions
   startTrial: (options?: Partial<TrialStartOptions>) => Promise<void>;
   upgradeSubscription: (options: SubscriptionUpgradeOptions) => Promise<void>;
   cancelSubscription: () => Promise<void>;
-  incrementUsage: (action: 'playbook' | 'devotional' | 'smart_journal' | 'export', isOnboarding?: boolean) => Promise<void>;
-  checkUsage: (action: 'playbook' | 'devotional' | 'smart_journal' | 'export') => Promise<SubscriptionCheck>;
+  incrementUsage: (action: 'playbook' | 'smart_journal' | 'export', isOnboarding?: boolean) => Promise<void>;
+  checkUsage: (action: 'playbook' | 'smart_journal' | 'export') => Promise<SubscriptionCheck>;
   refreshSubscription: () => Promise<void>;
 }
 
@@ -68,20 +66,17 @@ export function useNewSubscription(userId: string): UseSubscriptionResult {
   const isSeeker = subscription?.tier === 'seeker';
   const isTrial = subscription?.tier === 'free_trial';
   const isPaid = subscription && !isSeeker && !isTrial;
-  const isUnlimited = subscription?.playbooks_limit === -1 || subscription?.devotionals_limit === -1;
+  const isUnlimited = subscription?.playbooks_limit === -1;
   const showDashboardCounts = subscription?.limits?.show_dashboard_counts ?? false;
   const daysRemaining = subscription?.days_remaining ?? 0;
 
   // Usage properties with better defaults
   const canGeneratePlaybook = usageCheck?.can_generate_playbook ?? true;
-  const canGenerateDevotional = usageCheck?.can_generate_devotional ?? true;
   const canUseSmartJournaling = subscription?.limits?.smart_journaling_enabled ?? false;
 
   // Calculate remaining based on subscription data if usageCheck isn't ready
   const playbooksRemaining = usageCheck?.playbooks_remaining ??
     (subscription ? Math.max(0, subscription.playbooks_limit - subscription.playbooks_used) : 0);
-  const devotionalsRemaining = usageCheck?.devotionals_remaining ??
-    (subscription ? Math.max(0, subscription.devotionals_limit - subscription.devotionals_used) : 0);
 
   // Start trial mutation
   const startTrialMutation = useMutation({
@@ -109,7 +104,7 @@ export function useNewSubscription(userId: string): UseSubscriptionResult {
 
   // Increment usage mutation
   const incrementUsageMutation = useMutation({
-    mutationFn: ({ action, isOnboarding }: { action: 'playbook' | 'devotional' | 'smart_journal' | 'export'; isOnboarding?: boolean }) =>
+    mutationFn: ({ action, isOnboarding }: { action: 'playbook' | 'smart_journal' | 'export'; isOnboarding?: boolean }) =>
       NewSubscriptionService.incrementUsage(userId, action, isOnboarding),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['subscription', userId] });
@@ -125,30 +120,23 @@ export function useNewSubscription(userId: string): UseSubscriptionResult {
     if (!subscription) {return;}
 
     try {
-      // Check both playbook and devotional limits
       const playbookCheck = await NewSubscriptionService.checkUsageLimit(userId, 'playbook');
-      const devotionalCheck = await NewSubscriptionService.checkUsageLimit(userId, 'devotional');
 
-      // Combine the checks
       setUsageCheck({
         can_generate_playbook: playbookCheck.can_generate_playbook,
-        can_generate_devotional: devotionalCheck.can_generate_devotional,
         can_use_smart_journaling: playbookCheck.can_use_smart_journaling,
         can_export: playbookCheck.can_export,
         playbooks_remaining: playbookCheck.playbooks_remaining,
-        devotionals_remaining: devotionalCheck.devotionals_remaining,
-        show_upgrade_prompt: playbookCheck.show_upgrade_prompt || devotionalCheck.show_upgrade_prompt,
-        upgrade_message: playbookCheck.upgrade_message || devotionalCheck.upgrade_message,
+        show_upgrade_prompt: playbookCheck.show_upgrade_prompt,
+        upgrade_message: playbookCheck.upgrade_message,
       });
     } catch (catchError) {
       // Usage check failed - set default restrictive values
       setUsageCheck({
         can_generate_playbook: false,
-        can_generate_devotional: false,
         can_use_smart_journaling: false,
         can_export: false,
         playbooks_remaining: 0,
-        devotionals_remaining: 0,
         show_upgrade_prompt: false,
         upgrade_message: '',
       });
@@ -224,7 +212,7 @@ export function useNewSubscription(userId: string): UseSubscriptionResult {
     }
   }, [cancelSubscriptionMutation]);
 
-  const incrementUsage = useCallback(async (action: 'playbook' | 'devotional' | 'smart_journal' | 'export', isOnboarding?: boolean) => {
+  const incrementUsage = useCallback(async (action: 'playbook' | 'smart_journal' | 'export', isOnboarding?: boolean) => {
     try {
       await incrementUsageMutation.mutateAsync({ action, isOnboarding });
     } catch (catchError) {
@@ -236,7 +224,7 @@ export function useNewSubscription(userId: string): UseSubscriptionResult {
     }
   }, [incrementUsageMutation]);
 
-  const checkUsage = useCallback(async (action: 'playbook' | 'devotional' | 'smart_journal' | 'export') => {
+  const checkUsage = useCallback(async (action: 'playbook' | 'smart_journal' | 'export') => {
     try {
       return await NewSubscriptionService.checkUsageLimit(userId, action);
     } catch (catchError) {
@@ -271,10 +259,8 @@ export function useNewSubscription(userId: string): UseSubscriptionResult {
 
     // Usage checks
     canGeneratePlaybook,
-    canGenerateDevotional,
     canUseSmartJournaling,
     playbooksRemaining,
-    devotionalsRemaining,
 
     // Actions
     startTrial,
@@ -287,7 +273,7 @@ export function useNewSubscription(userId: string): UseSubscriptionResult {
 }
 
 // Utility hook for checking specific feature access
-export function useFeatureAccess(userId: string, feature: 'playbook' | 'devotional' | 'smart_journal' | 'export') {
+export function useFeatureAccess(userId: string, feature: 'playbook' | 'smart_journal' | 'export') {
   const { subscription, checkUsage } = useNewSubscription(userId);
 
   const { data: featureCheck, isLoading, error } = useQuery({
@@ -298,10 +284,9 @@ export function useFeatureAccess(userId: string, feature: 'playbook' | 'devotion
   });
 
   return {
-    canAccess: featureCheck?.can_generate_playbook || featureCheck?.can_generate_devotional ||
+    canAccess: featureCheck?.can_generate_playbook ||
                featureCheck?.can_use_smart_journaling || featureCheck?.can_export || false,
-    remaining: feature === 'playbook' ? featureCheck?.playbooks_remaining :
-               feature === 'devotional' ? featureCheck?.devotionals_remaining : -1,
+    remaining: feature === 'playbook' ? featureCheck?.playbooks_remaining : -1,
     showUpgradePrompt: featureCheck?.show_upgrade_prompt || false,
     upgradeMessage: featureCheck?.upgrade_message,
     isLoading,

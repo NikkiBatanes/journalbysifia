@@ -122,14 +122,6 @@ const OnboardingNotificationSetupScreen = () => {
       enabled: true,
     },
     {
-      id: 'daily_devotional',
-      title: 'Devotionals',
-      description: 'Soft prompts to begin your day with Scripture and reflection',
-      icon: 'book-outline',
-      enabled: true,
-      required: false,
-    },
-    {
       id: 'journal_reminders',
       title: 'Journal Reminders',
       description: 'Occasional nudges to pause, reflect, and write',
@@ -223,7 +215,6 @@ const OnboardingNotificationSetupScreen = () => {
               notification_type: 'user_preferences', // Required field
               prayer_reminders: enabledSettings.prayer_reminders || false,
               playbook_steps: enabledSettings.playbooks || false,
-              devotional_reminders: enabledSettings.daily_devotional || false,
               journal_prompts: enabledSettings.journal_reminders || false,
               milestone_celebrations: enabledSettings.progress_updates || false,
               trial_notifications: enabledSettings.trial_reminders || false,
@@ -344,7 +335,7 @@ const OnboardingNotificationSetupScreen = () => {
     if (fromCancelledSales) {
       return {
         title: 'Welcome to siFia',
-        subtitle: 'Your free Seeker plan includes 2 playbooks and 1 devotional each month.\nMove at a pace that feels right for your season.',
+        subtitle: 'Your free Seeker plan includes 2 playbooks each month.\nMove at a pace that feels right for your season.',
         badge: 'Free Access',
       };
     }
@@ -353,33 +344,33 @@ const OnboardingNotificationSetupScreen = () => {
     const baseTier = currentTier.replace('_annual', '');
     const trialChosenTier = (subscription as any)?.trial_chosen_tier?.replace('_annual', '') || 'growth';
     const trialLimits =
-      trialChosenTier === 'spark' ? { playbooks: 5, devotionals: 5 } :
-      trialChosenTier === 'transformation' ? { playbooks: 25, devotionals: 25 } :
-      { playbooks: 15, devotionals: 15 };
+      trialChosenTier === 'spark' ? { playbooks: 5 } :
+      trialChosenTier === 'transformation' ? { playbooks: 25 } :
+      { playbooks: 15 };
 
     switch (baseTier) {
       case 'free_trial':
         return {
           title: 'Make the Most of Your Free Trial',
-          subtitle: `Get timely reminders for your ${trialLimits.playbooks} playbooks and ${trialLimits.devotionals} devotionals over the next 3 days.`,
+          subtitle: `Get timely reminders for your ${trialLimits.playbooks} playbooks over the next 3 days.`,
           badge: '3-Day Trial Active',
         };
       case 'spark':
         return {
           title: 'Welcome to Spark',
-          subtitle: 'Get reminders for your 10 monthly playbooks, 10 devotionals, and journaling.',
+          subtitle: 'Get reminders for your 10 monthly playbooks and journaling.',
           badge: 'Spark Subscriber',
         };
       case 'growth':
         return {
           title: 'Welcome to Growth',
-          subtitle: 'Make the most of your 25 monthly playbooks and 25 devotionals with helpful reminders.',
+          subtitle: 'Make the most of your 25 monthly playbooks with helpful reminders.',
           badge: 'Growth Subscriber',
         };
       case 'transformation':
         return {
           title: 'Welcome to siFia Transformation',
-          subtitle: 'Enjoy 60 monthly playbooks and 60 devotionals with gentle reminders to support your daily walk.',
+          subtitle: 'Enjoy 60 monthly playbooks with gentle reminders to support your daily walk.',
           badge: 'Transformation Subscriber',
         };
       // POST-LAUNCH: Family tier removed
@@ -393,7 +384,7 @@ const OnboardingNotificationSetupScreen = () => {
       default:
         return {
           title: 'Welcome to siFia',
-          subtitle: 'Your free Seeker plan includes 2 playbooks and 1 devotional each month.\nMove at a pace that feels right for your season.',
+          subtitle: 'Your free Seeker plan includes 2 playbooks each month.\nMove at a pace that feels right for your season.',
           badge: 'Free Access',
         };
     }
@@ -491,7 +482,7 @@ const OnboardingNotificationSetupScreen = () => {
           <ThemedText weight="semiBold" style={styles.primaryButtonText}>Enable Notifications</ThemedText>
         </TouchableOpacity>
 
-        <TouchableOpacity style={[styles.secondaryButton, styles.devotionalButton]} onPress={handleSkip}>
+        <TouchableOpacity style={[styles.secondaryButton, styles.skipButton]} onPress={handleSkip}>
           <ThemedText weight="semiBold" style={styles.secondaryButtonText}>Maybe Later</ThemedText>
         </TouchableOpacity>
 
@@ -686,7 +677,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: Colors.hopeWhite,
   },
-  devotionalButton: {
+  skipButton: {
     marginTop: 12,
   },
   toggle: {

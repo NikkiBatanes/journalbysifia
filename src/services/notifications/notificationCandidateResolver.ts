@@ -1,7 +1,6 @@
 import { supabase } from '../supabaseClient';
 import { Logger } from '../../utils/ProductionLogger';
 import { toLocalDateString } from '../../utils/date';
-import { ReflectionApi } from '../api/reflectionApi';
 import { NewSubscriptionService } from '../NewSubscriptionService';
 import { guidedPromptGatingService } from '../guidedPromptGatingService';
 import { Subscription } from '../../types/subscription';
@@ -18,19 +17,6 @@ type JournalEntryLike = {
   content?: string | Record<string, unknown> | null;
   completed?: boolean | null;
   metadata?: Record<string, unknown> | null;
-};
-
-type DevotionalDayLike = {
-  id?: string;
-  dayNumber?: number;
-  title?: string;
-  prayer?: string;
-  completed?: boolean;
-  scripture?: {
-    reference?: string;
-    text?: string;
-  };
-  reflectionQuestions?: Array<{ id?: string; text?: string }>;
 };
 
 type PlaybookRowLike = {
@@ -136,17 +122,11 @@ const createCandidate = ({
   metadata?: Record<string, unknown>;
 }): SmartNotificationCandidate => {
   const categoryMap: Record<SmartNotificationType, SmartNotificationCandidate['category']> = {
-    devotional_day_ready: 'devotional',
-    devotional_prayer_prompt: 'devotional',
-    devotional_reflection_prompt: 'devotional',
-    devotional_verse_revisit: 'devotional',
-    devotional_completed_reflection: 'devotional',
     playbook_word_to_speak: 'playbook',
     playbook_faithful_action: 'playbook',
     playbook_verse_revisit: 'playbook',
     playbook_verse_reflection: 'playbook',
     playbook_prayer_revisit: 'playbook',
-    playbook_to_devotional: 'playbook',
     playbook_actions_complete: 'playbook',
     playbook_actions_milestone: 'playbook',
     journal_todays_focus: 'journal',
@@ -159,10 +139,7 @@ const createCandidate = ({
     prayer_answered_check: 'prayer',
     prayer_today: 'prayer',
     prayer_people_nudge: 'prayer',
-    create_devotional: 'creation',
     create_playbook: 'creation',
-    create_first_devotional: 'creation',
-    usage_room_devotional: 'subscription',
     usage_room_playbook: 'subscription',
     content_refresh_wait: 'subscription',
     upgrade_room: 'subscription',
@@ -258,63 +235,6 @@ const isTodoComplete = (entry: JournalEntryLike): boolean => {
 
 const hasEntryForType = (entries: JournalEntryLike[], type: string): boolean => {
   return entries.some(entry => entry.content_type === type && hasMeaningfulJournalContent(entry));
-};
-
-const getFirstIncompleteDevotionalDay = (days: DevotionalDayLike[]): DevotionalDayLike | null => {
-  return days.find(day => day && day.completed !== true) || null;
-};
-
-const getDayNumber = (day: DevotionalDayLike, index: number): number => {
-  return typeof day.dayNumber === 'number' ? day.dayNumber : index + 1;
-};
-
-const findDevotionalPrayer = async (
-  userId: string,
-  devotionalTitle: string,
-  dayNumber: number
-): Promise<boolean> => {
-  const { data, error } = await supabase
-    .from('prayers')
-    .select('id')
-    .eq('user_id', userId)
-    .eq('prayer_type', 'devotional')
-    .eq('day_number', dayNumber)
-    .eq('devotional_title', devotionalTitle)
-    .limit(1);
-
-  if (error) {
-    Logger.warn('[SmartNotifications] Unable to check devotional prayer state', {
-      component: 'notificationCandidateResolver',
-      userId,
-      error: error as Error,
-    });
-    return false;
-  }
-
-  return (data || []).length > 0;
-};
-
-const findDevotionalReflection = async (
-  userId: string,
-  devotionalId: string,
-  dayNumber: number
-): Promise<boolean> => {
-  try {
-    const reflections = await ReflectionApi.searchReflections({
-      userId,
-      devotionalId,
-      dayNumber,
-      limit: 1,
-    });
-    return reflections.length > 0;
-  } catch (error) {
-    Logger.warn('[SmartNotifications] Unable to check devotional reflection state', {
-      component: 'notificationCandidateResolver',
-      userId,
-      error: error as Error,
-    });
-    return false;
-  }
 };
 
 const getJournalEntriesForToday = async (userId: string): Promise<JournalEntryLike[]> => {
@@ -500,13 +420,11 @@ const getReflectionLines = (playbook: PlaybookRowLike): string[] => {
   return splitRaw(playbook.bible_verse?.reflection);
 };
 
-const getRemainingUsage = (subscription: Subscription): { playbooks: number; devotionals: number } => {
+const getRemainingUsage = (subscription: Subscription): { playbooks: number } => {
   const playbookLimit = subscription.playbooks_limit ?? 0;
-  const devotionalLimit = subscription.devotionals_limit ?? 0;
 
   return {
     playbooks: playbookLimit < 0 ? Number.MAX_SAFE_INTEGER : Math.max(0, playbookLimit - (subscription.playbooks_used ?? 0)),
-    devotionals: devotionalLimit < 0 ? Number.MAX_SAFE_INTEGER : Math.max(0, devotionalLimit - (subscription.devotionals_used ?? 0)),
   };
 };
 
@@ -557,64 +475,6 @@ const formatShortDate = (date: Date | null): string | undefined => {
   });
 };
 
-const getRotatingReflectionQuestion = (
-  day: DevotionalDayLike,
-  dayNumber: number,
-  devotionalId: string,
-  userId: string,
-  subscription: SubscriptionWithReset | null,
-  notifiedQuestions: string[]
-): string => {
-  const questions = (day.reflectionQuestions || [])
-    .map(question => notificationText(question.text))
-    .filter(Boolean);
-
-  if (questions.length === 0) {return '';}
-
-  // For free users, filter to only unlocked questions from guided prompt service
-  const isFreeUser = subscription?.tier === 'seeker' || subscription?.tier === 'free_trial';
-  let availableQuestions = questions;
-
-  if (isFreeUser) {
-    const tier = subscription?.tier || 'seeker';
-    const allocation = guidedPromptGatingService.getDailyPrompts(userId, tier);
-    // Filter questions to only include those in free prompts
-    availableQuestions = questions.filter(q => allocation.freePrompts.includes(q));
-  }
-
-  // If no unlocked questions available, return empty
-  if (availableQuestions.length === 0) {return '';}
-
-  const maxQuestions = isFreeUser ? Math.min(2, availableQuestions.length) : availableQuestions.length;
-
-  // Create a unique key for this day's questions
-  const dayKey = `${devotionalId}-${dayNumber}`;
-
-  // Check which questions for this day have already been notified
-  const notifiedForDay = notifiedQuestions.filter(q => q.startsWith(`${dayKey}-`));
-
-  if (notifiedForDay.length >= maxQuestions) {
-    // All allowed questions for this day have been notified, start over
-    return availableQuestions[0];
-  }
-
-  // Get the next question that hasn't been notified for this day
-  const nextIndex = notifiedForDay.length;
-  return availableQuestions[nextIndex];
-};
-
-// Simplified function to get the literal "question to ponder" (first question only)
-const getQuestionToPonder = (day: DevotionalDayLike): string => {
-  const questions = (day.reflectionQuestions || [])
-    .map(question => notificationText(question.text))
-    .filter(Boolean);
-
-  if (questions.length === 0) {return '';}
-
-  // Return the first question (question to ponder) without rotation
-  return questions[0];
-};
-
 const getHeartJournalPrompt = async (
   userId: string,
   subscription: SubscriptionWithReset | null
@@ -651,8 +511,7 @@ export async function buildSmartNotificationCandidates(userId: string): Promise<
   const candidates: SmartNotificationCandidate[] = [];
   const currentDate = today();
 
-  const [devotionals, journalEntries, prayerRequestState, unansweredPrayers, playbooks, subscriptionResult] = await Promise.all([
-    Promise.resolve([] as any[]),
+  const [journalEntries, prayerRequestState, unansweredPrayers, playbooks, subscriptionResult] = await Promise.all([
     getJournalEntriesForToday(userId),
     getPendingPrayerRequestState(userId),
     getUnansweredPrayersForCheck(userId),
@@ -677,182 +536,9 @@ export async function buildSmartNotificationCandidates(userId: string): Promise<
     .single();
 
   const userMetadata = userData?.metadata as Record<string, unknown> || {};
-  const notifiedQuestions = (userMetadata.notified_reflection_questions as string[]) || [];
-
-  // Support multiple incomplete devotionals
-  const incompleteDevotionals = devotionals.filter(devotional => devotional.completed !== true);
-
-  for (const activeDevotional of incompleteDevotionals) {
-    const days = Array.isArray(activeDevotional.days) ? activeDevotional.days as DevotionalDayLike[] : [];
-    const incompleteDay = getFirstIncompleteDevotionalDay(days);
-    const incompleteIndex = incompleteDay ? days.indexOf(incompleteDay) : -1;
-
-    if (incompleteDay) {
-      const dayNumber = getDayNumber(incompleteDay, incompleteIndex);
-      const verseReference = notificationText(incompleteDay.scripture?.reference);
-      const verseText = notificationText(incompleteDay.scripture?.text);
-
-      candidates.push(createCandidate({
-        type: 'devotional_day_ready',
-        timeWindow: 'devotional_morning',
-        score: 100,
-        dedupeKey: buildDedupeKey('devotional_day_ready', activeDevotional.id, dayNumber, currentDate),
-        deepLink: `sifia://devotionals/${activeDevotional.id}/day/${dayNumber}`,
-        sourceType: 'devotional_day',
-        sourceId: activeDevotional.id,
-        sourceSubId: String(dayNumber),
-        copyContext: {
-          dayNumber,
-          totalDays: activeDevotional.total_days,
-          title: activeDevotional.total_days === 1 ? activeDevotional.title : incompleteDay.title,
-        },
-        metadata: {
-          devotional_title: activeDevotional.title,
-          day_title: incompleteDay.title,
-          verse_reference: verseReference,
-          verse_text: verseText,
-        },
-      }));
-
-    }
-
-    const completedDaysWithIndex = [...days]
-      .map((day, index) => ({ day, index }))
-      .filter(({ day }) => day.completed === true)
-      .reverse();
-
-    // Check all completed days for missing reflections
-    for (const { day, index } of completedDaysWithIndex) {
-      const dayNumber = getDayNumber(day, index);
-
-      if (safeText(day.prayer).length > 0) {
-        const hasPrayer = await findDevotionalPrayer(userId, activeDevotional.title, dayNumber);
-        if (!hasPrayer) {
-          candidates.push(createCandidate({
-            type: 'devotional_prayer_prompt',
-            timeWindow: 'late_afternoon',
-            score: 92,
-            dedupeKey: buildDedupeKey('devotional_prayer_prompt', activeDevotional.id, dayNumber, currentDate),
-            deepLink: `sifia://devotionals/${activeDevotional.id}/day/${dayNumber}`,
-            sourceType: 'devotional_day',
-            sourceId: activeDevotional.id,
-            sourceSubId: String(dayNumber),
-            metadata: {
-              devotional_title: activeDevotional.title,
-              day_title: day.title,
-            },
-          }));
-        }
-      }
-
-      const questionText = getQuestionToPonder(day);
-      if (questionText) {
-        const hasReflection = await findDevotionalReflection(userId, activeDevotional.id, dayNumber);
-        if (!hasReflection) {
-          const questionKey = `${activeDevotional.id}-${dayNumber}-${questionText.substring(0, 20)}`;
-          candidates.push(createCandidate({
-            type: 'devotional_reflection_prompt',
-            timeWindow: 'night',
-            score: 88,
-            dedupeKey: buildDedupeKey('devotional_reflection_prompt', activeDevotional.id, dayNumber, questionKey, currentDate),
-            deepLink: `sifia://devotionals/${activeDevotional.id}/day/${dayNumber}/reflect`,
-            sourceType: 'devotional_day',
-            sourceId: activeDevotional.id,
-            sourceSubId: String(dayNumber),
-            copyContext: {
-              questionText,
-            },
-            metadata: {
-              devotional_title: activeDevotional.title,
-              day_title: day.title,
-              question_text: questionText,
-              question_key: questionKey,
-            },
-          }));
-        }
-      }
-    }
-
-    // Special case: Day 1 should notify for reflection even if not completed
-    const day1 = days[0];
-    if (day1 && day1.dayNumber !== 1) {
-      // If dayNumber is not set, assume it's day 1
-      const day1Number = 1;
-      const questionText = getQuestionToPonder(day1);
-      if (questionText) {
-        const hasReflection = await findDevotionalReflection(userId, activeDevotional.id, day1Number);
-        if (!hasReflection) {
-          const questionKey = `${activeDevotional.id}-${day1Number}-${questionText.substring(0, 20)}`;
-          candidates.push(createCandidate({
-            type: 'devotional_reflection_prompt',
-            timeWindow: 'night',
-            score: 90, // Higher priority for day 1
-            dedupeKey: buildDedupeKey('devotional_reflection_prompt', activeDevotional.id, day1Number, questionKey, currentDate),
-            deepLink: `sifia://devotionals/${activeDevotional.id}/day/${day1Number}/reflect`,
-            sourceType: 'devotional_day',
-            sourceId: activeDevotional.id,
-            sourceSubId: String(day1Number),
-            copyContext: {
-              questionText,
-            },
-            metadata: {
-              devotional_title: activeDevotional.title,
-              day_title: day1.title,
-              question_text: questionText,
-              question_key: questionKey,
-            },
-          }));
-        }
-      }
-    }
-
-    const verseDayWithIndex = completedDaysWithIndex[0] || (incompleteDay ? { day: incompleteDay, index: incompleteIndex } : null);
-    const devotionalVerseReference = notificationText(verseDayWithIndex?.day.scripture?.reference);
-    const devotionalVerseText = notificationText(verseDayWithIndex?.day.scripture?.text);
-    if (verseDayWithIndex && devotionalVerseText) {
-      const verseDayNumber = getDayNumber(verseDayWithIndex.day, verseDayWithIndex.index);
-      candidates.push(createCandidate({
-        type: 'devotional_verse_revisit',
-        timeWindow: 'evening',
-        score: 57,
-        dedupeKey: buildDedupeKey('devotional_verse_revisit', activeDevotional.id, verseDayNumber, currentDate),
-        deepLink: `sifia://devotionals/${activeDevotional.id}/day/${verseDayNumber}`,
-        sourceType: 'devotional_day',
-        sourceId: activeDevotional.id,
-        sourceSubId: String(verseDayNumber),
-        copyContext: {
-          verseReference: devotionalVerseReference,
-          verseText: devotionalVerseText,
-        },
-        metadata: {
-          devotional_title: activeDevotional.title,
-          verse_reference: devotionalVerseReference,
-          verse_text: devotionalVerseText,
-        },
-      }));
-    }
-  }
-
-  // If no incomplete devotionals, check for completed ones
-  if (incompleteDevotionals.length === 0) {
-    const completedDevotional = devotionals.find(devotional => devotional.completed === true);
-    if (completedDevotional) {
-      candidates.push(createCandidate({
-        type: 'devotional_completed_reflection',
-        timeWindow: 'evening',
-        score: 62,
-        dedupeKey: buildDedupeKey('devotional_completed_reflection', completedDevotional.id, currentDate),
-        deepLink: `sifia://devotionals/${completedDevotional.id}`,
-        sourceType: 'devotional',
-        sourceId: completedDevotional.id,
-        metadata: {
-          devotional_title: completedDevotional.title,
-        },
-      }));
-    }
-  }
 
   const ongoingPlaybook = playbooks.find(playbook => playbook.status !== 'completed' && !playbook.completed_at);
+
   if (ongoingPlaybook) {
     Logger.info('[playbook_actions_complete] Debug playbook data', {
       component: 'notificationCandidateResolver',
@@ -975,7 +661,7 @@ export async function buildSmartNotificationCandidates(userId: string): Promise<
     const notifiedVerses = (userMetadata.notified_verses as string[]) || [];
     const lastVerseReset = userMetadata.last_verse_reset as string | undefined;
 
-    // Check if we need to reset tracking (new devotional/playbook created)
+    // Check if we need to reset tracking (new playbook created)
     // We'll reset if it's been more than 30 days or if the count of playbooks with verses changed significantly
     const shouldResetTracking = !lastVerseReset ||
       (new Date().getTime() - new Date(lastVerseReset).getTime() > 30 * 24 * 60 * 60 * 1000) ||
@@ -1175,25 +861,6 @@ export async function buildSmartNotificationCandidates(userId: string): Promise<
     }
   }
 
-  const completedPlaybookWithoutDevotional = playbooks.find(playbook => (
-    playbook.status === 'completed' || !!playbook.completed_at
-  ) && !devotionals.some(devotional => devotional.playbook_id === playbook.id));
-
-  if (completedPlaybookWithoutDevotional) {
-    candidates.push(createCandidate({
-      type: 'playbook_to_devotional',
-      timeWindow: 'afternoon',
-      score: 64,
-      dedupeKey: buildDedupeKey('playbook_to_devotional', completedPlaybookWithoutDevotional.id, currentDate),
-      deepLink: `sifia://playbooks/${completedPlaybookWithoutDevotional.id}/walkthrough/completed`,
-      sourceType: 'playbook',
-      sourceId: completedPlaybookWithoutDevotional.id,
-      metadata: {
-        playbook_title: completedPlaybookWithoutDevotional.title,
-      },
-    }));
-  }
-
   if (prayerRequestState.count > 0) {
     const dayOfYear = Math.floor(Date.now() / (1000 * 60 * 60 * 24));
     const useGroup = prayerRequestState.count >= 2 && dayOfYear % 2 === 0;
@@ -1331,9 +998,6 @@ export async function buildSmartNotificationCandidates(userId: string): Promise<
     }));
   }
 
-  // Heart journal prompt: only notify if no devotionals or all reflection questions are journaled
-  const shouldNotifyHeartJournal = incompleteDevotionals.length === 0;
-
   // Inactivity detection: notify if no journal activity today
   const hasJournalActivityToday = journalEntries.length > 0;
   if (!hasJournalActivityToday) {
@@ -1347,51 +1011,24 @@ export async function buildSmartNotificationCandidates(userId: string): Promise<
     }));
   }
 
-  if (shouldNotifyHeartJournal) {
-    // Check if all reflection questions for completed devotionals are already journaled
-    let allReflectionsJournaled = true;
-
-    for (const devotional of devotionals) {
-      if (devotional.completed !== true) {continue;}
-
-      const days = Array.isArray(devotional.days) ? devotional.days as DevotionalDayLike[] : [];
-      for (const day of days) {
-        if (!day.completed) {continue;}
-
-        const dayNumber = typeof day.dayNumber === 'number' ? day.dayNumber : days.indexOf(day) + 1;
-        const questionText = getRotatingReflectionQuestion(day, dayNumber, devotional.id, userId, subscription, notifiedQuestions);
-        if (questionText) {
-          const hasReflection = await findDevotionalReflection(userId, devotional.id, dayNumber);
-          if (!hasReflection) {
-            allReflectionsJournaled = false;
-            break;
-          }
-        }
-      }
-
-      if (!allReflectionsJournaled) {break;}
-    }
-
-    // Only notify if no devotionals OR all reflections are journaled
-    if (incompleteDevotionals.length === 0 || allReflectionsJournaled) {
-      const heartJournalTitle = await getHeartJournalPrompt(userId, subscription);
-      if (heartJournalTitle) {
-        candidates.push(createCandidate({
-          type: 'heart_journal_prompt',
-          timeWindow: 'late_afternoon',
-          score: 87,
-          dedupeKey: buildDedupeKey('heart_journal_prompt', heartJournalTitle, currentDate),
-          deepLink: `sifia://dashboard?openGuidedReflection=true&question=${encodeURIComponent(heartJournalTitle)}`,
-          sourceType: 'journal',
-          copyContext: {
-            heartJournalTitle,
-          },
-          metadata: {
-            heart_journal_title: heartJournalTitle,
-            is_free_user: subscription?.tier === 'seeker' || subscription?.tier === 'free_trial',
-          },
-        }));
-      }
+  {
+    const heartJournalTitle = await getHeartJournalPrompt(userId, subscription);
+    if (heartJournalTitle) {
+      candidates.push(createCandidate({
+        type: 'heart_journal_prompt',
+        timeWindow: 'late_afternoon',
+        score: 87,
+        dedupeKey: buildDedupeKey('heart_journal_prompt', heartJournalTitle, currentDate),
+        deepLink: `sifia://dashboard?openGuidedReflection=true&question=${encodeURIComponent(heartJournalTitle)}`,
+        sourceType: 'journal',
+        copyContext: {
+          heartJournalTitle,
+        },
+        metadata: {
+          heart_journal_title: heartJournalTitle,
+          is_free_user: subscription?.tier === 'seeker' || subscription?.tier === 'free_trial',
+        },
+      }));
     }
   }
 
@@ -1399,47 +1036,6 @@ export async function buildSmartNotificationCandidates(userId: string): Promise<
     const remaining = getRemainingUsage(subscription);
     const resetDate = getNextUsageResetDate(subscription);
     const refreshDate = formatShortDate(resetDate);
-
-    if (devotionals.length === 0 && (subscription.devotionals_used ?? 0) === 0 && remaining.devotionals > 0) {
-      const firstCompletedPlaybookWithoutDevotional = playbooks.find(playbook => (
-        playbook.status === 'completed' || !!playbook.completed_at
-      ) && !devotionals.some(devotional => devotional.playbook_id === playbook.id));
-
-      if (firstCompletedPlaybookWithoutDevotional) {
-        candidates.push(createCandidate({
-          type: 'create_first_devotional',
-          timeWindow: 'afternoon',
-          score: 85,
-          dedupeKey: buildDedupeKey('create_first_devotional', currentDate),
-          deepLink: `sifia://playbooks/${firstCompletedPlaybookWithoutDevotional.id}/walkthrough/completed`,
-          sourceType: 'playbook',
-          sourceId: firstCompletedPlaybookWithoutDevotional.id,
-          metadata: {
-            playbook_title: firstCompletedPlaybookWithoutDevotional.title,
-            remaining_devotionals: remaining.devotionals,
-          },
-        }));
-      }
-    } else if (incompleteDevotionals.length === 0 && remaining.devotionals > 0) {
-      const devotionalPlaybook = playbooks.find(playbook => (
-        playbook.status === 'completed' || !!playbook.completed_at
-      ) && !devotionals.some(devotional => devotional.playbook_id === playbook.id));
-
-      if (devotionalPlaybook) {
-        candidates.push(createCandidate({
-          type: 'create_devotional',
-          timeWindow: 'afternoon',
-          score: 52,
-          dedupeKey: buildDedupeKey('create_devotional', currentDate),
-          deepLink: `sifia://playbooks/${devotionalPlaybook.id}/walkthrough/completed`,
-          sourceType: 'playbook',
-          sourceId: devotionalPlaybook.id,
-          metadata: {
-            playbook_title: devotionalPlaybook.title,
-          },
-        }));
-      }
-    }
 
     if (!ongoingPlaybook && remaining.playbooks > 0) {
       candidates.push(createCandidate({
@@ -1449,20 +1045,6 @@ export async function buildSmartNotificationCandidates(userId: string): Promise<
         dedupeKey: buildDedupeKey('create_playbook', currentDate),
         deepLink: 'sifia://userinput',
         sourceType: 'subscription',
-      }));
-    }
-
-    if (remaining.devotionals > 0 && remaining.devotionals <= 5 && incompleteDevotionals.length === 0) {
-      candidates.push(createCandidate({
-        type: 'usage_room_devotional',
-        timeWindow: 'afternoon',
-        score: 40,
-        dedupeKey: buildDedupeKey('usage_room_devotional', remaining.devotionals, currentDate),
-        deepLink: 'sifia://devotionals/new',
-        sourceType: 'subscription',
-        copyContext: {
-          remainingCount: remaining.devotionals,
-        },
       }));
     }
 
@@ -1480,7 +1062,7 @@ export async function buildSmartNotificationCandidates(userId: string): Promise<
       }));
     }
 
-    if (remaining.devotionals === 0 && remaining.playbooks === 0) {
+    if (remaining.playbooks === 0) {
       candidates.push(createCandidate({
         type: 'content_refresh_wait',
         timeWindow: 'afternoon',
@@ -1518,11 +1100,6 @@ export async function buildSmartNotificationCandidates(userId: string): Promise<
     sourceType: 'fallback',
   }));
 
-  // Mark reflection questions as notified
-  const reflectionQuestionKeys = candidates
-    .filter(c => c.type === 'devotional_reflection_prompt' && c.metadata?.question_key)
-    .map(c => c.metadata?.question_key as string);
-
   // Mark playbook action completions as notified
   const actionCompletionKeys = candidates
     .filter(c => c.type === 'playbook_actions_complete' && c.metadata?.completion_key)
@@ -1533,8 +1110,7 @@ export async function buildSmartNotificationCandidates(userId: string): Promise<
     .filter(c => c.type === 'playbook_actions_milestone' && c.metadata?.milestone_key)
     .map(c => c.metadata?.milestone_key as string);
 
-  if (reflectionQuestionKeys.length > 0 || actionCompletionKeys.length > 0 || actionMilestoneKeys.length > 0) {
-    const updatedNotifiedQuestions = [...new Set([...notifiedQuestions, ...reflectionQuestionKeys])];
+  if (actionCompletionKeys.length > 0 || actionMilestoneKeys.length > 0) {
     const updatedNotifiedCompletions = [...new Set([...((userMetadata.notified_action_completions as string[]) || []), ...actionCompletionKeys])];
     const updatedNotifiedMilestones = [...new Set([...((userMetadata.notified_action_milestones as string[]) || []), ...actionMilestoneKeys])];
     await supabase
@@ -1542,7 +1118,6 @@ export async function buildSmartNotificationCandidates(userId: string): Promise<
       .update({
         metadata: {
           ...userMetadata,
-          notified_reflection_questions: updatedNotifiedQuestions,
           notified_action_completions: updatedNotifiedCompletions,
           notified_action_milestones: updatedNotifiedMilestones,
         },

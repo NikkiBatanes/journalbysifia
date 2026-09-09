@@ -48,24 +48,10 @@ export const checkDatabaseTables = async () => {
 
     }
 
-    // Check if devotionals table exists
-
-    const { error: devotionalsError } = await supabase
-      .from('devotionals')
-      .select('*')
-      .limit(1);
-
-    if (devotionalsError) {
-
-    } else {
-
-    }
-
     return {
       profilesTable: !profilesError,
       logTable: !logError,
       playbooksTable: !playbooksError,
-      devotionalsTable: !devotionalsError,
     };
 
   } catch (error) {
@@ -74,7 +60,6 @@ export const checkDatabaseTables = async () => {
       profilesTable: false,
       logTable: false,
       playbooksTable: false,
-      devotionalsTable: false,
     };
   }
 };

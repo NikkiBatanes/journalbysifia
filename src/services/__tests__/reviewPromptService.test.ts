@@ -89,8 +89,8 @@ describe('reviewPromptService', () => {
       })
     );
 
-    const firstRequest = requestReview({ triggerSource: 'devotional_complete' });
-    const secondRequest = requestReview({ triggerSource: 'faith_points_devotional_full_completed' });
+    const firstRequest = requestReview({ triggerSource: 'playbook_complete' });
+    const secondRequest = requestReview({ triggerSource: 'faith_points_playbook_completed' });
 
     await expect(secondRequest).resolves.toBe(false);
     await Promise.resolve();

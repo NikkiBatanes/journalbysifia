@@ -133,7 +133,6 @@ interface DailyActivityRow {
   app_opens?: number | null;
   session_duration_seconds?: number | null;
   playbook_views?: number | null;
-  devotional_views?: number | null;
   journal_opens?: number | null;
   todays_focus_used?: boolean | null;
   todos_used?: boolean | null;
@@ -144,7 +143,6 @@ interface DailyActivityRow {
   looking_forward_used?: boolean | null;
   today_win_used?: boolean | null;
   playbooks_created?: number | null;
-  devotionals_created?: number | null;
   updated_at?: string | null;
 }
 
@@ -431,7 +429,7 @@ export default function AdminDashboardScreen({ navigation }: Props) {
   const [_collapsedSections, _setCollapsedSections] = useState<Set<string>>(new Set(['downloads_users', 'subscriber_breakdown', 'subscription_health', 'next_renewals', 'needs_attention', 'subscriptions', 'lifetime']));
   const [showQuickActions, setShowQuickActions] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState<MonthRange>('all');
-  const [userContentStats, setUserContentStats] = useState<Map<string, { playbooks: number; devotionals: number; guidance: number; refinements: number }>>(new Map());
+  const [userContentStats, setUserContentStats] = useState<Map<string, { playbooks: number; guidance: number; refinements: number }>>(new Map());
 
   const userEmail = (user as any)?.email || '';
   const isAdmin = ADMIN_EMAILS.includes(userEmail) || ADMIN_USER_IDS.includes(user?.id ?? '');
@@ -583,11 +581,10 @@ export default function AdminDashboardScreen({ navigation }: Props) {
     }
 
     // Build per-user content stats from admin RPC (bypasses RLS)
-    const statsMap = new Map<string, { playbooks: number; devotionals: number; guidance: number; refinements: number }>();
+    const statsMap = new Map<string, { playbooks: number; guidance: number; refinements: number }>();
     (contentStatsResult.data || []).forEach((r: any) => {
       statsMap.set(r.user_id, {
         playbooks: r.playbook_count ?? 0,
-        devotionals: r.devotional_count ?? 0,
         guidance: r.wisdom_count ?? 0,
         refinements: r.refinement_count ?? 0,
       });
@@ -833,9 +830,8 @@ export default function AdminDashboardScreen({ navigation }: Props) {
     const totals = items.reduce((acc, item) => ({
       appOpens: acc.appOpens + (item.app_opens || 0),
       playbooks: acc.playbooks + (item.playbook_views || 0),
-      devotionals: acc.devotionals + (item.devotional_views || 0),
       journal: acc.journal + (item.journal_opens || 0),
-      created: acc.created + (item.playbooks_created || 0) + (item.devotionals_created || 0),
+      created: acc.created + (item.playbooks_created || 0),
       prayer: acc.prayer || !!item.prayer_used,
       gratitude: acc.gratitude || !!item.gratitude_used,
       reflection: acc.reflection || !!item.reflection_used,
@@ -843,7 +839,6 @@ export default function AdminDashboardScreen({ navigation }: Props) {
     }), {
       appOpens: 0,
       playbooks: 0,
-      devotionals: 0,
       journal: 0,
       created: 0,
       prayer: false,
@@ -855,7 +850,6 @@ export default function AdminDashboardScreen({ navigation }: Props) {
     const parts = [
       totals.appOpens ? `${totals.appOpens} opens` : null,
       totals.playbooks ? `${totals.playbooks} playbook views` : null,
-      totals.devotionals ? `${totals.devotionals} devotional views` : null,
       totals.journal ? `${totals.journal} journal opens` : null,
       totals.created ? `${totals.created} created` : null,
       totals.focus ? 'focus' : null,
@@ -1703,10 +1697,6 @@ export default function AdminDashboardScreen({ navigation }: Props) {
                     <View style={styles.drilldownStat}>
                       <ThemedText weight="bold" style={styles.drilldownStatValue}>{stats?.playbooks ?? 0}</ThemedText>
                       <ThemedText weight="regular" style={styles.drilldownStatLabel}>Playbooks</ThemedText>
-                    </View>
-                    <View style={styles.drilldownStat}>
-                      <ThemedText weight="bold" style={styles.drilldownStatValue}>{stats?.devotionals ?? 0}</ThemedText>
-                      <ThemedText weight="regular" style={styles.drilldownStatLabel}>Devotionals</ThemedText>
                     </View>
                     <View style={styles.drilldownStat}>
                       <ThemedText weight="bold" style={styles.drilldownStatValue}>{stats?.guidance ?? 0}</ThemedText>

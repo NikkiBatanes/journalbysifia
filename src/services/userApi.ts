@@ -169,7 +169,6 @@ class UserApiService {
 
       const progress: UserProgress = {
         userId: user.user.id,
-        totalDevotionals: progressData?.total_devotionals || 0,
         totalPrayers: progressData?.total_prayers || 0,
         totalJournalEntries: progressData?.total_journal_entries || 0,
         totalPlaybooksCompleted: progressData?.total_playbooks_completed || 0,
@@ -209,7 +208,6 @@ class UserApiService {
         updated_at: new Date().toISOString(),
       };
 
-      if (updates.totalDevotionals !== undefined) {progressUpdates.total_devotionals = updates.totalDevotionals;}
       if (updates.totalPrayers !== undefined) {progressUpdates.total_prayers = updates.totalPrayers;}
       if (updates.totalJournalEntries !== undefined) {progressUpdates.total_journal_entries = updates.totalJournalEntries;}
       if (updates.totalPlaybooksCompleted !== undefined) {progressUpdates.total_playbooks_completed = updates.totalPlaybooksCompleted;}
@@ -650,11 +648,6 @@ class UserApiService {
       // Get recent transactions to calculate additional stats
       const recentTransactions = await faithPointsService.getRecentTransactions(userId, 100);
 
-      // Calculate activity counts using exact activity type matches
-      const devotionalsFinished = recentTransactions.filter((t: any) =>
-        t.activity_type === 'devotional_generated'
-      ).length;
-
       const prayerSessions = recentTransactions.filter((t: any) =>
         t.activity_type === 'prayer_completed' || t.activity_type === 'daily_prayer'
       ).length;
@@ -721,7 +714,6 @@ class UserApiService {
         totalBadges,
         currentStreak: profile.currentStreak,
         goalsCompleted,
-        devotionalsFinished,
         prayerSessions,
         journalEntries,
       };
@@ -818,7 +810,7 @@ class UserApiService {
         description: item.badges.description,
         icon: item.badges.icon,
         rarity: item.badges.rarity,
-        category: (item.badges.category as 'streak' | 'devotional' | 'prayer' | 'journal' | 'playbook' | 'achievement') || 'achievement',
+        category: (item.badges.category as 'streak' | 'prayer' | 'journal' | 'playbook' | 'achievement') || 'achievement',
         unlockedAt: item.earned_at,
       }));
 

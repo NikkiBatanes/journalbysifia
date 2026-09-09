@@ -273,7 +273,7 @@ export class RetentionService {
         discount: 20, // Additional 20% off as specified
         duration: 'first_month',
         title: 'Trial declined',
-        message: 'Keep going with siFia. You can still come back with 20% off your first month if you\'d like more room for playbooks, devotionals, and reflection.',
+        message: 'Keep going with siFia. You can still come back with 20% off your first month if you\'d like more room for playbooks and reflection.',
         cta: 'Get 20% Off',
         userValueScore: 50, // Default medium value
         pricingStrategy: 'static',
@@ -297,7 +297,7 @@ export class RetentionService {
         discount: 20,
         duration: 'first_month',
         title: 'Subscription cancelled',
-        message: 'Your place is still here. Return with 20% off and pick up where you left off with playbooks, devotionals, and reflection.',
+        message: 'Your place is still here. Return with 20% off and pick up where you left off with playbooks and reflection.',
         cta: 'Restart with 20% Off',
         userValueScore: 50,
         pricingStrategy: 'static',
@@ -587,15 +587,13 @@ export class RetentionService {
 
     // Daily usage patterns (0-15 points)
     const playbooksUsed = usage.playbooks_used || usage.playbooks_generated || 0;
-    const devotionalsUsed = usage.devotionals_used || usage.devotionals_generated || 0;
     const journalEntries = usage.journal_entries || 0;
 
-    score += Math.min(15, (playbooksUsed + devotionalsUsed + journalEntries) * 2);
+    score += Math.min(15, (playbooksUsed + journalEntries) * 2);
 
     // Feature usage diversity (0-10 points)
     const featuresUsed = [
       playbooksUsed > 0,
-      devotionalsUsed > 0,
       journalEntries > 0,
       usage.smart_journal_entries > 0,
       usage.export_count > 0,
@@ -647,10 +645,6 @@ export class RetentionService {
     // Playbooks created (0-10 points)
     const playbooks = usage.playbooks_used || usage.playbooks_generated || 0;
     score += Math.min(10, playbooks);
-
-    // Devotionals created (0-5 points)
-    const devotionals = usage.devotionals_used || usage.devotionals_generated || 0;
-    score += Math.min(5, devotionals);
 
     // Journal entries (0-5 points)
     const journalEntries = usage.journal_entries || 0;
@@ -733,7 +727,7 @@ export class RetentionService {
       // Standard messaging
       return {
         title: 'Keep going with siFia',
-        message: `Come back with ${discount}% off and keep going with more room for reflection, playbooks, and devotionals.`,
+        message: `Come back with ${discount}% off and keep going with more room for reflection and playbooks.`,
         cta: `Get ${discount}% Off Now`,
       };
     }

@@ -6,7 +6,7 @@ const MetricsExplainer: React.FC = () => {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>How your score works</Text>
-      <Text style={styles.item}>• Devotional generated: +8 pts</Text>
+      <Text style={styles.item}>• Playbook generated: +8 pts</Text>
       <Text style={styles.item}>• Journal/Prayer entry: +5 pts</Text>
       <Text style={styles.item}>• Daily streak bonuses apply</Text>
       <Text style={styles.item}>• Levels increase at point thresholds</Text>

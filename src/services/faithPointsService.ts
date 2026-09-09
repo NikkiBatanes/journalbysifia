@@ -57,7 +57,7 @@ export interface FaithPointsTransaction {
   userId: string;
   points: number;
   reason: string;
-  category: 'playbook' | 'devotional' | 'journal' | 'streak' | 'achievement' | 'bonus';
+  category: 'playbook' | 'journal' | 'streak' | 'achievement' | 'bonus';
   metadata?: any;
   createdAt: string;
 }
@@ -101,7 +101,7 @@ export class FaithPointsService {
   ];
 
   // Points awarded for different activities
-  // HIGHEST: Full devotional/playbook completion (max +5)
+  // HIGHEST: Full playbook completion (max +5)
   // MEDIUM: Daily activities, prayers, journal (+2 to +3)
   // LOW: Generation, small actions (+1)
   private readonly POINTS_SYSTEM = {
@@ -110,14 +110,9 @@ export class FaithPointsService {
     playbook_opened: 1,
     playbook_revisited_completed: 1,
     playbook_generated: 3,
-    devotional_opened: 1,
-    devotional_revisited_completed: 1,
-    devotional_generated: 3,
 
     // Completion (HIGHEST tier - scales with length)
-    devotional_completed: 2, // Single day (1/3, 2/3)
-    devotional_full_completed: 3, // Full completion (1/1, 3/3, 5/5, 7/7)
-    playbook_completed: 5, // Full playbook completion (5/5, 6/6), matches devotional
+    playbook_completed: 5, // Full playbook completion (5/5, 6/6)
 
     // Daily activities (medium tier)
     reflection_question_answered: 2, // Question to ponder
@@ -125,7 +120,6 @@ export class FaithPointsService {
     prayer_for_now: 3,
     prayer_journal_acts: 3,
     prayer_journal_open: 3,
-    prayer_devotional_prayed: 2,
     prayer_playbook_prayed: 2,
     prayer_list_prayed: 3,
     prayer_list_request_added: 2,
@@ -157,8 +151,6 @@ export class FaithPointsService {
     // Streak bonuses
     playbook_streak_3: 3,
     playbook_streak_7: 5,
-    devotional_streak_3: 3,
-    devotional_streak_7: 5,
     journal_streak_3: 3,
     journal_streak_7: 5,
     prayer_streak_3: 3,
@@ -175,7 +167,6 @@ export class FaithPointsService {
   private shouldRequestReviewForActivity(activity: keyof typeof this.POINTS_SYSTEM): boolean {
     return [
       'playbook_completed',
-      'devotional_full_completed',
       'prayer_answered',
       'weekly_goal_met',
     ].includes(activity);
@@ -322,14 +313,14 @@ export class FaithPointsService {
   ): Promise<{ pointsAwarded: number; newLevel?: number; newBadges?: Badge[] }> {
 
     try {
-      // RATE LIMITER: Prevent rapid faith points awarding during devotional completion sprees
+      // RATE LIMITER: Prevent rapid faith points awarding during completion sprees
       const now = Date.now();
       const lastAwardTime = FaithPointsService.lastAwardTimes.get(userId) || 0;
       const timeSinceLastAward = now - lastAwardTime;
 
       // Block rapid completions: require at least 1 second between faith points awards
-      if (timeSinceLastAward < 1000 && activity === 'devotional_completed') {
-        Logger.debug('[FaithPointsService] Rate limiting rapid devotional completions', {
+      if (timeSinceLastAward < 1000 && activity === 'playbook_completed') {
+        Logger.debug('[FaithPointsService] Rate limiting rapid completions', {
           component: 'faithPointsService',
           userId,
           activity,
@@ -799,7 +790,7 @@ export class FaithPointsService {
         pointsRequired: 1000,
       },
 
-      // Devotional Badges
+      // Prayer Badges
       {
         id: 'prayer_warrior',
         name: 'Prayer Warrior',
@@ -816,23 +807,6 @@ export class FaithPointsService {
         rarity: 'rare',
         pointsRequired: 120,
       },
-      {
-        id: 'devotional_dedicated',
-        name: 'Devotional Dedicated',
-        description: 'Generated 25 devotionals',
-        icon: '📿',
-        rarity: 'epic',
-        pointsRequired: 200,
-      },
-      {
-        id: 'devotional_master',
-        name: 'Devotional Master',
-        description: 'Generated 50 devotionals',
-        icon: '⛪',
-        rarity: 'legendary',
-        pointsRequired: 400,
-      },
-
       // Journal Badges
       {
         id: 'journal_keeper',
@@ -1260,23 +1234,11 @@ export class FaithPointsService {
   }
 
   private getStreakTypeForActivity(activity: string): StreakType | null {
-    const devotionalActivities = new Set([
-      'devotional_generated',
-      'devotional_created',
-      'devotional_opened',
-      'devotional_revisited_completed',
-      'devotional_completed',
-      'devotional_full_completed',
-      'devotional_day_completed',
-      'reflection_question_answered',
-    ]);
-
     const prayerActivities = new Set([
       'prayer_for_now',
       'prayer_for_others',
       'prayer_journal_acts',
       'prayer_journal_open',
-      'prayer_devotional_prayed',
       'prayer_playbook_prayed',
       'prayer_list_prayed',
       'prayer_list_request_added',
@@ -1285,6 +1247,7 @@ export class FaithPointsService {
     ]);
 
     const journalActivities = new Set([
+      'reflection_question_answered',
       'journal_entry',
       'journal_todo_added',
       'journal_focus_set',
@@ -1301,10 +1264,6 @@ export class FaithPointsService {
 
     if (prayerActivities.has(activity)) {
       return 'prayer';
-    }
-
-    if (devotionalActivities.has(activity)) {
-      return 'devotional';
     }
 
     if (journalActivities.has(activity)) {
@@ -1542,7 +1501,7 @@ export class FaithPointsService {
       let activityCounts: Record<string, number> = {};
       const hasActivityBasedBadges = availableBadges.some(badge =>
         ['First Steps', 'Growth Seeker', 'Playbook Master', 'Playbook Legend',
-         'Prayer Warrior', 'Devotional Dedicated', 'Devotional Master',
+         'Prayer Warrior',
          'Journal Keeper', 'Journal Scribe',
          'Faithful Week', 'Streak Warrior', 'Streak Master', 'Streak Legend'].includes(badge.name)
       );
@@ -1583,7 +1542,7 @@ export class FaithPointsService {
           // For activity-based badges, use pre-fetched counts
           const isActivityBasedBadge = [
             'First Steps', 'Growth Seeker', 'Playbook Master', 'Playbook Legend',
-            'Prayer Warrior', 'Devotional Dedicated', 'Devotional Master',
+            'Prayer Warrior',
             'Journal Keeper', 'Journal Scribe',
             'Faithful Week', 'Streak Warrior', 'Streak Master', 'Streak Legend',
           ].includes(badge.name);
@@ -1620,7 +1579,6 @@ export class FaithPointsService {
    */
   private getCategoryFromReason(reason: string): string {
     if (reason.includes('playbook')) {return 'playbook';}
-    if (reason.includes('devotional')) {return 'devotional';}
     if (reason.includes('prayer')) {return 'prayer';}
     if (reason.includes('journal')) {return 'journal';}
     if (reason.includes('streak')) {return 'streak';}
@@ -1717,29 +1675,19 @@ export class FaithPointsService {
         if (activity !== 'playbook_generated') { return false; }
         return (activityCounts.playbook_generated || 0) >= 100;
 
-      // Devotional Badges
+      // Prayer Badges
       case 'Prayer Warrior':
         // Award after completing 25 prayer activities - ONLY check during prayer activities
         if (!activity.includes('prayer')) { return false; }
-        const devotionalPrayersCount = activityCounts.prayer_devotional_prayed || 0;
+        const playbookPrayersCount = activityCounts.prayer_playbook_prayed || 0;
         const prayerListPrayedCount = activityCounts.prayer_list_prayed || 0;
-        const totalPrayerActivities = devotionalPrayersCount + prayerListPrayedCount;
+        const totalPrayerActivities = playbookPrayersCount + prayerListPrayedCount;
         return totalPrayerActivities >= 25;
 
       case 'Faithful Witness':
         // Award after documenting 15 answered prayers - ONLY check during prayer activities
         if (activity !== 'prayer_answered') { return false; }
         return (activityCounts.prayer_answered || 0) >= 15;
-
-      case 'Devotional Dedicated':
-        // Award after generating 25 devotionals - ONLY check during devotional generation
-        if (activity !== 'devotional_generated') { return false; }
-        return (activityCounts.devotional_generated || 0) >= 25;
-
-      case 'Devotional Master':
-        // Award after generating 50 devotionals - ONLY check during devotional generation
-        if (activity !== 'devotional_generated') { return false; }
-        return (activityCounts.devotional_generated || 0) >= 50;
 
       // Journal Badges
       case 'Journal Keeper':
@@ -1855,29 +1803,19 @@ export class FaithPointsService {
         if (activity !== 'playbook_generated') { return false; }
         return await this.getActivityCount(userId, 'playbook_generated') >= 100;
 
-      // Devotional Badges
+      // Prayer Badges
       case 'Prayer Warrior':
         // Award after completing 25 prayer activities - ONLY check during prayer activities
         if (!activity.includes('prayer')) {return false;}
-        const devotionalPrayersCount = await this.getActivityCount(userId, 'prayer_devotional_prayed');
+        const playbookPrayersCount = await this.getActivityCount(userId, 'prayer_playbook_prayed');
         const prayerListPrayedCount = await this.getActivityCount(userId, 'prayer_list_prayed');
-        const totalPrayerActivities = devotionalPrayersCount + prayerListPrayedCount;
+        const totalPrayerActivities = playbookPrayersCount + prayerListPrayedCount;
         return totalPrayerActivities >= 25;
 
       case 'Faithful Witness':
         // Award after documenting 15 answered prayers - ONLY check during prayer activities
         if (activity !== 'prayer_answered') { return false; }
         return await this.getActivityCount(userId, 'prayer_answered') >= 15;
-
-      case 'Devotional Dedicated':
-        // Award after generating 25 devotionals - ONLY check during devotional generation
-        if (activity !== 'devotional_generated') { return false; }
-        return await this.getActivityCount(userId, 'devotional_generated') >= 25;
-
-      case 'Devotional Master':
-        // Award after generating 50 devotionals - ONLY check during devotional generation
-        if (activity !== 'devotional_generated') { return false; }
-        return await this.getActivityCount(userId, 'devotional_generated') >= 50;
 
       // Journal Badges
       case 'Journal Keeper':

@@ -325,20 +325,19 @@ interface CarouselCardProps {
   isMenuOpen: boolean;
   hasPrayed: boolean;
   hasRead: boolean;
-  devotionalCount: number;
   cardStyles: any;
   sessionStates: Record<string, { hasPrayed: boolean; hasRead: boolean }>;
   onPress: (item: Playbook) => void; onLongPress: (item: Playbook) => void;
   onMenuToggle: (id: string | null, anchor?: MenuAnchor) => void; onDelete: (id: string) => void;
   onRenamePress: (item: Playbook) => void; onTagPress: (item: Playbook) => void;
-  onDevotionalPress: (item: Playbook) => void; onExportPdfPress: (item: Playbook) => void; triggerHaptic: () => void;
+  onExportPdfPress: (item: Playbook) => void; triggerHaptic: () => void;
 }
 type MenuAnchor = { pageX: number; pageY: number };
 type MenuPosition = { top: number; left: number };
 const CURRENT_YEAR = new Date().getFullYear();
 const CAROUSEL_CONTENT_STYLE = { paddingHorizontal: SIDE_INSET };
 
-const CarouselCard = React.memo(({ item, index, scrollX, isMenuOpen, hasPrayed, hasRead, devotionalCount: _devotionalCount, cardStyles: st, sessionStates, onPress, onLongPress, onMenuToggle: _onMenuToggle, onDelete: _onDelete, onRenamePress: _onRenamePress, onTagPress: _onTagPress, onDevotionalPress: _onDevotionalPress, onExportPdfPress: _onExportPdfPress, triggerHaptic: _triggerHaptic }: CarouselCardProps) => {
+const CarouselCard = React.memo(({ item, index, scrollX, isMenuOpen, hasPrayed, hasRead, cardStyles: st, sessionStates, onPress, onLongPress, onMenuToggle: _onMenuToggle, onDelete: _onDelete, onRenamePress: _onRenamePress, onTagPress: _onTagPress, onExportPdfPress: _onExportPdfPress, triggerHaptic: _triggerHaptic }: CarouselCardProps) => {
   // Interpolation input range depends only on index — stable dep
   const scale      = useMemo(() => scrollX.interpolate({ inputRange: [(index - 1) * ITEM_SIZE, index * ITEM_SIZE, (index + 1) * ITEM_SIZE], outputRange: [0.96, 1, 0.96], extrapolate: 'clamp' }), [scrollX, index]);
   const opacity    = useMemo(() => scrollX.interpolate({ inputRange: [(index - 1) * ITEM_SIZE, index * ITEM_SIZE, (index + 1) * ITEM_SIZE], outputRange: [0.9,  1,   0.9],  extrapolate: 'clamp' }), [scrollX, index]);
@@ -447,7 +446,6 @@ interface CategoryCarouselRowProps {
   playbooks: Playbook[];
   cardStyles: any;
   sessionStates: Record<string, { hasPrayed: boolean; hasRead: boolean }>;
-  devotionalsCount: Record<string, number>;
   menuVisible: string | null;
   onPress: (item: Playbook) => void;
   onLongPress: (item: Playbook) => void;
@@ -455,15 +453,14 @@ interface CategoryCarouselRowProps {
   onDelete: (id: string) => void;
   onRenamePress: (item: Playbook) => void;
   onTagPress: (item: Playbook) => void;
-  onDevotionalPress: (item: Playbook) => void;
   onExportPdfPress: (item: Playbook) => void;
   triggerHaptic: () => void;
 }
 
 const CategoryCarouselRow = React.memo(({
-  category, playbooks, cardStyles: st, sessionStates, devotionalsCount,
+  category, playbooks, cardStyles: st, sessionStates,
   menuVisible, onPress, onLongPress, onMenuToggle, onDelete,
-  onRenamePress, onTagPress, onDevotionalPress, onExportPdfPress, triggerHaptic,
+  onRenamePress, onTagPress, onExportPdfPress, triggerHaptic,
 }: CategoryCarouselRowProps) => {
   const rowScrollX = useRef(new Animated.Value(0)).current;
 
@@ -475,7 +472,6 @@ const CategoryCarouselRow = React.memo(({
       isMenuOpen={menuVisible === item.id}
       hasPrayed={sessionStates[item.id]?.hasPrayed ?? false}
       hasRead={sessionStates[item.id]?.hasRead ?? false}
-      devotionalCount={devotionalsCount[item.id] ?? 0}
       cardStyles={st}
       sessionStates={sessionStates}
       onPress={onPress}
@@ -484,11 +480,10 @@ const CategoryCarouselRow = React.memo(({
       onDelete={onDelete}
       onRenamePress={onRenamePress}
       onTagPress={onTagPress}
-      onDevotionalPress={onDevotionalPress}
       onExportPdfPress={onExportPdfPress}
       triggerHaptic={triggerHaptic}
     />
-  ), [rowScrollX, menuVisible, sessionStates, devotionalsCount, st, onPress, onLongPress, onMenuToggle, onDelete, onRenamePress, onTagPress, onDevotionalPress, onExportPdfPress, triggerHaptic]);
+  ), [rowScrollX, menuVisible, sessionStates, st, onPress, onLongPress, onMenuToggle, onDelete, onRenamePress, onTagPress, onExportPdfPress, triggerHaptic]);
 
   const getItemLayout = useCallback((_: any, index: number) => ({
     length: ITEM_SIZE, offset: ITEM_SIZE * index, index,
@@ -1210,7 +1205,6 @@ const PlaybookListScreen = ({ navigation }: any) => {
   // Native-driver anim used only for the search icon button scale (not height)
   const searchIconAnim = useRef(new Animated.Value(1)).current;
   const searchInputRef = useRef<TextInput>(null);
-  const [devotionalsCount, setDevotionalsCount] = useState<Record<string, number>>({});
   const [menuVisible, setMenuVisible] = useState<string | null>(null);
   const [selectedPlaybookForMenu, setSelectedPlaybookForMenu] = useState<Playbook | null>(null);
   const [menuPosition, setMenuPosition] = useState<MenuPosition | null>(null);
@@ -1358,40 +1352,6 @@ const PlaybookListScreen = ({ navigation }: any) => {
     }
     return extractIncompleteFaithfulActions(playbooks);
   }, [playbooks]);
-
-  // Fetch devotionals count for each playbook — stable dep: playbooks.length, not the full array ref
-  const playbooksLengthRef = useRef(0);
-  const devotionalsCountLoadedRef = useRef(false);
-  useEffect(() => {
-    if (!userId || playbooks.length === 0) {return;}
-    if (playbooks.length === playbooksLengthRef.current && devotionalsCountLoadedRef.current) {return;}
-    playbooksLengthRef.current = playbooks.length;
-
-    const fetchDevotionalsCount = async () => {
-      try {
-        const { data: devotionals, error } = await supabase
-          .from('devotionals')
-          .select('playbook_id')
-          .eq('user_id', userId);
-
-        if (error) {throw error;}
-
-        const counts: Record<string, number> = {};
-        devotionals?.forEach((devotional: any) => {
-          if (devotional.playbook_id) {
-            counts[devotional.playbook_id] = (counts[devotional.playbook_id] || 0) + 1;
-          }
-        });
-
-        setDevotionalsCount(counts);
-        devotionalsCountLoadedRef.current = true;
-      } catch (err) {
-        Logger.error('Error fetching devotionals count', err as Error, { component: 'PlaybookListScreen' });
-      }
-    };
-
-    fetchDevotionalsCount();
-  }, [userId, playbooks.length]);
 
   // Filter and sort playbooks by status and search
   const filteredPlaybooks = useMemo(() => {
@@ -1715,7 +1675,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
   }, [navigation, triggerLightHaptic]);
 
   const handleCardLongPress = useCallback(() => {
-    // No-op: devotional creation removed
+    // No-op: long-press action removed
   }, []);
 
   const handleMenuToggle = useCallback((id: string | null, anchor?: MenuAnchor) => {
@@ -1759,10 +1719,6 @@ const PlaybookListScreen = ({ navigation }: any) => {
   const handleTagPress = useCallback((item: Playbook) => {
     setMenuVisible(null); setSelectedPlaybookForTag(item); setTagModalVisible(true);
   }, []);
-  const handleDevotionalPress = useCallback(() => {
-    setMenuVisible(null); handleCardLongPress();
-  }, [handleCardLongPress]);
-
   const handleExportPdfPress = useCallback(async (item: Playbook) => {
     // Check feature access
     if (!pdfExportAccess.hasAccess) {
@@ -1929,7 +1885,6 @@ const PlaybookListScreen = ({ navigation }: any) => {
           playbooks={item.playbooks}
           cardStyles={styles}
           sessionStates={sessionStates}
-          devotionalsCount={devotionalsCount}
           menuVisible={menuVisible}
           onPress={handleCardPress}
           onLongPress={handleCardLongPress}
@@ -1937,13 +1892,12 @@ const PlaybookListScreen = ({ navigation }: any) => {
           onDelete={handleDelete}
           onRenamePress={handleRenamePress}
           onTagPress={handleTagPress}
-          onDevotionalPress={handleDevotionalPress}
           onExportPdfPress={handleExportPdfPress}
           triggerHaptic={triggerLightHaptic}
         />
       </View>
     );
-  }, [styles, sessionStates, devotionalsCount, menuVisible, handleCardPress, handleCardLongPress, handleMenuToggle, handleDelete, handleRenamePress, handleTagPress, handleDevotionalPress, handleExportPdfPress, triggerLightHaptic]);
+  }, [styles, sessionStates, menuVisible, handleCardPress, handleCardLongPress, handleMenuToggle, handleDelete, handleRenamePress, handleTagPress, handleExportPdfPress, triggerLightHaptic]);
 
   // Show loading state when we don't have a userId yet (auth loading) or not authenticated
   if (!userId || !isAuthenticated) {
@@ -1970,7 +1924,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
         <View style={[styles.container, styles.containerEmpty, { backgroundColor: Colors.anchorBlue }]}>
           <View style={[styles.headerBar, IS_IPAD && styles.headerBarPad, { paddingTop: insets.top, backgroundColor: Colors.anchorBlue }]}>
             <View style={[styles.pageInner, IS_IPAD && styles.pageInnerPad]}>
-              {/* Hide header when empty; keep layout with spacer (match Devotionals) */}
+              {/* Hide header when empty; keep layout with spacer */}
               <View style={styles.headerSpacer} />
             </View>
           </View>
@@ -2158,7 +2112,6 @@ const PlaybookListScreen = ({ navigation }: any) => {
                   playbooks={filteredPlaybooks}
                   cardStyles={styles}
                   sessionStates={sessionStates}
-                  devotionalsCount={devotionalsCount}
                   menuVisible={menuVisible}
                   onPress={handleCardPress}
                   onLongPress={handleCardLongPress}
@@ -2166,7 +2119,6 @@ const PlaybookListScreen = ({ navigation }: any) => {
                   onDelete={handleDelete}
                   onRenamePress={handleRenamePress}
                   onTagPress={handleTagPress}
-                  onDevotionalPress={handleDevotionalPress}
                   onExportPdfPress={handleExportPdfPress}
                   triggerHaptic={triggerLightHaptic}
                 />
@@ -2252,7 +2204,6 @@ const PlaybookListScreen = ({ navigation }: any) => {
                       playbooks={continuePlaybooks}
                       cardStyles={styles}
                       sessionStates={sessionStates}
-                      devotionalsCount={devotionalsCount}
                       menuVisible={menuVisible}
                       onPress={handleCardPress}
                       onLongPress={handleCardLongPress}
@@ -2260,7 +2211,6 @@ const PlaybookListScreen = ({ navigation }: any) => {
                       onDelete={handleDelete}
                       onRenamePress={handleRenamePress}
                       onTagPress={handleTagPress}
-                      onDevotionalPress={handleDevotionalPress}
                       onExportPdfPress={handleExportPdfPress}
                       triggerHaptic={triggerLightHaptic}
                     />
@@ -2317,7 +2267,6 @@ const PlaybookListScreen = ({ navigation }: any) => {
                       playbooks={completedPlaybooks}
                       cardStyles={styles}
                       sessionStates={sessionStates}
-                      devotionalsCount={devotionalsCount}
                       menuVisible={menuVisible}
                       onPress={handleCardPress}
                       onLongPress={handleCardLongPress}
@@ -2325,7 +2274,6 @@ const PlaybookListScreen = ({ navigation }: any) => {
                       onDelete={handleDelete}
                       onRenamePress={handleRenamePress}
                       onTagPress={handleTagPress}
-                      onDevotionalPress={handleDevotionalPress}
                       onExportPdfPress={handleExportPdfPress}
                       triggerHaptic={triggerLightHaptic}
                     />
@@ -2454,7 +2402,6 @@ const PlaybookListScreen = ({ navigation }: any) => {
                       playbooks={catPlaybooks}
                       cardStyles={styles}
                       sessionStates={sessionStates}
-                      devotionalsCount={devotionalsCount}
                       menuVisible={menuVisible}
                       onPress={handleCardPress}
                       onLongPress={handleCardLongPress}
@@ -2462,7 +2409,6 @@ const PlaybookListScreen = ({ navigation }: any) => {
                       onDelete={handleDelete}
                       onRenamePress={handleRenamePress}
                       onTagPress={handleTagPress}
-                      onDevotionalPress={handleDevotionalPress}
                       onExportPdfPress={handleExportPdfPress}
                       triggerHaptic={triggerLightHaptic}
                     />
@@ -2882,23 +2828,6 @@ const createStyles = (_theme: any) => StyleSheet.create({
   refinedBadgeText: {
     fontSize: 10,
     color: Colors.hopeWhite,
-  },
-  devotionalsBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    borderRadius: 999,
-    paddingHorizontal: 6,
-    paddingVertical: 4,
-    marginLeft: 8,
-    minHeight: 20,
-  },
-  devotionalsBadgeText: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: Colors.hopeWhite,
-    marginLeft: 3,
   },
   carouselCardDescription: {
     fontSize: 12,
@@ -3618,7 +3547,7 @@ const createStyles = (_theme: any) => StyleSheet.create({
     paddingHorizontal: 0,
   },
   containerEmpty: {
-    // Remove default container padding so heroCard width matches Devotionals (90% of screen)
+    // Remove default container padding so heroCard spans 90% of screen
     paddingHorizontal: 0,
     paddingTop: 0,
   },
@@ -3788,7 +3717,7 @@ const createStyles = (_theme: any) => StyleSheet.create({
     paddingHorizontal: 0,
     minHeight: 300,
   },
-  // Empty state styles (mirroring Devotionals)
+  // Empty state styles
   emptyHeroContainer: {
     width: '100%',
     justifyContent: 'center',

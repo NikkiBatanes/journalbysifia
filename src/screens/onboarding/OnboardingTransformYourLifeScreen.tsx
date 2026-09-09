@@ -38,13 +38,6 @@ import { onboardingService } from '../../services/onboardingService';
     color: Colors.alertCoral,
   },
   {
-    id: 'devotionals',
-    title: 'Custom devotionals to strengthen your faith',
-    description: 'Daily spiritual nourishment designed just for you',
-    icon: 'heart',
-    color: Colors.alertCoral,
-  },
-  {
     id: 'journaling',
     title: 'Smart journaling to deepen your reflection',
     description: 'Guided reflection tools to track your spiritual growth',

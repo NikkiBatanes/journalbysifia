@@ -619,7 +619,6 @@ class AuthApiService {
         await Promise.all([
           supabase.from('user_goals').delete().eq('user_id', user.user.id),
           supabase.from('user_progress').delete().eq('user_id', user.user.id),
-          supabase.from('devotional_completions').delete().eq('user_id', user.user.id),
           supabase.from('journal_entries').delete().eq('user_id', user.user.id),
         ]);
       }
@@ -724,7 +723,6 @@ class AuthApiService {
   private getDefaultPreferences(): UserPreferences {
     return {
       notifications: {
-        dailyDevotional: true,
         prayerReminders: true,
         journalPrompts: true,
         playbookUpdates: true,

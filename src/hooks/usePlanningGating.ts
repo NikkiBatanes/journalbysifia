@@ -95,7 +95,7 @@ export const usePlanningGating = (
     if (onUpgradeRequired) {
       onUpgradeRequired();
     } else {
-      // Navigate to onboarding sales offer like devotional modal
+      // Navigate to onboarding sales offer like the upgrade modal
       const isRepeatLock = reason === 'repeat_timeblocks';
       navigateFromRoot(navigation, 'OnboardingSalesOffer', {
         source: isRepeatLock ? 'repeat_options' : 'planning_lock',

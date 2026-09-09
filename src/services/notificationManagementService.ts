@@ -6,7 +6,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 export interface NotificationPreferences {
   user_id: string;
   playbook_steps?: boolean;
-  devotional_reminders?: boolean;
   journal_prompts?: boolean;
   prayer_reminders?: boolean;
   milestone_celebrations?: boolean;
@@ -36,11 +35,9 @@ export interface NotificationQueueItem {
 export interface UserActivityTracking {
   user_id: string;
   last_prayer?: string;
-  last_devotional?: string;
   last_journal_entry?: string;
   last_playbook_action?: string;
   prayer_streak?: number;
-  devotional_streak?: number;
   journal_streak?: number;
   updated_at?: string;
 }
@@ -103,7 +100,6 @@ class NotificationManagementService {
       const preferences: NotificationPreferences = {
         user_id: data.user_id,
         playbook_steps: data.playbook_steps,
-        devotional_reminders: data.devotional_reminders,
         journal_prompts: data.journal_prompts,
         prayer_reminders: data.prayer_reminders,
         milestone_celebrations: data.milestone_celebrations,
@@ -139,7 +135,6 @@ class NotificationManagementService {
         prayer_request_alerts: preferences.prayer_request_alerts ?? true,
         prayer_requests: preferences.prayer_requests ?? true,
         playbook_steps: preferences.playbook_steps ?? true,
-        devotional_reminders: preferences.devotional_reminders ?? true,
         journal_prompts: preferences.journal_prompts ?? true,
         streak_alerts: preferences.streak_alerts ?? true,
         milestone_celebrations: preferences.milestone_celebrations ?? true,
@@ -290,9 +285,6 @@ class NotificationManagementService {
       switch (activityType) {
         case 'prayer':
           updateData.last_prayer = new Date().toISOString();
-          break;
-        case 'devotional':
-          updateData.last_devotional = new Date().toISOString();
           break;
         case 'journal':
           updateData.last_journal_entry = new Date().toISOString();
@@ -449,7 +441,6 @@ class NotificationManagementService {
         const defaultPrefs: NotificationPreferences = {
           user_id: userId,
           playbook_steps: true,
-          devotional_reminders: true,
           journal_prompts: true,
           prayer_reminders: true,
           milestone_celebrations: true,
@@ -468,7 +459,6 @@ class NotificationManagementService {
         const initialActivity: UserActivityTracking = {
           user_id: userId,
           prayer_streak: 0,
-          devotional_streak: 0,
           journal_streak: 0,
           updated_at: new Date().toISOString(),
         };
@@ -656,7 +646,6 @@ class NotificationManagementService {
   async sendStreakAlert(userId: string, streakType: string, currentStreak: number): Promise<boolean> {
     const messages = {
       prayer: `Don't break your ${currentStreak}-day prayer streak! 🔥`,
-      devotional: `Keep your ${currentStreak}-day devotional streak going! 🤲🏼`,
       journal: `Continue your ${currentStreak}-day journaling journey! ✍🏼`,
     };
 

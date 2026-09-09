@@ -1227,7 +1227,7 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
                   (navigation as any).navigate('OnboardingSalesOffer', {
                     source: 'copy_todos_lock',
                     feature: 'copy_todos',
-                    // Don't pass tier - let screen detect from devotionalGating.tier for trial eligibility
+                    // Don't pass tier - let screen detect from planningGating.tier for trial eligibility
                     incompleteTodosCount: todos.filter(t => !t.completed).length,
                     incompleteTodosPercentage: Math.round((todos.filter(t => !t.completed).length / Math.max(todos.length, 1)) * 100),
                     skipNotificationPreference: true,

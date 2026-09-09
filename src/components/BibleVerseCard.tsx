@@ -164,7 +164,7 @@ const styles = StyleSheet.create({
     paddingTop: 0,
     paddingBottom: 16,
   },
-  // Match DevotionalDetailScreen scripture styles
+  // Match playbook detail screen scripture styles
   scriptureText: {
     fontSize: 18,
     lineHeight: 26,

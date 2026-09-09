@@ -12,7 +12,7 @@ import { faithPointsService } from './faithPointsService';
 export interface QueueItem {
   id: string;
   userId: string;
-  type: 'playbook' | 'devotional' | 'journal_expansion';
+  type: 'playbook' | 'journal_expansion';
   priority: number;
   status: 'pending' | 'processing' | 'completed' | 'failed';
   userInput: string;
@@ -69,7 +69,7 @@ export class EnhancedQueueService {
    */
   async addToQueue(
     userId: string,
-    type: 'playbook' | 'devotional' | 'journal_expansion',
+    type: 'playbook' | 'journal_expansion',
     userInput: string,
     userName: string,
     subscriptionTier: string = 'free_trial'
@@ -322,7 +322,7 @@ export class EnhancedQueueService {
         // Award faith points
         await faithPointsService.awardPoints(
           item.userId,
-          item.type === 'playbook' ? 'playbook_generated' : 'devotional_generated',
+          'playbook_generated',
           { queueId: item.id, processingTime }
         );
 
@@ -381,11 +381,6 @@ export class EnhancedQueueService {
       switch (item.type) {
         case 'playbook':
           response = await this.generatePlaybook(item);
-          tokensUsed = this.estimateTokenUsage(item.userInput, item.contextData);
-          break;
-
-        case 'devotional':
-          response = await this.generateDevotional(item);
           tokensUsed = this.estimateTokenUsage(item.userInput, item.contextData);
           break;
 
@@ -505,89 +500,6 @@ export class EnhancedQueueService {
   }
 
   /**
-   * Generate devotional via Supabase Edge Function with timeout and retry
-   */
-  private async generateDevotional(item: QueueItem): Promise<any> {
-    const maxRetries = 3;
-    const timeout = 180000; // 180 seconds (3 minutes) for TestFlight reliability
-    let lastError: any = null;
-
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      try {
-        Logger.info(`Generating devotional attempt ${attempt}/${maxRetries}`, {
-          component: 'enhancedQueueService',
-          data: { userId: item.userId, attempt },
-        });
-
-        // Create timeout promise
-        const timeoutPromise = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Request timeout')), timeout)
-        );
-
-        // Race between actual call and timeout
-        const result = await Promise.race([
-          supabase.functions.invoke('generate-devotional', {
-            body: {
-              userInput: item.userInput,
-              userName: item.userName,
-              duration: item.contextData?.duration || 1,
-              bibleVersion: item.contextData?.bibleVersion || 'NASB',
-              playbookId: item.contextData?.playbookId,
-            },
-          }),
-          timeoutPromise,
-        ]) as any;
-
-        const { data, error } = result;
-
-        if (error) {
-          lastError = error;
-          Logger.warn(`Devotional generation failed attempt ${attempt}`, {
-            component: 'enhancedQueueService',
-            data: { error: error.message, attempt },
-          });
-
-          // Don't retry on last attempt
-          if (attempt < maxRetries) {
-            // Exponential backoff
-            await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
-            continue;
-          }
-          throw new Error('We couldn\'t create your devotional right now. Please try again.');
-        }
-
-        if (!data) {
-          throw new Error('We couldn\'t create your devotional. Please try again.');
-        }
-
-        Logger.info(`Devotional generated successfully on attempt ${attempt}`, {
-          component: 'enhancedQueueService',
-          data: { userId: item.userId, attempt },
-        });
-
-        return data;
-      } catch (error: any) {
-        lastError = error;
-        Logger.warn(`Devotional generation error attempt ${attempt}`, {
-          component: 'enhancedQueueService',
-          data: { error: error.message, attempt },
-        });
-
-        // Don't retry on last attempt
-        if (attempt < maxRetries) {
-          // Exponential backoff
-          await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
-          continue;
-        }
-
-        throw new Error('We couldn\'t create your devotional right now. Please try again.');
-      }
-    }
-
-    throw lastError || new Error('Failed to generate devotional after all retries');
-  }
-
-  /**
    * Generate journal expansion via appropriate Edge Function
    * TODO: Implement when journal expansion Edge Function is created
    */
@@ -702,7 +614,6 @@ export class EnhancedQueueService {
   private getBasePrompt(type: string): string {
     const prompts = {
       playbook: 'Create a detailed spiritual growth playbook with actionable steps.',
-      devotional: 'Write an inspiring devotional with reflection questions.',
       journal_expansion: 'Expand on this journal entry with spiritual insights.',
     };
 

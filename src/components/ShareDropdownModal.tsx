@@ -21,14 +21,6 @@ interface ShareDropdownModalProps {
   onExportPDF: () => void;
   playbookTitle?: string;
   shareText?: string;
-  shareContext?: 'playbook' | 'devotional';
-  devotionalShareData?: {
-    totalDays: number;
-    dayNumber: number;
-    title: string;
-  };
-  isCompletion?: boolean; // Indicates if sharing from completion page
-  isFinalDay?: boolean; // Indicates if it's the final day of a multi-day devotional
   hideExportPDF?: boolean; // Hide PDF export option
 }
 
@@ -37,10 +29,6 @@ const ShareDropdownModal: React.FC<ShareDropdownModalProps> = ({
   onClose,
   onExportPDF,
   shareText,
-  shareContext = 'playbook',
-  devotionalShareData,
-  isCompletion = false,
-  isFinalDay = false,
   hideExportPDF = false,
 }) => {
   const insets = useSafeAreaInsets();
@@ -88,32 +76,7 @@ const ShareDropdownModal: React.FC<ShareDropdownModalProps> = ({
 
     let finalShareText = shareText;
 
-    if (shareContext === 'devotional' && devotionalShareData) {
-      const { totalDays, dayNumber, title } = devotionalShareData;
-      const isSingleDay = totalDays === 1;
-
-      if (isCompletion) {
-        // Completion page share text
-        if (isSingleDay) {
-          finalShareText = `I finished a personalized ${totalDays}-day devotional in siFia and spent time in prayer, reflection, and Scripture. Try it here: ${appUrl}`;
-        } else if (isFinalDay) {
-          // Completed the full series
-          finalShareText = `I completed a personalized ${totalDays}-day devotional series in siFia today with prayer, reflection, and Scripture. Try it here: ${appUrl}`;
-        } else {
-          // Completed a single day (not final)
-          finalShareText = `I finished Day ${dayNumber}: ${title} from my personalized ${totalDays}-day devotional series in siFia today with prayer, reflection, and Scripture. Try it here: ${appUrl}`;
-        }
-      } else {
-        // Detail page share text
-        if (isSingleDay) {
-          finalShareText = `I created a personalized ${totalDays}-day devotional in siFia to spend time in prayer, reflection, and Scripture. Try it here: ${appUrl}`;
-        } else {
-          finalShareText = `I created a personalized ${totalDays}-day devotional series in siFia to spend time in prayer, reflection, and Scripture. Today I'm on Day ${dayNumber}: ${title}. Try it here: ${appUrl}`;
-        }
-      }
-    } else if (shareContext === 'devotional') {
-      finalShareText = `I finished a devotional in siFia today and spent time in prayer and Scripture. Try it here: ${appUrl}`;
-    } else if (shareText) {
+    if (shareText) {
       // Use custom share text if provided (e.g., for streak screen)
       finalShareText = `${shareText} Try it here: ${appUrl}`;
     } else {

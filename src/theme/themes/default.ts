@@ -11,7 +11,7 @@ export const defaultTheme: Theme = {
     faithGold: '#F5A623',
     growthGreen: '#4CAF50',
     alertCoral: '#FF6B6B',
-    devotionalPurple: '#6A0DAD',
+    ministryPurple: '#6A0DAD',
     spiritualPink: '#E91E63',
     playbookBlue: '#2196F3',
     lightPurple: '#F3E5F5',

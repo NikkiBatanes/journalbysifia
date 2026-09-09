@@ -53,30 +53,6 @@ export const usePeoplePrayerData = (userId: string, dateStr: string) => {
 };
 
 /**
- * Get devotional prayers for a specific date
- */
-export const useDevotionalPrayerData = (userId: string, dateStr: string) => {
-  return useQuery({
-    queryKey: queryKeys.prayers.devotional(userId, dateStr),
-    queryFn: () => PrayerApi.getDevotionalPrayers(userId, dateStr),
-    staleTime: 5 * 60 * 1000,
-    enabled: !!userId && !!dateStr,
-  });
-};
-
-/**
- * Get ALL devotional prayers for a user (for prayedItems display)
- */
-export const useAllDevotionalPrayerData = (userId: string) => {
-  return useQuery({
-    queryKey: queryKeys.prayers.allDevotional(userId),
-    queryFn: () => PrayerApi.getAllDevotionalPrayers(userId),
-    staleTime: 10 * 60 * 1000, // 10 minutes for all devotional prayers
-    enabled: !!userId,
-  });
-};
-
-/**
  * Get all unprayed prayer requests for a user (no date restriction)
  */
 export const useUnprayedPrayerRequests = (userId: string) => {
@@ -291,12 +267,12 @@ export const useCreatePrayer = () => {
         queryClient.invalidateQueries({
           queryKey: queryKeys.prayers.unprayedRequests(variables.user_id),
         });
-      } else if (variables.prayer_type === 'devotional') {
+      } else if (variables.prayer_type === 'guided_playbook') {
         queryClient.invalidateQueries({
-          queryKey: queryKeys.prayers.devotional(variables.user_id, variables.selected_date),
+          queryKey: queryKeys.prayers.guided(variables.user_id, variables.selected_date),
         });
         queryClient.invalidateQueries({
-          queryKey: queryKeys.prayers.allDevotional(variables.user_id),
+          queryKey: queryKeys.prayers.allGuided(variables.user_id),
         });
       } else if (variables.prayer_type === 'journal') {
         queryClient.invalidateQueries({
@@ -863,12 +839,12 @@ export const useInvalidatePrayers = () => {
   return { invalidateAllPrayers, invalidatePrayersForDate };
 };
 
-// ===== DEVOTIONAL PRAYER HOOKS =====
+// ===== GUIDED (PLAYBOOK) PRAYER HOOKS =====
 
 /**
- * Create a devotional prayer entry
+ * Create a guided playbook prayer entry
  */
-export const useCreateDevotionalPrayer = () => {
+export const useCreateGuidedPrayer = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -876,7 +852,7 @@ export const useCreateDevotionalPrayer = () => {
       content: string;
       userId: string;
       dateStr: string;
-      devotionalTitle: string;
+      playbookTitle: string;
       dayNumber: number;
       dayTitle: string;
       totalDays?: number;
@@ -884,44 +860,42 @@ export const useCreateDevotionalPrayer = () => {
     }) => {
       return PrayerApi.createPrayer({
         user_id: prayer.userId,
-        prayer_type: (prayer.prayer_type ?? 'devotional') as PrayerApiEntry['prayer_type'],
+        prayer_type: (prayer.prayer_type ?? 'guided_playbook') as PrayerApiEntry['prayer_type'],
         content: prayer.content,
         selected_date: prayer.dateStr,
         status: 'pending',
-        prayed: true, // Mark as prayed when user creates devotional prayer
-        devotional_title: prayer.devotionalTitle,
+        prayed: true, // Mark as prayed when user creates a guided prayer
         day_number: prayer.dayNumber,
         day_title: prayer.dayTitle,
         total_days: prayer.totalDays,
       });
     },
-    onMutate: async ({ userId, dateStr, content, devotionalTitle, dayNumber, dayTitle, totalDays, prayer_type }) => {
-      const actualPrayerType = (prayer_type ?? 'devotional') as PrayerApiEntry['prayer_type'];
+    onMutate: async ({ userId, dateStr, content, playbookTitle, dayNumber, dayTitle, totalDays, prayer_type }) => {
+      const actualPrayerType = (prayer_type ?? 'guided_playbook') as PrayerApiEntry['prayer_type'];
       // Cancel outgoing queries
-      await queryClient.cancelQueries({ queryKey: queryKeys.prayers.devotional(userId, dateStr) });
-      await queryClient.cancelQueries({ queryKey: queryKeys.prayers.allDevotional(userId) });
+      await queryClient.cancelQueries({ queryKey: queryKeys.prayers.guided(userId, dateStr) });
+      await queryClient.cancelQueries({ queryKey: queryKeys.prayers.allGuided(userId) });
       await queryClient.cancelQueries({ queryKey: queryKeys.prayers.entries(userId, dateStr) });
 
       // Snapshot previous values
-      const previousDevotional = queryClient.getQueryData(queryKeys.prayers.devotional(userId, dateStr));
-      const previousAllDevotional = queryClient.getQueryData(queryKeys.prayers.allDevotional(userId));
+      const previousGuided = queryClient.getQueryData(queryKeys.prayers.guided(userId, dateStr));
+      const previousAllGuided = queryClient.getQueryData(queryKeys.prayers.allGuided(userId));
       const previousEntries = queryClient.getQueryData(queryKeys.prayers.entries(userId, dateStr));
 
-      // Check if an identical devotional prayer already exists in cache to avoid duplicates
+      // Check if an identical guided prayer already exists in cache to avoid duplicates
       const existsIn = (list: any[] | undefined) =>
         !!list?.some((p: any) =>
           p?.user_id === userId &&
-          (p?.prayer_type === 'devotional' || p?.prayer_type === 'guided_playbook') &&
+          p?.prayer_type === 'guided_playbook' &&
           p?.selected_date === dateStr &&
-          p?.devotional_title === devotionalTitle &&
           p?.day_number === dayNumber
         );
 
-      const existingDevotional = queryClient.getQueryData<any[]>(queryKeys.prayers.devotional(userId, dateStr));
-      const existingAllDevotional = queryClient.getQueryData<any[]>(queryKeys.prayers.allDevotional(userId));
+      const existingGuided = queryClient.getQueryData<any[]>(queryKeys.prayers.guided(userId, dateStr));
+      const existingAllGuided = queryClient.getQueryData<any[]>(queryKeys.prayers.allGuided(userId));
       const existingEntries = queryClient.getQueryData<any[]>(queryKeys.prayers.entries(userId, dateStr));
 
-      const alreadyExists = existsIn(existingDevotional) || existsIn(existingAllDevotional) || existsIn(existingEntries);
+      const alreadyExists = existsIn(existingGuided) || existsIn(existingAllGuided) || existsIn(existingEntries);
 
       // Create optimistic prayer entry
       const optimisticPrayer: PrayerApiEntry = {
@@ -933,24 +907,23 @@ export const useCreateDevotionalPrayer = () => {
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         status: 'pending',
-        devotional_title: devotionalTitle,
         day_number: dayNumber,
         day_title: dayTitle,
         total_days: totalDays,
-        type: 'devotional' as const,
+        type: 'freeform' as const,
         is_answered: false,
       };
 
       if (!alreadyExists) {
-        // Optimistically update devotional prayers for date
+        // Optimistically update guided prayers for date
         queryClient.setQueryData(
-          queryKeys.prayers.devotional(userId, dateStr),
+          queryKeys.prayers.guided(userId, dateStr),
           (old: PrayerApiEntry[] = []) => [optimisticPrayer, ...old]
         );
 
-        // Optimistically update all devotional prayers
+        // Optimistically update all guided prayers
         queryClient.setQueryData(
-          queryKeys.prayers.allDevotional(userId),
+          queryKeys.prayers.allGuided(userId),
           (old: PrayerApiEntry[] = []) => [optimisticPrayer, ...old]
         );
 
@@ -963,7 +936,7 @@ export const useCreateDevotionalPrayer = () => {
 
       }
 
-      return { previousDevotional, previousAllDevotional, previousEntries };
+      return { previousGuided, previousAllGuided, previousEntries };
     },
     onSuccess: async (_data, variables) => {
       // Cache is automatically handled by React Query optimistic updates
@@ -978,7 +951,7 @@ export const useCreateDevotionalPrayer = () => {
             queryKey: queryKeys.dashboard.streaks(variables.userId),
           });
         } catch (error) {
-          Logger.warn('Failed to update prayer streak for devotional', {
+          Logger.warn('Failed to update prayer streak for guided prayer', {
             component: 'usePrayerData',
             error: error as Error,
           });
@@ -987,16 +960,16 @@ export const useCreateDevotionalPrayer = () => {
     },
     onError: (error, { userId, dateStr }, context) => {
       // Log the error for debugging
-      Logger.error('Error creating devotional prayer', error as Error, {
+      Logger.error('Error creating guided prayer', error as Error, {
       component: 'usePrayerData',
     });
 
       // Rollback optimistic updates
-      if (context?.previousDevotional) {
-        queryClient.setQueryData(queryKeys.prayers.devotional(userId, dateStr), context.previousDevotional);
+      if (context?.previousGuided) {
+        queryClient.setQueryData(queryKeys.prayers.guided(userId, dateStr), context.previousGuided);
       }
-      if (context?.previousAllDevotional) {
-        queryClient.setQueryData(queryKeys.prayers.allDevotional(userId), context.previousAllDevotional);
+      if (context?.previousAllGuided) {
+        queryClient.setQueryData(queryKeys.prayers.allGuided(userId), context.previousAllGuided);
       }
       if (context?.previousEntries) {
         queryClient.setQueryData(queryKeys.prayers.entries(userId, dateStr), context.previousEntries);
@@ -1004,8 +977,8 @@ export const useCreateDevotionalPrayer = () => {
     },
     onSettled: (data, error, { userId, dateStr }) => {
       // Invalidate and refetch
-      queryClient.invalidateQueries({ queryKey: queryKeys.prayers.devotional(userId, dateStr) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.prayers.allDevotional(userId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.prayers.guided(userId, dateStr) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.prayers.allGuided(userId) });
       queryClient.invalidateQueries({ queryKey: queryKeys.prayers.entries(userId, dateStr) });
     },
   });

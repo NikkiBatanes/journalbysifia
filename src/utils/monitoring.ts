@@ -127,7 +127,7 @@ class MonitoringService {
    * Track generation metrics
    */
   trackGeneration(
-    type: 'playbook' | 'devotional',
+    type: 'playbook' | 'journal',
     duration: number,
     success: boolean,
     tier?: string

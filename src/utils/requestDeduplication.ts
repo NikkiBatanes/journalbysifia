@@ -203,18 +203,6 @@ export async function deduplicatePlaybookGeneration<T>(
 }
 
 /**
- * Deduplicate a devotional generation request
- */
-export async function deduplicateDevotionalGeneration<T>(
-  userId: string,
-  context: string,
-  requestFactory: () => Promise<T>
-): Promise<T> {
-  const key = generateRequestKey(userId, 'devotional', context);
-  return requestCache.getOrCreate(key, requestFactory, 'Devotional Generation');
-}
-
-/**
  * Check if a playbook generation is in flight
  */
 export function isPlaybookGenerationInFlight(
@@ -222,17 +210,6 @@ export function isPlaybookGenerationInFlight(
   userInput: string
 ): boolean {
   const key = generateRequestKey(userId, 'playbook', userInput);
-  return requestCache.isInFlight(key);
-}
-
-/**
- * Check if a devotional generation is in flight
- */
-export function isDevotionalGenerationInFlight(
-  userId: string,
-  context: string
-): boolean {
-  const key = generateRequestKey(userId, 'devotional', context);
   return requestCache.isInFlight(key);
 }
 

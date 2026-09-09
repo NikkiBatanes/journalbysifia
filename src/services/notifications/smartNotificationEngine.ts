@@ -12,8 +12,6 @@ import {
 } from './notificationTypes';
 
 const LEGACY_DAILY_NOTIFICATION_TYPES = [
-  'morning_devotional',
-  'devotional_reminder',
   'daily_scripture',
   'affirmation_reminder',
   'midday_checkin',
@@ -22,14 +20,12 @@ const LEGACY_DAILY_NOTIFICATION_TYPES = [
   'upgrade_reminder',
   'prayer_request_reminder',
   'journal_reminder',
-  'devotional_reflection',
   'playbook_reminder',
   'wins_reminder',
 ];
 
 const WINDOW_HOURS: Record<SmartNotificationTimeWindow, { hour: number; minute: number }> = {
   early_morning: { hour: 6, minute: 0 },
-  devotional_morning: { hour: 6, minute: 30 },
   mid_morning: { hour: 7, minute: 30 },
   late_morning: { hour: 10, minute: 0 },
   pre_midday: { hour: 11, minute: 0 },

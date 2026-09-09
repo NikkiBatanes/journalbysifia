@@ -102,8 +102,6 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [dismissedHints, setDismissedHints] = useState<Set<string>>(new Set()); // Used in line 688
   const [showUserInput, setShowUserInput] = useState(false);
-  const [showDevotionalModal, setShowDevotionalModal] = useState(false);
-  const [devotionalVisible, setDevotionalVisible] = useState(false);
   // Initialize with estimated footer height to prevent layout jump (button ~56px + padding ~40px + helper text ~60px)
   const [_footerH, setFooterH] = useState(156);
   // Track screen dimensions for orientation changes using hook
@@ -138,8 +136,6 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
   const [progressData, setProgressData] = useState({ completed: 0, total: 0, percentage: 0 });
   const flatListRef = useRef<FlatList>(null);
   const scrollX = useRef(new Animated.Value(0)).current;
-  // Delayed & persistent devotional CTA visibility
-  const devotionalTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Heights for sticky header and fixed footer to vertically center carousel area
   // Initialize with estimated header height (title + progress + padding ~120px)
   const [_headerH, setHeaderH] = useState(120);
@@ -233,7 +229,6 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
   useEffect(() => {
     // Cleanup timers on unmount
     return () => {
-      if (devotionalTimerRef.current) {clearTimeout(devotionalTimerRef.current);}
       // Ensure any pending read haptic timers are cleared on unmount
       try {
         readHapticTimersRef.current.forEach(t => clearTimeout(t));
@@ -446,10 +441,6 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
   const toggleUserInput = useCallback(() => {
     setShowUserInput(!showUserInput);
   }, [showUserInput]);
-
-  const handleCreateDevotional = useCallback(() => {
-    setShowDevotionalModal(true);
-  }, []);
 
   // Initialize action steps from playbook data (similar to PlaybookDetailScreen)
   useEffect(() => {
@@ -696,14 +687,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
     if (isLast) {
       setHasReachedLastCard(true);
     }
-
-    if (isLast && !devotionalVisible && !devotionalTimerRef.current) {
-      devotionalTimerRef.current = setTimeout(() => {
-        setDevotionalVisible(true);
-        devotionalTimerRef.current = null;
-      }, 300); // Reduced from 1500ms to 300ms for faster appearance
-    }
-  }, [currentIndex, carouselCards.length, devotionalVisible]);
+  }, [currentIndex, carouselCards.length]);
 
   const toggleCardExpansion = (cardId: string) => {
     try { triggerLightHaptic(); } catch {}
@@ -1131,17 +1115,6 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
             }}
           />
         </View>
-
-        {/* DEVOTIONAL BUTTON - show only on last card */}
-        {devotionalVisible && (currentIndex === Math.max(0, carouselCards.length - 1)) && (
-          <TouchableOpacity
-            style={[styles.devotionalButton, styles.centeredSelfContent, { width: ITEM_WIDTH }]}
-            onPress={handleCreateDevotional}
-            activeOpacity={0.8}
-          >
-            <ThemedText weight="semiBold" style={styles.devotionalButtonText}>Create a Devotional</ThemedText>
-          </TouchableOpacity>
-        )}
 
         </View>
 
@@ -1576,30 +1549,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingTop: 6,
     paddingBottom: 6,
-  },
-  devotionalButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    borderRadius: 12,
-    height: 56,
-    marginHorizontal: 16,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  devotionalButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: Colors.hopeWhite,
   },
   footer: {
     paddingVertical: 12,

@@ -125,14 +125,14 @@ import { OnboardingAnimations, splashToFirstScreenAnimation } from './onboarding
 // const renderDefaultProfileImage = ({ navigation }: any) => <ProfileImage navigation={navigation} />;
 
 // Unused component - commenting out to fix linting
-// const DevotionalHeaderLeft = ({ navigation }: { navigation: any }) => (
+// const DetailHeaderLeft = ({ navigation }: { navigation: any }) => (
 //   <HeaderLeft
 //     color={Colors.anchorBlue}
 //     onPress={() => {
 //       try {
 //         navigation.goBack();
 //       } catch (error) {
-//         Logger.debug('Navigation error in DevotionalHeaderLeft', { component: 'RootStackNavigator', data: error });
+//         Logger.debug('Navigation error in DetailHeaderLeft', { component: 'RootStackNavigator', data: error });
 //       }
 //     }}
 //   />

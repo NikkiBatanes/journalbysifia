@@ -37,14 +37,13 @@ export const queryKeys = {
     all: ['reflections'] as const,
     byDate: (userId: string, date: string) => ['reflections', 'byDate', userId, date] as const,
     byType: (userId: string, date: string, type: string) => ['reflections', 'byType', userId, date, type] as const,
-    devotional: (userId: string, devotionalId: string) => ['reflections', 'devotional', userId, devotionalId] as const,
     dateRange: (userId: string, startDate: string, endDate: string) => ['reflections', 'dateRange', userId, startDate, endDate] as const,
     search: (userId: string, searchTerm: string) => ['reflections', 'search', userId, searchTerm] as const,
     stats: (userId: string, startDate: string, endDate: string) => ['reflections', 'stats', userId, startDate, endDate] as const,
     infinite: (userId: string) => ['reflections', 'infinite', userId] as const,
     count: (userId: string) => ['reflections', 'count', userId] as const,
-    byQuestion: (userId: string, questionText: string, devotionalId?: string, dayNumber?: number, questionNumber?: number) =>
-      ['reflections', 'byQuestion', userId, questionText, devotionalId, dayNumber, questionNumber] as const,
+    byQuestion: (userId: string, questionText: string, dayNumber?: number, questionNumber?: number) =>
+      ['reflections', 'byQuestion', userId, questionText, dayNumber, questionNumber] as const,
   },
 
   // Prayer-related queries
@@ -53,9 +52,9 @@ export const queryKeys = {
     entries: (userId: string, date: string) => ['prayers', 'entries', userId, date] as const,
     acts: (userId: string, date: string) => ['prayers', 'acts', userId, date] as const,
     people: (userId: string, date: string) => ['prayers', 'people', userId, date] as const,
-    devotional: (userId: string, date: string) => ['prayers', 'devotional', userId, date] as const,
+    guided: (userId: string, date: string) => ['prayers', 'guided', userId, date] as const,
     personal: (userId: string, date: string) => ['prayers', 'personal', userId, date] as const,
-    allDevotional: (userId: string) => ['prayers', 'allDevotional', userId] as const,
+    allGuided: (userId: string) => ['prayers', 'allGuided', userId] as const,
     byType: (userId: string, date: string, type: string) => ['prayers', 'byType', userId, date, type] as const,
     search: (userId: string, searchTerm: string) => ['prayers', 'search', userId, searchTerm] as const,
     stats: (userId: string, startDate: string, endDate: string) => ['prayers', 'stats', userId, startDate, endDate] as const,
@@ -66,17 +65,6 @@ export const queryKeys = {
 
     // Infinite queries
     infinite: (userId: string, prayerType?: string) => ['prayers', 'infinite', userId, prayerType] as const,
-  },
-
-  // Devotional-related queries
-  devotionals: {
-    all: ['devotionals'] as const,
-    byUser: (userId: string) => ['devotionals', 'user', userId] as const,
-    byId: (devotionalId: string) => ['devotionals', 'detail', devotionalId] as const,
-    progress: (userId: string, devotionalId: string) => ['devotionals', 'progress', userId, devotionalId] as const,
-    prayers: (userId: string, devotionalId: string) => ['devotionals', 'prayers', userId, devotionalId] as const,
-    playbook: (playbookId: string) => ['devotionals', 'playbook', playbookId] as const,
-    ratings: (userId: string) => ['devotionals', 'ratings', userId] as const,
   },
 
   // Playbook-related queries
@@ -97,7 +85,6 @@ export const queryKeys = {
     related: (userId: string, playbookId: string) => ['playbooks', 'related', userId, playbookId] as const,
 
     // Cross-component relationships
-    withDevotionals: (userId: string, playbookId: string) => ['playbooks', 'withDevotionals', userId, playbookId] as const,
     withJournal: (userId: string, playbookId: string, date: string) => ['playbooks', 'withJournal', userId, playbookId, date] as const,
     withPrayers: (userId: string, playbookId: string) => ['playbooks', 'withPrayers', userId, playbookId] as const,
 
@@ -149,9 +136,6 @@ export const queryKeyHelpers = {
   // Invalidate all prayer queries for a user
   invalidatePrayerQueries: (_userId: string) => queryKeys.prayers.all,
 
-  // Invalidate all devotional queries for a user
-  invalidateDevotionalQueries: (_userId: string) => queryKeys.devotionals.all,
-
   // Invalidate all playbook queries for a user
   invalidatePlaybookQueries: (_userId: string) => queryKeys.playbooks.all,
 
@@ -165,5 +149,4 @@ export const queryKeyHelpers = {
 export type QueryKeys = typeof queryKeys;
 export type JournalQueryKeys = typeof queryKeys.journal;
 export type PrayerQueryKeys = typeof queryKeys.prayers;
-export type DevotionalQueryKeys = typeof queryKeys.devotionals;
 export type PlaybookQueryKeys = typeof queryKeys.playbooks;

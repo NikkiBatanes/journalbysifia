@@ -18,7 +18,6 @@ interface AdjacentPlaybooks {
 }
 
 interface PlaybookWithRelationships extends Playbook {
-  relatedDevotionals?: any[];
   relatedJournalEntries?: any[];
   relatedPrayers?: any[];
 }
@@ -127,13 +126,13 @@ export const usePrefetchPlaybooks = (userId: string) => {
 
 /**
  * Hook for getting playbook with cross-component relationships
- * Links playbooks with devotionals, journal entries, and prayers
+ * Links playbooks with journal entries and prayers
  */
 export const usePlaybookWithRelationships = (userId: string, playbookId: string) => {
   const queryClient = useQueryClient();
 
   return useQuery({
-    queryKey: queryKeys.playbooks.withDevotionals(userId, playbookId),
+    queryKey: queryKeys.playbooks.related(userId, playbookId),
     queryFn: withQueryPerformance(
       async (): Promise<PlaybookWithRelationships> => {
 
@@ -141,10 +140,6 @@ export const usePlaybookWithRelationships = (userId: string, playbookId: string)
         const playbook = await getPlaybookApi(userId, playbookId);
 
         // Get related data from cache if available, otherwise fetch
-        const relatedDevotionals = (queryClient.getQueryData(
-          queryKeys.devotionals.playbook(playbookId)
-        ) as any[]) || [];
-
         const today = new Date().toISOString().split('T')[0];
         const relatedJournalEntries = (queryClient.getQueryData(
           queryKeys.playbooks.withJournal(userId, playbookId, today)
@@ -156,12 +151,11 @@ export const usePlaybookWithRelationships = (userId: string, playbookId: string)
 
         return {
           ...playbook,
-          relatedDevotionals,
           relatedJournalEntries,
           relatedPrayers,
         } as any;
       },
-      queryKeys.playbooks.withDevotionals(userId, playbookId)
+      queryKeys.playbooks.related(userId, playbookId)
     ),
     enabled: !!userId && !!playbookId,
     staleTime: 5 * 60 * 1000, // 5 minutes
@@ -191,7 +185,6 @@ export const useIntelligentPrefetching = (userId: string) => {
 
     // Prefetch related data
     const relatedQueries = [
-      queryKeys.devotionals.playbook(currentPlaybookId),
       queryKeys.playbooks.withPrayers(userId, currentPlaybookId),
     ];
 
@@ -238,15 +231,6 @@ export const useCrossComponentSync = (userId: string) => {
     );
   }, [queryClient, userId]);
 
-  // Sync playbook completion with devotionals
-  const syncWithDevotionals = useCallback(async (playbookId: string) => {
-
-    // Invalidate devotional queries related to this playbook
-    await queryClient.invalidateQueries({
-      queryKey: queryKeys.devotionals.playbook(playbookId),
-    });
-  }, [queryClient]);
-
   // Sync playbook themes with prayers
   const syncWithPrayers = useCallback(async (playbookId: string) => {
 
@@ -258,7 +242,6 @@ export const useCrossComponentSync = (userId: string) => {
 
   return {
     syncWithJournal,
-    syncWithDevotionals,
     syncWithPrayers,
   };
 };

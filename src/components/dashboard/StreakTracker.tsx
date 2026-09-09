@@ -26,7 +26,7 @@ import ThemedText from '../common/ThemedText';
 
 interface Streak {
   id: string;
-  type: 'prayer' | 'devotional' | 'journal' | 'playbook';
+  type: 'prayer' | 'journal' | 'playbook';
   currentStreak: number;
   longestStreak: number;
   lastActivity: string;
@@ -105,20 +105,6 @@ const StreakTracker: React.FC<StreakTrackerProps> = ({
         ],
       },
       {
-        type: 'devotional',
-        activityTypes: [
-          'devotional_generated',
-          'devotional_created',
-          'devotional_opened',
-          'devotional_revisited_completed',
-          'devotional_day_completed',
-          'devotional_completed',
-          'devotional_full_completed',
-          'reflection_question_answered',
-          'daily_streak',
-        ],
-      },
-      {
         type: 'journal',
         activityTypes: [
           'journal_entry',
@@ -144,7 +130,6 @@ const StreakTracker: React.FC<StreakTrackerProps> = ({
           'prayer_for_others',
           'prayer_journal_acts',
           'prayer_journal_open',
-          'prayer_devotional_prayed',
           'prayer_playbook_prayed',
           'prayer_list_prayed',
           'prayer_list_request_added',
@@ -298,7 +283,6 @@ const StreakTracker: React.FC<StreakTrackerProps> = ({
         'prayer_for_others',
         'prayer_journal_acts',
         'prayer_journal_open',
-        'prayer_devotional_prayed',
         'prayer_playbook_prayed',
         'prayer_list_prayed',
         'prayer_list_request_added',
@@ -320,7 +304,6 @@ const StreakTracker: React.FC<StreakTrackerProps> = ({
     // Use MaterialCommunityIcons to match bottom navigation
     switch (type) {
       case 'prayer': return 'hands-pray';
-      case 'devotional': return 'book';
       case 'journal': return 'notebook-edit';
       case 'playbook': return 'clipboard-text-play';
       default: return 'fire';
@@ -341,17 +324,6 @@ const StreakTracker: React.FC<StreakTrackerProps> = ({
       'action_step_interacted',
       'playbook_read_aloud',
       'challenge_accepted',
-    ],
-    devotional: [
-      'devotional_generated',
-      'devotional_created',
-      'devotional_opened',
-      'devotional_revisited_completed',
-      'devotional_day_completed',
-      'devotional_completed',
-      'devotional_full_completed',
-      'reflection_question_answered',
-      'daily_streak',
     ],
     journal: [
       'journal_entry',
@@ -374,7 +346,6 @@ const StreakTracker: React.FC<StreakTrackerProps> = ({
       'prayer_for_others',
       'prayer_journal_acts',
       'prayer_journal_open',
-      'prayer_devotional_prayed',
       'prayer_playbook_prayed',
       'prayer_list_prayed',
       'prayer_list_request_added',
@@ -413,7 +384,6 @@ const StreakTracker: React.FC<StreakTrackerProps> = ({
   const getStreakTitle = (type: string) => {
     switch (type) {
       case 'prayer': return 'Prayer';
-      case 'devotional': return 'Devotionals';
       case 'journal': return 'Journaling';
       case 'playbook': return 'Playbooks';
       default: return type;
@@ -712,7 +682,7 @@ const StreakTracker: React.FC<StreakTrackerProps> = ({
                 <ThemedText weight="semiBold" style={styles.sectionHeader}>Faith Points are earned by</ThemedText>
                 <View style={styles.bulletList}>
                   <ThemedText style={styles.bullet}>• Completing playbook action steps</ThemedText>
-                  <ThemedText style={styles.bullet}>• Finishing devotionals</ThemedText>
+                  <ThemedText style={styles.bullet}>• Finishing playbooks</ThemedText>
                   <ThemedText style={styles.bullet}>• Daily journaling</ThemedText>
                   <ThemedText style={styles.bullet}>• Prayer activities</ThemedText>
                   <ThemedText style={styles.bullet}>• Maintaining streaks</ThemedText>
@@ -726,7 +696,7 @@ const StreakTracker: React.FC<StreakTrackerProps> = ({
                 <ThemedText style={styles.sheetLabel}>Earned</ThemedText>
                 <ThemedText weight="semiBold" style={styles.sheetValue}>{badgesCount}</ThemedText>
               </View>
-              <ThemedText style={styles.heatmapCaption}>Badges are awarded for completing playbooks, maintaining streaks, finishing devotionals, and reaching faith point milestones.</ThemedText>
+              <ThemedText style={styles.heatmapCaption}>Badges are awarded for completing playbooks, maintaining streaks, and reaching faith point milestones.</ThemedText>
               {onBadgesPress && (
                 <TouchableOpacity style={styles.sheetButton} onPress={() => { triggerLightHaptic(); onBadgesPress(); closeSheet(); }} activeOpacity={0.85}>
                   <ThemedText weight="semiBold" style={styles.sheetButtonText}>View all badges</ThemedText>

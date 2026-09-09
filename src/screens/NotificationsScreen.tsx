@@ -299,8 +299,6 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
           case 'REMINDER':
             if (notification.data?.type === 'prayer_reminder') {
               targetScreen = 'Journal'; // Navigate to Journal for prayer reminders
-            } else if (notification.data?.type === 'devotional_reminder') {
-              targetScreen = 'Overview'; // Devotionals removed; fall back to Overview
             } else {
               targetScreen = 'Journal'; // Default for reminders
             }
@@ -728,12 +726,6 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
       member_joined: 'person-add',
       trial_converted: 'checkmark-circle',
       prayer_reminder: 'hand-right',
-      devotional_reminder: 'book',
-      devotional_day_ready: 'book',
-      devotional_prayer_prompt: 'hand-right',
-      devotional_reflection_prompt: 'create',
-      devotional_verse_revisit: 'bookmarks',
-      devotional_completed_reflection: 'sparkles',
       journal_prompt: 'create',
       journal_todays_focus: 'flag',
       journal_todo: 'checkbox',
@@ -748,16 +740,12 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
       playbook_faithful_action: 'footsteps',
       playbook_verse_revisit: 'bookmarks',
       playbook_prayer_revisit: 'hand-right',
-      playbook_to_devotional: 'book',
       playbook_actions_complete: 'trophy',
       playbook_actions_milestone: 'trending-up',
       prayer_request_care: 'people',
       prayer_today: 'hand-right',
-      create_devotional: 'add-circle',
       create_playbook: 'add-circle',
-      create_first_devotional: 'add-circle',
       create_first_playbook: 'add-circle',
-      usage_room_devotional: 'leaf',
       usage_room_playbook: 'leaf',
       content_refresh_wait: 'hourglass',
       upgrade_room: 'sparkles',

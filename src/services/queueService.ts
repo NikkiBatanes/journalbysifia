@@ -12,7 +12,7 @@ import { findIncompletePlaybookFields } from '../utils/playbookCompleteness';
 
 export interface QueueRequest {
   userId: string;
-  type: 'playbook' | 'devotional';
+  type: 'playbook';
   userInput: string;
   userName: string;
   additionalParams?: any;
@@ -22,7 +22,7 @@ export interface QueueRequest {
 export interface QueueItem {
   id: string;
   user_id: string;
-  type: 'playbook' | 'devotional';
+  type: 'playbook';
   priority: number;
   status: 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled';
   user_input: string;
@@ -359,8 +359,6 @@ export class QueueService {
       let result;
       if (item.type === 'playbook') {
         result = await this.generatePlaybookDirect(item);
-      } else if (item.type === 'devotional') {
-        result = await this.generateDevotionalDirect(item);
       } else {
         throw new Error(`Unknown generation type: ${item.type}`);
       }
@@ -565,52 +563,6 @@ export class QueueService {
     };
   }
 
-  /**
-   * Generate devotional directly (calls your existing generation function)
-   */
-  private async generateDevotionalDirect(item: QueueItem): Promise<any> {
-    // Use the proper environment configuration
-    const { getEnvironmentConfig } = await import('../config/environment');
-    const env = getEnvironmentConfig();
-
-    if (!env.SUPABASE_URL || !env.SUPABASE_ANON_KEY) {
-      throw new Error('Missing Supabase environment variables');
-    }
-
-    const functionUrl = `${env.SUPABASE_URL}/functions/v1/generate-devotional`;
-
-    const requestBody: any = {
-      userName: item.user_name,
-      ...item.additional_params,
-    };
-
-    // Add personalization data if available
-    if (item.personalization_enabled && item.user_profile_data) {
-      requestBody.personalizationData = item.user_profile_data;
-      requestBody.intelligenceLevel = item.intelligence_level;
-    }
-
-    const response = await fetch(functionUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${env.SUPABASE_ANON_KEY}`,
-      },
-      body: JSON.stringify(requestBody),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Devotional generation failed: ${response.statusText}`);
-    }
-
-    const result = await response.json();
-
-    return {
-      id: result.id,
-      tokensUsed: result.tokensUsed || 2300,
-      costCents: result.costCents || 350,
-    };
-  }
 
   /**
    * Update queue item status with schema compatibility

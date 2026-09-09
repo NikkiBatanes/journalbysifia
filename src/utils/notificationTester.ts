@@ -80,16 +80,15 @@ export class NotificationTester {
     const safeStr = (v: unknown): string =>
       typeof v === 'string' ? v.replace(/\s+/g, ' ').trim() : '';
 
-    const [playbooks, devotionalsResult, prayersResult, unansweredPrayersResult, subResult] = await Promise.all([
+    const [playbooks, prayersResult, unansweredPrayersResult, subResult] = await Promise.all([
       getPlaybooks(userId).catch(() => [] as any[]),
-      supabase.from('devotionals').select('id, title, total_days, days').eq('user_id', userId).order('created_at', { ascending: false }).limit(5),
       supabase.from('prayers').select('id, person_name').eq('user_id', userId).eq('is_prayer_request', true).or('prayed.is.null,prayed.eq.false').order('created_at', { ascending: true }).limit(10),
       // Tester: no 7-day minimum. Fetch broad set, filter in JS (same logic as resolver). Include selected_date.
       supabase.from('prayers').select('id, content, person_name, is_prayer_request, prayer_type, journal_category, metadata, created_at, selected_date').eq('user_id', userId).in('prayer_type', ['journal', 'people']).or('status.is.null,status.neq.answered').order('created_at', { ascending: false }).limit(10),
-      supabase.from('user_subscriptions_new').select('playbooks_used, playbooks_limit, devotionals_used, devotionals_limit, subscription_start_date, tier').eq('user_id', userId).maybeSingle(),
+      supabase.from('user_subscriptions_new').select('playbooks_used, playbooks_limit, subscription_start_date, tier').eq('user_id', userId).maybeSingle(),
     ]);
 
-    const devotionals: any[] = devotionalsResult.data || [];
+
     const prayers: any[] = prayersResult.data || [];
     const unansweredPrayers: any[] = (unansweredPrayersResult.data || []).filter((p: any) => {
       if (p.metadata?.track_answered !== true) {return false;}
@@ -143,27 +142,7 @@ export class NotificationTester {
       }
     }
 
-    const activeDevotional = devotionals.find((d: any) => {
-      const days: any[] = Array.isArray(d.days) ? d.days : [];
-      return days.some((day: any) => day?.completed !== true);
-    }) || devotionals[0];
-
     const ctx: Record<string, any> = {};
-
-    if (activeDevotional) {
-      ctx._devotionalId = activeDevotional.id;
-      const days: any[] = Array.isArray(activeDevotional.days) ? activeDevotional.days : [];
-      const dayObj = days.find((d: any) => d?.completed !== true) || days[days.length - 1] || days[0];
-      if (dayObj) {
-        ctx.dayNumber = typeof dayObj.dayNumber === 'number' ? dayObj.dayNumber : days.indexOf(dayObj) + 1;
-        ctx.totalDays = activeDevotional.total_days || days.length;
-        ctx.title = ctx.totalDays === 1 ? activeDevotional.title : dayObj.title;
-        const bv = dayObj.scripture;
-        if (bv) { ctx.verseReference = strip(safeStr(bv.reference)); ctx.verseText = strip(safeStr(bv.text)); }
-        const q = (dayObj.reflectionQuestions || []).find((question: any) => safeStr(question?.text));
-        if (q) {ctx.questionText = strip(safeStr(q.text));}
-      }
-    }
 
     if (pbWithWords) {
       const words = getWords(pbWithWords);
@@ -183,7 +162,7 @@ export class NotificationTester {
       ctx.playbookTitle = playbooks[0].title;
     }
 
-    // Store playbook verse separately so it isn't overwritten by devotional verse
+    // Store playbook verse separately so it isn't overwritten by other verse context
     if (pbWithVerse) {
       const bv = getVerse(pbWithVerse);
       ctx._playbookVerseReference = bv.reference;
@@ -212,8 +191,6 @@ export class NotificationTester {
       ctx._playbookReflectionVerseRef = strip(safeStr((pbWithReflection.bibleVerse || pbWithReflection.bible_verse)?.reference));
     }
 
-    // devotional verse is already in ctx.verseText / ctx.verseReference from the devotional block above
-
     // Prayer request names (for prayer_request_care group/individual)
     if (prayers.length > 0) {
       ctx._prayerRequestNames = prayers.map((p: any) => safeStr(p.person_name)).filter(Boolean);
@@ -234,8 +211,7 @@ export class NotificationTester {
 
     if (sub) {
       const pbRem = (sub.playbooks_limit ?? 0) < 0 ? 99 : Math.max(0, (sub.playbooks_limit ?? 0) - (sub.playbooks_used ?? 0));
-      const devRem = (sub.devotionals_limit ?? 0) < 0 ? 99 : Math.max(0, (sub.devotionals_limit ?? 0) - (sub.devotionals_used ?? 0));
-      ctx.remainingCount = Math.min(pbRem, devRem);
+      ctx.remainingCount = pbRem;
       const anchor = new Date(sub.subscription_start_date || new Date());
       const next = new Date(anchor);
       while (next <= new Date()) {next.setMonth(next.getMonth() + 1);}
@@ -283,7 +259,6 @@ export class NotificationTester {
       `words:${ctx.wordToSpeak ? String(ctx.wordToSpeak).slice(0, 25) : 'none'}`,
       `action:${ctx.actionText ? String(ctx.actionText).slice(0, 25) : 'none'}`,
       `verse:${ctx.verseText ? String(ctx.verseText).slice(0, 25) : 'none'}`,
-      `devs:${devotionals.length}`,
       `heart:${ctx.heartJournalTitle ? String(ctx.heartJournalTitle).slice(0, 25) : 'none'}`,
       `unanswered:${unansweredPrayers.length}`,
       `requests:${prayers.length}`,
@@ -301,36 +276,6 @@ export class NotificationTester {
     ctx: Record<string, any>,
   ): string {
     switch (type) {
-      // Devotional deep links
-      case 'devotional_day_ready':
-      case 'devotional_verse_revisit':
-        if (ctx._devotionalId) {
-          const dayNumber = ctx.dayNumber || 1;
-          return `sifia://devotionals/${ctx._devotionalId}/day/${dayNumber}`;
-        }
-        return 'sifia://devotionals/new';
-
-      case 'devotional_prayer_prompt':
-        if (ctx._devotionalId) {
-          const dayNumber = ctx.dayNumber || 1;
-          return `sifia://devotionals/${ctx._devotionalId}/day/${dayNumber}?scrollToPrayer=true`;
-        }
-        return 'sifia://devotionals/new?scrollToPrayer=true';
-
-      case 'devotional_reflection_prompt':
-        if (ctx._devotionalId && ctx.questionText) {
-          const dayNumber = ctx.dayNumber || 1;
-          const questionNumber = ctx.questionNumber || 1;
-          return `sifia://devotionals/${ctx._devotionalId}/day/${dayNumber}?openReflection=true&question=${encodeURIComponent(ctx.questionText)}&questionNumber=${questionNumber}`;
-        }
-        return 'sifia://devotionals/new';
-
-      case 'devotional_completed_reflection':
-        if (ctx._devotionalId) {
-          return `sifia://devotionals/${ctx._devotionalId}`;
-        }
-        return 'sifia://devotionals/new';
-
       // Playbook deep links
       case 'playbook_faithful_action':
         if (ctx._playbookId && ctx._actionIndex !== undefined) {
@@ -363,13 +308,6 @@ export class NotificationTester {
           return `sifia://playbooks/${ctx._playbookId}/walkthrough/words`;
         }
         return 'sifia://playbooks/new';
-
-      case 'playbook_to_devotional':
-        if (ctx._playbookId) {
-          // Navigate to completion page (step 6 of walkthrough)
-          return `sifia://playbooks/${ctx._playbookId}/walkthrough/completed`;
-        }
-        return 'sifia://devotionals/new';
 
       // Prayer deep links
       case 'prayer_request_care':
@@ -422,21 +360,6 @@ export class NotificationTester {
         return 'sifia://dashboard';
 
       // Subscription/upgrade deep links
-      case 'create_first_devotional':
-        if (ctx._playbookId) {
-          return `sifia://playbooks/${ctx._playbookId}/walkthrough/completed`;
-        }
-        return 'sifia://devotionals/new';
-
-      case 'create_devotional':
-        if (ctx._playbookId) {
-          return `sifia://playbooks/${ctx._playbookId}/walkthrough/completed`;
-        }
-        return 'sifia://devotionals/new';
-
-      case 'usage_room_devotional':
-        return 'sifia://devotionals/new';
-
       case 'create_playbook':
       case 'usage_room_playbook':
         return 'sifia://userinput';
@@ -468,13 +391,9 @@ export class NotificationTester {
       // Streak notifications
       case 'streak_alert_prayer':
         return 'sifia://journal/prayer';
-      case 'streak_alert_devotional':
-        return 'sifia://devotionals/today';
       case 'streak_alert_journal':
         return 'sifia://journal';
       case 'streak_milestone_prayer':
-        return 'sifia://profile/stats';
-      case 'streak_milestone_devotional':
         return 'sifia://profile/stats';
       case 'streak_milestone_journal':
         return 'sifia://profile/stats';
@@ -504,7 +423,7 @@ export class NotificationTester {
 
   /**
    * Send a single notification type using real user data. No gating conditions —
-   * fetches actual playbook/devotional/prayer content directly.
+   * fetches actual playbook/prayer content directly.
    * Returns null if no relevant real data exists for that type.
    */
   static async sendSingleTypeTest(
@@ -574,9 +493,6 @@ export class NotificationTester {
       playbook_actions_milestone: 'playbookTitle',
       playbook_verse_revisit: '_playbookVerseText',
       playbook_verse_reflection: '_playbookReflectionLine',
-      devotional_day_ready: 'dayNumber',
-      devotional_reflection_prompt: 'questionText',
-      devotional_verse_revisit: 'verseText',
       prayer_request_care: '_prayerRequestNames',
       prayer_answered_check: '_unansweredPrayerId',
     };
@@ -868,62 +784,6 @@ export class NotificationTester {
       return results;
     } catch (error) {
       Logger.error('Diagnostic failed', error as Error, {
-        component: 'NotificationTester',
-      });
-      throw error;
-    }
-  }
-
-  /**
-   * Test multiple devotional notifications
-   */
-  static async testMultipleDevotionals(userId: string): Promise<number> {
-    try {
-      Logger.info('🧪 Testing multiple devotional notifications', {
-        component: 'NotificationTester',
-        userId,
-      });
-
-      const { supabase } = await import('../services/supabaseClient');
-      const { data: devotionals } = await supabase
-        .from('devotionals')
-        .select('id, title, total_days, days')
-        .eq('user_id', userId)
-        .eq('completed', false);
-
-      const incompleteDevotionals = devotionals || [];
-      let count = 0;
-
-      for (const devotional of incompleteDevotionals.slice(0, 3)) {
-        const days = Array.isArray(devotional.days) ? devotional.days : [];
-        const incompleteDay = days.find((d: any) => d?.completed !== true) || days[0];
-
-        if (incompleteDay) {
-          const dayNumber = typeof incompleteDay.dayNumber === 'number' ? incompleteDay.dayNumber : days.indexOf(incompleteDay) + 1;
-          const copy = buildSmartNotificationCopy('devotional_day_ready', {
-            dayNumber,
-            totalDays: devotional.total_days || days.length,
-            title: devotional.total_days === 1 ? devotional.title : incompleteDay.title,
-          });
-
-          await pushNotificationService.scheduleLocalNotification({
-            title: copy.title,
-            message: copy.message,
-            data: { deep_link: 'sifia://dashboard', test: true, notification_type: 'devotional_day_ready' },
-            priority: 'high',
-          }, new Date(Date.now() + count * 3000));
-
-          count++;
-        }
-      }
-
-      Logger.info(`✅ Tested ${count} devotional notifications`, {
-        component: 'NotificationTester',
-      });
-
-      return count;
-    } catch (error) {
-      Logger.error('Failed to test multiple devotionals', error as Error, {
         component: 'NotificationTester',
       });
       throw error;

@@ -111,7 +111,7 @@ const TYPE_ORDER = {
   gratitude: 3,
   reflection: 4,
   prayerjournal: 5,
-  devotionalprayers: 6,
+  guidedprayers: 6,
   peopleprayers: 7,
   win: 100, // both today's and yesterday's
   lookingforward: 101,
@@ -129,8 +129,8 @@ const textToOrderKey = (text: string): keyof typeof TYPE_ORDER | null => {
   if (s.includes('reflections') || s.includes('reflection journal') || s.includes('reflection')) {return 'reflection';}
   // Prayer journal
   if (s.includes('prayer journal')) {return 'prayerjournal';}
-  // Devotional prayers
-  if (s.includes('devotional prayers') || s.includes('prayed devotional')) {return 'devotionalprayers';}
+  // Guided/prayed prayers
+  if (s.includes('guided prayer')) {return 'guidedprayers';}
   // People prayers
   if (s.includes('prayer list for people') || s.includes('prayer list') || s.includes('people prayer') || s.includes('people')) {return 'peopleprayers';}
   // Win
@@ -151,7 +151,7 @@ const normalizePluginIdToKey = (pidRaw: string): keyof typeof TYPE_ORDER | null 
   if (pid === 'gratitude' || pid === 'gratitudejournal') {return 'gratitude';}
   if (pid === 'reflection' || pid === 'reflections' || pid === 'reflectionjournal') {return 'reflection';}
   if (pid === 'prayer-journal' || pid === 'openprayer' || pid === 'actsprayer') {return 'prayerjournal';}
-  if (pid === 'devotional' || pid === 'devotional-prayers' || pid === 'prayeddevotional') {return 'devotionalprayers';}
+  if (pid === 'guidedprayers' || pid === 'guided_playbook' || pid === 'guided-prayers' || pid === 'prayedguided') {return 'guidedprayers';}
   if (pid === 'people' || pid === 'people-prayers' || pid === 'prayerpeople' || pid === 'prayerlist') {return 'peopleprayers';}
   if (pid === 'win' || pid === 'wins' || pid === 'yesterdayswin') {return 'win';}
   if (pid === 'lookingforwardto' || pid === 'looking-forward') {return 'lookingforward';}
@@ -420,32 +420,6 @@ const createStyles = (fonts: any) => StyleSheet.create({
     fontFamily: fonts.semiBold,
     color: Colors.hopeWhite,
   },
-  // Devotional-specific carousel styling (center-snap like onboarding)
-  devoCarouselContent: {
-    paddingVertical: 0,
-  },
-  devoCarouselItem: {
-    marginVertical: 0,
-    marginHorizontal: 0,
-    paddingHorizontal: 0,
-    alignSelf: 'stretch',
-  },
-  devoFullWidthCard: {
-    width: '100%',
-    flex: 1,
-    paddingHorizontal: 0,
-  },
-  devoHeaderContainer: {
-    paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 8,
-  },
-  devoEdgeToEdge: {
-    // Break out of the header padding so the FlatList can render full-bleed
-    marginHorizontal: -16,
-    alignSelf: 'stretch',
-    overflow: 'visible',
-  },
   // New styles for cleaned up inline styles
   chevronIcon: {
     marginRight: 8,
@@ -631,32 +605,32 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
           // Process journal entries
 
           journalEntries.forEach(entry => {
-            // Check if entry has meaningful content (or is a devotional marker)
+            // Check if entry has meaningful content (or is a legacy prayer marker)
             const hasTextContent = entry.content && (
                 typeof entry.content === 'string' ? entry.content.trim().length > 0 :
                 typeof entry.content === 'object' ? Object.keys(entry.content).length > 0 : true);
 
-            // Detect devotional saved in journal_entries
-            const devoStrings = [
+            // Detect legacy prayed entries saved in journal_entries
+            const markerStrings = [
               (entry as any).content_type,
               (entry as any).source,
               (entry as any).type,
               (entry as any).journal_category,
               (entry as any).action,
             ].filter(Boolean) as string[];
-            const devoBooleans = [
+            const markerBooleans = [
               (entry as any).prayed_devo,
               (entry as any).is_devo,
-              (entry as any).is_devotional,
-              (entry as any).prayedDevotional,
+              (entry as any).is_guided,
+              (entry as any).prayedGuided,
             ].filter(v => typeof v === 'boolean') as boolean[];
-            const isDevotionalJE =
-              devoStrings.some(v => {
+            const isLegacyPrayerJE =
+              markerStrings.some(v => {
                 const s = (v || '').toLowerCase();
-                return s.includes('devo') || s.includes('devotional') || s.includes('devotion');
-              }) || devoBooleans.some(Boolean);
+                return s.includes('devo') || s.includes('guided') || s.includes('devotion');
+              }) || markerBooleans.some(Boolean);
 
-            const hasContent = hasTextContent || isDevotionalJE;
+            const hasContent = hasTextContent || isLegacyPrayerJE;
 
             if (hasContent) {
 
@@ -670,8 +644,8 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
                 'today_win': ['win', 'reflect', 'journal'],
                 'looking_forward': ['forward', 'reflect', 'journal'],
                 'todays_focus': ['focus', 'plan', 'journal'],
-                'prayed_devotional': ['devotional', 'devo', 'prayer', 'journal'],
-                'devotional': ['devotional', 'devo', 'journal'],
+                'prayed_guided': ['prayer', 'journal'],
+                'guided_playbook': ['prayer', 'journal'],
                 // Add reflection-specific mappings
                 'reflection': ['reflection', 'journal'],
                 'free': ['reflection', 'journal'],
@@ -680,7 +654,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
                 'smart_journaling': ['reflection', 'journal'],
               };
 
-              const searchTerms = contentTypeMap[entry.content_type] || (isDevotionalJE ? ['devotional', 'devo'] : ['journal']);
+              const searchTerms = contentTypeMap[entry.content_type] || (isLegacyPrayerJE ? ['prayer', 'journal'] : ['journal']);
 
               for (const term of searchTerms) {
                 plugin = plugins.find((p: JournalPlugin) =>
@@ -706,12 +680,11 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
                   'today_win': "Today's Win",
                   'looking_forward': 'Looking Forward To',
                   'todays_focus': "Today's Focus",
-                  'prayed_devotional': 'Prayed Devotional',
-                  'devotional': 'Devotional',
+                  'prayed_guided': 'Prayed Prayer',
+                  'guided_playbook': 'Prayer',
                 };
 
-                // Prefer a Prayer plugin for devotional journal entries so they appear under Prayer Journal.
-                // Fallback to a Devotional plugin if no prayer plugin exists.
+                // Prefer a Prayer plugin for prayed journal entries so they appear under Prayer Journal.
                 const prayerPluginFromJE =
                   plugins.find((p: JournalPlugin) => p.title.toLowerCase().includes('prayer journal')) ||
                   plugins.find((p: JournalPlugin) => p.title.toLowerCase().includes('prayer list')) ||
@@ -720,16 +693,12 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
                   plugins.find((p: JournalPlugin) => (p.category || '').toLowerCase().includes('prayer')) ||
                   null as any;
 
-                const devoPlugin = plugins.find((p: JournalPlugin) => p.title.toLowerCase().includes('devotional') || p.title.toLowerCase().includes('devo')) ||
-                                   plugins.find((p: JournalPlugin) => (p.category || '').toLowerCase().includes('devotional')) ||
-                                   null as any;
-
-                // Prefer Devotional plugin for devo journal entries; fallback to Prayer plugin
-                const selectedPlugin = isDevotionalJE ? (devoPlugin || prayerPluginFromJE || plugin) : plugin;
+                // Prefer the Prayer plugin for prayed journal entries
+                const selectedPlugin = isLegacyPrayerJE ? (prayerPluginFromJE || plugin) : plugin;
 
                 // Check if this is a prayer-related journal entry that needs filtering
-                const isPrayerJournalEntry = isDevotionalJE ||
-                                           entry.content_type === 'prayed_devotional' ||
+                const isPrayerJournalEntry = isLegacyPrayerJE ||
+                                           entry.content_type === 'guided_playbook' ||
                                            (entry as any).journal_category ||
                                            (entry as any).prayer_type;
 
@@ -757,8 +726,8 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
                     const momentEntry = {
                       plugin: selectedPlugin,
                       date: entryDate,
-                      category: isDevotionalJE ? 'Prayer' : 'Journal',
-                      type: isDevotionalJE ? 'Prayed Devotional' : (typeNames[entry.content_type] || entry.content_type || 'Journal Entry'),
+                      category: isLegacyPrayerJE ? 'Prayer' : 'Journal',
+                      type: isLegacyPrayerJE ? 'Prayed Prayer' : (typeNames[entry.content_type] || entry.content_type || 'Journal Entry'),
                       _searchText: buildSearchText(
                         entry.content,
                         (entry as any)?.title,
@@ -827,16 +796,12 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
           if (!prayerPlugin && plugins.length > 0) {
             prayerPlugin = plugins[0];
           }
-          // Also identify a Devotional plugin for devo prayers
-          const devoPlugin = plugins.find((p: JournalPlugin) => p.title.toLowerCase().includes('devotional') || p.title.toLowerCase().includes('devo')) ||
-                             plugins.find((p: JournalPlugin) => (p.category || '').toLowerCase().includes('devotional')) ||
-                             null as any;
           // Identify People/Prayer List plugin for people prayers
           const peoplePlugin = plugins.find((p: JournalPlugin) => p.title.toLowerCase().includes('prayer list')) || null as any;
 
           if (prayerPlugin) {
             prayers.forEach(prayer => {
-              // Consider entries with journal_category or devotional markers as valid even if text fields are empty
+              // Consider entries with journal_category or legacy prayer markers as valid even if text fields are empty
               const rawContent = (prayer as any).content;
               const contentText = typeof rawContent === 'string' ? rawContent : (prayer as any).prayer_text || '';
               const contentObj = typeof rawContent === 'object' && rawContent !== null ? rawContent as any : null;
@@ -845,35 +810,33 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
               // Common list fields for people/prayer list structures
               const hasPeopleList = Array.isArray((prayer as any).people) && (prayer as any).people.length > 0;
               const hasPrayerList = Array.isArray((prayer as any).prayer_list) && (prayer as any).prayer_list.length > 0;
-              const devoStrings = [
+              const markerStrings = [
                 (prayer as any).source,
                 (prayer as any).type,
                 (prayer as any).journal_category,
                 (prayer as any).action,
               ].filter(Boolean) as string[];
-              const devoBooleans = [
+              const markerBooleans = [
                 (prayer as any).prayed_devo,
                 (prayer as any).is_devo,
-                (prayer as any).is_devotional,
-                (prayer as any).prayedDevotional,
+                (prayer as any).is_guided,
+                (prayer as any).prayedGuided,
               ].filter(v => typeof v === 'boolean') as boolean[];
-              // Treat explicit devotional types/metadata as devotional too
-              const devotionalByType = ((prayer as any).prayer_type || '').toString().toLowerCase() === 'devotional';
+              // Treat guided playbook prayers (and guided metadata) as guided prayers
               const guidedPlaybookType = ((prayer as any).prayer_type || '').toString().toLowerCase() === 'guided_playbook';
-              const devotionalByMetadata = !!((prayer as any).devotional_title || (prayer as any).day_number || (prayer as any).day_title || (prayer as any).total_days);
+              const guidedByMetadata = !!((prayer as any).day_number || (prayer as any).day_title || (prayer as any).total_days);
 
-              const isDevotional =
-                devotionalByType ||
+              const isGuidedPrayer =
                 guidedPlaybookType ||
-                devotionalByMetadata ||
-                devoStrings.some(v => {
+                guidedByMetadata ||
+                markerStrings.some(v => {
                   const s = (v || '').toLowerCase();
-                  return s.includes('devo') || s.includes('devotional') || s.includes('devotion');
-                }) || devoBooleans.some(Boolean);
+                  return s.includes('devo') || s.includes('guided') || s.includes('devotion');
+                }) || markerBooleans.some(Boolean);
 
               const shouldIncludePrayer = true;
 
-              const hasUserContent = hasText || hasObjectContent || hasPeopleList || hasPrayerList || !!(prayer as any).journal_category || isDevotional;
+              const hasUserContent = hasText || hasObjectContent || hasPeopleList || hasPrayerList || !!(prayer as any).journal_category || isGuidedPrayer;
 
               if (hasUserContent && shouldIncludePrayer) {
                 // Parse date-only strings as local midnight to avoid off-by-one issues
@@ -886,8 +849,8 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
                 const prayerTypeForLabel = ((prayer as any).prayer_type || '').toString().toLowerCase();
                 const typeLabel = guidedPlaybookType
                   ? 'Guided Prayer'
-                  : isDevotional
-                  ? 'Prayed Devotional'
+                  : isGuidedPrayer
+                  ? 'Prayed Prayer'
                   : prayerTypeForLabel === 'people'
                     ? 'Prayer List'
                     : ((prayer as any).journal_category
@@ -895,11 +858,11 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
                         : 'Prayer');
 
                 // Select plugin based on prayer type
-                // - Devotional -> Devotional plugin preferred
+                // - Guided prayers -> general Prayer plugin
                 // - People -> Prayer List plugin preferred
                 // - Others -> Prayer Journal/general Prayer plugin
-                const targetPlugin = isDevotional
-                  ? (devoPlugin || prayerPlugin)
+                const targetPlugin = isGuidedPrayer
+                  ? prayerPlugin
                   : (prayerTypeForLabel === 'people'
                       ? (peoplePlugin || prayerPlugin)
                       : prayerPlugin);
@@ -926,7 +889,6 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
                       (prayer as any)?.notes,
                       (prayer as any)?.people,
                       (prayer as any)?.prayer_list,
-                      (prayer as any)?.devotional_title,
                       (prayer as any)?.request,
                       (prayer as any)?.journal_category,
                       (prayer as any)?.prayer_type,
@@ -958,29 +920,25 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
 
           if (reflectionPlugin) {
             reflections.forEach(reflection => {
-              // Allow Reflection Journal of all subtypes: freeform, guided, devotional, playbook
+              // Allow Reflection Journal of all subtypes: freeform, guided, legacy, playbook
               const typeStr = (reflection.type || '').toString().toLowerCase();
               const sourceStr = (reflection.source || '').toString().toLowerCase();
               const allowedType =
                 typeStr === '' ||
                 typeStr === 'free' ||
                 typeStr === 'guided' ||
-                typeStr === 'devotional' ||
                 typeStr === 'playbook' ||
                 typeStr.includes('freeform') ||
                 typeStr.includes('guided') ||
-                typeStr.includes('devotional') ||
                 typeStr.includes('playbook');
 
               const allowedSource =
                 sourceStr === '' ||
                 sourceStr === 'freeform' ||
                 sourceStr === 'guided' ||
-                sourceStr === 'devotional' ||
                 sourceStr === 'playbook' ||
                 sourceStr.includes('freeform') ||
                 sourceStr.includes('guided') ||
-                sourceStr.includes('devotional') ||
                 sourceStr.includes('playbook');
 
               // Check if reflection has content (string or object)
@@ -1363,8 +1321,8 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
             return false;
           }
 
-          const isDevotionalPrayer = pid.includes('devotional') || ptitle.includes('devotional') || etype.includes('prayed devotional') || etype.includes('devotional');
-          if (isDevotionalPrayer) {
+          const isGuidedPrayerEntry = pid.includes('guided') || ptitle.includes('guided') || etype.includes('guided prayer');
+          if (isGuidedPrayerEntry) {
 
             return false;
           }
@@ -1778,20 +1736,20 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
 
         entries.forEach((entry) => {
           // For Prayer Journal, group all ACTS/Open Prayer under a single card by plugin
-          // For devotional prayers, group under 'Devotional Prayers' to avoid duplication
-          const isDevotional = entry.type?.toLowerCase().includes('devotional') || entry.plugin?.id === 'devotionalprayers';
-          const typeKey = entry.plugin?.id === 'prayerjournal' ? 'Prayer Journal' : (isDevotional ? 'Devotional Prayers' : entry.type);
+          // For guided/prayed prayers, group under 'Guided Prayers' to avoid duplication
+          const isGuidedGroup = entry.type?.toLowerCase().includes('guided') || entry.plugin?.id === 'guidedprayers';
+          const typeKey = entry.plugin?.id === 'prayerjournal' ? 'Prayer Journal' : (isGuidedGroup ? 'Guided Prayers' : entry.type);
           if (!typeGroups[typeKey]) {typeGroups[typeKey] = [];}
           typeGroups[typeKey].push(entry);
         });
 
-        // Build groups: devotional types keep all entries (carousel), non-devotional collapse to latest only
+        // Build groups: guided prayer types keep all entries (carousel), others collapse to latest only
         const groupEntries: { type: string; items: MomentEntry[]; repr: MomentEntry }[] = Object.entries(typeGroups).map(([type, items]) => {
           const sorted = items.sort((a, b) => b.date.getTime() - a.date.getTime());
-          const isDevotionalType = type.toLowerCase().includes('devotional');
+          const isGuidedType = type.toLowerCase().includes('guided');
           return {
             type,
-            items: isDevotionalType ? sorted : [sorted[0]],
+            items: isGuidedType ? sorted : [sorted[0]],
             repr: sorted[0],
           };
         });
@@ -1805,7 +1763,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
           return b.repr.date.getTime() - a.repr.date.getTime();
         });
 
-        // Finally, map into carouselData (each item is an array; devotional arrays can have multiple slides)
+        // Finally, map into carouselData (each item is an array; guided prayer arrays can have multiple slides)
         const carouselData = ordered.map(group => group.items);
 
         // Get proper title for date grouping

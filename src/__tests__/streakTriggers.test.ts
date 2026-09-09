@@ -243,46 +243,6 @@ describe('Gated triggers — playbook completion required', () => {
     });
   });
 
-  // ── 8. DevotionalDetailReflectionModal — gated by devotional day ──────
-  describe('DevotionalDetailReflectionModal → reflection_saved (gated: devotionalDayCompleted)', () => {
-    const src = read('screens/DevotionalDetailReflectionModal.tsx');
-
-    it('has devotionalDayCompleted prop in interface', () => {
-      expect(has(src, 'devotionalDayCompleted')).toBe(true);
-    });
-
-    it('gates streak on new entry AND devotionalDayCompleted', () => {
-      expect(has(src, /!existingEntry\s*&&\s*user\?\.id\s*&&\s*devotionalDayCompleted/)).toBe(true);
-    });
-
-    it('calls shouldShowCelebration with reflection_saved', () => {
-      expect(has(src, SHOULD_SHOW('reflection_saved'))).toBe(true);
-    });
-
-    it('calls markShownToday', () => {
-      expect(has(src, MARK_SHOWN)).toBe(true);
-    });
-
-    it('navigates to StreakPlan', () => {
-      expect(has(src, NAV_STREAK)).toBe(true);
-    });
-  });
-
-  // ── DevotionalDetailScreen — passes devotionalDayCompleted ────────────
-  describe('DevotionalDetailScreen — passes devotionalDayCompleted to reflection modal', () => {
-    const src = read('screens/DevotionalDetailScreen.tsx');
-
-    it('passes devotionalDayCompleted computed from prayedDays', () => {
-      expect(has(src, /devotionalDayCompleted=\{prayedDays\[`\$\{devotionalId\}-\$\{currentDayIndex\}`\]\s*===\s*true\}/)).toBe(true);
-    });
-
-    it('does NOT trigger streak for devotional_prayer (faith points only, not streak)', () => {
-      // The devotional_prayer source should only appear in faithPointsService.awardPoints,
-      // never in visibleStreakService.shouldShowCelebration
-      const streakCallsForDevPrayer = /shouldShowCelebration[^)]*devotional_prayer/.test(src);
-      expect(streakCallsForDevPrayer).toBe(false);
-    });
-  });
 });
 
 // ---------------------------------------------------------------------------
@@ -465,26 +425,6 @@ describe('Ungated triggers — independent activities', () => {
     });
   });
 
-  // ── DevotionalDetailScreen — devotional completion ────────────────────
-  describe('DevotionalDetailScreen → devotional_completed / devotional_full_completed', () => {
-    const src = read('screens/DevotionalDetailScreen.tsx');
-
-    it('uses devotional_completed activity type', () => {
-      expect(has(src, "'devotional_completed'")).toBe(true);
-    });
-
-    it('uses devotional_full_completed activity type', () => {
-      expect(has(src, "'devotional_full_completed'")).toBe(true);
-    });
-
-    it('calls markShownToday', () => {
-      expect(has(src, MARK_SHOWN)).toBe(true);
-    });
-
-    it('navigates to StreakPlan', () => {
-      expect(has(src, NAV_STREAK)).toBe(true);
-    });
-  });
 });
 
 // ---------------------------------------------------------------------------
@@ -498,8 +438,6 @@ describe('Activity type validity — all used types must be in VISIBLE_STREAK_AC
     'playbook_completed',
     'action_step_completed',
     'affirmation_read_aloud',
-    'devotional_completed',
-    'devotional_full_completed',
     'reflection_saved',
     'prayer_journal_open',
     'prayer_list_request_added',
@@ -523,6 +461,8 @@ describe('Activity type validity — all used types must be in VISIBLE_STREAK_AC
     'journal_today_win',
     'journal_looking_forward',
     'journal_prayer_completed',
+    'guided_completed',
+    'guided_full_completed',
   ];
 
   invalidTypes.forEach(type => {

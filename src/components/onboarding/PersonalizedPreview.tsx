@@ -29,7 +29,7 @@ interface UserProfile {
 
 interface ContentRecommendation {
   id: string;
-  type: 'devotional' | 'playbook' | 'prayer_guide' | 'bible_study';
+  type: 'playbook' | 'prayer_guide' | 'bible_study';
   title: string;
   description: string;
   duration: string;
@@ -66,7 +66,7 @@ const PersonalizedPreview: React.FC<Props> = ({ userProfile, onContinue, onBack 
     const allContent: ContentRecommendation[] = [
       {
         id: '1',
-        type: 'devotional',
+        type: 'bible_study',
         title: 'Morning Strength',
         description: 'Start your day with God\'s wisdom and encouragement',
         duration: `${Math.min(timeAvailability, 5)} min`,
@@ -102,7 +102,6 @@ const PersonalizedPreview: React.FC<Props> = ({ userProfile, onContinue, onBack 
     let filtered = allContent.filter(content => {
       if (primaryGoals.includes('prayer') && content.type === 'prayer_guide') {return true;}
       if (primaryGoals.includes('bible_study') && content.type === 'bible_study') {return true;}
-      if (primaryGoals.includes('devotional') && content.type === 'devotional') {return true;}
       if (primaryGoals.includes('anxiety') && content.type === 'playbook') {return true;}
       return false;
     });
@@ -172,8 +171,8 @@ const PersonalizedPreview: React.FC<Props> = ({ userProfile, onContinue, onBack 
 
   //   const allContent: ContentRecommendation[] = [
   //     {
-  //       id: 'morning_devotion',
-  //       type: 'devotional',
+  //       id: 'morning_reflection',
+  //       type: 'bible_study',
   //       title: 'Morning Strength',
   //       description: 'Start your day with God\'s wisdom and encouragement',
   //       duration: `${Math.min(timeAvailability, 5)} min`,
@@ -223,7 +222,7 @@ const PersonalizedPreview: React.FC<Props> = ({ userProfile, onContinue, onBack 
   //       duration: `${timeAvailability} min`,
   //       difficulty: 'intermediate',
   //       icon: 'hand-right',
-  //       color: Colors.devotionalPurple,
+  //       color: Colors.ministryPurple,
   //       preview: 'Discover your unique gifts and how to use them to bless others in your community',
   //     },
   //   ];
@@ -233,7 +232,7 @@ const PersonalizedPreview: React.FC<Props> = ({ userProfile, onContinue, onBack 
   //     if (primaryGoals.includes('bible_study') && content.type === 'bible_study') {return true;}
   //     if (primaryGoals.includes('character') && content.id === 'character_growth') {return true;}
   //     if (primaryGoals.includes('service') && content.id === 'service_opportunities') {return true;}
-  //     if (content.type === 'devotional') {return true;} // Always include devotionals
+  //     if (content.type === 'bible_study') {return true;} // Always include Bible study content
   //     return false;
   //   });
 

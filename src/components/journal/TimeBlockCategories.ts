@@ -19,7 +19,7 @@ export const TIMEBLOCK_CATEGORIES: TimeBlockCategory[] = [
   { name: 'Family Time', icon: 'people-circle', color: Colors.alertCoral, description: 'Quality time with loved ones' },
   { name: 'Life Admin', icon: 'document-text', color: '#9B8B6F', description: 'Personal management tasks' },
   { name: 'Mental Health', icon: 'heart', color: Colors.treasureGold, description: 'Self-care and wellness' },
-  { name: 'Ministry', icon: 'hand-left', color: Colors.devotionalPurple, description: 'Service and spiritual work' },
+  { name: 'Ministry', icon: 'hand-left', color: Colors.ministryPurple, description: 'Service and spiritual work' },
   { name: 'Morning Routine', icon: 'sunny-outline', color: Colors.faithGold, description: 'Start the day right' },
   { name: 'Personal Growth', icon: 'person', color: Colors.wisdomIndigo, description: 'Self-improvement journey' },
   { name: 'Physical Health', icon: 'barbell', color: Colors.prosperityGreen, description: 'Exercise and wellness' },

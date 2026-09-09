@@ -675,7 +675,6 @@ class PushNotificationService {
         'prayer_reminder': 'REMINDER',
         'prayer_answered_check': 'REMINDER',
         'prayer_today': 'REMINDER',
-        'devotional_reminder': 'REMINDER',
         'journal_prompt': 'REMINDER',
         'milestone_celebration': 'ACHIEVEMENT',
         'trial_notification': 'PROMOTIONAL',

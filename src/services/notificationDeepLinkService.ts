@@ -544,12 +544,6 @@ class NotificationDeepLinkService {
                 source: 'playbook_list',
                 initialStep: 3,
               });
-            } else if (target === 'devotional') {
-              this.navigationRef.current.navigate('PlaybookWalkthrough', {
-                playbook: { id },
-                source: 'playbook_list',
-                initialStep: 6,
-              });
             } else {
               // No specific target — open the walkthrough at step 0 (overview).
               // PlaybookWalkthroughScreen detects a partial { id } object and
@@ -566,15 +560,6 @@ class NotificationDeepLinkService {
           Logger.info('Navigated to Playbook', {
             component: 'notificationDeepLinkService',
             playbookId: id,
-          });
-          break;
-
-        case 'devotional':
-        case 'devotionals':
-          // Devotionals feature removed; route to Overview
-          this.navigationRef.current.navigate('MainTabs', { screen: 'Overview' });
-          Logger.info('Navigated to Overview (devotionals removed)', {
-            component: 'notificationDeepLinkService',
           });
           break;
 

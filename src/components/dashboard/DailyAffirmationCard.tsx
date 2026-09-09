@@ -56,7 +56,7 @@ const DailyAffirmationCard: React.FC<DailyAffirmationCardProps> = ({ onRefresh, 
   const readCooldownRef = useRef<number>(0);
   const readAwardedRef = useRef<boolean>(false);
 
-  // Haptics and burst animation (mirroring DevotionalDetailScreen patterns)
+  // Haptics and burst animation (mirroring playbook detail screen patterns)
   type Particle = {
     id: number;
     progress: Animated.Value; // 0 -> 1

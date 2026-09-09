@@ -28,7 +28,7 @@ import { analytics } from '../../utils/analytics';
 // Define the PrayerApiEntry type locally since it's only used for type checking
 interface PrayerApiEntry {
   id: string;
-  type?: 'adoration' | 'confession' | 'thanksgiving' | 'supplication' | 'people' | 'devotional' | 'freeform';
+  type?: 'adoration' | 'confession' | 'thanksgiving' | 'supplication' | 'people' | 'freeform';
   journal_category?: 'adoration' | 'confession' | 'thanksgiving' | 'supplication' | 'personal_prayer';
   content: string;
   metadata?: {
@@ -43,7 +43,6 @@ interface PrayerApiEntry {
   user_id?: string;
   selected_date?: string;
   updated_at?: string;
-  devotional_title?: string;
   day_number?: number;
   day_title?: string;
   total_days?: number;
@@ -133,7 +132,7 @@ const PrayerJournalCardReactQuery: React.FC<PrayerJournalCardReactQueryProps> = 
                    (actsData.thanksgiving?.length || 0) + (actsData.supplication?.length || 0) +
                    (actsData.freeform?.length || 0),
         people_count: 0, // This component only handles ACTS prayers
-        devotional_count: 0,
+
         load_time_ms: loadTime,
         date: dateStr,
       }, user?.id);

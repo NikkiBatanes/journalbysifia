@@ -8,15 +8,13 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 
 // Route params type (kept loose to avoid tight coupling with nav types)
 interface StreakDetailParams {
-  type?: 'prayer' | 'devotional' | 'journal' | 'playbook' | string;
+  type?: 'prayer' | 'journal' | 'playbook' | string;
 }
 
 const getIcon = (type?: string) => {
   switch (type) {
     case 'prayer':
       return 'hands-pray';
-    case 'devotional':
-      return 'book';
     case 'journal':
       return 'notebook-edit';
     case 'playbook':
@@ -30,8 +28,6 @@ const getLabel = (type?: string) => {
   switch (type) {
     case 'prayer':
       return 'Prayer Streak';
-    case 'devotional':
-      return 'Devotional Streak';
     case 'journal':
       return 'Journaling Streak';
     case 'playbook':

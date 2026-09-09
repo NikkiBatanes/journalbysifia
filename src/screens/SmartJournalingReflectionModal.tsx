@@ -325,9 +325,9 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
         reflectionId: savedReflection.id,
         type: reflectionData.type,
         source: finalSource,
-        // Include devotional metadata for precise question removal
+        // Include playbook metadata so listeners can reconcile journaled questions
         ...(finalSource === 'playbook' ? {
-          devotionalId: playbookId,
+          playbookId,
           dayNumber: actionStepNumber,
           questionNumber: 1, // Default to 1 for single questions, could be enhanced for multiple questions
         } : {}),

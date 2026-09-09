@@ -34,13 +34,13 @@ const compact = (str: string, maxLength = Number.POSITIVE_INFINITY): string => {
 };
 
 /**
- * Sanitizes playbook title to prevent devotional-style titles like "Day 2"
- * If the title looks like a devotional day title, return a fallback
+ * Sanitizes playbook title to prevent day-style titles like "Day 2"
+ * If the title looks like a day title, return a fallback
  */
 const sanitizePlaybookTitle = (title?: string | null): string => {
   if (!title) {return 'Playbook';}
 
-  // Check if title matches devotional day pattern (e.g., "Day 1", "Day 2", etc.)
+  // Check if title matches a day pattern (e.g., "Day 1", "Day 2", etc.)
   const dayPattern = /^Day \d+$/i;
   if (dayPattern.test(title.trim())) {
     return 'Playbook'; // Fallback to generic title
@@ -58,48 +58,6 @@ export function buildSmartNotificationCopy(
   context: CopyContext = {}
 ): SmartNotificationCopy {
   switch (type) {
-    case 'devotional_day_ready': {
-      const isSingleDay = context.totalDays === 1;
-      // Single-day: use devotional title. Multi-day: "Day X: Title" or "Day X" if no title.
-      const dayLabel = isSingleDay
-        ? (context.title || 'Your devotional')
-        : context.dayNumber
-          ? (context.title ? `Day ${context.dayNumber}: ${context.title}` : `Day ${context.dayNumber}`)
-          : (context.title || 'Your next day');
-      return {
-        title: 'Your devotional is ready',
-        message: compact(`${dayLabel} is ready when you are.`),
-      };
-    }
-
-    case 'devotional_prayer_prompt':
-      return {
-        title: 'Pray today\'s devotional',
-        message: compact('Take a moment to pray the prayer for today.'),
-      };
-
-    case 'devotional_reflection_prompt':
-      return {
-        title: 'Pause with this question',
-        message: compact(context.questionText || 'Take a moment to reflect on today\'s question.'),
-      };
-
-    case 'devotional_verse_revisit': {
-      const verseMessage = context.verseText
-        ? (context.verseReference ? `${context.verseReference} — ${context.verseText}` : context.verseText)
-        : 'A verse from your devotional is worth revisiting today.';
-      return {
-        title: 'Carry this verse today',
-        message: compact(verseMessage),
-      };
-    }
-
-    case 'devotional_completed_reflection':
-      return {
-        title: 'Reflect on today\'s devotional',
-        message: compact('You finished today\'s devotional. What is staying with you?'),
-      };
-
     case 'playbook_word_to_speak':
       return {
         title: 'Speak this over now',
@@ -139,12 +97,6 @@ export function buildSmartNotificationCopy(
       return {
         title: 'Pray through your playbook',
         message: compact('Pray the prayer from your playbook walkthrough.'),
-      };
-
-    case 'playbook_to_devotional':
-      return {
-        title: 'Turn this into a devotional',
-        message: compact('Your playbook can become a devotional for the season you are walking through.'),
       };
 
     case 'playbook_actions_complete':
@@ -243,18 +195,6 @@ export function buildSmartNotificationCopy(
         message: compact('Someone on your heart may need prayer today. Take a moment to bring them before God.'),
       };
 
-    case 'create_first_devotional':
-      return {
-        title: 'Create your first devotional',
-        message: compact('Turn your completed playbook into a devotional to spend time in prayer, reflection, and scripture.'),
-      };
-
-    case 'create_devotional':
-      return {
-        title: 'Start a new devotional',
-        message: compact('Turn a completed playbook into a devotional to spend time in prayer, reflection, and scripture.'),
-      };
-
     case 'create_playbook': {
       const playbookMessages = [
         'Begin with the moment that needs clarity today.',
@@ -268,14 +208,6 @@ export function buildSmartNotificationCopy(
       return {
         title: 'Start a new playbook',
         message: compact(playbookMessages[createDay % playbookMessages.length]),
-      };
-    }
-
-    case 'usage_room_devotional': {
-      const count = context.remainingCount ?? 1;
-      return {
-        title: 'There is room for more',
-        message: compact(`You still have room for ${count} more ${plural(count, 'devotional')} this month.`),
       };
     }
 
@@ -298,7 +230,7 @@ export function buildSmartNotificationCopy(
     case 'upgrade_room':
       return {
         title: 'Need more room?',
-        message: compact('Upgrade for more room to keep going with new playbooks and devotionals.'),
+        message: compact('Upgrade for more room to keep going with new playbooks.'),
       };
 
     case 'daily_review':

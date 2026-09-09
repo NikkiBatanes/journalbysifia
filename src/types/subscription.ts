@@ -2,13 +2,13 @@
 // Created: 2025-08-20
 
 export type SubscriptionTier =
-  | 'seeker'           // Free access layer: 2 PB / 1 DEV per month (resets monthly), up to 3-day devotionals
-  | 'free_trial'       // Trial limits depend on trial_chosen_tier (Spark: 5/5, Growth: 15/15, Transformation: 25/25)
-  | 'spark'            // 10 playbooks/devotionals, up to 3-day devotionals
+  | 'seeker'           // Free access layer: 2 PB per month (resets monthly)
+  | 'free_trial'       // Trial limits depend on trial_chosen_tier (Spark: 5, Growth: 15, Transformation: 25)
+  | 'spark'            // 10 playbooks
   | 'spark_annual'     // Annual spark subscription
-  | 'growth'           // 25 playbooks/devotionals, up to 5-day devotionals
+  | 'growth'           // 25 playbooks
   | 'growth_annual'    // Annual growth subscription
-  | 'transformation'   // 60 playbooks/devotionals, up to 7-day devotionals
+  | 'transformation'   // 60 playbooks
   | 'transformation_annual'; // Annual transformation subscription
   // | 'family';       // POST-LAUNCH: Unlimited for up to 5 members (1 admin + 4 additional)
 
@@ -31,7 +31,6 @@ export type PaymentPlatform =
 
 export interface SubscriptionLimits {
   playbooks_limit: number;        // -1 for unlimited
-  devotionals_limit: number;      // -1 for unlimited
   wisdom_limit: number;           // -1 for unlimited
   refinement_limit: number;       // -1 for unlimited
   smart_journaling_enabled: boolean;
@@ -69,11 +68,9 @@ export interface Subscription {
 
   // Usage limits and tracking
   playbooks_limit: number;
-  devotionals_limit: number;
   wisdom_limit: number;
   refinement_limit: number;
   playbooks_used: number;
-  devotionals_used: number;
   wisdom_count: number;
   refinement_count: number;
   smart_journaling_enabled: boolean;
@@ -148,7 +145,6 @@ export interface Subscription {
 
   // Usage tracking
   playbooks_used?: number;
-  devotionals_used?: number;
   last_active?: string;
 
   user_profile?: {
@@ -199,7 +195,6 @@ export interface UsageTracking {
 
   // Usage counters
   playbooks_generated: number;
-  devotionals_generated: number;
   smart_journal_entries: number;
   export_count: number;
 
@@ -242,11 +237,9 @@ export interface TrialStartOptions {
 // Utility type for subscription checks
 export interface SubscriptionCheck {
   can_generate_playbook: boolean;
-  can_generate_devotional: boolean;
   can_use_smart_journaling: boolean;
   can_export: boolean;
   playbooks_remaining: number;  // -1 for unlimited
-  devotionals_remaining: number; // -1 for unlimited
   show_upgrade_prompt: boolean;
   upgrade_message?: string;
 }
@@ -363,7 +356,6 @@ export interface FamilyUsageAnalytics {
   period_start: string;
   period_end: string;
   playbooks_generated: number;
-  devotionals_generated: number;
   smart_journal_entries: number;
   active_days: number;
   metadata?: Record<string, any>;
@@ -373,11 +365,9 @@ export interface FamilyUsageAnalytics {
 
 export interface FamilyUsageSummary {
   total_playbooks: number;
-  total_devotionals: number;
   total_journal_entries: number;
   active_members: number;
   avg_playbooks_per_member: number;
-  avg_devotionals_per_member: number;
   period_start?: string;
   period_end?: string;
 }
@@ -388,7 +378,6 @@ export interface FamilyMemberUsage {
   email?: string;
   avatar_url?: string;
   playbooks: number;
-  devotionals: number;
   journal_entries: number;
   active_days: number;
   last_active?: string;

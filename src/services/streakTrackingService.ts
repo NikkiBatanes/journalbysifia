@@ -9,9 +9,6 @@ export interface UserStreaks {
   prayer_streak: number;
   prayer_last_date?: string;
   prayer_best_streak: number;
-  devotional_streak: number;
-  devotional_last_date?: string;
-  devotional_best_streak: number;
   journal_streak: number;
   journal_last_date?: string;
   journal_best_streak: number;
@@ -19,7 +16,7 @@ export interface UserStreaks {
   created_at?: string;
 }
 
-export type StreakType = 'prayer' | 'devotional' | 'journal';
+export type StreakType = 'prayer' | 'journal';
 
 /**
  * Streak Tracking Service
@@ -75,8 +72,6 @@ class StreakTrackingService {
       user_id: userId,
       prayer_streak: 0,
       prayer_best_streak: 0,
-      devotional_streak: 0,
-      devotional_best_streak: 0,
       journal_streak: 0,
       journal_best_streak: 0,
     };
@@ -165,10 +160,6 @@ class StreakTrackingService {
         currentStreak = streaks.prayer_streak;
         lastDate = streaks.prayer_last_date || '';
         bestStreak = streaks.prayer_best_streak;
-      } else if (streakType === 'devotional') {
-        currentStreak = streaks.devotional_streak;
-        lastDate = streaks.devotional_last_date || '';
-        bestStreak = streaks.devotional_best_streak;
       } else if (streakType === 'journal') {
         currentStreak = streaks.journal_streak;
         lastDate = streaks.journal_last_date || '';
@@ -201,10 +192,6 @@ class StreakTrackingService {
         updateData.prayer_streak = currentStreak;
         updateData.prayer_last_date = today;
         updateData.prayer_best_streak = bestStreak;
-      } else if (streakType === 'devotional') {
-        updateData.devotional_streak = currentStreak;
-        updateData.devotional_last_date = today;
-        updateData.devotional_best_streak = bestStreak;
       } else if (streakType === 'journal') {
         updateData.journal_streak = currentStreak;
         updateData.journal_last_date = today;
@@ -253,9 +240,6 @@ class StreakTrackingService {
       if (streakType === 'prayer') {
         currentStreak = streaks.prayer_streak;
         lastDate = streaks.prayer_last_date || '';
-      } else if (streakType === 'devotional') {
-        currentStreak = streaks.devotional_streak;
-        lastDate = streaks.devotional_last_date || '';
       } else if (streakType === 'journal') {
         currentStreak = streaks.journal_streak;
         lastDate = streaks.journal_last_date || '';
@@ -307,12 +291,6 @@ class StreakTrackingService {
           message: 'You\'re on fire! Keep your spiritual momentum going.',
           deepLink: 'sifia://journal/prayer',
           time: '11:30', // 11:30 AM - to avoid overlap with weekly summary on Sunday
-        },
-        devotional: {
-          title: `Keep Your ${currentStreak}-Day Devotional Streak Going! 📖`,
-          message: 'You\'re building a powerful habit. Don\'t stop now!',
-          deepLink: 'sifia://devotionals/today',
-          time: '12:15', // 12:15 PM - between prayer_request_care
         },
         journal: {
           title: `Continue Your ${currentStreak}-Day Journaling Journey! ✍🏼`,
@@ -379,13 +357,6 @@ class StreakTrackingService {
           60: '💎 60-Day Prayer Streak! Your faith is unshakeable!',
           100: '🌟 100-Day Prayer Streak! You\'re truly devoted!',
         },
-        devotional: {
-          7: '🤲🏼 7-Day Devotional Streak! Growing in wisdom daily!',
-          14: '🎯 14-Day Devotional Streak! Your spiritual journey is amazing!',
-          30: '🏅 30-Day Devotional Streak! You\'re a faithful student!',
-          60: '💪 60-Day Devotional Streak! Your dedication is remarkable!',
-          100: '👑 100-Day Devotional Streak! You\'re a spiritual champion!',
-        },
         journal: {
           7: '✍🏼 7-Day Journaling Streak! Documenting your spiritual growth!',
           14: '📝 14-Day Journaling Streak! Your reflections are beautiful!',
@@ -442,7 +413,6 @@ class StreakTrackingService {
 
       // Check each streak type
       await this.checkAndScheduleStreakAlert(userId, 'prayer');
-      await this.checkAndScheduleStreakAlert(userId, 'devotional');
       await this.checkAndScheduleStreakAlert(userId, 'journal');
     } catch (error) {
       Logger.error('Error checking all streaks for user', error as Error, {
@@ -476,11 +446,6 @@ class StreakTrackingService {
           current = streaks.prayer_streak;
           best = streaks.prayer_best_streak;
           lastDate = streaks.prayer_last_date || null;
-          break;
-        case 'devotional':
-          current = streaks.devotional_streak;
-          best = streaks.devotional_best_streak;
-          lastDate = streaks.devotional_last_date || null;
           break;
         case 'journal':
           current = streaks.journal_streak;

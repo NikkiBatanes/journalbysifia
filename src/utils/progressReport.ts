@@ -14,7 +14,6 @@ interface ProgressMetrics {
   weeklyProgress: number;
   weeklyGoal: number;
   activitiesCompleted: number;
-  devotionalsCompleted: number;
   playbooksCompleted: number;
   journalEntriesCompleted: number;
   streakActivities: number;
@@ -67,7 +66,6 @@ export const generateProgressReport = async (userId: string): Promise<ProgressRe
       weeklyProgress: profile.weeklyProgress || 0,
       weeklyGoal: profile.weeklyGoal || 7,
       activitiesCompleted: transactions?.length || 0,
-      devotionalsCompleted: activityCounts.devotionals,
       playbooksCompleted: activityCounts.playbooks,
       journalEntriesCompleted: activityCounts.journal,
       streakActivities: activityCounts.streak,
@@ -116,14 +114,12 @@ const getActivityCounts = async (userId: string) => {
     .eq('user_id', userId);
 
   const counts = {
-    devotionals: 0,
     playbooks: 0,
     journal: 0,
     streak: 0,
   };
 
   transactions?.forEach((t: any) => {
-    if (t.activity_type?.includes('devotional')) {counts.devotionals++;}
     if (t.activity_type?.includes('playbook')) {counts.playbooks++;}
     if (t.activity_type?.includes('journal')) {counts.journal++;}
     if (t.activity_type?.includes('streak')) {counts.streak++;}
@@ -146,7 +142,7 @@ const calculateOverallEngagement = (metrics: ProgressMetrics): number => {
   const factors = [
     metrics.weeklyProgress / metrics.weeklyGoal * 25, // 25% weight
     Math.min(metrics.currentStreak / 7, 1) * 25, // 25% weight
-    Math.min(metrics.devotionalsCompleted / 5, 1) * 25, // 25% weight
+    Math.min(metrics.playbooksCompleted / 5, 1) * 25, // 25% weight
     Math.min(metrics.activitiesCompleted / 10, 1) * 25, // 25% weight
   ];
 
@@ -214,8 +210,8 @@ const generateRecommendations = (metrics: ProgressMetrics, percentages: any): st
     recommendations.push('Build consistency by completing at least one activity daily');
   }
 
-  if (metrics.devotionalsCompleted < 3) {
-    recommendations.push('Try reading more devotionals to deepen your spiritual growth');
+  if (metrics.playbooksCompleted < 3) {
+    recommendations.push('Try creating more playbooks to deepen your spiritual growth');
   }
 
   if (percentages.overallEngagement < 60) {

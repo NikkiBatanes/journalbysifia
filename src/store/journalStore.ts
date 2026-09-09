@@ -22,7 +22,7 @@ interface JournalState {
   // Filters and view options
   gratitudeFilter: 'all' | 'recent' | 'favorites';
   todoFilter: 'all' | 'pending' | 'completed' | 'priority';
-  reflectionFilter: 'all' | 'recent' | 'devotional' | 'personal';
+  reflectionFilter: 'all' | 'recent' | 'guided' | 'personal';
 
   // Pagination and limits
   gratitudeLimit: number;

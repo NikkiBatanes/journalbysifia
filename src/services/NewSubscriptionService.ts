@@ -42,7 +42,6 @@ export class NewSubscriptionService {
    */
   static getTrialLimits(trialChosenTier?: SubscriptionTier): {
     playbooks_limit: number;
-    devotionals_limit: number;
     wisdom_limit: number;
     refinement_limit: number;
     smart_journaling_enabled: boolean;
@@ -53,7 +52,6 @@ export class NewSubscriptionService {
       case 'spark':
         return {
           playbooks_limit: 5,
-          devotionals_limit: 5,
           wisdom_limit: 2,
           refinement_limit: 2,
           smart_journaling_enabled: true,
@@ -62,7 +60,6 @@ export class NewSubscriptionService {
       case 'growth':
         return {
           playbooks_limit: 15,
-          devotionals_limit: 15,
           wisdom_limit: 6,
           refinement_limit: 4,
           smart_journaling_enabled: true,
@@ -71,7 +68,6 @@ export class NewSubscriptionService {
       case 'transformation':
         return {
           playbooks_limit: 25,
-          devotionals_limit: 25,
           wisdom_limit: 10,
           refinement_limit: 6,
           smart_journaling_enabled: true,
@@ -80,7 +76,6 @@ export class NewSubscriptionService {
       default:
         return {
           playbooks_limit: 15,
-          devotionals_limit: 15,
           wisdom_limit: 6,
           refinement_limit: 4,
           smart_journaling_enabled: true,
@@ -96,7 +91,6 @@ export class NewSubscriptionService {
    */
   static getTierLimits(tier: SubscriptionTier, subscription?: Subscription | null): {
     playbooks_limit: number;
-    devotionals_limit: number;
     wisdom_limit: number;
     refinement_limit: number;
     smart_journaling_enabled: boolean;
@@ -109,7 +103,6 @@ export class NewSubscriptionService {
       case 'seeker':
         return {
           playbooks_limit: 2,
-          devotionals_limit: 1,
           wisdom_limit: 2,
           refinement_limit: 1,
           smart_journaling_enabled: true,
@@ -124,7 +117,6 @@ export class NewSubscriptionService {
       case 'spark':
         return {
           playbooks_limit: 10,
-          devotionals_limit: 10,
           wisdom_limit: 5,
           refinement_limit: 3,
           smart_journaling_enabled: true,
@@ -133,7 +125,6 @@ export class NewSubscriptionService {
       case 'growth':
         return {
           playbooks_limit: 25,
-          devotionals_limit: 25,
           wisdom_limit: 12,
           refinement_limit: 6,
           smart_journaling_enabled: true,
@@ -142,7 +133,6 @@ export class NewSubscriptionService {
       case 'transformation':
         return {
           playbooks_limit: 60,
-          devotionals_limit: 60,
           wisdom_limit: 25,
           refinement_limit: 15,
           smart_journaling_enabled: true,
@@ -152,7 +142,6 @@ export class NewSubscriptionService {
       // case 'family':
       //   return {
       //     playbooks_limit: -1,
-      //     devotionals_limit: -1,
       //     wisdom_limit: -1,
       //     refinement_limit: -1,
       //     smart_journaling_enabled: true,
@@ -162,7 +151,6 @@ export class NewSubscriptionService {
         // Fallback to seeker limits for unknown tiers
         return {
           playbooks_limit: 2,
-          devotionals_limit: 1,
           wisdom_limit: 2,
           refinement_limit: 1,
           smart_journaling_enabled: false,
@@ -177,14 +165,6 @@ export class NewSubscriptionService {
    */
   static getOnboardingPlaybookLimit(tier: SubscriptionTier, subscription?: Subscription | null): number {
     return this.getTierLimits(tier, subscription).playbooks_limit;
-  }
-
-  /**
-   * Get onboarding devotional limit.
-   * Seeker onboarding devotional is free and does not increment devotionals_used.
-   */
-  static getOnboardingDevotionalLimit(tier: SubscriptionTier, subscription?: Subscription | null): number {
-    return this.getTierLimits(tier, subscription).devotionals_limit;
   }
 
   // ===== USER SUBSCRIPTION MANAGEMENT =====
@@ -202,11 +182,9 @@ export class NewSubscriptionService {
       subscription_display_name: 'Journal Full Access',
       platform: 'local_test',
       playbooks_limit: -1,
-      devotionals_limit: -1,
       wisdom_limit: -1,
       refinement_limit: -1,
       playbooks_used: 0,
-      devotionals_used: 0,
       wisdom_count: 0,
       refinement_count: 0,
       smart_journaling_enabled: true,
@@ -233,7 +211,6 @@ export class NewSubscriptionService {
       .from('user_subscriptions_new')
       .update({
         playbooks_used: 0,
-        devotionals_used: 0,
         wisdom_count: 0,
         refinement_count: 0,
         last_usage_reset: resetAt,
@@ -307,7 +284,6 @@ export class NewSubscriptionService {
             .from('user_subscriptions_new')
             .update({
               playbooks_used: 0,
-              devotionals_used: 0,
               wisdom_count: 0,
               refinement_count: 0,
               last_usage_reset: now.toISOString(),
@@ -363,7 +339,6 @@ export class NewSubscriptionService {
             .from('user_subscriptions_new')
             .update({
               playbooks_used: 0,
-              devotionals_used: 0,
               wisdom_count: 0,
               refinement_count: 0,
               last_usage_reset: now.toISOString(),
@@ -424,7 +399,6 @@ export class NewSubscriptionService {
           .from('user_subscriptions_new')
           .update({
             playbooks_used: 0,
-            devotionals_used: 0,
             wisdom_count: 0,
             refinement_count: 0,
             last_usage_reset: now.toISOString(),
@@ -492,13 +466,11 @@ export class NewSubscriptionService {
           tier: 'seeker',
           subscription_display_name: 'siFia Seeker',
           playbooks_limit: seekerLimits.playbooks_limit,
-          devotionals_limit: seekerLimits.devotionals_limit,
           wisdom_limit: seekerLimits.wisdom_limit,
           refinement_limit: seekerLimits.refinement_limit,
           smart_journaling_enabled: seekerLimits.smart_journaling_enabled,
           show_dashboard_counts: seekerLimits.show_dashboard_counts,
           playbooks_used: 0,
-          devotionals_used: 0,
           wisdom_count: 0,
           refinement_count: 0,
           last_usage_reset: new Date().toISOString(),
@@ -561,12 +533,10 @@ export class NewSubscriptionService {
         billing_cycle: billing_cycle || 'monthly', // Store billing cycle for conversion
         subscription_display_name: displayName, // e.g., "siFia Spark Trial"
         playbooks_limit: trialLimits.playbooks_limit,
-        devotionals_limit: trialLimits.devotionals_limit,
         wisdom_limit: trialLimits.wisdom_limit,
         refinement_limit: trialLimits.refinement_limit,
         smart_journaling_enabled: trialLimits.smart_journaling_enabled,
         playbooks_used: 0,
-        devotionals_used: 0,
         wisdom_count: 0,
         refinement_count: 0,
         last_usage_reset: trialNow, // Issue 7: initialize so first foreground check has a valid anchor
@@ -665,12 +635,10 @@ export class NewSubscriptionService {
             billing_cycle: billing_cycle || 'monthly',
             subscription_display_name: displayName,
             playbooks_limit: trialLimits.playbooks_limit,
-            devotionals_limit: trialLimits.devotionals_limit,
             wisdom_limit: trialLimits.wisdom_limit,
             refinement_limit: trialLimits.refinement_limit,
             smart_journaling_enabled: trialLimits.smart_journaling_enabled,
             playbooks_used: 0,
-            devotionals_used: 0,
             wisdom_count: 0,
             refinement_count: 0,
             last_usage_reset: trialNow,
@@ -718,12 +686,10 @@ export class NewSubscriptionService {
           tier: chosenTier,
           subscription_display_name: displayName, // e.g., "siFia Spark" (no "Trial")
           playbooks_limit: limits.playbooks_limit,
-          devotionals_limit: limits.devotionals_limit,
           wisdom_limit: limits.wisdom_limit,
           refinement_limit: limits.refinement_limit,
           smart_journaling_enabled: limits.smart_journaling_enabled,
           playbooks_used: 0, // Reset usage when converting from trial to paid
-          devotionals_used: 0,
           wisdom_count: 0,
           refinement_count: 0,
           subscription_start_date: new Date().toISOString(),
@@ -788,12 +754,10 @@ export class NewSubscriptionService {
       const updateData: any = {
         subscription_display_name: displayName,
         playbooks_limit: limits.playbooks_limit,
-        devotionals_limit: limits.devotionals_limit,
         wisdom_limit: limits.wisdom_limit,
         refinement_limit: limits.refinement_limit,
         smart_journaling_enabled: limits.smart_journaling_enabled,
         playbooks_used: 0, // ALWAYS reset usage for trial
-        devotionals_used: 0, // ALWAYS reset usage for trial
         wisdom_count: 0, // ALWAYS reset wisdom usage for trial
         refinement_count: 0,
         updated_at: new Date().toISOString(),
@@ -834,7 +798,6 @@ export class NewSubscriptionService {
       subscription_start_date: new Date().toISOString(),
       subscription_display_name: displayName, // e.g., "siFia Spark", "siFia Growth"
       playbooks_limit: limits.playbooks_limit,
-      devotionals_limit: limits.devotionals_limit,
       wisdom_limit: limits.wisdom_limit,
       refinement_limit: limits.refinement_limit,
       smart_journaling_enabled: limits.smart_journaling_enabled,
@@ -856,7 +819,6 @@ export class NewSubscriptionService {
     // Users should start fresh with their new tier's limits
     // This applies to: seeker→paid, trial→paid, spark→growth, growth→transformation, etc.
     updateData.playbooks_used = 0;
-    updateData.devotionals_used = 0;
     updateData.wisdom_count = 0;
     updateData.refinement_count = 0;
     updateData.last_usage_reset = new Date().toISOString(); // Track when usage was reset
@@ -966,7 +928,7 @@ export class NewSubscriptionService {
         cancellation_date: new Date().toISOString(), // Mark as cancelled
         auto_renew_enabled: false, // Disable auto-renewal
         updated_at: new Date().toISOString(),
-        // DO NOT change: tier, playbooks_limit, devotionals_limit, playbooks_used, devotionals_used
+        // DO NOT change: tier, playbooks_limit, playbooks_used
         // User keeps access until subscription_end_date
       })
       .eq('user_id', userId)
@@ -995,7 +957,7 @@ export class NewSubscriptionService {
   /**
    * Check if user can perform an action
    */
-  static async checkUsageLimit(userId: string, action: 'playbook' | 'devotional' | 'smart_journal' | 'export' | 'wisdom' | 'refinement', isOnboarding: boolean = false): Promise<SubscriptionCheck> {
+  static async checkUsageLimit(userId: string, action: 'playbook' | 'smart_journal' | 'export' | 'wisdom' | 'refinement', isOnboarding: boolean = false): Promise<SubscriptionCheck> {
     // Check and perform monthly usage reset before checking limits
     await this.checkAndResetMonthlyUsage(userId);
 
@@ -1034,8 +996,6 @@ export class NewSubscriptionService {
     switch (action) {
       case 'playbook':
         return this.checkPlaybookLimit(subscription, limits, isOnboarding);
-      case 'devotional':
-        return this.checkDevotionalLimit(subscription, limits, isOnboarding);
       case 'smart_journal':
         return this.checkSmartJournalingLimit(subscription, limits);
       case 'export':
@@ -1052,15 +1012,12 @@ export class NewSubscriptionService {
   /**
    * Increment usage counter
    */
-  static async incrementUsage(userId: string, action: 'playbook' | 'devotional' | 'smart_journal' | 'export' | 'wisdom' | 'refinement', isOnboarding: boolean = false): Promise<void> {
+  static async incrementUsage(userId: string, action: 'playbook' | 'smart_journal' | 'export' | 'wisdom' | 'refinement', isOnboarding: boolean = false): Promise<void> {
     // First check if action is allowed
     const check = await this.checkUsageLimit(userId, action, isOnboarding);
     const subscription = await this.getUserSubscription(userId);
     if (!check.can_generate_playbook && action === 'playbook') {
       throw new UsageLimitError(subscription.tier, 'playbook', subscription.playbooks_limit, subscription.playbooks_used);
-    }
-    if (!check.can_generate_devotional && action === 'devotional') {
-      throw new UsageLimitError(subscription.tier, 'devotional', subscription.devotionals_limit, subscription.devotionals_used);
     }
     if (check.show_upgrade_prompt && action === 'refinement') {
       throw new UsageLimitError(subscription.tier, 'refinement', subscription.refinement_limit, subscription.refinement_count);
@@ -1068,7 +1025,6 @@ export class NewSubscriptionService {
 
     // Increment the appropriate counter
     const updateField = action === 'playbook' ? 'playbooks_used' :
-                       action === 'devotional' ? 'devotionals_used' :
                        action === 'wisdom' ? 'wisdom_count' :
                        action === 'refinement' ? 'refinement_count' : null;
 
@@ -1082,9 +1038,7 @@ export class NewSubscriptionService {
           const limits = this.getTierLimits(currentSubscription.tier, currentSubscription);
           const limit = action === 'playbook'
             ? (currentSubscription.tier === 'seeker' && isOnboarding ? this.getOnboardingPlaybookLimit(currentSubscription.tier, currentSubscription) : limits.playbooks_limit)
-            : action === 'devotional'
-              ? (currentSubscription.tier === 'seeker' && isOnboarding ? this.getOnboardingDevotionalLimit(currentSubscription.tier, currentSubscription) : limits.devotionals_limit)
-              : action === 'wisdom'
+            : action === 'wisdom'
                 ? (isOnboarding ? 1 : limits.wisdom_limit)
                 : action === 'refinement'
                   ? (isOnboarding ? 1 : limits.refinement_limit)
@@ -1117,13 +1071,13 @@ export class NewSubscriptionService {
         throw new SubscriptionError('Failed to increment usage after concurrent updates', 'USAGE_UPDATE_CONFLICT');
       };
 
-      // Only skip counting playbook/devotional for seeker users during onboarding —
+      // Only skip counting playbook usage for seeker users during onboarding —
       // their first generated content is free and should not consume their quota.
       // free_trial usage MUST be counted so the profile shows accurate progress
       // (e.g. 3/15) and so the trial limit is actually enforced.
       const skipCount = isOnboarding
         && subscription.tier === 'seeker'
-        && (action === 'playbook' || action === 'devotional');
+        && action === 'playbook';
       if (!skipCount) {
         await doAtomicIncrement();
       }
@@ -1133,7 +1087,7 @@ export class NewSubscriptionService {
     // free_trial is no longer excluded — counts must be recorded there too.
     const isOnboardingSeeker = isOnboarding
       && subscription.tier === 'seeker'
-      && (action === 'playbook' || action === 'devotional');
+      && action === 'playbook';
     if (!isOnboardingSeeker) {
       await this.updateUsageTracking(userId, action);
     }
@@ -1153,11 +1107,9 @@ export class NewSubscriptionService {
         tier: 'seeker',
         subscription_display_name: 'siFia Seeker',
         playbooks_limit: seekerLimits.playbooks_limit,
-        devotionals_limit: seekerLimits.devotionals_limit,
         wisdom_limit: seekerLimits.wisdom_limit,
         refinement_limit: seekerLimits.refinement_limit,
         playbooks_used: 0,
-        devotionals_used: 0,
         wisdom_count: 0,
         refinement_count: 0,
         smart_journaling_enabled: seekerLimits.smart_journaling_enabled,
@@ -1192,11 +1144,9 @@ export class NewSubscriptionService {
         tier: 'seeker',
         subscription_display_name: 'siFia Seeker',
         playbooks_limit: seekerLimits.playbooks_limit,
-        devotionals_limit: seekerLimits.devotionals_limit,
         wisdom_limit: seekerLimits.wisdom_limit,
         refinement_limit: seekerLimits.refinement_limit,
         playbooks_used: 0,
-        devotionals_used: 0,
         wisdom_count: 0,
         refinement_count: 0,
         smart_journaling_enabled: seekerLimits.smart_journaling_enabled,
@@ -1224,11 +1174,9 @@ export class NewSubscriptionService {
         tier: 'seeker',
         subscription_display_name: 'siFia Seeker',
         playbooks_limit: seekerLimits.playbooks_limit,
-        devotionals_limit: seekerLimits.devotionals_limit,
         wisdom_limit: seekerLimits.wisdom_limit,
         refinement_limit: seekerLimits.refinement_limit,
         playbooks_used: 0,
-        devotionals_used: 0,
         wisdom_count: 0,
         refinement_count: 0,
         smart_journaling_enabled: seekerLimits.smart_journaling_enabled,
@@ -1370,7 +1318,6 @@ export class NewSubscriptionService {
       ...data,
       // Use calculated limits so stale stored rows cannot bypass or hide quotas.
       playbooks_limit: useCalculatedLimits ? tierLimits.playbooks_limit : (data.playbooks_limit != null ? data.playbooks_limit : tierLimits.playbooks_limit),
-      devotionals_limit: useCalculatedLimits ? tierLimits.devotionals_limit : (data.devotionals_limit != null ? data.devotionals_limit : tierLimits.devotionals_limit),
       wisdom_limit: useCalculatedLimits ? tierLimits.wisdom_limit : (data.wisdom_limit != null ? data.wisdom_limit : tierLimits.wisdom_limit),
       refinement_limit: useCalculatedLimits ? tierLimits.refinement_limit : (data.refinement_limit != null ? data.refinement_limit : tierLimits.refinement_limit),
       refinement_count: data.refinement_count || 0,
@@ -1380,21 +1327,17 @@ export class NewSubscriptionService {
       // Add limits property for dashboard compatibility
       limits: {
         playbooks_limit: useCalculatedLimits ? tierLimits.playbooks_limit : (data.playbooks_limit != null ? data.playbooks_limit : tierLimits.playbooks_limit),
-        devotionals_limit: useCalculatedLimits ? tierLimits.devotionals_limit : (data.devotionals_limit != null ? data.devotionals_limit : tierLimits.devotionals_limit),
         wisdom_limit: useCalculatedLimits ? tierLimits.wisdom_limit : (data.wisdom_limit != null ? data.wisdom_limit : tierLimits.wisdom_limit),
         refinement_limit: useCalculatedLimits ? tierLimits.refinement_limit : (data.refinement_limit != null ? data.refinement_limit : tierLimits.refinement_limit),
         smart_journaling_enabled: useCalculatedLimits ? tierLimits.smart_journaling_enabled : (data.smart_journaling_enabled != null ? data.smart_journaling_enabled : tierLimits.smart_journaling_enabled),
         // Add backward compatibility aliases
         playbooks: useCalculatedLimits ? tierLimits.playbooks_limit : (data.playbooks_limit != null ? data.playbooks_limit : tierLimits.playbooks_limit),
-        devotionals: useCalculatedLimits ? tierLimits.devotionals_limit : (data.devotionals_limit != null ? data.devotionals_limit : tierLimits.devotionals_limit),
         wisdom: useCalculatedLimits ? tierLimits.wisdom_limit : (data.wisdom_limit != null ? data.wisdom_limit : tierLimits.wisdom_limit),
         refinements: useCalculatedLimits ? tierLimits.refinement_limit : (data.refinement_limit != null ? data.refinement_limit : tierLimits.refinement_limit),
       },
       // UI fields - use actual limits (not stored values that might be outdated)
       playbooks_ui: useCalculatedLimits ? tierLimits.playbooks_limit : (data.playbooks_limit != null ? data.playbooks_limit : tierLimits.playbooks_limit),
-      devotionals_ui: useCalculatedLimits ? tierLimits.devotionals_limit : (data.devotionals_limit != null ? data.devotionals_limit : tierLimits.devotionals_limit),
       playbooks: useCalculatedLimits ? tierLimits.playbooks_limit : (data.playbooks_limit != null ? data.playbooks_limit : tierLimits.playbooks_limit),
-      devotionals: useCalculatedLimits ? tierLimits.devotionals_limit : (data.devotionals_limit != null ? data.devotionals_limit : tierLimits.devotionals_limit),
     };
 
     // Add trial expiration tracking for free_trial tier
@@ -1460,46 +1403,12 @@ export class NewSubscriptionService {
 
     return {
       can_generate_playbook: canGenerate,
-      can_generate_devotional: true, // Will be checked separately
       can_use_smart_journaling: limits.smart_journaling_enabled,
       can_export: true, // Will be checked separately
       playbooks_remaining: remaining,
-      devotionals_remaining: -1, // Will be calculated separately
       show_upgrade_prompt: !canGenerate && subscription.tier !== 'transformation', // POST-LAUNCH: && subscription.tier !== 'family'
       upgrade_message: !canGenerate
         ? this.getPlaybookLimitMessage(subscription, limits)
-        : undefined,
-    };
-  }
-
-  /**
-   * Check devotional generation limit
-   */
-  private static checkDevotionalLimit(subscription: Subscription, limits: SubscriptionLimits, isOnboarding: boolean = false): SubscriptionCheck {
-    // PHASE 5: Grace period check - block generation if billing issue
-    const isInGracePeriod = (subscription as any).billing_issue === true;
-    const gracePeriodEnd = (subscription as any).grace_period_end_date;
-    const isGracePeriodActive = isInGracePeriod && gracePeriodEnd && new Date(gracePeriodEnd) > new Date();
-
-    // Onboarding usage counts against the same monthly quota as regular usage.
-    const effectiveLimit = (subscription.tier === 'seeker' && isOnboarding)
-      ? this.getOnboardingDevotionalLimit(subscription.tier, subscription)
-      : limits.devotionals_limit;
-
-    const isUnlimited = effectiveLimit === -1;
-    const canGenerate = isGracePeriodActive ? false : (isUnlimited || subscription.devotionals_used < effectiveLimit);
-    const remaining = isGracePeriodActive ? 0 : (isUnlimited ? -1 : Math.max(0, effectiveLimit - subscription.devotionals_used));
-
-    return {
-      can_generate_playbook: true, // Will be checked separately
-      can_generate_devotional: canGenerate,
-      can_use_smart_journaling: limits.smart_journaling_enabled,
-      can_export: true, // Will be checked separately
-      playbooks_remaining: -1, // Will be calculated separately
-      devotionals_remaining: remaining,
-      show_upgrade_prompt: !canGenerate && subscription.tier !== 'transformation',
-      upgrade_message: !canGenerate
-        ? this.getDevotionalLimitMessage(subscription, limits)
         : undefined,
     };
   }
@@ -1516,11 +1425,9 @@ export class NewSubscriptionService {
 
     return {
       can_generate_playbook: true,
-      can_generate_devotional: true,
       can_use_smart_journaling: limits.smart_journaling_enabled,
       can_export: true,
       playbooks_remaining: -1,
-      devotionals_remaining: -1,
       show_upgrade_prompt: !canUse,
       upgrade_message: !canUse
         ? isOnboarding
@@ -1541,11 +1448,9 @@ export class NewSubscriptionService {
 
     return {
       can_generate_playbook: true,
-      can_generate_devotional: true,
       can_use_smart_journaling: limits.smart_journaling_enabled,
       can_export: true,
       playbooks_remaining: -1,
-      devotionals_remaining: -1,
       show_upgrade_prompt: !canUse,
       upgrade_message: !canUse
         ? isOnboarding
@@ -1575,32 +1480,12 @@ export class NewSubscriptionService {
     }
   }
 
-  /**
-   * Get tier-specific devotional limit message
-   */
-  private static getDevotionalLimitMessage(subscription: Subscription, _limits: SubscriptionLimits): string {
-    switch (subscription.tier) {
-      case 'free_trial':
-        return 'You\'ve reached your trial limit.';
-      case 'spark':
-        return 'You\'ve reached your Spark plan limit.';
-      case 'growth':
-        return 'You\'ve reached your Growth plan limit.';
-      case 'seeker':
-        return 'Ready to begin your journey?';
-      default:
-        return `You've reached your ${subscription.tier} plan limit.`;
-    }
-  }
-
   private static checkSmartJournalingLimit(subscription: Subscription, limits: SubscriptionLimits): SubscriptionCheck {
     return {
       can_generate_playbook: true,
-      can_generate_devotional: true,
       can_use_smart_journaling: limits.smart_journaling_enabled,
       can_export: true,
       playbooks_remaining: -1,
-      devotionals_remaining: -1,
       show_upgrade_prompt: !limits.smart_journaling_enabled,
       upgrade_message: !limits.smart_journaling_enabled ? 'Smart journaling is available with Spark plan and above!' : undefined,
     };
@@ -1609,11 +1494,9 @@ export class NewSubscriptionService {
   private static checkExportLimit(subscription: Subscription, limits: SubscriptionLimits): SubscriptionCheck {
     return {
       can_generate_playbook: true,
-      can_generate_devotional: true,
       can_use_smart_journaling: limits.smart_journaling_enabled,
       can_export: true,
       playbooks_remaining: -1,
-      devotionals_remaining: -1,
       show_upgrade_prompt: false,
     };
   }

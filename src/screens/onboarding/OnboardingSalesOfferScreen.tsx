@@ -107,7 +107,7 @@ interface RouteParams {
   currentTrialBillingCycle?: BillingCycle;
   selectedBillingCycle?: BillingCycle;
   requestedDuration?: number; // when user tapped a locked duration (e.g., 7 days)
-  featureType?: 'playbooks' | 'devotionals' | 'wisdom' | 'export_pdf' | 'export_docx'; // explicitly mark which feature triggered the upgrade
+  featureType?: 'playbooks' | 'wisdom' | 'export_pdf' | 'export_docx'; // explicitly mark which feature triggered the upgrade
   // Navigation context flags
   source?: string; // e.g., 'planning_lock', 'copy_todos_lock', 'guided_prompts_lock', 'calendar_auto_sync'
   feature?: string; // e.g., 'future_planning', 'copy_todos', 'guided_prompts'
@@ -178,7 +178,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
 
   const [footerHeight, setFooterHeight] = useState(0);
 
-  // Check if we're in upgrade mode (from devotional modal) or onboarding mode
+  // Check if we're in upgrade mode or onboarding mode
   const routeParams = route.params as RouteParams | undefined;
   const isUpgradeMode = routeParams?.upgradeMode || false;
 
@@ -368,17 +368,13 @@ const OnboardingSalesOfferScreen: React.FC = () => {
   const canOfferTrial = !effectiveIsCurrentlyOnTrial && !effectiveHasEverStartedTrial && effectiveIsSeekerTier;
   const shouldUseTrialProduct = canOfferTrial;
 
-  // Detect if coming from devotional gating
-  // Use explicit featureType if provided, otherwise fall back to requestedDuration logic
-  const fromDevotionalGating = isUpgradeMode && (routeParams?.featureType === 'devotionals' || (!routeParams?.featureType && requestedDuration));
-
-  // Generate dynamic sales copy for playbook/devotional gating
+  // Generate dynamic sales copy for playbook gating
   const dynamicSalesCopy = React.useMemo(() => {
     if (!isUpgradeMode || isProfileTrialViewPlans) {return null;}
 
-    // Use explicit featureType from route params if provided, otherwise infer from requestedDuration
-    const rawFeatureType = routeParams?.featureType || (fromDevotionalGating ? 'devotionals' : 'playbooks');
-    const featureType = rawFeatureType === 'wisdom' ? 'wisdom' : rawFeatureType === 'devotionals' ? 'devotionals' : 'playbooks';
+    // Use explicit featureType from route params if provided
+    const rawFeatureType = routeParams?.featureType || 'playbooks';
+    const featureType = rawFeatureType === 'wisdom' ? 'wisdom' : 'playbooks';
 
     // Test mode: use override values from route params if provided
     const testModeRemaining = routeParams?.testModeRemaining;
@@ -387,27 +383,22 @@ const OnboardingSalesOfferScreen: React.FC = () => {
 
     // Compute remaining counts so we can distinguish "no remaining" vs "duration locked"
     const playbooksUsed = subscription?.playbooks_used || 0;
-    const devotionalsUsed = subscription?.devotionals_used || 0;
     const wisdomUsed = (subscription as any)?.wisdom_count || 0;
     const playbooksLimit = subscription?.playbooks_limit || 0;
-    const devotionalsLimit = subscription?.devotionals_limit || 0;
     const wisdomLimit = (subscription as any)?.wisdom_limit || 0;
 
     const remainingPlaybooks = playbooksLimit === -1 ? -1 : Math.max(0, playbooksLimit - playbooksUsed);
-    const remainingDevotionals = devotionalsLimit === -1 ? -1 : Math.max(0, devotionalsLimit - devotionalsUsed);
     const remainingWisdom = wisdomLimit === -1 ? -1 : Math.max(0, wisdomLimit - wisdomUsed);
 
     const remaining = testModeRemaining !== undefined
       ? testModeRemaining
       : (featureType === 'wisdom'
         ? (remainingWisdom === -1 ? wisdomLimit : remainingWisdom)
-        : featureType === 'playbooks'
-          ? (remainingPlaybooks === -1 ? playbooksLimit : remainingPlaybooks)
-          : (remainingDevotionals === -1 ? devotionalsLimit : remainingDevotionals));
+        : (remainingPlaybooks === -1 ? playbooksLimit : remainingPlaybooks));
 
     const limit = testModeLimit !== undefined
       ? testModeLimit
-      : (featureType === 'wisdom' ? wisdomLimit : featureType === 'playbooks' ? playbooksLimit : devotionalsLimit);
+      : (featureType === 'wisdom' ? wisdomLimit : playbooksLimit);
 
     return generateSalesCopy({
       featureType,
@@ -422,7 +413,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
       hasEverStartedTrial: testModeHasEverStartedTrial !== undefined ? testModeHasEverStartedTrial : effectiveHasEverStartedTrial,
       billingCycle: routeParams?.testModeBillingCycle || (subscription as any)?.billing_cycle || (effectiveCurrentUserTier?.includes('_annual') ? 'annual' : 'monthly'),
     });
-  }, [isUpgradeMode, isProfileTrialViewPlans, subscription, effectiveCurrentUserTier, requestedDuration, fromDevotionalGating, routeParams?.featureType, routeParams?.testModeRemaining, routeParams?.testModeLimit, routeParams?.testModeHasEverStartedTrial, routeParams?.testModeBillingCycle, effectiveIsCurrentlyOnTrial, effectiveHasEverStartedTrial, effectiveTrialChosenTier, effectiveTrialEndDate]);
+  }, [isUpgradeMode, isProfileTrialViewPlans, subscription, effectiveCurrentUserTier, requestedDuration, routeParams?.featureType, routeParams?.testModeRemaining, routeParams?.testModeLimit, routeParams?.testModeHasEverStartedTrial, routeParams?.testModeBillingCycle, effectiveIsCurrentlyOnTrial, effectiveHasEverStartedTrial, effectiveTrialChosenTier, effectiveTrialEndDate]);
 
   const selectedBillingCycle = isAnnual ? 'annual' : 'monthly';
   const currentPaidPlanTier = normalizePaidPlanTier(effectiveCurrentUserTier);
@@ -633,7 +624,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
 
           // Default selection:
           // - If coming from profile with paid tier, select current tier
-          // - If user requested a 7-day devotional, prefer 'transformation' tier, then any tier that unlocks the request
+          // - If user requested a longer playbook duration, prefer 'transformation' tier, then any tier that unlocks the request
           // - Else prefer POPULAR, then 'growth', then first available
           if (!hasManualTierSelection && tiers.length > 0) {
             let chosen: PricingTier | undefined;
@@ -1691,17 +1682,15 @@ const OnboardingSalesOfferScreen: React.FC = () => {
       : tier.id === 'growth'
         ? 'Return to siFia as new situations, decisions, and struggles come up.'
         : tier.id === 'transformation'
-          ? 'The most room for frequent reflection, longer devotionals, and continued use.'
+          ? 'The most room for frequent reflection and continued use.'
           : tier.secondaryDescription;
     const planFeatures = tier.id === 'spark' ? [
       'Guided playbooks for the moments you’re facing',
-      'Short guided devotionals',
       'Faithful Action guides',
       'Guided prompts + Smart Journaling',
       'Plan Ahead + Copy To-Dos',
     ] : tier.id === 'growth' ? [
       'More guided playbooks',
-      'Longer guided devotionals',
       'More Faithful Action guides',
       'Guided prompts + Smart Journaling',
       'Plan Ahead + Copy To-Dos',
@@ -1709,7 +1698,6 @@ const OnboardingSalesOfferScreen: React.FC = () => {
       'PDF export',
     ] : tier.id === 'transformation' ? [
       'Our highest playbook usage',
-      'Access to all devotional lengths',
       'Our highest Faithful Action usage',
       'Guided prompts + Smart Journaling',
       'Plan Ahead + Copy To-Dos',
@@ -1816,25 +1804,9 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             // Default formatting for all tiers
             const processed: string[] = [];
             const first = tier.features[0]?.trim() || '';
-            const m = first.match(/^(\d+)\s*playbooks\s*&\s*(\d+)\s*devotionals\s*each\s*month$/i);
+            const m = first.match(/^(\d+)\s*playbooks\s*each\s*month$/i);
             if (m) {
               processed.push(`${m[1]} playbooks each month`);
-              processed.push(`${m[2]} devotionals each month`);
-              // Add devotional access info based on tier
-              if (tier.id === 'seeker') {
-                processed.push('All devotional durations locked');
-              } else if (tier.id === 'transformation') {
-                processed.push('Access all devotional durations (1-7 days)');
-              } else if (tier.id === 'growth') {
-                processed.push('Access all devotional durations (1-7 days)');
-              }
-              // POST-LAUNCH: || tier.id === 'family'
-              // No extra line for transformation as requested (no unlocked text)
-              processed.push(...tier.features.slice(1));
-            } else if (/^Unlimited\s+playbooks\s*&\s*devotionals/i.test(first)) {
-              processed.push('60 playbooks each month');
-              processed.push('60 devotionals each month');
-              processed.push('Access all devotional durations (1-7 days)');
               processed.push(...tier.features.slice(1));
             } else {
               processed.push(...tier.features);
@@ -1964,18 +1936,18 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                 : fromPlanningLock
                   ? 'Gently prepare for what\'s ahead with guided planning inside your journal.'
                   : fromCopyTodosLock
-                    ? `Copy ${incompleteTodosCount} incomplete to-do${incompleteTodosCount === 1 ? '' : 's'} to future dates, and unlock advanced planning features, playbooks, and devotionals.`
+                    ? `Copy ${incompleteTodosCount} incomplete to-do${incompleteTodosCount === 1 ? '' : 's'} to future dates, and unlock advanced planning features and playbooks.`
                     : (fromRepeatOptionsLock || fromRepeatUpgradePrompt)
-                      ? 'Create recurring time blocks to build steady rhythms in your week. With an upgrade, you’ll also have more room for playbooks and devotionals.'
+                      ? 'Create recurring time blocks to build steady rhythms in your week. With an upgrade, you’ll also have more room for playbooks.'
                       : fromCalendarAutoSync
                         ? 'Automatically sync your time blocks to your device calendar so what you plan is easier to follow through on.'
                         : fromGuidedPromptsLock
-                          ? 'Access guided reflection prompts to help you slow down, reflect more deeply, and keep going with clarity. With an upgrade, you’ll also unlock more room for playbooks and devotionals.'
+                          ? 'Access guided reflection prompts to help you slow down, reflect more deeply, and keep going with clarity. With an upgrade, you’ll also unlock more room for playbooks.'
                           : fromExportRestriction
-                              ? 'Export your playbooks and devotionals as PDF documents so you can return to them later, print them, or save them for future reflection.\n\nPDF export is available with Growth and Transformation.'
+                              ? 'Export your playbooks as PDF documents so you can return to them later, print them, or save them for future reflection.\n\nPDF export is available with Growth and Transformation.'
                               : routeParams?.onboardingFlow
                                 ? 'Return with new moments, bring them before God, and know how to move forward faithfully.'
-                                : 'Get more space for playbooks, devotionals, and guided reflection as new moments come up.'}
+                                : 'Get more space for playbooks and guided reflection as new moments come up.'}
           </ThemedText>
           {isProfileTrialViewPlans && (
             <View style={styles.profileTrialNoteBox}>
@@ -1993,7 +1965,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                 What Growth includes
               </ThemedText>
               {[
-                'More playbooks and devotionals for ongoing situations',
+                'More playbooks for ongoing situations',
                 'Smart journaling to help you reflect and notice patterns',
                 'Gentle guidance for faithful next steps',
                 'A consistent space to return to when moments resurface',
@@ -2049,7 +2021,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                   </ThemedText>
                 </View>
                 <ThemedText style={styles.extraLine}>
-                  With an upgrade, you'll also unlock more playbooks and devotionals each month.
+                  With an upgrade, you'll also unlock more playbooks each month.
                 </ThemedText>
                 </>
               ) : fromCopyTodosLock ? (
@@ -2086,7 +2058,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                   <View style={styles.featureBullet}>
                     <Ionicons name="book-outline" size={18} color={Colors.growthGreen} />
                     <ThemedText style={styles.bulletText}>
-                      Create more devotionals and return to spiritual content that helps guide your journey.
+                      Create more playbooks and return to spiritual content that helps guide your journey.
                     </ThemedText>
                   </View>
                 </>

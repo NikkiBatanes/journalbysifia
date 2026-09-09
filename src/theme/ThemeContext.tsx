@@ -16,7 +16,7 @@ export interface Theme {
     faithGold: string;
     growthGreen: string;
     alertCoral: string;
-    devotionalPurple: string;
+    ministryPurple: string;
     spiritualPink: string;
     playbookBlue: string;
     lightPurple: string;

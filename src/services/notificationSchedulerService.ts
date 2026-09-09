@@ -60,14 +60,12 @@ class NotificationSchedulerService {
       } = options;
 
       // Smart suppression: Only suppress low-priority notifications when app is active
-      // EXCEPTION: Prayer requests, devotionals, affirmations, scripture, and critical notifications always send
+      // EXCEPTION: Prayer requests, affirmations, scripture, and critical notifications always send
       const importantTypes = [
         'prayer_request_reminder',
         'prayer_request_alert',
-        'devotional_reminder',
         'daily_scripture',
         'affirmation_reminder',
-        'morning_devotional',
         'evening_reflection',
         'gratitude_reminder',
         'midday_checkin',
@@ -167,7 +165,6 @@ class NotificationSchedulerService {
   private isNotificationTypeEnabled(type: string, preferences: any): boolean {
     const typeMap: Record<string, string> = {
       'prayer_reminder': 'prayer_reminders',
-      'devotional_reminder': 'devotional_reminders',
       'journal_prompt': 'journal_prompts',
       'streak_alert': 'streak_alerts',
       'playbook_step': 'playbook_steps',
@@ -288,7 +285,7 @@ class NotificationSchedulerService {
       user_id: userId,
       type: 'trial_expiring',
       title: 'Your trial ends tomorrow',
-      message: 'Keep your access going if you\'d like more room for playbooks, devotionals, and reflection.',
+      message: 'Keep your access going if you\'d like more room for playbooks and reflection.',
       data: {
         deep_link: 'sifia://subscription/upgrade',
         days_remaining: 1,
@@ -419,7 +416,7 @@ class NotificationSchedulerService {
         user_id: userId,
         type: 'payment_successful',
         title: `Welcome to ${normalizedTier}! 🩵`,
-        message: 'Your payment was successful. You now have more room for reflection, playbooks, and devotionals.',
+        message: 'Your payment was successful. You now have more room for reflection and playbooks.',
         data: {
           deep_link: 'sifia://dashboard',
           new_tier: normalizedTier,
@@ -449,7 +446,7 @@ class NotificationSchedulerService {
       user_id: userId,
       type: 'subscription_renewed',
       title: 'Your room is restored',
-      message: `Your ${displayTier} plan renewed. Fresh room for playbooks and devotionals — keep going.`,
+      message: `Your ${displayTier} plan renewed. Fresh room for playbooks — keep going.`,
       data: {
         deep_link: 'sifia://dashboard',
         tier,

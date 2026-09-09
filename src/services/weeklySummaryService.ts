@@ -10,7 +10,6 @@ export interface WeeklySummary {
   weekEnd: Date;
   stats: {
     prayersLogged: number;
-    devotionalsCompleted: number;
     journalEntries: number;
     playbooksCompleted: number;
     faithfulActionsCompleted: number;
@@ -18,7 +17,6 @@ export interface WeeklySummary {
     faithPointsEarned: number;
     currentStreaks: {
       prayer: number;
-      devotional: number;
       journal: number;
     };
     topAchievement?: string;
@@ -81,7 +79,6 @@ class WeeklySummaryService {
       // Only send if user had any activity this week
       const hasActivity =
         summary.stats.prayersLogged > 0 ||
-        summary.stats.devotionalsCompleted > 0 ||
         summary.stats.journalEntries > 0 ||
         summary.stats.playbooksCompleted > 0 ||
         summary.stats.faithfulActionsCompleted > 0 ||
@@ -146,7 +143,7 @@ class WeeklySummaryService {
    * Generate personalized summary message.
    *
    * Format:
-   *   "This week: {N} prayers, {N} journal entries, {N} devotionals,
+   *   "This week: {N} prayers, {N} journal entries,
    *    {N} faithful actions, and {N} answered prayers.
    *    You earned {N} faith points.
    *    Take a moment to look back on what God carried you through."
@@ -166,8 +163,6 @@ class WeeklySummaryService {
       {highlights.push(p(stats.prayersLogged, 'prayer'));}
     if (stats.journalEntries > 0)
       {highlights.push(p(stats.journalEntries, 'journal entry', 'journal entries'));}
-    if (stats.devotionalsCompleted > 0)
-      {highlights.push(p(stats.devotionalsCompleted, 'devotional'));}
     if (stats.faithfulActionsCompleted > 0)
       {highlights.push(p(stats.faithfulActionsCompleted, 'faithful action'));}
     if (stats.answeredPrayers > 0)
@@ -221,13 +216,12 @@ class WeeklySummaryService {
       // Get streaks
       const { data: streaksData } = await supabase
         .from('user_streaks')
-        .select('prayer_streak, devotional_streak, journal_streak')
+        .select('prayer_streak, journal_streak')
         .eq('user_id', userId)
         .single();
 
       const currentStreaks = {
         prayer: streaksData?.prayer_streak || 0,
-        devotional: streaksData?.devotional_streak || 0,
         journal: streaksData?.journal_streak || 0,
       };
 
@@ -261,15 +255,6 @@ class WeeklySummaryService {
         .eq('user_id', userId)
         .gte('created_at', weekStartIso)
         .lte('created_at', weekEndIso);
-
-      // Query devotional completions (from devotional_progress)
-      const { count: devotionalsCompleted } = await supabase
-        .from('devotional_progress')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', userId)
-        .eq('completed', true)
-        .gte('completed_at', weekStartIso)
-        .lte('completed_at', weekEndIso);
 
       // Query journal entries (reflection_entries, gratitude_entries, time_block_entries)
       const [{ count: reflectionCount }, { count: gratitudeCount }, { count: timeBlockCount }] =
@@ -309,15 +294,12 @@ class WeeklySummaryService {
       let topAchievement: string | undefined;
       const maxStreak = Math.max(
         currentStreaks.prayer,
-        currentStreaks.devotional,
         currentStreaks.journal
       );
 
       if (maxStreak >= 7) {
         if (currentStreaks.prayer === maxStreak) {
           topAchievement = 'Week-long prayer streak!';
-        } else if (currentStreaks.devotional === maxStreak) {
-          topAchievement = 'Week-long devotional streak!';
         } else if (currentStreaks.journal === maxStreak) {
           topAchievement = 'Week-long journaling streak!';
         }
@@ -325,7 +307,6 @@ class WeeklySummaryService {
 
       return {
         prayersLogged: prayersLogged || 0,
-        devotionalsCompleted: devotionalsCompleted || 0,
         journalEntries: journalEntries || 0,
         playbooksCompleted: playbooksCompleted || 0,
         faithfulActionsCompleted,
@@ -342,7 +323,6 @@ class WeeklySummaryService {
 
       return {
         prayersLogged: 0,
-        devotionalsCompleted: 0,
         journalEntries: 0,
         playbooksCompleted: 0,
         faithfulActionsCompleted: 0,
@@ -350,7 +330,6 @@ class WeeklySummaryService {
         faithPointsEarned: 0,
         currentStreaks: {
           prayer: 0,
-          devotional: 0,
           journal: 0,
         },
         topAchievement: undefined,

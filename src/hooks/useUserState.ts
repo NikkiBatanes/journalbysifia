@@ -214,7 +214,6 @@ export const useUserState = () => {
     if (!subscription) {
       return {
         playbooks: { used: 0, total: 0 },
-        devotionals: { used: 0, total: 0 },
         exports: { used: 0, total: 0 },
         intelligenceEnabled: false,
         smartJournalingEnabled: false,
@@ -227,16 +226,12 @@ export const useUserState = () => {
       };
     }
 
-    const isUnlimited = subscription.playbooks_limit === -1 || subscription.devotionals_limit === -1;
+    const isUnlimited = subscription.playbooks_limit === -1;
 
     return {
       playbooks: {
         used: subscription.playbooks_used,
         total: isUnlimited ? -1 : subscription.playbooks_limit,
-      },
-      devotionals: {
-        used: subscription.devotionals_used,
-        total: isUnlimited ? -1 : subscription.devotionals_limit,
       },
       exports: { used: 0, total: -1 }, // No export limits in new system
       intelligenceEnabled: subscription.tier !== 'seeker',
@@ -250,16 +245,14 @@ export const useUserState = () => {
     };
   }, [subscription]);
 
-  const canUseFeature = useCallback((feature: 'playbooks' | 'devotionals' | 'exports') => {
+  const canUseFeature = useCallback((feature: 'playbooks' | 'exports') => {
     if (!subscription) {return false;}
 
-    const isUnlimited = subscription.playbooks_limit === -1 || subscription.devotionals_limit === -1;
+    const isUnlimited = subscription.playbooks_limit === -1;
 
     switch (feature) {
       case 'playbooks':
         return isUnlimited || subscription.playbooks_used < subscription.playbooks_limit;
-      case 'devotionals':
-        return isUnlimited || subscription.devotionals_used < subscription.devotionals_limit;
       case 'exports':
         return true; // No export limits in new system
       default:
@@ -288,7 +281,7 @@ export const useUserState = () => {
     }
   }, [subscription]);
 
-  const checkUsageLimit = (feature: 'playbooks' | 'devotionals' | 'exports'): { canUse: boolean; remaining: number; limit: number } => {
+  const checkUsageLimit = (feature: 'playbooks' | 'exports'): { canUse: boolean; remaining: number; limit: number } => {
     const { used, total } = getSubscriptionLimits()[feature];
 
     return {
@@ -303,7 +296,6 @@ export const useUserState = () => {
 
     return {
       playbooks: checkUsageLimit('playbooks'),
-      devotionals: checkUsageLimit('devotionals'),
       exports: checkUsageLimit('exports'),
       features: {
         intelligence: hasFeatureAccess('intelligence'),

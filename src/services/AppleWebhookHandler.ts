@@ -135,7 +135,6 @@ export class AppleWebhookHandler {
             billing_issue: false,
             grace_period_end_date: null,
             playbooks_used: 0, // Reset monthly usage counter
-            devotionals_used: 0, // Reset monthly usage counter
             last_usage_reset: renewalNow, // Issue 7: sync anchor so client-side fallback doesn't re-trigger
             subscription_start_date: renewalNow, // Update to new billing cycle start
             updated_at: renewalNow,
@@ -281,11 +280,9 @@ export class AppleWebhookHandler {
           tier: 'seeker',
           subscription_display_name: 'siFia Seeker',
           playbooks_limit: seekerLimits.playbooks_limit,
-          devotionals_limit: seekerLimits.devotionals_limit,
           wisdom_limit: seekerLimits.wisdom_limit,
           refinement_limit: seekerLimits.refinement_limit,
           playbooks_used: 0,
-          devotionals_used: 0,
           wisdom_count: 0,
           refinement_count: 0,
           smart_journaling_enabled: seekerLimits.smart_journaling_enabled,
@@ -321,11 +318,9 @@ export class AppleWebhookHandler {
           tier: 'seeker',
           subscription_display_name: 'siFia Seeker',
           playbooks_limit: seekerLimits.playbooks_limit,
-          devotionals_limit: seekerLimits.devotionals_limit,
           wisdom_limit: seekerLimits.wisdom_limit,
           refinement_limit: seekerLimits.refinement_limit,
           playbooks_used: 0,
-          devotionals_used: 0,
           wisdom_count: 0,
           refinement_count: 0,
           smart_journaling_enabled: seekerLimits.smart_journaling_enabled,
@@ -363,11 +358,9 @@ export class AppleWebhookHandler {
           tier: 'seeker',
           subscription_display_name: 'siFia Seeker',
           playbooks_limit: seekerLimits.playbooks_limit,
-          devotionals_limit: seekerLimits.devotionals_limit,
           wisdom_limit: seekerLimits.wisdom_limit,
           refinement_limit: seekerLimits.refinement_limit,
           playbooks_used: 0,
-          devotionals_used: 0,
           wisdom_count: 0,
           refinement_count: 0,
           smart_journaling_enabled: seekerLimits.smart_journaling_enabled,

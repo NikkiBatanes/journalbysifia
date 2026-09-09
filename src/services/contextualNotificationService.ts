@@ -6,7 +6,6 @@ import { supabase } from './supabaseClient';
 export interface UserActivity {
   user_id: string;
   last_prayer?: string;
-  last_devotional?: string;
   last_journal_entry?: string;
   last_playbook_action?: string;
   updated_at?: string;

@@ -1,28 +1,28 @@
 /**
- * Utility functions for handling devotional titles consistently across the app
+ * Utility functions for handling content titles consistently across the app
  */
 
 /**
- * Maximum length for devotional titles
+ * Maximum length for content titles
  * Titles longer than this will be truncated
  * Increased to better use two lines in the UI.
  */
 export const MAX_TITLE_LENGTH = 60;
 
 /**
- * Extracts and cleans a devotional title from potentially prefixed formats
- * Handles various title formats like "DEVOTIONAL TITLE: My Title" or "SERIES TITLE: My Title"
+ * Extracts and cleans a title from potentially prefixed formats
+ * Handles various title formats like "PLAYBOOK TITLE: My Title" or "SERIES TITLE: My Title"
  * Ensures titles are no longer than MAX_TITLE_LENGTH characters
  *
  * @param title The raw title string that might contain prefixes
  * @param fallback Optional fallback title if extraction fails
  * @returns A clean title without prefixes, truncated if necessary
  */
-export const extractCleanTitle = (title: string | undefined, fallback: string = 'Devotional'): string => {
+export const extractCleanTitle = (title: string | undefined, fallback: string = 'Untitled'): string => {
   if (!title) {return fallback;}
 
   // First check for common title prefixes
-  const prefixMatch = title.match(/^(DEVOTIONAL TITLE:|SERIES TITLE:|TITLE:)\s*(.*)$/i);
+  const prefixMatch = title.match(/^(SERIES TITLE:|TITLE:)\s*(.*)$/i);
   let cleanedTitle = '';
 
   if (prefixMatch && prefixMatch[2]) {
@@ -34,9 +34,6 @@ export const extractCleanTitle = (title: string | undefined, fallback: string = 
       cleanedTitle = parts[parts.length - 1].trim();
     } else if (title.includes('SERIES TITLE:')) {
       const parts = title.split('SERIES TITLE:');
-      cleanedTitle = parts[parts.length - 1].trim();
-    } else if (title.includes('DEVOTIONAL TITLE:')) {
-      const parts = title.split('DEVOTIONAL TITLE:');
       cleanedTitle = parts[parts.length - 1].trim();
     } else {
       // If no prefix found, use the original title
@@ -80,11 +77,10 @@ export const isGenericTitle = (title: string | undefined, userInput?: string): b
 
   // List of generic titles to check against
   const genericTitles = [
-    'devotional',
-    'daily devotional',
-    'devotionals',
+    'playbook',
+    'playbooks',
     'series',
-    'devotional series',
+    'plan',
     'bible study',
     'reflection',
     'reflections',

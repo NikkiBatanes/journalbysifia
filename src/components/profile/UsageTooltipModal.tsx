@@ -11,7 +11,7 @@ import { Colors } from '../../theme/colors';
 import ThemedText from '../common/ThemedText';
 import { triggerLightHaptic } from '../../utils/haptics';
 
-export type TooltipType = 'playbooks' | 'devotionals' | 'refinements' | 'wisdom' | 'faithPoints' | 'badges';
+export type TooltipType = 'playbooks' | 'refinements' | 'wisdom' | 'faithPoints' | 'badges';
 
 interface TooltipContent {
   title: string;
@@ -33,7 +33,6 @@ interface Props {
   subscription: any; // Subscription data
   usage: {
     playbooks: { used: number; limit: number };
-    devotionals: { used: number; limit: number };
     refinements: { used: number; limit: number };
     wisdom: { used: number; limit: number };
   } | null;
@@ -151,49 +150,6 @@ const UsageTooltipModal: React.FC<Props> = ({
           iconColor: Colors.alertCoral,
         };
 
-      case 'devotionals':
-        const devotionalsUsed = usage?.devotionals.used || 0;
-        const devotionalsLimit = usage?.devotionals.limit || 0;
-        const devotionalsRemaining = Math.max(0, devotionalsLimit - devotionalsUsed);
-
-        let devotionalsDesc = '';
-        if (isOnTrial) {
-          const fullLimits = getFullTierLimits(trialChosenTier || 'spark');
-          if (devotionalsRemaining === 0) {
-            // All trial devotionals used
-            const tierName = trialChosenTier ? trialChosenTier.charAt(0).toUpperCase() + trialChosenTier.slice(1) : 'Growth';
-            devotionalsDesc = `You are on ${displayName}. You have used all ${devotionalsLimit} ${devotionalsLimit === 1 ? 'devotional' : 'devotionals'} available during your trial.\n\nDon't worry! You can still explore all ${tierName} tier features during your trial. After your trial ends in ${daysRemaining} ${daysRemaining !== 1 ? 'days' : 'day'}, you will have ${fullLimits.devotionals === -1 ? 'devotionals without a monthly counter' : `${fullLimits.devotionals} devotionals`} every month.`;
-          } else {
-            devotionalsDesc = `You are on ${displayName}. You have ${devotionalsLimit} ${devotionalsLimit === 1 ? 'devotional' : 'devotionals'} available during your trial and have used ${devotionalsUsed}.\n\nYou have ${daysRemaining} ${daysRemaining !== 1 ? 'days' : 'day'} remaining in your trial. After your trial ends, you will have ${fullLimits.devotionals === -1 ? 'devotionals without a monthly counter' : `${fullLimits.devotionals} devotionals`} every month.`;
-          }
-        } else if (devotionalsLimit === -1) {
-          devotionalsDesc = `You are on ${displayName}. This plan does not use a monthly devotional counter.`;
-        } else if (devotionalsLimit === 0) {
-          // Defensive fallback if limits failed to load.
-          devotionalsDesc = 'Your monthly devotional limit could not be loaded. The free Seeker plan includes 1 devotional each month.';
-        } else {
-          // Paid plan with monthly limit: use Apple-style monthly reset date from subscription_start_date
-          const resetDate = getNextAppleMonthlyResetDate(subscription?.subscription_start_date);
-          const now = new Date();
-          const daysUntilReset = Math.max(0, Math.ceil((resetDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
-          const dayText = daysUntilReset === 1 ? 'day' : 'days';
-          const resetDateStr = resetDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-
-          if (devotionalsRemaining === 0) {
-            // All devotionals used for paid plans
-            devotionalsDesc = `You are on ${displayName}. You have used all ${devotionalsLimit} ${devotionalsLimit === 1 ? 'devotional' : 'devotionals'} available this month.\n\nYour devotionals will reset in ${daysUntilReset} ${dayText} on ${resetDateStr}.`;
-          } else {
-            devotionalsDesc = `You are on ${displayName}. You have ${devotionalsLimit} ${devotionalsLimit === 1 ? 'devotional' : 'devotionals'} available each month and have used ${devotionalsUsed}.\n\n${devotionalsRemaining} ${devotionalsRemaining === 1 ? 'devotional' : 'devotionals'} remaining this month. Resets in ${daysUntilReset} ${dayText} on ${resetDateStr}.`;
-          }
-        }
-
-        return {
-          title: 'Devotionals',
-          description: devotionalsDesc,
-          icon: 'book',
-          iconColor: Colors.alertCoral,
-        };
-
       case 'refinements':
         const refinementsUsed = usage?.refinements.used || 0;
         const refinementsLimit = usage?.refinements.limit || 0;
@@ -308,7 +264,7 @@ const UsageTooltipModal: React.FC<Props> = ({
 
       case 'badges':
         const badgesCount = stats?.badgesCount || 0;
-        const badgesDesc = `You have earned ${badgesCount} badge${badgesCount !== 1 ? 's' : ''}!\n\nBadges are awarded for:\n• Completing playbooks\n• Maintaining prayer streaks\n• Finishing devotional series\n• Reaching faith point milestones\n• Consistent journaling\n• Special achievements\n\nKeep growing in your spiritual journey to earn more badges!`;
+        const badgesDesc = `You have earned ${badgesCount} badge${badgesCount !== 1 ? 's' : ''}!\n\nBadges are awarded for:\n• Completing playbooks\n• Maintaining prayer streaks\n• Reaching faith point milestones\n• Consistent journaling\n• Special achievements\n\nKeep growing in your spiritual journey to earn more badges!`;
 
         return {
           title: 'Badges',
@@ -328,27 +284,27 @@ const UsageTooltipModal: React.FC<Props> = ({
   };
 
   // Helper function to get full tier limits
-  const getFullTierLimits = (tier: string): { playbooks: number; devotionals: number; refinements: number; wisdom: number } => {
+  const getFullTierLimits = (tier: string): { playbooks: number; refinements: number; wisdom: number } => {
     switch (tier) {
       case 'spark':
-        return { playbooks: 10, devotionals: 10, refinements: 3, wisdom: 5 };
+        return { playbooks: 10, refinements: 3, wisdom: 5 };
       case 'growth':
-        return { playbooks: 25, devotionals: 25, refinements: 6, wisdom: 12 };
+        return { playbooks: 25, refinements: 6, wisdom: 12 };
       case 'transformation':
-        return { playbooks: 60, devotionals: 60, refinements: 15, wisdom: 25 };
+        return { playbooks: 60, refinements: 15, wisdom: 25 };
       case 'family':
-        return { playbooks: -1, devotionals: -1, refinements: -1, wisdom: -1 };
+        return { playbooks: -1, refinements: -1, wisdom: -1 };
       default:
-        return { playbooks: 2, devotionals: 1, refinements: 1, wisdom: 2 };
+        return { playbooks: 2, refinements: 1, wisdom: 2 };
     }
   };
 
   const content = getTooltipContent();
 
   // Check if user is on Seeker tier.
-  const isSeeker = (usage?.playbooks.limit === 0 && usage?.devotionals.limit === 0) ||
+  const isSeeker = (usage?.playbooks.limit === 0) ||
                    subscription?.tier === 'seeker';
-  const showUpgradeButton = isSeeker && (type === 'playbooks' || type === 'devotionals');
+  const showUpgradeButton = isSeeker && type === 'playbooks';
 
   const handleUpgrade = () => {
         triggerLightHaptic();
@@ -377,9 +333,9 @@ const UsageTooltipModal: React.FC<Props> = ({
           upgradeMode: true,
           currentTier: subscription?.tier || 'seeker',
           skipNotificationPreference: true,
-          featureType: type === 'playbooks' || type === 'devotionals' ? type : undefined,
+          featureType: type === 'playbooks' ? type : undefined,
           source: 'profile_usage_counter',
-          feature: type === 'playbooks' ? 'playbooks' : 'devotionals',
+          feature: 'playbooks',
           returnTo: 'UserProfile',
           context: 'profile_settings',
           dismissBothModalsOnClose: true, // Custom flag to handle dismissal
@@ -443,9 +399,6 @@ const UsageTooltipModal: React.FC<Props> = ({
                 <View style={styles.bulletList}>
                   <ThemedText weight="regular" style={styles.descriptionBullets}>
                     • Completing playbook action steps
-                  </ThemedText>
-                  <ThemedText weight="regular" style={styles.descriptionBullets}>
-                    • Finishing devotionals
                   </ThemedText>
                   <ThemedText weight="regular" style={styles.descriptionBullets}>
                     • Daily journaling

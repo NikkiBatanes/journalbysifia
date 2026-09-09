@@ -6,7 +6,7 @@ import { toLocalDateString } from '../../utils/date';
 export interface PrayerApiEntry {
   id: string;
   user_id: string;
-  prayer_type: 'journal' | 'people' | 'devotional' | 'guided_playbook';
+  prayer_type: 'journal' | 'people' | 'guided_playbook';
   journal_category?: 'adoration' | 'confession' | 'thanksgiving' | 'supplication' | 'personal_prayer';
   content: string;
   metadata?: Record<string, any>;
@@ -20,12 +20,11 @@ export interface PrayerApiEntry {
   requested_by?: string;
   prayed?: boolean;
   notes?: string;
-  devotional_title?: string;
   day_number?: number;
   day_title?: string;
   total_days?: number;
   // Legacy compatibility - computed fields
-  type?: 'adoration' | 'confession' | 'thanksgiving' | 'supplication' | 'people' | 'devotional' | 'freeform';
+  type?: 'adoration' | 'confession' | 'thanksgiving' | 'supplication' | 'people' | 'freeform';
   is_answered?: boolean;
   is_request?: boolean;
   is_prayed?: boolean;
@@ -235,7 +234,7 @@ export class PrayerApi {
     console.log('[PrayerApi.getUnprayedPrayerRequests] Found', data?.length || 0, 'unprayed requests');
     return (data || []).map((p) => ({
       ...p,
-      type: p.journal_category || (p.prayer_type === 'people' ? 'people' : 'devotional'),
+      type: p.journal_category || (p.prayer_type === 'people' ? 'people' : 'freeform'),
       is_answered: p.status === 'answered',
       is_request: p.is_prayer_request,
       is_prayed: p.prayed,
@@ -309,7 +308,7 @@ export class PrayerApi {
     const prayers = (data || []).map(prayer => ({
       ...prayer,
       // Add legacy compatibility fields - check if it's a freeform prayer by looking at content pattern or use a custom field
-      type: prayer.journal_category || (prayer.prayer_type === 'people' ? 'people' : 'devotional'),
+      type: prayer.journal_category || (prayer.prayer_type === 'people' ? 'people' : 'freeform'),
       is_answered: prayer.status === 'answered',
       is_request: prayer.is_prayer_request,
       is_prayed: prayer.prayed,
@@ -357,71 +356,6 @@ export class PrayerApi {
     return data || [];
   }
 
-  // Get devotional prayers
-  static async getDevotionalPrayers(userId: string, date: string): Promise<PrayerApiEntry[]> {
-    const session = await ensureAuthenticated();
-
-    // Ensure userId matches authenticated user for RLS compliance
-    if (userId !== session.user.id) {
-      Logger.warn('Prayer query user_id mismatch, correcting for RLS compliance', {
-        component: 'prayerApi',
-        provided: userId,
-        authenticated: session.user.id,
-      });
-      userId = session.user.id;
-    }
-
-    const { data, error } = await supabase
-      .from('prayers')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('selected_date', date)
-      .in('prayer_type', ['devotional', 'guided_playbook'])
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      Logger.error('Error fetching devotional prayers', error as Error, {
-        component: 'prayerApi',
-        action: 'error',
-      });
-      throw new Error(`Failed to fetch devotional prayers: ${error.message}`);
-    }
-
-    return data || [];
-  }
-
-  // Get all devotional prayers for a user (for prayedItems display)
-  static async getAllDevotionalPrayers(userId: string): Promise<PrayerApiEntry[]> {
-    const session = await ensureAuthenticated();
-
-    // Ensure userId matches authenticated user for RLS compliance
-    if (userId !== session.user.id) {
-      Logger.warn('Prayer query user_id mismatch, correcting for RLS compliance', {
-        component: 'prayerApi',
-        provided: userId,
-        authenticated: session.user.id,
-      });
-      userId = session.user.id;
-    }
-
-    const { data, error } = await supabase
-      .from('prayers')
-      .select('*')
-      .eq('user_id', userId)
-      .in('prayer_type', ['devotional', 'guided_playbook'])
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      Logger.error('Error fetching all devotional prayers', error as Error, {
-      component: 'prayerApi',
-      action: 'error',
-    });
-      throw new Error(`Failed to fetch devotional prayers: ${error.message}`);
-    }
-
-    return data || [];
-  }
-
   // Create a new prayer
   static async createPrayer(
     prayer: Omit<PrayerApiEntry, 'id' | 'created_at' | 'updated_at'>
@@ -447,8 +381,7 @@ export class PrayerApi {
       content: prayer.content,
       metadata: prayer.metadata ?? null,
       selected_date: typeof prayer.selected_date === 'string' ? prayer.selected_date : toLocalDateString(prayer.selected_date),
-      prayer_type: prayer.prayer_type || (prayer.type === 'people' ? 'people' :
-                   prayer.type === 'devotional' ? 'devotional' : 'journal'),
+      prayer_type: prayer.prayer_type || (prayer.type === 'people' ? 'people' : 'journal'),
       journal_category: prayer.journal_category || (
         ['adoration', 'confession', 'thanksgiving', 'supplication'].includes(prayer.type || '')
           ? prayer.type as 'adoration' | 'confession' | 'thanksgiving' | 'supplication'
@@ -458,7 +391,6 @@ export class PrayerApi {
       person_name: prayer.person_name || null,
       is_prayer_request: prayer.is_prayer_request || prayer.is_request || null,
       prayed: prayer.prayed || prayer.is_prayed || null,
-      devotional_title: prayer.devotional_title || null,
       day_number: prayer.day_number || null,
       day_title: prayer.day_title || null,
       total_days: prayer.total_days || null,
@@ -474,27 +406,26 @@ export class PrayerApi {
       dbPrayer.notes = prayer.notes;
     }
 
-    // If this is a devotional prayer, ensure idempotency: return an existing entry for the same
-    // user/date/devotional identifiers instead of inserting a duplicate.
+    // If this is a guided playbook prayer, ensure idempotency: return an existing
+    // entry for the same user/date identifiers instead of inserting a duplicate.
     if (
-      dbPrayer.prayer_type === 'devotional' &&
+      dbPrayer.prayer_type === 'guided_playbook' &&
       dbPrayer.user_id &&
       dbPrayer.selected_date &&
-      (dbPrayer.day_number !== null || dbPrayer.day_title || dbPrayer.devotional_title)
+      (dbPrayer.day_number !== null || dbPrayer.day_title)
     ) {
       const { data: existing, error: lookupError } = await supabase
         .from('prayers')
         .select('*')
         .eq('user_id', dbPrayer.user_id)
-        .eq('prayer_type', 'devotional')
+        .eq('prayer_type', 'guided_playbook')
         .eq('selected_date', dbPrayer.selected_date)
         .eq('day_number', dbPrayer.day_number)
-        .eq('devotional_title', dbPrayer.devotional_title)
         .limit(1)
         .maybeSingle();
 
       if (lookupError) {
-        Logger.warn('[PrayerApi.createPrayer] Devotional lookup warning', {
+        Logger.warn('[PrayerApi.createPrayer] Guided prayer lookup warning', {
       component: 'prayerApi',
       error: lookupError,
     });
@@ -504,7 +435,7 @@ export class PrayerApi {
         // Return existing in API format
         return {
           ...existing,
-          type: existing.journal_category || (existing.prayer_type === 'people' ? 'people' : 'devotional'),
+          type: existing.journal_category || (existing.prayer_type === 'people' ? 'people' : 'freeform'),
           is_answered: existing.status === 'answered',
           is_request: existing.is_prayer_request,
           is_prayed: existing.prayed,
@@ -522,25 +453,24 @@ export class PrayerApi {
     if (error) {
       // If conflict arises (e.g., partial unique index), fetch the existing row and return it
       // Supabase/Postgrest error code for unique violation is typically '23505'
-      // Fallback: try to read existing devotional row and return
+      // Fallback: try to read existing guided prayer row and return
       if (
         (error as any)?.code === '23505' &&
-        dbPrayer.prayer_type === 'devotional'
+        dbPrayer.prayer_type === 'guided_playbook'
       ) {
         const { data: existingAfterConflict } = await supabase
           .from('prayers')
           .select('*')
           .eq('user_id', dbPrayer.user_id)
-          .eq('prayer_type', 'devotional')
+          .eq('prayer_type', 'guided_playbook')
           .eq('selected_date', dbPrayer.selected_date)
           .eq('day_number', dbPrayer.day_number)
-          .eq('devotional_title', dbPrayer.devotional_title)
           .limit(1)
           .maybeSingle();
         if (existingAfterConflict) {
           return {
             ...existingAfterConflict,
-            type: existingAfterConflict.journal_category || (existingAfterConflict.prayer_type === 'people' ? 'people' : 'devotional'),
+            type: existingAfterConflict.journal_category || (existingAfterConflict.prayer_type === 'people' ? 'people' : 'freeform'),
             is_answered: existingAfterConflict.status === 'answered',
             is_request: existingAfterConflict.is_prayer_request,
             is_prayed: existingAfterConflict.prayed,
@@ -557,7 +487,7 @@ export class PrayerApi {
     // Transform back to API format
     return {
       ...data,
-      type: data.journal_category || (data.prayer_type === 'people' ? 'people' : 'devotional'),
+      type: data.journal_category || (data.prayer_type === 'people' ? 'people' : 'freeform'),
       is_answered: data.status === 'answered',
       is_request: data.is_prayer_request,
       is_prayed: data.prayed,
@@ -587,7 +517,6 @@ export class PrayerApi {
     if (updates.person_name !== undefined) {dbUpdates.person_name = updates.person_name;}
     if (updates.is_prayer_request !== undefined) {dbUpdates.is_prayer_request = updates.is_prayer_request;}
     if (updates.prayed !== undefined) {dbUpdates.prayed = updates.prayed;}
-    if (updates.devotional_title !== undefined) {dbUpdates.devotional_title = updates.devotional_title;}
     if (updates.day_number !== undefined) {dbUpdates.day_number = updates.day_number;}
     if (updates.day_title !== undefined) {dbUpdates.day_title = updates.day_title;}
     if (updates.total_days !== undefined) {dbUpdates.total_days = updates.total_days;}
@@ -616,7 +545,7 @@ export class PrayerApi {
     // Transform back to API format
     return {
       ...data,
-      type: data.journal_category || (data.prayer_type === 'people' ? 'people' : 'devotional'),
+      type: data.journal_category || (data.prayer_type === 'people' ? 'people' : 'freeform'),
       is_answered: data.status === 'answered',
       is_request: data.is_prayer_request,
       is_prayed: data.prayed,
@@ -753,7 +682,7 @@ export class PrayerApi {
       thanksgiving: data?.filter(p => p.type === 'thanksgiving').length || 0,
       supplication: data?.filter(p => p.type === 'supplication').length || 0,
       people: data?.filter(p => p.type === 'people').length || 0,
-      devotional: data?.filter(p => p.type === 'devotional').length || 0,
+      guided: data?.filter(p => (p as any).prayer_type === 'guided_playbook').length || 0,
       answered: data?.filter(p => p.is_answered === true).length || 0,
     };
 

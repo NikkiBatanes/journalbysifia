@@ -27,7 +27,7 @@ interface PlanningLockIconProps {
  * PlanningLockIcon - Enterprise-grade lock icon for future planning features
  *
  * Shows lock icon for Seeker tier users when accessing future planning features.
- * Uses same styling and behavior as DevotionalLockIcon for consistency.
+ * Uses the same lock-icon styling and behavior for consistency.
  *
  * @param tier - User's current subscription tier
  * @param context - Context for upgrade messaging

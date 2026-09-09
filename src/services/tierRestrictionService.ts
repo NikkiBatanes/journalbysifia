@@ -26,14 +26,14 @@ export interface FeatureAccessResult {
 export interface TierRestriction {
   feature: string;
   requiredTier: SubscriptionTier;
-  usageType?: 'playbooks' | 'devotionals' | 'exports' | 'apiCalls' | 'familyMembers' | 'guidedPrompts';
+  usageType?: 'playbooks' | 'exports' | 'apiCalls' | 'familyMembers' | 'guidedPrompts';
   featureFlag?: keyof SubscriptionLimits;
 }
 
 export const PDF_EXPORT_UPGRADE_PROMPT = {
   title: 'Save this reflection as a PDF',
   message:
-    'Export your playbooks and devotionals as PDF files so you can revisit them offline, print them, or keep them as part of your faith journey.\n\nPDF export is available with Growth and Transformation plans, designed for seasons where you want more space to reflect and return.',
+    'Export your playbooks as PDF files so you can revisit them offline, print them, or keep them as part of your faith journey.\n\nPDF export is available with Growth and Transformation plans, designed for seasons where you want more space to reflect and return.',
 };
 
 class TierRestrictionService {
@@ -93,22 +93,11 @@ class TierRestrictionService {
       requiredTier: 'seeker',
       usageType: 'playbooks',
     },
-    {
-      feature: 'devotional_generation',
-      requiredTier: 'seeker',
-      usageType: 'devotionals',
-    },
-
     // Higher monthly content quotas
     {
       feature: 'more_playbooks',
       requiredTier: 'growth',
       usageType: 'playbooks',
-    },
-    {
-      feature: 'more_devotionals',
-      requiredTier: 'spark',
-      usageType: 'devotionals',
     },
 
     // Copy incomplete todos
@@ -317,8 +306,6 @@ class TierRestrictionService {
     switch (type) {
       case 'playbooks':
         return usage?.playbooks_used || usage?.playbooks_generated || 0;
-      case 'devotionals':
-        return usage?.devotionals_used || usage?.devotionals_generated || 0;
       case 'exports':
         return usage?.export_count || 0;
       case 'apiCalls':
@@ -339,8 +326,6 @@ class TierRestrictionService {
     switch (type) {
       case 'playbooks':
         return (limits as any).playbooks || 0;
-      case 'devotionals':
-        return (limits as any).devotionals || 0;
       case 'exports':
         return (limits as any).exports || 0;
       case 'apiCalls':
@@ -363,8 +348,6 @@ class TierRestrictionService {
     switch (type) {
       case 'playbooks':
         return subscription?.playbooks_limit ?? this.getLimitForType(limits, type);
-      case 'devotionals':
-        return subscription?.devotionals_limit ?? this.getLimitForType(limits, type);
       default:
         return this.getLimitForType(limits, type);
     }
@@ -376,7 +359,6 @@ class TierRestrictionService {
   private getNextTierForMoreAccess(usageType: string): SubscriptionTier {
     const higherQuotaTiers = {
       'playbooks': 'growth',
-      'devotionals': 'growth',
       'exports': 'transformation',
       'apiCalls': 'transformation',
       // POST-LAUNCH: 'familyMembers': 'family',
@@ -397,7 +379,6 @@ class TierRestrictionService {
   } {
     const featureNames: Record<string, string> = {
       'playbook_generation': 'Playbook Generation',
-      'devotional_generation': 'Devotional Generation',
       'export_pdf': 'PDF Export',
       'export_docx': 'Word Export',
       'smart_journaling': 'Smart Journaling',
@@ -406,7 +387,6 @@ class TierRestrictionService {
       'priority_support': 'Priority Support',
       'family_sharing': 'Family Sharing',
       'more_playbooks': 'More Playbooks',
-      'more_devotionals': 'More Devotionals',
       'copy_incomplete_todos': 'Copy Incomplete Todos',
       'answered_prayer_tracking': 'Prayer Tracking',
       'guided_prompts': 'Guided Prompts',

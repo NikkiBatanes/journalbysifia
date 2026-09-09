@@ -11,14 +11,11 @@ import {
   View,
   ViewStyle,
   TextStyle,
-  ImageStyle,
   Animated as RNAnimated,
   useWindowDimensions,
   ScrollView,
   UIManager,
   Easing as RNEasing,
-  PanResponder,
-  Image,
   NativeModules,
 } from 'react-native';
 
@@ -350,46 +347,8 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
   const [hasReachedLastCard, setHasReachedLastCard] = useState(false);
   const [showCompactHeader, setShowCompactHeader] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [showDevotionalModal, setShowDevotionalModal] = useState(false);
-  const [hasCreatedDevotional, setHasCreatedDevotional] = useState(false);
   const [showUserInput, setShowUserInput] = useState(false);
-  const [devotionalVisible, setDevotionalVisible] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
-
-  // Devotional FAB animation (match onboarding)
-  const devotionalButtonWidth = useRef(new RNAnimated.Value(56)).current;
-  const devotionalTextOpacity = useRef(new RNAnimated.Value(0)).current;
-  const devotionalTextWidth = devotionalTextOpacity.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0, 180],
-  });
-  // Draggable FAB
-  const devotionalFabPan = useRef(new RNAnimated.ValueXY({ x: 0, y: 0 })).current;
-  const devotionalTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const devotionalFabPanResponder = useRef(
-    PanResponder.create({
-      // Do NOT capture on touch start; allow TouchableOpacity to receive taps
-      onStartShouldSetPanResponder: () => false,
-      // Activate pan only after a small movement threshold
-      onMoveShouldSetPanResponder: (_evt, gesture) => (
-        Math.abs(gesture.dx) > 5 || Math.abs(gesture.dy) > 5
-      ),
-      onPanResponderTerminationRequest: () => false,
-      onPanResponderGrant: () => {
-        devotionalFabPan.setOffset({ x: (devotionalFabPan as any).x._value || 0, y: (devotionalFabPan as any).y._value || 0 });
-        devotionalFabPan.setValue({ x: 0, y: 0 });
-      },
-      onPanResponderMove: (_evt, gesture) => {
-        devotionalFabPan.setValue({ x: gesture.dx, y: gesture.dy });
-      },
-      onPanResponderRelease: () => {
-        devotionalFabPan.flattenOffset();
-      },
-      onPanResponderTerminate: () => {
-        devotionalFabPan.flattenOffset();
-      },
-    })
-  ).current;
 
   // Burst animation + haptics for stacked Declarations read-aloud button (mirrors dashboard declarations behavior)
   const [affirmationParticles, setAffirmationParticles] = useState<{
@@ -476,8 +435,6 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
 
   // 5. Ref hooks
   const isInitialRender = useRef(true);
-  // Track that we're navigating to DevotionalDetail so we only hide the CTA once the detail screen appears
-  const pendingDevotionalNavigation = useRef(false);
   const animationRefs = useRef<{
     headerOpacityAnimation?: any;
     rafId?: number;
@@ -1180,17 +1137,6 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
     };
   }, []);
 
-  // Hide the Devotional CTA only after this screen blurs (i.e., after navigating to DevotionalDetail)
-  useEffect(() => {
-    const unsubscribe = rootNavigation.addListener('blur', () => {
-      if (pendingDevotionalNavigation.current) {
-        setHasCreatedDevotional(true);
-        pendingDevotionalNavigation.current = false;
-      }
-    });
-    return unsubscribe;
-  }, [rootNavigation]);
-
   // Chevron animation effect
   useEffect(() => {
     const animation = withTiming(showUserInput ? 1 : 0, { duration: 200 });
@@ -1273,56 +1219,6 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
       hasEverReachedLastCard.current = false;
     };
   }, []);
-
-  // Show devotional FAB after 3 seconds delay (both stack and document view)
-  useEffect(() => {
-    if (!devotionalTimerRef.current && !hasCreatedDevotional) {
-      devotionalTimerRef.current = setTimeout(() => {
-        setDevotionalVisible(true);
-        devotionalTimerRef.current = null;
-        // Start expand/collapse animation
-        const expandTimer = setTimeout(() => {
-          RNAnimated.parallel([
-            RNAnimated.timing(devotionalButtonWidth, { toValue: 220, duration: 400, useNativeDriver: false }),
-            RNAnimated.timing(devotionalTextOpacity, { toValue: 1, duration: 300, delay: 150, useNativeDriver: false }),
-          ]).start(() => {
-            const collapseTimer = setTimeout(() => {
-              RNAnimated.parallel([
-                RNAnimated.timing(devotionalTextOpacity, { toValue: 0, duration: 250, useNativeDriver: false }),
-                RNAnimated.timing(devotionalButtonWidth, { toValue: 56, duration: 350, useNativeDriver: false }),
-              ]).start();
-            }, 2500);
-            // Store collapse timer for cleanup
-            (devotionalTimerRef as any).collapseTimer = collapseTimer;
-          });
-        }, 100);
-        // Store expand timer for cleanup
-        (devotionalTimerRef as any).expandTimer = expandTimer;
-      }, 3000); // 3 second delay
-    }
-    return () => {
-      if (devotionalTimerRef.current) {
-        clearTimeout(devotionalTimerRef.current);
-        clearTimeout((devotionalTimerRef as any).expandTimer);
-        clearTimeout((devotionalTimerRef as any).collapseTimer);
-        devotionalTimerRef.current = null;
-      }
-    };
-  }, [devotionalButtonWidth, devotionalTextOpacity, hasCreatedDevotional]);
-
-  // Handle devotional creation
-  const handleCreateDevotional = useCallback(() => {
-    if (showDevotionalModal) {
-      return; // Prevent multiple taps
-    }
-    triggerLightHaptic();
-    setShowDevotionalModal(true);
-  }, [showDevotionalModal]);
-
-  // Hide FAB in document view until scrolled to bottom, and when modal is open
-  const shouldShowFAB = devotionalVisible && !hasCreatedDevotional && !showDevotionalModal && (
-    viewMode === 'stack' || (viewMode === 'document' && hasReachedLastCard)
-  );
 
   // PDF Export handler
   const handleExportPDF = useCallback(() => {
@@ -2152,42 +2048,6 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
         </>
       )}
 
-      {/* Draggable Devotional FAB - positioned at root level outside all scrollable content */}
-      {shouldShowFAB && (
-        <RNAnimated.View
-          style={[
-            styles.floatingDevotionalContainer,
-            {
-              bottom: insets.bottom + 24,
-              right: Math.max(36, insets.right + 36),
-              transform: [{ translateX: devotionalFabPan.x }, { translateY: devotionalFabPan.y }],
-            },
-          ]}
-          {...devotionalFabPanResponder.panHandlers}
-        >
-          <RNAnimated.View style={[styles.expandableDevotionalButton, { width: devotionalButtonWidth }]}>
-            <TouchableOpacity
-              style={styles.expandableDevotionalTouchable}
-              onPress={handleCreateDevotional}
-              activeOpacity={0.8}
-            >
-              <View style={styles.devotionalIconContainer}>
-                <Image
-                  source={require('../../assets/icons/siFiaHeartWhiteTransparent.png')}
-                  style={styles.devotionalButtonIcon}
-                  resizeMode="contain"
-                  accessibilityLabel="siFia"
-                />
-              </View>
-              <RNAnimated.View style={{ opacity: devotionalTextOpacity, width: devotionalTextWidth }}>
-                <ThemedText weight="semiBold" style={styles.devotionalExpandText} numberOfLines={1}>
-                  Create a Devotional
-                </ThemedText>
-              </RNAnimated.View>
-            </TouchableOpacity>
-          </RNAnimated.View>
-        </RNAnimated.View>
-      )}
     </View>
   );
 };
@@ -2212,7 +2072,6 @@ interface PlaybookDetailStyles {
   bottomButtonExpanded: ViewStyle;
   onboardingContinueButton: ViewStyle;
   onboardingContinueButtonText: TextStyle;
-  devotionalButtonWrapper: ViewStyle;
   cardWrapperStyle: ViewStyle;
   cardContentStyle: ViewStyle;
   stackCard: ViewStyle;
@@ -2278,13 +2137,6 @@ interface PlaybookDetailStyles {
   bibleVerseCard: ViewStyle;
   docContentContainerInner: ViewStyle;
   stackedCardsContainer: ViewStyle;
-  // Devotional FAB
-  floatingDevotionalContainer: ViewStyle;
-  expandableDevotionalButton: ViewStyle;
-  expandableDevotionalTouchable: ViewStyle;
-  devotionalIconContainer: ViewStyle;
-  devotionalButtonIcon: ImageStyle;
-  devotionalExpandText: TextStyle;
   documentViewContainer: ViewStyle;
   stackCardVisible: ViewStyle;
   expandedScrollView: ViewStyle;
@@ -2413,11 +2265,6 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
     color: Colors.hopeWhite,
     fontSize: 16,
     // fontFamily handled by ThemedText weight="semiBold"
-  },
-  devotionalButtonWrapper: {
-    width: '100%',
-    alignItems: 'center',
-    paddingHorizontal: 20,
   },
   cardWrapperStyle: {
     width: '100%',
@@ -2969,52 +2816,6 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
   },
   closeButtonIcon: {
     opacity: 0.9,
-  },
-  // Devotional FAB styles
-  floatingDevotionalContainer: {
-    position: 'absolute',
-    bottom: 100,
-    right: 20,
-    zIndex: 10001,
-    elevation: 10001,
-  },
-  expandableDevotionalButton: {
-    backgroundColor: Colors.hopeWhite,
-    borderRadius: 28,
-    height: 56,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
-    alignSelf: 'flex-end',
-  },
-  expandableDevotionalTouchable: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-start',
-    paddingHorizontal: 0,
-    minWidth: 56,
-  },
-  devotionalIconContainer: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  devotionalButtonIcon: {
-    width: 40,
-    height: 40,
-    alignSelf: 'center' as const,
-    tintColor: Colors.alertCoral,
-  },
-  devotionalExpandText: {
-    color: Colors.anchorBlue,
-    fontSize: 14,
-    marginLeft: 8,
-    overflow: 'hidden',
   },
   documentViewContainer: {
     paddingHorizontal: 0,

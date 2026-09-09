@@ -30,7 +30,7 @@ export interface ExportData {
   id: string;
   title: string;
   content: string;
-  type: 'playbook' | 'devotional' | 'journal';
+  type: 'playbook' | 'journal';
   metadata?: {
     createdAt: string;
     category?: string;

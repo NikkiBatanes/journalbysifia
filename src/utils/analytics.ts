@@ -218,21 +218,21 @@ interface ReflectionAnalyticsEvents {
 
 interface PrayerAnalyticsEvents {
   'prayer_created': {
-    prayer_type: 'adoration' | 'confession' | 'thanksgiving' | 'supplication' | 'people' | 'devotional';
+    prayer_type: 'adoration' | 'confession' | 'thanksgiving' | 'supplication' | 'people' | 'guided_playbook';
     content_length: number;
     is_request?: boolean;
     date: string;
   };
   'prayer_updated': {
     prayer_id: string;
-    prayer_type: 'adoration' | 'confession' | 'thanksgiving' | 'supplication' | 'people' | 'devotional';
+    prayer_type: 'adoration' | 'confession' | 'thanksgiving' | 'supplication' | 'people' | 'guided_playbook';
     content_length: number;
     previous_content_length: number;
     date: string;
   };
   'prayer_deleted': {
     prayer_id: string;
-    prayer_type: 'adoration' | 'confession' | 'thanksgiving' | 'supplication' | 'people' | 'devotional';
+    prayer_type: 'adoration' | 'confession' | 'thanksgiving' | 'supplication' | 'people' | 'guided_playbook';
     content_length: number;
     date: string;
   };
@@ -250,7 +250,7 @@ interface PrayerAnalyticsEvents {
   'prayers_loaded': {
     acts_count: number;
     people_count: number;
-    devotional_count: number;
+    guided_count?: number;
     requests_count?: number;
     load_time_ms: number;
     date: string;

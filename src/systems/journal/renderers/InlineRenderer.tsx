@@ -1,6 +1,5 @@
 import React from 'react';
-import { View, StyleSheet, Dimensions } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { View, StyleSheet } from 'react-native';
 import { BaseRendererProps } from './BaseRenderer';
 import { PluginRenderer } from '../PluginRenderer';
 import { EditModeProvider, useEditMode } from '../context/EditModeContext';
@@ -20,13 +19,6 @@ const InlineContent: React.FC<InlineContentProps> = ({
   onGlobalEditModeChange,
 }) => {
   const { isGlobalEditMode, toggleGlobalEditMode } = useEditMode();
-  const insets = useSafeAreaInsets();
-  const { width } = Dimensions.get('window');
-  const ITEM_WIDTH = Math.round(width);
-  const JOURNAL_SIDE_PAD = 16;
-  const EDGE_OVERDRAW = 2;
-  const leftBreakout = (insets?.left || 0) + JOURNAL_SIDE_PAD + EDGE_OVERDRAW;
-  const rightBreakout = (insets?.right || 0) + JOURNAL_SIDE_PAD + EDGE_OVERDRAW;
 
   // Notify parent of global edit mode changes
   React.useEffect(() => {
@@ -48,29 +40,6 @@ const InlineContent: React.FC<InlineContentProps> = ({
   return (
     <View style={[styles.container, style]}>
       {plugins.map((plugin) => {
-        const isDevotional = plugin.title?.toLowerCase().includes('devotional');
-        if (isDevotional) {
-          // Edge-to-edge wrapper for devotional content
-          return (
-            <View
-              key={plugin.id}
-              style={[
-                styles.componentWrapper,
-                styles.devoEdgeToEdge,
-                { marginLeft: -leftBreakout, marginRight: -rightBreakout },
-              ]}
-            >
-              <View style={{ width: ITEM_WIDTH + leftBreakout + rightBreakout, marginLeft: -leftBreakout }}>
-                <PluginRenderer
-                  plugin={plugin}
-                  selectedDate={selectedDate}
-                  refreshKey={refreshKey}
-                  viewMode={viewMode}
-                />
-              </View>
-            </View>
-          );
-        }
         // Default inline content wrapper
         return (
           <View key={plugin.id} style={styles.componentWrapper}>
@@ -105,9 +74,5 @@ const styles = StyleSheet.create({
   },
   componentWrapper: {
     marginBottom: 0, // Reduced from 16 to 6 for tighter spacing between components
-  },
-  devoEdgeToEdge: {
-    alignSelf: 'stretch',
-    overflow: 'visible',
   },
 });

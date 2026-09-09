@@ -27,13 +27,12 @@ interface ReflectionLogEditorProps {
     date: Date;
     type: ViewMode;
     prompt?: string;
-    source?: 'freeform' | 'guided' | 'devotional' | 'playbook' | string;
+    source?: 'freeform' | 'guided' | 'playbook' | string;
   }) => void;
   onCancel: () => void;
   onDelete?: (id: string) => void;
   onUpgradeRequired?: () => void; // Callback to close modal before navigating to upgrade
   entryId?: string;
-  devotionalTitle?: string;
   playbookTitle?: string;
   totalDays?: number;
   dayNumber?: number;
@@ -52,7 +51,7 @@ interface ReflectionLogEditorProps {
   dateString?: string;
   initialTitle?: string;
   lockTitle?: boolean;
-  source?: 'freeform' | 'guided' | 'devotional' | 'playbook' | string;
+  source?: 'freeform' | 'guided' | 'playbook' | string;
   subtaskId?: string;
   styles?: any;
   isLoading?: boolean;
@@ -449,7 +448,6 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
     onDelete,
     onUpgradeRequired,
     entryId,
-    devotionalTitle,
     playbookTitle,
     totalDays,
     dayNumber,
@@ -555,9 +553,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
 
   // Update view mode when initialMode or source changes
   React.useEffect(() => {
-    if (source === 'devotional') {
-      setViewMode('free-form');
-    } else if (source === 'guided' && initialPrompt && !initialEntry.content) {
+    if (source === 'guided' && initialPrompt && !initialEntry.content) {
       setViewMode('guided');
     } else if (initialPrompt) {
       setViewMode('free-form');
@@ -625,7 +621,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
   );
 
   React.useEffect(() => {
-    if (autoOpenGuidedPrompt && !isEditing && source !== 'devotional' && source !== 'playbook') {
+    if (autoOpenGuidedPrompt && !isEditing && source !== 'playbook') {
       setViewMode('guided');
       setNewEntry(prev => ({
         ...prev,
@@ -756,14 +752,8 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
     setHasUserMadeChanges(hasChanges);
   }, [initialState]);
 
-  // Helper function to get draft key (unique for each devotional question)
+  // Helper function to get draft key (unique for each playbook question)
   const getDraftKey = React.useCallback(() => {
-    if (source === 'devotional' && devotionalTitle && dayNumber !== undefined && questionNumber !== undefined) {
-      // Create unique key for each devotional question
-      const key = `@reflection_editor_draft_${devotionalTitle.replace(/[^a-zA-Z0-9]/g, '_')}_day${dayNumber}_q${questionNumber}`;
-      return key;
-    }
-
     if (source === 'playbook') {
       // Create unique key for each playbook subtask reflection
       const playbookName = playbookTitle ? playbookTitle.replace(/[^a-zA-Z0-9]/g, '_') : 'unknown';
@@ -777,7 +767,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
     const currentDate = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
     const sourceType = source ? source.replace(/[^a-zA-Z0-9]/g, '_') : 'freeform';
     return `@reflection_editor_draft_${sourceType}_${currentDate}`;
-  }, [source, devotionalTitle, dayNumber, questionNumber, playbookTitle, subtaskId]);
+  }, [source, dayNumber, questionNumber, playbookTitle, subtaskId]);
 
   // Load draft when component mounts (only for new entries, not when editing)
   useEffect(() => {
@@ -868,8 +858,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
         const draftData = {
           content: newEntry.content,
           title: newEntry.title,
-          // Include devotional metadata if available
-          ...(devotionalTitle && { devotionalTitle }),
+          // Include playbook metadata if available
           ...(dayNumber !== undefined && { dayNumber }),
           ...(dayTitle && { dayTitle }),
           ...(totalDays !== undefined && { totalDays }),
@@ -1082,8 +1071,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
       type: entryType,  // Use the determined type
       ...(promptToCheck && { prompt: promptToCheck }),
       ...(source && { source }),
-      // Include devotional metadata if available
-      ...(devotionalTitle && { devotionalTitle }),
+      // Include playbook metadata if available
       ...(dayNumber !== undefined && { dayNumber }),
       ...(dayTitle && { dayTitle }),
       ...(totalDays !== undefined && { totalDays }),
@@ -1095,7 +1083,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
     onSave(entry);
   };
 
-  // Always show free-form editor if we have a prompt or source is devotional
+  // Always show free-form editor if we have a prompt or a playbook source
   const effectiveViewMode = viewMode;
   const isGuidedCloseVisible = viewMode === 'guided';
 
@@ -1193,8 +1181,8 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
         <ThemedText weight="bold" style={s.title}>{dateString}</ThemedText>
       )}
       <View style={s.modeToggle}>
-        {/* Show pencil icon for playbook/devotional sources (display only), hide for guided when hidePencilIcon is true */}
-        {((source === 'devotional' || source === 'playbook') || (source === 'guided' && !hidePencilIcon)) && (
+        {/* Show pencil icon for playbook sources (display only), hide for guided when hidePencilIcon is true */}
+        {(source === 'playbook' || (source === 'guided' && !hidePencilIcon)) && (
           <View style={s.modeButton} pointerEvents="none">
             <Animated.View
               style={{
@@ -1218,7 +1206,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
           </View>
         )}
         {/* Always show pencil toggle for freeform switching */}
-        {source !== 'devotional' && source !== 'playbook' && source !== 'guided' && (
+        {source !== 'playbook' && source !== 'guided' && (
           <TouchableOpacity
             style={s.modeButton}
             disabled={viewMode === 'free-form' && !selectedPrompt} // Only disable when already in true free-form mode (no selected prompt)
@@ -1362,7 +1350,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
         )}
         {/* Show guided prompt icon for new entries only (not when editing), unless coming from carousel */}
         {(() => {
-          return (!isEditing || fromCarousel) && source !== 'devotional' && source !== 'playbook' && !hideGuidedPromptButton;
+          return (!isEditing || fromCarousel) && source !== 'playbook' && !hideGuidedPromptButton;
         })() && (
           <TouchableOpacity
             style={[s.modeButton, (selectedPrompt || viewMode === 'guided') && s.activeModeButton]}
@@ -1474,11 +1462,11 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
               {(() => {
                 // Lock title if:
                 // 1. Explicit lock flag is set, OR
-                // 2. Source is devotional/playbook AND we have content, OR
+                // 2. Source is playbook AND we have content, OR
                 // 3. There's a selected prompt, OR
                 // 4. Title matches a guided prompt
                 const shouldLockTitle = lockTitle ||
-                                       ((source === 'devotional' || source === 'playbook') && (newEntry.title || newEntry.content)) ||
+                                       (source === 'playbook' && (newEntry.title || newEntry.content)) ||
                                        selectedPrompt ||
                                        (guidedPromptGating.allPrompts || []).includes(newEntry.title);
 
@@ -1612,58 +1600,6 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
                 textAlignVertical="top"
                 autoFocus={!isEditing}
               />
-              {(source === 'devotional' || (devotionalTitle && source !== 'thoughts')) && (
-                <View style={s.metadataContainer}>
-                  <View style={s.verticalLine} />
-                  <View>
-                  <ThemedText weight="medium" style={s.fromText}>
-                    FROM
-                  </ThemedText>
-                  {totalDays && (
-                    <ThemedText style={s.metadataText}>
-                      {totalDays}-day {totalDays > 1 ? 'Devotional Series' : 'Devotional'}
-                    </ThemedText>
-                  )}
-                  {devotionalTitle && (
-                    <ThemedText style={s.metadataText}>
-                      {devotionalTitle}
-                    </ThemedText>
-                  )}
-                  {dayNumber && dayTitle && totalDays !== 1 && (
-                    <ThemedText style={s.metadataTextWithLineHeight}>
-                      Day {dayNumber}: {(() => {
-                        // Check if title includes "Bible verse" or "bible verse"
-                        const lowerTitle = dayTitle.toLowerCase();
-                        const bibleVerseIndex = lowerTitle.indexOf('bible verse');
-
-                        if (bibleVerseIndex !== -1) {
-                          // Split the title into parts
-                          const beforeBibleVerse = dayTitle.substring(0, bibleVerseIndex);
-                          const bibleVersePart = dayTitle.substring(bibleVerseIndex, bibleVerseIndex + 11); // "Bible verse" is 11 chars
-                          const afterBibleVerse = dayTitle.substring(bibleVerseIndex + 11);
-
-                          return (
-                            <>
-                              {beforeBibleVerse}
-                              <ThemedText style={s.metadataTextSmall}>
-                                {bibleVersePart}
-                              </ThemedText>
-                              {afterBibleVerse}
-                            </>
-                          );
-                        }
-                        return dayTitle;
-                      })()}
-                    </ThemedText>
-                  )}
-                  {questionNumber && (
-                    <ThemedText style={s.metadataText}>
-                      Question to Ponder #{questionNumber}
-                    </ThemedText>
-                  )}
-                  </View>
-                </View>
-              )}
               {(source === 'playbook' || (playbookTitle && (source === 'thoughts' || source !== 'freeform'))) && (
                 <PlaybookMetaSection
                   playbookTitle={playbookTitle}

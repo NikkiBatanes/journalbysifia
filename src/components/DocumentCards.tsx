@@ -174,7 +174,7 @@ const DocumentCards: React.FC<DocumentCardsProps> = ({
 
 const styles = StyleSheet.create({
   contentContainer: {
-    paddingBottom: 140, // Increased from 96 to provide more space for devotional button
+    paddingBottom: 140, // Increased from 96 to provide more space for the action button
   },
   quoteIcon: {
     transform: [{ scaleX: -1 }],

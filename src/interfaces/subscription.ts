@@ -15,7 +15,6 @@ export type SubscriptionTier =
 // Limits shape used by legacy services (tierRestrictionService, etc.)
 export interface SubscriptionLimits {
   playbooks: number; // -1 for unlimited
-  devotionals: number; // -1 for unlimited
   exports: number; // -1 for unlimited
   apiCalls: number; // -1 for unlimited
   familyMembers: number; // -1 for unlimited

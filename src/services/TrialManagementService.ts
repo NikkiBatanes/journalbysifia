@@ -80,11 +80,9 @@ export class TrialManagementService {
           trial_chosen_tier: chosenTier, // Store which tier they'll convert to
           billing_cycle: billingCycle || 'monthly', // Store billing cycle for conversion
           playbooks_limit: trialLimits.playbooks_limit,
-          devotionals_limit: trialLimits.devotionals_limit,
           wisdom_limit: trialLimits.wisdom_limit,
           refinement_limit: trialLimits.refinement_limit,
           playbooks_used: 0, // Reset usage for trial
-          devotionals_used: 0,
           wisdom_count: 0,
           refinement_count: 0,
           smart_journaling_enabled: trialLimits.smart_journaling_enabled,
@@ -183,11 +181,9 @@ export class TrialManagementService {
           billing_cycle: billingCycle,
           subscription_display_name: `siFia ${this.getTierName(chosenTier)}`,
           playbooks_limit: paidLimits.playbooks_limit,
-          devotionals_limit: paidLimits.devotionals_limit,
           wisdom_limit: paidLimits.wisdom_limit,
           refinement_limit: paidLimits.refinement_limit,
           playbooks_used: 0, // Reset usage on conversion
-          devotionals_used: 0,
           wisdom_count: 0,
           refinement_count: 0,
           last_usage_reset: conversionNow, // Initialize reset anchor for first billing cycle
@@ -259,7 +255,7 @@ export class TrialManagementService {
           // Keep trial_start_date to prevent re-eligibility
           trial_cancelled_date: new Date().toISOString(),
           updated_at: new Date().toISOString(),
-          // DO NOT change: tier, playbooks_limit, devotionals_limit, playbooks_used, devotionals_used
+          // DO NOT change: tier, playbooks_limit, playbooks_used
           // User keeps trial access until trial_end_date
         })
         .eq('user_id', userId)
@@ -300,7 +296,7 @@ export class TrialManagementService {
 
   /**
    * PHASE 1D: Handle payment failure with grace period
-   * User keeps access but no token generation (playbooks/devotionals)
+   * User keeps access but no token generation (playbooks)
    */
   static async handlePaymentFailure(
     userId: string,

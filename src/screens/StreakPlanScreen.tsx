@@ -408,7 +408,6 @@ const StreakPlanScreen: React.FC = () => {
         onClose={() => setShowShareDropdown(false)}
         onExportPDF={handleExportPDF}
         shareText={`I'm on a ${streakCount}-day streak of bringing real moments before God with siFia.`}
-        shareContext="playbook"
         hideExportPDF={true}
       />
     </SafeAreaView>

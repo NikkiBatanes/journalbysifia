@@ -7,7 +7,6 @@ export interface StatsData {
   totalBadges: number;
   currentStreak: number;
   goalsCompleted: number;
-  devotionalsFinished: number;
   prayerSessions: number;
   journalEntries: number;
 }
@@ -38,12 +37,6 @@ const StatsGrid: React.FC<Props> = ({ title = 'Your Journey', stats }) => {
           <Ionicons name="checkmark-circle" size={24} color={Colors.growthGreen} />
           <Text style={styles.statNumber}>{stats.goalsCompleted || 0}</Text>
           <Text style={styles.statLabel}>Goals</Text>
-        </View>
-
-        <View style={styles.statCard}>
-          <Ionicons name="book" size={24} color={Colors.devotionalPurple} />
-          <Text style={styles.statNumber}>{stats.devotionalsFinished || 0}</Text>
-          <Text style={styles.statLabel}>Devotionals</Text>
         </View>
 
         <View style={styles.statCard}>

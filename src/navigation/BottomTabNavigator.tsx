@@ -18,7 +18,6 @@ import PlaybookListScreen from '../screens/PlaybookListScreen';
 
 // import JournalScreen from '../screens/JournalScreen'; // Unused - using JournalStackNavigator
 import JournalStackNavigator from './JournalStackNavigator';
-import HomeStackNavigator from './HomeStackNavigator';
 import UserInputScreen from '../screens/UserInputScreen';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { experiencePreferences } from '../services/experiencePreferences';
@@ -42,13 +41,11 @@ const PILL_WIDTH = Dimensions.get('window').width - 32;
 
 const LABELS: Record<string, string> = {
   Reflect: 'Reflect',
-  Overview: 'Overview',
   Playbooks: 'Playbooks',
   Journal: 'Journal',
 };
 
 const TAB_ROOT_ROUTES: Record<string, string[]> = {
-  Overview: ['DashboardHome'],
   Journal: ['JournalMain'],
 };
 
@@ -263,7 +260,6 @@ const CustomTabBarComponent = ({
   const circleIcon = (() => {
     const name = state.routes[state.index].name;
     if (name === 'Reflect')     { return <MaterialIcons name="auto-fix-high" size={22} color={INACTIVE_CIRCLE_COLOR} />; }
-    if (name === 'Overview')    { return <MaterialIcons name="space-dashboard" size={22} color={INACTIVE_CIRCLE_COLOR} />; }
     if (name === 'Playbooks')   { return <MaterialCommunityIcons name="clipboard-text-play" size={22} color={INACTIVE_CIRCLE_COLOR} />; }
     if (name === 'Journal')     { return <MaterialCommunityIcons name="notebook-edit" size={22} color={INACTIVE_CIRCLE_COLOR} />; }
     return <Ionicons name="apps-outline" size={22} color={INACTIVE_CIRCLE_COLOR} />;
@@ -327,17 +323,12 @@ const CustomTabBarComponent = ({
               updateSelectorPosition(index);
               onTabPress(route.name);
               if (!event.defaultPrevented) {
-                if (route.name === 'Overview') {
-                  navigation.navigate('Overview', { screen: 'DashboardHome' });
-                } else {
-                  navigation.navigate(route.name);
-                }
+                navigation.navigate(route.name);
               }
             };
 
             const icon = (() => {
               if (route.name === 'Reflect')     { return <MaterialIcons name="auto-fix-high" size={20} color={iconColor} />; }
-              if (route.name === 'Overview')    { return <MaterialIcons name="space-dashboard" size={20} color={iconColor} />; }
               if (route.name === 'Playbooks')   { return <MaterialCommunityIcons name="clipboard-text-play" size={20} color={iconColor} />; }
               if (route.name === 'Journal')     { return <MaterialCommunityIcons name="notebook-edit" size={20} color={iconColor} />; }
               const iconName = isFocused
@@ -471,14 +462,6 @@ export default function BottomTabNavigator({ onLogout: _onLogout }: BottomTabNav
           tabBarLabel: 'Reflect',
           headerShown: false,
           tabBarStyle: { display: 'none' },
-        }}
-      />
-      <Tab.Screen
-        name="Overview"
-        component={HomeStackNavigator}
-        options={{
-          tabBarLabel: 'Overview',
-          headerShown: false,
         }}
       />
       <Tab.Screen

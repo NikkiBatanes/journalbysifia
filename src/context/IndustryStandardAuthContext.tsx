@@ -335,11 +335,9 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
                     .update({
                       tier: 'seeker',
                       playbooks_limit: 2,
-                      devotionals_limit: 1,
                       wisdom_limit: 2,
                       refinement_limit: 1,
                       playbooks_used: 0,
-                      devotionals_used: 0,
                       wisdom_count: 0,
                       refinement_count: 0,
                       smart_journaling_enabled: false,

@@ -208,7 +208,7 @@ const DynamicPricingModal: React.FC<DynamicPricingModalProps> = ({
             </View>
             <View style={styles.featureItem}>
               <Ionicons name="checkmark-circle" size={16} color={Colors.growthGreen} />
-              <ThemedText style={styles.featureText}>AI-powered devotionals</ThemedText>
+              <ThemedText style={styles.featureText}>AI-powered playbooks</ThemedText>
             </View>
             <View style={styles.featureItem}>
               <Ionicons name="checkmark-circle" size={16} color={Colors.growthGreen} />

@@ -1053,13 +1053,13 @@ ${Platform.OS === 'android'
   const getTrialBenefits = useCallback(() => {
     switch (selectedTierId) {
       case 'growth':
-        return 'You get 15 playbooks, 15 devotionals, and 1,3, & 5-day devotionals.';
+        return 'You get 15 playbooks and guided multi-day plans.';
       case 'spark':
-        return 'You get 5 playbooks, 5 devotionals, and 1,3-day devotionals.';
+        return 'You get 5 playbooks and guided multi-day plans.';
       case 'transformation':
-        return 'You get 25 playbooks, 25 devotionals, and 1,3,5 & 7-day devotionals.';
+        return 'You get 25 playbooks and guided multi-day plans.';
       default:
-        return 'You get 15 playbooks, 15 devotionals, and 1,3, & 5-day devotionals.';
+        return 'You get 15 playbooks and guided multi-day plans.';
     }
   }, [selectedTierId]);
 
@@ -1101,7 +1101,7 @@ ${Platform.OS === 'android'
         id: 2,
         title: formatDateRange(today, day2),
         subtitle: 'Use it in real moments',
-        description: 'Come back with new situations, create devotionals, and see if the structure helps.',
+        description: 'Come back with new situations, create playbooks, and see if the structure helps.',
         icon: 'notifications',
         iconColor: Colors.growthGreen,
         isCompleted: false,

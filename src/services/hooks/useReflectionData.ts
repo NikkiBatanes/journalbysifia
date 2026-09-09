@@ -30,16 +30,6 @@ export const useReflectionsByType = (userId: string, date: string, type: 'free' 
   });
 };
 
-// Hook for getting devotional reflections
-export const useDevotionalReflections = (userId: string, devotionalId: string) => {
-  return useQuery({
-    queryKey: queryKeys.reflections.devotional(userId, devotionalId),
-    queryFn: () => ReflectionApi.getDevotionalReflections(userId, devotionalId),
-    ...queryOptionsPresets.stable,
-    enabled: !!userId && !!devotionalId,
-  });
-};
-
 // Hook for getting reflections by playbook
 export const useReflectionsByPlaybook = (userId: string, playbookId: string) => {
   return useQuery({
@@ -119,21 +109,20 @@ export const useReflectionStats = (userId: string, startDate: string, endDate: s
   });
 };
 
-// Hook to check if a devotional question has been journaled
-export const useIsQuestionJournaled = (questionText: string, devotionalId?: string, dayNumber?: number, questionNumber?: number) => {
+// Hook to check if a reflection question has been journaled
+export const useIsQuestionJournaled = (questionText: string, dayNumber?: number, questionNumber?: number) => {
   const { user } = useAuth();
   const userId = user?.id;
 
   return useQuery({
-    queryKey: queryKeys.reflections.byQuestion(userId || '', questionText, devotionalId, dayNumber, questionNumber),
+    queryKey: queryKeys.reflections.byQuestion(userId || '', questionText, dayNumber, questionNumber),
     queryFn: async () => {
       if (!userId) {return false;}
 
-      // First try to find by exact question text and devotional context
+      // First try to find by exact question text and context
       const reflections = await ReflectionApi.searchReflections({
         userId,
         searchTerm: `"${questionText}"`,
-        devotionalId,
         dayNumber,
         questionNumber,
         limit: 1,

@@ -38,7 +38,7 @@ export interface Badge {
   name: string;
   description: string;
   icon: string;
-  category: 'devotional' | 'prayer' | 'journal' | 'playbook' | 'streak' | 'achievement';
+  category: 'prayer' | 'journal' | 'playbook' | 'streak' | 'achievement';
   rarity: 'common' | 'rare' | 'epic' | 'legendary';
   unlockedAt: string;
   progress?: number;
@@ -48,7 +48,6 @@ export interface Badge {
 export interface UserPreferences {
   // Notifications
   notifications: {
-    dailyDevotional: boolean;
     prayerReminders: boolean;
     journalPrompts: boolean;
     playbookUpdates: boolean;
@@ -133,7 +132,7 @@ export interface Goal {
   userId: string;
   title: string;
   description: string;
-  category: 'devotional' | 'prayer' | 'journal' | 'scripture' | 'service' | 'custom';
+  category: 'prayer' | 'journal' | 'scripture' | 'service' | 'custom';
   type: 'daily' | 'weekly' | 'monthly' | 'yearly' | 'one_time';
   targetValue: number;
   currentValue: number;
@@ -180,7 +179,6 @@ export interface Challenge {
 
 export interface UserProgress {
   userId: string;
-  totalDevotionals: number;
   totalPrayers: number;
   totalJournalEntries: number;
   totalPlaybooksCompleted: number;

@@ -25,7 +25,7 @@ interface AppState {
     enabled: boolean;
     dailyReminder: boolean;
     reminderTime: string;
-    devotionalReminder: boolean;
+    scriptureReminder: boolean;
     prayerReminder: boolean;
   };
 
@@ -76,7 +76,7 @@ const initialState: AppState = {
     enabled: true,
     dailyReminder: true,
     reminderTime: '09:00',
-    devotionalReminder: true,
+    scriptureReminder: true,
     prayerReminder: true,
   },
 

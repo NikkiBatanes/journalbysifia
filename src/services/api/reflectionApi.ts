@@ -15,8 +15,6 @@ export interface ReflectionApiEntry {
   prompt?: string;
   tags?: string[];
   source?: string;
-  devotional_title?: string;
-  devotional_id?: string;
   day_number?: number;
   day_title?: string;
   total_days?: number;
@@ -29,7 +27,6 @@ export interface ReflectionApiEntry {
 
 export interface SearchReflectionsOptions {
   searchTerm?: string;
-  devotionalId?: string;
   dayNumber?: number;
   questionNumber?: number;
   limit?: number;
@@ -75,26 +72,6 @@ export class ReflectionApi {
       component: 'reflectionApi',
     });
       throw new Error(`Failed to fetch reflection entries: ${error.message}`);
-    }
-
-    return data || [];
-  }
-
-  // Get devotional reflections
-  static async getDevotionalReflections(userId: string, date: string): Promise<ReflectionApiEntry[]> {
-    const { data, error } = await supabase
-      .from('reflection_entries')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('selected_date', date)
-      .eq('source', 'devotional')
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      Logger.error('Error fetching devotional reflections', error as Error, {
-      component: 'reflectionApi',
-    });
-      throw new Error(`Failed to fetch devotional reflections: ${error.message}`);
     }
 
     return data || [];
@@ -261,7 +238,7 @@ export class ReflectionApi {
 
   // Search reflections with various filters
   static async searchReflections(options: SearchReflectionsOptions): Promise<ReflectionApiEntry[]> {
-    const { searchTerm, devotionalId, dayNumber, questionNumber, limit = 10, userId } = options;
+    const { searchTerm, dayNumber, questionNumber, limit = 10, userId } = options;
 
     let query = supabase
       .from('reflection_entries')
@@ -271,10 +248,6 @@ export class ReflectionApi {
 
     if (searchTerm) {
       query = query.or(`title.ilike.%${searchTerm}%,content.ilike.%${searchTerm}%`);
-    }
-
-    if (devotionalId) {
-      query = query.eq('devotional_id', devotionalId);
     }
 
     if (dayNumber !== undefined) {
@@ -320,7 +293,7 @@ export class ReflectionApi {
     userId: string,
     startDate: string,
     endDate: string
-  ): Promise<{ total: number; free: number; guided: number; devotional: number }> {
+  ): Promise<{ total: number; free: number; guided: number }> {
     const { data, error } = await supabase
       .from('reflection_entries')
       .select('type, source, created_at')
@@ -339,7 +312,6 @@ export class ReflectionApi {
       total: data?.length || 0,
       free: data?.filter(r => r.type === 'free').length || 0,
       guided: data?.filter(r => r.type === 'guided').length || 0,
-      devotional: data?.filter(r => r.source === 'devotional').length || 0,
     };
   }
 

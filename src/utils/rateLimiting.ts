@@ -131,7 +131,7 @@ class RateLimiter {
   async canMakeRequest(
     userId: string,
     tier: SubscriptionTier,
-    operationType: 'playbook' | 'devotional' = 'playbook'
+    operationType: 'playbook' = 'playbook'
   ): Promise<{
     allowed: boolean;
     reason?: string;
@@ -145,7 +145,7 @@ class RateLimiter {
   }> {
     const rateLimitTier = normalizeRateLimitTier(tier);
     const limits = TIER_RATE_LIMITS[rateLimitTier];
-    const operationName = operationType === 'playbook' ? 'playbook' : 'devotional';
+    const operationName = 'playbook';
     const state = await this.getState(userId, operationType);
     const now = Date.now();
 
@@ -236,7 +236,7 @@ class RateLimiter {
    */
   async recordRequest(
     userId: string,
-    operationType: 'playbook' | 'devotional' = 'playbook'
+    operationType: 'playbook' = 'playbook'
   ): Promise<void> {
     try {
       const state = await this.getState(userId, operationType);
@@ -407,7 +407,7 @@ class RateLimiter {
    * Clear rate limits for a user (useful for testing or admin actions)
    */
   async clearUserLimits(userId: string): Promise<void> {
-    const keys = [`${userId}-playbook`, `${userId}-devotional`];
+    const keys = [`${userId}-playbook`];
 
     for (const key of keys) {
       this.cache.delete(key);
@@ -430,7 +430,7 @@ class RateLimiter {
    */
   async getUserStats(
     userId: string,
-    operationType: 'playbook' | 'devotional' = 'playbook'
+    operationType: 'playbook' = 'playbook'
   ): Promise<{
     lastRequest: Date | null;
     requestsInLastMinute: number;
@@ -461,7 +461,7 @@ export const rateLimiter = new RateLimiter();
 export async function checkAndRecordRequest(
   userId: string,
   tier: SubscriptionTier,
-  operationType: 'playbook' | 'devotional' = 'playbook'
+  operationType: 'playbook' = 'playbook'
 ): Promise<{
   allowed: boolean;
   message?: string;

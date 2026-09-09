@@ -9,7 +9,6 @@ import type { Subscription, SubscriptionTier, SubscriptionLimits, SubscriptionCh
 export interface LegacySubscriptionLimits extends SubscriptionLimits {
   // Legacy aliases used by tierRestrictionService and older UI
   playbooks: number;
-  devotionals: number;
   // Additional legacy fields
   exports: number; // -1 unlimited, 0 none, N limited
   apiCalls: number;
@@ -94,7 +93,6 @@ export const subscriptionService = {
     return {
       ...base,
       playbooks: base.playbooks_limit,
-      devotionals: base.devotionals_limit,
       exports: mapExportsLimit(tier),
       apiCalls: -1,
       familyMembers: 0,
@@ -111,26 +109,21 @@ export const subscriptionService = {
   // Legacy: compute current usage summary used by older services
   async getCurrentUsage(userId: string): Promise<{
     playbooks_used: number;
-    devotionals_used: number;
     exports_used: number;
     playbooks_generated: number;
-    devotionals_generated: number;
     exports_generated: number;
   }> {
     const sub = await NSS.getUserSubscription(userId);
     const tracking = await fetchUsageTracking(userId);
     const playbooksUsed = (sub as any).playbooks_used || 0;
-    const devotionalsUsed = (sub as any).devotionals_used || 0;
     const exportsUsed = (tracking?.export_count as number) || 0;
 
     return {
       // Legacy property names
       playbooks_used: playbooksUsed,
-      devotionals_used: devotionalsUsed,
       exports_used: exportsUsed,
       // New property names for UI compatibility
       playbooks_generated: playbooksUsed,
-      devotionals_generated: devotionalsUsed,
       exports_generated: exportsUsed,
     };
   },
@@ -138,7 +131,7 @@ export const subscriptionService = {
   // Legacy: canGenerate wrapper for different content types
   async canGenerate(
     userId: string,
-    type: 'playbook' | 'devotional' | 'smart_journal' | 'export',
+    type: 'playbook' | 'smart_journal' | 'export',
     isOnboarding: boolean = false
   ): Promise<LegacyCanGenerateResult> {
     const sub = await NSS.getUserSubscription(userId);
@@ -157,20 +150,6 @@ export const subscriptionService = {
       };
     }
 
-    // Onboarding generation uses the same monthly quota as regular usage.
-    if (type === 'devotional' && isOnboarding) {
-      const onboardingLimit = NSS.getOnboardingDevotionalLimit(sub.tier, sub);
-      const used = (sub as any).devotionals_used || 0;
-      const allowed = onboardingLimit === -1 || used < onboardingLimit;
-      return {
-        allowed,
-        upgradeRequired: !allowed,
-        remaining: onboardingLimit === -1 ? 'Unlimited' : Math.max(0, onboardingLimit - used),
-        limit: onboardingLimit === -1 ? 'Unlimited' : onboardingLimit,
-        message: allowed ? undefined : `You've used all ${onboardingLimit} monthly devotionals. Upgrade for more!`,
-      };
-    }
-
     const check: SubscriptionCheck = await NSS.checkUsageLimit(userId, type);
 
     // Determine remaining/limit based on action type
@@ -185,21 +164,6 @@ export const subscriptionService = {
       limit = isUnlimited ? 'Unlimited' : limits.playbooks_limit;
       return {
         allowed: !!check.can_generate_playbook,
-        upgradeRequired: !!check.show_upgrade_prompt,
-        remaining,
-        limit,
-        message: check.upgrade_message,
-      };
-    }
-
-    if (type === 'devotional') {
-      const limits = NSS.getTierLimits(sub.tier, sub);
-      const isUnlimited = limits.devotionals_limit === -1;
-      const used = (sub as any).devotionals_used || 0;
-      remaining = isUnlimited ? 'Unlimited' : Math.max(0, limits.devotionals_limit - used);
-      limit = isUnlimited ? 'Unlimited' : limits.devotionals_limit;
-      return {
-        allowed: !!check.can_generate_devotional,
         upgradeRequired: !!check.show_upgrade_prompt,
         remaining,
         limit,
@@ -236,7 +200,7 @@ export const subscriptionService = {
   // Legacy: track usage (adapts extra params and forwards)
   async trackUsage(
     userId: string,
-    action: 'playbook' | 'devotional' | 'smart_journal' | 'export',
+    action: 'playbook' | 'smart_journal' | 'export',
     _tokensUsed?: number,
     isOnboarding?: boolean
   ): Promise<void> {
@@ -266,7 +230,7 @@ export const subscriptionService = {
   // Convenience analytics bundle for callers
   async getSubscriptionAnalytics(userId: string): Promise<{
     subscription: Subscription;
-    usage: { playbooks_used: number; devotionals_used: number; exports_used: number };
+    usage: { playbooks_used: number; exports_used: number };
     limits: LegacySubscriptionLimits;
     analytics: { intelligenceEnabled: boolean };
   }> {

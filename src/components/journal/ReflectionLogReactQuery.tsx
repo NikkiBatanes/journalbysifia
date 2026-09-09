@@ -192,11 +192,6 @@ const styles = StyleSheet.create({
     padding: 12,
     marginBottom: 8,
   },
-  devotionalEntry: {
-    borderRadius: 24,
-    padding: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-  },
   guidedEntry: {
     borderRadius: 24,
     padding: 20,
@@ -209,21 +204,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 6,
-  },
-  devotionalPromptContainer: {
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 24,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    marginRight: 8,
-  },
-  devotionalPromptText: {
-    fontSize: 8,
-    color: Colors.faithGold,
-    fontFamily: Fonts.medium,
-    fontWeight: '500',
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
   },
   guidedPromptContainer: {
     backgroundColor: 'rgba(255, 81, 90, 0.1)',
@@ -330,36 +310,19 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     textTransform: 'uppercase',
   },
-  devotionalMetadata: {
-    marginTop: 8,
-    marginBottom: 4,
-  },
-  devotionalTitle: {
-    fontSize: 12,
-    fontFamily: Fonts.semiBold,
-    color: Colors.faithGold,
-    marginBottom: 2,
-  },
-  devotionalDayInfo: {
-    fontSize: 11,
-    fontFamily: Fonts.regular,
-    color: Colors.textGray,
-    fontStyle: 'italic',
-  },
 });
 
-type ViewMode = 'free' | 'guided' | 'devotional' | 'playbook';
+type ViewMode = 'free' | 'guided' | 'playbook';
 
 interface ReflectionLogEntry {
   id: string;
   title: string;
   content: string;
   type: ViewMode;
-  source?: 'devotional' | 'playbook';
+  source?: 'playbook' | string;
   prompt?: string;
   tags: string[];
   location?: string;
-  devotional_title?: string;
   day_number?: number;
   day_title?: string;
   total_days?: number;
@@ -451,11 +414,10 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
       title: entry.title || '', // Handle optional title from API
       content: normalizeIncoming(entry.content),
       type: entry.type as ViewMode,
-      source: entry.source as 'devotional' | undefined,
+      source: entry.source,
       prompt: entry.prompt, // Use prompt from API
       tags: entry.tags || [], // Use tags from API or empty array
       location: undefined,
-      devotional_title: entry.devotional_title,
       day_number: entry.day_number,
       day_title: entry.day_title,
       total_days: entry.total_days,
@@ -532,7 +494,7 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
                   reflection_id: entryId,
                   title_length: entryToDelete.title.length,
                   content_length: entryToDelete.content.length,
-                  type: entryToDelete.type === 'devotional' ? 'guided' : entryToDelete.type === 'playbook' ? 'free' : entryToDelete.type,
+                  type: entryToDelete.type === 'playbook' ? 'free' : entryToDelete.type,
                   date: dateStr,
                 }, user.id);
               }
@@ -700,16 +662,15 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
   // Handle entry press for editing
   const handleEntryPress = (entry: ReflectionLogEntry) => {
 
-    // For guided and devotional entries, determine the prompt
-    const promptToUse = entry.type === 'guided' || entry.type === 'devotional'
+    // For guided entries, determine the prompt
+    const promptToUse = entry.type === 'guided'
       ? (entry.prompt || (entry.title && GUIDED_PROMPTS.includes(entry.title) ? entry.title : ''))
       : '';
 
     // Determine the form type
     const getFormType = (): 'free-form' | 'guided' => {
-      if (entry.type === 'free' || entry.type === 'playbook') {return 'free-form';}
-      if (entry.type === 'devotional') {return 'guided';}
-      return 'free-form'; // fallback
+      if (entry.type === 'guided') {return 'guided';}
+      return 'free-form'; // fallback (free, playbook, etc.)
     };
 
     // Navigate to full screen editor
@@ -719,9 +680,8 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
       initialMode: getFormType(),
       initialPrompt: promptToUse,
       initialTitle: entry.title || '',
-      lockTitle: entry.type === 'guided' || entry.type === 'devotional',
+      lockTitle: entry.type === 'guided',
       source: entry.source || (entry.type === 'free' ? 'freeform' : undefined),
-      devotionalTitle: entry.devotional_title,
       playbookTitle: entry.playbook_title,
       dayNumber: entry.day_number,
       dayTitle: entry.day_title,
@@ -918,25 +878,14 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
       key={entry.id}
       style={[
         styles.entryCard,
-        entry.source === 'devotional'
-          ? styles.devotionalEntry
-          : (entry.type === 'guided' || entry.type === 'devotional')
-            ? styles.guidedEntry
-            : styles.freeFormEntry,
+        entry.type === 'guided'
+          ? styles.guidedEntry
+          : styles.freeFormEntry,
       ]}
       onPress={() => { triggerLightHaptic(); handleEntryPress(entry); }}
       activeOpacity={0.8}
     >
-      {entry.source === 'devotional' || entry.type === 'devotional' ? (
-        <View style={styles.guidedPromptRow}>
-          <View style={styles.devotionalPromptContainer}>
-            <ThemedText style={styles.devotionalPromptText}>DEVOTIONAL</ThemedText>
-          </View>
-          <ThemedText style={styles.timeText}>
-            {new Date(entry.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
-          </ThemedText>
-        </View>
-      ) : entry.source === 'playbook' || entry.type === 'playbook' ? (
+      {entry.source === 'playbook' || entry.type === 'playbook' ? (
         <View style={styles.guidedPromptRow}>
           <View style={styles.playbookPromptContainer}>
             <ThemedText style={styles.playbookPromptText}>PLAYBOOK</ThemedText>
@@ -965,9 +914,7 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
         </View>
       )}
 
-      {entry.source === 'devotional' || entry.type === 'devotional' ? (
-        <ThemedText style={styles.promptCardText}>{entry.prompt || entry.title || 'Devotional Reflection'}</ThemedText>
-      ) : entry.type === 'guided' ? (
+      {entry.type === 'guided' ? (
         <ThemedText style={styles.promptCardText}>{entry.prompt || entry.title || 'Guided Reflection'}</ThemedText>
       ) : entry.title ? (
         <ThemedText style={[styles.promptCardText, styles.normalTitleText]}>{entry.title}</ThemedText>

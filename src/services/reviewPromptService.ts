@@ -168,7 +168,6 @@ export async function openStoreReview(options?: StoreReviewOptions): Promise<boo
  * - After completing a playbook
  * - After reaching faith points milestones
  * - After leveling up
- * - After completing a devotional
  * - After marking a prayer as answered
  *
  * @param options - Optional configuration

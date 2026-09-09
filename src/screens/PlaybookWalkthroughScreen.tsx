@@ -50,7 +50,7 @@ import { normalizePrayerText } from '../utils/prayerFormatting';
 import { pdfExportService } from '../utils/pdfExportService';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { useCreateJournalEntry } from '../services/hooks/useJournalData';
-import { useCreateDevotionalPrayer } from '../services/hooks/usePrayerData';
+import { useCreateGuidedPrayer } from '../services/hooks/usePrayerData';
 import { faithPointsService } from '../services/faithPointsService';
 import { visibleStreakService } from '../services/visibleStreakService';
 import { toLocalDateString } from '../utils/date';
@@ -6831,7 +6831,7 @@ const PrayerStep: React.FC<PrayerStepProps> = ({ prayer, playbookTitle, playbook
   const [showButton, setShowButton] = useState(persistedHasPrayed); // show immediately if already prayed
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const shareFadeAnim = useRef(new Animated.Value(0)).current;
-  const createPrayerMutation = useCreateDevotionalPrayer();
+  const createPrayerMutation = useCreateGuidedPrayer();
 
   useEffect(() => {
     const animateIn = () => {
@@ -6894,7 +6894,7 @@ const PrayerStep: React.FC<PrayerStepProps> = ({ prayer, playbookTitle, playbook
         content: fullPrayer,
         userId,
         dateStr: toLocalDateString(new Date()),
-        devotionalTitle: playbookTitle ?? '',
+        playbookTitle: playbookTitle ?? '',
         dayNumber: 1,
         dayTitle: 'Prayer',
         totalDays: 1,
@@ -11497,7 +11497,7 @@ const styles = StyleSheet.create({
     lineHeight: 26,
     opacity: 0.9,
   },
-  // "I prayed this" — devotional-style toggleable pill
+  // "I prayed this" — toggleable pill
   prayerActionButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -11786,10 +11786,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: Colors.hopeWhite,
   },
-  devotionalButton: {
-    marginTop: 8,
-  },
-
   // Transition line — calm bridge shown at bottom of Step 0
   transitionLineContainer: {
     marginTop: 32,

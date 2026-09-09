@@ -192,7 +192,6 @@ const AnimatedPointsNotification: React.FC<AnimatedPointsNotificationProps> = ({
     // Specific override for playbook_generated: use MCI clipboard-text-play
     if (at === 'playbook_generated') { return { lib: 'MCI' as const, name: 'clipboard-text-play' as const }; }
     // General mappings (Ionicons)
-    if (at.includes('devotional')) { return { lib: 'Ion' as const, name: 'book' as const }; }
     // Use praying hands icon for prayer-related activities
     if (at.includes('prayer')) { return { lib: 'MCI' as const, name: 'hands-pray' as const }; }
     if (at.includes('journal')) { return { lib: 'Ion' as const, name: 'create' as const }; }
@@ -292,12 +291,6 @@ const AnimatedPointsNotification: React.FC<AnimatedPointsNotificationProps> = ({
                 }
                 if (at === 'prayer_answered') {
                   return 'ANSWERED PRAYER';
-                }
-                if (at === 'devotional_completed') {
-                  return 'DEVO DAY COMPLETE';
-                }
-                if (at === 'devotional_full_completed') {
-                  return 'DEVOTIONAL COMPLETED';
                 }
                 return activityType.replace(/_/g, ' ').toUpperCase();
               })()}

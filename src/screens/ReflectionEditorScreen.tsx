@@ -22,7 +22,6 @@ interface RouteParams {
   initialTitle?: string;
   lockTitle?: boolean;
   source?: string;
-  devotionalTitle?: string;
   playbookTitle?: string;
   dayNumber?: number;
   dayTitle?: string;
@@ -207,7 +206,7 @@ const ReflectionEditorScreen: React.FC = () => {
             title: params.existingReflection.title,
             content: params.existingReflection.content,
             tags: params.existingReflection.tags || [],
-            type: params.existingReflection.type === 'free' || params.existingReflection.type === 'playbook' ? 'free-form' : (params.existingReflection.type === 'devotional' ? 'guided' : 'free-form') as 'free-form' | 'guided',
+            type: (params.existingReflection.type === 'guided' ? 'guided' : 'free-form') as 'free-form' | 'guided',
             source: params.existingReflection.source,
             prompt: params.existingReflection.prompt,
           } : {
@@ -223,7 +222,6 @@ const ReflectionEditorScreen: React.FC = () => {
           initialTitle={params.initialTitle || ''}
           lockTitle={params.lockTitle || false}
           source={params.source || 'freeform'}
-          devotionalTitle={params.devotionalTitle}
           playbookTitle={params.playbookTitle}
           dayNumber={params.dayNumber}
           dayTitle={params.dayTitle}

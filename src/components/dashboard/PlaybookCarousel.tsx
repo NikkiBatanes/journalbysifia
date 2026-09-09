@@ -117,7 +117,7 @@ const PlaybookCarousel: React.FC<PlaybookCarouselProps> = ({
       const playbooksWithProgress = await Promise.all(
         playbooksData.map(async (playbook) => {
           try {
-            // Attempt to resolve original user input for devotional creation
+            // Attempt to resolve original user input used to create the playbook
             let userInput: string | undefined = (playbook as any)?.user_input;
             if (!userInput) {
               try {
@@ -624,7 +624,7 @@ const styles = StyleSheet.create({
     overflow: 'visible',
     marginHorizontal: -16, // matches CARD_HORIZONTAL_PADDING for edge-to-edge scrolling
   },
-  // Empty state (hero) styles to match DevotionalCarousel
+  // Empty state (hero) styles
   emptyStateContainer: {
     justifyContent: 'center',
     alignItems: 'center',

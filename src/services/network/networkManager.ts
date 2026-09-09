@@ -23,7 +23,7 @@ interface NetworkState {
 interface OfflineAction {
   id: string;
   type: 'create' | 'update' | 'delete';
-  entity: 'journal' | 'prayer' | 'reflection' | 'timeblock' | 'devotional' | 'playbook';
+  entity: 'journal' | 'prayer' | 'reflection' | 'timeblock' | 'playbook';
   data: any;
   timestamp: string;
   retryCount: number;

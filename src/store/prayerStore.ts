@@ -4,21 +4,7 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { immer } from 'zustand/middleware/immer';
 
-// Legacy interface for backward compatibility with devotional system
-export interface PrayedItem {
-  id: string;
-  text: string;
-  date: Date;
-  devotionalTitle: string;
-  totalDays?: number;
-  dayNumber?: number;
-  dayTitle?: string;
-}
-
 interface PrayerState {
-  // Legacy support for devotional system
-  prayedItems: PrayedItem[];
-
   // Prayer preferences and settings
   selectedDate: Date;
   defaultPrayerType: 'adoration' | 'confession' | 'thanksgiving' | 'supplication';
@@ -39,11 +25,6 @@ interface PrayerState {
 }
 
 interface PrayerActions {
-  // Legacy support actions
-  addPrayedItem: (text: string, metadata: Omit<PrayedItem, 'id' | 'text' | 'date'>) => void;
-  clearPrayedItems: () => void;
-  setPrayedItems: (items: PrayedItem[]) => void;
-
   // Date management
   setSelectedDate: (date: Date) => void;
 
@@ -67,9 +48,6 @@ interface PrayerActions {
 type PrayerStore = PrayerState & PrayerActions;
 
 const initialState: PrayerState = {
-  // Legacy support
-  prayedItems: [],
-
   // Prayer preferences
   selectedDate: new Date(),
   defaultPrayerType: 'adoration',
@@ -88,46 +66,6 @@ export const usePrayerStore = create<PrayerStore>()(
   persist(
     immer((set, _get) => ({
       ...initialState,
-
-      // Legacy support actions
-      addPrayedItem: (text: string, metadata: Omit<PrayedItem, 'id' | 'text' | 'date'>) => {
-        set((state) => {
-          const newItem: PrayedItem = {
-            id: `prayed-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-            text,
-            date: new Date(),
-            ...metadata,
-          };
-
-          // Check for duplicates
-          const isDuplicate = state.prayedItems.some(
-            item => item.text === text &&
-                   item.devotionalTitle === metadata.devotionalTitle &&
-                   item.dayNumber === metadata.dayNumber
-          );
-
-          if (!isDuplicate) {
-            state.prayedItems.unshift(newItem);
-
-          } else {
-
-          }
-        });
-      },
-
-      clearPrayedItems: () => {
-        set((state) => {
-          state.prayedItems = [];
-
-        });
-      },
-
-      setPrayedItems: (items: PrayedItem[]) => {
-        set((state) => {
-          state.prayedItems = items;
-
-        });
-      },
 
       // Date management
       setSelectedDate: (date: Date) => {
@@ -184,7 +122,6 @@ export const usePrayerStore = create<PrayerStore>()(
       // Utility actions
       resetToDefaults: () => {
         set((state) => {
-          // Reset all state except prayedItems (preserve devotional data)
           state.selectedDate = new Date();
           state.defaultPrayerType = 'adoration';
           state.autoSaveEnabled = true;
@@ -200,25 +137,11 @@ export const usePrayerStore = create<PrayerStore>()(
       storage: createJSONStorage(() => AsyncStorage),
       // Only persist certain parts of the state
       partialize: (state) => ({
-        prayedItems: state.prayedItems.map(item => ({
-          ...item,
-          date: item.date.toISOString(), // Convert Date to string for persistence
-        })),
         defaultPrayerType: state.defaultPrayerType,
         autoSaveEnabled: state.autoSaveEnabled,
         notificationsEnabled: state.notificationsEnabled,
         // Don't persist UI state or selected date
       }),
-      // Handle Date conversion on hydration
-      onRehydrateStorage: () => (state) => {
-        if (state) {
-          // Convert date strings back to Date objects
-          state.prayedItems = state.prayedItems.map((item: any) => ({
-            ...item,
-            date: new Date(item.date),
-          }));
-        }
-      },
     }
   )
 );
@@ -228,16 +151,6 @@ export const usePrayerSelectors = () => {
   const store = usePrayerStore();
 
   return {
-    // Get prayed items count
-    prayedItemsCount: store.prayedItems.length,
-
-    // Get recent prayed items (last 10)
-    recentPrayedItems: store.prayedItems.slice(0, 10),
-
-    // Get prayed items by devotional
-    getPrayedItemsByDevotional: (devotionalTitle: string) =>
-      store.prayedItems.filter(item => item.devotionalTitle === devotionalTitle),
-
     // Get prayer statistics
     prayerStatsWithAge: store.prayerStats ? {
       ...store.prayerStats,
@@ -252,4 +165,3 @@ export const usePrayerSelectors = () => {
       store.notificationsEnabled,
   };
 };
-

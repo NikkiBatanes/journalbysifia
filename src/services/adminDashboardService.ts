@@ -3,7 +3,7 @@
  * Fetches dashboard metrics from Supabase RPC functions
  *
  * DATA SOURCE LIMITATIONS:
- * - Behavioral intelligence (app_opens, playbooks_generated, devotionals_viewed) currently inferred from subscription data
+ * - Behavioral intelligence (app_opens, playbooks_generated) currently inferred from subscription data
  * - Should come from activity/event tables when available
  * - Onboarding completion and playbook generation tracking not yet implemented (returns null)
  * - Market detection uses locale only (email inference removed for accuracy)
@@ -45,7 +45,6 @@ export interface DailyActiveUsers {
   date: string;
   total_dau: number;
   playbook_users: number;
-  devotional_users: number;
   journal_users: number;
   todays_focus_users: number;
   todos_users: number;
@@ -74,7 +73,6 @@ export interface RenewalMetrics {
 
 export interface FreeAccessUsage {
   total_free_playbooks_used: number;
-  total_free_devotionals_used: number;
   users_with_free_access: number;
   users_converted_from_free: number;
 }
@@ -177,7 +175,6 @@ export interface UserWithBehavior {
   // Activity metrics
   app_opens: number;
   playbooks_generated: number;
-  devotionals_viewed: number;
   days_since_last_activity: number | null;
 
   // Monetization
@@ -390,7 +387,6 @@ class AdminDashboardService {
       if (error) {throw error;}
       return data?.[0] || {
         total_free_playbooks_used: 0,
-        total_free_devotionals_used: 0,
         users_with_free_access: 0,
         users_converted_from_free: 0,
       };
@@ -398,7 +394,6 @@ class AdminDashboardService {
       console.error('Failed to get free access usage:', error);
       return {
         total_free_playbooks_used: 0,
-        total_free_devotionals_used: 0,
         users_with_free_access: 0,
         users_converted_from_free: 0,
       };
@@ -803,7 +798,6 @@ class AdminDashboardService {
           behavioral_tier: behavioralTier,
           app_opens: r.app_opens || 0,
           playbooks_generated: playbooksGenerated,
-          devotionals_viewed: r.devotionals_viewed || 0,
           days_since_last_activity: daysSinceActivity,
           trial_chosen_tier: r.trial_chosen_tier || null,
           trial_start_date: r.trial_start_date || null,
@@ -1021,7 +1015,7 @@ class AdminDashboardService {
           date: user.last_activity,
           type: 'activity',
           description: 'Last active',
-          details: `${user.app_opens || 0} app opens, ${user.playbooks_generated || 0} playbooks, ${user.devotionals_viewed || 0} devotionals`,
+          details: `${user.app_opens || 0} app opens, ${user.playbooks_generated || 0} playbooks`,
         });
       }
 

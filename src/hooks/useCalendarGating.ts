@@ -175,7 +175,7 @@ export const useCalendarGating = (): CalendarGatingState => {
       source: 'repeat_upgrade_prompt',
       feature: 'repeat_options',
       context: 'timeblock',
-      message: 'Create recurring time blocks to build steady rhythms in your week. With an upgrade, you’ll also have more room for playbooks and devotionals.',
+      message: 'Create recurring time blocks to build steady rhythms in your week. With an upgrade, you’ll also have more room for playbooks.',
       skipNotificationPreference: true,
       dismissBehavior: 'goBack',
     });

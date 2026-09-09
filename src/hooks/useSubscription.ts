@@ -7,7 +7,6 @@ import { useNewSubscription } from './useNewSubscription';
 
 export interface LegacyUsage {
   playbooks_generated: number;
-  devotionals_generated: number;
   exports_generated?: number;
 }
 
@@ -27,11 +26,9 @@ export function useSubscription(): LegacyUseSubscriptionResult {
   const usage = useMemo<LegacyUsage | null>(() => {
     if (!newSub.subscription) {return null;}
     const playbooksUsed = (newSub.subscription as any).playbooks_used ?? 0;
-    const devotionalsUsed = (newSub.subscription as any).devotionals_used ?? 0;
     // exports count may be tracked separately; expose 0 if unknown
     return {
       playbooks_generated: playbooksUsed,
-      devotionals_generated: devotionalsUsed,
       exports_generated: 0,
     };
   }, [newSub.subscription]);

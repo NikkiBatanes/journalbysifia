@@ -17,7 +17,6 @@ export interface ProfileStatsLite {
 
 export interface UsageSummary {
   playbooks: { used: number; limit: number };
-  devotionals: { used: number; limit: number };
   refinements: { used: number; limit: number };
   wisdom: { used: number; limit: number };
 }
@@ -91,12 +90,6 @@ export const ProfilePlanUsage: React.FC<Pick<Props, 'plan' | 'usage' | 'subscrip
                   <View style={styles.usageItemRow}>
                     <MaterialCommunityIcons name="clipboard-text-play" size={12} color={Colors.hopeWhite} />
                     <Text style={[styles.usageText, font]}>{usage.playbooks.used}{usage.playbooks.limit >= 0 ? `/${usage.playbooks.limit}` : '/∞'}</Text>
-                  </View>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.usagePill} onPress={() => showTooltip('devotionals')} activeOpacity={0.7}>
-                  <View style={styles.usageItemRow}>
-                    <MaterialCommunityIcons name="book" size={12} color={Colors.hopeWhite} />
-                    <Text style={[styles.usageText, font]}>{usage.devotionals.used}{usage.devotionals.limit >= 0 ? `/${usage.devotionals.limit}` : '/∞'}</Text>
                   </View>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.usagePill} onPress={() => showTooltip('refinements')} activeOpacity={0.7}>

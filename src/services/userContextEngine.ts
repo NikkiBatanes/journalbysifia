@@ -14,7 +14,7 @@ export interface UserContext {
 
   // Current request context
   currentInput: string;
-  requestType: 'playbook' | 'devotional' | 'journal_expansion';
+  requestType: 'playbook' | 'journal_expansion';
 
   // Historical patterns (learned from past interactions)
   recentTopics: string[];
@@ -56,7 +56,7 @@ export class UserContextEngine {
     userId: string,
     userName: string,
     currentInput: string,
-    requestType: 'playbook' | 'devotional' | 'journal_expansion'
+    requestType: 'playbook' | 'journal_expansion'
   ): Promise<UserContext> {
 
     try {
@@ -193,7 +193,7 @@ Generate content that directly addresses their input while incorporating their p
    */
   private async getUserHistoricalData(userId: string) {
     try {
-      // Get recent playbooks and devotionals
+      // Get recent playbooks
       const { data: recentContent } = await supabase
         .from('generated_content')
         .select('title, content_type, user_input, created_at')

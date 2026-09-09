@@ -31,13 +31,10 @@ class NotificationBatchingService {
   // Notification types that can be batched together
   private readonly BATCHABLE_TYPES = [
     'prayer_reminder',
-    'devotional_reminder',
     'journal_prompt',
     'playbook_step',
     'streak_alert',
     'reflection_question',
-    'devotional_prayer_prompt',
-    'devotional_reflection_prompt',
     'playbook_faithful_action',
     'journal_todays_focus',
     'journal_todo',
@@ -143,18 +140,6 @@ class NotificationBatchingService {
           message: `You have ${count} prayer reminders waiting for you.`,
           data: {
             deep_link: 'sifia://journal/prayer',
-            batched: true,
-            original_count: count,
-          },
-        };
-
-      case 'devotional_reminder':
-        return {
-          type: 'batched_devotional_reminders',
-          title: `${count} Devotionals Ready 🤲🏼`,
-          message: `${count} devotionals are waiting for you to explore.`,
-          data: {
-            deep_link: 'sifia://devotionals',
             batched: true,
             original_count: count,
           },

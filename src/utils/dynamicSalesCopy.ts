@@ -2,14 +2,14 @@
  * Dynamic Sales Copy Generator
  *
  * Generates contextual, tier-aware sales copy for feature gating
- * in playbooks and devotionals based on subscription status and usage.
+ * in playbooks based on subscription status and usage.
  */
 
 import { SubscriptionTier } from '../types/subscription';
 import { Logger } from './ProductionLogger';
 
 export interface SalesCopyParams {
-  featureType: 'playbooks' | 'devotionals' | 'wisdom' | 'refinement';
+  featureType: 'playbooks' | 'wisdom' | 'refinement';
   currentTier: SubscriptionTier;
   remaining: number;
   limit: number;
@@ -17,7 +17,7 @@ export interface SalesCopyParams {
   trialChosenTier?: SubscriptionTier;
   trialEndDate?: string | null;
   subscriptionStartDate?: string | null;
-  requestedDuration?: number; // For devotionals - which duration was requested
+  requestedDuration?: number; // For locked playbook durations - which duration was requested
   hasEverStartedTrial?: boolean; // Whether user has ever started a 3-day trial
   billingCycle?: 'monthly' | 'annual'; // Current billing cycle for upsell logic
 }
@@ -56,18 +56,18 @@ function normalizeTierVariant(tier?: string | null): string {
 /**
  * Get tier limits
  */
-function getTierLimits(tier: SubscriptionTier, featureType: 'playbooks' | 'devotionals' | 'wisdom' | 'refinement'): number {
+function getTierLimits(tier: SubscriptionTier, featureType: 'playbooks' | 'wisdom' | 'refinement'): number {
   const limits = {
-    'seeker': { playbooks: 2, devotionals: 1, wisdom: 2, refinement: 1 },
-    'free_trial': { playbooks: 15, devotionals: 15, wisdom: 6, refinement: 4 }, // Default, actual limits depend on trial_chosen_tier
-    'spark': { playbooks: 10, devotionals: 10, wisdom: 5, refinement: 3 },
-    'spark_annual': { playbooks: 10, devotionals: 10, wisdom: 5, refinement: 3 },
-    'growth': { playbooks: 25, devotionals: 25, wisdom: 12, refinement: 6 },
-    'growth_annual': { playbooks: 25, devotionals: 25, wisdom: 12, refinement: 6 },
-    'transformation': { playbooks: 60, devotionals: 60, wisdom: 25, refinement: 15 },
-    'transformation_annual': { playbooks: 60, devotionals: 60, wisdom: 25, refinement: 15 },
-    // POST-LAUNCH: 'family': { playbooks: -1, devotionals: -1, refinement: -1 },
-  } as Record<SubscriptionTier, { playbooks: number; devotionals: number; wisdom: number; refinement: number }>;
+    'seeker': { playbooks: 2, wisdom: 2, refinement: 1 },
+    'free_trial': { playbooks: 15, wisdom: 6, refinement: 4 }, // Default, actual limits depend on trial_chosen_tier
+    'spark': { playbooks: 10, wisdom: 5, refinement: 3 },
+    'spark_annual': { playbooks: 10, wisdom: 5, refinement: 3 },
+    'growth': { playbooks: 25, wisdom: 12, refinement: 6 },
+    'growth_annual': { playbooks: 25, wisdom: 12, refinement: 6 },
+    'transformation': { playbooks: 60, wisdom: 25, refinement: 15 },
+    'transformation_annual': { playbooks: 60, wisdom: 25, refinement: 15 },
+    // POST-LAUNCH: 'family': { playbooks: -1, refinement: -1 },
+  } as Record<SubscriptionTier, { playbooks: number; wisdom: number; refinement: number }>;
   return limits[tier][featureType];
 }
 
@@ -139,17 +139,13 @@ export function generateSalesCopy(params: SalesCopyParams): SalesCopyResult {
     trialChosenTier,
     trialEndDate,
     subscriptionStartDate,
-    requestedDuration,
     hasEverStartedTrial = false,
     billingCycle,
   } = params;
 
-  const featureNamePlural = featureType === 'playbooks' ? 'Playbooks' : featureType === 'wisdom' ? 'Wisdom Requests' : featureType === 'refinement' ? 'Refinements' : 'Devotionals';
+  const featureNamePlural = featureType === 'playbooks' ? 'Playbooks' : featureType === 'wisdom' ? 'Wisdom Requests' : 'Refinements';
   const hasNoRemaining = remaining === 0;
   const normalizedCurrentTier = normalizeTierVariant(currentTier) as SubscriptionTier;
-  const effectiveTier = normalizedCurrentTier === 'free_trial' && trialChosenTier
-    ? normalizeTierVariant(trialChosenTier)
-    : normalizedCurrentTier;
 
   // CASE 1: Seeker tier - monthly free access used up (2 PB / 1 DEV per month)
   if (normalizedCurrentTier === 'seeker' && hasNoRemaining) {
@@ -162,13 +158,9 @@ export function generateSalesCopy(params: SalesCopyParams): SalesCopyResult {
         ? hasEverStartedTrial
           ? 'Your free wisdom requests for this month have been used. More will open again next month.\n\nUpgrade to Growth for more room to ask for guidance on your next faithful action, with up to 12 wisdom requests each month.'
           : 'Your free wisdom requests for this month have been used. More will open again next month.\n\nStart your 3-day free trial to keep asking for guidance on your next faithful action.'
-        : featureType === 'refinement'
-          ? hasEverStartedTrial
-            ? 'Your free playbook refinement for this month has been used. More will open again next month.\n\nUpgrade to Growth for more room to refine your playbook, with up to 6 refinements each month.'
-            : 'Your free playbook refinement for this month has been used. More will open again next month.\n\nStart your 3-day free trial to keep refining your playbook this month.'
-          : hasEverStartedTrial
-            ? 'Your free devotional for this month has been used. More will open again next month.\n\nUpgrade to Growth for more room to return to Scripture, reflection, and prayer, with up to 25 devotionals each month.'
-            : 'Your free devotional for this month has been used. More will open again next month.\n\nStart your 3-day free trial to keep returning to Scripture, reflection, and prayer this month.';
+        : hasEverStartedTrial
+          ? 'Your free playbook refinement for this month has been used. More will open again next month.\n\nUpgrade to Growth for more room to refine your playbook, with up to 6 refinements each month.'
+          : 'Your free playbook refinement for this month has been used. More will open again next month.\n\nStart your 3-day free trial to keep refining your playbook this month.';
 
     // Dynamic CTA based on trial usage
     const primaryCta = hasEverStartedTrial ? `Upgrade to ${getTierDisplayName('growth')}` : 'Start 3-Day Free Trial';
@@ -315,71 +307,11 @@ export function generateSalesCopy(params: SalesCopyParams): SalesCopyResult {
     }
   }
 
-  // CASE 4: Devotional duration locked (user has remaining, but wants locked duration)
-  if (featureType === 'devotionals' && requestedDuration && !hasNoRemaining) {
-    if (effectiveTier === 'seeker' && (requestedDuration === 5 || requestedDuration === 7)) {
-      if (requestedDuration === 5) {
-        return {
-          title: 'Unlock 5-Day\nDevotionals',
-          message: '5-day devotionals are available with Growth or Transformation. Upgrade to unlock 5-day devotionals, or choose another duration.',
-          primaryCta: hasEverStartedTrial ? `Upgrade to ${getTierDisplayName('growth')}` : 'Start 3-Day Free Trial',
-          secondaryCta: 'Choose Another Duration',
-          recommendedTier: 'growth',
-          showUpgradeOptions: true,
-        };
-      }
-
-      return {
-        title: 'Unlock 7-Day\nDevotionals',
-        message: '7-day devotionals are available with Transformation. Upgrade to unlock 7-day devotionals, or choose another duration.',
-        primaryCta: hasEverStartedTrial ? `Upgrade to ${getTierDisplayName('transformation')}` : 'Start 3-Day Free Trial',
-        secondaryCta: 'Choose Another Duration',
-        recommendedTier: 'transformation',
-        showUpgradeOptions: true,
-      };
-    }
-
-    if (effectiveTier === 'spark' && (requestedDuration === 5 || requestedDuration === 7)) {
-      if (requestedDuration === 5) {
-        return {
-          title: 'Unlock 5-Day\nDevotionals',
-          message: `5-day devotionals are available with Growth or Transformation. Spark includes up to 10 devotionals each month. You still have ${remaining} of ${limit} devotionals left this month. Upgrade to unlock 5-day devotionals, or choose another duration.`,
-          primaryCta: `Upgrade to ${getTierDisplayName('growth')}`,
-          secondaryCta: 'Choose Another Duration',
-          recommendedTier: 'growth',
-          showUpgradeOptions: true,
-          isCurrentTier: isOnTrial ? undefined : 'spark',
-        };
-      } else {
-        // 7-day
-        return {
-          title: 'Unlock 7-Day\nDevotionals',
-          message: `7-day devotionals are available with Transformation. Spark includes up to 10 devotionals each month. You still have ${remaining} of ${limit} devotionals left this month. Upgrade to unlock 7-day devotionals, or choose another duration.`,
-          primaryCta: `Upgrade to ${getTierDisplayName('transformation')}`,
-          secondaryCta: 'Choose Another Duration',
-          recommendedTier: 'transformation',
-          showUpgradeOptions: true,
-          isCurrentTier: isOnTrial ? undefined : 'spark',
-        };
-      }
-    } else if (effectiveTier === 'growth' && requestedDuration === 7) {
-      return {
-        title: 'Unlock 7-Day\nDevotionals',
-        message: `7-day devotionals are available with Transformation. Growth includes up to 25 devotionals each month. You still have ${remaining} of ${limit} devotionals left this month. Upgrade to unlock 7-day devotionals, or choose another duration.`,
-        primaryCta: `Upgrade to ${getTierDisplayName('transformation')}`,
-        secondaryCta: 'Choose Another Duration',
-        recommendedTier: 'transformation',
-        showUpgradeOptions: true,
-        isCurrentTier: isOnTrial ? undefined : 'growth',
-      };
-    }
-  }
-
-  // CASE 5: Default fallback
+  // CASE 4: Default fallback
   const recommendedTier = 'growth';
   return {
     title: 'Upgrade Your Plan',
-    message: 'Get more room for playbooks and devotionals with a higher plan.',
+    message: 'Get more room for playbooks with a higher plan.',
     primaryCta: `Upgrade to ${getTierDisplayName(recommendedTier)}`,
     recommendedTier,
     showUpgradeOptions: true,

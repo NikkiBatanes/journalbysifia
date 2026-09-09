@@ -14,7 +14,7 @@ export function useNotificationIntegration() {
 
   /**
    * Track activity and update streak
-   * Call this when user completes prayer/devotional/journal
+   * Call this when user completes prayer/journal
    */
   const trackActivity = useCallback(async (activityType: StreakType) => {
     if (!user?.id) {
@@ -47,13 +47,6 @@ export function useNotificationIntegration() {
    */
   const trackPrayer = useCallback(async () => {
     await trackActivity('prayer');
-  }, [trackActivity]);
-
-  /**
-   * Track devotional completion
-   */
-  const trackDevotional = useCallback(async () => {
-    await trackActivity('devotional');
   }, [trackActivity]);
 
   /**
@@ -196,7 +189,6 @@ export function useNotificationIntegration() {
   return {
     // Activity tracking
     trackPrayer,
-    trackDevotional,
     trackJournal,
     trackActivity,
 

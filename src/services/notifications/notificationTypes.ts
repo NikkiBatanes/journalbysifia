@@ -3,17 +3,11 @@ import { NotificationPreferences } from '../notificationManagementService';
 export const SMART_NOTIFICATION_ENGINE_VERSION = 'state_v1';
 
 export const SMART_NOTIFICATION_TYPES = [
-  'devotional_day_ready',
-  'devotional_prayer_prompt',
-  'devotional_reflection_prompt',
-  'devotional_verse_revisit',
-  'devotional_completed_reflection',
   'playbook_word_to_speak',
   'playbook_faithful_action',
   'playbook_verse_revisit',
   'playbook_verse_reflection',
   'playbook_prayer_revisit',
-  'playbook_to_devotional',
   'playbook_actions_complete',
   'playbook_actions_milestone',
   'journal_todays_focus',
@@ -26,10 +20,7 @@ export const SMART_NOTIFICATION_TYPES = [
   'prayer_answered_check',
   'prayer_today',
   'prayer_people_nudge',
-  'create_devotional',
   'create_playbook',
-  'create_first_devotional',
-  'usage_room_devotional',
   'usage_room_playbook',
   'content_refresh_wait',
   'upgrade_room',
@@ -39,7 +30,6 @@ export const SMART_NOTIFICATION_TYPES = [
 export type SmartNotificationType = typeof SMART_NOTIFICATION_TYPES[number];
 
 export type SmartNotificationCategory =
-  | 'devotional'
   | 'playbook'
   | 'journal'
   | 'prayer'
@@ -49,7 +39,6 @@ export type SmartNotificationCategory =
 
 export type SmartNotificationTimeWindow =
   | 'early_morning'
-  | 'devotional_morning'
   | 'mid_morning'
   | 'late_morning'
   | 'pre_midday'
@@ -73,8 +62,6 @@ export interface SmartNotificationCopy {
 
 export interface SmartNotificationSource {
   sourceType:
-    | 'devotional'
-    | 'devotional_day'
     | 'playbook'
     | 'action_step'
     | 'journal'
@@ -111,17 +98,11 @@ export interface SmartNotificationDecision {
 }
 
 export const SMART_NOTIFICATION_PREFERENCE_MAP: Record<SmartNotificationType, keyof NotificationPreferences> = {
-  devotional_day_ready: 'devotional_reminders',
-  devotional_prayer_prompt: 'devotional_reminders',
-  devotional_reflection_prompt: 'devotional_reminders',
-  devotional_verse_revisit: 'devotional_reminders',
-  devotional_completed_reflection: 'devotional_reminders',
   playbook_word_to_speak: 'playbook_steps',
   playbook_faithful_action: 'playbook_steps',
   playbook_verse_revisit: 'playbook_steps',
   playbook_verse_reflection: 'playbook_steps',
   playbook_prayer_revisit: 'playbook_steps',
-  playbook_to_devotional: 'devotional_reminders',
   playbook_actions_complete: 'playbook_steps',
   playbook_actions_milestone: 'playbook_steps',
   journal_todays_focus: 'journal_prompts',
@@ -134,10 +115,7 @@ export const SMART_NOTIFICATION_PREFERENCE_MAP: Record<SmartNotificationType, ke
   prayer_answered_check: 'prayer_reminders',
   prayer_today: 'prayer_reminders',
   prayer_people_nudge: 'prayer_reminders',
-  create_devotional: 'devotional_reminders',
   create_playbook: 'playbook_steps',
-  create_first_devotional: 'devotional_reminders',
-  usage_room_devotional: 'devotional_reminders',
   usage_room_playbook: 'playbook_steps',
   content_refresh_wait: 'trial_notifications',
   upgrade_room: 'trial_notifications',
@@ -145,9 +123,6 @@ export const SMART_NOTIFICATION_PREFERENCE_MAP: Record<SmartNotificationType, ke
 };
 
 export const SMART_NOTIFICATION_IMPORTANT_TYPES: SmartNotificationType[] = [
-  'devotional_day_ready',
-  'devotional_prayer_prompt',
-  'devotional_reflection_prompt',
   'playbook_faithful_action',
   'playbook_word_to_speak',
   'playbook_verse_reflection',

@@ -20,7 +20,6 @@ export interface UserIntelligenceProfile {
 
   // Success patterns (LOCAL TRACKING)
   successful_playbook_types: string[];
-  successful_devotional_types: string[];
   optimal_action_step_count: number;
   preferred_content_length: 'short' | 'medium' | 'long';
 
@@ -58,7 +57,6 @@ export interface BehaviorEvent {
   event_data: any;
   session_id?: string;
   playbook_id?: string;
-  devotional_id?: string;
   engagement_score?: number;
   success_indicator?: boolean;
   duration_seconds?: number;
@@ -66,7 +64,6 @@ export interface BehaviorEvent {
 
 export interface ContentRecommendations {
   recommendedPlaybookTypes: string[];
-  recommendedDevotionalTypes: string[];
   optimalTiming: string;
   challengeLevel: 'gentle' | 'moderate' | 'intense';
   contentLength: 'short' | 'medium' | 'long';
@@ -135,7 +132,6 @@ export class IntelligenceService {
           event_data: event.event_data || {},
           session_id: event.session_id,
           playbook_id: event.playbook_id,
-          devotional_id: event.devotional_id,
           engagement_score: engagementScore,
           success_indicator: event.success_indicator || false,
           duration_seconds: event.duration_seconds,
@@ -194,7 +190,6 @@ export class IntelligenceService {
 
       return {
         recommendedPlaybookTypes: this.calculateRecommendedPlaybookTypes(profile, recentBehavior),
-        recommendedDevotionalTypes: this.calculateRecommendedDevotionalTypes(profile, recentBehavior),
         optimalTiming: this.suggestOptimalTiming(profile),
         challengeLevel: this.recommendChallengeLevel(profile),
         contentLength: this.suggestContentLength(profile),
@@ -255,7 +250,6 @@ export class IntelligenceService {
       preferred_challenge_level: 'moderate' as const,
       communication_style: 'balanced' as const,
       successful_playbook_types: [],
-      successful_devotional_types: [],
       optimal_action_step_count: 5,
       preferred_content_length: 'medium' as const,
       best_engagement_times: [],
@@ -303,12 +297,6 @@ export class IntelligenceService {
         break;
       case 'playbook_completed':
         score = 1.0;
-        break;
-      case 'devotional_generated':
-        score = 0.7;
-        break;
-      case 'devotional_day_completed':
-        score = 0.9;
         break;
       case 'journal_entry_created':
         score = 0.6;
@@ -502,10 +490,6 @@ export class IntelligenceService {
     return recommendations.slice(0, 3);
   }
 
-  private calculateRecommendedDevotionalTypes(profile: UserIntelligenceProfile, _recentBehavior: any): string[] {
-    return profile.successful_devotional_types.slice(0, 3);
-  }
-
   private suggestOptimalTiming(profile: UserIntelligenceProfile): string {
     if (profile.best_engagement_times.length === 0) {
       return 'Morning or evening when you have quiet time';
@@ -545,7 +529,7 @@ export class IntelligenceService {
   }
 
   private async getCompletionData(_userId: string) {
-    // This would analyze completion rates from playbooks and devotionals
+    // This would analyze completion rates from playbooks
     // For now, return mock data structure
     return {
       averageCompletionRate: 0.7,

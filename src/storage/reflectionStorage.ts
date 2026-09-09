@@ -11,12 +11,10 @@ export interface ReflectionLogEntry {
   content: string;
   date: Date;
   type: 'free-form' | 'guided';
-  source?: 'devotional';
+  source?: string;
   prompt?: string;
   tags: string[];
   location?: string;
-  // Devotional metadata
-  devotionalTitle?: string;
   dayNumber?: number;
   dayTitle?: string;
   totalDays?: number;

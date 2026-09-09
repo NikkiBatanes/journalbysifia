@@ -403,32 +403,6 @@ export const styles = StyleSheet.create({
     alignSelf: 'center',
     marginBottom: 16,
   },
-  // Ensures no background or border for devotional entries
-  devotionalEntry: {
-    backgroundColor: 'transparent',
-    borderColor: 'transparent',
-    borderWidth: 0,
-    elevation: 0, // Android shadow
-    shadowColor: 'transparent', // iOS shadow
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0,
-    shadowRadius: 0,
-  },
-  devotionalPromptContainer: {
-    backgroundColor: 'rgba(245, 166, 35, 0.1)',
-    borderRadius: 8,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    marginRight: 8,
-  },
-  devotionalPromptText: {
-    fontSize: 8,
-    color: Colors.faithGold,
-    fontFamily: Fonts.medium,
-    fontWeight: '500',
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
-  },
   modalEntryCard: {
     padding: 16,
     marginBottom: 20,
@@ -741,22 +715,6 @@ export const styles = StyleSheet.create({
     fontSize: 16,
     color: Colors.darkGray,
     lineHeight: 24,
-  },
-  devotionalMetadata: {
-    marginBottom: 8,
-    paddingLeft: 0,
-  },
-  devotionalTitle: {
-    fontSize: 12,
-    fontFamily: Fonts.semiBold,
-    color: Colors.faithGold,
-    marginBottom: 2,
-  },
-  devotionalDayInfo: {
-    fontSize: 11,
-    fontFamily: Fonts.regular,
-    color: Colors.textGray,
-    fontStyle: 'italic',
   },
   // New styles for lock icon next to title
   titleWithLockContainer: {

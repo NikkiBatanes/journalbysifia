@@ -1,6 +1,6 @@
 /**
  * DailyBibleVerseCard.tsx
- * Displays a daily Bible verse from the user's playbooks/devotionals
+ * Displays a daily Bible verse from the user's playbooks
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -63,22 +63,13 @@ const DailyBibleVerseCard: React.FC<DailyBibleVerseCardProps> = ({ onRefresh, on
       setLoading(true);
       setError(null);
 
-      // Fetch user's playbooks (modern schema uses bible_verse field) and devotionals as secondary source
-
-      const [playbooksResult, devotionalsResult] = await Promise.all([
-        supabase
-          .from('playbooks')
-          .select('id, title, bible_verse, user_id')
-          .eq('user_id', user.id)
-          .not('bible_verse', 'is', null)
-          .limit(20),
-        supabase
-          .from('devotionals')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('updated_at', { ascending: false })
-          .limit(50),
-      ]);
+      // Fetch user's playbooks (modern schema uses bible_verse field)
+      const playbooksResult = await supabase
+        .from('playbooks')
+        .select('id, title, bible_verse, user_id')
+        .eq('user_id', user.id)
+        .not('bible_verse', 'is', null)
+        .limit(20);
 
 
       const allVerses: BibleVerse[] = [];
@@ -123,146 +114,6 @@ const DailyBibleVerseCard: React.FC<DailyBibleVerseCardProps> = ({ onRefresh, on
             }
           } catch (parseError) {
             Logger.warn('Error parsing playbook bible_verse', { component: 'DailyBibleVerseCard', data: parseError });
-          }
-        });
-      }
-
-      // Extract verses from devotionals
-      if (devotionalsResult.data) {
-        const seen = new Set<string>();
-        devotionalsResult.data.forEach((devotional: any) => {
-          try {
-            const content = devotional?.content
-              ? (typeof devotional.content === 'string' ? JSON.parse(devotional.content) : devotional.content)
-              : null;
-
-            // Primary: single verse object/string
-            if (content && content.verse) {
-              const text = (typeof content.verse === 'object')
-                ? (content.verse.text || content.verse.verse || content.verse.content || '')
-                : String(content.verse);
-              const reference = (typeof content.verse === 'object')
-                ? (content.verse.reference || content.verse.citation || '')
-                : '';
-              const version = (typeof content.verse === 'object') ? (content.verse.version || 'NASB') : 'NASB';
-              if (typeof text === 'string' && text.trim().length > 0) {
-                const key = `${text.trim()}|${(reference || 'Scripture').trim()}|${version}`;
-                if (!seen.has(key)) {
-                  seen.add(key);
-                  allVerses.push({
-                    id: `devotional-${devotional.id}`,
-                    verse: text.trim(),
-                    reference: (reference || 'Scripture').trim(),
-                    version,
-                    source: devotional.title,
-                  });
-                }
-              }
-            }
-
-            // Secondary: array of verses
-            if (content && Array.isArray(content.verses)) {
-              content.verses.forEach((v: any, index: number) => {
-                const text = v?.text || v?.verse || v?.content || '';
-                const reference = v?.reference || v?.citation || '';
-                const version = v?.version || 'NASB';
-                if (typeof text === 'string' && text.trim().length > 0) {
-                  const key = `${text.trim()}|${(reference || 'Scripture').trim()}|${version}`;
-                  if (!seen.has(key)) {
-                    seen.add(key);
-                    allVerses.push({
-                      id: `devotional-${devotional.id}-${index}`,
-                      verse: text.trim(),
-                      reference: (reference || 'Scripture').trim(),
-                      version,
-                      source: devotional.title,
-                    });
-                  }
-                }
-              });
-            }
-
-            // Alternate key: scripture (object/string)
-            if (content && content.scripture) {
-              const text = (typeof content.scripture === 'object')
-                ? (content.scripture.text || content.scripture.verse || content.scripture.content || '')
-                : String(content.scripture);
-              const reference = (typeof content.scripture === 'object')
-                ? (content.scripture.reference || content.scripture.citation || '')
-                : '';
-              const version = (typeof content.scripture === 'object') ? (content.scripture.version || 'NASB') : 'NASB';
-              if (typeof text === 'string' && text.trim().length > 0) {
-                const key = `${text.trim()}|${(reference || 'Scripture').trim()}|${version}`;
-                if (!seen.has(key)) {
-                  seen.add(key);
-                  allVerses.push({
-                    id: `devotional-${devotional.id}-scripture`,
-                    verse: text.trim(),
-                    reference: (reference || 'Scripture').trim(),
-                    version,
-                    source: devotional.title,
-                  });
-                }
-              }
-            }
-
-            if (content && Array.isArray(content.scriptures)) {
-              content.scriptures.forEach((v: any, index: number) => {
-                const text = v?.text || v?.verse || v?.content || '';
-                const reference = v?.reference || v?.citation || '';
-                const version = v?.version || 'NASB';
-                if (typeof text === 'string' && text.trim().length > 0) {
-                  const key = `${text.trim()}|${(reference || 'Scripture').trim()}|${version}`;
-                  if (!seen.has(key)) {
-                    seen.add(key);
-                    allVerses.push({
-                      id: `devotional-${devotional.id}-scriptures-${index}`,
-                      verse: text.trim(),
-                      reference: (reference || 'Scripture').trim(),
-                      version,
-                      source: devotional.title,
-                    });
-                  }
-                }
-              });
-            }
-
-            // Tertiary: extract from per-day structures (supports top-level days column or content.days)
-            try {
-              let days: any = (devotional as any).days ?? content?.days;
-              if (typeof days === 'string') {
-                try { days = JSON.parse(days); } catch {}
-              }
-              if (Array.isArray(days)) {
-                days.forEach((day: any, index: number) => {
-                  const s = day?.scripture || day?.verse || null;
-                  if (s) {
-                    const text = (typeof s === 'object')
-                      ? (s.text || s.verse || s.content || '')
-                      : String(s);
-                    const reference = (typeof s === 'object')
-                      ? (s.reference || s.citation || '')
-                      : '';
-                    const version = (typeof s === 'object') ? (s.version || 'NASB') : 'NASB';
-                    if (typeof text === 'string' && text.trim().length > 0) {
-                      const key = `${text.trim()}|${(reference || 'Scripture').trim()}|${version}`;
-                      if (!seen.has(key)) {
-                        seen.add(key);
-                        allVerses.push({
-                          id: `devotional-${devotional.id}-day-${index}`,
-                          verse: text.trim(),
-                          reference: (reference || 'Scripture').trim(),
-                          version,
-                          source: devotional.title,
-                        });
-                      }
-                    }
-                  }
-                });
-              }
-            } catch {}
-          } catch (parseError) {
-            Logger.warn('Error parsing devotional content', { component: 'DailyBibleVerseCard', data: parseError });
           }
         });
       }

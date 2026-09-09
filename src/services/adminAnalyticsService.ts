@@ -48,7 +48,6 @@ export interface SubscriptionAnalyticsEvent {
   to_tier?: string;
   billing_cycle?: 'monthly' | 'annual';
   free_playbook_used?: boolean;
-  free_devotional_used?: boolean;
   platform?: 'ios' | 'android';
   amount?: number;
   currency?: string;
@@ -364,25 +363,23 @@ class AdminAnalyticsService {
   }
 
   /**
-   * Track free access usage (free playbook/devotional)
+   * Track free access usage (free playbook)
    */
   async trackFreeAccessUsage(
     userId: string,
     playbookUsed: boolean = false,
-    devotionalUsed: boolean = false
   ) {
     try {
-      if (!playbookUsed && !devotionalUsed) {return;}
+      if (!playbookUsed) {return;}
 
       await supabase.from('subscription_analytics').insert({
         user_id: userId,
         event_type: 'signup', // Using signup as base event for free access tracking
         free_playbook_used: playbookUsed,
-        free_devotional_used: devotionalUsed,
         platform: this.platform,
       });
 
-      console.log('✅ Analytics: Free access usage tracked', { userId, playbookUsed, devotionalUsed });
+      console.log('✅ Analytics: Free access usage tracked', { userId, playbookUsed });
     } catch (error) {
       console.error('❌ Analytics: Failed to track free access usage', error);
     }
@@ -420,10 +417,6 @@ class AdminAnalyticsService {
         case 'playbook':
           updates.playbook_views = (existing?.playbook_views || 0) + 1;
           break;
-        case 'devotional_view':
-        case 'devotional':
-          updates.devotional_views = (existing?.devotional_views || 0) + 1;
-          break;
         case 'journal':
           updates.journal_opens = (existing?.journal_opens || 0) + 1;
           break;
@@ -453,9 +446,6 @@ class AdminAnalyticsService {
           break;
         case 'playbook_created':
           updates.playbooks_created = (existing?.playbooks_created || 0) + 1;
-          break;
-        case 'devotional_created':
-          updates.devotionals_created = (existing?.devotionals_created || 0) + 1;
           break;
       }
 

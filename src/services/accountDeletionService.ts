@@ -234,7 +234,6 @@ class AccountDeletionService {
       // Delete user data from all tables
       const deletionPromises = [
         supabaseAdmin.from('playbooks').delete().eq('user_id', userId),
-        supabaseAdmin.from('devotionals').delete().eq('user_id', userId),
         supabaseAdmin.from('journal_entries').delete().eq('user_id', userId),
         supabaseAdmin.from('prayers').delete().eq('user_id', userId),
         supabaseAdmin.from('reflections').delete().eq('user_id', userId),

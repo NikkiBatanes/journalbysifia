@@ -52,7 +52,6 @@ interface Subscription {
   platform_subscription_id?: string;
   limits?: {
     playbooks: number;
-    devotionals: number;
   };
   refinement_limit?: number;
   wisdom_limit?: number;
@@ -62,7 +61,6 @@ interface Subscription {
 
 interface UsageTracking {
   playbooks_generated: number;
-  devotionals_generated: number;
   refinements_generated: number;
   wisdom_generated: number;
 }
@@ -98,7 +96,6 @@ interface ProfileStats {
   level: number;
   totalBadges: number;
   goalsCompleted: number;
-  devotionalsFinished: number;
   prayerSessions: number;
   journalEntries: number;
 }
@@ -426,7 +423,6 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
         const defaultPrefs = {
           user_id: user.id,
           playbook_steps: true,
-          devotional_reminders: true,
           trial_notifications: true,
           prayer_request_alerts: false,
           prayer_requests: false,
@@ -449,7 +445,6 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
       setNotificationPrefs({
         user_id: user.id,
         playbook_steps: false,
-        devotional_reminders: false,
         trial_notifications: false,
         prayer_request_alerts: false,
         prayer_requests: false,
@@ -505,7 +500,6 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
 
         const usageData = {
           playbooks_generated: subscriptionData.playbooks_used || 0,
-          devotionals_generated: subscriptionData.devotionals_used || 0,
           refinements_generated: subscriptionData.refinement_count || 0,
           wisdom_generated: subscriptionData.wisdom_count || 0,
         };
@@ -671,7 +665,6 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
   // User preferences state
   const [preferences, setPreferences] = useState<UserPreferences>({
     notifications: {
-      dailyDevotional: true,
       prayerReminders: true,
       journalPrompts: true,
       playbookUpdates: true,
@@ -1337,12 +1330,12 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
               dismissBehavior: 'goBack',
               returnTo: 'UserProfile',
               title: 'Upgrade to Plan Ahead',
-              subtitle: 'Unlock calendar auto-sync—plus guided journaling, playbooks, and devotionals to support your journey.',
+              subtitle: 'Unlock calendar auto-sync—plus guided journaling and playbooks to support your journey.',
               benefits: [
                 'Auto-sync time blocks to your calendar seamlessly.',
                 'Plan days ahead with clear focus, to-dos, and time blocks.',
                 'Stay consistent with guided journaling that builds faithful rhythms.',
-                'Gain momentum with personalized playbooks and devotionals.',
+                'Gain momentum with personalized playbooks.',
               ],
             });
             return;
@@ -2252,12 +2245,12 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
             <Ionicons name="information-circle" size={18} color={Colors.faithGold} style={styles.bibleVersionNoteIcon} />
             <Text style={[styles.bibleVersionNote, font]}>
               Changing your Bible version only applies to content you generate from now on.
-              Existing playbooks and devotionals will keep the version they were created with.
+              Existing playbooks will keep the version they were created with.
             </Text>
           </View>
           <View style={styles.spacer} />
           <Text style={[styles.settingDescription, font]}>
-            Choose your preferred Bible translation. This will be used across new playbooks and devotionals.
+            Choose your preferred Bible translation. This will be used across new playbooks.
           </Text>
 
           <View style={styles.weekStartOptions}>
@@ -2455,24 +2448,6 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
                   <View style={[
                     styles.switchThumb,
                     { transform: [{ translateX: (notificationPrefs?.playbook_steps ?? false) ? 20 : 0 }] },
-                  ]} />
-                </View>
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.settingItem}>
-              <Text style={[styles.settingLabel, font]}>Devotional Reminders</Text>
-              <TouchableOpacity
-                onPress={() => updatePref('devotional_reminders', !(notificationPrefs?.devotional_reminders ?? false))}
-                style={styles.switchContainer}
-              >
-                <View style={[
-                  styles.switchTrack,
-                  (notificationPrefs?.devotional_reminders ?? false) ? styles.switchTrackActive : styles.switchTrackInactive,
-                ]}>
-                  <View style={[
-                    styles.switchThumb,
-                    { transform: [{ translateX: (notificationPrefs?.devotional_reminders ?? false) ? 20 : 0 }] },
                   ]} />
                 </View>
               </TouchableOpacity>
@@ -3404,7 +3379,7 @@ const styles = StyleSheet.create({
     color: Colors.textGray,
     marginTop: 2,
   },
-  // Modern counters for Playbooks/Devotionals
+  // Modern counters for Playbooks
   countersContainer: {
     paddingHorizontal: 20,
     marginBottom: 20,
@@ -3460,7 +3435,7 @@ const styles = StyleSheet.create({
   },
   progressValueAlt: {
     height: 8,
-    backgroundColor: Colors.devotionalPurple,
+    backgroundColor: Colors.ministryPurple,
     borderRadius: 6,
   },
   // Week Start Modal Styles

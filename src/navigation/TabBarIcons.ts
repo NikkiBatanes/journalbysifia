@@ -16,10 +16,6 @@ export const TabBarIcons = {
     name: 'book',
     focused: 'book',
   },
-  Devotionals: {
-    name: 'journal',
-    focused: 'journal',
-  },
   Profile: {
     name: 'person',
     focused: 'person',

@@ -397,7 +397,6 @@ class AnalyticsService {
       // Map feature names to usage tracking fields
       const featureMapping: Record<string, string> = {
         'playbook_generation': 'playbooks_used',
-        'devotional_generation': 'devotionals_used',
         'export_pdf': 'exports_used',
         'export_docx': 'exports_used',
         'ai_question': 'api_calls_used',
@@ -440,9 +439,6 @@ class AnalyticsService {
       switch (featureName) {
         case 'playbook_generation':
           updates.playbooks_generated = (existing?.playbooks_generated || 0) + 1;
-          break;
-        case 'devotional_generation':
-          updates.devotionals_generated = (existing?.devotionals_generated || 0) + 1;
           break;
         case 'export_pdf':
         case 'export_docx':
@@ -621,10 +617,9 @@ class AnalyticsService {
       const startDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
 
       // Get basic metrics from existing tables
-      const [subscriptions, playbooks, devotionals] = await Promise.all([
+      const [subscriptions, playbooks] = await Promise.all([
         supabase.from('subscriptions').select('*').eq('status', 'active'),
         supabase.from('playbooks').select('id, title, user_id, created_at, updated_at, completed, category, categories, progress, current_step, total_steps').gte('created_at', startDate),
-        supabase.from('devotionals').select('*').gte('created_at', startDate),
       ]);
 
       return [
@@ -638,13 +633,6 @@ class AnalyticsService {
         {
           metric_name: 'total_playbooks',
           current_value: playbooks.data?.length || 0,
-          previous_value: 0,
-          change_percentage: 0,
-          trend: 'stable',
-        },
-        {
-          metric_name: 'total_devotionals',
-          current_value: devotionals.data?.length || 0,
           previous_value: 0,
           change_percentage: 0,
           trend: 'stable',

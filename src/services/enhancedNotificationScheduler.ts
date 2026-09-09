@@ -9,7 +9,7 @@ import { supabase } from './supabaseClient';
  * Schedules multiple daily reminders to keep users engaged
  *
  * SCHEDULE:
- * - 6:00 AM: Morning scripture + devotional
+ * - 6:00 AM: Morning scripture
  * - 9:00 AM: Morning affirmation reminder
  * - 12:00 PM: Midday check-in (playbook/prayer)
  * - 6:00 PM: Evening reflection reminder
@@ -38,8 +38,7 @@ class EnhancedNotificationScheduler {
 
       // Schedule fixed-time notifications
       await Promise.allSettled([
-        // 6:00 AM - Morning devotional + scripture
-        this.scheduleMorningDevotional(userId, userName, '06:00'),
+        // 6:00 AM - Morning scripture
         this.scheduleDailyScripture(userId, userName, '06:00'),
 
         // 9:00 AM - Morning affirmation
@@ -80,36 +79,6 @@ class EnhancedNotificationScheduler {
   }
 
   /**
-   * Schedule morning devotional reminder (6:00 AM user time)
-   */
-  private async scheduleMorningDevotional(
-    userId: string,
-    userName: string,
-    time: string
-  ): Promise<void> {
-    const [hour, min] = time.split(':').map(Number);
-    const scheduledFor = await this.getScheduledTimeInUserTimezone(userId, hour, min);
-
-    const notification: NotificationQueueItem = {
-      user_id: userId,
-      type: 'devotional_reminder',
-      title: `Good Morning, ${userName}! 🔆`,
-      message: 'Start your day with God\'s Word. Your devotional is ready.',
-      data: {
-        deep_link: 'sifia://devotionals/today',
-        reminder_type: 'morning_devotional',
-      },
-      scheduled_for: scheduledFor.toISOString(),
-      priority: 'high',
-    };
-
-    await notificationSchedulerService.scheduleNotification(notification, {
-      priority: 'high',
-      batchWithOthers: false, // Always send morning devotional
-    });
-  }
-
-  /**
    * Schedule daily scripture notification (6:05 AM user time)
    */
   private async scheduleDailyScripture(
@@ -118,7 +87,7 @@ class EnhancedNotificationScheduler {
     time: string
   ): Promise<void> {
     const [hour, min] = time.split(':').map(Number);
-    const scheduledFor = await this.getScheduledTimeInUserTimezone(userId, hour, min + 5); // 5 minutes after devotional
+    const scheduledFor = await this.getScheduledTimeInUserTimezone(userId, hour, min + 5); // 5 minutes after the hour
 
     // Get today's scripture
     const scripture = await this.getTodaysScripture();

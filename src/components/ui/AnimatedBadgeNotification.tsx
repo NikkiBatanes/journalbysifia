@@ -130,7 +130,7 @@ const AnimatedBadgeNotification: React.FC<AnimatedBadgeNotificationProps> = ({ b
       case 'rare':
         return Colors.playbookBlue;
       case 'epic':
-        return Colors.devotionalPurple;
+        return Colors.ministryPurple;
       case 'legendary':
         return Colors.faithGold;
       default:

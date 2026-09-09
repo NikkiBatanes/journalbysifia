@@ -65,14 +65,12 @@ export class PredictiveContentEngine {
   // Content type weights for different spiritual stages
   private readonly STAGE_CONTENT_WEIGHTS = {
     beginner: {
-      simple_devotional: 0.9,
       basic_playbook: 0.8,
       prayer_guide: 0.7,
       scripture_intro: 0.8,
       journal_prompts: 0.6,
     },
     developing: {
-      devotional: 0.8,
       playbook: 0.9,
       bible_study: 0.7,
       prayer_expansion: 0.6,
@@ -96,7 +94,7 @@ export class PredictiveContentEngine {
 
   // Time-based content preferences
   private readonly TIME_CONTENT_MAPPING = {
-    morning: ['devotional', 'prayer_guide', 'scripture_study'],
+    morning: ['prayer_guide', 'scripture_study'],
     afternoon: ['playbook', 'journal_expansion', 'reflection'],
     evening: ['gratitude_journal', 'prayer_reflection', 'spiritual_review'],
     late_night: ['peaceful_content', 'meditation_guide', 'calming_scripture'],
@@ -363,7 +361,7 @@ export class PredictiveContentEngine {
     const sortedTypes = Object.entries(combinedScores)
       .sort(([,a], [,b]) => b - a);
 
-    return sortedTypes.length > 0 ? sortedTypes[0][0] : 'devotional';
+    return sortedTypes.length > 0 ? sortedTypes[0][0] : 'playbook';
   }
 
   private calculatePredictionConfidence(
@@ -460,11 +458,8 @@ export class PredictiveContentEngine {
   ): Promise<string> {
     try {
       // Get user context for personalization
-      // const _userContext = await userContextEngine.buildUserContext(userId, 'User', '', 'devotional');
-
       // Base prompts by content type
       const basePrompts: { [key: string]: string } = {
-        devotional: 'Create a meaningful devotional that speaks to your heart',
         playbook: 'Generate a practical spiritual growth plan for your journey',
         prayer_guide: 'Develop a prayer guide tailored to your current needs',
         bible_study: 'Explore scripture that addresses your spiritual questions',
@@ -553,11 +548,11 @@ export class PredictiveContentEngine {
   private getDefaultPrediction(userId: string): ContentPrediction {
     return {
       userId,
-      predictedContentType: 'devotional',
+      predictedContentType: 'playbook',
       confidence: 0.6,
       reasoning: ['Default recommendation for spiritual growth'],
       optimalTiming: '9:00',
-      personalizedPrompt: 'Create a meaningful devotional for your spiritual journey',
+      personalizedPrompt: 'Create a meaningful playbook for your spiritual journey',
       expectedEngagement: 0.7,
       spiritualRelevance: 0.8,
     };
@@ -567,7 +562,7 @@ export class PredictiveContentEngine {
     return {
       userId,
       contentPreferences: {
-        types: { devotional: 0.8, playbook: 0.6 },
+        types: { playbook: 0.6 },
         complexity: 0.5,
         length: 0.5,
         spiritualDepth: 0.6,
@@ -676,7 +671,6 @@ export class PredictiveContentEngine {
       const spiritualActivities = recentActivity.filter(activity =>
         activity.event_type.includes('prayer') ||
         activity.event_type.includes('scripture') ||
-        activity.event_type.includes('devotional') ||
         activity.event_type.includes('journal')
       );
 

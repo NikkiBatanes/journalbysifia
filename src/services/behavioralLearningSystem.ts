@@ -351,7 +351,6 @@ class BehavioralLearningSystem {
     const spiritualActivities = behaviorData.filter(event =>
       event.event_type.includes('prayer') ||
       event.event_type.includes('scripture') ||
-      event.event_type.includes('devotional') ||
       event.event_type.includes('worship') ||
       event.event_type.includes('journal')
     );

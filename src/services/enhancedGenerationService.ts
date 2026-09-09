@@ -1,7 +1,7 @@
 /**
  * Enhanced Generation Service
  * Integrates subscription limits, intelligence system, and queue management
- * Provides simple interface for playbook and devotional generation
+ * Provides simple interface for playbook generation
  */
 
 import { subscriptionService } from './subscriptionService';
@@ -19,13 +19,6 @@ export interface PlaybookGenerationRequest {
   isOnboarding?: boolean;
 }
 
-export interface DevotionalGenerationRequest {
-  userId: string;
-  userName: string;
-  duration?: number;
-  playbookId?: string;
-  userInput?: string;
-}
 
 export interface GenerationResponse {
   success: boolean;
@@ -358,104 +351,6 @@ export class EnhancedGenerationService {
   }
 
   /**
-   * Generate devotional with subscription checks and intelligence
-   */
-  async generateDevotional(request: DevotionalGenerationRequest): Promise<GenerationResponse> {
-    try {
-
-      // 1. Check subscription limits
-      const canGenerate = await subscriptionService.canGenerate(request.userId, 'devotional');
-
-      if (!canGenerate.allowed) {
-
-        return {
-          success: false,
-          message: canGenerate.message || `You've used all ${canGenerate.limit} devotionals this month. Upgrade for more!`,
-          upgradeRequired: canGenerate.upgradeRequired,
-          remaining: canGenerate.remaining,
-          limit: canGenerate.limit,
-        };
-      }
-
-      // 2. Get user subscription for intelligence features
-      const subscription = await subscriptionService.getUserSubscription(request.userId);
-      const limits = await subscriptionService.getSubscriptionLimits(subscription.tier);
-      const intelligenceEnabled = limits.intelligenceEnabled;
-
-      // 3. Track generation attempt for intelligence system
-      if (intelligenceEnabled) {
-        await intelligenceService.trackBehavior(request.userId, {
-          event_type: 'devotional_generation_requested',
-          event_category: 'generation',
-          event_data: {
-            duration: request.duration,
-            has_playbook_context: !!request.playbookId,
-            subscription_tier: subscription.tier,
-          },
-          duration_seconds: 0,
-        });
-      }
-
-      // Resolve bible version preference (default NASB)
-      const bibleVersion = await this.getPreferredBibleVersion();
-
-      // 4. Add to intelligent queue
-      const queueId = await queueService.addToQueue({
-        userId: request.userId,
-        type: 'devotional',
-        userInput: request.userInput || '',
-        userName: request.userName,
-        additionalParams: {
-          duration: request.duration || 7,
-          playbookId: request.playbookId,
-          userInput: request.userInput,
-          bibleVersion,
-        },
-      });
-
-      // 5. Get queue status
-      const queueStatus = await queueService.getQueueStatus(request.userId);
-
-      // 6. Build user-friendly message
-      let message = 'Generating your devotional...';
-      if (queueStatus.estimatedWaitTime > 0) {
-        const waitMinutes = Math.ceil(queueStatus.estimatedWaitTime / 60);
-        message = `Your devotional is in queue. Estimated wait: ${waitMinutes} minute${waitMinutes > 1 ? 's' : ''}`;
-
-        if (intelligenceEnabled) {
-          message += ' (AI-personalized)';
-        }
-      } else {
-        message = intelligenceEnabled
-          ? 'Generating your personalized devotional...'
-          : 'Generating your devotional...';
-      }
-
-      return {
-        success: true,
-        queueId,
-        message,
-        estimatedWaitTime: queueStatus.estimatedWaitTime,
-        intelligenceEnabled,
-        upgradeRequired: false,
-        remaining: canGenerate.remaining,
-        limit: canGenerate.limit,
-      };
-
-    } catch (error) {
-      Logger.error('[EnhancedGenerationService] Error in generateDevotional', error as Error, {
-      component: 'enhancedGenerationService',
-    });
-
-      return {
-        success: false,
-        message: 'Connection error occurred. Please check your internet connection and try again.',
-        upgradeRequired: false,
-      };
-    }
-  }
-
-  /**
    * Check generation status by queue ID
    */
   async checkGenerationStatus(queueId: string): Promise<{
@@ -572,7 +467,7 @@ export class EnhancedGenerationService {
    */
   async trackContentCompletion(
     userId: string,
-    contentType: 'playbook' | 'devotional',
+    contentType: 'playbook',
     contentId: string,
     completionData: {
       completed: boolean;

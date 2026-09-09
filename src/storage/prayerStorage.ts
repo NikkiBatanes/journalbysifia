@@ -6,7 +6,7 @@ import { toLocalDateString } from '../utils/date';
 import { streakTrackingService } from '../services/streakTrackingService';
 
 // Prayer types
-export type PrayerType = 'journal' | 'people' | 'devotional';
+export type PrayerType = 'journal' | 'people' | 'guided_playbook';
 export type JournalCategory = 'adoration' | 'confession' | 'thanksgiving' | 'supplication';
 export type PrayerStatus = 'pending' | 'answered';
 
@@ -34,8 +34,7 @@ export interface PrayerEntry {
   prayed?: boolean;
   notes?: string;
 
-  // Devotional Prayer specific fields
-  devotional_title?: string;
+  // Guided prayer fields (legacy column names)
   day_number?: number;
   day_title?: string;
   total_days?: number;
@@ -229,7 +228,6 @@ export const savePrayerEntry = async (
           requested_by: newPrayer.requested_by,
           prayed: newPrayer.prayed,
           notes: newPrayer.notes,
-          devotional_title: newPrayer.devotional_title,
           day_number: newPrayer.day_number,
           day_title: newPrayer.day_title,
           total_days: newPrayer.total_days,
@@ -321,7 +319,6 @@ export const updatePrayerEntry = async (
           requested_by: updatedPrayer.requested_by,
           prayed: updatedPrayer.prayed,
           notes: updatedPrayer.notes,
-          devotional_title: updatedPrayer.devotional_title,
           day_number: updatedPrayer.day_number,
           day_title: updatedPrayer.day_title,
           total_days: updatedPrayer.total_days,
@@ -455,87 +452,6 @@ export const getPeoplePrayers = async (
       action: 'error',
     });
     return [];
-  }
-};
-
-export const getDevotionalPrayers = async (
-  userId: string,
-  date: string,
-  devotionalTitle?: string
-): Promise<PrayerEntry[]> => {
-  try {
-    const prayers = await getPrayersByType(userId, date, 'devotional');
-    if (devotionalTitle) {
-      return prayers.filter(prayer => prayer.devotional_title === devotionalTitle);
-    }
-    return prayers;
-  } catch (error) {
-    Logger.error('Error getting devotional prayers', error as Error, {
-      component: 'prayerStorage',
-      action: 'error',
-    });
-    return [];
-  }
-};
-
-// Get all devotional prayers from cloud database regardless of date
-export const getAllDevotionalPrayersFromCloud = async (
-  userId: string
-): Promise<PrayerEntry[]> => {
-  try {
-
-    const { data, error } = await supabase
-      .from('prayers')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('prayer_type', 'devotional')
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      Logger.error('❌ Error in getAllDevotionalPrayersFromCloud', error as Error, {
-      component: 'prayerStorage',
-      action: 'error',
-    });
-      throw error;
-    }
-
-    return data || [];
-  } catch (error) {
-    Logger.error('❌ Error in getAllDevotionalPrayersFromCloud', error as Error, {
-      component: 'prayerStorage',
-      action: 'error',
-    });
-    throw error;
-  }
-};
-
-// Get devotional prayers for a specific date (similar to getCloudPrayers)
-export const getDevotionalPrayersByDate = async (userId: string, date: string): Promise<PrayerEntry[]> => {
-  try {
-
-    const { data, error } = await supabase
-      .from('prayers')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('prayer_type', 'devotional')
-      .eq('selected_date', date)
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      Logger.error('❌ Error fetching devotional prayers by date from cloud', error as Error, {
-      component: 'prayerStorage',
-      action: 'error',
-    });
-      throw error;
-    }
-
-    return data || [];
-  } catch (error) {
-    Logger.error('❌ Error in getDevotionalPrayersByDate', error as Error, {
-      component: 'prayerStorage',
-      action: 'error',
-    });
-    throw error;
   }
 };
 
