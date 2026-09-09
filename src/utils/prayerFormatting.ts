@@ -29,7 +29,7 @@ export function normalizePrayerText(raw: string): string {
     .replace(/(^|\n)\s*\d+[.)]?\s*\n\s*(?=In\s+Jesus(?:[''\u2019]s?)?\s*Name(?:,?\s*Amen)?)/gi, '$1')
     .replace(/(^|\n)\s*(?:\d+[.)]?|[-*•])\s*(?=In\s+Jesus(?:[''\u2019]s?)?\s*Name(?:,?\s*Amen)?)/gi, '$1')
     .replace(/([.!?])\s+\d+[.)]?\s+(?=In\s+Jesus(?:[''\u2019]s?)?\s*Name(?:,?\s*Amen)?)/gi, '$1 ')
-    .replace(/(?:\s*In\s+Jesus(?:[''\u2019]s?)?\s*Name,?\s*Amen\.?){2,}\s*$/i, '\n\nIn Jesus’ Name, Amen')
+    .replace(/(?:\s*In\s+Jesus(?:[''\u2019]s?)?\s*Name,?\s*Amen\.?){2,}\s*$/i, '\n\nIn Jesus’ Name\nAmen')
     // Collapse 3+ newlines to 2
     .replace(/\n{3,}/g, '\n\n')
     // Remove any spaces/tabs at line starts
@@ -48,5 +48,7 @@ export function normalizePrayerText(raw: string): string {
     // Trim trailing spaces on lines
     .replace(/[\t ]+$/gm, '')
     .replace(/\n{3,}/g, '\n\n')
-    .replace(/(?:\s*In\s+Jesus(?:[''\u2019]s?)?\s*Name,?\s*Amen\.?){2,}\s*$/i, '\n\nIn Jesus’ Name, Amen');
+    // Place Amen on its own line and drop any preceding comma/dash
+    .replace(/(In\s+Jesus['\u2019]s?\s*Name),?\s*Amen/gi, '$1\nAmen')
+    .replace(/(?:\s*In\s+Jesus(?:[''\u2019]s?)?\s*Name,?\s*Amen\.?){2,}\s*$/i, '\n\nIn Jesus’ Name\nAmen');
 }

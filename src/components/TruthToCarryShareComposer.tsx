@@ -135,6 +135,7 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
   const [selectedIndex, setSelectedIndex] = useState(0);
   const lastScrollHapticIndex = useRef(0);
   const [showWatermark, setShowWatermark] = useState<boolean | null>(null);
+  const [canToggleWatermark, setCanToggleWatermark] = useState<boolean | null>(null);
   const [textScale, setTextScale] = useState(1);
   const [typography, setTypography] = useState<ShareTypography>('classic');
   const [textAlign, setTextAlign] = useState<ShareTextAlign>('center');
@@ -159,6 +160,7 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
     setSelectedIndex(0);
     lastScrollHapticIndex.current = 0;
     setShowWatermark(null);
+    setCanToggleWatermark(null);
     setTextScale(1);
     liveTextScale.current = 1;
     textScaleAnim.setValue(1);
@@ -175,15 +177,19 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
         .then(subscription => {
           if (!cancelled) {
             const baseTier = subscription.tier.replace('_annual', '');
-            setShowWatermark(baseTier !== 'growth' && baseTier !== 'transformation');
+            const canChooseWatermark = baseTier === 'growth' || baseTier === 'transformation';
+            setCanToggleWatermark(canChooseWatermark);
+            setShowWatermark(!canChooseWatermark);
           }
         })
         .catch(() => {
           if (!cancelled) {
+            setCanToggleWatermark(false);
             setShowWatermark(true);
           }
         });
     } else {
+      setCanToggleWatermark(false);
       setShowWatermark(true);
     }
 
@@ -193,18 +199,24 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
   }, [editorAnim, textScaleAnim, userId, visible, watermarkUpsellAnim]);
 
   useEffect(() => {
-    if (showWatermark === null) {
+    if (canToggleWatermark === null) {
       watermarkUpsellAnim.setValue(0);
       return;
     }
     Animated.timing(watermarkUpsellAnim, {
-      toValue: showWatermark ? 1 : -1,
-      duration: showWatermark ? 320 : 220,
-      delay: showWatermark ? 100 : 0,
+      toValue: canToggleWatermark ? -1 : 1,
+      duration: canToggleWatermark ? 220 : 320,
+      delay: canToggleWatermark ? 0 : 100,
       easing: Easing.out(Easing.cubic),
       useNativeDriver: false,
     }).start();
-  }, [showWatermark, watermarkUpsellAnim]);
+  }, [canToggleWatermark, watermarkUpsellAnim]);
+
+  const toggleWatermark = useCallback(() => {
+    if (!canToggleWatermark || showWatermark === null) { return; }
+    triggerLightHaptic();
+    setShowWatermark(current => !current);
+  }, [canToggleWatermark, showWatermark]);
 
   const toggleEditor = useCallback(() => {
     const opening = !editorOpen;
@@ -645,7 +657,7 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
             style={[
               styles.editorPanel,
               {
-                maxHeight: editorAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 120] }),
+                maxHeight: editorAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 178] }),
                 marginBottom: editorAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 18] }),
                 opacity: editorAnim,
                 transform: [{
@@ -737,6 +749,27 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
                 </View>
               </View>
             </View>
+
+            {canToggleWatermark ? (
+              <TouchableOpacity
+                accessibilityRole="switch"
+                accessibilityLabel="Show siFia watermark"
+                accessibilityState={{ checked: !!showWatermark }}
+                activeOpacity={0.75}
+                onPress={toggleWatermark}
+                style={styles.watermarkToggleRow}
+              >
+                <View style={styles.watermarkToggleCopy}>
+                  <ThemedText weight="semiBold" style={styles.watermarkToggleTitle}>siFia watermark</ThemedText>
+                  <ThemedText style={styles.watermarkToggleSubtitle}>
+                    {showWatermark ? 'Shown on this post' : 'Hidden from this post'}
+                  </ThemedText>
+                </View>
+                <View style={[styles.watermarkSwitch, showWatermark && styles.watermarkSwitchOn]}>
+                  <View style={[styles.watermarkSwitchThumb, showWatermark && styles.watermarkSwitchThumbOn]} />
+                </View>
+              </TouchableOpacity>
+            ) : null}
           </Animated.View>
 
           <ThemedText weight="semiBold" style={styles.sectionLabel}>Share to</ThemedText>
@@ -762,9 +795,9 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
           </View>
 
           <Animated.View
-            pointerEvents={showWatermark ? 'auto' : 'none'}
-            accessibilityElementsHidden={!showWatermark}
-            importantForAccessibility={showWatermark ? 'auto' : 'no-hide-descendants'}
+            pointerEvents={canToggleWatermark === false ? 'auto' : 'none'}
+            accessibilityElementsHidden={canToggleWatermark !== false}
+            importantForAccessibility={canToggleWatermark === false ? 'auto' : 'no-hide-descendants'}
             style={[
               styles.upgradeReveal,
               {
@@ -793,7 +826,7 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
               style={styles.upgradeRow}
               onPress={handleUpgrade}
               activeOpacity={0.75}
-              disabled={!showWatermark}
+              disabled={canToggleWatermark !== false}
             >
               <View style={styles.upgradeIcon}>
                 <Ionicons name="eye-off-outline" size={18} color={Colors.alertCoral} />
@@ -1070,6 +1103,52 @@ const styles = StyleSheet.create({
   },
   iconSegmentButtonActive: {
     backgroundColor: 'rgba(255,255,255,0.12)',
+  },
+  watermarkToggleRow: {
+    minHeight: 46,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 12,
+    paddingHorizontal: 10,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.10)',
+  },
+  watermarkToggleCopy: {
+    flex: 1,
+    paddingRight: 12,
+  },
+  watermarkToggleTitle: {
+    color: Colors.hopeWhite,
+    fontSize: 11,
+    lineHeight: 15,
+  },
+  watermarkToggleSubtitle: {
+    color: 'rgba(255,255,255,0.52)',
+    fontSize: 9,
+    lineHeight: 13,
+    marginTop: 1,
+  },
+  watermarkSwitch: {
+    width: 42,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: 'center',
+    paddingHorizontal: 3,
+    backgroundColor: 'rgba(255,255,255,0.16)',
+  },
+  watermarkSwitchOn: {
+    backgroundColor: Colors.alertCoral,
+  },
+  watermarkSwitchThumb: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: Colors.hopeWhite,
+    transform: [{ translateX: 0 }],
+  },
+  watermarkSwitchThumbOn: {
+    transform: [{ translateX: 18 }],
   },
   sizeGlyph: {
     color: 'rgba(255,255,255,0.62)',

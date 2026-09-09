@@ -77,15 +77,16 @@ const ScriptureReaderModal: React.FC<ScriptureReaderModalProps> = ({
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const sheetAnim = useRef(new Animated.Value(0)).current;
+  const verseScrollRef = useRef<ScrollView>(null);
   const scrollExpansion = useRef(new Animated.Value(0)).current;
   const settingsAnim = useRef(new Animated.Value(0)).current;
   const headerCollapseAnim = useRef(new Animated.Value(0)).current;
   const closingRef = useRef(false);
   const sheetExpandedRef = useRef(false);
+  const sheetExpansionCompleteRef = useRef(false);
   const headerCollapsedRef = useRef(false);
-  const scrollDragActiveRef = useRef(false);
-  const scrollDragDirectionRef = useRef<'up' | 'down' | null>(null);
-  const lastScrollOffsetRef = useRef(0);
+  const suppressHeaderCollapseForDragRef = useRef(false);
+  const dragStartOffsetRef = useRef(0);
   const [showFullChapter, setShowFullChapter] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [headerCollapsed, setHeaderCollapsedState] = useState(false);
@@ -157,10 +158,10 @@ const ScriptureReaderModal: React.FC<ScriptureReaderModalProps> = ({
     setHeaderCollapsedState(false);
     setShowCopyright(false);
     sheetExpandedRef.current = false;
+    sheetExpansionCompleteRef.current = false;
     headerCollapsedRef.current = false;
-    scrollDragActiveRef.current = false;
-    scrollDragDirectionRef.current = null;
-    lastScrollOffsetRef.current = 0;
+    suppressHeaderCollapseForDragRef.current = false;
+    dragStartOffsetRef.current = 0;
     sheetAnim.setValue(0);
     scrollExpansion.setValue(0);
     settingsAnim.setValue(0);
@@ -222,9 +223,58 @@ const ScriptureReaderModal: React.FC<ScriptureReaderModalProps> = ({
     });
   }, [onClose, onShareScripture, requestedReference, result, sheetAnim]);
 
+  const expandReadingSheet = useCallback(() => {
+    if (sheetExpandedRef.current) { return; }
+    sheetExpandedRef.current = true;
+    sheetExpansionCompleteRef.current = false;
+    Animated.timing(scrollExpansion, {
+      toValue: 110,
+      duration: 360,
+      useNativeDriver: false,
+    }).start(({ finished }) => {
+      if (finished) {
+        sheetExpansionCompleteRef.current = true;
+      }
+    });
+  }, [scrollExpansion]);
+
+  const restoreCompactReader = useCallback(() => {
+    sheetExpandedRef.current = false;
+    sheetExpansionCompleteRef.current = false;
+    headerCollapsedRef.current = false;
+    setHeaderCollapsedState(false);
+    setSettingsOpen(false);
+    Animated.parallel([
+      Animated.timing(scrollExpansion, {
+        toValue: 0,
+        duration: 360,
+        useNativeDriver: false,
+      }),
+      Animated.timing(headerCollapseAnim, {
+        toValue: 0,
+        duration: 280,
+        useNativeDriver: false,
+      }),
+      Animated.timing(settingsAnim, {
+        toValue: 0,
+        duration: 180,
+        useNativeDriver: false,
+      }),
+    ]).start();
+  }, [headerCollapseAnim, scrollExpansion, settingsAnim]);
+
   const toggleReadingMode = () => {
     triggerLightHaptic();
-    setShowFullChapter(current => !current);
+    const openingFullChapter = !showFullChapter;
+    setShowFullChapter(openingFullChapter);
+    requestAnimationFrame(() => {
+      verseScrollRef.current?.scrollTo({ y: 0, animated: false });
+    });
+    if (openingFullChapter) {
+      expandReadingSheet();
+    } else {
+      restoreCompactReader();
+    }
   };
 
   const toggleReaderSettings = () => {
@@ -320,64 +370,55 @@ const ScriptureReaderModal: React.FC<ScriptureReaderModalProps> = ({
     setReaderLetterSpacing(0);
   };
 
-  const setSheetExpanded = useCallback((expanded: boolean) => {
-    if (sheetExpandedRef.current === expanded) { return; }
-    sheetExpandedRef.current = expanded;
-    Animated.timing(scrollExpansion, {
-      toValue: expanded ? 110 : 0,
-      duration: 260,
+  const collapseReadingHeader = useCallback(() => {
+    if (headerCollapsedRef.current) { return; }
+    headerCollapsedRef.current = true;
+    setHeaderCollapsedState(true);
+    setSettingsOpen(false);
+    Animated.timing(settingsAnim, {
+      toValue: 0,
+      duration: 180,
       useNativeDriver: false,
     }).start();
-  }, [scrollExpansion]);
-
-  const setHeaderCollapsed = useCallback((collapsed: boolean) => {
-    if (headerCollapsedRef.current === collapsed) { return; }
-    headerCollapsedRef.current = collapsed;
-    setHeaderCollapsedState(collapsed);
-    if (collapsed) {
-      setSettingsOpen(false);
-      Animated.timing(settingsAnim, {
-        toValue: 0,
-        duration: 160,
-        useNativeDriver: false,
-      }).start();
-    }
     Animated.timing(headerCollapseAnim, {
-      toValue: collapsed ? 1 : 0,
-      duration: collapsed ? 220 : 260,
+      toValue: 1,
+      duration: 300,
       useNativeDriver: false,
     }).start();
   }, [headerCollapseAnim, settingsAnim]);
 
   const handleScrollBeginDrag = useCallback((event: any) => {
-    scrollDragActiveRef.current = true;
-    scrollDragDirectionRef.current = null;
-    lastScrollOffsetRef.current = Math.max(0, event.nativeEvent.contentOffset.y);
-  }, []);
+    dragStartOffsetRef.current = Math.max(0, event.nativeEvent.contentOffset.y);
+    suppressHeaderCollapseForDragRef.current = !sheetExpandedRef.current || !sheetExpansionCompleteRef.current;
+    expandReadingSheet();
+  }, [expandReadingSheet]);
 
   const handleReadingScroll = useCallback((event: any) => {
-    const offsetY = event.nativeEvent.contentOffset.y;
-    const scrollDelta = offsetY - lastScrollOffsetRef.current;
-    if (offsetY > 2) {
-      setSheetExpanded(true);
-    } else if (offsetY < -14) {
-      setSheetExpanded(false);
-    }
-    if (scrollDragActiveRef.current && scrollDragDirectionRef.current === null) {
-      if (offsetY > 12 && scrollDelta > 2) {
-        scrollDragDirectionRef.current = 'up';
-        setHeaderCollapsed(true);
-      } else if (scrollDelta < -2 || offsetY < -2) {
-        scrollDragDirectionRef.current = 'down';
-        setHeaderCollapsed(false);
+    const rawOffsetY = event.nativeEvent.contentOffset.y;
+    const offsetY = Math.max(0, rawOffsetY);
+    if (headerCollapsedRef.current) {
+      if (offsetY <= 1) {
+        restoreCompactReader();
       }
+      return;
     }
-    lastScrollOffsetRef.current = Math.max(0, offsetY);
-  }, [setHeaderCollapsed, setSheetExpanded]);
 
-  const handleScrollEndDrag = useCallback(() => {
-    scrollDragActiveRef.current = false;
-  }, []);
+    if (sheetExpandedRef.current && rawOffsetY < -18) {
+      restoreCompactReader();
+      return;
+    }
+
+    if (
+      suppressHeaderCollapseForDragRef.current ||
+      !sheetExpansionCompleteRef.current
+    ) {
+      return;
+    }
+
+    if (offsetY - dragStartOffsetRef.current > 32) {
+      collapseReadingHeader();
+    }
+  }, [collapseReadingHeader, restoreCompactReader]);
 
   const collapsedHeight = Math.min(570, SCREEN_HEIGHT * 0.68);
   const expandedHeight = SCREEN_HEIGHT - Math.max(insets.top, 12);
@@ -735,13 +776,13 @@ const ScriptureReaderModal: React.FC<ScriptureReaderModalProps> = ({
           </Animated.View>
 
           <ScrollView
+            ref={verseScrollRef}
             style={styles.verseScroll}
             contentContainerStyle={styles.verseScrollContent}
             showsVerticalScrollIndicator={false}
             scrollEventThrottle={16}
             onScrollBeginDrag={handleScrollBeginDrag}
             onScroll={handleReadingScroll}
-            onScrollEndDrag={handleScrollEndDrag}
           >
             {loading ? (
               <View style={styles.loadingBlock}>

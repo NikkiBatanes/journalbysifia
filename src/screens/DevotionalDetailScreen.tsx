@@ -216,6 +216,8 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
   // Share composer for prayer and scripture
   const [shareComposerVisible, setShareComposerVisible] = useState(false);
   const [shareComposerText, setShareComposerText] = useState('');
+  const [shareComposerColor, setShareComposerColor] = useState(Colors.hopeWhite);
+  const [shareComposerNoSplit, setShareComposerNoSplit] = useState(false);
 
   // Scripture reader modal for today's scripture
   const [scriptureReaderVisible, setScriptureReaderVisible] = useState(false);
@@ -1168,7 +1170,8 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
       <TruthToCarryShareComposer
         visible={shareComposerVisible}
         text={shareComposerText}
-        textColor={Colors.alertCoral}
+        textColor={shareComposerColor}
+        noSplit={shareComposerNoSplit}
         userId={userId || ''}
         onClose={() => setShareComposerVisible(false)}
         onUpgrade={() => {}}
@@ -1183,6 +1186,8 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
           onClose={() => setScriptureReaderVisible(false)}
           onShareScripture={scriptureText => {
             setShareComposerText(scriptureText);
+            setShareComposerColor(Colors.alertCoral);
+            setShareComposerNoSplit(false);
             setScriptureReaderVisible(false);
             setShareComposerVisible(true);
           }}
@@ -1332,6 +1337,22 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
                 <ThemedText weight="bold" style={styles.scriptureReference} selectable={true}>
                   {(day.scripture?.reference || '').toUpperCase()}{day.scripture?.version ? ` ${day.scripture.version}` : ''}
                 </ThemedText>
+                {day.scripture?.version && (
+                  <TouchableOpacity
+                    style={styles.infoIcon}
+                    onPress={() => {
+                      triggerLightHaptic();
+                      setShowCopyrightModal(true);
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons
+                      name="information-circle-outline"
+                      size={14}
+                      color={Colors.alertCoral}
+                    />
+                  </TouchableOpacity>
+                )}
                 {day.scripture?.reference && (
                   <View style={styles.scriptureActions}>
                     <TouchableOpacity
@@ -1351,6 +1372,8 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
                       onPress={() => {
                         triggerLightHaptic();
                         setShareComposerText(day.scripture?.text || '');
+                        setShareComposerColor(Colors.alertCoral);
+                        setShareComposerNoSplit(false);
                         setShareComposerVisible(true);
                       }}
                       activeOpacity={0.72}
@@ -1360,22 +1383,6 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
                       <Ionicons name="paper-plane-outline" size={16} color={Colors.alertCoral} />
                     </TouchableOpacity>
                   </View>
-                )}
-                {day.scripture?.version && (
-                  <TouchableOpacity
-                    style={styles.infoIcon}
-                    onPress={() => {
-                      triggerLightHaptic();
-                      setShowCopyrightModal(true);
-                    }}
-                    activeOpacity={0.7}
-                  >
-                    <Ionicons
-                      name="information-circle-outline"
-                      size={18}
-                      color={Colors.alertCoral}
-                    />
-                  </TouchableOpacity>
                 )}
               </View>
             </DevotionalSectionCard>
@@ -1527,6 +1534,8 @@ const DevotionalDetailScreen: React.FC<DevotionalDetailScreenProps> = ({ route, 
                         onPress={() => {
                           triggerLightHaptic();
                           setShareComposerText(formattedPrayer);
+                          setShareComposerColor(Colors.hopeWhite);
+                          setShareComposerNoSplit(true);
                           setShareComposerVisible(true);
                         }}
                         activeOpacity={0.72}

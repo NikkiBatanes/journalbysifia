@@ -93,6 +93,48 @@ const REFINEMENT_OPTIONS: Array<{ id: string; type: PlaybookCorrectionType; labe
   { id: 'something_else', type: 'explain_more', label: 'Something else' },
 ];
 
+type RefinementUpgradeTier = 'growth' | 'transformation';
+
+const getRefinementUpgradeTier = (subscription: any): RefinementUpgradeTier | null => {
+  const storedTier = String(subscription?.tier || 'seeker').replace(/_annual$/, '');
+  const effectiveTier = storedTier === 'free_trial'
+    ? String(subscription?.trial_chosen_tier || 'growth').replace(/_annual$/, '')
+    : storedTier;
+  if (effectiveTier === 'transformation') { return null; }
+  return effectiveTier === 'growth' ? 'transformation' : 'growth';
+};
+
+const getRefinementResetLabel = (subscription: any): string => {
+  const now = new Date();
+  const storedTier = String(subscription?.tier || 'seeker').replace(/_annual$/, '');
+  let resetDate: Date;
+
+  if (storedTier === 'free_trial' && subscription?.trial_end_date) {
+    resetDate = new Date(subscription.trial_end_date);
+  } else if (storedTier === 'seeker') {
+    const anchor = new Date(subscription?.last_usage_reset || subscription?.created_at || now);
+    resetDate = new Date(anchor.getTime() + 30 * 24 * 60 * 60 * 1000);
+    while (resetDate <= now) {
+      resetDate = new Date(resetDate.getTime() + 30 * 24 * 60 * 60 * 1000);
+    }
+  } else {
+    const anchor = new Date(subscription?.subscription_start_date || subscription?.created_at || now);
+    const anchorDay = anchor.getDate();
+    const thisMonthDay = Math.min(anchorDay, new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate());
+    resetDate = new Date(now.getFullYear(), now.getMonth(), thisMonthDay);
+    if (resetDate <= now) {
+      const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+      const nextMonthDay = Math.min(anchorDay, new Date(nextMonth.getFullYear(), nextMonth.getMonth() + 1, 0).getDate());
+      resetDate = new Date(nextMonth.getFullYear(), nextMonth.getMonth(), nextMonthDay);
+    }
+  }
+
+  if (Number.isNaN(resetDate.getTime()) || resetDate <= now) {
+    resetDate = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+  }
+  return resetDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
+};
+
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 const getDirectChallengeText = (
@@ -951,7 +993,7 @@ interface TruthStepProps {
   onGoToScripture?: () => void;
   bibleVersion?: string;
   onOpenRefinement?: () => void;
-  onShareReflection?: (text: string) => void;
+  onShareReflection?: (text: string, options?: { noSplit?: boolean }) => void;
   onShareScripture?: (text: string) => void;
   insets: { top: number; bottom: number };
 }
@@ -1032,6 +1074,11 @@ const TruthBeatStep: React.FC<TruthBeatStepProps> = ({
   const collapseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [truthNavCollapsed, setTruthNavCollapsed] = useState(false);
   const currentIndex = Math.min(Math.max(beatIndex, 0), beats.length - 1);
+
+  useEffect(() => {
+    setOpenScriptureBackings({});
+  }, [currentIndex]);
+
   const currentBeat = beats[currentIndex];
   const primaryText = currentBeat.primaryTruth;
   const supportingText = currentBeat.supportingTruth;
@@ -1064,7 +1111,7 @@ const TruthBeatStep: React.FC<TruthBeatStepProps> = ({
     ? (/^consider these questions$/i.test(rawRevealLabel) || !rawRevealLabel ? 'Examine this gently' : rawRevealLabel)
     : rawRevealLabel || 'Reveal more';
   const shouldShowReveal = hasExamineQuestions || !!reveal?.content;
-  const primaryButtonLabel = isLastBeat ? (holdEntrust?.cta || 'Scripture') : 'Continue';
+  const primaryButtonLabel = isLastBeat ? (holdEntrust?.cta || 'Anchor') : 'Continue';
   const TRUTH_NAV_PILL_WIDTH = SCREEN_WIDTH - 32;
   const TRUTH_NAV_CIRCLE_RATIO = 56 / TRUTH_NAV_PILL_WIDTH;
   const truthNavContentOpacity = truthNavCollapseAnim.interpolate({ inputRange: [0, 0.35], outputRange: [1, 0], extrapolate: 'clamp' });
@@ -1536,13 +1583,13 @@ const TruthBeatStep: React.FC<TruthBeatStepProps> = ({
                 onPress={toggleScriptureBacking}
                 activeOpacity={0.78}
                 accessibilityRole="button"
-                accessibilityLabel="Why is this biblical?"
+                accessibilityLabel="See this in Scripture"
                 accessibilityState={{ expanded: scriptureBackingOpen }}
               >
                 <View style={styles.truthScriptureBackingTitleRow}>
-                  <MaterialCommunityIcons name="script-text" size={14} color={Colors.faithGold} />
+                  <Ionicons name="help-circle-outline" size={14} color={Colors.faithGold} />
                   <ThemedText weight="semiBold" style={styles.truthScriptureBackingTitle}>
-                    Why is this biblical?
+                    See this in Scripture
                   </ThemedText>
                 </View>
                 <Ionicons
@@ -1552,7 +1599,7 @@ const TruthBeatStep: React.FC<TruthBeatStepProps> = ({
                 />
               </TouchableOpacity>
               {scriptureBackingOpen ? (
-                <View style={styles.truthScriptureBackingBody}>
+                <StepFadeIn delay={0} style={styles.truthScriptureBackingBody}>
                   {scriptureBacking.passages.map((passage, passageIndex) => (
                     <View
                       key={`${passage.reference}-${passageIndex}`}
@@ -1565,7 +1612,7 @@ const TruthBeatStep: React.FC<TruthBeatStepProps> = ({
                         <ThemedText selectable weight="bold" style={styles.truthScriptureReference}>
                           {passage.reference}
                         </ThemedText>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                           <TouchableOpacity
                             style={styles.truthScriptureReadButton}
                             onPress={() => {
@@ -1579,7 +1626,7 @@ const TruthBeatStep: React.FC<TruthBeatStepProps> = ({
                           >
                             <MaterialCommunityIcons
                               name="script-text"
-                              size={16}
+                              size={15}
                               color={Colors.faithGold}
                             />
                           </TouchableOpacity>
@@ -1597,7 +1644,7 @@ const TruthBeatStep: React.FC<TruthBeatStepProps> = ({
                             >
                               <Ionicons
                                 name="paper-plane-outline"
-                                size={16}
+                                size={15}
                                 color={Colors.faithGold}
                               />
                             </TouchableOpacity>
@@ -1616,7 +1663,7 @@ const TruthBeatStep: React.FC<TruthBeatStepProps> = ({
                       />
                     </View>
                   ))}
-                </View>
+                </StepFadeIn>
               ) : null}
             </View>
           </StepFadeIn>
@@ -1788,10 +1835,10 @@ const TruthBeatStep: React.FC<TruthBeatStepProps> = ({
                 activeOpacity={0.75}
                 hitSlop={{ top: 8, bottom: 8, left: 16, right: 16 }}
                 accessibilityRole="button"
-                accessibilityLabel="Go to Scripture"
+                accessibilityLabel="Go to Anchor"
               >
                 <MaterialCommunityIcons name="script-text" size={15} color={Colors.hopeWhite} />
-                <ThemedText weight="medium" style={styles.truthBeatScriptureLinkText}>Scripture</ThemedText>
+                <ThemedText weight="medium" style={styles.truthBeatScriptureLinkText}>Anchor</ThemedText>
               </TouchableOpacity>
             ) : null}
           </Animated.View>
@@ -1863,7 +1910,7 @@ const TruthBeatStep: React.FC<TruthBeatStepProps> = ({
               >
                 <MaterialCommunityIcons name="script-text" size={16} color={Colors.hopeWhite} />
                 <ThemedText weight="semiBold" style={styles.truthScriptureConfirmPrimaryText}>
-                  Go to Scripture
+                  Go to Anchor
                 </ThemedText>
               </TouchableOpacity>
             </StepFadeIn>
@@ -2013,8 +2060,11 @@ interface FloatingRefinementControlProps {
   onClose: () => void;
   isRefining: boolean;
   refinementsRemaining: number;
+  upgradeTier: RefinementUpgradeTier | null;
+  resetDateLabel: string;
   insets: { bottom: number };
   onRefineSubmit: (correctionType: PlaybookCorrectionType, clarification: string) => Promise<boolean>;
+  onUpgrade: () => void;
 }
 
 const FloatingRefinementControl: React.FC<FloatingRefinementControlProps> = ({
@@ -2022,8 +2072,11 @@ const FloatingRefinementControl: React.FC<FloatingRefinementControlProps> = ({
   onClose,
   isRefining,
   refinementsRemaining,
+  upgradeTier,
+  resetDateLabel,
   insets,
   onRefineSubmit,
+  onUpgrade,
 }) => {
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';
@@ -2042,7 +2095,8 @@ const FloatingRefinementControl: React.FC<FloatingRefinementControlProps> = ({
   const panelMaxHeight = keyboardHeight > 0
     ? Math.max(260, SCREEN_HEIGHT - keyboardHeight - 42)
     : SCREEN_HEIGHT - 82;
-  const remainingLabel = `${Math.max(0, refinementsRemaining)} refinement${refinementsRemaining === 1 ? '' : 's'} left`;
+  const noRefinementsLeft = refinementsRemaining === 0;
+  const upgradeTierName = upgradeTier === 'transformation' ? 'Transformation' : 'Growth';
 
   useEffect(() => {
     if (open) {
@@ -2187,7 +2241,6 @@ const FloatingRefinementControl: React.FC<FloatingRefinementControlProps> = ({
           {
             bottom: keyboardLift,
             maxHeight: panelMaxHeight,
-            paddingBottom: insets.bottom + 16,
             opacity: revealAnim,
             transform: [
               {
@@ -2203,20 +2256,23 @@ const FloatingRefinementControl: React.FC<FloatingRefinementControlProps> = ({
         <ScrollView
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
+          contentContainerStyle={{ paddingBottom: insets.bottom }}
         >
           <View style={styles.floatingRefinementHeader}>
             <View style={styles.refinementSheetTitleRow}>
               <ThemedText weight="bold" style={styles.refinementSheetTitle}>
                 Help siFia understand
               </ThemedText>
-              <View style={styles.refinementCountBadge}>
-                <ThemedText weight="semiBold" style={styles.refinementCountBadgeText}>
-                  {remainingLabel}
-                </ThemedText>
-              </View>
+              {noRefinementsLeft ? (
+                <View style={styles.refinementCountBadge}>
+                  <ThemedText weight="semiBold" style={styles.refinementCountBadgeText}>
+                    No refinements left
+                  </ThemedText>
+                </View>
+              ) : null}
             </View>
             <ThemedText style={styles.refinementSheetPrompt}>
-              What did we miss?
+              {noRefinementsLeft ? 'These are the parts you can refine.' : 'What did we miss?'}
             </ThemedText>
           </View>
 
@@ -2226,10 +2282,15 @@ const FloatingRefinementControl: React.FC<FloatingRefinementControlProps> = ({
               return (
                 <StepFadeIn key={option.id} delay={index * 45}>
                   <TouchableOpacity
-                    style={[styles.refinementReasonButton, selected && styles.refinementReasonButtonSelected]}
+                    style={[
+                      styles.refinementReasonButton,
+                      selected && styles.refinementReasonButtonSelected,
+                      noRefinementsLeft && styles.refinementReasonButtonDisabled,
+                    ]}
                     onPress={() => handleReasonPress(option.id)}
                     activeOpacity={0.82}
-                    disabled={isRefining}
+                    disabled={isRefining || noRefinementsLeft}
+                    accessibilityState={{ disabled: isRefining || noRefinementsLeft }}
                   >
                     <Ionicons
                       name={selected ? 'radio-button-on' : 'radio-button-off'}
@@ -2246,7 +2307,36 @@ const FloatingRefinementControl: React.FC<FloatingRefinementControlProps> = ({
             })}
           </View>
 
-          {selectedRefinementType ? (
+          {noRefinementsLeft ? (
+            <View style={styles.refinementExhaustedActions}>
+              {upgradeTier ? (
+                <TouchableOpacity
+                  style={styles.refinementUpgradeButton}
+                  onPress={() => {
+                    triggerLightHaptic();
+                    onUpgrade();
+                  }}
+                  activeOpacity={0.82}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Upgrade to ${upgradeTierName}`}
+                >
+                  <MaterialCommunityIcons name="star-four-points" size={16} color={Colors.hopeWhite} />
+                  <ThemedText weight="bold" style={styles.refinementUpgradeButtonText}>
+                    Upgrade to {upgradeTierName}
+                  </ThemedText>
+                </TouchableOpacity>
+              ) : null}
+              <ThemedText style={styles.refinementResetText}>
+                {upgradeTier ? 'Or wait until ' : 'Refinements reset on '}
+                <ThemedText weight="semiBold" style={styles.refinementResetDateText}>
+                  {resetDateLabel}
+                </ThemedText>
+                {upgradeTier ? ' for your refinements to reset.' : '.'}
+              </ThemedText>
+            </View>
+          ) : null}
+
+          {!noRefinementsLeft && selectedRefinementType ? (
             <StepFadeIn delay={260} style={styles.refinementFloatingInputBlock}>
               <TextInput
                 ref={inputRef}
@@ -2368,34 +2458,6 @@ const ScriptureAnchorStep: React.FC<ScriptureStepProps> = ({ reference, text, ve
             >
               <Ionicons name="information-circle-outline" size={12} color="rgba(255,255,255,0.5)" />
             </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => {
-                triggerLightHaptic();
-                setShowScriptureReader(true);
-              }}
-              activeOpacity={0.7}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              style={{ marginLeft: 8, alignSelf: 'center' }}
-              accessibilityRole="button"
-              accessibilityLabel={`Read ${reference}`}
-            >
-              <MaterialCommunityIcons name="script-text" size={15} color={Colors.alertCoral} />
-            </TouchableOpacity>
-            {onShareScripture ? (
-              <TouchableOpacity
-                onPress={() => {
-                  triggerLightHaptic();
-                  onShareScripture(`${stripVerseQuotes(text)}\n\n— ${reference}`);
-                }}
-                activeOpacity={0.7}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                style={{ marginLeft: 8, alignSelf: 'center' }}
-                accessibilityRole="button"
-                accessibilityLabel="Share this Scripture"
-              >
-                <Ionicons name="paper-plane-outline" size={15} color={Colors.hopeWhite} />
-              </TouchableOpacity>
-            ) : null}
           </View>
         </View>
         {Platform.OS === 'ios' ? (
@@ -2427,6 +2489,37 @@ const ScriptureAnchorStep: React.FC<ScriptureStepProps> = ({ reference, text, ve
         onClose={() => setShowScriptureReader(false)}
         onShareScripture={onShareScripture}
       />
+
+      <StepFadeIn delay={180} style={styles.notesActions}>
+        <TouchableOpacity
+          onPress={() => {
+            triggerLightHaptic();
+            setShowScriptureReader(true);
+          }}
+          activeOpacity={0.7}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          style={{ alignSelf: 'center' }}
+          accessibilityRole="button"
+          accessibilityLabel={`Read ${reference}`}
+        >
+          <MaterialCommunityIcons name="script-text" size={15} color={Colors.alertCoral} />
+        </TouchableOpacity>
+        {onShareScripture ? (
+          <TouchableOpacity
+            onPress={() => {
+              triggerLightHaptic();
+              onShareScripture(`${stripVerseQuotes(text)}\n\n— ${reference}`);
+            }}
+            activeOpacity={0.7}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            style={{ alignSelf: 'center' }}
+            accessibilityRole="button"
+            accessibilityLabel="Share this Scripture"
+          >
+            <Ionicons name="paper-plane-outline" size={15} color={Colors.alertCoral} />
+          </TouchableOpacity>
+        ) : null}
+      </StepFadeIn>
 
       <View style={styles.reflectionBlock}>
         {reflectionLines.map((line, i) => (
@@ -2689,7 +2782,18 @@ function normalizeSingleQuotedActionScripts(text: string): string {
 }
 
 function unwrapQuotedMultilineActionScript(text: string): string {
-  let out = String(text || '').replace(
+  let out = String(text || '');
+  out = out.replace(
+    /^\s*["“]([\s\S]*?)["”]\s*(?:\n+|\s+)((?:Say|Repeat|Pray|Read)\b[\s\S]*)$/i,
+    (_match, quote, rest) => {
+      const script = String(quote).replace(/\s*\n+\s*/g, ' ').replace(/\s+/g, ' ').trim();
+      const label = /^(?:Lord|Jesus|Father|Heavenly Father|God|Holy Spirit)\b/i.test(script)
+        ? 'Prayer to say'
+        : 'Words to say';
+      return [label + ':', '"' + script + '"', String(rest).trim()].join('\n');
+    }
+  );
+  out = out.replace(
     /['‘]\s*((?:Message|Text|Send|Write|Ask|Pray)[^:\n]{0,100}:\s*\n[\s\S]*?)\s*['’](?=\s*(?:\n|$))/gi,
     (_match, script) => String(script).trim()
   );
@@ -2734,6 +2838,14 @@ function normalizeActionPracticeLoopText(text: string): string {
   }
 
   return lines.join('\n');
+}
+
+function normalizeFaithfulActionDisplayText(value: string): string {
+  return String(value || '')
+    .replace(/\bwith spouse\/family member trusted for accountability\b/gi, 'with a spouse or family member you trust for accountability')
+    .replace(/\bwith spouse\/family member\b/gi, 'with a spouse or family member')
+    .replace(/\bWill you help me stick close\?/gi, 'Would you help me stay accountable to this plan?')
+    .replace(/\bWould you help me stick close\?/gi, 'Would you help me stay accountable to this plan?');
 }
 
 function toInstructionPointOfView(text: string): string {
@@ -2998,9 +3110,12 @@ function splitParentheticalActionHint(line: string): string[] | null {
     return null;
   }
 
-  const mainLine = /[.!?]$/.test(main) ? main : `${main}${match[3] || '.'}`;
+  const trailingText = match[4]?.trim() || '';
+  const trailingCompletesSentence = /^(?:so|to|because|while|without|with|and|but|or)\b/.test(trailingText);
+  const combinedMain = trailingCompletesSentence ? `${main} ${trailingText}` : main;
+  const mainLine = /[.!?]$/.test(combinedMain) ? combinedMain : `${combinedMain}${match[3] || '.'}`;
   const hintLabel = displayHintLabel(parentheticalHintLabelForMain(main), hintItems.length);
-  const trailingLines = match[4] ? splitReadableActionLine(match[4].trim()) : [];
+  const trailingLines = trailingText && !trailingCompletesSentence ? splitReadableActionLine(trailingText) : [];
 
   return [mainLine, `${hintLabel}: ${hintItems.join('; ')}`, ...trailingLines];
 }
@@ -3014,6 +3129,7 @@ function splitListHintItems(value: string): string[] {
   return splitHintTextOnSeparators(String(value || '')
     .replace(/\([^)]*\)/g, '')
     .replace(/\s+plus\s+(?=(?:check-ins?|accountability|prayer|healthy|rest|meals|Bible|waking)\b)/gi, ', ')
+    .replace(/\s+or\s+(?=(?:number|time|minutes?|hours?|comments?|items?|steps?|points?)\b)/gi, ', ')
     .replace(/\s+and\s+(?=(?:avoiding|avoid|no|prayer|healthy|rest|attending|meeting|meals|places|people)\b)/gi, ', '))
     .map(part => {
       const cleaned = cleanHintItem(part.replace(/^(?:and|or)\s+/i, ''));
@@ -3463,7 +3579,11 @@ function stripLeakedActionFieldFragments(value: string): string {
 }
 
 function cleanActionDisplaySegment(value: string, preserveBulletMarkers = false): string {
-  let out = normalizeActionBulletMarkers(normalizeActionMarkup(stripLeakedActionFieldFragments(String(value || ''))))
+  const rawValue = String(value || '').trim().replace(
+    /^["“]\s*((?:Message|Text|Send|Write|Ask|Pray)\b[^:\n]{0,140}:\s*['‘][\s\S]*['’])\s*["”]\s*$/i,
+    '$1'
+  );
+  let out = normalizeActionBulletMarkers(normalizeActionMarkup(stripLeakedActionFieldFragments(rawValue)))
     .replace(/\\"/g, '"')
     .replace(/\\'/g, "'")
     .replace(/\*\*|__/g, '');
@@ -3487,6 +3607,12 @@ function normalizeActionExampleDisplayText(example: string): string {
     .replace(/\\'/g, "'")
     .replace(/&quot;|&#34;/gi, '"')
     .trim();
+  if (/^(?:send|use|repeat)\s+(?:the\s+)?(?:message|text|words?)\s+(?:like|from)\s+above\s+exactly\.?$/i.test(value)) {
+    return '';
+  }
+  if (/^pray\s+(?:these|the)\s+words\s+during\b.+\.?$/i.test(value)) {
+    return '';
+  }
   const bareYesNoAnswers = value.replace(/[.!?]+$/g, '').match(/^(yes|no)(?:\s*,\s*(yes|no))+$/i);
   if (bareYesNoAnswers) {
     const answers = value
@@ -3630,7 +3756,7 @@ function getPrimaryActionExample(rawExamples: unknown, subTasks?: ActionStep['su
 
 function splitActionDescription(value: string): { body: string; example?: string } {
   const parts = String(value || '').split(ACTION_EXAMPLE_MARKER_REGEX);
-  const body = cleanActionDisplaySegment(parts[0] || '', true);
+  let body = cleanActionDisplaySegment(parts[0] || '', true);
   if (parts.length < 2) {
     return { body };
   }
@@ -3639,7 +3765,14 @@ function splitActionDescription(value: string): { body: string; example?: string
     .slice(1)
     .map(part => cleanActionDisplaySegment(part))
     .filter(Boolean);
-  const preferredExample = exampleSegments.find(part => /^["“]/.test(part.trim())) || exampleSegments[0] || '';
+  let preferredExample = exampleSegments.find(part => /^["“]/.test(part.trim())) || exampleSegments[0] || '';
+  const trailingGuidance = preferredExample.match(
+    /^([\s\S]*?)\n+((?:Invite|Keep|Ask|Then|Next|Use|Discuss|Agree|Set)\b[\s\S]*)$/i
+  );
+  if (trailingGuidance) {
+    preferredExample = trailingGuidance[1].trim();
+    body = [body, trailingGuidance[2].trim()].filter(Boolean).join('\n');
+  }
   const example = normalizeActionExampleDisplayText(
     preferredExample
   );
@@ -4039,7 +4172,7 @@ function isChecklistIntroLine(line: string): boolean {
 }
 
 function isAskPromptIntroLine(line: string): boolean {
-  return /^(?:(?:read|rad)\s+what\s+you\s+wrote\s+out\s+loud\s+slow(?:ly|ely)\s+and\s+ask(?:\s+yourself)?|(?:read|rad) slow(?:ly|ely)(?:\s+(?:each day|daily))? and ask|pause and ask|[^:]{0,90}\bask\s+these\s+questions|ask(?:\s+(?:yourself|them))?(?:\s+these\s+questions)?|then ask|test|check):\s*$/i.test(line.trim());
+  return /^(?:(?:read|rad)\s+what\s+you\s+wrote\s+out\s+loud\s+slow(?:ly|ely)\s+and\s+ask(?:\s+yourself)?|(?:read|rad) slow(?:ly|ely)(?:\s+(?:each day|daily))? and ask|pause and ask|[^:]{0,90}\bask\s+these\s+questions|ask(?:\s+(?:yourself|them))?(?:\s+(?:kindly|gently|honestly|plainly))?(?:\s+these\s+questions)?|then ask|test|check):\s*$/i.test(line.trim());
 }
 
 function askPromptLabel(line: string): string {
@@ -4109,6 +4242,7 @@ function detectBodyLines(lines: string[], actionType: string): BodyLine[] {
   for (let idx = 0; idx < lines.length; idx++) {
     const raw = lines[idx];
     const line = raw.trim();
+    const previousLine = lines[idx - 1]?.trim() || '';
     const nextLine = lines[idx + 1]?.trim() || '';
     const resourceList = parseResourceListLine(line) || parseResourceHintLine(line);
     const columnHeader = parseColumnHeaderLine(line);
@@ -4247,18 +4381,19 @@ function detectBodyLines(lines: string[], actionType: string): BodyLine[] {
 
     if (isAskPromptIntroLine(line)) {
       const { questions, nextIndex } = collectPromptQuestions(lines, idx + 1);
-      out.push({
-        label: combineAskPromptLabel(pendingAskPromptQualifier, askPromptLabel(line)),
-        text: '',
-        type: 'ask',
-      });
+      const promptLabel = combineAskPromptLabel(pendingAskPromptQualifier, askPromptLabel(line));
       pendingAskPromptQualifier = null;
 
       if (questions.length > 0) {
-        out.push({ label: 'Ask', text: questions.join('\n\n'), type: 'script' });
+        out.push({ label: promptLabel, text: questions.join('\n\n'), type: 'script' });
         idx = nextIndex - 1;
         expectingPromptQuestion = false;
       } else {
+        out.push({
+          label: promptLabel,
+          text: '',
+          type: 'ask',
+        });
         expectingPromptQuestion = true;
       }
       inChecklist = false;
@@ -4280,6 +4415,23 @@ function detectBodyLines(lines: string[], actionType: string): BodyLine[] {
         type: 'script',
       });
       idx++;
+      inChecklist = false;
+      inWriteDownList = false;
+      continue;
+    }
+
+    // A run of reflection questions is one prompt group, not a series of
+    // speech scripts. This also keeps questions beginning with "Am" aligned
+    // with neighboring "Do", "Is", and similar questions.
+    const isReflectionQuestionGroup = isPromptQuestionLine(line) && (
+      isPromptQuestionLine(previousLine) || isPromptQuestionLine(nextLine)
+    );
+    if (isReflectionQuestionGroup) {
+      if (!isPromptQuestionLine(previousLine)) {
+        out.push({ label: 'Ask yourself', text: '', type: 'ask' });
+      }
+      out.push({ text: stripBalancedActionQuotes(line), type: 'question' });
+      expectingPromptQuestion = false;
       inChecklist = false;
       inWriteDownList = false;
       continue;
@@ -4345,7 +4497,7 @@ function detectBodyLines(lines: string[], actionType: string): BodyLine[] {
       continue;
     }
 
-    const hintMatch = line.match(/^(Suggestions|Examples|Possible limits|Limit examples|Daily supports):\s*(.+)$/i);
+    const hintMatch = line.match(/^(Suggestions|Examples|Possible limits?|Limit examples|Daily supports):\s*(.+)$/i);
     if (hintMatch) {
       const { hintText, trailingText } = splitHintTextFromTrailingInstruction(hintMatch[2]);
       out.push({ label: capitalizeFirstLetter(hintMatch[1].trim()), text: hintText, type: 'hint' });
@@ -5282,7 +5434,9 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
   const stripMd = (s: string) => s.replace(/\*\*|__|\*/g, '').trim();
 
   // Split body into main text and example (split on "Example:" marker)
-  const rawDescription = currentStep.description ?? currentStep.subTasks?.map(s => s.text).join('\n') ?? '';
+  const rawDescription = normalizeFaithfulActionDisplayText(
+    currentStep.description ?? currentStep.subTasks?.map(s => s.text).join('\n') ?? ''
+  );
   const actionDescription = splitActionDescription(rawDescription);
   const rawMainBody = actionDescription.body;
   const fallbackExample = getPrimaryActionExample((currentStep as any).examples, currentStep.subTasks);
@@ -5332,11 +5486,14 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
     ? wisdomThread.map(entry => `User: ${entry.question}\nsiFia: ${entry.wisdom}`).join('\n\n')
     : currentActionWisdom;
 
-  const primaryLabel = currentStep.primaryButton ?? (
+  const generatedPrimaryLabel = currentStep.primaryButton ?? (
     actionType === 'choose' ? "I've chosen" :
     actionType === 'text_input' ? 'Save to Journal' :
     'Done'
   );
+  const primaryLabel = /^I did (?:these actions?|it all)$/i.test(generatedPrimaryLabel.trim())
+    ? /\b(?:share|tell|message)\b/i.test(currentStep.title || '') ? 'I shared it' : 'I did it'
+    : generatedPrimaryLabel;
 
   const isCommitted = !!committedSteps[actionStepIndex];
 
@@ -5496,7 +5653,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
             <View style={styles.actionTitleContainer}>
               {Platform.OS === 'ios' ? (
                 <TextInput
-                  value={stripMd(currentStep.title)}
+                  value={normalizeFaithfulActionDisplayText(stripMd(currentStep.title))}
                   editable={false}
                   multiline={true}
                   scrollEnabled={false}
@@ -5504,7 +5661,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
                 />
               ) : (
                 <ThemedText weight="semiBold" style={styles.actionTitle} selectable={true}>
-                  {stripMd(currentStep.title)}
+                  {normalizeFaithfulActionDisplayText(stripMd(currentStep.title))}
                 </ThemedText>
               )}
             </View>
@@ -5542,12 +5699,35 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
                 );
               }
               if (item.type === 'question') {
+                if (smartBodyLines[idx - 1]?.type === 'question') {
+                  return null;
+                }
+                const questions: BodyLine[] = [];
+                for (let questionIndex = idx; questionIndex < smartBodyLines.length; questionIndex++) {
+                  const question = smartBodyLines[questionIndex];
+                  if (question.type !== 'question') { break; }
+                  questions.push(question);
+                }
                 return (
-                  <View key={idx} style={styles.bodyQuestionRow}>
-                    <ThemedText style={styles.bodyQuestionMark}>?</ThemedText>
-                    <ThemedText style={styles.bodyQuestionText} selectable={true}>
-                      {item.text}
-                    </ThemedText>
+                  <View key={idx} style={styles.actionQuestionGroup}>
+                    {questions.map((question, questionIndex) => (
+                      <View
+                        key={`${question.text}-${questionIndex}`}
+                        style={[
+                          styles.actionQuestionRow,
+                          questionIndex > 0 && styles.actionQuestionDivider,
+                        ]}
+                      >
+                        <View style={styles.actionQuestionNumber}>
+                          <ThemedText weight="semiBold" style={styles.actionQuestionNumberText}>
+                            {questionIndex + 1}
+                          </ThemedText>
+                        </View>
+                        <ThemedText style={styles.actionQuestionText} selectable={true}>
+                          {question.text}
+                        </ThemedText>
+                      </View>
+                    ))}
                   </View>
                 );
               }
@@ -5842,6 +6022,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
                   <View style={styles.exampleRail} />
                   <View style={styles.exampleHeader}>
                     <MaterialCommunityIcons name="lightbulb-outline" size={14} color="rgba(255,255,255,0.6)" />
+                    <ThemedText weight="semiBold" style={styles.exampleHeaderText}>Example</ThemedText>
                   </View>
                   {Platform.OS === 'ios' ? (
                     exampleFieldLines.length > 0 ? (
@@ -7454,6 +7635,10 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
   const [isRefining, setIsRefining] = useState(false);
   const [refinementCount, setRefinementCount] = useState(0);
   const [refinementLimit, setRefinementLimit] = useState(0);
+  const [refinementUpgradeTier, setRefinementUpgradeTier] = useState<RefinementUpgradeTier | null>('growth');
+  const [refinementResetLabel, setRefinementResetLabel] = useState(() => getRefinementResetLabel(null));
+  const [refinementCurrentTier, setRefinementCurrentTier] = useState('seeker');
+  const [refinementTrialChosenTier, setRefinementTrialChosenTier] = useState<string | undefined>(undefined);
   const [refinementOpen, setRefinementOpen] = useState(false);
   const [positionLoadedFor, setPositionLoadedFor] = useState<string | null>(null);
 
@@ -7607,6 +7792,10 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
     if (!userId) {
       setRefinementCount(0);
       setRefinementLimit(0);
+      setRefinementUpgradeTier('growth');
+      setRefinementResetLabel(getRefinementResetLabel(null));
+      setRefinementCurrentTier('seeker');
+      setRefinementTrialChosenTier(undefined);
       return;
     }
 
@@ -7615,10 +7804,18 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
         const limits = NewSubscriptionService.getTierLimits(subscription.tier, subscription);
         setRefinementCount((subscription as any).refinement_count || 0);
         setRefinementLimit(source === 'onboarding' ? 1 : limits.refinement_limit ?? 0);
+        setRefinementUpgradeTier(getRefinementUpgradeTier(subscription));
+        setRefinementResetLabel(getRefinementResetLabel(subscription));
+        setRefinementCurrentTier(String(subscription.tier || 'seeker'));
+        setRefinementTrialChosenTier(subscription.trial_chosen_tier);
       })
       .catch(() => {
         setRefinementCount(0);
         setRefinementLimit(0);
+        setRefinementUpgradeTier('growth');
+        setRefinementResetLabel(getRefinementResetLabel(null));
+        setRefinementCurrentTier('seeker');
+        setRefinementTrialChosenTier(undefined);
       });
   }, [source, userId]);
 
@@ -7721,28 +7918,28 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
 
   useEffect(() => {
     if (stepIndex !== 1 || truthBeats.length === 0) {
-      if (showCreatePostPill) {
-        Animated.timing(createPostEntranceAnim, {
-          toValue: 0,
-          duration: 260,
-          easing: Easing.in(Easing.cubic),
-          useNativeDriver: true,
-        }).start(({ finished }) => {
-          if (finished) { setShowCreatePostPill(false); }
-        });
-      }
+      Animated.timing(createPostEntranceAnim, {
+        toValue: 0,
+        duration: 260,
+        easing: Easing.in(Easing.cubic),
+        useNativeDriver: true,
+      }).start(({ finished }) => {
+        if (finished) { setShowCreatePostPill(false); }
+      });
       return;
     }
+    const entranceDelay = truthBeatIndex === 0 ? 1500 : 600;
     setShowCreatePostPill(true);
     createPostLabelAnim.setValue(1);
     createPostEntranceAnim.setValue(0);
-    Animated.spring(createPostEntranceAnim, {
+    const entranceAnimation = Animated.spring(createPostEntranceAnim, {
       toValue: 1,
       tension: 60,
       friction: 6,
-      delay: 600,
+      delay: entranceDelay,
       useNativeDriver: true,
-    }).start();
+    });
+    entranceAnimation.start();
     const collapseTimer = setTimeout(() => {
       Animated.timing(createPostLabelAnim, {
         toValue: 0,
@@ -7750,9 +7947,15 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
         easing: Easing.out(Easing.cubic),
         useNativeDriver: false,
       }).start();
-    }, 1800);
-    return () => clearTimeout(collapseTimer);
-  }, [stepIndex, createPostLabelAnim, createPostEntranceAnim, truthBeats.length, showCreatePostPill]);
+    }, entranceDelay + 3600);
+    return () => {
+      entranceAnimation.stop();
+      clearTimeout(collapseTimer);
+    };
+  // Keep the control mounted as the user moves between Truth in Love pages.
+  // The page index is sampled only when entering this section to choose the initial delay.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stepIndex, createPostLabelAnim, createPostEntranceAnim, truthBeats.length]);
 
 
   // Animate share button in when we hit step 6
@@ -8434,24 +8637,13 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
                 bibleVersion={preferredBibleTranslation}
                 onOpenRefinement={() => {
                   triggerLightHaptic();
-                  if (refinementsRemaining === 0) {
-                    navigation.navigate('OnboardingSalesOffer' as any, {
-                      upgradeMode: true,
-                      source: 'refinement_limit',
-                      feature: 'refinement',
-                      featureType: 'refinement',
-                      skipNotificationPreference: true,
-                      dismissBehavior: 'goBack',
-                    });
-                  } else {
-                    setRefinementOpen(true);
-                  }
+                  setRefinementOpen(true);
                 }}
-                onShareReflection={reflectionText => {
+                onShareReflection={(reflectionText, options) => {
                   setShareReflectionText(reflectionText);
                   setShareTextColor(undefined);
                   setShareLineHeightMultiplier(undefined);
-                  setShareNoSplit(undefined);
+                  setShareNoSplit(options?.noSplit);
                   setShowTruthShareComposer(true);
                 }}
                 onShareScripture={scriptureText => {
@@ -8525,9 +8717,9 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
                 onNext={goNext}
                 onSharePrayer={prayerTextToShare => {
                   setShareReflectionText(prayerTextToShare);
-                  setShareTextColor(undefined);
+                  setShareTextColor(Colors.hopeWhite);
                   setShareLineHeightMultiplier(undefined);
-                  setShareNoSplit(undefined);
+                  setShareNoSplit(true);
                   setShowTruthShareComposer(true);
                 }}
                 insets={insets}
@@ -8673,8 +8865,25 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
         onClose={() => setRefinementOpen(false)}
         isRefining={isRefining}
         refinementsRemaining={refinementsRemaining}
+        upgradeTier={refinementUpgradeTier}
+        resetDateLabel={refinementResetLabel}
         insets={insets}
         onRefineSubmit={handleRefinePlaybook}
+        onUpgrade={() => {
+          if (!refinementUpgradeTier) { return; }
+          setRefinementOpen(false);
+          navigation.navigate('OnboardingSalesOffer' as any, {
+            upgradeMode: true,
+            source: 'refinement_limit',
+            feature: 'refinement',
+            featureType: 'refinement',
+            currentTier: refinementCurrentTier,
+            currentTrialChosenTier: refinementTrialChosenTier,
+            selectedTier: refinementUpgradeTier,
+            skipNotificationPreference: true,
+            dismissBehavior: 'goBack',
+          });
+        }}
       />
 
 
@@ -9287,7 +9496,7 @@ const styles = StyleSheet.create({
   truthScriptureReference: {
     fontSize: 14,
     lineHeight: 20,
-    color: Colors.hopeWhite,
+    color: Colors.faithGold,
   },
   truthScriptureReferenceRow: {
     minHeight: 28,
@@ -9297,12 +9506,8 @@ const styles = StyleSheet.create({
     gap: 7,
   },
   truthScriptureReadButton: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255,204,102,0.08)',
   },
   truthScriptureBackingText: {
     fontSize: 14,
@@ -9904,6 +10109,37 @@ const styles = StyleSheet.create({
     fontSize: 11,
     lineHeight: 14,
   },
+  refinementExhaustedActions: {
+    marginTop: 14,
+  },
+  refinementUpgradeButton: {
+    minHeight: 48,
+    borderRadius: 24,
+    paddingHorizontal: 18,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: Colors.alertCoral,
+  },
+  refinementUpgradeButtonText: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: Colors.hopeWhite,
+  },
+  refinementResetText: {
+    marginTop: 12,
+    paddingHorizontal: 8,
+    textAlign: 'center',
+    fontSize: 12,
+    lineHeight: 18,
+    color: 'rgba(255,255,255,0.62)',
+  },
+  refinementResetDateText: {
+    fontSize: 12,
+    lineHeight: 18,
+    color: Colors.hopeWhite,
+  },
   refinementReasonButton: {
     minHeight: 44,
     borderRadius: 22,
@@ -9919,6 +10155,9 @@ const styles = StyleSheet.create({
   refinementReasonButtonSelected: {
     backgroundColor: 'rgba(230, 90, 70, 0.22)',
     borderColor: 'rgba(230, 90, 70, 0.58)',
+  },
+  refinementReasonButtonDisabled: {
+    opacity: 0.62,
   },
   refinementReasonText: {
     color: 'rgba(255,255,255,0.74)',
@@ -9957,6 +10196,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     flexDirection: 'row',
     gap: 8,
+    marginBottom: 24,
   },
   refinementSubmitButtonDisabled: {
     opacity: 0.52,
@@ -10022,6 +10262,15 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.16)',
     borderRadius: 18,
     overflow: 'hidden',
+  },
+  notesActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    gap: 10,
+    marginHorizontal: 12,
+    marginTop: -8,
+    marginBottom: 16,
   },
   scriptureNoteItem: {
     paddingHorizontal: 14,
@@ -10170,6 +10419,46 @@ const styles = StyleSheet.create({
     color: 'rgba(255,204,102,0.78)',
     lineHeight: 15,
     letterSpacing: 0.25,
+  },
+  actionQuestionGroup: {
+    marginTop: 5,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255,204,102,0.18)',
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.045)',
+    overflow: 'hidden',
+  },
+  actionQuestionRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 11,
+    paddingHorizontal: 13,
+    paddingVertical: 13,
+  },
+  actionQuestionDivider: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: 'rgba(255,255,255,0.12)',
+  },
+  actionQuestionNumber: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,204,102,0.14)',
+    flexShrink: 0,
+  },
+  actionQuestionNumberText: {
+    fontSize: 11,
+    lineHeight: 14,
+    color: Colors.faithGold,
+  },
+  actionQuestionText: {
+    flex: 1,
+    fontSize: 16,
+    lineHeight: 23,
+    color: 'rgba(255,255,255,0.88)',
   },
   bodyQuestionRow: {
     flexDirection: 'row' as const,
@@ -10682,7 +10971,14 @@ const styles = StyleSheet.create({
   exampleHeader: {
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
+    gap: 5,
     marginBottom: 4,
+  },
+  exampleHeaderText: {
+    fontSize: 10,
+    lineHeight: 13,
+    letterSpacing: 0.35,
+    color: 'rgba(255,255,255,0.58)',
   },
   exampleText: {
     fontSize: 13,
