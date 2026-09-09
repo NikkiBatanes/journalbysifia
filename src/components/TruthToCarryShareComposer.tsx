@@ -134,8 +134,8 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
   const [templates, setTemplates] = useState<ShareTemplate[]>(buildTemplates);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const lastScrollHapticIndex = useRef(0);
-  const [showWatermark, setShowWatermark] = useState<boolean | null>(null);
-  const [canToggleWatermark, setCanToggleWatermark] = useState<boolean | null>(null);
+  const [showWatermark, setShowWatermark] = useState<boolean | null>(true);
+  const [canToggleWatermark, setCanToggleWatermark] = useState<boolean>(false);
   const [textScale, setTextScale] = useState(1);
   const [typography, setTypography] = useState<ShareTypography>('classic');
   const [textAlign, setTextAlign] = useState<ShareTextAlign>('center');
@@ -160,7 +160,7 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
     setSelectedIndex(0);
     lastScrollHapticIndex.current = 0;
     setShowWatermark(null);
-    setCanToggleWatermark(null);
+    setCanToggleWatermark(false);
     setTextScale(1);
     liveTextScale.current = 1;
     textScaleAnim.setValue(1);
@@ -179,7 +179,7 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
             const baseTier = subscription.tier.replace('_annual', '');
             const canChooseWatermark = baseTier === 'growth' || baseTier === 'transformation';
             setCanToggleWatermark(canChooseWatermark);
-            setShowWatermark(!canChooseWatermark);
+            setShowWatermark(true);
           }
         })
         .catch(() => {
@@ -199,10 +199,6 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
   }, [editorAnim, textScaleAnim, userId, visible, watermarkUpsellAnim]);
 
   useEffect(() => {
-    if (canToggleWatermark === null) {
-      watermarkUpsellAnim.setValue(0);
-      return;
-    }
     Animated.timing(watermarkUpsellAnim, {
       toValue: canToggleWatermark ? -1 : 1,
       duration: canToggleWatermark ? 220 : 320,
@@ -657,7 +653,7 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
             style={[
               styles.editorPanel,
               {
-                maxHeight: editorAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 178] }),
+                maxHeight: editorAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 120] }),
                 marginBottom: editorAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 18] }),
                 opacity: editorAnim,
                 transform: [{
@@ -749,27 +745,6 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
                 </View>
               </View>
             </View>
-
-            {canToggleWatermark ? (
-              <TouchableOpacity
-                accessibilityRole="switch"
-                accessibilityLabel="Show siFia watermark"
-                accessibilityState={{ checked: !!showWatermark }}
-                activeOpacity={0.75}
-                onPress={toggleWatermark}
-                style={styles.watermarkToggleRow}
-              >
-                <View style={styles.watermarkToggleCopy}>
-                  <ThemedText weight="semiBold" style={styles.watermarkToggleTitle}>siFia watermark</ThemedText>
-                  <ThemedText style={styles.watermarkToggleSubtitle}>
-                    {showWatermark ? 'Shown on this post' : 'Hidden from this post'}
-                  </ThemedText>
-                </View>
-                <View style={[styles.watermarkSwitch, showWatermark && styles.watermarkSwitchOn]}>
-                  <View style={[styles.watermarkSwitchThumb, showWatermark && styles.watermarkSwitchThumbOn]} />
-                </View>
-              </TouchableOpacity>
-            ) : null}
           </Animated.View>
 
           <ThemedText weight="semiBold" style={styles.sectionLabel}>Share to</ThemedText>
@@ -793,6 +768,30 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
               </TouchableOpacity>
             ))}
           </View>
+
+          {canToggleWatermark && (
+            <TouchableOpacity
+              accessibilityRole="switch"
+              accessibilityLabel="Show siFia watermark"
+              accessibilityState={{ checked: !!showWatermark }}
+              activeOpacity={0.75}
+              onPress={toggleWatermark}
+              style={[styles.upgradeRow, { marginTop: 16 }]}
+            >
+              <View style={styles.upgradeIcon}>
+                <Ionicons name="eye-off-outline" size={18} color={Colors.alertCoral} />
+              </View>
+              <View style={styles.upgradeCopy}>
+                <ThemedText weight="semiBold" style={styles.upgradeTitle}>siFia watermark</ThemedText>
+                <ThemedText style={styles.upgradeSubtitle}>
+                  {showWatermark ? 'Shown on this post' : 'Hidden from this post'}
+                </ThemedText>
+              </View>
+              <View style={[styles.watermarkSwitch, showWatermark && styles.watermarkSwitchOn]}>
+                <View style={[styles.watermarkSwitchThumb, showWatermark && styles.watermarkSwitchThumbOn]} />
+              </View>
+            </TouchableOpacity>
+          )}
 
           <Animated.View
             pointerEvents={canToggleWatermark === false ? 'auto' : 'none'}
