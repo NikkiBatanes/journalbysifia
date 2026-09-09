@@ -164,10 +164,14 @@ const PLAYBOOK_JSON_SCHEMA = {
           properties: {
             source: { type: 'string' },
             kind: { type: 'string', enum: ['takeaway', 'explanation', 'flow', 'comparison'] },
-            text: { type: 'string' },
+            text: {
+              type: 'string',
+              description: 'For takeaway or explanation, the final movement must turn specifically and naturally toward Jesus Christ. Explanation: 3-5 substantive sentences, normally 220-600 characters. Empty for flow and comparison.',
+            },
             items: { type: 'array', items: { type: 'string' } },
+            labels: { type: 'array', items: { type: 'string' }, maxItems: 2 },
           },
-          required: ['source', 'kind', 'text', 'items'],
+          required: ['source', 'kind', 'text', 'items', 'labels'],
           additionalProperties: false,
         },
       },
@@ -1118,7 +1122,7 @@ function validatePlaybook(json: Record<string, any>, originalInput = ''): Valida
   const backingSources = [String(json.truth_summary || '').trim(), ...truthParagraphs];
   const expectedBackingCount = backingSources.length;
   if (scriptureBackings.length !== expectedBackingCount) {
-    hardIssues.push(`truth_screen_scripture_backings has ${scriptureBackings.length} items (need ${expectedBackingCount}: one for truth_summary and one per truth_in_love paragraph)`);
+    softIssues.push(`truth_screen_scripture_backings has ${scriptureBackings.length} items (expected ${expectedBackingCount}) — unmatched screens will omit Scripture backing`);
   }
   scriptureBackings.forEach((backing: any, index: number) => {
     const passages = Array.isArray(backing?.passages) ? backing.passages : [];
@@ -1128,13 +1132,13 @@ function validatePlaybook(json: Record<string, any>, originalInput = ''): Valida
       return !String(passage?.reference || '').trim() || countWords(connection) < 5 || quotedFragmentGloss;
     });
     if (!String(backing?.source || '').trim() || passages.length < 1 || passages.length > 2 || invalidPassage) {
-      hardIssues.push(`truth_screen_scripture_backings item ${index + 1} needs an exact source and one or two valid passage connections`);
+      softIssues.push(`truth_screen_scripture_backings item ${index + 1} is invalid — it will be omitted`);
     }
   });
   backingSources.forEach((source, index) => {
     const matches = scriptureBackings.filter((backing: any) => String(backing?.source || '').trim() === source);
     if (matches.length !== 1) {
-      hardIssues.push(`truth_screen_scripture_backings must contain exactly one source match for Truth in Love screen ${index + 1}`);
+      softIssues.push(`truth_screen_scripture_backings has ${matches.length} source matches for Truth in Love screen ${index + 1} — that screen will omit Scripture backing`);
     }
   });
   if (!json.transition_line || String(json.transition_line).trim().length < 5) {
@@ -1689,18 +1693,22 @@ function parseJsonPlaybook(
     ));
     if (matches.length !== 1) return undefined;
     const raw = matches[0];
-    const passages = (Array.isArray(raw?.passages) ? raw.passages : [])
+    const rawPassages = Array.isArray(raw?.passages) ? raw.passages : [];
+    if (rawPassages.length < 1 || rawPassages.length > 2) return undefined;
+    const passages = rawPassages
       .map((passage: any) => {
         const reference = sanitizeText(cleanMarkdown(String(passage?.reference || '')))
           .replace(/^in\s+/i, '')
           .replace(/[\s:—–-]+$/, '')
           .trim();
         const connection = sanitizeText(cleanMarkdown(String(passage?.connection || ''))).trim();
-        return reference && connection ? { reference, connection } : null;
+        const quotedFragmentGloss = /^(?:["“'‘].{2,120}["”'’]|[^.!?]{2,120}["”'’])\s+(?:means|shows|says|teaches)\b/i.test(connection);
+        return reference && countWords(connection) >= 5 && !quotedFragmentGloss
+          ? { reference, connection }
+          : null;
       })
-      .filter(Boolean)
-      .slice(0, 2) as Array<{ reference: string; connection: string }>;
-    return passages.length > 0 ? { passages } : undefined;
+      .filter(Boolean) as Array<{ reference: string; connection: string }>;
+    return passages.length === rawPassages.length ? { passages } : undefined;
   };
   const sourceParagraphs = String(json.truth_in_love || '')
     .split(/\r?\n[ \t]*\r?\n(?:[ \t]*\r?\n)*/)
@@ -1717,10 +1725,20 @@ function parseJsonPlaybook(
     const matches = extras.filter((extra: any) => typeof extra?.source === 'string' && extra.source.trim() === source.trim());
     if (matches.length !== 1) { return undefined; }
     const extra = matches[0];
+    const sanitizedText = typeof extra.text === 'string' ? sanitizeText(cleanMarkdown(extra.text)) : '';
+    const needsChristCenteredEnding = extra.kind === 'takeaway' || extra.kind === 'explanation';
+    const endingSentence = splitIntoSentences(sanitizedText).slice(-1)[0] || '';
+    if (needsChristCenteredEnding && !/\b(?:Jesus|Christ)\b/i.test(endingSentence)) {
+      return undefined;
+    }
+    if (extra.kind === 'explanation' && (sanitizedText.length < 180 || countWords(sanitizedText) < 28)) {
+      return undefined;
+    }
     return normalizeTruthScreenEnhancement({
       ...extra,
-      text: typeof extra.text === 'string' ? sanitizeText(cleanMarkdown(extra.text)) : '',
+      text: sanitizedText,
       items: Array.isArray(extra.items) ? extra.items.map((item: any) => typeof item === 'string' ? sanitizeText(cleanMarkdown(item)) : item) : [],
+      labels: Array.isArray(extra.labels) ? extra.labels.map((label: any) => typeof label === 'string' ? sanitizeText(cleanMarkdown(label)) : label) : [],
     });
   };
   playbook.truthInLove.summaryEnhancement = enhancementFor(String(json.truth_summary || ''));

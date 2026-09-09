@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo, useState, useEffect, useRef } from 'react';
 import { Logger } from '../../../utils/ProductionLogger';
-import { View, StyleSheet, SectionList, RefreshControlProps, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, SectionList, RefreshControlProps, TouchableOpacity, DeviceEventEmitter } from 'react-native';
 import { Feather } from 'lucide-react-native';
 import { JournalPlugin } from '../types';
 import { PluginRenderer } from '../PluginRenderer';
@@ -19,6 +19,34 @@ import MomentsSkeleton from '../../../components/SkeletonLoader/MomentsSkeleton'
 import type { PluginFilters } from '../types';
 
 // Removed unused screenWidth variable
+
+// Sticky-header key changes are broadcast outside React state so scrolling never
+// triggers a re-render of the list (prevents a mid-scroll jolt at each section boundary).
+const MOMENTS_STICKY_HEADER_EVENT = 'moments_sticky_header_changed';
+
+const emitStickyHeaderKey = (key: string | null) => {
+  DeviceEventEmitter.emit(MOMENTS_STICKY_HEADER_EVENT, key);
+};
+
+const useStickyChevronVisible = (sectionKey?: string): boolean => {
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    const sub = DeviceEventEmitter.addListener(MOMENTS_STICKY_HEADER_EVENT, (key: string | null) => {
+      const next = !!sectionKey && key === sectionKey;
+      setVisible(prev => (prev === next ? prev : next));
+    });
+    return () => sub.remove();
+  }, [sectionKey]);
+  return visible;
+};
+
+const StickyChevron = React.memo<{ sectionKey?: string; label: string; styles: any }>(({ sectionKey, label, styles }) => {
+  const visible = useStickyChevronVisible(sectionKey);
+  return (
+    <ThemedText accessibilityLabel={label} style={[styles.chevronIcon, visible ? styles.chevronVisible : styles.chevronHidden]}>‹</ThemedText>
+  );
+});
+StickyChevron.displayName = 'StickyChevron';
 
 interface EnhancedMomentsRendererProps {
   plugins: JournalPlugin[];
@@ -1876,13 +1904,12 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
         setExpandedMonths({});
         if (yearFromKey) {setExpandedYears({ [yearFromKey]: true });}
       };
-      const showChevron = section.key === currentStickyKey;
       return (
         <TouchableOpacity onPress={onPress} activeOpacity={0.8} accessibilityRole="button" hitSlop={{ top: 8, left: 8, right: 8, bottom: 8 }}>
           <View style={styles.sectionHeader}>
             <View style={styles.sectionHeaderInner}>
               <View style={styles.sectionHeaderRow}>
-                <ThemedText accessibilityLabel="Back to months" style={[styles.chevronIcon, showChevron ? styles.chevronVisible : styles.chevronHidden]}>‹</ThemedText>
+                <StickyChevron sectionKey={section.key} label="Back to months" styles={styles} />
                 <ThemedText weight="semiBold" style={styles.sectionTitle}>
                   {section.title}
                 </ThemedText>
@@ -1898,13 +1925,12 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
         triggerLightHaptic();
         setExpandedWeeks({});
       };
-      const showChevron = section.key === currentStickyKey;
       return (
         <TouchableOpacity onPress={onPress} activeOpacity={0.8} accessibilityRole="button" hitSlop={{ top: 8, left: 8, right: 8, bottom: 8 }}>
           <View style={styles.sectionHeader}>
             <View style={styles.sectionHeaderInner}>
               <View style={styles.sectionHeaderRow}>
-                <ThemedText accessibilityLabel="Back to weeks" style={[styles.chevronIcon, showChevron ? styles.chevronVisible : styles.chevronHidden]}>‹</ThemedText>
+                <StickyChevron sectionKey={section.key} label="Back to weeks" styles={styles} />
                 <ThemedText weight="semiBold" style={styles.sectionTitle}>
                   {section.title}
                 </ThemedText>
@@ -1930,12 +1956,13 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
     );
   };
 
-  // Track currently sticky header: we update from viewable items callback below
-  const [currentStickyKey, setCurrentStickyKey] = useState<string | null>(null);
+  // Track currently sticky header via ref + event so scroll never triggers a re-render
+  const stickyKeyRef = useRef<string | null>(null);
 
   // Reset expansion state and sticky key when grouping changes so we return to the initial page
   useEffect(() => {
-    setCurrentStickyKey(null);
+    stickyKeyRef.current = null;
+    emitStickyHeaderKey(null);
     switch (groupBy) {
       case 'month':
         setExpandedWeeks({});
@@ -2475,12 +2502,12 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
   const viewabilityConfig = useMemo(() => ({ itemVisiblePercentThreshold: 1 }), []);
   const onViewableItemsChanged = useCallback(({ viewableItems }: any) => {
     const header = viewableItems.find((v: any) => !v.item && v.section && typeof (v.section as any).key === 'string');
-    if (header && (header.section as any).key) {
-      setCurrentStickyKey((header.section as any).key as string);
-    } else if (viewableItems[0]?.section && (viewableItems[0].section as any).key) {
-      setCurrentStickyKey((viewableItems[0].section as any).key as string);
+    const nextKey = (header?.section?.key ?? viewableItems[0]?.section?.key ?? null) as string | null;
+    if (nextKey != null && nextKey !== stickyKeyRef.current) {
+      stickyKeyRef.current = nextKey;
+      emitStickyHeaderKey(nextKey);
     }
-  }, [setCurrentStickyKey]);
+  }, []);
 
   // Show skeleton during loading instead of empty state
   if (_loading) {

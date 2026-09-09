@@ -83,6 +83,10 @@ function isQuotedInstructionIntro(value: string): boolean {
     return true;
   }
 
+  if (/^(?:message|text|send)\b/i.test(intro)) {
+    return true;
+  }
+
   if (/\b(?:call|contact|phone|clinic|doctor|office)\b.{0,140}\bsay\b/i.test(intro)) {
     return true;
   }
@@ -160,6 +164,12 @@ function quotedInstructionParts(intro: string, quote: string): Pick<CanonicalQuo
   if (/^follow\s+with(?:\s+this\s+question)?\b/i.test(normalized)) {
     return {
       label: 'Ask',
+    };
+  }
+
+  if (/^(?:message|text|send)\b/i.test(normalized)) {
+    return {
+      label: 'Message to send',
     };
   }
 

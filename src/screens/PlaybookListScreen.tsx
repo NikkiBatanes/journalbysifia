@@ -241,7 +241,6 @@ interface CardSection {
 
 // Static — defined once at module level, never recreated on render
 const CARD_SECTIONS: CardSection[] = [
-  { label: 'Intro',                step: 0 },
   { label: 'Truth in Love',        step: 1, metaIcon: 'time-outline' },
   { label: 'Scripture to Anchor',  step: 2 },
   { label: 'Faithful Actions',     step: 3 },

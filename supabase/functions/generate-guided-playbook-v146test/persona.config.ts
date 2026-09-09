@@ -407,6 +407,19 @@ export function buildGuidedPlaybookPrompt(
 ): string {
   return [
     buildOriginalGuidedPlaybookPrompt(userInput, includeExample),
+    `FAITHFUL ACTION WRITING QUALITY:
+Write each faithful action as one clear action for one screen.
+- Use natural titles and sentences. Avoid slash constructions such as "spouse/family member";
+  say "a trusted person" unless the user's situation establishes a specific relationship.
+- Any message, question, prayer, or spoken script must be complete, specific, and natural when
+  read aloud. Name what help is being requested. Never use vague wording such as "help me stick
+  close," "do these actions," or another phrase whose meaning is unclear without explanation.
+- primary_button must confirm this single action in concise first-person language, normally
+  2-4 words, such as "I shared it" or "I asked them." Do not use a plural catch-all for one action.
+- Put all follow-up instructions before the Example: marker. Everything after Example: must be
+  only the actual sample wording or filled-in fields, with no additional instruction mixed into it.
+- When an action asks another person for accountability, give a concrete request tied to the
+  stated plan, boundary, date, or next step.`,
     COVER_PROMPT,
     TRUTH_SUMMARY_PROMPT,
     TRUTH_IN_LOVE_PROMPT,
@@ -416,16 +429,30 @@ truth_summary and truth_in_love using the existing instructions. Do not change t
 structure or remove essential guidance to make room for optional elements.
 Choose at most one element for any screen, solely from that screen's meaning.
 Each entry has source (copy the exact complete truth_summary or one exact complete
-truth_in_love paragraph), kind, text, and items. Do not attach extras by page number.
+truth_in_love paragraph), kind, text, items, and labels. Do not attach extras by page number.
 Kinds:
-- takeaway: a standalone, shareable siFia reflection, at most 240 characters in text; items = [].
-- explanation: useful optional context, at most 700 characters in text; items = [].
-- flow: an actual sequence or change in direction, 2-4 short items (each at most 180 characters); text = "".
-- comparison: two distinct statements that clarify a real distinction, each at most 180 characters in items; text = "".
-Skip the element when it adds no value. Do not repeat the primary truth verbatim,
+- takeaway: a standalone, shareable siFia reflection, at most 240 characters in text; items = [];
+  labels = []. Its final movement must turn specifically toward Jesus Christ: who He is, what
+  He has done, what the user can receive from Him, or a faithful response to Him.
+- explanation: substantive optional context of 3-5 complete sentences and normally 220-600
+  characters in text; items = []; labels = []. It must clarify why the main truth matters,
+  expose a meaningful nuance, assumption, or limit, and add understanding that is not already
+  visible in the primary or supporting truth. Never use explanation for a single short sentence.
+  Its final sentence must bring the clarification back to Jesus Christ in a way that follows
+  naturally from the screen's actual truth.
+- flow: an actual sequence or change in direction, 2-4 short items (each at most 180 characters); text = ""; labels = [].
+- comparison: two distinct statements that clarify a real distinction, each at most 180 characters
+  in items; text = ""; labels must contain exactly two short, specific category labels of 2-5 words.
+  Labels must name the actual distinction rather than say generic things such as "First truth" and
+  "Second truth." Example labels: "YOUR RESPONSIBILITY" and "WHAT YOU CAN ENTRUST."
+Skip the element when it adds no value. Prefer no explanation over a brief restatement that
+only looks like another takeaway. Do not repeat the primary truth verbatim,
 invent facts, force every screen to have an extra, or imply unsupported causation with arrows.
 Takeaways are authored reflections, not quotations from Jesus or Scripture. Do not
 attribute them to God, invent divine commands, or insert verse quotations into extras.
+The Christ-centered ending must be specific and theologically supported. Do not bolt on a
+generic sentence such as "Jesus is with you," promise an outcome He has not promised, or use
+His name merely to satisfy this rule.
 All existing safety, doctrinal, and factual safeguards also apply to these elements.
 Keep urgent safety guidance and essential meaning in the visible main text, never hidden in an explanation.`,
     `WHY THIS IS BIBLICAL — EVIDENCE FOR EVERY TRUTH IN LOVE SCREEN:

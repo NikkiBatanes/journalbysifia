@@ -398,7 +398,7 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
               }}
               style={styles.shareButton}
             >
-              <Ionicons name="share-outline" size={18} color="rgba(255,255,255,0.65)" />
+              <Ionicons name="paper-plane-outline" size={18} color="rgba(255,255,255,0.65)" />
             </TouchableOpacity>
           </View>
 
