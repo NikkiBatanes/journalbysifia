@@ -153,8 +153,8 @@ export default function ShareableSelectableText({
               activeOpacity={0.85}
               style={styles.floatingPillShare}
             >
-              <Ionicons name="paper-plane-outline" size={16} color={shareIconColor} />
-              <Text style={[styles.floatingPillText, { color: shareIconColor }]}>Share</Text>
+              <Ionicons name="paper-plane-outline" size={13} color={shareIconColor} />
+              <Text style={[styles.floatingPillText, { color: 'rgba(255,255,255,0.7)' }]}>Share</Text>
             </TouchableOpacity>
             <TouchableOpacity
               accessibilityRole="button"
@@ -177,7 +177,7 @@ export default function ShareableSelectableText({
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           style={[styles.shareButton, selectedText ? styles.shareButtonSelected : null]}
         >
-          <Ionicons name="paper-plane-outline" size={18} color={shareIconColor} />
+          <Ionicons name="paper-plane-outline" size={13} color={shareIconColor} />
         </TouchableOpacity>
       ) : null}
     </View>
