@@ -906,6 +906,14 @@ const SermonNotesScreen = ({navigation}: any) => {
         backgroundColor={Colors.lightBackground}
       />
       <View style={styles.header}>
+        <View style={styles.actionProgressBar}>
+          <View
+            style={[
+              styles.actionProgressFill,
+              {width: `${(stage / 3) * 100}%`},
+            ]}
+          />
+        </View>
         <View style={styles.stepLabelRow}>
           <Ionicons name="book" size={18} color={Colors.sage} />
           <ThemedText weight="semiBold" style={styles.headerTitle}>
@@ -944,15 +952,6 @@ const SermonNotesScreen = ({navigation}: any) => {
             scrollRef.current?.scrollToEnd({animated: true});
           }
         }}>
-        <View style={styles.actionProgressBar}>
-          <View
-            style={[
-              styles.actionProgressFill,
-              {width: `${(stage / 3) * 100}%`},
-            ]}
-          />
-        </View>
-
         {stage === 1 && (
           <>
             <ThemedText weight="bold" style={styles.label}>
