@@ -2,7 +2,6 @@ import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { PrayerJournalReactQuery } from './PrayerJournalReactQuery';
 import EnhancedPrayerListReactQuery from './EnhancedPrayerListReactQuery';
-import DevotionalPrayerListReactQuery from './DevotionalPrayerListReactQuery';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation/types';
 
@@ -31,9 +30,6 @@ const PrayerJournalTabReactQuery: React.FC<PrayerJournalTabReactQueryProps> = ({
     <View style={styles.container}>
       {/* ACTS Prayer Journal Card */}
       <PrayerJournalReactQuery selectedDate={selectedDate} viewMode={viewMode} navigation={navigation} />
-
-      {/* Devotional Prayers List */}
-      <DevotionalPrayerListReactQuery selectedDate={selectedDate} viewMode={viewMode} />
 
       {/* People Prayers List */}
       <EnhancedPrayerListReactQuery selectedDate={selectedDate} viewMode={viewMode} navigation={navigation} />

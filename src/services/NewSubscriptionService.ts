@@ -222,37 +222,6 @@ export class NewSubscriptionService {
     // if (bustCache) { query = query.gte('created_at', '1970-01-01T00:00:00.000Z'); }
     // const { data, error } = await query.single();
 
-    if (error) {
-      if (error.code === 'PGRST116') {
-        // No subscription found - create default seeker
-        return await this.createDefaultSeekerSubscription(userId);
-      }
-      throw new SubscriptionError(`Failed to get subscription: ${error.message}`, 'DATABASE_ERROR', error);
-    }
-
-    const subscription = this.enrichSubscriptionData(data);
-
-    // FAILSAFE: Match the backend grace window before downgrading locally.
-    // Apple webhooks can arrive late, and sandbox renewals expire within minutes.
-    const isPaidSubscription = subscription.tier !== 'seeker' && subscription.tier !== 'free_trial';
-    if (isPaidSubscription && subscription.subscription_end_date) {
-      const graceEnd = this.getPaidExpirationGraceEnd(subscription.subscription_end_date);
-      if (graceEnd && graceEnd < new Date()) {
-        Logger.warn('[NewSubscriptionService] Expired paid subscription is past grace during fetch; downgrading to seeker', {
-          component: 'NewSubscriptionService',
-          userId,
-          tier: subscription.tier,
-          status: subscription.status,
-          subscriptionEndDate: subscription.subscription_end_date,
-          expirationGraceEnd: graceEnd.toISOString(),
-        });
-
-        await this.handleExpiredSubscription(userId);
-        return await this.getUserSubscription(userId, true);
-      }
-    }
-
-    return subscription;
   }
 
   /**

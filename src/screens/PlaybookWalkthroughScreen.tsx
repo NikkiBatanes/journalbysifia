@@ -61,7 +61,6 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getPlaybook } from '../services/apiIntegration';
 import { updatePlaybookStatus, updateWalkthroughProgress, updateActionStepCompleted, updatePlaybookPrayerPrayed } from '../services/supabaseApiNormalized';
 import { BibleCopyrightModal } from '../components/BibleCopyrightModal';
-import DevotionalModal from '../components/DevotionalModal';
 import PlaybookReadyOverlay from '../components/PlaybookReadyOverlay';
 import ShareDropdownModal from '../components/ShareDropdownModal';
 import TruthToCarryShareComposer from '../components/TruthToCarryShareComposer';
@@ -7226,8 +7225,6 @@ interface CompletionStepProps {
   pastoralClosing?: string;
   onFinish: () => void;
   insets: { top: number };
-  onTurnIntoDevotional?: () => void;
-  devotionalGenerated?: boolean;
   isCompleted?: boolean;
   isOnboarding?: boolean;
   isBeatBased?: boolean;
@@ -7245,8 +7242,6 @@ const CompletionStep: React.FC<CompletionStepProps> = ({
   pastoralClosing,
   onFinish,
   insets,
-  onTurnIntoDevotional,
-  devotionalGenerated = false,
   isCompleted = false,
   isOnboarding = false,
   isBeatBased = false,
@@ -7553,20 +7548,6 @@ const CompletionStep: React.FC<CompletionStepProps> = ({
             </TouchableOpacity>
           )}
 
-          {!devotionalGenerated && (
-            <TouchableOpacity
-              style={[styles.secondaryButton, styles.devotionalButton]}
-              onPress={() => {
-                triggerLightHaptic();
-                onTurnIntoDevotional?.();
-              }}
-              activeOpacity={0.85}
-            >
-              <ThemedText weight="semiBold" style={styles.secondaryButtonText}>
-                Turn this into a devotional
-              </ThemedText>
-            </TouchableOpacity>
-          )}
         </Animated.View>
       </StepFadeIn>
     </>
@@ -7623,8 +7604,6 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
   });
   const [truthBeatIndex, setTruthBeatIndex] = useState(0);
   const [sessionLoaded, setSessionLoaded] = useState(false);
-  const [showDevotionalModal, setShowDevotionalModal] = useState(false);
-  const [devotionalGenerated, setDevotionalGenerated] = useState(false);
   const [showShareDropdown, setShowShareDropdown] = useState(false);
   const [showTruthShareComposer, setShowTruthShareComposer] = useState(false);
   const [shareReflectionText, setShareReflectionText] = useState('');
@@ -8749,8 +8728,6 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
                 pastoralClosing={pastoralClosing}
                 onFinish={handleFinish}
                 insets={insets}
-                onTurnIntoDevotional={() => setShowDevotionalModal(true)}
-                devotionalGenerated={devotionalGenerated}
                 isCompleted={routePlaybook?.status === 'completed'}
                 isOnboarding={source === 'onboarding'}
                 isBeatBased={isBeatBased}
@@ -8922,20 +8899,6 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
         </Animated.View>
       )}
     </View>
-
-    <DevotionalModal
-      visible={showDevotionalModal}
-      onClose={() => setShowDevotionalModal(false)}
-      playbookId={playbook?.id}
-      playbookInfo={playbook?.title}
-      userInput={playbook?.userInput}
-      isOnboarding={source === 'onboarding'}
-      onDevotionalCreated={(devotionalId) => {
-        setShowDevotionalModal(false);
-        setDevotionalGenerated(true);
-        navigation.navigate('DevotionalDetail', { devotionalId });
-      }}
-    />
 
     <ShareDropdownModal
       visible={showShareDropdown}

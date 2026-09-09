@@ -1,7 +1,6 @@
 import { supabase } from '../supabaseClient';
 import { Logger } from '../../utils/ProductionLogger';
 import { toLocalDateString } from '../../utils/date';
-import { DevotionalApi } from '../api/devotionalApi';
 import { ReflectionApi } from '../api/reflectionApi';
 import { NewSubscriptionService } from '../NewSubscriptionService';
 import { guidedPromptGatingService } from '../guidedPromptGatingService';
@@ -653,14 +652,7 @@ export async function buildSmartNotificationCandidates(userId: string): Promise<
   const currentDate = today();
 
   const [devotionals, journalEntries, prayerRequestState, unansweredPrayers, playbooks, subscriptionResult] = await Promise.all([
-    DevotionalApi.getDevotionals(userId).catch(error => {
-      Logger.warn('[SmartNotifications] Unable to read devotional state', {
-        component: 'notificationCandidateResolver',
-        userId,
-        error,
-      });
-      return [];
-    }),
+    Promise.resolve([] as any[]),
     getJournalEntriesForToday(userId),
     getPendingPrayerRequestState(userId),
     getUnansweredPrayersForCheck(userId),

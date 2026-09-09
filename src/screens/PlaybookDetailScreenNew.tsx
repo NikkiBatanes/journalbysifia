@@ -55,7 +55,6 @@ import PlaybookHeader from '../components/PlaybookHeader';
 import ThemedText from '../components/common/ThemedText';
 import ThemedTextInput from '../components/common/ThemedTextInput';
 import { usePlaybookStoreReactQuery } from '../store/usePlaybookStoreReactQuery';
-import DevotionalModal from '../components/DevotionalModal';
 // Individual card components for stacked view
 import TruthInLoveCard from '../components/TruthInLoveCard';
 import ActionStepsCard from '../components/ActionStepsCard';
@@ -2150,18 +2149,6 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
             </View>
           )}
 
-          <DevotionalModal
-            visible={showDevotionalModal}
-            onClose={() => setShowDevotionalModal(false)}
-            playbookId={playbookId}
-            userInput={playbook?.userInput}
-            onDevotionalCreated={(devotionalId: string) => {
-              // Close modal and navigate. Keep the CTA visible until the detail screen actually appears.
-              setShowDevotionalModal(false);
-              pendingDevotionalNavigation.current = true;
-              rootNavigation.navigate('DevotionalDetail', { devotionalId });
-            }}
-          />
         </>
       )}
 

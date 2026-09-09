@@ -300,7 +300,7 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
             if (notification.data?.type === 'prayer_reminder') {
               targetScreen = 'Journal'; // Navigate to Journal for prayer reminders
             } else if (notification.data?.type === 'devotional_reminder') {
-              targetScreen = 'Devotionals'; // Navigate to Devotionals for devotional reminders
+              targetScreen = 'Overview'; // Devotionals removed; fall back to Overview
             } else {
               targetScreen = 'Journal'; // Default for reminders
             }

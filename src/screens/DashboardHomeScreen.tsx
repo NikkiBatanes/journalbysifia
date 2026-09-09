@@ -43,7 +43,6 @@ import FaithfulActionsCarousel, { extractIncompleteFaithfulActions } from '../co
 import ActionStepsCard from '../components/dashboard/ActionStepsCard';
 import ReflectionQuestionsCard from '../components/dashboard/ReflectionQuestionsCard';
 import SmartJournalingReflectionModal from './SmartJournalingReflectionModal';
-import DevotionalDetailReflectionModal from './DevotionalDetailReflectionModal';
 import BlueSheet from '../components/layout/BlueSheet';
 import SmartJournalingGratitudeModal from './SmartJournalingGratitudeModal';
 import SmartJournalingTimeBlockModal from './SmartJournalingTimeBlockModal';
@@ -928,7 +927,6 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
     questionNumber?: number;
   } | null>(null);
   const [showSJModal, setShowSJModal] = useState(false);
-  const [showDevotionalModal, setShowDevotionalModal] = useState(false);
   const [hidePencilIcon, setHidePencilIcon] = useState(false);
 
   // Wrap callbacks in useCallback to prevent modal re-renders
@@ -1460,25 +1458,6 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
           );
         })()}
 
-        {/* Devotional Counter - disabled per request */}
-        {SHOW_USAGE_COUNTERS && (() => {
-          const limit = subscription?.limits?.devotionals;
-          const used = usage?.devotionals_generated || 0;
-          const isUnlimited = !limit || limit === -1;
-          if (isUnlimited) { return null; }
-          const remaining = Math.max(0, limit - used);
-          return (
-            <TouchableOpacity
-              style={styles.counterBadge}
-              onPress={() => { triggerLightHaptic(); navigation.navigate('Devotionals'); }}
-            >
-              <MaterialCommunityIcons name="book" size={18} color={Colors.faithGold} />
-              <ThemedText weight="semiBold" style={styles.counterText}>{remaining}</ThemedText>
-            </TouchableOpacity>
-          );
-        })()}
-
-
         {/* Notifications */}
         <TouchableOpacity
           style={styles.iconButton}
@@ -1596,14 +1575,6 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
                 }
                 navigation.navigate('PlaybookWalkthrough' as any, { playbook });
               }}
-              onDevotionalPress={(devotional) => {
-                triggerLightHaptic();
-                // Track devotional view for analytics
-                if (user?.id) {
-                  adminAnalyticsService.trackFeatureUsage(user.id, 'devotional_view', { devotional_id: devotional.id, devotional_title: devotional.title });
-                }
-                navigation.navigate('DevotionalDetail', { devotionalId: devotional.id });
-              }}
               onEmpty={() => setHasContent(false)}
             />
           )}
@@ -1647,12 +1618,8 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
                 totalDays: q.totalDays,
                 questionNumber: q.questionIndex,
               });
-              // Route by sourceType: devotional -> devotional modal; playbook/guided -> SJ modal
-              if (q.sourceType === 'devotional') {
-                setShowDevotionalModal(true);
-              } else {
-                setShowSJModal(true);
-              }
+              // Route by sourceType: playbook/guided -> SJ modal
+              setShowSJModal(true);
             }}
             onViewAll={() => {
               // Navigate to journal reflections or a dedicated reflections screen if available
@@ -1706,39 +1673,6 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
         hidePencilIcon={hidePencilIcon}
         onSave={handleSJModalSave}
         onCancel={handleSJModalCancel}
-      />
-      <DevotionalDetailReflectionModal
-        visible={showDevotionalModal}
-        question={selectedReflection?.question || ''}
-        devotionalId={selectedReflection?.sourceId}
-        devotionalTitle={selectedReflection?.source}
-        dayNumber={selectedReflection?.dayNumber}
-        dayTitle={selectedReflection?.dayTitle}
-        totalDays={selectedReflection?.totalDays}
-        questionNumber={selectedReflection?.questionNumber}
-        onSave={(_entry) => {
-          // Don't close modal immediately - success modal will handle the flow
-          // Removed debug logging
-
-          // Invalidate all reflection-related queries to ensure real-time updates
-          queryClient.invalidateQueries({
-            queryKey: ['reflections'],
-          });
-
-          // Also invalidate devotional queries in case they affect question availability
-          queryClient.invalidateQueries({
-            queryKey: ['devotionals'],
-          });
-
-          // Force refetch of reflection questions
-          queryClient.refetchQueries({
-            queryKey: ['reflections'],
-          });
-        }}
-        onCancel={() => {
-          setShowDevotionalModal(false);
-          setSelectedReflection(null);
-        }}
       />
       {/* Gratitude Modal */}
       <SmartJournalingGratitudeModal

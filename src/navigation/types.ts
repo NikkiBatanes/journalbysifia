@@ -114,10 +114,6 @@ export type RootStackParamList = {
       challengeDetails: string;
     };
   };
-  // Devotional screens
-  Devotionals: undefined;
-  DevotionalDetail: { devotionalId: string; scrollToPrayer?: boolean; openReflection?: boolean; reflectionQuestion?: string; reflectionQuestionNumber?: number };
-
   // Journal screen
   Journal: undefined;
 
@@ -235,7 +231,6 @@ export type BottomTabParamList = {
   Reflect: undefined;
   Overview: undefined;
   Playbooks: undefined;
-  Devotionals: undefined;
   Journal: undefined;
 };
 

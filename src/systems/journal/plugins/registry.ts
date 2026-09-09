@@ -9,7 +9,6 @@ import { GratitudeListReactQuery } from '../../../components/journal/GratitudeLi
 import { TodayWinReactQuery } from '../../../components/journal/TodayWinReactQuery';
 import { LookingForwardReactQuery } from '../../../components/journal/LookingForwardReactQuery';
 import { PrayerJournalReactQuery } from '../../../components/journal/PrayerJournalReactQuery';
-import DevotionalPrayerListReactQuery from '../../../components/journal/DevotionalPrayerListReactQuery';
 import EnhancedPrayerListReactQuery from '../../../components/journal/EnhancedPrayerListReactQuery';
 
 // Plugin Registry - Auto-discovery system
@@ -90,15 +89,6 @@ export const JOURNAL_PLUGINS: JournalPlugin[] = [
     viewModes: ['carousel', 'inline', 'moments'],
     title: 'Prayer Journal',
     subtitle: 'ACTS & Open Prayer',
-  },
-  {
-    id: 'devotionalprayers',
-    category: 'pray',
-    component: DevotionalPrayerListReactQuery,
-    priority: 2,
-    viewModes: ['carousel', 'inline', 'moments'],
-    title: 'Devotional Prayers',
-    subtitle: 'Guided prayer sessions',
   },
   {
     id: 'peopleprayers',

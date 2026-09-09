@@ -9,7 +9,6 @@ import {
 import { playSound } from '../../utils/soundUtils';
 import { Colors } from '../../theme/colors';
 import { PrayerJournalReactQuery } from './PrayerJournalReactQuery';
-import DevotionalPrayerListReactQuery from './DevotionalPrayerListReactQuery';
 import EnhancedPrayerListReactQuery from './EnhancedPrayerListReactQuery';
 import { triggerLightHaptic } from '../../utils/haptics';
 import ThemedText from '../common/ThemedText';
@@ -83,7 +82,7 @@ const PrayCarousel: React.FC<PrayCarouselProps> = ({ selectedDate, initialScroll
   const handleScroll = useCallback((event: any) => {
     const contentOffset = event.nativeEvent.contentOffset;
     const index = Math.round(contentOffset.x / (CARD_WIDTH + CARD_SPACING));
-    if (index !== currentCardIndex.current && index >= 0 && index < 3) {
+    if (index !== currentCardIndex.current && index >= 0 && index < 2) {
       currentCardIndex.current = index;
       // Auto-expand the currently focused card
       setExpandedIndex(index);
@@ -100,13 +99,6 @@ const PrayCarousel: React.FC<PrayCarouselProps> = ({ selectedDate, initialScroll
       icon: 'hand-left-outline',
       component: <PrayerJournalReactQuery selectedDate={selectedDate} variant="carousel" navigation={navigation} />,
       color: Colors.anchorBlue,
-    },
-    {
-      id: 'devotionalprayers',
-      title: 'PRAYED DEVOTIONALS',
-      icon: 'notebook-heart-outline',
-      component: <DevotionalPrayerListReactQuery selectedDate={selectedDate} viewMode="carousel" />,
-      color: Colors.hopeWhite,
     },
     {
       id: 'peopleprayers',

@@ -19,8 +19,6 @@ import { Colors } from '../../theme';
 import pricingService, { LocationPricing, PricingTier as ServicePricingTier } from '../../services/pricingService';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { withErrorBoundary } from '../../components/ErrorBoundary/withErrorBoundary';
-import { useDevotionalGating } from '../../hooks/useDevotionalGating';
-import { isDevotionalDurationLocked } from '../../utils/tierLockingRules';
 import type { SubscriptionTier } from '../../types/subscription';
 import PlatformPaymentService from '../../services/PlatformPaymentService';
 import { useNewSubscription } from '../../hooks/useNewSubscription';
@@ -149,8 +147,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
   const navigation = useNavigation();
   const route = useRoute();
   const { user } = useAuth();
-  const devotionalGating = useDevotionalGating();
-  const { refreshSubscription: refreshNewSubscription } = useNewSubscription(user?.id || '');
+  const { subscription, refreshSubscription: refreshNewSubscription } = useNewSubscription(user?.id || '');
   const queryClient = useQueryClient();
   const insets = useSafeAreaInsets();
 
@@ -213,7 +210,6 @@ const OnboardingSalesOfferScreen: React.FC = () => {
     resetToUserInput();
   }, [navigation, navigateToNotificationSetup, resetToUserInput]);
 
-  const subscription = devotionalGating.subscription;
   const hasEverStartedTrial = Boolean(
     subscription?.trial_start_date ||
     subscription?.trial_converted_date ||
@@ -243,7 +239,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
   const isFromProfile = routeParams?.source === 'profile';
 
   const currentUserTier = isFromProfile ? (routeParams?.currentTier || routeParams?.tier || 'seeker') :
-                              (routeParams?.currentTier || routeParams?.tier || devotionalGating.tier || 'seeker') as string;
+                              (routeParams?.currentTier || routeParams?.tier || subscription?.tier || 'seeker') as string;
   const trialUpgradeTier = getNextPaidPlanTier(effectiveTrialPlanTier);
   const initialSelectedTier = routeParams?.forceTransformationAnnual ? 'transformation' :
                               routeParams?.selectedTier ? normalizePaidPlanTier(routeParams.selectedTier) || routeParams.selectedTier :
@@ -663,11 +659,6 @@ const OnboardingSalesOfferScreen: React.FC = () => {
               logger.debug('Profile mode - selecting current tier', { currentUserTier, found: chosen?.id });
             }
 
-            if (!chosen && requestedDuration === 7) {
-              chosen = tiers.find(t => t.id === 'transformation')
-                || tiers.find(t => !isDevotionalDurationLocked(t.id as SubscriptionTier, requestedDuration))
-                || tiers[0];
-            }
             if (!chosen) {
               const popularTier = tiers.find(t => (t as any).isPopular === true);
               const growthTier = tiers.find(t => t.id === 'growth');
@@ -693,18 +684,6 @@ const OnboardingSalesOfferScreen: React.FC = () => {
       // Cleanup if needed
     };
   }, []);
-
-  // Ensure 7-day requests always highlight Transformation when tiers already cached
-  useEffect(() => {
-    if (!hasManualTierSelection && requestedDuration === 7 && pricingTiers.length > 0) {
-      const transformationTier = pricingTiers.find(t => t.id === 'transformation');
-      const fallbackTier = pricingTiers.find(t => !isDevotionalDurationLocked(t.id as SubscriptionTier, requestedDuration));
-      const target = transformationTier || fallbackTier;
-      if (target && selectedTier !== target.id) {
-        setSelectedTier(target.id);
-      }
-    }
-  }, [hasManualTierSelection, requestedDuration, pricingTiers, selectedTier, setSelectedTier]);
 
   // Preselect next upgrade for paid users who hit limits.
   // Only keep current plan selected when no further upgrade exists.
@@ -1261,7 +1240,6 @@ const OnboardingSalesOfferScreen: React.FC = () => {
 
             // OPTIMIZED: Parallel refresh of all subscription-related data
             await Promise.all([
-              devotionalGating.refreshSubscription(),
               refreshNewSubscription().catch(() => {}),
             ]);
 
@@ -1510,7 +1488,6 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                   queryKey: ['subscription', user?.id],
                   refetchType: 'active',
                 }),
-                devotionalGating.refreshSubscription(),
                 refreshNewSubscription().catch(() => {}),
               ]);
               logger.info('✅ Subscription state refreshed');

@@ -1417,16 +1417,7 @@ const UserInputScreen: React.FC = () => {
                   <MaterialCommunityIcons name="clipboard-text-play" size={20} color={pressedNavIcon === 1 ? Colors.alertCoral : theme.colors.anchorBlueLight} />
                 </TouchableOpacity>
               </Animated.View>
-              <Animated.View style={{ opacity: navIconAnims[2], transform: [{ scale: navIconAnims[2].interpolate({ inputRange: [0, 1], outputRange: [0.6, 1] }) }] }}>
-                <TouchableOpacity
-                  style={styles.navIconItem}
-                  onPress={() => { try { triggerLightHaptic(); } catch {} handleNavigationWithCollapse(() => navigation.reset({ index: 0, routes: [{ name: 'MainTabs', state: { routes: [{ name: 'Overview' }, { name: 'Devotionals' }], index: 1 } }] })); }}
-                  onPressIn={() => setPressedNavIcon(2)}
-                  onPressOut={() => setPressedNavIcon(null)}
-                >
-                  <MaterialCommunityIcons name="book" size={20} color={pressedNavIcon === 2 ? Colors.alertCoral : theme.colors.anchorBlueLight} />
-                </TouchableOpacity>
-              </Animated.View>
+
               <Animated.View style={{ opacity: navIconAnims[3], transform: [{ scale: navIconAnims[3].interpolate({ inputRange: [0, 1], outputRange: [0.6, 1] }) }] }}>
                 <TouchableOpacity
                   style={styles.navIconItem}

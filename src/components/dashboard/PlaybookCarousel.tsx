@@ -24,7 +24,6 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useQueryClient } from '@tanstack/react-query';
 import DashboardPlaybookSkeleton from '../SkeletonLoader/DashboardPlaybookSkeleton';
 import ThemedText from '../common/ThemedText';
-import DevotionalModal from '../DevotionalModal';
 
 const { width } = Dimensions.get('window');
 // Match ReflectionQuestionsCard sizing and spacing
@@ -80,9 +79,6 @@ const PlaybookCarousel: React.FC<PlaybookCarouselProps> = ({
   const playbookIdsRef = useRef<Set<string>>(new Set());
   const refetchTimeoutRef = useRef<any>(null);
   const channelRef = useRef<RealtimeChannel | null>(null);
-  // Devotional creation modal state (parity with PlaybookListScreen)
-  const [devotionalModalVisible, setDevotionalModalVisible] = useState(false);
-  const [selectedPlaybookForDevotional, setSelectedPlaybookForDevotional] = useState<Playbook | null>(null);
 
   // Notify parent when carousel is empty
   React.useEffect(() => {
@@ -427,11 +423,6 @@ const PlaybookCarousel: React.FC<PlaybookCarouselProps> = ({
         triggerLightHaptic();
         onPlaybookPress?.(playbook);
       }}
-      onLongPress={() => {
-        try { triggerLightHaptic(); } catch {}
-        setSelectedPlaybookForDevotional(playbook);
-        setDevotionalModalVisible(true);
-      }}
       activeOpacity={0.85}
     >
       <Animated.View
@@ -590,21 +581,6 @@ const PlaybookCarousel: React.FC<PlaybookCarouselProps> = ({
           {playbooks.map((pb, i) => renderPlaybookCard(pb, i))}
         </Animated.ScrollView>
       )}
-      {/* Devotional creation modal triggered by long-press on a playbook card */}
-      <DevotionalModal
-        visible={devotionalModalVisible}
-        onClose={() => {
-          setDevotionalModalVisible(false);
-          setSelectedPlaybookForDevotional(null); // Reset selected playbook
-        }}
-        playbookId={selectedPlaybookForDevotional?.id}
-        userInput={selectedPlaybookForDevotional?.userInput}
-        onDevotionalCreated={(devotionalId: string) => {
-          setDevotionalModalVisible(false);
-          setSelectedPlaybookForDevotional(null); // Reset selected playbook
-          try { navigation.navigate('DevotionalDetail' as never, { devotionalId } as never); } catch {}
-        }}
-      />
     </View>
   );
 };

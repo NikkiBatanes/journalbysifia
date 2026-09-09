@@ -31,10 +31,7 @@ import { triggerLightHaptic } from '../../utils/haptics';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import DashboardCombinedContentSkeleton from '../SkeletonLoader/DashboardCombinedContentSkeleton';
-import DevotionalModal from '../DevotionalModal';
-import { normalizeDevotionalCategory } from '../../utils/devotionalCategories';
 import { extractCleanTitle } from '../../utils/titleUtils';
-import { useDevotionalOperations } from '../../services/hooks/useDevotionalDataSimplified';
 import { deletePlaybook } from '../../services/apiIntegration';
 import { pdfExportService } from '../../utils/pdfExportService';
 import { useFeatureAccess } from '../../hooks/useFeatureAccess';
@@ -168,8 +165,6 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
   const hasLoadedRef = useRef(false);
   const channelRef = useRef<RealtimeChannel | null>(null);
   const refetchTimeoutRef = useRef<any>(null);
-  const [devotionalModalVisible, setDevotionalModalVisible] = useState(false);
-  const [selectedPlaybookForDevotional, setSelectedPlaybookForDevotional] = useState<PlaybookContent | null>(null);
   const [sessionStates, setSessionStates] = useState<Record<string, { hasPrayed: boolean; hasRead: boolean }>>({});
   const [menuVisible, setMenuVisible] = useState<string | null>(null);
   const [renameModalVisible, setRenameModalVisible] = useState(false);
@@ -177,8 +172,8 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
   const [newTitle, setNewTitle] = useState('');
   const [devotionalsCount, setDevotionalsCount] = useState<Record<string, number>>({});
 
-  // Devotional operations for delete functionality
-  const { deleteDevotional } = useDevotionalOperations(user?.id || '');
+  // Devotional operations for delete functionality (devotionals removed)
+  const deleteDevotional = async (_id: string) => {};
 
   // Feature access checks for PDF export
   const pdfExportAccess = useFeatureAccess({ feature: 'export_pdf' });
@@ -255,10 +250,8 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
     setRenameModalVisible(true);
   }, []);
 
-  const handleCardLongPress = useCallback((playbook: PlaybookContent) => {
-    try { triggerLightHaptic(); } catch {}
-    setSelectedPlaybookForDevotional(playbook);
-    setDevotionalModalVisible(true);
+  const handleCardLongPress = useCallback(() => {
+    // No-op: devotional creation removed
   }, []);
 
   const handleRenamePlaybook = async () => {
@@ -709,7 +702,7 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
       const deriveCategory = (row: any): string => {
         const savedArray = Array.isArray(row.categories) ? row.categories : [];
         const saved = (row.category as string) || (savedArray[0] as string) || '';
-        return normalizeDevotionalCategory(saved, `${row.title || ''} ${row.description || ''}`);
+        return saved || 'General';
       };
 
       const devotionalsWithStatus = await Promise.all(
@@ -1056,7 +1049,7 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
           triggerLightHaptic();
           onPlaybookPress?.(playbook);
         }}
-        onLongPress={() => handleCardLongPress(playbook)}
+        onLongPress={() => handleCardLongPress()}
         activeOpacity={0.85}
       >
         <Animated.View
@@ -1087,28 +1080,6 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
             </TouchableOpacity>
             {menuVisible === playbook.id && (
               <View style={styles.dropdownMenu} onStartShouldSetResponder={() => true}>
-                <TouchableOpacity
-                  style={styles.dropdownItem}
-                  onPress={(e) => {
-                    e.stopPropagation();
-                    try { triggerLightHaptic(); } catch {}
-                    setSelectedPlaybookForDevotional(playbook);
-                    setDevotionalModalVisible(true);
-                    setMenuVisible(null);
-                  }}
-                >
-                  <View style={styles.dropdownItemContent}>
-                    <ThemedText weight="medium" style={styles.dropdownItemText}>Turn into a devotional</ThemedText>
-                    {devotionalsCount[playbook.id] > 0 && (
-                      <View style={styles.dropdownBadge}>
-                        <MaterialCommunityIcons name="book" size={10} color={Colors.hopeWhite} />
-                        {devotionalsCount[playbook.id] >= 2 && (
-                          <ThemedText style={styles.dropdownBadgeText}>{devotionalsCount[playbook.id]}</ThemedText>
-                        )}
-                      </View>
-                    )}
-                  </View>
-                </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.dropdownItem}
                   onPress={(e) => {
@@ -1561,20 +1532,6 @@ const CombinedContentCarousel: React.FC<CombinedContentCarouselProps> = ({
         </Animated.ScrollView>
       )}
 
-      <DevotionalModal
-        visible={devotionalModalVisible}
-        onClose={() => {
-          setDevotionalModalVisible(false);
-          setSelectedPlaybookForDevotional(null);
-        }}
-        playbookId={selectedPlaybookForDevotional?.id}
-        userInput={selectedPlaybookForDevotional?.userInput}
-        onDevotionalCreated={(devotionalId: string) => {
-          setDevotionalModalVisible(false);
-          setSelectedPlaybookForDevotional(null);
-          try { navigation.navigate('DevotionalDetail' as never, { devotionalId } as never); } catch {}
-        }}
-      />
       {renderRenameModal()}
     </View>
   );

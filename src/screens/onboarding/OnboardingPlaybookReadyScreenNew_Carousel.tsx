@@ -41,7 +41,6 @@ import ActionStepsCard from '../../components/ActionStepsCard';
 // AffirmationCard import removed as it's not used
 import BibleVerseCard from '../../components/BibleVerseCard';
 import DirectChallengeCard from '../../components/DirectChallengeCard';
-import DevotionalModal from '../../components/DevotionalModal';
 import OnboardingTutorial from '../../components/tutorial/OnboardingTutorial';
 import { logger } from '../../utils/logger';
 import OnboardingErrorBoundary from '../../components/OnboardingErrorBoundary';
@@ -1202,15 +1201,6 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
             })()
           }
         </View>
-
-        {/* DEVOTIONAL MODAL */}
-        <DevotionalModal
-          visible={showDevotionalModal}
-          onClose={() => setShowDevotionalModal(false)}
-          playbookId={playbook.id}
-          userInput={userInput}
-          isOnboarding={true}
-        />
 
         {/* TUTORIAL OVERLAY */}
         <OnboardingTutorial

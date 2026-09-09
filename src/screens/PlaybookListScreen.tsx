@@ -55,7 +55,6 @@ import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { useFocusEffect } from '@react-navigation/native';
 import { useScroll } from '../context/ScrollContext';
 
-import DevotionalModal from '../components/DevotionalModal';
 import BlueSheet from '../components/layout/BlueSheet';
 import { Colors, Fonts } from '../theme';
 import { useScreenStatusBar } from '../hooks/useScreenStatusBar';
@@ -965,10 +964,6 @@ const PlaybookListScreen = ({ navigation }: any) => {
   const { setShowTabBar } = useScroll();
   const tabBarCollapsedRef = useRef(false);
 
-  // State for creating a devotional from a playbook via long-press
-  const [devotionalModalVisible, setDevotionalModalVisible] = useState(false);
-  const [selectedPlaybookForDevotional, setSelectedPlaybookForDevotional] = useState<Playbook | null>(null);
-
   // State for rename playbook
   const [renameModalVisible, setRenameModalVisible] = useState(false);
   const [selectedPlaybookForRename, setSelectedPlaybookForRename] = useState<Playbook | null>(null);
@@ -1719,11 +1714,9 @@ const PlaybookListScreen = ({ navigation }: any) => {
     navigation.navigate('PlaybookWalkthrough', { playbook });
   }, [navigation, triggerLightHaptic]);
 
-  const handleCardLongPress = useCallback((playbook: Playbook) => {
-    try { triggerLightHaptic(); } catch {}
-    setSelectedPlaybookForDevotional(playbook);
-    setDevotionalModalVisible(true);
-  }, [triggerLightHaptic]);
+  const handleCardLongPress = useCallback(() => {
+    // No-op: devotional creation removed
+  }, []);
 
   const handleMenuToggle = useCallback((id: string | null, anchor?: MenuAnchor) => {
     if (!id) {
@@ -1766,8 +1759,8 @@ const PlaybookListScreen = ({ navigation }: any) => {
   const handleTagPress = useCallback((item: Playbook) => {
     setMenuVisible(null); setSelectedPlaybookForTag(item); setTagModalVisible(true);
   }, []);
-  const handleDevotionalPress = useCallback((pb: Playbook) => {
-    setMenuVisible(null); handleCardLongPress(pb);
+  const handleDevotionalPress = useCallback(() => {
+    setMenuVisible(null); handleCardLongPress();
   }, [handleCardLongPress]);
 
   const handleExportPdfPress = useCallback(async (item: Playbook) => {
@@ -2620,21 +2613,6 @@ const PlaybookListScreen = ({ navigation }: any) => {
           )}
         </BlueSheet>
       </View>
-      {/* Devotional creation modal triggered by long-press on a playbook card */}
-      <DevotionalModal
-        visible={devotionalModalVisible}
-        onClose={() => {
-          setDevotionalModalVisible(false);
-          setSelectedPlaybookForDevotional(null); // Reset selected playbook
-        }}
-        playbookId={selectedPlaybookForDevotional?.id}
-        userInput={selectedPlaybookForDevotional?.userInput}
-        onDevotionalCreated={(devotionalId: string) => {
-          setDevotionalModalVisible(false);
-          setSelectedPlaybookForDevotional(null); // Reset selected playbook
-          try { navigation.navigate('DevotionalDetail' as never, { devotionalId } as never); } catch {}
-        }}
-      />
       {/* Dropdown menu modal - rendered outside carousel structure to prevent clipping */}
       <Modal
         visible={menuVisible !== null}
@@ -2659,26 +2637,6 @@ const PlaybookListScreen = ({ navigation }: any) => {
                   : styles.modalDropdownMenuFallback,
               ]}
             >
-              <TouchableOpacity
-                style={styles.modalDropdownItem}
-                onPress={() => {
-                  try { triggerLightHaptic(); } catch {}
-                  setMenuVisible(null);
-                  handleDevotionalPress(selectedPlaybookForMenu);
-                }}
-              >
-                <View style={styles.dropdownItemContent}>
-                  <ThemedText weight="medium" style={styles.dropdownItemText}>Turn into a devotional</ThemedText>
-                  {devotionalsCount[selectedPlaybookForMenu.id] > 0 && (
-                    <View style={styles.dropdownBadge}>
-                      <MaterialCommunityIcons name="book" size={10} color={Colors.hopeWhite} />
-                      {devotionalsCount[selectedPlaybookForMenu.id] >= 2 && (
-                        <ThemedText style={styles.dropdownBadgeText}>{devotionalsCount[selectedPlaybookForMenu.id]}</ThemedText>
-                      )}
-                    </View>
-                  )}
-                </View>
-              </TouchableOpacity>
               <TouchableOpacity
                 style={styles.modalDropdownItem}
                 onPress={() => {

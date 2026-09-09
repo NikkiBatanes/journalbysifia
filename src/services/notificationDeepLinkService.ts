@@ -571,31 +571,10 @@ class NotificationDeepLinkService {
 
         case 'devotional':
         case 'devotionals':
-          // Navigate to specific DevotionalDetail screen
-          if (id === 'today') {
-            // Navigate to today's devotional - need to fetch and navigate
-            this.navigationRef.current.navigate('MainTabs', { screen: 'Devotionals', params: { openToday: true } });
-          } else if (id && id !== 'new') {
-            const dayIndex = parts.indexOf('day');
-            const dayNumber = dayIndex >= 0 ? Number(parts[dayIndex + 1]) : undefined;
-            this.navigationRef.current.navigate('DevotionalDetail', {
-              devotionalId: id,
-              ...(Number.isFinite(dayNumber) ? { initialDay: dayNumber } : {}),
-              ...(query.scrollToPrayer === 'true' ? { scrollToPrayer: true } : {}),
-              ...(query.openReflection === 'true' ? { openReflection: true } : {}),
-              ...(query.question ? { reflectionQuestion: query.question } : {}),
-              ...(query.questionNumber ? { reflectionQuestionNumber: Number(query.questionNumber) } : {}),
-            });
-          } else if (id === 'new') {
-            // Navigate to create new devotional
-            this.navigationRef.current.navigate('MainTabs', { screen: 'Devotionals', params: { createNew: true } });
-          } else {
-            // Navigate to Devotionals tab if no specific ID
-            this.navigationRef.current.navigate('MainTabs', { screen: 'Devotionals' });
-          }
-          Logger.info('Navigated to Devotional', {
+          // Devotionals feature removed; route to Overview
+          this.navigationRef.current.navigate('MainTabs', { screen: 'Overview' });
+          Logger.info('Navigated to Overview (devotionals removed)', {
             component: 'notificationDeepLinkService',
-            devotionalId: id,
           });
           break;
 

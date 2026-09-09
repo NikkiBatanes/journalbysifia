@@ -3,7 +3,6 @@ import { Logger } from '../utils/ProductionLogger';
 import { authErrorHandler } from '../utils/authErrorHandler';
 import { validateSession, forceSessionRefresh } from '../utils/sessionSync';
 import { AUTH_ERROR_MESSAGES } from '../constants/sessionConstants';
-import { generateDevotional as modernGenerateDevotional, validateDevotionalParams } from './modernDevotionalApi';
 import {
   generatePlaybook as modernGeneratePlaybook,
   savePlaybook as modernSavePlaybook,
@@ -21,112 +20,6 @@ import {
  * Bridge functions to integrate legacy supabaseApi.ts with new authentication system
  * This ensures all API calls use the current session from IndustryStandardAuthContext
  */
-
-/**
- * Enhanced generateDevotional with proper auth integration
- */
-export async function generateDevotional(
-  duration: number,
-  playbookId?: string,
-  userInput?: string,
-  options: {
-    showUserFeedback?: boolean;
-    onAuthRequired?: () => void;
-  } = {}
-): Promise<any> {
-  const { showUserFeedback = true, onAuthRequired } = options;
-
-  try {
-
-    // Validate parameters
-    validateDevotionalParams({ duration, playbookId, userInput });
-
-    // Validate session using comprehensive validation
-    const { isValid, diagnostics } = await validateSession();
-
-    if (!isValid) {
-      Logger.error('❌ Invalid session for devotional generation', undefined, {
-        component: 'apiIntegration',
-        diagnostics,
-      });
-
-      // Try to refresh session once before giving up
-      if (diagnostics.hasSession && diagnostics.hasToken && diagnostics.isExpired) {
-
-        const refreshResult = await forceSessionRefresh();
-
-        if (refreshResult.success) {
-
-          // Retry with refreshed session
-          return generateDevotional(duration, playbookId, userInput, options);
-        }
-      }
-
-      const result = await authErrorHandler.handleApiError(
-        { status: 401, message: AUTH_ERROR_MESSAGES.NO_SESSION },
-        {
-          operationName: 'devotional generation',
-          showUserFeedback,
-          onAuthRequired,
-        }
-      );
-
-      if (!result.handled) {
-        throw new Error('Authentication required for devotional generation');
-      }
-
-      return null;
-    }
-
-    // Use modern devotional generation (no AsyncStorage bridge needed)
-    try {
-      const result = await modernGenerateDevotional({ duration, playbookId, userInput });
-
-      return result;
-    } catch (error: any) {
-      // Handle specific authentication errors
-      if (error.message.includes('session') || error.message.includes('token')) {
-        const result = await authErrorHandler.handleApiError(error, {
-          operationName: 'devotional generation',
-          showUserFeedback,
-          onAuthRequired,
-        });
-
-        if (!result.handled) {
-          throw error;
-        }
-
-        return null;
-      }
-
-      // Re-throw non-auth errors
-      throw error;
-    }
-
-  } catch (error: any) {
-    Logger.error('❌ Devotional generation failed', error as Error, {
-      component: 'apiIntegration',
-    });
-
-    const result = await authErrorHandler.handleApiError(error, {
-      operationName: 'devotional generation',
-      showUserFeedback,
-      retryAttempts: 2,
-      onAuthRequired,
-    });
-
-    if (result.shouldRetry) {
-
-      return generateDevotional(duration, playbookId, userInput, options);
-    }
-
-    if (!result.handled) {
-      throw error;
-    }
-
-    return null;
-  }
-}
 
 /**
  * Enhanced generatePlaybook with proper auth integration
