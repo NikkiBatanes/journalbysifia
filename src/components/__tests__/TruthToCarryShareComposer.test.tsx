@@ -85,13 +85,20 @@ describe('Truth to Carry Message sharing', () => {
     expect(triggerLightHaptic).toHaveBeenCalled();
   });
 
-  it('removes all share-card branding for Growth accounts', async () => {
+  it('lets Growth accounts choose whether to show share-card branding', async () => {
     jest.mocked(NewSubscriptionService.getUserSubscription).mockResolvedValueOnce({ tier: 'growth' } as any);
     const screen = render(<TruthToCarryShareComposer visible text="A truth to carry." userId="paid-user" onClose={jest.fn()} onUpgrade={jest.fn()} />);
 
     await waitFor(() => expect(screen.getByLabelText('Message').props.accessibilityState.disabled).toBe(false));
     expect(screen.queryByText('www.sifia.app')).toBeNull();
     expect(screen.queryByText('Hide the siFia watermark')).toBeNull();
+
+    const watermarkToggle = screen.getByLabelText('Show siFia watermark');
+    expect(watermarkToggle.props.accessibilityState.checked).toBe(false);
+    fireEvent.press(watermarkToggle);
+
+    expect(screen.getByText('www.sifia.app')).toBeTruthy();
+    expect(screen.getByText('Shown on this post')).toBeTruthy();
   });
 
   it('keeps share-card branding for Spark accounts', async () => {
