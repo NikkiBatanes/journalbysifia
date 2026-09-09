@@ -40,7 +40,7 @@ const PILL_BG = Colors.sage;
 
 // Pill now occupies the full screen width
 const PILL_WIDTH = Dimensions.get('window').width;
-const PILL_HEIGHT = 56;
+export const PILL_HEIGHT = 56;
 const TAB_CIRCLE_SIZE = 40;
 const CIRCLE_SIZE = 48;
 
@@ -49,10 +49,6 @@ const LABELS: Record<string, string> = {
   Prayer: 'Prayer',
   Journal: 'Journal',
   More: 'More',
-};
-
-const TAB_ROOT_ROUTES: Record<string, string[]> = {
-  Journal: ['JournalMain'],
 };
 
 // Custom tab bar — floating pill with smooth entrance/exit and per-tab bounce
@@ -71,17 +67,6 @@ const CustomTabBarComponent = ({
   const [showAddMenu, setShowAddMenu] = React.useState(false);
   const menuAnim = React.useRef(new Animated.Value(0)).current;
   const addButtonLayout = React.useRef({ x: 0, width: 0 });
-  const collapsedCircleRef = React.useRef<any>(null);
-
-  const publishCollapsedCircleCenter = React.useCallback(() => {
-    requestAnimationFrame(() => {
-      collapsedCircleRef.current?.measureInWindow?.(
-        (_x: number, y: number, _width: number, height: number) => {
-          setCollapsedTabBarCenterY(y + height / 2);
-        },
-      );
-    });
-  }, [setCollapsedTabBarCenterY]);
 
   React.useEffect(() => {
     Animated.spring(menuAnim, {
@@ -126,16 +111,12 @@ const CustomTabBarComponent = ({
   }, [showAddMenu]);
 
   const currentRouteName = state.routes[state.index].name;
-  const activeTabRoute = state.routes[state.index] as any;
-  const nestedState = activeTabRoute.state;
-  const activeNestedRouteName = nestedState?.routes?.[nestedState.index ?? 0]?.name;
-  const allowedRootRoutes = TAB_ROOT_ROUTES[currentRouteName];
-  const isNestedDetailRoute = Boolean(
-    activeNestedRouteName &&
-    allowedRootRoutes &&
-    !allowedRootRoutes.includes(activeNestedRouteName)
-  );
   const isReflect = currentRouteName === 'Reflect';
+  const activeTabRoute = state.routes[state.index] as any;
+  const nestedState = activeTabRoute?.state;
+  const activeNestedRouteName =
+    nestedState?.routes?.[nestedState.index ?? 0]?.name;
+  const isSermonNotes = activeNestedRouteName === 'SermonNotes';
 
   // ── Pill visibility: opacity + translateY ────────────────────────────────
   // 0 = hidden below screen, 1 = visible in place
@@ -195,41 +176,6 @@ const CustomTabBarComponent = ({
     return () => { isMounted = false; unsub(); };
   }, []);
 
-  // ── Scroll-driven collapse-to-circle (only when not on Reflect) ──────────
-  useEffect(() => {
-    if (isReflect) { return; }
-    if (!showTabBar) {
-      // Collapse: pill shape fades + contracts leftward. Selector stays in place
-      // (invisible because pillShapeOpacity → 0) — no separate slide animation.
-      Animated.spring(collapseAnim, {
-        toValue: 1,
-        tension: 55,
-        friction: 14,
-        useNativeDriver: true,
-      }).start();
-    } else {
-      // Expand: snap selector to active tab BEFORE pill grows so it's already
-      // in place when it becomes visible — no sliding artifact.
-      const target = tabLayouts[state.index];
-      if (target) { selectorPosition.setValue(target.x); }
-      Animated.spring(collapseAnim, {
-        toValue: 0,
-        tension: 65,
-        friction: 13,
-        useNativeDriver: true,
-      }).start();
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showTabBar, isReflect]);
-
-  useEffect(() => {
-    if (showTabBar || isReflect) {
-      return;
-    }
-    const timer = setTimeout(publishCollapsedCircleCenter, 350);
-    return () => clearTimeout(timer);
-  }, [isReflect, publishCollapsedCircleCenter, showTabBar]);
-
   // ── Route-change animations ────────────────────────────────────────────────
   const prevRouteRef = React.useRef<string>(currentRouteName);
   const isFirstRenderRef = React.useRef(true);
@@ -280,21 +226,16 @@ const CustomTabBarComponent = ({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.index, updateSelectorPosition]);
 
-  const { onTabPress } = React.useContext(TabPressContext);
-
-  // Animate the pill out for nested detail routes (e.g. SermonNotes)
+  // Hide the pill entirely when Sermon Notes is open
   useEffect(() => {
-    if (isReflect) {
-      return;
-    }
-    if (isNestedDetailRoute) {
+    if (isSermonNotes) {
       Animated.spring(pillAnim, {
         toValue: 0,
         tension: 55,
         friction: 14,
         useNativeDriver: true,
       }).start();
-    } else {
+    } else if (!isReflect) {
       Animated.spring(pillAnim, {
         toValue: 1,
         tension: 55,
@@ -302,7 +243,9 @@ const CustomTabBarComponent = ({
         useNativeDriver: true,
       }).start();
     }
-  }, [isNestedDetailRoute, isReflect, pillAnim]);
+  }, [isSermonNotes, isReflect, pillAnim]);
+
+  const { onTabPress } = React.useContext(TabPressContext);
 
   // pillAnim 0→1 drives: opacity 0→1 + translateY 28→0 (entrance/exit mirror)
   const pillOpacity   = pillAnim;
@@ -363,7 +306,7 @@ const CustomTabBarComponent = ({
           transform: [{ translateY: pillTranslateY }],
         },
       ]}
-      pointerEvents={isReflect ? 'none' : 'box-none'}
+      pointerEvents={isReflect || isSermonNotes ? 'none' : 'box-none'}
     >
       {/* ── Add menu dim — behind the pill and menu ───────── */}
       <AnimatedPressable
@@ -526,11 +469,9 @@ const CustomTabBarComponent = ({
         pointerEvents={showTabBar ? 'none' : 'box-none'}
       >
         <TouchableOpacity
-          ref={collapsedCircleRef}
-          onLayout={publishCollapsedCircleCenter}
           style={styles.collapsedCircleTouchable}
           activeOpacity={0.8}
-          onPress={() => { try { triggerLightHaptic(); } catch {} setShowTabBar(true); }}
+          onPress={() => { try { triggerLightHaptic(); } catch {} }}
         >
           {circleIcon}
         </TouchableOpacity>

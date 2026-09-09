@@ -26,6 +26,7 @@ import {Pencil} from 'lucide-react-native';
 import ThemedText from '../components/common/ThemedText';
 import {useAuth} from '../context/IndustryStandardAuthContext';
 import {useScroll} from '../context/ScrollContext';
+import {PILL_HEIGHT} from '../navigation/BottomTabNavigator';
 import {useCreateReflection} from '../services/hooks/useReflectionData';
 import {
   getScripturePassage,
@@ -83,7 +84,7 @@ const BLOCKS: Record<
   scripture: {
     label: 'SCRIPTURE',
     action: '+ Scripture',
-    placeholder: 'e.g. Romans 12:1–2',
+    placeholder: 'Romans 12:1–2',
     icon: 'book-outline',
   },
   key: {
@@ -107,13 +108,13 @@ const BLOCKS: Record<
   outline: {
     label: 'MESSAGE OUTLINE',
     action: '☷ Outline',
-    placeholder: 'Outline title, e.g. 3 Calls to Courage',
+    placeholder: 'Outline title, 3 Calls to Courage',
     icon: 'list-outline',
   },
   character: {
     label: 'BIBLE CHARACTER',
     action: '♙ Bible Character',
-    placeholder: 'Name, e.g. Joseph',
+    placeholder: 'Name, Joseph',
     icon: 'person-outline',
   },
   language: {
@@ -306,14 +307,15 @@ const SermonNotesScreen = ({navigation}: any) => {
   const bibleVersion =
     (user as any)?.user_metadata?.preferences?.content?.bibleVersion || 'NASB';
   const createReflection = useCreateReflection();
-  const {showTabBar, setShowTabBar, collapsedTabBarCenterY} = useScroll();
+  const {showTabBar, setShowTabBar, collapsedTabBarCenterY, setCollapsedTabBarCenterY} =
+    useScroll();
   const insets = useSafeAreaInsets();
   const screenRef = useRef<View>(null);
   const [screenBottomY, setScreenBottomY] = useState<number | null>(null);
   const restingComposerBottom =
     collapsedTabBarCenterY !== null && screenBottomY !== null
       ? Math.max(0, screenBottomY - collapsedTabBarCenterY - 28)
-      : Math.max(insets.bottom, 8);
+      : Math.max(insets.bottom, 8) + (showTabBar ? PILL_HEIGHT : 0);
   const scrollRef = useRef<ScrollView>(null);
   const blockInputRefs = useRef(new Map<string, TextInput>());
   const pendingFocusBlockIdRef = useRef<string | null>(null);
@@ -322,8 +324,6 @@ const SermonNotesScreen = ({navigation}: any) => {
   );
   const keepAtEndTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const keepScrollAtEndRef = useRef(false);
-  const tabBarCollapsedRef = useRef(false);
-  const lastScrollYRef = useRef(0);
   const composerBottom = useRef(
     new Animated.Value(restingComposerBottom),
   ).current;
@@ -353,39 +353,12 @@ const SermonNotesScreen = ({navigation}: any) => {
   const [carry, setCarry] = useState('');
   const [prayer, setPrayer] = useState('');
 
-  const handleScroll = useCallback(
-    (event: any) => {
-      const y = event.nativeEvent.contentOffset.y;
-      const isScrollingUp = y < lastScrollYRef.current;
-      lastScrollYRef.current = y;
-
-      // Auto-collapse/expand the bottom tab bar like siFia's main navigation
-      if (y > 60 && !tabBarCollapsedRef.current) {
-        tabBarCollapsedRef.current = true;
-        setShowTabBar(false);
-      } else if (isScrollingUp && y <= 0 && tabBarCollapsedRef.current) {
-        tabBarCollapsedRef.current = false;
-        setShowTabBar(true);
-      }
-    },
-    [setShowTabBar],
-  );
-
   useFocusEffect(
     useCallback(() => {
-      tabBarCollapsedRef.current = true;
-      lastScrollYRef.current = 0;
-      setShowTabBar(false);
-
-      return () => {
-        setShowTabBar(true);
-      };
-    }, [setShowTabBar]),
+      setShowTabBar(true);
+      setCollapsedTabBarCenterY(null);
+    }, [setShowTabBar, setCollapsedTabBarCenterY]),
   );
-
-  useEffect(() => {
-    tabBarCollapsedRef.current = !showTabBar;
-  }, [showTabBar]);
 
   useEffect(() => {
     if (stage !== 2 || showTabBar) {
@@ -970,12 +943,7 @@ const SermonNotesScreen = ({navigation}: any) => {
           if (keepScrollAtEndRef.current) {
             scrollRef.current?.scrollToEnd({animated: true});
           }
-        }}
-        onScroll={handleScroll}
-        scrollEventThrottle={100}>
-        <ThemedText style={styles.actionCounter}>
-          {stage} of 3
-        </ThemedText>
+        }}>
         <View style={styles.actionProgressBar}>
           <View
             style={[
@@ -1002,7 +970,7 @@ const SermonNotesScreen = ({navigation}: any) => {
             </ThemedText>
             <TextInput
               style={styles.input}
-              placeholder="e.g. Romans 12:1–2"
+              placeholder="Romans 12:1–2"
               placeholderTextColor={Colors.textGray}
               value={mainScripture}
               onChangeText={setMainScripture}
@@ -1022,7 +990,7 @@ const SermonNotesScreen = ({navigation}: any) => {
                 </ThemedText>
                 <TextInput
                   style={styles.input}
-                  placeholder="e.g. The Book of Romans"
+                  placeholder="The Book of Romans"
                   placeholderTextColor={Colors.textGray}
                   value={series}
                   onChangeText={setSeries}
@@ -1067,7 +1035,7 @@ const SermonNotesScreen = ({navigation}: any) => {
             )}
             <TouchableOpacity style={styles.primary} onPress={() => goTo(2)}>
               <ThemedText weight="bold" style={styles.primaryText}>
-                Start taking notes →
+                Start taking notes
               </ThemedText>
             </TouchableOpacity>
           </>
@@ -1222,7 +1190,7 @@ const SermonNotesScreen = ({navigation}: any) => {
           </>
         )}
       </ScrollView>
-      {stage === 2 && !showTabBar && (
+      {stage === 2 && (
         <Animated.View
           pointerEvents="box-none"
           style={[styles.floatingComposer, {bottom: composerBottom}]}
@@ -1489,14 +1457,6 @@ const styles = StyleSheet.create({
     color: Colors.text,
   },
   content: {paddingHorizontal: 22, paddingBottom: 0},
-  actionCounter: {
-    fontSize: 13,
-    color: Colors.textGray,
-    marginTop: 32,
-    marginBottom: 8,
-    letterSpacing: 0.5,
-    textAlign: 'center' as const,
-  },
   actionProgressBar: {
     height: 6,
     width: 120,
