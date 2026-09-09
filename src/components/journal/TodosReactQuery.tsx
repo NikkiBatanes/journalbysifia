@@ -1565,7 +1565,7 @@ const styles = StyleSheet.create({
     padding: 32,
     width: '100%',
     maxWidth: 360,
-    shadowColor: '#000',
+    shadowColor: '#29342E',
     shadowOffset: {
       width: 0,
       height: 8,
@@ -1653,7 +1653,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
     ...Platform.select({
       ios: {
-        shadowColor: '#000',
+        shadowColor: '#29342E',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.2,
         shadowRadius: 4,
@@ -1689,7 +1689,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderRadius: 50,
-    shadowColor: '#000',
+    shadowColor: '#29342E',
     shadowOffset: {
       width: 0,
       height: 4,

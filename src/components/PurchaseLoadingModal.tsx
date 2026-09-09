@@ -77,28 +77,28 @@ export const PurchaseLoadingModal: React.FC<PurchaseLoadingModalProps> = ({
         title: 'Processing Payment',
         description: `Securely processing your payment with ${paymentProvider}...`,
         icon: 'card-outline',
-        color: '#4ECDC4',
+        color: '#718476',
         progress: 25,
       },
       validating: {
         title: 'Validating Receipt',
         description: `Verifying your purchase with ${paymentProvider}...`,
         icon: 'shield-checkmark-outline',
-        color: '#95E1D3',
+        color: '#718476',
         progress: 50,
       },
       activating: {
         title: 'Activating Subscription',
         description: 'Setting up your account and benefits...',
         icon: 'checkmark-circle-outline',
-        color: '#FFD93D',
+        color: '#B99562',
         progress: 75,
       },
       completing: {
         title: 'Almost Done',
         description: 'Finalizing your subscription...',
         icon: 'rocket-outline',
-        color: '#FF6B6B',
+        color: '#D97872',
         progress: 90,
       },
     };
@@ -111,9 +111,9 @@ export const PurchaseLoadingModal: React.FC<PurchaseLoadingModalProps> = ({
   // Compute dynamic styles to avoid inline style warnings
   const modalBackgroundColor = '#1A3C6D'; // Solid anchor blue
   const iconContainerBackgroundColor = Colors.alertCoral + '26'; // Alert coral with 15% opacity
-  const progressBarBackgroundColor = '#4CAF50'; // Always growth green for consistency
+  const progressBarBackgroundColor = '#526A5B'; // Always growth green for consistency
   const progressBarContainerBackgroundColor = 'rgba(248, 249, 250, 0.2)'; // Light background for progress bar
-  const spinnerColor = '#FF6B6B';
+  const spinnerColor = '#D97872';
 
   // Compute font families based on theme to avoid inline conditionals
   const titleFontFamily = theme.currentFont === 'lexend' ? 'Lexend-Bold' : 'NunitoSans-Bold';
@@ -213,7 +213,7 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     padding: 32,
     alignItems: 'center',
-    shadowColor: '#000',
+    shadowColor: '#29342E',
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.3,
     shadowRadius: 20,

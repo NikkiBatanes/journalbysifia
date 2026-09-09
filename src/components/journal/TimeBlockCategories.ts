@@ -17,23 +17,23 @@ export const TIMEBLOCK_CATEGORIES: TimeBlockCategory[] = [
   { name: 'Evening Routine', icon: 'moon-outline', color: Colors.mysticalViolet, description: 'Wind down rituals' },
   { name: 'Events', icon: 'calendar-number', color: Colors.playbookBlue, description: 'Special occasions' },
   { name: 'Family Time', icon: 'people-circle', color: Colors.alertCoral, description: 'Quality time with loved ones' },
-  { name: 'Life Admin', icon: 'document-text', color: '#9B8B6F', description: 'Personal management tasks' },
+  { name: 'Life Admin', icon: 'document-text', color: '#B99562', description: 'Personal management tasks' },
   { name: 'Mental Health', icon: 'heart', color: Colors.treasureGold, description: 'Self-care and wellness' },
   { name: 'Ministry', icon: 'hand-left', color: Colors.ministryPurple, description: 'Service and spiritual work' },
   { name: 'Morning Routine', icon: 'sunny-outline', color: Colors.faithGold, description: 'Start the day right' },
   { name: 'Personal Growth', icon: 'person', color: Colors.wisdomIndigo, description: 'Self-improvement journey' },
   { name: 'Physical Health', icon: 'barbell', color: Colors.prosperityGreen, description: 'Exercise and wellness' },
   { name: 'Projects', icon: 'folder', color: Colors.winGold, description: 'Ongoing work and goals' },
-  { name: 'Quiet Time', icon: 'book', color: '#4A7BA7', description: 'Reflection and stillness' },
+  { name: 'Quiet Time', icon: 'book', color: '#718476', description: 'Reflection and stillness' },
   { name: 'Recreation', icon: 'airplane', color: Colors.gratitudeRed, description: 'Fun and leisure' },
-  { name: 'Sleep & Recovery', icon: 'moon', color: '#8B7BA8', description: 'Rest and restoration' },
+  { name: 'Sleep & Recovery', icon: 'moon', color: '#526A5B', description: 'Rest and restoration' },
   { name: 'Work Meetings', icon: 'briefcase', color: Colors.timeblockGreen, description: 'Professional gatherings' },
-  { name: 'Other', icon: 'ellipsis-horizontal', color: '#6B7280', description: 'Everything else' },
+  { name: 'Other', icon: 'ellipsis-horizontal', color: '#7C837D', description: 'Everything else' },
 ];
 
 export const getCategoryColor = (categoryName: string): string => {
   const category = TIMEBLOCK_CATEGORIES.find(cat => cat.name === categoryName);
-  return category?.color || '#6B7280'; // Default neutral gray
+  return category?.color || '#7C837D'; // Default neutral gray
 };
 
 export const getCategoryIcon = (categoryName: string): string => {

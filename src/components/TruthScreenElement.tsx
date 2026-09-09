@@ -46,7 +46,7 @@ export default function TruthScreenElement({ element, onShare }: TruthScreenElem
           style={styles.header}
         >
           <ThemedText selectable weight="semiBold" style={styles.label}>A closer look</ThemedText>
-          <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={18} color="#E8B86D" />
+          <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={18} color="#B99562" />
         </TouchableOpacity>
         {expanded ? <ShareableSelectableText text={element.text} style={styles.body} onShare={share} /> : null}
       </View>
@@ -81,7 +81,7 @@ export default function TruthScreenElement({ element, onShare }: TruthScreenElem
             accessibilityRole="button"
             accessibilityLabel={element.kind === 'flow' ? 'Share this progression' : 'Share this distinction'}
           >
-            <Ionicons name="paper-plane-outline" size={13} color="#E8B86D" />
+            <Ionicons name="paper-plane-outline" size={13} color="#B99562" />
           </TouchableOpacity>
         ) : null}
       </View>
@@ -117,7 +117,7 @@ export default function TruthScreenElement({ element, onShare }: TruthScreenElem
         </View>
       ) : element.items.map((item, index) => (
         <React.Fragment key={`${index}-${item}`}>
-          {index > 0 && element.kind === 'flow' ? <Ionicons accessibilityLabel="Then" name="arrow-down-outline" size={20} color="#E8B86D" style={styles.arrow} /> : null}
+          {index > 0 && element.kind === 'flow' ? <Ionicons accessibilityLabel="Then" name="arrow-down-outline" size={20} color="#B99562" style={styles.arrow} /> : null}
           <View style={styles.item}>
             <ShareableSelectableText
               text={item}
@@ -135,7 +135,7 @@ export default function TruthScreenElement({ element, onShare }: TruthScreenElem
 const styles = StyleSheet.create({
   card: { marginTop: 24, padding: 16, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(245,166,35,0.28)', backgroundColor: 'rgba(232,184,109,0.07)' },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
-  label: { color: '#E8B86D', fontSize: 13, flexShrink: 1 },
+  label: { color: '#B99562', fontSize: 13, flexShrink: 1 },
   body: { color: 'rgba(255,255,255,0.9)', fontSize: 17, lineHeight: 26, marginTop: 12 },
   attribution: { color: 'rgba(255,255,255,0.5)', fontSize: 12, marginTop: 12 },
   share: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
@@ -156,7 +156,7 @@ const styles = StyleSheet.create({
     fontSize: 10,
     lineHeight: 14,
     letterSpacing: 0.8,
-    color: '#E8B86D',
+    color: '#B99562',
   },
   comparisonText: {
     color: 'rgba(255,255,255,0.92)',

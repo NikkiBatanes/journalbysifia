@@ -675,10 +675,10 @@ const styles = StyleSheet.create({
     marginBottom: 4,
     borderRadius: 6,
     overflow: 'hidden',
-    backgroundColor: '#f87171',
+    backgroundColor: '#D97872',
   },
   entryContainer: {
-    backgroundColor: '#274673',
+    backgroundColor: '#1A3C6D',
     borderRadius: 6,
     paddingVertical: 12,
     paddingHorizontal: 12,
@@ -827,7 +827,7 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   errorContainer: {
-    backgroundColor: '#ebeef2',
+    backgroundColor: '#DFE4DD',
     borderRadius: 6,
     paddingVertical: 12,
     paddingHorizontal: 12,

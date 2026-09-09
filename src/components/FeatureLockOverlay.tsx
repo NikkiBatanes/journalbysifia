@@ -156,12 +156,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#111827',
+    color: '#29342E',
     marginBottom: 8,
   },
   message: {
     fontSize: 16,
-    color: '#6B7280',
+    color: '#7C837D',
     lineHeight: 24,
     marginBottom: 16,
   },
@@ -180,13 +180,13 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   upgradeButton: {
-    backgroundColor: '#6366F1',
+    backgroundColor: '#526A5B',
     paddingVertical: 12,
     borderRadius: 8,
     alignItems: 'center',
   },
   upgradeButtonText: {
-    color: '#FFFFFF',
+    color: '#FFFEFA',
     fontSize: 16,
     fontWeight: '600',
   },
@@ -195,7 +195,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   cancelButtonText: {
-    color: '#6B7280',
+    color: '#7C837D',
     fontSize: 16,
   },
 
@@ -223,25 +223,25 @@ const styles = StyleSheet.create({
   lockedTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#111827',
+    color: '#29342E',
     marginTop: 12,
     marginBottom: 8,
     textAlign: 'center',
   },
   lockedMessage: {
     fontSize: 14,
-    color: '#6B7280',
+    color: '#7C837D',
     textAlign: 'center',
     marginBottom: 16,
   },
   unlockButton: {
-    backgroundColor: '#6366F1',
+    backgroundColor: '#526A5B',
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 8,
   },
   unlockButtonText: {
-    color: '#FFFFFF',
+    color: '#FFFEFA',
     fontSize: 14,
     fontWeight: '600',
   },

@@ -226,13 +226,13 @@ const EmailLoginScreen: React.FC<Props> = ({ navigation }) => {
             {/* Inline Error (shown inside form) */}
             {error ? (
               <View style={styles.errorBanner}>
-                <Ionicons name="alert-circle" size={18} color="#FF6B6B" style={styles.errorIconMargin} />
+                <Ionicons name="alert-circle" size={18} color="#D97872" style={styles.errorIconMargin} />
                 <ThemedText style={styles.errorText}>{error}</ThemedText>
               </View>
             ) : null}
             {/* Removed inline Create Account CTA as requested */}
             <View style={styles.inputContainer}>
-              <Ionicons name="mail" size={20} color="#FF6B6B" style={styles.inputIcon} />
+              <Ionicons name="mail" size={20} color="#D97872" style={styles.inputIcon} />
               <ThemedTextInput
                 style={styles.input}
                 placeholder="Email"
@@ -258,7 +258,7 @@ const EmailLoginScreen: React.FC<Props> = ({ navigation }) => {
             </View>
 
             <View style={styles.inputContainer}>
-              <Ionicons name="lock-closed" size={20} color="#FF6B6B" style={styles.inputIcon} />
+              <Ionicons name="lock-closed" size={20} color="#D97872" style={styles.inputIcon} />
               <ThemedTextInput
                 style={styles.input}
                 placeholder="Password"
@@ -280,7 +280,7 @@ const EmailLoginScreen: React.FC<Props> = ({ navigation }) => {
                 <Ionicons
                   name={showPassword ? 'eye-off' : 'eye'}
                   size={20}
-                  color="#FF6B6B"
+                  color="#D97872"
                 />
               </TouchableOpacity>
             </View>
@@ -297,7 +297,7 @@ const EmailLoginScreen: React.FC<Props> = ({ navigation }) => {
               disabled={loading}
             >
               {loading ? (
-                <ActivityIndicator color="#274673" />
+                <ActivityIndicator color="#1A3C6D" />
               ) : (
                 <ThemedText weight="semiBold" style={styles.primaryButtonText}>Login</ThemedText>
               )}
@@ -381,7 +381,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   errorText: {
-    color: '#FF6B6B',
+    color: '#D97872',
     fontSize: 14,
     flexShrink: 1,
   },
@@ -406,7 +406,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     fontFamily: Fonts.system.regular,
-    color: '#fff',
+    color: '#FFFEFA',
   },
   eyeIcon: {
     padding: 4,
@@ -426,12 +426,12 @@ const styles = StyleSheet.create({
     textDecorationLine: 'none',
   },
   loginButton: {
-    backgroundColor: '#FF6B6B',
+    backgroundColor: '#D97872',
     borderRadius: 12,
     height: 56,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
+    shadowColor: '#29342E',
     shadowOffset: {
       width: 0,
       height: 2,
@@ -445,7 +445,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontFamily: Fonts.system.semiBold,
     fontWeight: '600',
-    color: '#fff',
+    color: '#FFFEFA',
   },
   primaryButton: {
     flexDirection: 'row',
@@ -480,7 +480,7 @@ const styles = StyleSheet.create({
   signUpLink: {
     fontSize: 16,
     fontFamily: Fonts.system.bold,
-    color: '#FF6B6B',
+    color: '#D97872',
     fontWeight: '600',
     textDecorationLine: 'none',
   },

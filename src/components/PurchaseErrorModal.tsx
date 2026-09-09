@@ -51,28 +51,28 @@ export const PurchaseErrorModal: React.FC<PurchaseErrorModalProps> = ({
         title: 'Connection Issue',
         description: `We couldn't connect to ${paymentProvider}. Please check your internet connection and try again.`,
         icon: 'cloud-offline-outline',
-        color: '#FF9800',
+        color: '#B99562',
         showRetry: true,
       },
       validation: {
         title: 'Validation Failed',
         description: `We couldn't verify your purchase with ${paymentProvider}. This is usually temporary. Please try again in a moment.`,
         icon: 'alert-circle-outline',
-        color: '#F44336',
+        color: '#D97872',
         showRetry: true,
       },
       cancelled: {
         title: 'Purchase Cancelled',
         description: 'You cancelled the purchase. No charges were made. You can try again whenever you\'re ready.',
         icon: 'close-circle-outline',
-        color: '#9E9E9E',
+        color: '#7C837D',
         showRetry: false,
       },
       unknown: {
         title: 'Something Went Wrong',
         description: errorMessage || 'An unexpected error occurred. Please try again or contact support if the problem persists.',
         icon: 'warning-outline',
-        color: '#FF5722',
+        color: '#D97872',
         showRetry: true,
       },
     };
@@ -83,7 +83,7 @@ export const PurchaseErrorModal: React.FC<PurchaseErrorModalProps> = ({
   const errorInfo = getErrorInfo();
 
   // Compute text color based on errorInfo.showRetry to avoid inline styles
-  const closeButtonTextColor = errorInfo.showRetry ? theme.colors.text : '#FFFFFF';
+  const closeButtonTextColor = errorInfo.showRetry ? theme.colors.text : '#FFFEFA';
 
   return (
     <Modal
@@ -127,7 +127,7 @@ export const PurchaseErrorModal: React.FC<PurchaseErrorModalProps> = ({
                 onPress={onRetry}
                 activeOpacity={0.8}
               >
-                <Ionicons name="refresh" size={20} color="#FFFFFF" />
+                <Ionicons name="refresh" size={20} color="#FFFEFA" />
                 <Text style={styles.retryButtonText}>Try Again</Text>
               </TouchableOpacity>
             )}
@@ -159,7 +159,7 @@ export const PurchaseErrorModal: React.FC<PurchaseErrorModalProps> = ({
               onPress={onContactSupport}
               activeOpacity={0.7}
             >
-              <Ionicons name="help-circle-outline" size={16} color="#2196F3" />
+              <Ionicons name="help-circle-outline" size={16} color="#526A5B" />
               <Text style={styles.supportLinkText}>Contact Support</Text>
             </TouchableOpacity>
           )}
@@ -183,7 +183,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 32,
     alignItems: 'center',
-    shadowColor: '#000',
+    shadowColor: '#29342E',
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.3,
     shadowRadius: 20,
@@ -225,7 +225,7 @@ const styles = StyleSheet.create({
   retryButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: '#FFFEFA',
     marginLeft: 8,
   },
   closeButton: {
@@ -250,7 +250,7 @@ const styles = StyleSheet.create({
   },
   supportLinkText: {
     fontSize: 14,
-    color: '#2196F3',
+    color: '#526A5B',
     marginLeft: 6,
     fontWeight: '500',
   },

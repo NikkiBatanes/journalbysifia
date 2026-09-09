@@ -349,7 +349,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     fontFamily: Fonts.system.regular,
-    color: '#fff',
+    color: '#FFFEFA',
   },
   eyeIcon: {
     padding: 4,
@@ -378,7 +378,7 @@ const styles = StyleSheet.create({
     height: 56,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
+    shadowColor: '#29342E',
     shadowOffset: {
       width: 0,
       height: 2,

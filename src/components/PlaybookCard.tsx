@@ -107,7 +107,7 @@ const createStyles = (_theme: any) => StyleSheet.create({
     padding: 12,
     width: '100%',
     height: 88, // Match the swipeable container height
-    shadowColor: '#000',
+    shadowColor: '#29342E',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 3,

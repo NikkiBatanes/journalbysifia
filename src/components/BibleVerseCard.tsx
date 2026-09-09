@@ -28,7 +28,7 @@ export default function BibleVerseCard({
   verse,
   style,
   textColor = Colors.hopeWhite,
-  backgroundColor = '#274673',
+  backgroundColor = '#1A3C6D',
   expanded = true,
   collapsedLines = 4,
   showCloseButton = true,

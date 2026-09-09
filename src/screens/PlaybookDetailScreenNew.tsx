@@ -399,7 +399,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
 
   const startAffirmationBurst = useCallback(() => {
     const NUM = 10;
-    const colors = [Colors.alertCoral, '#ff7a7a', '#ff9aa2', '#ff6b6b'];
+    const colors = [Colors.alertCoral, '#D97872', '#D97872', '#D97872'];
     const newParticles = Array.from({ length: NUM }).map((_, i) => {
       const id = affirmationParticleIdRef.current++;
       return {
@@ -2278,7 +2278,7 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
   stackCard: {
     position: 'absolute',
     borderRadius: 16,
-    shadowColor: '#000',
+    shadowColor: '#29342E',
     shadowOffset: { width: 0, height: -5 },
     shadowOpacity: 0.08,
     shadowRadius: 4,
@@ -2365,7 +2365,7 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
     alignSelf: 'center',
     marginBottom: 24,
     borderRadius: 28,
-    backgroundColor: '#264674',
+    backgroundColor: '#1A3C6D',
     overflow: 'hidden',
     padding: 24,
   },
@@ -2446,7 +2446,7 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
     borderRadius: 3,
   },
   userInputCard: {
-    backgroundColor: '#264674',
+    backgroundColor: '#1A3C6D',
     borderRadius: 8,
     padding: 12,
     marginTop: 8,
@@ -2496,25 +2496,25 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
     marginHorizontal: 4,
   },
   truthCard: {
-    backgroundColor: '#264674',
+    backgroundColor: '#1A3C6D',
     borderRadius: 28,
     marginBottom: 16,
     padding: 24,
   },
   actionCard: {
-    backgroundColor: '#264674',
+    backgroundColor: '#1A3C6D',
     borderRadius: 28,
     marginBottom: 16,
     padding: 24,
   },
   affirmationsCard: {
-    backgroundColor: '#264674',
+    backgroundColor: '#1A3C6D',
     borderRadius: 28,
     marginBottom: 16,
     padding: 24,
   },
   bibleCard: {
-    backgroundColor: '#264674',
+    backgroundColor: '#1A3C6D',
     borderRadius: 28,
     marginBottom: 16,
     padding: 24,
@@ -2669,7 +2669,7 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
     textAlign: 'left',
   },
   affirmationCardStyle: {
-    backgroundColor: '#264674',
+    backgroundColor: '#1A3C6D',
   },
   expandedCardPadding: {
     // paddingBottom applied inline based on orientation
@@ -2683,15 +2683,15 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
     backgroundColor: 'transparent',
   },
   cardContainerLarge: {
-    backgroundColor: '#274674',
+    backgroundColor: '#1A3C6D',
     padding: 24,
   },
   cardContainerMedium: {
-    backgroundColor: '#274674',
+    backgroundColor: '#1A3C6D',
     padding: 24,
   },
   cardContainerMinimal: {
-    backgroundColor: '#274674',
+    backgroundColor: '#1A3C6D',
     padding: 24,
   },
   // Affirmations styles (stack view)
@@ -2760,7 +2760,7 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderRadius: 12,
-    shadowColor: '#000',
+    shadowColor: '#29342E',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,

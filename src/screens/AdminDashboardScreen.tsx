@@ -255,11 +255,11 @@ function getStatusLine(row: SubscriptionRow): string {
 }
 
 function tierColor(row: SubscriptionRow): string {
-  if (row.billing_issue) { return '#FF3B30'; }
+  if (row.billing_issue) { return '#D97872'; }
   if (row.tier === 'free_trial') {
-    if (row.trial_end_date && new Date(row.trial_end_date) < new Date()) { return '#FF9500'; }
-    if (row.trial_cancelled_date) { return '#FF9500'; }
-    return '#FFC107';
+    if (row.trial_end_date && new Date(row.trial_end_date) < new Date()) { return '#B99562'; }
+    if (row.trial_cancelled_date) { return '#B99562'; }
+    return '#B99562';
   }
   if (row.tier === 'seeker') { return 'rgba(255,255,255,0.35)'; }
   if (row.status === 'expired') { return 'rgba(255,255,255,0.35)'; }
@@ -992,16 +992,16 @@ export default function AdminDashboardScreen({ navigation }: Props) {
     { label: 'All Users', value: allUserSummaries.length, subtitle: 'View everyone', color: Colors.hopeWhite, drilldown: 'all_users' },
     { label: 'New Registered', value: newRegisteredRows.length, subtitle: trackedSignupCount !== newRegisteredRows.length ? 'Some signups lack user detail' : rangeLabel, color: Colors.hopeWhite, drilldown: 'new_registered' },
     { label: 'Active Users', value: activeUserRows.length, subtitle: trackedDauCount !== activeUserRows.length ? 'Users with tracked activity' : 'Opened or used app', color: Colors.growthGreen, drilldown: 'active_users' },
-    { label: 'Trials', value: trialsStartedRows.length, subtitle: 'Started trial', color: '#FFC107', drilldown: 'trials_started' },
+    { label: 'Trials', value: trialsStartedRows.length, subtitle: 'Started trial', color: '#B99562', drilldown: 'trials_started' },
     { label: 'New Paid', value: newSubscriberRows.length, subtitle: 'Verified paid users', color: Colors.alertCoral, drilldown: 'new_subscribers' },
   ];
 
   const subscriptionInsights: AdminInsight[] = [
     { label: 'Paid Monthly', value: monthlySubscriberRows.length, subtitle: 'Verified paid active', color: Colors.growthGreen, drilldown: 'monthly_subscribers' },
-    { label: 'Paid Yearly', value: yearlySubscriberRows.length, subtitle: 'Verified paid active', color: '#34C759', drilldown: 'yearly_subscribers' },
-    { label: 'Renewing Soon', value: upcomingRenewalRows.length, subtitle: 'Next renewal dates', color: '#FFC107', drilldown: 'upcoming_renewals' },
-    { label: 'Cancelled Subs', value: cancelledSubscriptionRows.length, subtitle: 'All-time paid cancellations', color: '#FF3B30', drilldown: 'cancelled_subscriptions' },
-    { label: 'Cancelled Trials', value: cancelledTrialRows.length, subtitle: 'All-time trial cancellations', color: '#FF9500', drilldown: 'cancelled_trials' },
+    { label: 'Paid Yearly', value: yearlySubscriberRows.length, subtitle: 'Verified paid active', color: '#526A5B', drilldown: 'yearly_subscribers' },
+    { label: 'Renewing Soon', value: upcomingRenewalRows.length, subtitle: 'Next renewal dates', color: '#B99562', drilldown: 'upcoming_renewals' },
+    { label: 'Cancelled Subs', value: cancelledSubscriptionRows.length, subtitle: 'All-time paid cancellations', color: '#D97872', drilldown: 'cancelled_subscriptions' },
+    { label: 'Cancelled Trials', value: cancelledTrialRows.length, subtitle: 'All-time trial cancellations', color: '#B99562', drilldown: 'cancelled_trials' },
   ];
 
   const renderTabChoices = () => (
@@ -1244,8 +1244,8 @@ export default function AdminDashboardScreen({ navigation }: Props) {
             <ThemedText weight="bold" style={styles.healthCardHeroValue}>{overview?.active_trials || 0}</ThemedText>
             <ThemedText weight="regular" style={styles.healthCardLabel}>Active Trials</ThemedText>
             <View style={styles.healthCardTrend}>
-              <Ionicons name="time" size={13} color="#FFC107" />
-              <ThemedText weight="regular" style={[styles.healthCardTrendText, { color: '#FFC107' }]}>
+              <Ionicons name="time" size={13} color="#B99562" />
+              <ThemedText weight="regular" style={[styles.healthCardTrendText, { color: '#B99562' }]}>
                 {trialsExpiringSoon.length > 0 ? `${trialsExpiringSoon.length} expiring in 3d` : 'none expiring soon'}
               </ThemedText>
             </View>
@@ -1273,7 +1273,7 @@ export default function AdminDashboardScreen({ navigation }: Props) {
             )}
           </View>
           <View style={[styles.healthCard, { flex: 1, backgroundColor: (overview?.billing_issues || 0) > 0 ? 'rgba(255,59,48,0.12)' : 'rgba(255,255,255,0.04)' }]}>
-            <ThemedText weight="bold" style={[styles.healthCardHeroValue, { color: (overview?.billing_issues || 0) > 0 ? '#FF3B30' : Colors.hopeWhite }]}>
+            <ThemedText weight="bold" style={[styles.healthCardHeroValue, { color: (overview?.billing_issues || 0) > 0 ? '#D97872' : Colors.hopeWhite }]}>
               {overview?.billing_issues || 0}
             </ThemedText>
             <ThemedText weight="regular" style={styles.healthCardLabel}>Issues</ThemedText>
@@ -1281,9 +1281,9 @@ export default function AdminDashboardScreen({ navigation }: Props) {
               <Ionicons
                 name={(overview?.billing_issues || 0) > 0 ? 'alert-circle' : 'checkmark-circle'}
                 size={13}
-                color={(overview?.billing_issues || 0) > 0 ? '#FF3B30' : Colors.growthGreen}
+                color={(overview?.billing_issues || 0) > 0 ? '#D97872' : Colors.growthGreen}
               />
-              <ThemedText weight="regular" style={[styles.healthCardTrendText, { color: (overview?.billing_issues || 0) > 0 ? '#FF3B30' : Colors.growthGreen }]}>
+              <ThemedText weight="regular" style={[styles.healthCardTrendText, { color: (overview?.billing_issues || 0) > 0 ? '#D97872' : Colors.growthGreen }]}>
                 {(overview?.billing_issues || 0) > 0 ? 'needs attention' : 'all clear'}
               </ThemedText>
             </View>
@@ -1460,11 +1460,11 @@ export default function AdminDashboardScreen({ navigation }: Props) {
             <ThemedText weight="regular" style={styles.periodActivityLabel}>Converted</ThemedText>
           </View>
           <View style={styles.periodActivityCard}>
-            <ThemedText weight="bold" style={[styles.periodActivityValue, windowCancellations.length > 0 ? { color: '#FF3B30' } : {}]}>{windowCancellations.length}</ThemedText>
+            <ThemedText weight="bold" style={[styles.periodActivityValue, windowCancellations.length > 0 ? { color: '#D97872' } : {}]}>{windowCancellations.length}</ThemedText>
             <ThemedText weight="regular" style={styles.periodActivityLabel}>Cancelled</ThemedText>
           </View>
           <View style={styles.periodActivityCard}>
-            <ThemedText weight="bold" style={[styles.periodActivityValue, windowNetGrowth > 0 ? { color: Colors.growthGreen } : windowNetGrowth < 0 ? { color: '#FF3B30' } : {}]}>
+            <ThemedText weight="bold" style={[styles.periodActivityValue, windowNetGrowth > 0 ? { color: Colors.growthGreen } : windowNetGrowth < 0 ? { color: '#D97872' } : {}]}>
               {windowNetGrowth >= 0 ? `+${windowNetGrowth}` : `${windowNetGrowth}`}
             </ThemedText>
             <ThemedText weight="regular" style={styles.periodActivityLabel}>Net Growth</ThemedText>
@@ -1550,15 +1550,15 @@ export default function AdminDashboardScreen({ navigation }: Props) {
             <ThemedText weight="regular" style={styles.churnMetricLabel}>New Paid</ThemedText>
           </View>
           <View style={styles.churnMetric}>
-            <ThemedText weight="bold" style={[styles.churnMetricValue, { color: '#FF3B30' }]}>{dashboardMetrics?.churnMetrics?.cancelled || 0}</ThemedText>
+            <ThemedText weight="bold" style={[styles.churnMetricValue, { color: '#D97872' }]}>{dashboardMetrics?.churnMetrics?.cancelled || 0}</ThemedText>
             <ThemedText weight="regular" style={styles.churnMetricLabel}>Cancelled</ThemedText>
           </View>
           <View style={styles.churnMetric}>
-            <ThemedText weight="bold" style={[styles.churnMetricValue, { color: (dashboardMetrics?.churnMetrics?.net_growth ?? 0) >= 0 ? Colors.growthGreen : '#FF3B30' }]}>{(dashboardMetrics?.churnMetrics?.net_growth ?? 0) >= 0 ? '+' : ''}{dashboardMetrics?.churnMetrics?.net_growth ?? 0}</ThemedText>
+            <ThemedText weight="bold" style={[styles.churnMetricValue, { color: (dashboardMetrics?.churnMetrics?.net_growth ?? 0) >= 0 ? Colors.growthGreen : '#D97872' }]}>{(dashboardMetrics?.churnMetrics?.net_growth ?? 0) >= 0 ? '+' : ''}{dashboardMetrics?.churnMetrics?.net_growth ?? 0}</ThemedText>
             <ThemedText weight="regular" style={styles.churnMetricLabel}>Net Growth</ThemedText>
           </View>
           <View style={styles.churnMetric}>
-            <ThemedText weight="bold" style={[styles.churnMetricValue, { color: (dashboardMetrics?.churnMetrics?.churn_rate ?? 0) > 10 ? '#FF3B30' : Colors.hopeWhite }]}>{dashboardMetrics?.churnMetrics?.churn_rate ?? 0}%</ThemedText>
+            <ThemedText weight="bold" style={[styles.churnMetricValue, { color: (dashboardMetrics?.churnMetrics?.churn_rate ?? 0) > 10 ? '#D97872' : Colors.hopeWhite }]}>{dashboardMetrics?.churnMetrics?.churn_rate ?? 0}%</ThemedText>
             <ThemedText weight="regular" style={styles.churnMetricLabel}>Churn Rate</ThemedText>
           </View>
         </View>
@@ -1573,7 +1573,7 @@ export default function AdminDashboardScreen({ navigation }: Props) {
       <StepFadeIn delay={360}>
         <View style={styles.dropoffContainer}>
           <View style={styles.dropoffCard}>
-            <ThemedText weight="bold" style={[styles.dropoffValue, { color: '#FF9500' }]}>{dashboardMetrics?.playbookDropoff?.signed_up_no_playbook || 0}</ThemedText>
+            <ThemedText weight="bold" style={[styles.dropoffValue, { color: '#B99562' }]}>{dashboardMetrics?.playbookDropoff?.signed_up_no_playbook || 0}</ThemedText>
             <ThemedText weight="regular" style={styles.dropoffLabel}>Personalized but No Playbook</ThemedText>
           </View>
           <View style={styles.dropoffCard}>
@@ -1729,13 +1729,13 @@ export default function AdminDashboardScreen({ navigation }: Props) {
     const rowAccentColor = activeTab === 'paid'
       ? Colors.growthGreen
       : activeTab === 'trials'
-        ? '#FFC107'
+        ? '#B99562'
         : activeTab === 'issues'
-          ? '#FF3B30'
+          ? '#D97872'
           : accentColor;
     const daysColor = daysLeft === null ? 'transparent'
-      : daysLeft < 0 ? '#FF3B30'
-      : daysLeft < 7 ? '#FF9500'
+      : daysLeft < 0 ? '#D97872'
+      : daysLeft < 7 ? '#B99562'
       : Colors.hopeWhite;
 
     return (
@@ -1798,10 +1798,10 @@ export default function AdminDashboardScreen({ navigation }: Props) {
                   <ThemedText weight="regular" style={styles.rowDetailLine}>Auto-renew OFF · Access until {formatDate(item.subscription_end_date)}</ThemedText>
                 ) : null}
                 {item.billing_issue && (
-                  <ThemedText weight="regular" style={[styles.rowDetailLine, { color: '#FF3B30' }]}>Payment failed</ThemedText>
+                  <ThemedText weight="regular" style={[styles.rowDetailLine, { color: '#D97872' }]}>Payment failed</ThemedText>
                 )}
                 {item.cancellation_date && !(item.subscription_end_date && new Date(item.subscription_end_date) > new Date()) && (
-                  <ThemedText weight="regular" style={[styles.rowDetailLine, { color: '#FF9500' }]}>Cancelled {formatDate(item.cancellation_date)}</ThemedText>
+                  <ThemedText weight="regular" style={[styles.rowDetailLine, { color: '#B99562' }]}>Cancelled {formatDate(item.cancellation_date)}</ThemedText>
                 )}
               </View>
             </View>
@@ -1825,7 +1825,7 @@ export default function AdminDashboardScreen({ navigation }: Props) {
         </View>
         <View style={styles.webhookRight}>
           <ThemedText weight="regular" style={styles.webhookDate}>{formatDate(item.received_at)}</ThemedText>
-          <ThemedText weight="regular" style={[styles.webhookDetail, { color: hasTxn ? Colors.growthGreen : '#FF9500' }]}>
+          <ThemedText weight="regular" style={[styles.webhookDetail, { color: hasTxn ? Colors.growthGreen : '#B99562' }]}>
             {hasTxn ? `txn …${item.transaction_id!.slice(-6)}` : 'no txn id'}
           </ThemedText>
         </View>
@@ -2558,7 +2558,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.alertCoral,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
+    shadowColor: '#29342E',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -2588,7 +2588,7 @@ const styles = StyleSheet.create({
   },
   planPillAnnual: { backgroundColor: 'rgba(255,200,60,0.18)' },
   planPillText: { fontSize: 10, color: 'rgba(255,255,255,0.5)', letterSpacing: 0.3 },
-  planPillTextAnnual: { color: '#FFC83C' },
+  planPillTextAnnual: { color: '#B99562' },
   rowInfo: { flex: 1 },
   rowName: { fontSize: 14, color: Colors.hopeWhite },
   rowStatusLine: { fontSize: 12, color: 'rgba(255,255,255,0.6)', marginTop: 3 },
@@ -2618,7 +2618,7 @@ const styles = StyleSheet.create({
   detailRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
   detailLabel: { fontSize: 12, color: 'rgba(255,255,255,0.4)', width: 140 },
   detailValue: { fontSize: 12, color: 'rgba(255,255,255,0.8)', flex: 1, textAlign: 'right' },
-  detailHighlight: { color: '#FF3B30' },
+  detailHighlight: { color: '#D97872' },
 
   webhookRow: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
@@ -2838,7 +2838,7 @@ const styles = StyleSheet.create({
   },
   mainGoalCount: {
     fontSize: 22,
-    color: '#FFD700',
+    color: '#B99562',
   },
   mainGoalOf: {
     fontSize: 14,
@@ -2853,7 +2853,7 @@ const styles = StyleSheet.create({
   },
   goalProgressFill: {
     height: 8,
-    backgroundColor: '#FFD700',
+    backgroundColor: '#B99562',
     borderRadius: 4,
   },
   mainGoalPct: {
@@ -3339,7 +3339,7 @@ const styles = StyleSheet.create({
   },
   dropoffValue: {
     fontSize: 28,
-    color: '#FF9500',
+    color: '#B99562',
     marginBottom: 4,
   },
   dropoffLabel: {
@@ -3407,7 +3407,7 @@ const styles = StyleSheet.create({
   },
   atRiskSegmentCount: {
     fontSize: 28,
-    color: '#FF3B30',
+    color: '#D97872',
     marginBottom: 4,
   },
   atRiskSegmentLabel: {
@@ -3455,7 +3455,7 @@ const styles = StyleSheet.create({
   },
   highIntentUserMetric: {
     fontSize: 12,
-    color: '#FFC107',
+    color: '#B99562',
     marginBottom: 2,
   },
   highIntentUserDays: {

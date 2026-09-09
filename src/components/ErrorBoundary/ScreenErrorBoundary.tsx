@@ -164,7 +164,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderRadius: 12,
     elevation: 2,
-    shadowColor: '#000',
+    shadowColor: '#29342E',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -176,7 +176,7 @@ const styles = StyleSheet.create({
   },
   errorDetails: {
     width: '100%',
-    backgroundColor: '#FFF3CD',
+    backgroundColor: '#F6F5EF',
     padding: 16,
     borderRadius: 8,
     marginBottom: 24,
@@ -184,19 +184,19 @@ const styles = StyleSheet.create({
   errorTitle: {
     fontSize: 14,
     fontFamily: Fonts.bold,
-    color: '#856404',
+    color: '#B99562',
     marginBottom: 8,
   },
   errorText: {
     fontSize: 12,
     fontFamily: Fonts.regular,
-    color: '#856404',
+    color: '#B99562',
     marginBottom: 8,
   },
   errorStack: {
     fontSize: 10,
     fontFamily: Fonts.regular,
-    color: '#856404',
+    color: '#B99562',
     opacity: 0.7,
   },
 });

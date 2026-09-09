@@ -252,7 +252,7 @@ const styles = StyleSheet.create({
     maxWidth: 600,
     alignSelf: 'center',
     width: '100%',
-    shadowColor: '#000',
+    shadowColor: '#29342E',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 4,

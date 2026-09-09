@@ -92,7 +92,7 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     ...Platform.select({
       ios: {
-        shadowColor: '#000',
+        shadowColor: '#29342E',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.25,
         shadowRadius: 3.84,
@@ -383,7 +383,7 @@ export const styles = StyleSheet.create({
     padding: 16,
     paddingTop: 16,
     paddingBottom: 0,
-    shadowColor: '#000',
+    shadowColor: '#29342E',
     shadowOffset: { width: 0, height: -3 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -407,7 +407,7 @@ export const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 20,
     borderRadius: 12,
-    shadowColor: '#000',
+    shadowColor: '#29342E',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -457,7 +457,7 @@ export const styles = StyleSheet.create({
   },
   activeToggle: {
     backgroundColor: Colors.hopeWhite,
-    shadowColor: '#000',
+    shadowColor: '#29342E',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,

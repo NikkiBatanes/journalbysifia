@@ -1405,7 +1405,7 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
     paddingHorizontal: 28,
     gap: 8,
-    shadowColor: '#000',
+    shadowColor: '#29342E',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -1593,7 +1593,7 @@ const styles = StyleSheet.create({
     height: 56,
     borderRadius: 28,
     backgroundColor: Colors.alertCoral,
-    shadowColor: '#000',
+    shadowColor: '#29342E',
     shadowOffset: {
       width: 0,
       height: 4,

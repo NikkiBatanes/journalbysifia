@@ -852,7 +852,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 30,
     borderTopRightRadius: 30,
     backgroundColor: Colors.modalBlue,
-    shadowColor: '#000',
+    shadowColor: '#29342E',
     shadowOffset: { width: 0, height: -8 },
     shadowOpacity: 0.28,
     shadowRadius: 22,

@@ -218,7 +218,7 @@ const TimeBlockEditorScreen: React.FC = () => {
 
   return (
     <GestureHandlerRootView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#1A237E" />
+      <StatusBar barStyle="light-content" backgroundColor="#1A3C6D" />
       <View style={styles.container}>
         <TimeBlockLogEditor
           ref={timeBlockEditorRef}
@@ -251,7 +251,7 @@ const TimeBlockEditorScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1A237E',
+    backgroundColor: '#1A3C6D',
   },
 });
 

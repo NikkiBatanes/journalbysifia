@@ -43,7 +43,7 @@ class PDFExportService {
       width: 595, // A4 width in points
       height: 842, // A4 height in points
       padding: 20,
-      bgColor: '#FFFFFF',
+      bgColor: '#FFFEFA',
     };
 
     // Android sharing uses react-native-share's FileProvider, which exposes cache paths.
@@ -311,15 +311,15 @@ class PDFExportService {
               font-family: 'Lexend', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
               font-size: 15px;
               line-height: 1.7;
-              color: #1a1a1a;
+              color: #29342E;
               padding: 40px 40px 50px 40px;
-              background: #ffffff;
+              background: #FFFEFA;
             }
 
             .page-meta {
               text-align: right;
               font-size: 12px;
-              color: #274673;
+              color: #1A3C6D;
               margin-bottom: 8px;
               font-weight: 600;
             }
@@ -328,7 +328,7 @@ class PDFExportService {
               text-align: center;
               margin-bottom: 28px;
               padding: 18px 20px 20px 20px;
-              background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+              background: linear-gradient(135deg, #FFFEFA 0%, #FFFEFA 100%);
               border-radius: 12px;
             }
             
@@ -344,7 +344,7 @@ class PDFExportService {
             
             h1 {
               font-size: 26px;
-              color: #274673;
+              color: #1A3C6D;
               margin: 14px 0 4px 0;
               font-weight: 700;
               line-height: 1.3;
@@ -352,7 +352,7 @@ class PDFExportService {
 
             .date {
               font-size: 12px;
-              color: #94a3b8;
+              color: #DFE4DD;
               margin-top: 8px;
               font-weight: 500;
             }
@@ -364,7 +364,7 @@ class PDFExportService {
             .section-title {
               font-size: 16px;
               font-weight: 600;
-              color: #274673;
+              color: #1A3C6D;
               margin-bottom: 8px;
               text-transform: uppercase;
               letter-spacing: 0.04em;
@@ -373,13 +373,13 @@ class PDFExportService {
             .truth-summary {
               font-size: 16px;
               font-weight: 600;
-              color: #000000; /* black */
+              color: #29342E; /* black */
               line-height: 1.6;
               margin-bottom: 12px;
             }
             
             .verse-box {
-              background: #ffffff;
+              background: #FFFEFA;
               padding: 18px 20px;
               margin: 10px 0 14px 0;
               border-radius: 8px;
@@ -392,7 +392,7 @@ class PDFExportService {
             .verse-bar {
               width: 4px;
               border-radius: 999px;
-              background: #FF6B6B; /* alert coral */
+              background: #D97872; /* alert coral */
             }
 
             .verse-content {
@@ -403,7 +403,7 @@ class PDFExportService {
               font-size: 13px;
               font-style: italic;
               font-family: 'Arvo', 'Lexend', serif;
-              color: #1e293b;
+              color: #29342E;
               margin-bottom: 14px;
               line-height: 1.9;
               font-weight: 500;
@@ -412,14 +412,14 @@ class PDFExportService {
             .verse-reference {
               font-size: 12px;
               font-weight: 700;
-              color: #274673;
+              color: #1A3C6D;
               text-align: right;
               margin-top: 12px;
             }
             
             .content-text {
               font-size: 11px;
-              color: #334155;
+              color: #7C837D;
               line-height: 1.9;
               margin-bottom: 16px;
               text-align: justify;
@@ -443,7 +443,7 @@ class PDFExportService {
               width: 24px;
               height: 24px;
               border-radius: 50%;
-              background: #FF6B6B;
+              background: #D97872;
               color: white;
               font-size: 13px;
               font-weight: 700;
@@ -457,7 +457,7 @@ class PDFExportService {
             .action-step-title {
               font-size: 14px;
               font-weight: 600;
-              color: #274673;
+              color: #1A3C6D;
               text-transform: uppercase;
               letter-spacing: 0.5px;
               flex: 1;
@@ -465,7 +465,7 @@ class PDFExportService {
             
             .action-step-description {
               font-size: 11px;
-              color: #475569;
+              color: #7C837D;
               margin-bottom: 8px;
               line-height: 1.7;
             }
@@ -481,7 +481,7 @@ class PDFExportService {
               margin-bottom: 8px;
               position: relative;
               font-size: 11px;
-              color: #475569;
+              color: #7C837D;
               line-height: 1.6;
             }
             
@@ -493,7 +493,7 @@ class PDFExportService {
               transform: translateY(-50%);
               width: 18px;
               height: 18px;
-              border: 2px solid #cbd5e1;
+              border: 2px solid #DFE4DD;
               border-radius: 50%;
               background: white;
             }
@@ -504,7 +504,7 @@ class PDFExportService {
             }
 
             .examples-section {
-              background: #ffffff;
+              background: #FFFEFA;
               padding: 18px 20px;
               margin: 14px 0 0 0;
               border-radius: 8px;
@@ -517,7 +517,7 @@ class PDFExportService {
             .examples-bar {
               width: 4px;
               border-radius: 999px;
-              background: #FF6B6B;
+              background: #D97872;
               min-height: 100%;
             }
 
@@ -536,7 +536,7 @@ class PDFExportService {
               font-style: italic;
               padding: 4px 0;
               font-size: 11px;
-              color: #475569;
+              color: #7C837D;
               line-height: 1.6;
             }
 
@@ -557,12 +557,12 @@ class PDFExportService {
               margin-bottom: 8px;
               border-radius: 8px;
               font-size: 11px;
-              color: #334155;
+              color: #7C837D;
               line-height: 1.7;
             }
 
             .challenge-box {
-              background: linear-gradient(135deg, #fff5f5 0%, #ffe5e5 100%);
+              background: linear-gradient(135deg, #FFFEFA 0%, #FFFEFA 100%);
               padding: 0;
               border-radius: 8px;
               margin: 18px 0;
@@ -591,8 +591,8 @@ class PDFExportService {
               width: 20px;
               height: 20px;
               border-radius: 999px;
-              background: #FF6B6B; /* alert coral */
-              color: #ffffff;
+              background: #D97872; /* alert coral */
+              color: #FFFEFA;
               font-size: 11px;
               font-weight: 700;
               display: flex;
@@ -603,7 +603,7 @@ class PDFExportService {
 
             .challenge-text {
               font-size: 12px;
-              color: #334155;
+              color: #7C837D;
               line-height: 1.8;
               flex: 1;
               font-weight: 500;
@@ -611,14 +611,14 @@ class PDFExportService {
 
             .challenge-fallback-text {
               font-size: 12px;
-              color: #334155;
+              color: #7C837D;
               line-height: 1.8;
               font-weight: 500;
             }
 
             .challenge-question {
               font-size: 16px;
-              color: #475569;
+              color: #7C837D;
               line-height: 1.8;
               font-weight: 500;
               margin-bottom: 6px;
@@ -626,13 +626,13 @@ class PDFExportService {
 
             .challenge-body {
               font-size: 12px;
-              color: #334155;
+              color: #7C837D;
               line-height: 1.8;
               font-weight: 500;
             }
 
             .prayer-box {
-              background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+              background: linear-gradient(135deg, #FFFEFA 0%, #FFFEFA 100%);
               border-radius: 8px;
               padding: 16px;
               margin-top: 12px;
@@ -642,12 +642,12 @@ class PDFExportService {
               font-family: 'Arvo', 'Lexend', serif;
               font-style: italic;
               font-size: 12px;
-              color: #475569;
+              color: #7C837D;
               line-height: 1.8;
             }
 
             .words-to-speak-box {
-              background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+              background: linear-gradient(135deg, #FFFEFA 0%, #FFFEFA 100%);
               border-radius: 8px;
               padding: 20px;
               margin: 20px 0;
@@ -656,7 +656,7 @@ class PDFExportService {
 
             .words-to-speak-text {
               font-size: 16px;
-              color: #475569;
+              color: #7C837D;
               line-height: 1.8;
               font-weight: 500;
             }
@@ -664,12 +664,12 @@ class PDFExportService {
             .bible-reflection {
               font-family: 'Arvo', 'Lexend', serif;
               font-size: 12px;
-              color: #6b7280;
+              color: #7C837D;
               line-height: 1.6;
               margin-top: 12px;
               font-style: italic;
               padding-left: 12px;
-              border-left: 2px solid #e2e8f0;
+              border-left: 2px solid #DFE4DD;
             }
 
             .page-break {
@@ -681,20 +681,20 @@ class PDFExportService {
             .footer {
               margin-top: 40px;
               padding-top: 20px;
-              border-top: 2px solid #e2e8f0;
+              border-top: 2px solid #DFE4DD;
               text-align: center;
             }
             
             .footer-logo {
               font-size: 18px;
               font-weight: 700;
-              color: #274673;
+              color: #1A3C6D;
               margin-bottom: 8px;
             }
             
             .footer-text {
               font-size: 12px;
-              color: #6b7280;
+              color: #7C837D;
               font-weight: 500;
             }
           </style>

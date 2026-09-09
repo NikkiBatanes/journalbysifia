@@ -155,7 +155,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
   const readHapticTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const startBurst = () => {
     const NUM = 8;
-    const colors = [Colors.alertCoral, '#ff7a7a', '#ff9aa2', '#ff6b6b'];
+    const colors = [Colors.alertCoral, '#D97872', '#D97872', '#D97872'];
     const newParticles = Array.from({ length: NUM }).map((_, i) => {
       const id = particleIdRef.current++;
       return {
@@ -1396,7 +1396,7 @@ const styles = StyleSheet.create({
   userInputContainer: {
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderWidth: 0.5,
-    borderColor: '#385886',
+    borderColor: '#1A3C6D',
     padding: 12,
     borderRadius: 12,
     // marginTop and marginBottom now applied dynamically inline based on orientation
@@ -1646,15 +1646,15 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   cardContainerLarge: {
-    backgroundColor: '#274674',
+    backgroundColor: '#1A3C6D',
     padding: 24,
   },
   cardContainerMedium: {
-    backgroundColor: '#274674',
+    backgroundColor: '#1A3C6D',
     padding: 16,
   },
   cardContainerMinimal: {
-    backgroundColor: '#274674',
+    backgroundColor: '#1A3C6D',
   },
   centeredContent: {
     alignItems: 'center',

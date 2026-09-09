@@ -143,7 +143,7 @@ const defaultStyles = {
     alignItems: 'center',
     ...Platform.select({
       ios: {
-        shadowColor: '#000',
+        shadowColor: '#29342E',
         shadowOffset: {
           width: 0,
           height: 4,
@@ -457,7 +457,7 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
       justifyContent: 'center',
       zIndex: 1000,
       width: 200,
-      shadowColor: '#000',
+      shadowColor: '#29342E',
       shadowOffset: { width: 0, height: 2 },
       shadowOpacity: 0.25,
       shadowRadius: 3.84,

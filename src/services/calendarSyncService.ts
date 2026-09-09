@@ -296,7 +296,7 @@ const getSiFiaCalendar = async (): Promise<string | null> => {
 
       const config: any = {
         title: 'siFia',
-        color: '#FF6B6B',
+        color: '#D97872',
         entityType: 'event',
         name: 'siFia',
       };

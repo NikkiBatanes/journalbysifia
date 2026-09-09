@@ -172,7 +172,7 @@ const AnimatedBadgeNotification: React.FC<AnimatedBadgeNotificationProps> = ({ b
                   },
                 ]}
               >
-                <Ionicons name="sparkles" size={16} color="#fbbf24" />
+                <Ionicons name="sparkles" size={16} color="#B99562" />
               </Animated.View>
               <Animated.View
                 style={[
@@ -183,7 +183,7 @@ const AnimatedBadgeNotification: React.FC<AnimatedBadgeNotificationProps> = ({ b
                   },
                 ]}
               >
-                <Ionicons name="sparkles" size={14} color="#fbbf24" />
+                <Ionicons name="sparkles" size={14} color="#B99562" />
               </Animated.View>
             </>
           )}
@@ -198,7 +198,7 @@ const AnimatedBadgeNotification: React.FC<AnimatedBadgeNotificationProps> = ({ b
                   },
                 ]}
               >
-                <Ionicons name="star" size={16} color="#8b5cf6" />
+                <Ionicons name="star" size={16} color="#526A5B" />
               </Animated.View>
               <Animated.View
                 style={[
@@ -209,7 +209,7 @@ const AnimatedBadgeNotification: React.FC<AnimatedBadgeNotificationProps> = ({ b
                   },
                 ]}
               >
-                <Ionicons name="star" size={14} color="#8b5cf6" />
+                <Ionicons name="star" size={14} color="#526A5B" />
               </Animated.View>
             </>
           )}
@@ -224,7 +224,7 @@ const AnimatedBadgeNotification: React.FC<AnimatedBadgeNotificationProps> = ({ b
                   },
                 ]}
               >
-                <Ionicons name="diamond" size={16} color="#3b82f6" />
+                <Ionicons name="diamond" size={16} color="#526A5B" />
               </Animated.View>
               <Animated.View
                 style={[
@@ -235,7 +235,7 @@ const AnimatedBadgeNotification: React.FC<AnimatedBadgeNotificationProps> = ({ b
                   },
                 ]}
               >
-                <Ionicons name="diamond" size={14} color="#3b82f6" />
+                <Ionicons name="diamond" size={14} color="#526A5B" />
               </Animated.View>
             </>
           )}
@@ -276,19 +276,19 @@ const AnimatedBadgeNotification: React.FC<AnimatedBadgeNotificationProps> = ({ b
 
           {badge.rarity === 'legendary' && (
             <View style={styles.legendaryBadge}>
-              <Ionicons name="trophy" size={12} color="#f59e0b" />
+              <Ionicons name="trophy" size={12} color="#B99562" />
               <Text style={styles.legendaryText}>LEGENDARY</Text>
             </View>
           )}
           {badge.rarity === 'epic' && (
             <View style={styles.epicBadge}>
-              <Ionicons name="star" size={12} color="#8b5cf6" />
+              <Ionicons name="star" size={12} color="#526A5B" />
               <Text style={styles.epicText}>EPIC</Text>
             </View>
           )}
           {badge.rarity === 'rare' && (
             <View style={styles.rareBadge}>
-              <Ionicons name="diamond" size={12} color="#3b82f6" />
+              <Ionicons name="diamond" size={12} color="#526A5B" />
               <Text style={styles.rareText}>RARE</Text>
             </View>
           )}
@@ -319,8 +319,8 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     padding: 16,
     borderWidth: 0.5,
-    borderColor: '#e5e7eb',
-    shadowColor: '#000',
+    borderColor: '#DFE4DD',
+    shadowColor: '#29342E',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -338,7 +338,7 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
+    shadowColor: '#29342E',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 4,
@@ -383,7 +383,7 @@ const styles = StyleSheet.create({
   legendaryBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fef3c7',
+    backgroundColor: '#F6F5EF',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 16,
@@ -431,19 +431,19 @@ const styles = StyleSheet.create({
   legendaryText: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#92400e',
+    color: '#B99562',
     marginLeft: 4,
   },
   epicText: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#8b5cf6',
+    color: '#526A5B',
     marginLeft: 4,
   },
   rareText: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#3b82f6',
+    color: '#526A5B',
     marginLeft: 4,
   },
   commonText: {

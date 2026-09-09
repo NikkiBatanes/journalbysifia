@@ -202,7 +202,7 @@ const styles = StyleSheet.create({
   modalContainer: {
     width: '100%',
     maxWidth: 340,
-    shadowColor: '#000',
+    shadowColor: '#29342E',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -255,7 +255,7 @@ const styles = StyleSheet.create({
     minWidth: 100,
     ...Platform.select({
       ios: {
-        shadowColor: '#000',
+        shadowColor: '#29342E',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
         shadowRadius: 4,

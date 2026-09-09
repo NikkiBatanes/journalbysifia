@@ -63,7 +63,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   fill: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: '#526A5B',
     borderTopLeftRadius: 6,
     borderBottomLeftRadius: 6,
     borderTopRightRadius: 6,

@@ -152,7 +152,7 @@ export const ExportOptionsModal: React.FC<ExportOptionsModalProps> = ({
             <View style={styles.header}>
               <Text style={styles.title}>Export Options</Text>
               <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-                <Ionicons name="close" size={24} color="#666" />
+                <Ionicons name="close" size={24} color="#7C837D" />
               </TouchableOpacity>
             </View>
 
@@ -334,7 +334,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modal: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFEFA',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     maxHeight: '80%',
@@ -346,12 +346,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: '#DFE4DD',
   },
   title: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#1F2937',
+    color: '#29342E',
   },
   closeButton: {
     padding: 4,
@@ -365,7 +365,7 @@ const styles = StyleSheet.create({
   previewTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1F2937',
+    color: '#29342E',
     marginBottom: 4,
   },
   previewType: {
@@ -381,7 +381,7 @@ const styles = StyleSheet.create({
   },
   previewDate: {
     fontSize: 12,
-    color: '#6B7280',
+    color: '#7C837D',
   },
   optionsContainer: {
     flex: 1,
@@ -418,12 +418,12 @@ const styles = StyleSheet.create({
   optionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1F2937',
+    color: '#29342E',
     marginBottom: 4,
   },
   optionDescription: {
     fontSize: 14,
-    color: '#6B7280',
+    color: '#7C837D',
     lineHeight: 20,
   },
   disabledText: {
@@ -454,7 +454,7 @@ const styles = StyleSheet.create({
   },
   progressText: {
     fontSize: 12,
-    color: '#6B7280',
+    color: '#7C837D',
     textAlign: 'center',
   },
   usageInfo: {
@@ -468,7 +468,7 @@ const styles = StyleSheet.create({
   usageText: {
     marginLeft: 8,
     fontSize: 12,
-    color: '#6B7280',
+    color: '#7C837D',
     flex: 1,
   },
   noAccessContainer: {
@@ -478,13 +478,13 @@ const styles = StyleSheet.create({
   noAccessTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1F2937',
+    color: '#29342E',
     marginTop: 16,
     marginBottom: 8,
   },
   noAccessText: {
     fontSize: 14,
-    color: '#6B7280',
+    color: '#7C837D',
     textAlign: 'center',
     lineHeight: 20,
     marginBottom: 24,

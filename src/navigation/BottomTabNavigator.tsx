@@ -34,7 +34,7 @@ type CustomTabBarProps = {
 
 
 // Glass-looking pill background - opaque blue with glass-like border
-const PILL_BG = '#264777';
+const PILL_BG = '#1A3C6D';
 
 // Pill occupies screen width minus 16px margin on each side
 const PILL_WIDTH = Dimensions.get('window').width - 32;
@@ -501,9 +501,9 @@ const styles = StyleSheet.create({
     borderRadius: 32,
     backgroundColor: PILL_BG,
     borderWidth: 1,
-    borderColor: '#3d5e8d',
+    borderColor: '#1A3C6D',
     paddingHorizontal: 4,
-    shadowColor: '#000',
+    shadowColor: '#29342E',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 12,
@@ -556,8 +556,8 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     backgroundColor: PILL_BG,
     borderWidth: 1,
-    borderColor: '#3d5e8d',
-    shadowColor: '#000',
+    borderColor: '#1A3C6D',
+    shadowColor: '#29342E',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.18,
     shadowRadius: 10,

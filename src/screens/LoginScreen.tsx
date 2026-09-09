@@ -259,7 +259,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
             disabled={loading}
           >
             {activeProvider === 'google' ? (
-              <ActivityIndicator size="small" color="#FF6B6B" />
+              <ActivityIndicator size="small" color="#D97872" />
             ) : (
               <Ionicons name="logo-google" size={20} color={Colors.alertCoral} />
             )}
@@ -355,7 +355,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.2)',
     height: 56,
-    shadowColor: '#000',
+    shadowColor: '#29342E',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -372,7 +372,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.2)',
     height: 56,
-    shadowColor: '#000',
+    shadowColor: '#29342E',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -389,7 +389,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.2)',
     height: 56,
-    shadowColor: '#000',
+    shadowColor: '#29342E',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -446,7 +446,7 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.system.regular,
   },
   signUpLink: {
-    color: '#FF6B6B',
+    color: '#D97872',
     fontSize: 16,
     fontFamily: Fonts.system.bold,
     fontWeight: '600',
@@ -480,7 +480,7 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   errorText: {
-    color: '#FF6B6B',
+    color: '#D97872',
     fontSize: 14,
     fontFamily: Fonts.system.regular,
     flexShrink: 1,

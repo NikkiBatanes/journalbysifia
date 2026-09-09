@@ -356,7 +356,7 @@ const defaultStyles = {
     borderRadius: 6,
   },
   removeButtonText: {
-    color: '#FF6B6B',
+    color: '#D97872',
     fontSize: 12,
     fontWeight: '500',
   },
@@ -402,7 +402,7 @@ const defaultStyles = {
     alignItems: 'center',
     ...Platform.select({
       ios: {
-        shadowColor: '#000',
+        shadowColor: '#29342E',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.25,
         shadowRadius: 3.84,

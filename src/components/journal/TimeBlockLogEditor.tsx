@@ -329,7 +329,7 @@ const createDefaultStyles = (_fonts: any) => ({
     height: 26,
     borderRadius: 13,
     backgroundColor: Colors.hopeWhite,
-    shadowColor: '#000',
+    shadowColor: '#29342E',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 2,
@@ -378,7 +378,7 @@ const createDefaultStyles = (_fonts: any) => ({
     alignItems: 'center',
     ...Platform.select({
       ios: {
-        shadowColor: '#000',
+        shadowColor: '#29342E',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.25,
         shadowRadius: 3.84,
@@ -420,7 +420,7 @@ const createDefaultStyles = (_fonts: any) => ({
     backgroundColor: Colors.alertCoral,
   },
   switchTrackInactive: {
-    backgroundColor: '#E0E0E0',
+    backgroundColor: '#DFE4DD',
   },
   // FAB styles - matching reflection editor
   fabContainer: {
@@ -632,7 +632,7 @@ const createDefaultStyles = (_fonts: any) => ({
     padding: 20,
     maxWidth: 340,
     alignSelf: 'center',
-    shadowColor: '#000',
+    shadowColor: '#29342E',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.3,
     shadowRadius: 20,

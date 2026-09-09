@@ -2111,7 +2111,7 @@ const createStyles = (fonts: any, isSmallPhone: boolean) => StyleSheet.create({
     height: 52,
     width: '100%',
     maxWidth: 720,
-    shadowColor: '#000',
+    shadowColor: '#29342E',
     shadowOpacity: 0.15,
     shadowOffset: { width: 0, height: 3 },
     shadowRadius: 6,

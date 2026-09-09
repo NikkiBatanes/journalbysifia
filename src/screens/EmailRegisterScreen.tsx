@@ -431,7 +431,7 @@ const EmailRegisterScreen: React.FC<Props> = ({ navigation }) => {
             }}
           >
             {loading ? (
-              <ActivityIndicator color="#274673" />
+              <ActivityIndicator color="#1A3C6D" />
             ) : (
               <ThemedText weight="semiBold" style={styles.primaryButtonText}>Create an Account</ThemedText>
             )}
@@ -553,7 +553,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     fontFamily: Fonts.system.regular,
-    color: '#fff',
+    color: '#FFFEFA',
   },
   eyeIcon: {
     padding: 4,
@@ -565,7 +565,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 8,
-    shadowColor: '#000',
+    shadowColor: '#29342E',
     shadowOffset: {
       width: 0,
       height: 2,
@@ -578,7 +578,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontFamily: Fonts.system.semiBold,
     fontWeight: '600',
-    color: '#fff',
+    color: '#FFFEFA',
   },
   primaryButton: {
     flexDirection: 'row',

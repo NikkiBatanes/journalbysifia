@@ -89,5 +89,5 @@ export const loadAppFonts = async () => {
 
 export const defaultTextStyle = {
   fontFamily: Fonts.regular,
-  color: '#000',
+  color: '#29342E',
 };

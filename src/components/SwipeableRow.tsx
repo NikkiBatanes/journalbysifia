@@ -81,7 +81,7 @@ const styles = StyleSheet.create({
     top: 0,
     bottom: 0,
     width: SWIPEABLE_WIDTH,
-    backgroundColor: '#FF3B30',
+    backgroundColor: '#D97872',
     justifyContent: 'center',
     alignItems: 'center',
   },

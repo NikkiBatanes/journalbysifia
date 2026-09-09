@@ -83,7 +83,7 @@ const PlaybookHeader: React.FC<PlaybookHeaderProps> = ({
       textAlign: alignTasksLeft ? 'left' as const : 'center' as const,
     },
     userInputCard: {
-      backgroundColor: userInputBackgroundColor || '#274673',
+      backgroundColor: userInputBackgroundColor || '#1A3C6D',
       borderColor: userInputBorderColor || 'rgba(255, 255, 255, 0.2)',
     },
     userInputText: {
@@ -252,7 +252,7 @@ const PlaybookHeader: React.FC<PlaybookHeaderProps> = ({
                     />
                   ) : (
                     <View style={[styles.profileImage, styles.defaultProfileImage]}>
-                      <Ionicons name="person" size={20} color="#fff" />
+                      <Ionicons name="person" size={20} color="#FFFEFA" />
                     </View>
                   )}
                 </TouchableOpacity>
@@ -277,7 +277,7 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 30,
     overflow: 'hidden',
     backgroundColor: Colors.anchorBlue,
-    shadowColor: '#000',
+    shadowColor: '#29342E',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -438,7 +438,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
   },
   defaultProfileImage: {
-    backgroundColor: '#666',
+    backgroundColor: '#7C837D',
     justifyContent: 'center',
     alignItems: 'center',
   },

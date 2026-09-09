@@ -1128,7 +1128,7 @@ const styles = StyleSheet.create({
     borderRadius: 12, // Match the card border radius
   },
   prayerItemAnswered: {
-    backgroundColor: '#35537e',
+    backgroundColor: '#1A3C6D',
   },
   prayerText: {
     fontSize: 16,
@@ -1165,7 +1165,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.alertCoral,
   },
   deleteButton: {
-    backgroundColor: '#FF3B30',
+    backgroundColor: '#D97872',
   },
   prayerContentContainer: {
     flex: 1,

@@ -23,7 +23,7 @@ const CARD_HEIGHT = CARD_WIDTH * 1.777; // 16:9 ratio for stories
 const ShareableCard: React.FC<ShareableCardProps> = ({ type, text, reference }) => {
   return (
     <LinearGradient
-      colors={['#1a3c6d', '#274673', '#1a3c6d']}
+      colors={['#1a3c6d', '#1A3C6D', '#1a3c6d']}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
       style={styles.container}

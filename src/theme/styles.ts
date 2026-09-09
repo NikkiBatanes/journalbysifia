@@ -22,7 +22,7 @@ export const BorderRadii = {
 
 export const Shadows = {
   card: {
-    shadowColor: '#000',
+    shadowColor: '#29342E',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,

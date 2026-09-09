@@ -599,7 +599,7 @@ export default function RootStackNavigator({
 //     maxWidth: '70%',
 //   },
 //   headerStyle: {
-//     backgroundColor: '#f2f5f7',
+//     backgroundColor: '#FFFEFA',
 //   },
 //   headerTitleContainer: {
 //     width: '100%',

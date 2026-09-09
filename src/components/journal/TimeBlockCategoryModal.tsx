@@ -273,7 +273,7 @@ const TimeBlockCategoryModal: React.FC<TimeBlockCategoryModalProps> = ({
                     const customCategoryObj: TimeBlockCategory = {
                       name: customCategory.trim(),
                       icon: 'ellipsis-horizontal',
-                      color: '#6B7280',
+                      color: '#7C837D',
                       description: 'Custom category',
                     };
                     onSelect(customCategoryObj);
@@ -448,7 +448,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: Colors.alertCoral,
     borderRadius: 20,
-    shadowColor: '#000',
+    shadowColor: '#29342E',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,

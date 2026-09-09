@@ -140,7 +140,7 @@ export const createOnboardingStyles = (fonts: {
     paddingHorizontal: 32,
     borderRadius: 12,
     marginBottom: 1,
-    shadowColor: '#000',
+    shadowColor: '#29342E',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,

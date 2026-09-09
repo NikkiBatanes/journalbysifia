@@ -34,7 +34,7 @@ const JournalStackNavigator: React.FC = () => {
           gestureEnabled: true,
           // Prevent white iOS UIViewController background from flashing through
           // on app resume before React content is fully re-painted.
-          contentStyle: { backgroundColor: '#1A237E' },
+          contentStyle: { backgroundColor: '#1A3C6D' },
         }}
       />
       <Stack.Screen
@@ -47,7 +47,7 @@ const JournalStackNavigator: React.FC = () => {
           gestureEnabled: true,
           // Prevent white iOS UIViewController background from flashing through
           // on app resume before React content is fully re-painted.
-          contentStyle: { backgroundColor: '#1a3c5e' },
+          contentStyle: { backgroundColor: '#1A3C6D' },
         }}
       />
     </Stack.Navigator>

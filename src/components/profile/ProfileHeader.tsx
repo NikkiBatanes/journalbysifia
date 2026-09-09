@@ -292,7 +292,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     gap: 8 as any,
     // subtle floating shadow
-    shadowColor: '#000',
+    shadowColor: '#29342E',
     shadowOpacity: 0.12,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 4 },

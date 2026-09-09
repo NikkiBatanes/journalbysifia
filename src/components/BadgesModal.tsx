@@ -227,8 +227,8 @@ const BadgesModal: React.FC<BadgesModalProps> = ({ visible, onClose }) => {
     switch (rarity) {
       case 'common': return Colors.growthGreen;
       case 'rare': return Colors.playbookBlue;
-      case 'epic': return '#9B59B6';
-      case 'legendary': return '#FF6B6B';
+      case 'epic': return '#526A5B';
+      case 'legendary': return '#D97872';
       default: return Colors.growthGreen;
     }
   };
@@ -402,7 +402,7 @@ const styles = StyleSheet.create({
   statNumber: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: '#FF6B6B',
+    color: '#D97872',
   },
   statLabel: {
     fontSize: 14,

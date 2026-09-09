@@ -137,7 +137,7 @@ const DailyAffirmationCard: React.FC<DailyAffirmationCardProps> = ({ onRefresh, 
   const particleIdRef = useRef(0);
   const startReadBurst = () => {
     const NUM = 10;
-    const colors = [Colors.alertCoral, '#ff7a7a', '#ff9aa2', '#ff6b6b'];
+    const colors = [Colors.alertCoral, '#D97872', '#D97872', '#D97872'];
     const newParticles: Particle[] = Array.from({ length: NUM }).map((_, i) => {
       const id = particleIdRef.current++;
       return {
@@ -586,7 +586,7 @@ const styles = StyleSheet.create({
     paddingRight: 14,
     borderRadius: 12,
     backgroundColor: 'rgba(255,255,255,0.1)',
-    shadowColor: '#000',
+    shadowColor: '#29342E',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,

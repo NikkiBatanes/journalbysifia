@@ -196,7 +196,7 @@ export const PurchaseSuccessModal: React.FC<PurchaseSuccessModalProps> = ({
               },
             ]}
           >
-            <Ionicons name="checkmark" size={36} color="#FFFFFF" />
+            <Ionicons name="checkmark" size={36} color="#FFFEFA" />
           </Animated.View>
 
           {/* Success Message */}
@@ -213,12 +213,12 @@ export const PurchaseSuccessModal: React.FC<PurchaseSuccessModalProps> = ({
           {/* Validation Badge */}
           {isValidated ? (
             <View style={styles.validationBadge}>
-              <Ionicons name="shield-checkmark" size={16} color="#4CAF50" />
+              <Ionicons name="shield-checkmark" size={16} color="#526A5B" />
               <ThemedText style={styles.validationText}>Confirmed by {paymentProvider}</ThemedText>
             </View>
           ) : (
             <View style={styles.validationBadge}>
-              <Ionicons name="hourglass-outline" size={16} color="#FFA500" />
+              <Ionicons name="hourglass-outline" size={16} color="#B99562" />
               <ThemedText style={[styles.validationText, styles.warningText]}>Confirming with {paymentProvider}...</ThemedText>
             </View>
           )}
@@ -244,7 +244,7 @@ export const PurchaseSuccessModal: React.FC<PurchaseSuccessModalProps> = ({
           {isTrial && (
             <View style={[styles.trialNotice, { backgroundColor: Colors.anchorBlue }]}
             >
-              <Ionicons name="information-circle" size={20} color="#FFD93D" />
+              <Ionicons name="information-circle" size={20} color="#B99562" />
               <ThemedText style={[styles.trialNoticeText, { color: Colors.hopeWhite }]}
               >
                 Your trial begins today. You can cancel anytime before it ends.
@@ -285,7 +285,7 @@ const styles = StyleSheet.create({
     borderRadius: 40,
     padding: 24,
     alignItems: 'center',
-    shadowColor: '#000',
+    shadowColor: '#29342E',
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.3,
     shadowRadius: 20,
@@ -335,11 +335,11 @@ const styles = StyleSheet.create({
   validationText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#4CAF50',
+    color: '#526A5B',
     marginLeft: 6,
   },
   warningText: {
-    color: '#FFA500',
+    color: '#B99562',
   },
   benefitsContainer: {
     width: '100%',
