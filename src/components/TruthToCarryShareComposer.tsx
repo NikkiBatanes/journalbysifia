@@ -657,7 +657,7 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
             style={[
               styles.editorPanel,
               {
-                maxHeight: editorAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 120] }),
+                maxHeight: editorAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 178] }),
                 marginBottom: editorAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 18] }),
                 opacity: editorAnim,
                 transform: [{
@@ -750,28 +750,27 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
               </View>
             </View>
 
+            {canToggleWatermark ? (
+              <TouchableOpacity
+                accessibilityRole="switch"
+                accessibilityLabel="Show siFia watermark"
+                accessibilityState={{ checked: !!showWatermark }}
+                activeOpacity={0.75}
+                onPress={toggleWatermark}
+                style={styles.watermarkToggleRow}
+              >
+                <View style={styles.watermarkToggleCopy}>
+                  <ThemedText weight="semiBold" style={styles.watermarkToggleTitle}>siFia watermark</ThemedText>
+                  <ThemedText style={styles.watermarkToggleSubtitle}>
+                    {showWatermark ? 'Shown on this post' : 'Hidden from this post'}
+                  </ThemedText>
+                </View>
+                <View style={[styles.watermarkSwitch, showWatermark && styles.watermarkSwitchOn]}>
+                  <View style={[styles.watermarkSwitchThumb, showWatermark && styles.watermarkSwitchThumbOn]} />
+                </View>
+              </TouchableOpacity>
+            ) : null}
           </Animated.View>
-
-          {canToggleWatermark ? (
-            <TouchableOpacity
-              accessibilityRole="switch"
-              accessibilityLabel="Show siFia watermark"
-              accessibilityState={{ checked: !!showWatermark }}
-              activeOpacity={0.75}
-              onPress={toggleWatermark}
-              style={styles.watermarkToggleRow}
-            >
-              <View style={styles.watermarkToggleCopy}>
-                <ThemedText weight="semiBold" style={styles.watermarkToggleTitle}>siFia watermark</ThemedText>
-                <ThemedText style={styles.watermarkToggleSubtitle}>
-                  {showWatermark ? 'Shown on this post' : 'Hidden from this post'}
-                </ThemedText>
-              </View>
-              <View style={[styles.watermarkSwitch, showWatermark && styles.watermarkSwitchOn]}>
-                <View style={[styles.watermarkSwitchThumb, showWatermark && styles.watermarkSwitchThumbOn]} />
-              </View>
-            </TouchableOpacity>
-          ) : null}
 
           <ThemedText weight="semiBold" style={styles.sectionLabel}>Share to</ThemedText>
           <View style={styles.actionsRow}>
