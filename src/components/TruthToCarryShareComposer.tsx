@@ -200,9 +200,9 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
 
   useEffect(() => {
     Animated.timing(watermarkUpsellAnim, {
-      toValue: canToggleWatermark ? -1 : 1,
-      duration: canToggleWatermark ? 220 : 320,
-      delay: canToggleWatermark ? 0 : 100,
+      toValue: 1,
+      duration: 320,
+      delay: 100,
       easing: Easing.out(Easing.cubic),
       useNativeDriver: false,
     }).start();
@@ -769,34 +769,10 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
             ))}
           </View>
 
-          {canToggleWatermark && (
-            <TouchableOpacity
-              accessibilityRole="switch"
-              accessibilityLabel="Show siFia watermark"
-              accessibilityState={{ checked: !!showWatermark }}
-              activeOpacity={0.75}
-              onPress={toggleWatermark}
-              style={[styles.upgradeRow, { marginTop: 16 }]}
-            >
-              <View style={styles.upgradeIcon}>
-                <Ionicons name="eye-off-outline" size={18} color={Colors.alertCoral} />
-              </View>
-              <View style={styles.upgradeCopy}>
-                <ThemedText weight="semiBold" style={styles.upgradeTitle}>siFia watermark</ThemedText>
-                <ThemedText style={styles.upgradeSubtitle}>
-                  {showWatermark ? 'Shown on this post' : 'Hidden from this post'}
-                </ThemedText>
-              </View>
-              <View style={[styles.watermarkSwitch, showWatermark && styles.watermarkSwitchOn]}>
-                <View style={[styles.watermarkSwitchThumb, showWatermark && styles.watermarkSwitchThumbOn]} />
-              </View>
-            </TouchableOpacity>
-          )}
-
           <Animated.View
-            pointerEvents={canToggleWatermark === false ? 'auto' : 'none'}
-            accessibilityElementsHidden={canToggleWatermark !== false}
-            importantForAccessibility={canToggleWatermark === false ? 'auto' : 'no-hide-descendants'}
+            pointerEvents="auto"
+            accessibilityElementsHidden={false}
+            importantForAccessibility="auto"
             style={[
               styles.upgradeReveal,
               {
@@ -823,20 +799,28 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
           >
             <TouchableOpacity
               style={styles.upgradeRow}
-              onPress={handleUpgrade}
+              onPress={canToggleWatermark ? toggleWatermark : handleUpgrade}
               activeOpacity={0.75}
-              disabled={canToggleWatermark !== false}
+              accessibilityRole={canToggleWatermark ? 'switch' : 'button'}
+              accessibilityLabel={canToggleWatermark ? 'Show siFia watermark' : 'Hide the siFia watermark'}
+              accessibilityState={canToggleWatermark ? { checked: !!showWatermark } : undefined}
             >
               <View style={styles.upgradeIcon}>
                 <Ionicons name="eye-off-outline" size={18} color={Colors.alertCoral} />
               </View>
               <View style={styles.upgradeCopy}>
-                <ThemedText weight="semiBold" style={styles.upgradeTitle}>Hide the siFia watermark</ThemedText>
-                <ThemedText style={styles.upgradeSubtitle}>Available with Growth</ThemedText>
+                <ThemedText weight="semiBold" style={styles.upgradeTitle}>{canToggleWatermark ? 'siFia watermark' : 'Hide the siFia watermark'}</ThemedText>
+                <ThemedText style={styles.upgradeSubtitle}>{canToggleWatermark ? (showWatermark ? 'Shown on this post' : 'Hidden from this post') : 'Available with Growth'}</ThemedText>
               </View>
-              <View style={styles.growthPill}>
-                <ThemedText weight="semiBold" style={styles.growthPillText}>Get Growth</ThemedText>
-              </View>
+              {canToggleWatermark ? (
+                <View style={[styles.watermarkSwitch, showWatermark && styles.watermarkSwitchOn]}>
+                  <View style={[styles.watermarkSwitchThumb, showWatermark && styles.watermarkSwitchThumbOn]} />
+                </View>
+              ) : (
+                <View style={styles.growthPill}>
+                  <ThemedText weight="semiBold" style={styles.growthPillText}>Get Growth</ThemedText>
+                </View>
+              )}
             </TouchableOpacity>
           </Animated.View>
           </ScrollView>
