@@ -53,6 +53,8 @@ interface TodaysFocusProps {
   onExpand?: () => void;
   planningEnabled?: boolean;
   navigation?: NavigationProp<any>;
+  morningFlow?: boolean;
+  onNext?: (data: any) => void;
 }
 
 type FocusCTA = 'begin' | 'update' | 'revisit' | 'plan' | 'editPlan';
@@ -65,7 +67,8 @@ interface FocusCardState {
   ctaAction: FocusCTA;
 }
 
-export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate = new Date(), refreshKey, variant = 'carousel', viewMode, expanded, onExpand, planningEnabled = true, navigation }) => {
+export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate = new Date(), refreshKey, variant = 'carousel', viewMode, expanded, onExpand, planningEnabled = true, navigation, morningFlow, onNext }) => {
+  const isMorning = !!morningFlow;
   const internalNavigation = useNavigation<NavigationProp<any>>();
   const nav = navigation ?? internalNavigation;
 
@@ -337,6 +340,11 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
 
   // Save Today's Focus to storage and cloud
   const saveFocus = useCallback(async (focusData: TodayFocusData) => {
+    if (isMorning) {
+      // In the morning flow, the focus is saved once with the rest of the flow.
+      return;
+    }
+
     if (!user) {
       Alert.alert('Error', 'You must be logged in to save today\'s focus.');
       return;
@@ -427,6 +435,10 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
           globalEditMode.setGlobalEditMode(false);
         }
       }
+    } else if (isMorning) {
+      // In the morning flow, edit inline instead of opening the full walkthrough.
+      triggerLightHaptic();
+      setIsEditing(true);
     } else {
       // Navigate to walkthrough screen instead of inline editor
       triggerLightHaptic();
@@ -674,7 +686,7 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
                 variant="gratitude"
               >
                 <TextInput
-                  style={[styles.input, styles.focusInput, { fontFamily: fontRegular }]}
+                  style={[styles.input, styles.focusInput, { fontFamily: fontRegular, color: isMorning ? Colors.text : Colors.hopeWhite }]}
                   value={data.focus}
                   onChangeText={updateFocus}
                   placeholder={isToday(day) ? "What's your main focus today?" : focusState.title}
@@ -689,7 +701,7 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
                 <View key={`priority-${index}`} style={styles.priorityRow}>
                   <ThemedText style={styles.priorityNumber}>{index + 1}.</ThemedText>
                   <TextInput
-                    style={[styles.input, styles.priorityInput, { fontFamily: fontRegular }]}
+                    style={[styles.input, styles.priorityInput, { fontFamily: fontRegular, color: isMorning ? Colors.text : Colors.hopeWhite }]}
                     value={priority.text}
                     onChangeText={(text) => updatePriority(index, text)}
                     placeholder={`Priority ${index + 1}...`}
@@ -717,12 +729,17 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
                 <TouchableOpacity
                   onPress={() => {
                     triggerLightHaptic();
+                    if (isMorning) {
+                      onNext?.(data);
+                      return;
+                    }
                     toggleEditing();
                   }}
                   style={[
                     styles.button,
                     styles.saveButton,
                     !canSave && styles.disabledButton,
+                    { backgroundColor: isMorning ? Colors.sage : Colors.alertCoral },
                   ]}
                   disabled={!canSave}
                   activeOpacity={0.8}
@@ -774,7 +791,7 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
                           {editingPriorityId === priority.id ? (
                             <View style={styles.editPriorityContainer}>
                               <TextInput
-                                style={[styles.editPriorityInput, { fontFamily: fontRegular }]}
+                                style={[styles.editPriorityInput, { fontFamily: fontRegular, color: isMorning ? Colors.text : Colors.hopeWhite }]}
                                 value={editingPriorityText}
                                 onChangeText={setEditingPriorityText}
                                 autoFocus
@@ -801,7 +818,7 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
                                   style={[styles.editPriorityActionButton, styles.editPrioritySaveButton]}
                                   disabled={!editingPriorityText.trim()}
                                 >
-                                  <Ionicons name="checkmark" size={16} color={Colors.hopeWhite} />
+                                  <Ionicons name="checkmark" size={16} color={Colors.sage} />
                                 </TouchableOpacity>
                               </View>
                             </View>
@@ -835,7 +852,7 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
                   <View style={styles.titleContainer}>
                     <ThemedText
                       weight="semiBold"
-                      style={styles.emptyStateTitle}
+                      style={[styles.emptyStateTitle, { color: isMorning ? Colors.text : Colors.hopeWhite }]}
                       accessibilityRole="header"
                       numberOfLines={1}
                       ellipsizeMode="tail"
@@ -845,7 +862,7 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
                   </View>
                   <ThemedText style={styles.emptyStateSubtext} accessibilityRole="text">{focusState.subtitle}</ThemedText>
                   <TouchableOpacity
-                    style={styles.emptyStateButton}
+                    style={[styles.emptyStateButton, { borderColor: isMorning ? Colors.sage : Colors.hopeWhite }]}
                     onPress={() => {
                       triggerLightHaptic();
                       toggleEditing();
@@ -854,7 +871,7 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
                     accessibilityLabel={focusState.ctaLabel}
                   >
                     <Pencil size={16} color={Colors.hopeWhite} style={styles.buttonIcon} />
-                    <ThemedText weight="medium" style={styles.emptyStateButtonText}>{focusState.ctaLabel}</ThemedText>
+                    <ThemedText weight="medium" style={[styles.emptyStateButtonText, { color: isMorning ? Colors.sage : Colors.hopeWhite }]}>{focusState.ctaLabel}</ThemedText>
                   </TouchableOpacity>
                 </View>
               )
@@ -1062,7 +1079,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
   },
   editPrioritySaveButton: {
-    backgroundColor: Colors.growthGreen,
+    backgroundColor: Colors.hopeWhite,
   },
 
   priorityNumber: {

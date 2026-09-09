@@ -356,6 +356,43 @@ export class PrayerApi {
     return data || [];
   }
 
+  // Get all people prayers for a user (no date restriction)
+  static async getAllPeoplePrayers(userId: string): Promise<PrayerApiEntry[]> {
+    const session = await ensureAuthenticated();
+
+    if (userId !== session.user.id) {
+      Logger.warn('Prayer query user_id mismatch, correcting for RLS compliance', {
+        component: 'prayerApi',
+        provided: userId,
+        authenticated: session.user.id,
+      });
+      userId = session.user.id;
+    }
+
+    const { data, error } = await supabase
+      .from('prayers')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('prayer_type', 'people')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      Logger.error('Error fetching all people prayers', error as Error, {
+        component: 'prayerApi',
+        action: 'error',
+      });
+      throw new Error(`Failed to fetch people prayers: ${error.message}`);
+    }
+
+    return (data || []).map((p) => ({
+      ...p,
+      type: p.journal_category || (p.prayer_type === 'people' ? 'people' : 'freeform'),
+      is_answered: p.status === 'answered',
+      is_request: p.is_prayer_request,
+      is_prayed: p.prayed,
+    })) as PrayerApiEntry[];
+  }
+
   // Create a new prayer
   static async createPrayer(
     prayer: Omit<PrayerApiEntry, 'id' | 'created_at' | 'updated_at'>

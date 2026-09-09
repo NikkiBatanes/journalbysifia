@@ -36,7 +36,9 @@ export type JournalContentType =
   | 'looking_forward'
   | 'todays_focus'
   | 'win'
-  | 'tomorrow_in_his_hands';
+  | 'tomorrow_in_his_hands'
+  | 'morning_flow'
+  | 'evening_flow';
 
 export type Priority = 'high' | 'medium' | 'low';
 

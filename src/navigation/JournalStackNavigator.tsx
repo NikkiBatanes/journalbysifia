@@ -6,6 +6,8 @@ import JournalScreen from '../screens/JournalScreen';
 import { MomentsScreen } from '../screens/MomentsScreen';
 import TimeBlockEditorScreen from '../screens/TimeBlockEditorScreen';
 import ReflectionEditorScreen from '../screens/ReflectionEditorScreen';
+import ScriptureNoteEditorScreen from '../screens/ScriptureNoteEditorScreen';
+import SermonNotesScreen from '../screens/SermonNotesScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -40,6 +42,30 @@ const JournalStackNavigator: React.FC = () => {
       <Stack.Screen
         name="ReflectionEditor"
         component={ReflectionEditorScreen as React.ComponentType}
+        options={{
+          headerShown: false,
+          presentation: 'fullScreenModal',
+          animation: 'slide_from_bottom',
+          gestureEnabled: true,
+          // Prevent white iOS UIViewController background from flashing through
+          // on app resume before React content is fully re-painted.
+          contentStyle: { backgroundColor: '#526A5B' },
+        }}
+      />
+      <Stack.Screen
+        name="SermonNotes"
+        component={SermonNotesScreen as React.ComponentType}
+        options={{
+          headerShown: false,
+          presentation: 'fullScreenModal',
+          animation: 'slide_from_bottom',
+          gestureEnabled: true,
+          contentStyle: { backgroundColor: '#F6F5EF' },
+        }}
+      />
+      <Stack.Screen
+        name="ScriptureNoteEditor"
+        component={ScriptureNoteEditorScreen as React.ComponentType}
         options={{
           headerShown: false,
           presentation: 'fullScreenModal',

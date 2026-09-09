@@ -1,29 +1,31 @@
 // src/navigation/BottomTabNavigator.tsx
 import React, { useEffect } from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { StyleSheet, TouchableOpacity, Animated, NativeModules, View, Text, Dimensions } from 'react-native';
+import { StyleSheet, Pressable, TouchableOpacity, Animated, NativeModules, View, Text, Dimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useScroll } from '../context/ScrollContext';
 import { ParamListBase, TabNavigationState } from '@react-navigation/native';
 import { JournalScreenRef } from '../screens/JournalScreen';
 
+import ThemedText from '../components/common/ThemedText';
 import { Colors } from '../theme/colors';
 import { useTheme } from '../theme/ThemeContext';
 import { getFontFamily } from '../theme/fonts';
 import { TabBarIcons } from './TabBarIcons';
-import PlaybookListScreen from '../screens/PlaybookListScreen';
+import TodayScreen from '../screens/TodayScreen';
+import PrayerListScreen from '../screens/PrayerListScreen';
+import UserProfileScreen from '../screens/UserProfileScreen';
 
 // import JournalScreen from '../screens/JournalScreen'; // Unused - using JournalStackNavigator
 import JournalStackNavigator from './JournalStackNavigator';
-import UserInputScreen from '../screens/UserInputScreen';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { experiencePreferences } from '../services/experiencePreferences';
 import { triggerLightHaptic } from '../utils/haptics';
 
 const Tab = createBottomTabNavigator();
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 // Define the props for our custom tab bar
 type CustomTabBarProps = {
@@ -34,19 +36,20 @@ type CustomTabBarProps = {
 
 
 // Glass-looking pill background - opaque blue with glass-like border
-const PILL_BG = 'Colors.sage';
+const PILL_BG = Colors.sage;
 
 // Pill occupies screen width minus 16px margin on each side
 const PILL_WIDTH = Dimensions.get('window').width - 32;
 
 const LABELS: Record<string, string> = {
-  Reflect: 'Reflect',
-  Playbooks: 'Playbooks',
+  Today: 'Today',
+  Prayer: 'Prayer',
   Journal: 'Journal',
+  More: 'More',
 };
 
 const TAB_ROOT_ROUTES: Record<string, string[]> = {
-  Journal: ['JournalMain'],
+  Journal: ['JournalMain', 'SermonNotes'],
 };
 
 // Custom tab bar — floating pill with smooth entrance/exit and per-tab bounce
@@ -55,12 +58,69 @@ const CustomTabBarComponent = ({
   descriptors: _descriptors,
   navigation,
 }: CustomTabBarProps) => {
-  const { showTabBar, setShowTabBar } = useScroll();
+  const { showTabBar, setShowTabBar, setCollapsedTabBarCenterY } = useScroll();
   const theme = useTheme();
   const currentFont = theme.currentFont || 'lexend';
   const fontRegular = getFontFamily(currentFont, 'regular');
   const insets = useSafeAreaInsets();
+  const screenHeight = Dimensions.get('window').height;
   const [showLabels, setShowLabels] = React.useState(experiencePreferences.showTabLabelsEnabled);
+  const [showAddMenu, setShowAddMenu] = React.useState(false);
+  const menuAnim = React.useRef(new Animated.Value(0)).current;
+  const addButtonLayout = React.useRef({ x: 0, width: 0 });
+  const collapsedCircleRef = React.useRef<any>(null);
+
+  const publishCollapsedCircleCenter = React.useCallback(() => {
+    requestAnimationFrame(() => {
+      collapsedCircleRef.current?.measureInWindow?.(
+        (_x: number, y: number, _width: number, height: number) => {
+          setCollapsedTabBarCenterY(y + height / 2);
+        },
+      );
+    });
+  }, [setCollapsedTabBarCenterY]);
+
+  React.useEffect(() => {
+    Animated.spring(menuAnim, {
+      toValue: showAddMenu ? 1 : 0,
+      tension: 80,
+      friction: 12,
+      useNativeDriver: true,
+    }).start();
+  }, [showAddMenu, menuAnim]);
+
+  const addMenuItems = React.useMemo(
+    () => [
+      { icon: '▤', title: 'Sermon Notes', subtitle: 'Message, Scripture & reflection', target: 'Journal', params: { screen: 'SermonNotes' } },
+      { icon: '✎', title: 'Heart Journal', subtitle: 'Write freely', target: 'Journal', params: { screen: 'ReflectionEditor' } },
+      { icon: '◌', title: 'Emotional Check-In', subtitle: 'Notice and name how you feel', target: 'MorningFlow', params: { screen: 'EmotionCheckIn' } },
+      { icon: '♡', title: 'Gratitude', subtitle: 'Remember what you\'re thankful for', target: 'Journal', params: { screen: 'JournalMoments' } },
+      { icon: '☼', title: 'Reflection', subtitle: 'Choose a prompt', target: 'Journal', params: { screen: 'ReflectionEditor' } },
+      { icon: '▱', title: 'Scripture Note', subtitle: 'Write about a passage', target: 'Journal', params: { screen: 'ScriptureNoteEditor' } },
+      { icon: '♧', title: 'Prayer', subtitle: 'Open · CAST · Someone', target: 'Prayer' },
+    ],
+    []
+  );
+
+  const handleAddItem = (item: typeof addMenuItems[0]) => {
+    triggerLightHaptic();
+    setShowAddMenu(false);
+    if (item.params) {
+      navigation.navigate(item.target as any, item.params as any);
+    } else {
+      navigation.navigate(item.target as any);
+    }
+  };
+
+  // Move the shared sliding selector under the add button when the menu is open
+  React.useEffect(() => {
+    if (showAddMenu) {
+      updateSelectorPosition(addButtonLayout.current.x);
+    } else {
+      updateSelectorPosition(tabLayouts[state.index]?.x ?? 0);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showAddMenu]);
 
   const currentRouteName = state.routes[state.index].name;
   const activeTabRoute = state.routes[state.index] as any;
@@ -89,12 +149,11 @@ const CustomTabBarComponent = ({
   const selectorScaleY = React.useRef(new Animated.Value(1)).current;
   const tabLayouts = React.useRef<{ x: number; width: number }[]>([]).current;
 
-  const updateSelectorPosition = React.useCallback((index: number) => {
-    if (tabLayouts.length === 0) {return;}
-    const tab = tabLayouts[index];
+  const updateSelectorPosition = React.useCallback((targetX: number) => {
+    if (targetX === undefined || targetX === null) {return;}
     Animated.parallel([
       Animated.spring(selectorPosition, {
-        toValue: tab.x,
+        toValue: targetX,
         tension: 80,
         friction: 12,
         useNativeDriver: true,
@@ -111,7 +170,7 @@ const CustomTabBarComponent = ({
         ]),
       ]),
     ]).start();
-  }, [selectorPosition, selectorScaleX, selectorScaleY, tabLayouts]);
+  }, [selectorPosition, selectorScaleX, selectorScaleY]);
 
   const handleTabLayout = React.useCallback((index: number) => (event: any) => {
     const { x } = event.nativeEvent.layout;
@@ -161,6 +220,14 @@ const CustomTabBarComponent = ({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showTabBar, isReflect]);
 
+  useEffect(() => {
+    if (showTabBar || isReflect) {
+      return;
+    }
+    const timer = setTimeout(publishCollapsedCircleCenter, 350);
+    return () => clearTimeout(timer);
+  }, [isReflect, publishCollapsedCircleCenter, showTabBar]);
+
   // ── Route-change animations ────────────────────────────────────────────────
   const prevRouteRef = React.useRef<string>(currentRouteName);
   const isFirstRenderRef = React.useRef(true);
@@ -206,7 +273,7 @@ const CustomTabBarComponent = ({
       });
     } else {
       // Normal tab→tab: move selector smoothly
-      updateSelectorPosition(state.index);
+      updateSelectorPosition(tabLayouts[state.index]?.x ?? 0);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.index, updateSelectorPosition]);
@@ -259,9 +326,10 @@ const CustomTabBarComponent = ({
   const INACTIVE_CIRCLE_COLOR = Colors.hopeWhite;
   const circleIcon = (() => {
     const name = state.routes[state.index].name;
-    if (name === 'Reflect')     { return <MaterialIcons name="auto-fix-high" size={22} color={INACTIVE_CIRCLE_COLOR} />; }
-    if (name === 'Playbooks')   { return <MaterialCommunityIcons name="clipboard-text-play" size={22} color={INACTIVE_CIRCLE_COLOR} />; }
+    if (name === 'Today')       { return <Ionicons name="sunny-outline" size={22} color={INACTIVE_CIRCLE_COLOR} />; }
+    if (name === 'Prayer')      { return <Ionicons name="hand-left-outline" size={22} color={INACTIVE_CIRCLE_COLOR} />; }
     if (name === 'Journal')     { return <MaterialCommunityIcons name="notebook-edit" size={22} color={INACTIVE_CIRCLE_COLOR} />; }
+    if (name === 'More')        { return <Ionicons name="ellipsis-horizontal" size={22} color={INACTIVE_CIRCLE_COLOR} />; }
     return <Ionicons name="apps-outline" size={22} color={INACTIVE_CIRCLE_COLOR} />;
   })();
 
@@ -277,6 +345,16 @@ const CustomTabBarComponent = ({
       ]}
       pointerEvents={isReflect ? 'none' : 'box-none'}
     >
+      {/* ── Add menu dim — behind the pill and menu ───────── */}
+      <AnimatedPressable
+        style={[
+          styles.addMenuDim,
+          { top: -(screenHeight - insets.bottom - 64), bottom: -insets.bottom, opacity: menuAnim },
+        ]}
+        pointerEvents={showAddMenu ? 'auto' : 'none'}
+        onPress={() => setShowAddMenu(false)}
+      />
+
       {/* ── Full pill: shape scales left→right, content fades separately ─── */}
       <Animated.View
         style={[
@@ -299,6 +377,7 @@ const CustomTabBarComponent = ({
           <Animated.View
             style={[
               styles.slidingSelector,
+              { width: `${100 / (state.routes.length + 1)}%` },
               {
                 transform: [
                   { translateX: selectorPosition },
@@ -310,17 +389,18 @@ const CustomTabBarComponent = ({
           />
           {/* Tabs overlay — same bounds as pillInner, fade independently */}
           <Animated.View style={[StyleSheet.absoluteFillObject, { flexDirection: 'row', opacity: pillContentOpacity }]}>
-          {state.routes.map((route, index) => {
+          {state.routes.flatMap((route, index) => {
             const isFocused = state.index === index;
-            const iconColor = isFocused ? theme.colors.alertCoral : Colors.hopeWhite;
+            const iconColor = Colors.hopeWhite;
 
             const onPress = () => {
+              setShowAddMenu(false);
               const event = navigation.emit({
                 type: 'tabPress',
                 target: route.key,
                 canPreventDefault: true,
               });
-              updateSelectorPosition(index);
+              updateSelectorPosition(tabLayouts[index]?.x ?? 0);
               onTabPress(route.name);
               if (!event.defaultPrevented) {
                 navigation.navigate(route.name);
@@ -328,16 +408,17 @@ const CustomTabBarComponent = ({
             };
 
             const icon = (() => {
-              if (route.name === 'Reflect')     { return <MaterialIcons name="auto-fix-high" size={20} color={iconColor} />; }
-              if (route.name === 'Playbooks')   { return <MaterialCommunityIcons name="clipboard-text-play" size={20} color={iconColor} />; }
-              if (route.name === 'Journal')     { return <MaterialCommunityIcons name="notebook-edit" size={20} color={iconColor} />; }
+              if (route.name === 'Today')       { return <Ionicons name={isFocused ? 'sunny' : 'sunny-outline'} size={20} color={iconColor} />; }
+              if (route.name === 'Prayer')      { return <Ionicons name={isFocused ? 'hand-left' : 'hand-left-outline'} size={20} color={iconColor} />; }
+              if (route.name === 'Journal')     { return <MaterialCommunityIcons name={isFocused ? 'notebook-edit' : 'notebook'} size={20} color={iconColor} />; }
+              if (route.name === 'More')        { return <Ionicons name={isFocused ? 'ellipsis-horizontal' : 'ellipsis-horizontal-outline'} size={20} color={iconColor} />; }
               const iconName = isFocused
                 ? TabBarIcons[route.name as keyof typeof TabBarIcons]?.focused
                 : TabBarIcons[route.name as keyof typeof TabBarIcons]?.name;
               return <Ionicons name={iconName} size={20} color={iconColor} />;
             })();
 
-            return (
+            return [
               <Animated.View
                 key={route.key}
                 style={[styles.pillTab, isFocused && styles.pillTabActive]}
@@ -355,11 +436,68 @@ const CustomTabBarComponent = ({
                     </Text>
                   )}
                 </TouchableOpacity>
-              </Animated.View>
-            );
+              </Animated.View>,
+              index === 1 && (
+                <View
+                  key="add"
+                  style={styles.pillTab}
+                  onLayout={(e) => {
+                    addButtonLayout.current.x = e.nativeEvent.layout.x;
+                    addButtonLayout.current.width = e.nativeEvent.layout.width;
+                  }}
+                >
+                  <TouchableOpacity
+                    onPress={() => {
+                      triggerLightHaptic();
+                      setShowAddMenu(!showAddMenu);
+                    }}
+                    activeOpacity={0.8}
+                    style={styles.pillTabTouchable}
+                  >
+                    <MaterialCommunityIcons name="pencil-plus-outline" size={24} color={Colors.hopeWhite} />
+                  </TouchableOpacity>
+                </View>
+              ),
+            ];
           })}
           </Animated.View>
         </View>
+      </Animated.View>
+
+      {/* ── Add menu — appears above the tab bar ─────────── */}
+      <Animated.View
+        style={[
+          styles.addMenu,
+          {
+            opacity: menuAnim,
+            transform: [
+              { translateY: menuAnim.interpolate({ inputRange: [0, 1], outputRange: [24, 0] }) },
+            ],
+          },
+        ]}
+        pointerEvents={showAddMenu ? 'auto' : 'none'}
+      >
+        <ThemedText weight="bold" style={styles.addMenuTitle}>
+          What would you like to write?
+        </ThemedText>
+        <ThemedText style={styles.addMenuSubtitle}>
+          Jump straight into a full-screen journal.
+        </ThemedText>
+        {addMenuItems.map((item) => (
+          <TouchableOpacity
+            key={item.title}
+            style={styles.addMenuItem}
+            onPress={() => handleAddItem(item)}
+            activeOpacity={0.7}
+          >
+            <ThemedText style={styles.addMenuIcon}>{item.icon}</ThemedText>
+            <View style={styles.addMenuItemText}>
+              <ThemedText weight="semiBold" style={styles.addMenuItemTitle}>{item.title}</ThemedText>
+              <ThemedText style={styles.addMenuItemSubtitle}>{item.subtitle}</ThemedText>
+            </View>
+            <Ionicons name="chevron-forward" size={16} color={Colors.hopeWhite} />
+          </TouchableOpacity>
+        ))}
       </Animated.View>
 
       {/* ── Collapsed circle (fades in from left as pill collapses) ─────── */}
@@ -368,6 +506,8 @@ const CustomTabBarComponent = ({
         pointerEvents={showTabBar ? 'none' : 'box-none'}
       >
         <TouchableOpacity
+          ref={collapsedCircleRef}
+          onLayout={publishCollapsedCircleCenter}
           style={styles.collapsedCircleTouchable}
           activeOpacity={0.8}
           onPress={() => { try { triggerLightHaptic(); } catch {} setShowTabBar(true); }}
@@ -436,7 +576,7 @@ export default function BottomTabNavigator({ onLogout: _onLogout }: BottomTabNav
   return (
     <Tab.Navigator
       tabBar={renderTabBar}
-      initialRouteName="Journal"
+      initialRouteName="Today"
       // anchorBlue scene container fills the full screen behind every tab screen,
       // so scrollable content gaps and the safe-area floor never show white.
       // tabBarStyle position:absolute stops RN from reserving space for the floating pill.
@@ -456,20 +596,11 @@ export default function BottomTabNavigator({ onLogout: _onLogout }: BottomTabNav
       }}
     >
       <Tab.Screen
-        name="Reflect"
-        component={UserInputScreen}
+        name="Today"
+        component={TodayScreen}
         options={{
-          tabBarLabel: 'Reflect',
-          headerShown: false,
-          tabBarStyle: { display: 'none' },
-        }}
-      />
-      <Tab.Screen
-        name="Playbooks"
-        component={PlaybookListScreen}
-        options={{
-          tabBarLabel: 'Playbooks',
-          title: 'Playbooks',
+          tabBarLabel: 'Today',
+          title: 'Today',
           headerShown: false,
         }}
       />
@@ -479,6 +610,24 @@ export default function BottomTabNavigator({ onLogout: _onLogout }: BottomTabNav
         options={{
           tabBarLabel: 'Journal',
           title: 'Journal',
+          headerShown: false,
+        }}
+      />
+      <Tab.Screen
+        name="Prayer"
+        component={PrayerListScreen as React.ComponentType<any>}
+        options={{
+          tabBarLabel: 'Prayer',
+          title: 'Prayer',
+          headerShown: false,
+        }}
+      />
+      <Tab.Screen
+        name="More"
+        component={UserProfileScreen as React.ComponentType<any>}
+        options={{
+          tabBarLabel: 'More',
+          title: 'More',
           headerShown: false,
         }}
       />
@@ -501,9 +650,9 @@ const styles = StyleSheet.create({
     borderRadius: 32,
     backgroundColor: PILL_BG,
     borderWidth: 1,
-    borderColor: 'Colors.sage',
+    borderColor: Colors.sageMuted,
     paddingHorizontal: 4,
-    shadowColor: '#29342E',
+    shadowColor: Colors.darkBackground,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 12,
@@ -537,14 +686,77 @@ const styles = StyleSheet.create({
   slidingSelector: {
     position: 'absolute',
     height: 48,
-    width: '20%',
     borderRadius: 24,
-    backgroundColor: 'rgba(255, 107, 107, 0.15)',
+    backgroundColor: Colors.sageMuted,
   },
   pillLabel: {
     fontSize: 9.5,
     fontWeight: '500',
     letterSpacing: 0.1,
+  },
+  // Add menu — appears above the tab bar
+  addMenuDim: {
+    position: 'absolute',
+    left: -16,
+    right: -16,
+    top: -500,
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+  },
+  addMenu: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 76,
+    backgroundColor: PILL_BG,
+    borderRadius: 22,
+    padding: 16,
+    shadowColor: Colors.darkBackground,
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    elevation: 8,
+    gap: 12,
+  },
+  addMenuTitle: {
+    color: Colors.hopeWhite,
+    fontSize: 18,
+    lineHeight: 24,
+    textAlign: 'center',
+  },
+  addMenuSubtitle: {
+    color: 'rgba(255, 255, 255, 0.7)',
+    fontSize: 13,
+    lineHeight: 18,
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  addMenuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  addMenuIcon: {
+    width: 28,
+    textAlign: 'center',
+    fontSize: 20,
+    color: Colors.hopeWhite,
+  },
+  addMenuItemText: {
+    flex: 1,
+  },
+  addMenuItemTitle: {
+    color: Colors.hopeWhite,
+    fontSize: 15,
+    lineHeight: 20,
+  },
+  addMenuItemSubtitle: {
+    color: 'rgba(255, 255, 255, 0.7)',
+    fontSize: 12,
+    lineHeight: 16,
+    marginTop: 2,
   },
   // Collapsed circle — sits at left edge of pillWrapper
   collapsedCircle: {
@@ -556,8 +768,8 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     backgroundColor: PILL_BG,
     borderWidth: 1,
-    borderColor: 'Colors.sage',
-    shadowColor: '#29342E',
+    borderColor: Colors.sageMuted,
+    shadowColor: Colors.darkBackground,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.18,
     shadowRadius: 10,

@@ -6,6 +6,8 @@ interface ScrollContextType {
   setIsScrollingDown: (value: boolean) => void;
   showTabBar: boolean;
   setShowTabBar: (value: boolean) => void;
+  collapsedTabBarCenterY: number | null;
+  setCollapsedTabBarCenterY: (value: number | null) => void;
   // New: vertical content scroller control
   setContentScrollRef: (ref: React.RefObject<ScrollView> | React.MutableRefObject<ScrollView | null> | null) => void;
   scrollTo: (y: number, animated?: boolean) => void;
@@ -19,6 +21,7 @@ const ScrollContext = createContext<ScrollContextType | undefined>(undefined);
 export const ScrollProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isScrollingDown, setIsScrollingDown] = useState(false);
   const [showTabBar, setShowTabBar] = useState(true);
+  const [collapsedTabBarCenterY, setCollapsedTabBarCenterY] = useState<number | null>(null);
   const contentScrollRefHolder = useRef<React.RefObject<ScrollView> | React.MutableRefObject<ScrollView | null> | null>(null);
   const sectionYRef = useRef<Record<string, number>>({});
 
@@ -49,8 +52,9 @@ export const ScrollProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const value = useMemo(() => ({
     isScrollingDown, setIsScrollingDown,
     showTabBar, setShowTabBar,
+    collapsedTabBarCenterY, setCollapsedTabBarCenterY,
     setContentScrollRef, scrollTo, scrollToTop, registerSection, scrollToSection,
-  }), [isScrollingDown, showTabBar, setContentScrollRef, scrollTo, scrollToTop, registerSection, scrollToSection]);
+  }), [isScrollingDown, showTabBar, collapsedTabBarCenterY, setContentScrollRef, scrollTo, scrollToTop, registerSection, scrollToSection]);
 
   return (
     <ScrollContext.Provider value={value}>

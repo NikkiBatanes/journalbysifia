@@ -87,6 +87,8 @@ const TodosWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';
   const { selectedDate: selectedDateStr } = route.params || {};
+  const { morningFlow } = (route.params as any) || {};
+  const isMorningFlow = !!morningFlow;
   const selectedDate = selectedDateStr ? new Date(selectedDateStr) : new Date();
 
   // Parse existing entry content to initialize state
@@ -251,16 +253,16 @@ const TodosWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
     };
   }, []);
 
-  // Hide status bar for translucent scrolling effect
+  // Hide status bar for full-screen walkthrough effect, matching bar style to the theme
   useFocusEffect(
     React.useCallback(() => {
       StatusBar.setHidden(true, 'slide');
-      StatusBar.setBarStyle('light-content');
+      StatusBar.setBarStyle(isMorningFlow ? 'dark-content' : 'light-content');
       return () => {
         StatusBar.setHidden(false, 'slide');
-        StatusBar.setBarStyle('light-content');
+        StatusBar.setBarStyle(isMorningFlow ? 'dark-content' : 'light-content');
       };
-    }, [])
+    }, [isMorningFlow])
   );
 
   const verticalLineHeight = useRef(new Animated.Value(0)).current;
@@ -340,7 +342,15 @@ const TodosWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
       );
 
       triggerMediumHaptic();
-      navigation.goBack();
+
+      if (isMorningFlow) {
+        (navigation as any).navigate('PsalmOfTheDay', {
+          ...(route.params as any),
+          topTodos: validTodos,
+        });
+      } else {
+        navigation.goBack();
+      }
     } catch (saveError) {
       console.error('Error saving todos:', saveError);
       Alert.alert('Error', 'Failed to save todos. Please try again.');
@@ -362,7 +372,7 @@ const TodosWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, isMorningFlow && { backgroundColor: Colors.lightBackground }]}>
       <ScrollView
         ref={scrollViewRef}
         style={styles.stepScroll}
@@ -373,14 +383,14 @@ const TodosWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
       >
         <StepFadeIn delay={0}>
           <View style={styles.focusLabelContainer}>
-            <Entypo name="list" size={16} color={Colors.alertCoral} style={styles.labelIcon} />
-            <ThemedText weight="semiBold" style={styles.focusLabel}>TO-DOS</ThemedText>
+            <Entypo name="list" size={16} color={isMorningFlow ? Colors.sage : Colors.alertCoral} style={styles.labelIcon} />
+            <ThemedText weight="semiBold" style={[styles.focusLabel, isMorningFlow && { color: Colors.sageMuted }]}>TO-DOS</ThemedText>
           </View>
         </StepFadeIn>
 
         <StepFadeIn delay={40}>
           <View style={styles.titleRow}>
-            <ThemedText weight="semiBold" style={styles.stepTitle}>
+            <ThemedText weight="semiBold" style={[styles.stepTitle, isMorningFlow && { color: Colors.text }]}>
               {getTitle()}
             </ThemedText>
           </View>
@@ -388,20 +398,24 @@ const TodosWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
 
         <StepFadeIn delay={120} style={[styles.prioritiesContainer, { marginTop: 32 }]}>
           <StepFadeIn delay={0}>
-            <ThemedText style={styles.stepSubtitle}>
+            <ThemedText style={[styles.stepSubtitle, isMorningFlow && { color: Colors.textGray }]}>
               Add the tasks you do not want to forget.
             </ThemedText>
           </StepFadeIn>
           {todos.map((todo: string, index: number) => (
             <View key={index} style={styles.priorityInputRow}>
-              <View style={styles.priorityNumberContainer}>
-                <ThemedText weight="semiBold" style={styles.priorityNumber}>{index + 1}</ThemedText>
+              <View style={[styles.priorityNumberContainer, isMorningFlow && { backgroundColor: Colors.sageMuted }]}>
+                <ThemedText weight="semiBold" style={[styles.priorityNumber, isMorningFlow && { color: Colors.sage }]}>{index + 1}</ThemedText>
               </View>
               <TextInput
                 ref={(ref) => {
                   inputRefs[index] = ref;
                 }}
-                style={[styles.priorityInput, { fontFamily: getFontFamily(fontKey, 'regular') }]}
+                style={[
+                  styles.priorityInput,
+                  { fontFamily: getFontFamily(fontKey, 'regular') },
+                  isMorningFlow && { backgroundColor: 'transparent', borderWidth: 0, color: Colors.text },
+                ]}
                 value={todo}
                 onChangeText={(text) => {
                   const newTodos = [...todos];
@@ -421,7 +435,7 @@ const TodosWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
                 }}
                 returnKeyType={index < todos.length - 1 ? 'next' : 'done'}
                 autoFocus={index === 0}
-                keyboardAppearance="dark"
+                keyboardAppearance={isMorningFlow ? 'default' : 'dark'}
               />
             </View>
           ))}
@@ -440,7 +454,7 @@ const TodosWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
           <TouchableOpacity
             onPress={handleSave}
             activeOpacity={0.7}
-            style={styles.primaryButton}
+            style={[styles.primaryButton, isMorningFlow && { backgroundColor: Colors.sage, shadowColor: Colors.sage }]}
           >
             <ThemedText weight="semiBold" style={styles.saveButtonText}>Save To-dos</ThemedText>
           </TouchableOpacity>
@@ -454,25 +468,25 @@ const TodosWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
           <TouchableOpacity
             onPress={handleAddField}
             activeOpacity={0.7}
-            style={styles.addButton}
+            style={[styles.addButton, isMorningFlow && { backgroundColor: Colors.lightGray }]}
           >
-            <Ionicons name="add" size={22} color="rgba(255,255,255,0.65)" />
+            <Ionicons name="add" size={22} color={isMorningFlow ? Colors.textGray : 'rgba(255,255,255,0.65)'} />
           </TouchableOpacity>
         </Animated.View>
       </Animated.View>
 
       {/* Close button - top right */}
-      <View style={[styles.closeButton, { top: insets.top + 8 }]}>
+      <View style={[styles.closeButton, { top: insets.top + 8 }, isMorningFlow && { backgroundColor: Colors.lightGray }]}>
         <TouchableOpacity
           onPress={() => {
             triggerLightHaptic();
-            navigation.goBack();
+            isMorningFlow ? navigation.getParent()?.goBack() : navigation.goBack();
           }}
           style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}
           activeOpacity={0.7}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          <Ionicons name="close" size={17} color="rgba(255,255,255,0.65)" />
+          <Ionicons name="close" size={17} color={isMorningFlow ? Colors.textGray : 'rgba(255,255,255,0.65)'} />
         </TouchableOpacity>
       </View>
     </View>

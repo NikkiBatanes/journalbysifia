@@ -29,6 +29,7 @@ interface RouteParams {
   questionNumber?: number;
   openHeart?: boolean;
   fromCarousel?: boolean; // Indicate if navigation is from carousel
+  returnTo?: string; // Parent (tab) route to switch back to after closing
 }
 
 const ReflectionEditorScreen: React.FC = () => {
@@ -55,11 +56,20 @@ const ReflectionEditorScreen: React.FC = () => {
 
   const editorRef = useRef<ReflectionLogEditorRef>(null);
 
+  // Close the editor and, when a returnTo route was provided, switch the
+  // parent (tab) navigator back to that screen (e.g. 'Today').
+  const closeEditor = useCallback(() => {
+    navigation.goBack();
+    if (params.returnTo) {
+      (navigation.getParent() as any)?.navigate?.(params.returnTo);
+    }
+  }, [navigation, params.returnTo]);
+
   // Success modal handlers
   const successModal = useSuccessModal(
     () => {
       editorRef.current?.blurInputs();
-      navigation.goBack();
+      closeEditor();
     },
     () => {
       // Edit callback - keep screen open and focus input
@@ -76,7 +86,7 @@ const ReflectionEditorScreen: React.FC = () => {
 
   const handleCancel = () => {
     Keyboard.dismiss();
-    navigation.goBack();
+    closeEditor();
   };
 
   const normalizeOutgoing = useCallback((text: string): string => {
@@ -184,7 +194,7 @@ const ReflectionEditorScreen: React.FC = () => {
     triggerLightHaptic();
     try {
       await deleteMutation.mutateAsync(id);
-      navigation.goBack();
+      closeEditor();
     } catch (deleteError) {
       Logger.error('Failed to delete reflection', deleteError as Error, {
         component: 'ReflectionEditorScreen',

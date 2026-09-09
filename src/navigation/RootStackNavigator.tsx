@@ -8,6 +8,8 @@ import {
 import { Colors } from '../theme/colors';
 
 import BottomTabNavigator from './BottomTabNavigator';
+import MorningFlowStackNavigator from './MorningFlowStackNavigator';
+import EveningFlowStackNavigator from './EveningFlowStackNavigator';
 import PlaybookDetailScreen from '../screens/PlaybookDetailGuided';
 import PlaybookWalkthroughScreen from '../screens/PlaybookWalkthroughScreen';
 import GeneratingPlaybookScreen from '../screens/GeneratingPlaybookScreen';
@@ -498,6 +500,32 @@ export default function RootStackNavigator({
               headerShown: false,
               presentation: 'fullScreenModal',
               animation: 'fade',
+              contentStyle: { backgroundColor: Colors.sage },
+            }}
+          />
+
+          {/* Morning Flow - multi-page morning check-in modal */}
+          <Stack.Screen
+            name="MorningFlow"
+            component={MorningFlowStackNavigator as React.ComponentType}
+            options={{
+              headerShown: false,
+              presentation: 'fullScreenModal',
+              animation: 'slide_from_bottom',
+              gestureEnabled: false,
+              contentStyle: { backgroundColor: Colors.sage },
+            }}
+          />
+
+          {/* Evening Flow - multi-page evening reflection modal */}
+          <Stack.Screen
+            name="EveningFlow"
+            component={EveningFlowStackNavigator as React.ComponentType}
+            options={{
+              headerShown: false,
+              presentation: 'fullScreenModal',
+              animation: 'slide_from_bottom',
+              gestureEnabled: false,
               contentStyle: { backgroundColor: Colors.sage },
             }}
           />

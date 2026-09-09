@@ -154,7 +154,9 @@ const CategorySelectionStep: React.FC<{
   setCustomFocus: (text: string) => void;
   fontKey: string;
   dateContext: DateContext;
-}> = ({ selectedCategory, onSelect, onNext, insets, navigation, customFocus, setCustomFocus, fontKey, dateContext }) => {
+  morningFlow?: boolean;
+}> = ({ selectedCategory, onSelect, onNext, insets, navigation, customFocus, setCustomFocus, fontKey, dateContext, morningFlow }) => {
+  const isMorning = !!morningFlow;
   const [showAllCategories, setShowAllCategories] = React.useState(false);
   const [isOtherSelected, setIsOtherSelected] = React.useState(false);
   const [keyboardVisible, setKeyboardVisible] = React.useState(false);
@@ -303,14 +305,14 @@ const CategorySelectionStep: React.FC<{
       >
         <StepFadeIn delay={0}>
           <View style={styles.focusLabelContainer}>
-            <MaterialIcons name="filter-center-focus" size={16} color={Colors.alertCoral} style={styles.labelIcon} />
-            <ThemedText weight="semiBold" style={styles.focusLabel}>{getEyebrowLabel()}</ThemedText>
+            <MaterialIcons name="filter-center-focus" size={16} color={isMorning ? Colors.sage : Colors.alertCoral} style={styles.labelIcon} />
+            <ThemedText weight="semiBold" style={[styles.focusLabel, { color: isMorning ? Colors.sageMuted : Colors.hopeWhite }]}>{getEyebrowLabel()}</ThemedText>
           </View>
         </StepFadeIn>
 
         <StepFadeIn delay={80}>
           <View style={styles.titleRow}>
-            <ThemedText weight="semiBold" style={styles.stepTitle}>
+            <ThemedText weight="semiBold" style={[styles.stepTitle, { color: isMorning ? Colors.text : Colors.hopeWhite }]}>
               {getMainTitle()}
             </ThemedText>
           </View>
@@ -320,9 +322,9 @@ const CategorySelectionStep: React.FC<{
           <StepFadeIn delay={160}>
             <View style={styles.customInputContainer}>
               <TextInput
-                style={[styles.customInput, { fontFamily: getFontFamily(fontKey, 'regular') }]}
+                style={[styles.customInput, { fontFamily: getFontFamily(fontKey, 'regular'), color: isMorning ? Colors.text : Colors.hopeWhite }, isMorning && { borderBottomWidth: 1, borderBottomColor: Colors.inputBorder }]}
                 placeholder="Type your focus"
-                placeholderTextColor="rgba(255, 255, 255, 0.5)"
+                placeholderTextColor={isMorning ? Colors.textGray : 'rgba(255, 255, 255, 0.5)'}
                 value={customFocus}
                 onChangeText={setCustomFocus}
                 multiline
@@ -340,7 +342,7 @@ const CategorySelectionStep: React.FC<{
             return (
               <TouchableOpacity
                 key={category.id}
-                style={[styles.categoryCard, isSelected && styles.categoryCardSelected]}
+                style={[styles.categoryCard, isMorning && styles.categoryCardMorning, isSelected && (isMorning ? styles.categoryCardSelectedMorning : styles.categoryCardSelected)]}
                 onPress={() => {
                   triggerLightHaptic();
                   onSelect(category);
@@ -350,34 +352,34 @@ const CategorySelectionStep: React.FC<{
                 <View style={styles.categoryIconContainer}>
                   <View style={[
                     styles.categoryIconCircle,
-                    isSelected && styles.categoryIconCircleSelected,
+                    isSelected && (isMorning ? { backgroundColor: Colors.sage } : styles.categoryIconCircleSelected),
                   ]}>
                     {category.iconType === 'ionicons' && (
                       <Ionicons
                         name={category.icon as any}
                         size={18}
-                        color={isSelected ? Colors.hopeWhite : Colors.alertCoral}
+                        color={Colors.hopeWhite}
                       />
                     )}
                     {category.iconType === 'material' && (
                       <MaterialCommunityIcons
                         name={category.icon as any}
                         size={18}
-                        color={isSelected ? Colors.hopeWhite : Colors.alertCoral}
+                        color={Colors.hopeWhite}
                       />
                     )}
                     {category.iconType === 'fontawesome' && (
                       <FontAwesome6
                         name={category.icon as any}
                         size={18}
-                        color={isSelected ? Colors.hopeWhite : Colors.alertCoral}
+                        color={Colors.hopeWhite}
                       />
                     )}
                   </View>
                 </View>
                 <ThemedText
                   weight="semiBold"
-                  style={[styles.categoryName, isSelected && styles.categoryNameSelected]}
+                  style={[styles.categoryName, { color: isSelected ? Colors.hopeWhite : (isMorning ? Colors.text : Colors.hopeWhite) }]}
                 >
                   {category.name}
                 </ThemedText>
@@ -396,11 +398,11 @@ const CategorySelectionStep: React.FC<{
                 }}
               >
                 <TouchableOpacity
-                  style={[styles.showMoreButton, { alignSelf: isOtherSelected ? 'flex-end' : 'center' }]}
+                  style={[styles.showMoreButton, { alignSelf: isOtherSelected ? 'flex-end' : 'center', borderColor: isMorning ? Colors.sage : 'rgba(255, 255, 255, 0.3)' }]}
                   onPress={isOtherSelected ? handleChooseAgain : handleToggleShowAll}
                   activeOpacity={0.75}
                 >
-                  <ThemedText style={styles.showMoreButtonText}>
+                  <ThemedText style={[styles.showMoreButtonText, { color: isMorning ? Colors.sage : Colors.hopeWhite }]}>
                     {isOtherSelected ? 'Choose again' : (showAllCategories ? 'Show Less' : 'Show More')}
                   </ThemedText>
                 </TouchableOpacity>
@@ -414,7 +416,7 @@ const CategorySelectionStep: React.FC<{
 
       {/* Bottom buttons */}
       {selectedCategory && (!isOtherSelected || customFocus.trim() !== '') && (
-        <Animated.View style={[styles.primaryButton, IS_IPAD && styles.primaryButtonPad, { bottom: buttonPosition, transform: [{ scale: buttonScale }] }]}>
+        <Animated.View style={[styles.primaryButton, IS_IPAD && styles.primaryButtonPad, { bottom: buttonPosition, transform: [{ scale: buttonScale }], backgroundColor: isMorning ? Colors.sage : Colors.alertCoral }]}>
           <TouchableOpacity
             onPress={() => {
               triggerMediumHaptic();
@@ -429,17 +431,21 @@ const CategorySelectionStep: React.FC<{
       )}
 
       {/* Close button - top right */}
-      <View style={[styles.closeButton, { top: insets.top + 8 }]}>
+      <View style={[styles.closeButton, { top: insets.top + 8, backgroundColor: isMorning ? Colors.lightGray : 'rgba(255, 255, 255, 0.09)' }]}>
         <TouchableOpacity
           onPress={() => {
             triggerLightHaptic();
-            navigation.goBack();
+            if (morningFlow) {
+              navigation.getParent()?.goBack();
+            } else {
+              navigation.goBack();
+            }
           }}
           style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}
           activeOpacity={0.7}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          <Ionicons name="close" size={17} color="rgba(255,255,255,0.65)" />
+          <Ionicons name="close" size={17} color={isMorning ? Colors.textGray : 'rgba(255,255,255,0.65)'} />
         </TouchableOpacity>
       </View>
     </View>
@@ -460,7 +466,9 @@ const PersonalTextInputStep: React.FC<{
   customFocus: string;
   fontKey: string;
   dateContext: DateContext;
-}> = ({ category, personalText, onChange, onNext, onBack: _onBack, insets, navigation, icon, iconType, customFocus, fontKey, dateContext }) => {
+  morningFlow?: boolean;
+}> = ({ category, personalText, onChange, onNext, onBack: _onBack, insets, navigation, icon, iconType, customFocus, fontKey, dateContext, morningFlow }) => {
+  const isMorning = !!morningFlow;
   const verticalLineHeight = React.useRef(new Animated.Value(0)).current;
   const [keyboardVisible, setKeyboardVisible] = React.useState(false);
   const buttonPosition = React.useRef(new Animated.Value(insets.bottom + 20)).current;
@@ -529,14 +537,14 @@ const PersonalTextInputStep: React.FC<{
       >
         <StepFadeIn delay={0}>
           <View style={styles.focusLabelContainer}>
-            <MaterialIcons name="filter-center-focus" size={16} color={Colors.alertCoral} style={styles.labelIcon} />
-            <ThemedText weight="semiBold" style={styles.focusLabel}>{getEyebrowLabel()}</ThemedText>
+            <MaterialIcons name="filter-center-focus" size={16} color={isMorning ? Colors.sage : Colors.alertCoral} style={styles.labelIcon} />
+            <ThemedText weight="semiBold" style={[styles.focusLabel, { color: isMorning ? Colors.sageMuted : Colors.hopeWhite }]}>{getEyebrowLabel()}</ThemedText>
           </View>
         </StepFadeIn>
 
         <StepFadeIn delay={40}>
-          <View style={styles.titleRowLeft}>
-            <ThemedText weight="semiBold" style={styles.stepTitleLeft}>
+          <View style={styles.titleRow}>
+            <ThemedText weight="semiBold" style={[styles.stepTitle, { color: isMorning ? Colors.text : Colors.hopeWhite }]}>
               {getTitle()}
             </ThemedText>
           </View>
@@ -544,11 +552,11 @@ const PersonalTextInputStep: React.FC<{
 
         <StepFadeIn delay={80}>
           <TextInput
-            style={[styles.personalInput, { fontFamily: getFontFamily(fontKey, 'regular') }]}
+            style={[styles.personalInput, { fontFamily: getFontFamily(fontKey, 'regular'), color: isMorning ? Colors.text : Colors.hopeWhite, backgroundColor: 'transparent', borderWidth: 0 }]}
             value={personalText}
             onChangeText={onChange}
             placeholder={'Bring this before God first...'}
-            placeholderTextColor="rgba(255, 255, 255, 0.4)"
+            placeholderTextColor={isMorning ? Colors.textGray : 'rgba(255, 255, 255, 0.4)'}
             multiline
             textAlignVertical="top"
             autoFocus
@@ -558,21 +566,21 @@ const PersonalTextInputStep: React.FC<{
 
         <StepFadeIn delay={120}>
           <View style={styles.metadataContainer}>
-            <Animated.View style={[styles.verticalLine, { height: verticalLineHeight }]} />
+            <Animated.View style={[styles.verticalLine, { height: verticalLineHeight, backgroundColor: isMorning ? Colors.text : Colors.hopeWhite }]} />
             <View style={styles.metadataContent}>
               {iconType === 'ionicons' && (
-                <Ionicons name={icon as any} size={18} color={Colors.alertCoral} style={styles.metadataIcon} />
+                <Ionicons name={icon as any} size={18} color={isMorning ? Colors.sage : Colors.alertCoral} style={styles.metadataIcon} />
               )}
               {iconType === 'material' && (
-                <MaterialCommunityIcons name={icon as any} size={18} color={Colors.alertCoral} style={styles.metadataIcon} />
+                <MaterialCommunityIcons name={icon as any} size={18} color={isMorning ? Colors.sage : Colors.alertCoral} style={styles.metadataIcon} />
               )}
               {iconType === 'fontawesome' && (
-                <FontAwesome6 name={icon as any} size={18} color={Colors.alertCoral} style={styles.metadataIcon} />
+                <FontAwesome6 name={icon as any} size={18} color={isMorning ? Colors.sage : Colors.alertCoral} style={styles.metadataIcon} />
               )}
-              <ThemedText weight="medium" style={styles.fromText}>
+              <ThemedText weight="medium" style={[styles.fromText, { color: isMorning ? Colors.textGray : Colors.hopeWhite }]}>
                 FOCUS
               </ThemedText>
-              <ThemedText style={styles.metadataText}>
+              <ThemedText style={[styles.metadataText, { color: isMorning ? Colors.textGray : Colors.hopeWhite }]}>
                 {category.id === 'other' && customFocus.trim() ? (
                   <ThemedText weight="semiBold">Other: {customFocus.trim()}</ThemedText>
                 ) : (
@@ -589,7 +597,7 @@ const PersonalTextInputStep: React.FC<{
         <View style={{ height: 100 }} />
       </ScrollView>
 
-      <Animated.View style={[styles.primaryButton, { bottom: buttonPosition }]}>
+      <Animated.View style={[styles.primaryButton, { bottom: buttonPosition, backgroundColor: isMorning ? Colors.sage : Colors.alertCoral }]}>
         <TouchableOpacity
           onPress={() => {
             triggerMediumHaptic();
@@ -603,17 +611,21 @@ const PersonalTextInputStep: React.FC<{
       </Animated.View>
 
       {/* Close button - top right */}
-      <View style={[styles.closeButton, { top: insets.top + 8 }]}>
+      <View style={[styles.closeButton, { top: insets.top + 8, backgroundColor: isMorning ? Colors.lightGray : 'rgba(255, 255, 255, 0.09)' }]}>
         <TouchableOpacity
           onPress={() => {
             triggerLightHaptic();
-            navigation.goBack();
+            if (morningFlow) {
+              navigation.getParent()?.goBack();
+            } else {
+              navigation.goBack();
+            }
           }}
           style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}
           activeOpacity={0.7}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          <Ionicons name="close" size={17} color="rgba(255,255,255,0.65)" />
+          <Ionicons name="close" size={17} color={isMorning ? Colors.textGray : 'rgba(255,255,255,0.65)'} />
         </TouchableOpacity>
       </View>
     </View>
@@ -634,7 +646,9 @@ const PrioritiesInputStep: React.FC<{
   customFocus: string;
   fontKey: string;
   dateContext: DateContext;
-}> = ({ priorities, onChange, onNext, onBack: _onBack, insets, navigation, icon, iconType, category, customFocus, fontKey, dateContext }) => {
+  morningFlow?: boolean;
+}> = ({ priorities, onChange, onNext, onBack: _onBack, insets, navigation, icon, iconType, category, customFocus, fontKey, dateContext, morningFlow }) => {
+  const isMorning = !!morningFlow;
   const verticalLineHeight = React.useRef(new Animated.Value(0)).current;
   const [keyboardVisible, setKeyboardVisible] = React.useState(false);
   const buttonPosition = React.useRef(new Animated.Value(insets.bottom + 20)).current;
@@ -683,19 +697,19 @@ const PrioritiesInputStep: React.FC<{
       >
         <StepFadeIn delay={0}>
           <View style={styles.focusLabelContainer}>
-            <MaterialIcons name="filter-center-focus" size={16} color={Colors.alertCoral} style={styles.labelIcon} />
-            <ThemedText weight="semiBold" style={styles.focusLabel}>TOP PRIORITIES</ThemedText>
+            <MaterialIcons name="filter-center-focus" size={16} color={isMorning ? Colors.sage : Colors.alertCoral} style={styles.labelIcon} />
+            <ThemedText weight="semiBold" style={[styles.focusLabel, { color: isMorning ? Colors.sageMuted : Colors.hopeWhite }]}>TOP PRIORITIES</ThemedText>
           </View>
         </StepFadeIn>
 
         <StepFadeIn delay={240} style={[styles.prioritiesContainer, { marginTop: 32 }]}>
           {priorities.map((priority: string, index: number) => (
             <View key={index} style={styles.priorityInputRow}>
-              <View style={styles.priorityNumberContainer}>
-                <ThemedText weight="semiBold" style={styles.priorityNumber}>{index + 1}</ThemedText>
+              <View style={[styles.priorityNumberContainer, { backgroundColor: isMorning ? Colors.sage : 'rgba(255, 107, 107, 0.2)' }]}>
+                <ThemedText weight="semiBold" style={[styles.priorityNumber, { color: isMorning ? Colors.hopeWhite : Colors.alertCoral }]}>{index + 1}</ThemedText>
               </View>
               <TextInput
-                style={[styles.priorityInput, { fontFamily: getFontFamily(fontKey, 'regular') }]}
+                style={[styles.priorityInput, { fontFamily: getFontFamily(fontKey, 'regular'), color: isMorning ? Colors.text : Colors.hopeWhite }]}
                 value={priority}
                 onChangeText={(text) => onChange(index, text)}
                 placeholder=""
@@ -709,28 +723,28 @@ const PrioritiesInputStep: React.FC<{
 
         <StepFadeIn delay={320}>
           <View style={styles.metadataContainer}>
-            <Animated.View style={[styles.verticalLine, { height: verticalLineHeight }]} />
+            <Animated.View style={[styles.verticalLine, { height: verticalLineHeight, backgroundColor: isMorning ? Colors.text : Colors.hopeWhite }]} />
             <View style={styles.metadataContent}>
               {iconType === 'ionicons' && (
-                <Ionicons name={icon as any} size={18} color={Colors.alertCoral} style={styles.metadataIcon} />
+                <Ionicons name={icon as any} size={18} color={isMorning ? Colors.sage : Colors.alertCoral} style={styles.metadataIcon} />
               )}
               {iconType === 'material' && (
-                <MaterialCommunityIcons name={icon as any} size={18} color={Colors.alertCoral} style={styles.metadataIcon} />
+                <MaterialCommunityIcons name={icon as any} size={18} color={isMorning ? Colors.sage : Colors.alertCoral} style={styles.metadataIcon} />
               )}
               {iconType === 'fontawesome' && (
-                <FontAwesome6 name={icon as any} size={18} color={Colors.alertCoral} style={styles.metadataIcon} />
+                <FontAwesome6 name={icon as any} size={18} color={isMorning ? Colors.sage : Colors.alertCoral} style={styles.metadataIcon} />
               )}
-              <ThemedText weight="medium" style={styles.fromText}>
+              <ThemedText weight="medium" style={[styles.fromText, { color: isMorning ? Colors.textGray : Colors.hopeWhite }]}>
                 FOCUS
               </ThemedText>
-              <ThemedText style={styles.metadataText}>
+              <ThemedText style={[styles.metadataText, { color: isMorning ? Colors.textGray : Colors.hopeWhite }]}>
                 {category.id === 'other' && customFocus.trim() ? (
-                  <ThemedText weight="semiBold">Other: {customFocus.trim()}</ThemedText>
+                  <ThemedText weight="semiBold" style={{ color: isMorning ? Colors.textGray : Colors.hopeWhite }}>Other: {customFocus.trim()}</ThemedText>
                 ) : (
-                  <ThemedText weight="semiBold">{category.name}</ThemedText>
+                  <ThemedText weight="semiBold" style={{ color: isMorning ? Colors.textGray : Colors.hopeWhite }}>{category.name}</ThemedText>
                 )}
               </ThemedText>
-              <ThemedText style={styles.metadataText}>
+              <ThemedText style={[styles.metadataText, { color: isMorning ? Colors.textGray : Colors.hopeWhite }]}>
                 {dateContext === 'today'
                   ? 'Add up to 3 priorities for today.'
                   : dateContext === 'yesterday'
@@ -746,7 +760,7 @@ const PrioritiesInputStep: React.FC<{
         <View style={{ height: 100 }} />
       </ScrollView>
 
-      <Animated.View style={[styles.primaryButton, { bottom: buttonPosition }]}>
+      <Animated.View style={[styles.primaryButton, { bottom: buttonPosition, backgroundColor: isMorning ? Colors.sage : Colors.alertCoral }]}>
         <TouchableOpacity
           onPress={() => {
             triggerMediumHaptic();
@@ -760,17 +774,21 @@ const PrioritiesInputStep: React.FC<{
       </Animated.View>
 
       {/* Close button - top right */}
-      <View style={[styles.closeButton, { top: insets.top + 8 }]}>
+      <View style={[styles.closeButton, { top: insets.top + 8, backgroundColor: isMorning ? Colors.lightGray : 'rgba(255, 255, 255, 0.09)' }]}>
         <TouchableOpacity
           onPress={() => {
             triggerLightHaptic();
-            navigation.goBack();
+            if (morningFlow) {
+              navigation.getParent()?.goBack();
+            } else {
+              navigation.goBack();
+            }
           }}
           style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}
           activeOpacity={0.7}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          <Ionicons name="close" size={17} color="rgba(255,255,255,0.65)" />
+          <Ionicons name="close" size={17} color={isMorning ? Colors.textGray : 'rgba(255,255,255,0.65)'} />
         </TouchableOpacity>
       </View>
     </View>
@@ -788,7 +806,9 @@ const CompletionStep: React.FC<{
   iconType: 'ionicons' | 'material' | 'fontawesome';
   customFocus: string;
   dateContext: DateContext;
-}> = ({ category, personalText, priorities, onDone, insets, icon, iconType, customFocus, dateContext }) => {
+  morningFlow?: boolean;
+}> = ({ category, personalText, priorities, onDone, insets, icon, iconType, customFocus, dateContext, morningFlow }) => {
+  const isMorning = !!morningFlow;
   const validPriorities = priorities.filter((p: string) => p.trim() !== '');
 
   // Animation refs
@@ -876,21 +896,27 @@ const CompletionStep: React.FC<{
     }
   };
 
-  const getFooterText = () => {
-    switch (dateContext) {
-      case 'today': return 'A simple daily anchor before you move into the rest of your day.';
-      case 'yesterday': return 'A reflection on what you focused on yesterday.';
-      case 'earlier': return 'A reflection on what you focused on this day.';
-      case 'upcoming': return 'A plan set ahead in faith.';
-    }
-  };
-
   const getSaveButtonText = () => {
+    if (morningFlow) {
+      return 'Continue';
+    }
     switch (dateContext) {
       case 'today': return 'Save for today';
       case 'yesterday': return 'Save for yesterday';
       case 'earlier': return 'Save for this day';
       case 'upcoming': return 'Save this plan';
+    }
+  };
+
+  const getFooterText = () => {
+    if (morningFlow) {
+      return 'A simple morning anchor before you move into the rest of your day.';
+    }
+    switch (dateContext) {
+      case 'today': return 'A simple daily anchor before you move into the rest of your day.';
+      case 'yesterday': return 'A reflection on what you focused on yesterday.';
+      case 'earlier': return 'A reflection on what you focused on this day.';
+      case 'upcoming': return 'A plan set ahead in faith.';
     }
   };
 
@@ -902,16 +928,17 @@ const CompletionStep: React.FC<{
         showsVerticalScrollIndicator={false}
       >
         <StepFadeIn delay={0} style={styles.stepLabelRow}>
-          <MaterialIcons name="filter-center-focus" size={18} color={Colors.alertCoral} />
-          <ThemedText weight="semiBold" style={styles.stepLabelWhite}>
+          <MaterialIcons name="filter-center-focus" size={18} color={isMorning ? Colors.sage : Colors.alertCoral} />
+          <ThemedText weight="semiBold" style={[styles.stepLabelWhite, { color: isMorning ? Colors.sageMuted : Colors.hopeWhite }]}>
             {getEyebrowLabel()}
           </ThemedText>
         </StepFadeIn>
 
-        <StepFadeIn delay={80} style={styles.completionCard}>
+        <StepFadeIn delay={80} style={[styles.completionCard, { backgroundColor: isMorning ? Colors.cardBackground : 'transparent' }]}>
           <View style={styles.completionHeader}>
             <Animated.View style={[
               styles.completionIconContainer,
+              { backgroundColor: isMorning ? Colors.sage : 'rgba(255, 107, 107, 0.15)' },
               {
                 transform: [
                   { scale: iconScale },
@@ -920,57 +947,58 @@ const CompletionStep: React.FC<{
               },
             ]}>
               {iconType === 'ionicons' && (
-                <Ionicons name={icon as any} size={24} color={Colors.alertCoral} />
+                <Ionicons name={icon as any} size={24} color={isMorning ? Colors.hopeWhite : Colors.alertCoral} />
               )}
               {iconType === 'material' && (
-                <MaterialCommunityIcons name={icon as any} size={24} color={Colors.alertCoral} />
+                <MaterialCommunityIcons name={icon as any} size={24} color={isMorning ? Colors.hopeWhite : Colors.alertCoral} />
               )}
               {iconType === 'fontawesome' && (
-                <FontAwesome6 name={icon as any} size={24} color={Colors.alertCoral} />
+                <FontAwesome6 name={icon as any} size={24} color={isMorning ? Colors.hopeWhite : Colors.alertCoral} />
               )}
             </Animated.View>
             <View style={styles.completionHeaderContent}>
-              <ThemedText weight="semiBold" style={styles.completionCategory}>
+              <ThemedText weight="semiBold" style={[styles.completionCategory, { color: isMorning ? Colors.text : Colors.hopeWhite }]}>
                 {category.id === 'other' && customFocus.trim() ? customFocus.trim() : category.name}
               </ThemedText>
-              <ThemedText style={styles.completionSubtext}>{getSubtext()}</ThemedText>
+              <ThemedText style={[styles.completionSubtext, { color: isMorning ? Colors.textGray : 'rgba(255, 255, 255, 0.6)' }]}>{getSubtext()}</ThemedText>
             </View>
             <Animated.View style={[
               styles.completionCheckmark,
               { transform: [{ scale: checkmarkScale }] },
             ]}>
-              <Ionicons name="checkmark-circle" size={28} color={Colors.growthGreen} />
+              <Ionicons name="checkmark-circle" size={28} color={isMorning ? Colors.sage : Colors.hopeWhite} />
             </Animated.View>
           </View>
 
           {personalText.trim() && (
-            <View style={styles.completionSection}>
-              <ThemedText weight="medium" style={styles.completionSectionLabel}>Focus Note</ThemedText>
-              <ThemedText style={styles.completionSectionText}>{personalText}</ThemedText>
+            <View style={[styles.completionSection, { borderTopColor: isMorning ? Colors.inputBorder : 'rgba(255, 255, 255, 0.1)' }]}>
+              <ThemedText weight="medium" style={[styles.completionSectionLabel, { color: isMorning ? Colors.textGray : 'rgba(255, 255, 255, 0.5)' }]}>Focus Note</ThemedText>
+              <ThemedText style={[styles.completionSectionText, { color: isMorning ? Colors.text : Colors.hopeWhite }]}>{personalText}</ThemedText>
             </View>
           )}
 
           {validPriorities.length > 0 && (
-            <View style={styles.completionSection}>
-              <ThemedText weight="medium" style={styles.completionSectionLabel}>Top Priorities</ThemedText>
+            <View style={[styles.completionSection, { borderTopColor: isMorning ? Colors.inputBorder : 'rgba(255, 255, 255, 0.1)' }]}>
+              <ThemedText weight="medium" style={[styles.completionSectionLabel, { color: isMorning ? Colors.textGray : 'rgba(255, 255, 255, 0.5)' }]}>Top Priorities</ThemedText>
               <View style={styles.prioritiesList}>
                 {validPriorities.map((priority: string, index: number) => (
                   <View key={index} style={styles.priorityItem}>
                     <Animated.View style={[
                       styles.priorityBullet,
+                      { backgroundColor: isMorning ? Colors.sage : 'rgba(255, 107, 107, 0.2)' },
                       { transform: [{ scale: priorityAnims[index] || 0 }] },
                     ]}>
-                      <ThemedText weight="semiBold" style={styles.priorityBulletText}>{index + 1}</ThemedText>
+                      <ThemedText weight="semiBold" style={[styles.priorityBulletText, { color: isMorning ? Colors.hopeWhite : Colors.alertCoral }]}>{index + 1}</ThemedText>
                     </Animated.View>
-                    <ThemedText style={styles.priorityText}>{priority}</ThemedText>
+                    <ThemedText style={[styles.priorityText, { color: isMorning ? Colors.text : Colors.hopeWhite }]}>{priority}</ThemedText>
                   </View>
                 ))}
               </View>
             </View>
           )}
 
-          <View style={styles.completionFooter}>
-            <ThemedText style={styles.completionFooterText}>
+          <View style={[styles.completionFooter, { borderTopColor: isMorning ? Colors.inputBorder : 'rgba(255, 255, 255, 0.1)' }]}>
+            <ThemedText style={[styles.completionFooterText, { color: isMorning ? Colors.textGray : 'rgba(255, 255, 255, 0.6)' }]}>
               {getFooterText()}
             </ThemedText>
           </View>
@@ -979,16 +1007,16 @@ const CompletionStep: React.FC<{
         <View style={{ height: 100 }} />
       </ScrollView>
 
-      <View style={[styles.completionButtonContainer, IS_IPAD && styles.completionButtonContainerPad, { bottom: insets.bottom + 20 }]}>
+      <View style={[styles.completionButtonContainer, IS_IPAD && styles.completionButtonContainerPad, { bottom: insets.bottom + 20, backgroundColor: isMorning ? Colors.lightBackground : Colors.sage }]}>
         <TouchableOpacity
           onPress={() => {
             triggerMediumHaptic();
             onDone();
           }}
           activeOpacity={0.85}
-          style={styles.completionButton}
+          style={[styles.completionButton, { backgroundColor: isMorning ? Colors.sage : Colors.alertCoral }]}
         >
-          <ThemedText weight="semiBold" style={styles.completionButtonText}>
+          <ThemedText weight="semiBold" style={[styles.completionButtonText, { color: isMorning ? Colors.hopeWhite : Colors.hopeWhite }]}>
             {getSaveButtonText()}
           </ThemedText>
         </TouchableOpacity>
@@ -1056,64 +1084,62 @@ const TodaysFocusWalkthroughScreen: React.FC<Props> = ({ route, navigation }) =>
   const [personalText, setPersonalText] = useState(initialState.personalText);
   const [priorities, setPriorities] = useState(initialState.priorities);
 
+  // Morning flow passes data through instead of saving at the end of this screen.
+  const { morningFlow, feeling, underneath } = (route.params as any) || {};
+  const isMorning = !!morningFlow;
+
   const createMutation = useCreateJournalEntry();
   const updateMutation = useUpdateJournalEntry();
 
   const dateStr = toLocalDateString(selectedDate);
   const dateContext = getDateContext(selectedDate);
 
-  // Hide status bar for translucent scrolling effect
+  // Hide status bar for full-screen walkthrough effect, matching bar style to the theme
   useFocusEffect(
     useCallback(() => {
       StatusBar.setHidden(true, 'slide');
-      StatusBar.setBarStyle('light-content');
+      StatusBar.setBarStyle(isMorning ? 'dark-content' : 'light-content');
       return () => {
         StatusBar.setHidden(false, 'slide');
-        StatusBar.setBarStyle('light-content');
+        StatusBar.setBarStyle(isMorning ? 'dark-content' : 'light-content');
       };
-    }, [])
+    }, [isMorning])
   );
 
-  const handleSave = async () => {
+  const handleDone = useCallback(async () => {
+    const focusToSave = selectedCategory ? (selectedCategory.id === 'other' ? customFocus.trim() : selectedCategory.name) : '';
+    const focusCategoryToSave = selectedCategory?.id || '';
+    const customFocusToSave = selectedCategory?.id === 'other' ? customFocus.trim() : '';
+    const personalTextToSave = personalText.trim() !== '' ? personalText.trim() : '';
+
+    const prioritiesToSave = priorities.filter((p: string) => p.trim()).length > 0
+      ? priorities.map((text: string, index: number) => ({
+          id: `priority_${index + 1}`,
+          text: text.trim(),
+          completed: false,
+        }))
+      : [];
+
+    const contentToSave = JSON.stringify({
+      focus: focusToSave,
+      focusCategory: focusCategoryToSave,
+      customFocus: customFocusToSave,
+      personalText: personalTextToSave,
+      priorities: prioritiesToSave,
+    });
+
     if (!user) {
       Alert.alert('Error', 'You must be logged in to save today\'s focus.');
       return;
     }
 
     try {
-      // Use new values if changed, otherwise keep existing values
-      // If user selected a new category, use it. Otherwise keep existing.
-      const focusToSave = selectedCategory ? (selectedCategory.id === 'other' ? customFocus.trim() : selectedCategory.name) : '';
-      const focusCategoryToSave = selectedCategory?.id || '';
-      const customFocusToSave = selectedCategory?.id === 'other' ? customFocus.trim() : '';
-
-      // If user entered new text, use it and clear category. If category was selected, clear text.
-      const personalTextToSave = personalText.trim() !== '' ? personalText.trim() : '';
-
-      // If user entered new priorities, use them. Otherwise clear them.
-      const prioritiesToSave = priorities.filter((p: string) => p.trim()).length > 0
-        ? priorities.map((text: string, index: number) => ({
-            id: `priority_${index + 1}`,
-            text: text.trim(),
-            completed: false,
-          }))
-        : [];
-
-      const contentToSave = JSON.stringify({
-        focus: focusToSave,
-        focusCategory: focusCategoryToSave,
-        customFocus: customFocusToSave,
-        personalText: personalTextToSave,
-        priorities: prioritiesToSave,
-      });
-
       if (existingEntry?.id) {
         await updateMutation.mutateAsync({
           id: existingEntry.id,
           updates: { content: contentToSave },
         });
 
-        // Manually update cache to ensure UI reflects changes immediately
         queryClient.setQueryData(['journal', 'todaysFocus', user.id, dateStr], (oldData: any) => {
           if (oldData && Array.isArray(oldData) && oldData.length > 0) {
             return [{
@@ -1132,7 +1158,6 @@ const TodaysFocusWalkthroughScreen: React.FC<Props> = ({ route, navigation }) =>
         });
       }
 
-      // Invalidate cache to ensure UI updates with new data
       await queryClient.invalidateQueries({ queryKey: ['journal', 'todaysFocus', user.id, dateStr] });
       await queryClient.invalidateQueries({ queryKey: ['journal', 'all'] });
 
@@ -1143,17 +1168,54 @@ const TodaysFocusWalkthroughScreen: React.FC<Props> = ({ route, navigation }) =>
         date: dateStr,
       }, user.id);
 
+      if (morningFlow) {
+        (navigation as any).navigate('Todos', {
+          morningFlow: true,
+          selectedDate: selectedDate.toISOString(),
+          feeling,
+          underneath,
+          focus: focusToSave,
+          focusCategory: focusCategoryToSave,
+          customFocus: customFocusToSave,
+          personalText: personalTextToSave,
+          priorities: prioritiesToSave,
+        });
+        return;
+      }
+
       navigation.goBack();
     } catch (error) {
       Alert.alert('Error', 'Failed to save today\'s focus. Please try again.');
     }
-  };
+  }, [
+    selectedCategory,
+    customFocus,
+    personalText,
+    priorities,
+    user,
+    existingEntry,
+    dateStr,
+    updateMutation,
+    createMutation,
+    queryClient,
+    analytics,
+    morningFlow,
+    feeling,
+    underneath,
+    selectedDate,
+    navigation,
+  ]);
 
   const handleNext = useCallback(() => {
+    if (isMorning && currentStep === 2) {
+      // Skip the standalone closing step and save + continue inside the morning flow.
+      handleDone();
+      return;
+    }
     if (currentStep < 3) {
       setCurrentStep(currentStep + 1);
     }
-  }, [currentStep]);
+  }, [currentStep, isMorning, handleDone]);
 
   const handleBack = useCallback(() => {
     if (currentStep > 0) {
@@ -1168,7 +1230,10 @@ const TodaysFocusWalkthroughScreen: React.FC<Props> = ({ route, navigation }) =>
     () =>
       PanResponder.create({
         onMoveShouldSetPanResponderCapture: (_, gestureState) => {
-          return Math.abs(gestureState.dx) > 14 && Math.abs(gestureState.dx) > Math.abs(gestureState.dy) * 1.15;
+          const isHorizontal = Math.abs(gestureState.dx) > Math.abs(gestureState.dy) * 1.15;
+          const isForwardSwipe = gestureState.dx < -14;
+          const isLocalBackSwipe = currentStep > 0 && gestureState.dx > 14;
+          return isHorizontal && (isForwardSwipe || isLocalBackSwipe);
         },
         onPanResponderRelease: (_, gestureState) => {
           const isHorizontalSwipe = Math.abs(gestureState.dx) > Math.abs(gestureState.dy) * 1.15;
@@ -1197,7 +1262,7 @@ const TodaysFocusWalkthroughScreen: React.FC<Props> = ({ route, navigation }) =>
   );
 
   return (
-    <View style={styles.container} {...panResponder.panHandlers}>
+    <View style={[styles.container, isMorning && { backgroundColor: Colors.lightBackground }]} {...panResponder.panHandlers}>
       {currentStep === 0 && (
         <CategorySelectionStep
           selectedCategory={selectedCategory}
@@ -1209,6 +1274,7 @@ const TodaysFocusWalkthroughScreen: React.FC<Props> = ({ route, navigation }) =>
           setCustomFocus={setCustomFocus}
           fontKey={fontKey}
           dateContext={dateContext}
+          morningFlow={isMorning}
         />
       )}
 
@@ -1226,6 +1292,7 @@ const TodaysFocusWalkthroughScreen: React.FC<Props> = ({ route, navigation }) =>
           customFocus={customFocus}
           fontKey={fontKey}
           dateContext={dateContext}
+          morningFlow={isMorning}
         />
       )}
 
@@ -1247,6 +1314,7 @@ const TodaysFocusWalkthroughScreen: React.FC<Props> = ({ route, navigation }) =>
           customFocus={customFocus}
           fontKey={fontKey}
           dateContext={dateContext}
+          morningFlow={isMorning}
         />
       )}
 
@@ -1255,12 +1323,13 @@ const TodaysFocusWalkthroughScreen: React.FC<Props> = ({ route, navigation }) =>
           category={selectedCategory}
           personalText={personalText}
           priorities={priorities}
-          onDone={handleSave}
+          onDone={handleDone}
           insets={insets}
           icon={selectedCategory.icon}
           iconType={selectedCategory.iconType}
           customFocus={customFocus}
           dateContext={dateContext}
+          morningFlow={morningFlow}
         />
       )}
     </View>
@@ -1441,9 +1510,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  categoryCardMorning: {
+    backgroundColor: Colors.cardBackground,
+    borderColor: Colors.cardBorder,
+  },
   categoryCardSelected: {
     backgroundColor: 'rgba(255, 107, 107, 0.18)',
     borderColor: Colors.alertCoral,
+  },
+  categoryCardSelectedMorning: {
+    backgroundColor: Colors.sageMuted,
+    borderColor: Colors.sage,
   },
   categoryIconContainer: {
     marginBottom: 8,
@@ -1521,7 +1598,7 @@ const styles = StyleSheet.create({
   },
   completionTitle: {
     fontSize: 32,
-    color: Colors.growthGreen,
+    color: Colors.hopeWhite,
     marginBottom: 8,
   },
   completionSubtitle: {

@@ -571,9 +571,9 @@ const UnifiedPrayerSelectionScreen: React.FC<Props> = ({ route, navigation }) =>
   // Dynamic labels based on date context
   const getTitle = () => {
     switch (dateContext) {
-      case 'today': return 'Which prayer path\ndo you want today?';
-      case 'yesterday': return 'Which prayer path\ndid you want yesterday?';
-      case 'earlier': return 'Which prayer path\ndid you want on this day?';
+      case 'today': return 'How would you\nlike to pray?';
+      case 'yesterday': return 'How did you\nlike to pray?';
+      case 'earlier': return 'How did you\nlike to pray?';
     }
   };
 
@@ -647,16 +647,6 @@ const UnifiedPrayerSelectionScreen: React.FC<Props> = ({ route, navigation }) =>
               );
             })}
           </StepFadeIn>
-
-        <StepFadeIn delay={240}>
-          <View style={styles.metadataContainer}>
-            <View style={styles.metadataContent}>
-              <ThemedText style={styles.metadataText}>
-                Choose a structure if it helps, or pray openly.
-              </ThemedText>
-            </View>
-          </View>
-        </StepFadeIn>
 
         <View style={{ height: 100 }} />
       </ScrollView>

@@ -4,6 +4,10 @@
  * TabBarIcons maps tab names to their Ionicons icon names for focused and unfocused states.
  */
 export const TabBarIcons = {
+  Today: {
+    name: 'sunny-outline',
+    focused: 'sunny',
+  },
   Dashboard: {
     name: 'grid-outline',
     focused: 'grid',
