@@ -16,7 +16,6 @@ import { getFontFamily } from '../theme/fonts';
 import { TabBarIcons } from './TabBarIcons';
 import PlaybookListScreen from '../screens/PlaybookListScreen';
 
-import DevotionalsScreen from '../screens/DevotionalsScreen';
 // import JournalScreen from '../screens/JournalScreen'; // Unused - using JournalStackNavigator
 import JournalStackNavigator from './JournalStackNavigator';
 import HomeStackNavigator from './HomeStackNavigator';
@@ -45,7 +44,6 @@ const LABELS: Record<string, string> = {
   Reflect: 'Reflect',
   Overview: 'Overview',
   Playbooks: 'Playbooks',
-  Devotionals: 'Devotionals',
   Journal: 'Journal',
 };
 
@@ -267,7 +265,6 @@ const CustomTabBarComponent = ({
     if (name === 'Reflect')     { return <MaterialIcons name="auto-fix-high" size={22} color={INACTIVE_CIRCLE_COLOR} />; }
     if (name === 'Overview')    { return <MaterialIcons name="space-dashboard" size={22} color={INACTIVE_CIRCLE_COLOR} />; }
     if (name === 'Playbooks')   { return <MaterialCommunityIcons name="clipboard-text-play" size={22} color={INACTIVE_CIRCLE_COLOR} />; }
-    if (name === 'Devotionals') { return <MaterialCommunityIcons name="book" size={22} color={INACTIVE_CIRCLE_COLOR} />; }
     if (name === 'Journal')     { return <MaterialCommunityIcons name="notebook-edit" size={22} color={INACTIVE_CIRCLE_COLOR} />; }
     return <Ionicons name="apps-outline" size={22} color={INACTIVE_CIRCLE_COLOR} />;
   })();
@@ -342,7 +339,6 @@ const CustomTabBarComponent = ({
               if (route.name === 'Reflect')     { return <MaterialIcons name="auto-fix-high" size={20} color={iconColor} />; }
               if (route.name === 'Overview')    { return <MaterialIcons name="space-dashboard" size={20} color={iconColor} />; }
               if (route.name === 'Playbooks')   { return <MaterialCommunityIcons name="clipboard-text-play" size={20} color={iconColor} />; }
-              if (route.name === 'Devotionals') { return <MaterialCommunityIcons name="book" size={20} color={iconColor} />; }
               if (route.name === 'Journal')     { return <MaterialCommunityIcons name="notebook-edit" size={20} color={iconColor} />; }
               const iconName = isFocused
                 ? TabBarIcons[route.name as keyof typeof TabBarIcons]?.focused
@@ -449,6 +445,7 @@ export default function BottomTabNavigator({ onLogout: _onLogout }: BottomTabNav
   return (
     <Tab.Navigator
       tabBar={renderTabBar}
+      initialRouteName="Journal"
       // anchorBlue scene container fills the full screen behind every tab screen,
       // so scrollable content gaps and the safe-area floor never show white.
       // tabBarStyle position:absolute stops RN from reserving space for the floating pill.
@@ -490,15 +487,6 @@ export default function BottomTabNavigator({ onLogout: _onLogout }: BottomTabNav
         options={{
           tabBarLabel: 'Playbooks',
           title: 'Playbooks',
-          headerShown: false,
-        }}
-      />
-      <Tab.Screen
-        name="Devotionals"
-        component={DevotionalsScreen}
-        options={{
-          tabBarLabel: 'Devotionals',
-          title: 'Devotionals',
           headerShown: false,
         }}
       />

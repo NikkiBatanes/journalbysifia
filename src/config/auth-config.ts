@@ -26,7 +26,7 @@ const env = getEnvironmentConfig();
 export const authConfig: AuthConfig = {
   apple: {
     // Your app's bundle identifier
-    clientId: 'app.sifia.com',
+    clientId: 'app.journal.sifia',
     // Supabase redirect URL
     redirectUrl: 'https://aesmrjinczhknchlrsmt.supabase.co/auth/v1/callback',
   },

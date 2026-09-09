@@ -1503,28 +1503,8 @@ export class AppleStoreKitService {
    * Check current subscription status
    */
   async getCurrentSubscriptionStatus(userId: string): Promise<any> {
-    try {
-      // Get the user's current subscription from database
-      const subscription = await NewSubscriptionService.getUserSubscription(userId);
-
-      if (!subscription.platform_subscription_id) {
-        return null;
-      }
-
-      // For iOS, you might want to validate the current receipt
-      // This is a simplified version
-      return {
-        isActive: subscription.status === 'active',
-        tier: subscription.tier,
-        expiryDate: subscription.subscription_end_date,
-      };
-    } catch (error) {
-      Logger.error('[StoreKit] Failed to get subscription status', error as Error, {
-      component: 'AppleStoreKitService',
-      action: 'error',
-    });
-      return null;
-    }
+    // Disabled for the Journal by siFia paid app
+    return null;
   }
 
   /**
@@ -1537,6 +1517,9 @@ export class AppleStoreKitService {
    */
   async checkAndSyncSubscriptionStatus(userId: string, skipIfPurchaseInProgress = true): Promise<void> {
     try {
+      // Disabled for the Journal by siFia paid app
+      return;
+
       // Validate userId early to fail fast
       if (!userId) {
         Logger.error('[StoreKit] No userId provided to checkAndSyncSubscriptionStatus', undefined, {

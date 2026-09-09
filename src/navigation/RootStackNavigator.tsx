@@ -11,7 +11,6 @@ import BottomTabNavigator from './BottomTabNavigator';
 import PlaybookDetailScreen from '../screens/PlaybookDetailGuided';
 import PlaybookWalkthroughScreen from '../screens/PlaybookWalkthroughScreen';
 import GeneratingPlaybookScreen from '../screens/GeneratingPlaybookScreen';
-import DevotionalDetailScreen from '../screens/DevotionalDetailScreen';
 import JournalScreen from '../screens/JournalScreen';
 import UserInputScreen from '../screens/UserInputScreen';
 import TodaysFocusWalkthroughScreen from '../screens/TodaysFocusWalkthroughScreen';
@@ -164,17 +163,6 @@ const PlaybookDetailScreenWithProvider: React.FC<any> = (props) => {
 
 // Screen options functions
 
-// Unused function - commenting out to fix linting
-// const _getDevotionalDetailOptions = ({ navigation }: any): NativeStackNavigationOptions => ({
-//   title: '',
-//   headerBackVisible: true,
-//   headerLeft: () => <DevotionalHeaderLeft navigation={navigation} />,
-//   animation: 'slide_from_bottom',
-//   animationDuration: 300,
-//   presentation: 'modal',
-//   gestureEnabled: true,
-// });
-
 interface RootStackNavigatorProps {
   isAuthenticated: boolean;
   handleLogin: () => void;
@@ -199,7 +187,7 @@ export default function RootStackNavigator({
         headerShown: false,
         contentStyle: { backgroundColor: Colors.anchorBlue },
       }}
-      initialRouteName="OnboardingSplash"
+      initialRouteName="MainTabs"
     >
       {/* Splash Screen */}
       <Stack.Screen
@@ -242,6 +230,17 @@ export default function RootStackNavigator({
         options={OnboardingAnimations.pushFromBottom}
       />
 
+
+      {/* Main App */}
+      <Stack.Screen
+        name="MainTabs"
+        component={MainTabsScreen}
+        options={{
+          headerShown: false,
+          animation: 'fade',
+          gestureEnabled: false,
+        }}
+      />
 
       {/* Pre-auth screens */}
       {!isAuthenticated ? (
@@ -330,17 +329,6 @@ export default function RootStackNavigator({
 
           {/* OLD SCREENS - KEEPING FOR NOW, WILL REMOVE LATER */}
 
-          {/* Main App */}
-          <Stack.Screen
-            name="MainTabs"
-            component={MainTabsScreen}
-            options={{
-              headerShown: false,
-              animation: 'fade',
-              gestureEnabled: false,
-            }}
-          />
-
           {/* UserProfile is now nested under Dashboard (HomeStackNavigator) */}
           {/* Root-level modal alias for UserProfile to guarantee modal presentation from detail screens */}
           <Stack.Screen
@@ -408,17 +396,6 @@ export default function RootStackNavigator({
               headerShown: false,
               presentation: 'fullScreenModal',
               animation: 'slide_from_bottom',
-            }}
-          />
-          <Stack.Screen
-            name="DevotionalDetail"
-            component={DevotionalDetailScreen as React.ComponentType}
-            options={{
-              headerShown: false,
-              presentation: Platform.OS === 'android' ? 'transparentModal' : 'modal',
-              animation: Platform.OS === 'android' ? 'none' : 'slide_from_bottom',
-              gestureEnabled: Platform.OS === 'android' ? false : true,
-              contentStyle: Platform.OS === 'android' ? { backgroundColor: 'transparent' } : undefined,
             }}
           />
           <Stack.Screen

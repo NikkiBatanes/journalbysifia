@@ -86,16 +86,16 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace "app.sifia.com"
+    namespace "app.journal.sifia"
     defaultConfig {
         def facebookAppId = project.env.get("FACEBOOK_APP_ID") ?: "966515746211770"
         def facebookClientToken = project.env.get("FACEBOOK_CLIENT_TOKEN") ?: ""
-        applicationId "app.sifia.com"
+        applicationId "app.journal.sifia"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 14
         versionName "1.4.6"
-        resValue "string", "build_config_package", "app.sifia.com"
+        resValue "string", "build_config_package", "app.journal.sifia"
         resValue "string", "facebook_app_id", facebookAppId
         resValue "string", "fb_login_protocol_scheme", "fb${facebookAppId}"
         resValue "string", "facebook_client_token", facebookClientToken

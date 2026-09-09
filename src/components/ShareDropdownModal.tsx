@@ -82,7 +82,7 @@ const ShareDropdownModal: React.FC<ShareDropdownModalProps> = ({
     triggerLightHaptic();
 
     const appUrl = Platform.OS === 'android'
-      ? 'https://play.google.com/store/apps/details?id=app.sifia.com'
+      ? 'https://play.google.com/store/apps/details?id=app.journal.sifia'
       : 'https://apps.apple.com/us/app/sifia/id6751785713';
     const defaultShareText = `I used siFia to process a real-life moment with prayer and Scripture today. Try it here: ${appUrl}`;
 

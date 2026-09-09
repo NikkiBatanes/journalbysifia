@@ -1,4 +1,4 @@
-package app.sifia.com
+package app.journal.sifia
 
 import android.app.Application
 import com.facebook.react.PackageList
@@ -11,7 +11,7 @@ import com.facebook.react.defaults.DefaultReactHost.getDefaultReactHost
 import com.facebook.react.defaults.DefaultReactNativeHost
 import com.facebook.react.soloader.OpenSourceMergedSoMapping
 import com.facebook.soloader.SoLoader
-import app.sifia.com.BuildConfig
+import app.journal.sifia.BuildConfig
 
 class MainApplication : Application(), ReactApplication {
 

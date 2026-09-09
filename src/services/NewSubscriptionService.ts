@@ -193,17 +193,34 @@ export class NewSubscriptionService {
    * Get user's current subscription
    */
   static async getUserSubscription(userId: string, bustCache = false): Promise<Subscription> {
-    // Add timestamp to force fresh read when bustCache is true
-    let query = supabase
-      .from('user_subscriptions_new')
-      .select('*')
-      .eq('user_id', userId);
-    // Force a fresh read by using a unique timestamp in the query
-    // This bypasses any PostgREST or connection pool caching
-    if (bustCache) {
-      query = query.gte('created_at', '1970-01-01T00:00:00.000Z');
-    }
-    const { data, error } = await query.single();
+    // Journal by siFia is a paid app — grant full access without subscription checks
+    return {
+      id: 'local-journal-full',
+      user_id: userId,
+      tier: 'transformation',
+      status: 'active',
+      subscription_display_name: 'Journal Full Access',
+      platform: 'local_test',
+      playbooks_limit: -1,
+      devotionals_limit: -1,
+      wisdom_limit: -1,
+      refinement_limit: -1,
+      playbooks_used: 0,
+      devotionals_used: 0,
+      wisdom_count: 0,
+      refinement_count: 0,
+      smart_journaling_enabled: true,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    } as Subscription;
+
+    // Original siFia subscription lookup (disabled for this paid app build)
+    // let query = supabase
+    //   .from('user_subscriptions_new')
+    //   .select('*')
+    //   .eq('user_id', userId);
+    // if (bustCache) { query = query.gte('created_at', '1970-01-01T00:00:00.000Z'); }
+    // const { data, error } = await query.single();
 
     if (error) {
       if (error.code === 'PGRST116') {

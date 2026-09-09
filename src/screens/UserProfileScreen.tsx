@@ -87,7 +87,7 @@ const { width } = Dimensions.get('window');
 // App Store ID from sifia.app
 const APPLE_APP_ID = '6751785713';
 // Android package is already defined in app.json and native; keep here for clarity
-const ANDROID_PACKAGE = 'app.sifia.com';
+const ANDROID_PACKAGE = 'app.journal.sifia';
 
 interface Props {
   navigation: any;

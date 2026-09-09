@@ -22,7 +22,7 @@ const COUNT_KEY_PREFIX = 'review:promptCount:';
 const MIN_DAYS_BETWEEN = 30; // days
 const MAX_PER_YEAR = 3;
 const APPLE_APP_ID = '6751785713';
-const ANDROID_PACKAGE = 'app.sifia.com';
+const ANDROID_PACKAGE = 'app.journal.sifia';
 let reviewRequestInFlight = false;
 
 interface ReviewPromptOptions {

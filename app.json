@@ -1,6 +1,6 @@
 {
   "name": "siFia",
-  "displayName": "siFia",
+  "displayName": "Journal by siFia",
   "version": "1.4.6",
   "orientation": "portrait",
   "icon": "./assets/images/siFiaAppIcon.png",
@@ -11,7 +11,7 @@
   },
   "ios": {
     "supportsTablet": true,
-    "bundleIdentifier": "app.sifia.com",
+    "bundleIdentifier": "app.journal.sifia",
     "buildNumber": "1"
   },
   "android": {
@@ -19,7 +19,7 @@
       "foregroundImage": "./assets/images/siFiaAppIcon.png",
       "backgroundColor": "#1A3C6D"
     },
-    "package": "app.sifia.com",
+    "package": "app.journal.sifia",
     "versionCode": 14
   },
   "extra": {

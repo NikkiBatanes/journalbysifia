@@ -1,4 +1,4 @@
-package app.sifia.com
+package app.journal.sifia
 
 import com.facebook.react.ReactPackage
 import com.facebook.react.bridge.NativeModule

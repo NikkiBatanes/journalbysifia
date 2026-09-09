@@ -1,4 +1,4 @@
-package app.sifia.com
+package app.journal.sifia
 
 import android.content.Context
 import android.view.inputmethod.InputMethodManager
