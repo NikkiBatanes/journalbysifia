@@ -933,10 +933,24 @@ const SermonNotesScreen = ({navigation}: any) => {
         backgroundColor={Colors.lightBackground}
       />
       <View style={styles.header}>
-        <ThemedText weight="bold" style={styles.headerTitle}>
-          Sermon Notes
-        </ThemedText>
+        <View style={styles.stepLabelRow}>
+          <Ionicons name="book" size={18} color={Colors.sage} />
+          <ThemedText weight="semiBold" style={styles.headerTitle}>
+            Sermon Notes
+          </ThemedText>
+        </View>
       </View>
+      <TouchableOpacity
+        style={[styles.closeButton, {top: insets.top + 8}]}
+        onPress={() => {
+          triggerLightHaptic();
+          navigation.goBack();
+        }}
+        activeOpacity={0.7}
+        accessibilityRole="button"
+        accessibilityLabel="Close sermon notes">
+        <Ionicons name="close" size={20} color={Colors.text} />
+      </TouchableOpacity>
       <ScrollView
         ref={scrollRef}
         contentContainerStyle={[
@@ -959,16 +973,16 @@ const SermonNotesScreen = ({navigation}: any) => {
         }}
         onScroll={handleScroll}
         scrollEventThrottle={100}>
-        <View style={styles.progress}>
-          {[1, 2, 3].map(item => (
-            <View
-              key={item}
-              style={[
-                styles.progressBar,
-                item <= stage && styles.progressActive,
-              ]}
-            />
-          ))}
+        <ThemedText style={styles.actionCounter}>
+          {stage} of 3
+        </ThemedText>
+        <View style={styles.actionProgressBar}>
+          <View
+            style={[
+              styles.actionProgressFill,
+              {width: `${(stage / 3) * 100}%`},
+            ]}
+          />
         </View>
 
         {stage === 1 && (
@@ -1452,33 +1466,51 @@ const ReflectionStep = ({
 const styles = StyleSheet.create({
   safeArea: {flex: 1, backgroundColor: Colors.lightBackground},
   header: {
-    height: 62,
-    paddingHorizontal: 18,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  back: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: Colors.cardBorder,
-    backgroundColor: Colors.cardBackground,
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'center',
+    paddingTop: 8,
+    paddingBottom: 0,
+    paddingHorizontal: 18,
   },
-  brand: {fontSize: 9, letterSpacing: 1.2, color: Colors.textGray},
-  headerTitle: {fontSize: 16, color: Colors.text},
-  content: {padding: 22, paddingBottom: 0},
-  progress: {flexDirection: 'row', gap: 6, marginBottom: 24},
-  progressBar: {
-    height: 4,
-    flex: 1,
-    borderRadius: 2,
+  closeButton: {
+    position: 'absolute',
+    right: 18,
+    width: 42,
+    height: 42,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: Colors.cardBackground,
+    borderRadius: 21,
+  },
+  stepLabelRow: {flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 48},
+  headerTitle: {
+    fontSize: 16,
+    letterSpacing: 1,
+    color: Colors.text,
+  },
+  content: {paddingHorizontal: 22, paddingBottom: 0},
+  actionCounter: {
+    fontSize: 13,
+    color: Colors.textGray,
+    marginTop: 32,
+    marginBottom: 8,
+    letterSpacing: 0.5,
+    textAlign: 'center' as const,
+  },
+  actionProgressBar: {
+    height: 6,
+    width: 120,
     backgroundColor: Colors.cardBorder,
+    borderRadius: 3,
+    marginBottom: 24,
+    overflow: 'hidden' as const,
+    alignSelf: 'center' as const,
   },
-  progressActive: {backgroundColor: Colors.sage},
+  actionProgressFill: {
+    height: '100%',
+    backgroundColor: Colors.sage,
+    borderRadius: 2,
+  },
   eyebrow: {fontSize: 10, letterSpacing: 1.5, color: Colors.sage},
   title: {
     fontFamily: Fonts.lora.bold,

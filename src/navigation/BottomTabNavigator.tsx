@@ -38,8 +38,11 @@ type CustomTabBarProps = {
 // Glass-looking pill background - opaque blue with glass-like border
 const PILL_BG = Colors.sage;
 
-// Pill occupies screen width minus 16px margin on each side
-const PILL_WIDTH = Dimensions.get('window').width - 32;
+// Pill now occupies the full screen width
+const PILL_WIDTH = Dimensions.get('window').width;
+const PILL_HEIGHT = 56;
+const TAB_CIRCLE_SIZE = 40;
+const CIRCLE_SIZE = 48;
 
 const LABELS: Record<string, string> = {
   Today: 'Today',
@@ -49,7 +52,7 @@ const LABELS: Record<string, string> = {
 };
 
 const TAB_ROOT_ROUTES: Record<string, string[]> = {
-  Journal: ['JournalMain', 'SermonNotes'],
+  Journal: ['JournalMain'],
 };
 
 // Custom tab bar — floating pill with smooth entrance/exit and per-tab bounce
@@ -133,7 +136,6 @@ const CustomTabBarComponent = ({
     !allowedRootRoutes.includes(activeNestedRouteName)
   );
   const isReflect = currentRouteName === 'Reflect';
-  const shouldHideTabBar = isReflect || isNestedDetailRoute;
 
   // ── Pill visibility: opacity + translateY ────────────────────────────────
   // 0 = hidden below screen, 1 = visible in place
@@ -280,9 +282,27 @@ const CustomTabBarComponent = ({
 
   const { onTabPress } = React.useContext(TabPressContext);
 
-  if (shouldHideTabBar) {
-    return null;
-  }
+  // Animate the pill out for nested detail routes (e.g. SermonNotes)
+  useEffect(() => {
+    if (isReflect) {
+      return;
+    }
+    if (isNestedDetailRoute) {
+      Animated.spring(pillAnim, {
+        toValue: 0,
+        tension: 55,
+        friction: 14,
+        useNativeDriver: true,
+      }).start();
+    } else {
+      Animated.spring(pillAnim, {
+        toValue: 1,
+        tension: 55,
+        friction: 12,
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [isNestedDetailRoute, isReflect, pillAnim]);
 
   // pillAnim 0→1 drives: opacity 0→1 + translateY 28→0 (entrance/exit mirror)
   const pillOpacity   = pillAnim;
@@ -309,7 +329,7 @@ const CustomTabBarComponent = ({
     extrapolate: 'clamp',
   });
   // Pill shape grows left→right on expand: scaleX from circle ratio → 1, pinned at left edge
-  const CIRCLE_RATIO = 56 / PILL_WIDTH;
+  const CIRCLE_RATIO = CIRCLE_SIZE / PILL_WIDTH;
   const pillShapeScaleX = collapseAnim.interpolate({
     inputRange: [0, 1],
     outputRange: [1, CIRCLE_RATIO],
@@ -636,18 +656,18 @@ export default function BottomTabNavigator({ onLogout: _onLogout }: BottomTabNav
 }
 
 const styles = StyleSheet.create({
-  // Full-width absolute anchor with side margins
+  // Full-width absolute anchor (no side margins)
   pillWrapper: {
     position: 'absolute',
-    left: 16,
-    right: 16,
+    left: 0,
+    right: 0,
   },
-  // Floating pill — full width, taller to fit icon + label
+  // Floating pill — full width, slightly smaller to fit icon + label
   pill: {
     flexDirection: 'row',
     alignItems: 'center',
-    height: 64,
-    borderRadius: 32,
+    height: PILL_HEIGHT,
+    borderRadius: PILL_HEIGHT / 2,
     backgroundColor: PILL_BG,
     borderWidth: 1,
     borderColor: Colors.sageMuted,
@@ -661,13 +681,13 @@ const styles = StyleSheet.create({
   // Shared container — selector and tabs both reference x=0 from here
   pillInner: {
     flex: 1,
-    height: 48,
+    height: TAB_CIRCLE_SIZE,
   },
   // Each tab: Animated.View takes equal share, scale bounce applies here
   pillTab: {
     flex: 1,
-    height: 48,
-    borderRadius: 24,
+    height: TAB_CIRCLE_SIZE,
+    borderRadius: TAB_CIRCLE_SIZE / 2,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -685,8 +705,8 @@ const styles = StyleSheet.create({
   },
   slidingSelector: {
     position: 'absolute',
-    height: 48,
-    borderRadius: 24,
+    height: TAB_CIRCLE_SIZE,
+    borderRadius: TAB_CIRCLE_SIZE / 2,
     backgroundColor: Colors.sageMuted,
   },
   pillLabel: {
@@ -697,8 +717,8 @@ const styles = StyleSheet.create({
   // Add menu — appears above the tab bar
   addMenuDim: {
     position: 'absolute',
-    left: -16,
-    right: -16,
+    left: 0,
+    right: 0,
     top: -500,
     backgroundColor: 'rgba(0, 0, 0, 0.45)',
   },
@@ -762,10 +782,10 @@ const styles = StyleSheet.create({
   collapsedCircle: {
     position: 'absolute',
     left: 0,
-    top: 0,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    top: (PILL_HEIGHT - CIRCLE_SIZE) / 2,
+    width: CIRCLE_SIZE,
+    height: CIRCLE_SIZE,
+    borderRadius: CIRCLE_SIZE / 2,
     backgroundColor: PILL_BG,
     borderWidth: 1,
     borderColor: Colors.sageMuted,
