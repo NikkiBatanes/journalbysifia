@@ -54,7 +54,7 @@ const styles = StyleSheet.create({
   retryButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     borderRadius: 8,
     paddingHorizontal: 16,
     paddingVertical: 10,
@@ -304,7 +304,7 @@ const styles = StyleSheet.create({
   },
   tagText: {
     fontSize: 8,
-    color: Colors.anchorBlue,
+    color: Colors.sage,
     fontFamily: Fonts.medium,
     fontWeight: '500',
     letterSpacing: 0.5,
@@ -947,7 +947,7 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
   if (isLoading) {
     return (
       <JournalCard
-        icon={<LuNotebookPen size={24} color={Colors.anchorBlue} strokeWidth={2.5} />}
+        icon={<LuNotebookPen size={24} color={Colors.sage} strokeWidth={2.5} />}
         title="HEART JOURNAL"
         subtitle="Loading your reflections..."
         showAddButton={false}

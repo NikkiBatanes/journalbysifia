@@ -1270,7 +1270,7 @@ const TodaysFocusWalkthroughScreen: React.FC<Props> = ({ route, navigation }) =>
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
   },
   stepContainer: {
     flex: 1,
@@ -1452,7 +1452,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1669,7 +1669,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 16,
     alignItems: 'center',
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     zIndex: 100,
   },
   completionButtonContainerPad: {
@@ -1702,7 +1702,7 @@ const styles = StyleSheet.create({
     right: 0,
     paddingHorizontal: 24,
     paddingTop: 16,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
   },
   closeButton: {
     position: 'absolute',

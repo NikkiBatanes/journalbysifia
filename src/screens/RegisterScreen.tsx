@@ -93,7 +93,7 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
   const dynamicStyles = React.useMemo(() => StyleSheet.create({
     container: {
       flex: 1,
-      backgroundColor: Colors.anchorBlue,
+      backgroundColor: Colors.sage,
       paddingHorizontal: isVerySmallPhone ? 16 : 24,
       paddingTop: isVerySmallPhone ? 30 : 60,
       paddingBottom: isVerySmallPhone ? 30 : 40,
@@ -276,7 +276,7 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
 
   return (
     <View style={dynamicStyles.container}>
-      <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
+      <StatusBar barStyle="light-content" backgroundColor={Colors.sage} />
 
       <View style={[styles.contentContainer, { width: contentWidth }, isLandscape ? styles.contentContainerLandscape : styles.contentContainerPortrait]}>
         {/* Logo */}
@@ -388,7 +388,7 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     paddingHorizontal: 24,
     paddingTop: 60,
     paddingBottom: 40,

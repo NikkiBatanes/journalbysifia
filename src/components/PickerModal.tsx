@@ -131,9 +131,9 @@ const PickerModal = React.memo(({
       borderColor: 'rgba(255, 255, 255, 0.15)',
       backgroundColor: 'rgba(255, 255, 255, 0.05)',
     },
-    pillActive: { backgroundColor: Colors.anchorBlue, borderColor: Colors.anchorBlue },
-    pillActiveOngoing: { backgroundColor: Colors.anchorBlue, borderColor: Colors.anchorBlue },
-    pillActiveCompleted: { backgroundColor: Colors.anchorBlue, borderColor: Colors.anchorBlue },
+    pillActive: { backgroundColor: Colors.sage, borderColor: Colors.sage },
+    pillActiveOngoing: { backgroundColor: Colors.sage, borderColor: Colors.sage },
+    pillActiveCompleted: { backgroundColor: Colors.sage, borderColor: Colors.sage },
     pillPressed: { transform: [{ scale: 0.93 }] as any, opacity: 0.75 },
     pillText: { fontSize: 13, fontFamily: Fonts.regular, color: 'rgba(255, 255, 255, 0.5)' },
     pillTextActive: { color: Colors.hopeWhite },
@@ -143,7 +143,7 @@ const PickerModal = React.memo(({
     applyBtn: {
       marginHorizontal: 16, marginTop: 12, marginBottom: 2,
       paddingVertical: 10, borderRadius: 999,
-      backgroundColor: Colors.anchorBlue, alignItems: 'center' as const,
+      backgroundColor: Colors.sage, alignItems: 'center' as const,
     },
     applyBtnText: { fontSize: 13, color: Colors.hopeWhite },
     customDateRow: {

@@ -1834,7 +1834,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
     });
     return (
       <View style={styles.container}>
-        <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} animated />
+        <StatusBar barStyle="light-content" backgroundColor={Colors.sage} animated />
         <TouchableOpacity style={styles.closeButtonTopRight} onPress={handleClose} activeOpacity={0.8}>
           <Ionicons name="close" size={17} color="rgba(255,255,255,0.65)" />
         </TouchableOpacity>
@@ -2332,7 +2332,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
   },
   closeButtonTopRight: {
     position: 'absolute',
@@ -2383,7 +2383,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   stickyToggleHeader: {
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     paddingTop: 4,
     paddingBottom: 8,
     paddingHorizontal: 24,
@@ -2936,7 +2936,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 6,
     paddingBottom: 12,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     alignItems: 'center',
     borderTopWidth: 0.5,
     borderTopColor: 'rgba(255, 255, 255, 0.2)',

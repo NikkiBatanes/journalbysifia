@@ -1272,7 +1272,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
                   <Ionicons
                     name={getCategoryIcon(block.category)}
                     size={12}
-                    color={Colors.anchorBlue}
+                    color={Colors.sage}
                     style={styles.categoryIcon}
                   />
                   <ThemedText weight="medium" style={styles.categoryLabel} numberOfLines={1} ellipsizeMode="tail">
@@ -1650,12 +1650,12 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
               <Ionicons
                 name={newBlock.category ? getCategoryIcon(newBlock.category) : 'add-circle-outline'}
                 size={16}
-                color={newBlock.category ? Colors.anchorBlue : Colors.hopeWhite}
+                color={newBlock.category ? Colors.sage : Colors.hopeWhite}
               />
               <ThemedText style={[
                 styles.categorySelectorText,
                 !newBlock.category && styles.placeholderText,
-                newBlock.category && { color: Colors.anchorBlue },
+                newBlock.category && { color: Colors.sage },
                 !newBlock.category && showCategoryError && { color: Colors.alertCoral },
               ]}>
                 {newBlock.category || 'Select a Category'}
@@ -1663,7 +1663,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
               <Ionicons
                 name="chevron-down"
                 size={16}
-                color={newBlock.category ? Colors.anchorBlue : ((!newBlock.category && showCategoryError) ? Colors.alertCoral : Colors.hopeWhite)}
+                color={newBlock.category ? Colors.sage : ((!newBlock.category && showCategoryError) ? Colors.alertCoral : Colors.hopeWhite)}
               />
             </TouchableOpacity>
             {showCategoryError && !newBlock.category && (
@@ -2329,7 +2329,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   showMoreTextLegacy: {
-    color: Colors.anchorBlue,
+    color: Colors.sage,
     fontSize: 13,
   },
   timeBlockCard: {
@@ -2346,14 +2346,14 @@ const styles = StyleSheet.create({
   },
   timeBlockCardInline: {
     borderRadius: 24,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     borderWidth: 1.5,
     borderColor: Colors.inputBorder,
     paddingVertical: 12,
   },
   timeBlockCardMoments: {
     borderRadius: 24,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     borderWidth: 1.5,
     borderColor: Colors.inputBorder,
     paddingVertical: 12,
@@ -2489,7 +2489,7 @@ const styles = StyleSheet.create({
   categoryLabel: {
     fontWeight: '600',
     fontSize: 11,
-    color: Colors.anchorBlue,
+    color: Colors.sage,
     maxWidth: 100,
   },
   metaInfoContainer: {
@@ -2887,7 +2887,7 @@ const styles = StyleSheet.create({
   },
   categorySelected: {
     borderWidth: 1,
-    borderColor: Colors.anchorBlue,
+    borderColor: Colors.sage,
   },
   repeatContainer: {
     marginBottom: 12,
@@ -2911,7 +2911,7 @@ const styles = StyleSheet.create({
   },
   repeatOptions: {
     marginTop: 8,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: Colors.mediumBorder,
@@ -2951,7 +2951,7 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   alertModalContent: {
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     borderRadius: 30,
     width: '85%',
     maxWidth: 320,
@@ -3088,7 +3088,7 @@ const styles = StyleSheet.create({
     top: 70,
     left: 0,
     right: 0,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     borderRadius: 16,
     borderWidth: 1,
     borderColor: Colors.mediumBorder,
@@ -3183,7 +3183,7 @@ const styles = StyleSheet.create({
     borderColor: Colors.alertCoral,
   },
   datePickerModalContent: {
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     borderRadius: 30,
     paddingVertical: 12,
     paddingHorizontal: 16,
@@ -3199,7 +3199,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   repeatOptionsModal: {
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     borderRadius: 16,
     padding: 20,
     margin: 20,

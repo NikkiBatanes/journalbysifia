@@ -229,7 +229,7 @@ const EmailRegisterScreen: React.FC<Props> = ({ navigation }) => {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
+      <StatusBar barStyle="light-content" backgroundColor={Colors.sage} />
       <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
         <View style={styles.flexContainer}>
           <ScrollView
@@ -431,7 +431,7 @@ const EmailRegisterScreen: React.FC<Props> = ({ navigation }) => {
             }}
           >
             {loading ? (
-              <ActivityIndicator color="#1A3C6D" />
+              <ActivityIndicator color="Colors.sage" />
             ) : (
               <ThemedText weight="semiBold" style={styles.primaryButtonText}>Create an Account</ThemedText>
             )}
@@ -456,7 +456,7 @@ const EmailRegisterScreen: React.FC<Props> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
   },
   scrollContent: {
     paddingHorizontal: 24,

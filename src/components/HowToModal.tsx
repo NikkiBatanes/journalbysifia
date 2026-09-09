@@ -2037,7 +2037,7 @@ const HowToModal: React.FC<HowToModalProps> = ({
       <StatusBar hidden />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={{ flex: 1, backgroundColor: Colors.anchorBlue }}
+        style={{ flex: 1, backgroundColor: Colors.sage }}
       >
         <Animated.View style={[styles.fullScreenContainer, { opacity: fadeAnim }]}>
           <TouchableOpacity
@@ -2537,7 +2537,7 @@ const HowToModal: React.FC<HowToModalProps> = ({
 const styles = StyleSheet.create({
   fullScreenContainer: {
     flex: 1,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
   },
   closeButton: {
     position: 'absolute',
@@ -2811,7 +2811,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   stillNeedHelpButton: {
-    backgroundColor: '#1A3C6D',
+    backgroundColor: 'Colors.sage',
     height: 44,
     borderRadius: 22,
     alignItems: 'center',
@@ -2863,7 +2863,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#1A3C6D',
+    backgroundColor: 'Colors.sage',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,

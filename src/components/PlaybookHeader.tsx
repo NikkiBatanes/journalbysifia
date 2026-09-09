@@ -47,7 +47,7 @@ const PlaybookHeader: React.FC<PlaybookHeaderProps> = ({
   showProfileImage = false,
   showUserInput,
   userInput,
-  backgroundColor = Colors.anchorBlue,
+  backgroundColor = Colors.sage,
   textColor = Colors.hopeWhite,
   onEditUserInput,
   alignTasksLeft = false,
@@ -83,7 +83,7 @@ const PlaybookHeader: React.FC<PlaybookHeaderProps> = ({
       textAlign: alignTasksLeft ? 'left' as const : 'center' as const,
     },
     userInputCard: {
-      backgroundColor: userInputBackgroundColor || '#1A3C6D',
+      backgroundColor: userInputBackgroundColor || 'Colors.sage',
       borderColor: userInputBorderColor || 'rgba(255, 255, 255, 0.2)',
     },
     userInputText: {
@@ -93,7 +93,7 @@ const PlaybookHeader: React.FC<PlaybookHeaderProps> = ({
       color: textColor,
     },
     progressBarBg: {
-      backgroundColor: backgroundColor === Colors.anchorBlue
+      backgroundColor: backgroundColor === Colors.sage
         ? 'rgba(255,255,255,0.15)'
         : 'rgba(26, 60, 109, 0.1)',
     },
@@ -276,7 +276,7 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 30,
     borderBottomRightRadius: 30,
     overflow: 'hidden',
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     shadowColor: '#29342E',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,

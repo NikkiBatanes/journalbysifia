@@ -422,7 +422,7 @@ const GeneratingPlaybookScreen: React.FC<Props> = ({ route, navigation }) => {
 
   return (
     <SafeAreaView style={styles.container} edges={['top','bottom']}>
-      <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
+      <StatusBar barStyle="light-content" backgroundColor={Colors.sage} />
       <View style={styles.content}>
         <View style={styles.centerBlockContainer}>
           <View style={styles.centerBlock}>
@@ -513,7 +513,7 @@ const GeneratingPlaybookScreen: React.FC<Props> = ({ route, navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
   },
   content: {
     flex: 1,

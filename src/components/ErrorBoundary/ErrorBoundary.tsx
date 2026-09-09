@@ -216,7 +216,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   retryButton: {
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,

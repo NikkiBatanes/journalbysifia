@@ -210,7 +210,7 @@ const styles = StyleSheet.create({
     zIndex: 9999,
   },
   modalContent: {
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     borderRadius: 30,
     padding: 28,
     alignItems: 'center',

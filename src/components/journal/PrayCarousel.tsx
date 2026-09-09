@@ -98,7 +98,7 @@ const PrayCarousel: React.FC<PrayCarouselProps> = ({ selectedDate, initialScroll
       title: 'PRAYER JOURNAL',
       icon: 'hand-left-outline',
       component: <PrayerJournalReactQuery selectedDate={selectedDate} variant="carousel" navigation={navigation} />,
-      color: Colors.anchorBlue,
+      color: Colors.sage,
     },
     {
       id: 'peopleprayers',

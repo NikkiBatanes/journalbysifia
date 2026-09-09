@@ -100,7 +100,7 @@ export interface TimeBlockLogEditorRef {
 const createDefaultStyles = (_fonts: any) => ({
   container: {
     flex: 1,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
   },
   keyboardAvoidingView: {
     flex: 1,
@@ -445,7 +445,7 @@ const createDefaultStyles = (_fonts: any) => ({
   },
 
   addMenu: {
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     borderRadius: 8,
     padding: 8,
     marginBottom: 8,
@@ -577,7 +577,7 @@ const createDefaultStyles = (_fonts: any) => ({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   timePickerContainer: {
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     borderRadius: 36,
     padding: 20,
     margin: 20,
@@ -627,7 +627,7 @@ const createDefaultStyles = (_fonts: any) => ({
     width: '100%',
   },
   repeatModalContainer: {
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     borderRadius: 24,
     padding: 20,
     maxWidth: 340,

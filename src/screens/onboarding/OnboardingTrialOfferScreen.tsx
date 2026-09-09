@@ -1227,7 +1227,7 @@ ${Platform.OS === 'android'
       >
       <StatusBar
         barStyle="light-content"
-        backgroundColor={isAndroidSheet ? 'transparent' : Colors.anchorBlue}
+        backgroundColor={isAndroidSheet ? 'transparent' : Colors.sage}
         translucent={isAndroidSheet}
         animated
       />
@@ -1508,7 +1508,7 @@ ${Platform.OS === 'android'
 const createStyles = (fonts: any, isSmallPhone: boolean) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
   },
   androidBackdrop: {
     flex: 1,
@@ -2125,7 +2125,7 @@ const createStyles = (fonts: any, isSmallPhone: boolean) => StyleSheet.create({
     paddingTop: 4,
     paddingBottom: 6,
     paddingHorizontal: 24,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     alignItems: 'center',
     borderTopWidth: 0.5,
     borderTopColor: 'rgba(255, 255, 255, 0.2)',
@@ -2176,7 +2176,7 @@ const createStyles = (fonts: any, isSmallPhone: boolean) => StyleSheet.create({
     paddingHorizontal: 20,
   },
   modalContent: {
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     borderRadius: 30,
     paddingTop: 20,
     paddingBottom: 20,

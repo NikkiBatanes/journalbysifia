@@ -497,7 +497,7 @@ const OnboardingNotificationSetupScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
   },
   scrollContainer: {
     flex: 1,

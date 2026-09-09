@@ -482,7 +482,7 @@ const OnboardingWelcomeScreen: React.FC = () => {
   return (
     <OnboardingErrorBoundary>
       <View style={styles.container}>
-        <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
+        <StatusBar barStyle="light-content" backgroundColor={Colors.sage} />
         <View style={OnboardingStyles.innerContainer}>
         {/* Logo Section */}
         <View style={dynamicStyles.logoSection}>

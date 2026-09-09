@@ -58,7 +58,7 @@ import { OnboardingAnimations, splashToFirstScreenAnimation } from './onboarding
 // }
 
 // Unused - kept for potential future use
-// const BackButton = React.memo<BackButtonProps>(({ onPress, color = Colors.anchorBlue }) => (
+// const BackButton = React.memo<BackButtonProps>(({ onPress, color = Colors.sage }) => (
 //   <TouchableOpacity
 //     onPress={() => {
 //       triggerLightHaptic();
@@ -117,7 +117,7 @@ import { OnboardingAnimations, splashToFirstScreenAnimation } from './onboarding
 // });
 
 // Memoized header components (kept for potential future use)
-// const HeaderLeft = React.memo(({ color = Colors.anchorBlue, onPress }: { color?: string, onPress: () => void }) => {
+// const HeaderLeft = React.memo(({ color = Colors.sage, onPress }: { color?: string, onPress: () => void }) => {
 //   return <BackButton onPress={onPress} color={color} />;
 // });
 
@@ -127,7 +127,7 @@ import { OnboardingAnimations, splashToFirstScreenAnimation } from './onboarding
 // Unused component - commenting out to fix linting
 // const DetailHeaderLeft = ({ navigation }: { navigation: any }) => (
 //   <HeaderLeft
-//     color={Colors.anchorBlue}
+//     color={Colors.sage}
 //     onPress={() => {
 //       try {
 //         navigation.goBack();
@@ -185,7 +185,7 @@ export default function RootStackNavigator({
     <Stack.Navigator
       screenOptions={{
         headerShown: false,
-        contentStyle: { backgroundColor: Colors.anchorBlue },
+        contentStyle: { backgroundColor: Colors.sage },
       }}
       initialRouteName="MainTabs"
     >
@@ -283,7 +283,7 @@ export default function RootStackNavigator({
               animationDuration: 350,
               gestureEnabled: true,
               gestureDirection: 'vertical',
-              contentStyle: { backgroundColor: Colors.anchorBlue },
+              contentStyle: { backgroundColor: Colors.sage },
             }}
           />
           {/* RE-ENABLED: Trial Offer screen for trial flow navigation */}
@@ -310,7 +310,7 @@ export default function RootStackNavigator({
               gestureEnabled: true,
               gestureDirection: 'vertical',
               contentStyle: {
-                backgroundColor: Platform.OS === 'android' ? 'transparent' : Colors.anchorBlue,
+                backgroundColor: Platform.OS === 'android' ? 'transparent' : Colors.sage,
               },
             }}
           />
@@ -376,7 +376,7 @@ export default function RootStackNavigator({
               headerShown: false,
               animation: 'fade',
               gestureEnabled: false,
-              contentStyle: { backgroundColor: Colors.anchorBlue },
+              contentStyle: { backgroundColor: Colors.sage },
             }}
           />
           <Stack.Screen
@@ -498,7 +498,7 @@ export default function RootStackNavigator({
               headerShown: false,
               presentation: 'fullScreenModal',
               animation: 'fade',
-              contentStyle: { backgroundColor: Colors.anchorBlue },
+              contentStyle: { backgroundColor: Colors.sage },
             }}
           />
 
@@ -511,7 +511,7 @@ export default function RootStackNavigator({
               presentation: 'fullScreenModal',
               animation: 'slide_from_bottom',
               gestureEnabled: false,
-              contentStyle: { backgroundColor: Colors.anchorBlue },
+              contentStyle: { backgroundColor: Colors.sage },
             }}
           />
 
@@ -521,7 +521,7 @@ export default function RootStackNavigator({
             component={StreakPlanTestDashboard as React.ComponentType}
             options={{
               headerShown: false,
-              contentStyle: { backgroundColor: Colors.anchorBlue },
+              contentStyle: { backgroundColor: Colors.sage },
             }}
           />
 
@@ -593,7 +593,7 @@ export default function RootStackNavigator({
 //   headerTitle: {
 //     fontSize: 18,
 //     fontWeight: '800',
-//     color: Colors.anchorBlue,
+//     color: Colors.sage,
 //     textAlign: 'center',
 //     marginTop: 2,
 //     maxWidth: '70%',
@@ -606,6 +606,6 @@ export default function RootStackNavigator({
 //     paddingHorizontal: 16,
 //   },
 //   darkHeaderStyle: {
-//     backgroundColor: Colors.anchorBlue,
+//     backgroundColor: Colors.sage,
 //   },
 // });

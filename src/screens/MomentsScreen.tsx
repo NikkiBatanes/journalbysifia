@@ -198,11 +198,11 @@ export const MomentsScreen: React.FC = () => {
     <>
       <StatusBar
         barStyle={Platform.OS === 'android' ? 'light-content' : 'dark-content'}
-        backgroundColor={Platform.OS === 'android' ? 'transparent' : Colors.anchorBlue}
+        backgroundColor={Platform.OS === 'android' ? 'transparent' : Colors.sage}
         translucent={Platform.OS === 'android'}
       />
 
-      <View style={[styles.headerBar, IS_IPAD && styles.headerBarPad, { backgroundColor: Colors.anchorBlue }]}>
+      <View style={[styles.headerBar, IS_IPAD && styles.headerBarPad, { backgroundColor: Colors.sage }]}>
         <View style={[styles.pageInner, IS_IPAD && styles.pageInnerPad]}>
           {/* Row 1: Title with icon left, actions right */}
           <View style={styles.headerTopRow}>
@@ -362,7 +362,7 @@ export const MomentsScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
   },
   androidModalRoot: {
     flex: 1,
@@ -377,14 +377,14 @@ const styles = StyleSheet.create({
     flex: 0,
     width: '100%',
     height: '92%',
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     overflow: 'hidden',
   },
   content: {
     flex: 1,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     borderRadius: 0, // edge-to-edge
   },
   headerBar: {
@@ -394,7 +394,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 12,
     paddingBottom: 0,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
   },
   headerBarPad: {
     paddingHorizontal: 48,

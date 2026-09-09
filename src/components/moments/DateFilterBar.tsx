@@ -253,8 +253,8 @@ export const DateFilterBar: React.FC<DateFilterBarProps> = ({
               markedDates={getMarkedDates()}
               firstDay={weekStartsOn}
               theme={{
-                backgroundColor: Colors.anchorBlue,
-                calendarBackground: Colors.anchorBlue,
+                backgroundColor: Colors.sage,
+                calendarBackground: Colors.sage,
                 textSectionTitleColor: Colors.hopeWhite,
                 dayTextColor: Colors.hopeWhite,
                 todayTextColor: Colors.alertCoral,
@@ -373,7 +373,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalContent: {
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     borderRadius: 16,
     padding: 20,
     width: '90%',

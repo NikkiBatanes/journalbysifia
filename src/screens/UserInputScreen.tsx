@@ -95,7 +95,7 @@ const UserInputScreen: React.FC = () => {
   const isTablet = width >= 768;
   const isTabletLayout = isPad || isTablet;
 
-  useScreenStatusBar('light', Colors.anchorBlue);
+  useScreenStatusBar('light', Colors.sage);
 
   // Re-enforce light status bar on every focus event (covers Alert dismiss,
   // back navigation, and any native overlay that may reset the bar to dark).
@@ -104,7 +104,7 @@ const UserInputScreen: React.FC = () => {
       StatusBar.setBarStyle('light-content', true);
       // setBackgroundColor is Android-only — skip on iOS
       if (Platform.OS === 'android') {
-        StatusBar.setBackgroundColor(Colors.anchorBlue, true);
+        StatusBar.setBackgroundColor(Colors.sage, true);
       }
     }, [])
   );
@@ -1356,7 +1356,7 @@ const UserInputScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
+      <StatusBar barStyle="light-content" backgroundColor={Colors.sage} />
       <TouchableWithoutFeedback
         onPress={Keyboard.dismiss}
         accessible={false}
@@ -1805,7 +1805,7 @@ const UserInputScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     paddingBottom: 0,
   },
   // Inline status inside ask box
@@ -2062,7 +2062,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.alertCoral,
   },
   stepActive: {
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.2)',
   },
@@ -2131,7 +2131,7 @@ const styles = StyleSheet.create({
     flex: 0,
   },
   footer: {
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     paddingHorizontal: 12,
     paddingTop: 8,
   },

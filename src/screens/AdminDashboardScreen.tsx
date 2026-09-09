@@ -2053,7 +2053,7 @@ export default function AdminDashboardScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.anchorBlue },
+  container: { flex: 1, backgroundColor: Colors.sage },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 60 },
   noAccessText: { marginTop: 12, color: 'rgba(255,255,255,0.5)', fontSize: 15 },
 
@@ -2154,7 +2154,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 20,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -3184,7 +3184,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingBottom: 14,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: 'rgba(255,255,255,0.06)',
     zIndex: 20,

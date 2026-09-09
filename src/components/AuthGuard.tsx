@@ -29,7 +29,7 @@ export const AuthGuard = ({
       <View style={styles.loadingContainer}>
         <ActivityIndicator
           size="large"
-          color={Colors.anchorBlue}
+          color={Colors.sage}
           testID="auth-loading-indicator"
         />
       </View>

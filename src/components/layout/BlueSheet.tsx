@@ -24,7 +24,7 @@ const BlueSheet: React.FC<BlueSheetProps> = ({ children, style, radius = 24 }) =
 const styles = StyleSheet.create({
   base: {
     flex: 1,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     overflow: 'hidden',
   },
 });

@@ -741,7 +741,7 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation, rou
               accessibilityRole="button"
               accessibilityLabel="Add note"
             >
-              <Feather size={24} color={Colors.anchorBlue} />
+              <Feather size={24} color={Colors.sage} />
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.calendarIconButton}
@@ -749,7 +749,7 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation, rou
               accessibilityRole="button"
               accessibilityLabel="Open calendar"
             >
-              <CalendarDays size={26} color={Colors.anchorBlue} />
+              <CalendarDays size={26} color={Colors.sage} />
             </TouchableOpacity>
           </View>
         </View>
@@ -900,7 +900,7 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation, rou
                 firstDay={weekStartsOn}
                 enableSwipeMonths={true}
                 theme={{
-                  calendarBackground: Colors.anchorBlue,
+                  calendarBackground: Colors.sage,
                   textSectionTitleColor: Colors.hopeWhite,
                   selectedDayBackgroundColor: Colors.alertCoral,
                   selectedDayTextColor: Colors.hopeWhite,
@@ -997,7 +997,7 @@ const createStyles = (fonts: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
     alignItems: 'center',
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingVertical: 8,
@@ -1076,13 +1076,13 @@ const createStyles = (fonts: {
   monthYearContainer: {
     paddingVertical: 4,
     paddingHorizontal: 6,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     marginBottom: 0,
   },
   monthYearText: {
     fontSize: 18,
     fontFamily: fonts.fontBold,
-    color: Colors.anchorBlue,
+    color: Colors.sage,
     paddingRight: 12,
   },
   headerIcons: {
@@ -1132,7 +1132,7 @@ const createStyles = (fonts: {
   },
   todayText: {
     fontFamily: fonts.fontBold,
-    color: Colors.anchorBlue,
+    color: Colors.sage,
     fontSize: 9,
     letterSpacing: 0.2,
   },
@@ -1170,14 +1170,14 @@ const createStyles = (fonts: {
     fontSize: 10,
   },
   currentDayNameText: {
-    color: Colors.anchorBlue,
+    color: Colors.sage,
     fontFamily: fonts.fontBold,
     fontSize: 10,
   },
   dayNumberText: {
     fontFamily: fonts.fontBold,
     fontSize: 14,
-    color: Colors.anchorBlue,
+    color: Colors.sage,
     lineHeight: 14,
   },
   currentDayContainer: {
@@ -1189,7 +1189,7 @@ const createStyles = (fonts: {
     backgroundColor: Colors.alertCoral,
   },
   currentDayText: {
-    color: Colors.anchorBlue,
+    color: Colors.sage,
     fontFamily: fonts.fontBold,
     fontSize: 14,
   },
@@ -1219,7 +1219,7 @@ const createStyles = (fonts: {
     fontSize: 12,
   },
   activeViewModeTextCompact: {
-    color: Colors.anchorBlue,
+    color: Colors.sage,
   },
   content: {
     flex: 1,
@@ -1237,7 +1237,7 @@ const createStyles = (fonts: {
   dateText: {
     fontFamily: fonts.fontBold,
     fontSize: 20,
-    color: Colors.anchorBlue,
+    color: Colors.sage,
     marginBottom: 16,
   },
   // Calendar modal styles
@@ -1251,7 +1251,7 @@ const createStyles = (fonts: {
   modalContainer: {
     width: '100%',
     maxWidth: 360,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     borderRadius: 30,
     padding: 20,
     marginTop: 180,
@@ -1281,7 +1281,7 @@ const createStyles = (fonts: {
     letterSpacing: 1,
   },
   calendarWrapper: {
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     borderRadius: 30,
     overflow: 'hidden',
     marginTop: 4,

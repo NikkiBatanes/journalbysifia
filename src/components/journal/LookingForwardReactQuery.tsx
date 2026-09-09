@@ -678,7 +678,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#D97872',
   },
   entryContainer: {
-    backgroundColor: '#1A3C6D',
+    backgroundColor: 'Colors.sage',
     borderRadius: 6,
     paddingVertical: 12,
     paddingHorizontal: 12,
@@ -690,7 +690,7 @@ const styles = StyleSheet.create({
     alignSelf: 'stretch',
   },
   entryContainerInline: {
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
   },
   deleteButton: {
     width: 80,

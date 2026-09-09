@@ -478,7 +478,7 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
       {isLoading && (
         <View style={styles.loadingOverlay}>
           <View style={styles.loadingContent}>
-            <ActivityIndicator size="large" color={Colors.anchorBlue} />
+            <ActivityIndicator size="large" color={Colors.sage} />
             <ThemedText style={styles.loadingText}>
               {existingReflection ? 'Updating reflection...' : 'Saving reflection...'}
             </ThemedText>

@@ -71,7 +71,7 @@ export interface ReflectionLogEditorRef {
 
 // Fallback styles in case styles prop is not provided
 const fallbackStyles = {
-  container: { flex: 1, backgroundColor: Colors.anchorBlue, borderTopLeftRadius: 30, borderTopRightRadius: 30, overflow: 'hidden' },
+  container: { flex: 1, backgroundColor: Colors.sage, borderTopLeftRadius: 30, borderTopRightRadius: 30, overflow: 'hidden' },
   backgroundContainer: {},
   metadataContainer: {
     marginTop: 32,
@@ -131,11 +131,11 @@ const fallbackStyles = {
     paddingHorizontal: 16,
     paddingBottom: 16,
     zIndex: 10,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
   },
   title: { fontSize: 18, fontWeight: 'bold', color: Colors.hopeWhite, marginBottom: 8 },
 
-  keyboardAvoidingView: { flex: 1, borderTopLeftRadius: 30, borderTopRightRadius: 30, overflow: 'hidden', backgroundColor: Colors.anchorBlue },
+  keyboardAvoidingView: { flex: 1, borderTopLeftRadius: 30, borderTopRightRadius: 30, overflow: 'hidden', backgroundColor: Colors.sage },
   contentCard: { flex: 1, backgroundColor: 'rgba(26,60,109,0.08)', borderTopLeftRadius: 30, borderTopRightRadius: 30, marginHorizontal: 0, marginTop: 0, marginBottom: 16, padding: 16 },
   content: { flex: 1 },
   scrollContent: { flexGrow: 1 },
@@ -225,7 +225,7 @@ const fallbackStyles = {
     justifyContent: 'center',
     alignItems: 'center',
   },
-  fabWrapper: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: Colors.anchorBlue },
+  fabWrapper: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: Colors.sage },
   fabContainer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
   leftFabContainer: {
     flexDirection: 'row',
@@ -233,7 +233,7 @@ const fallbackStyles = {
   },
   androidFabWithKeyboard: {},
   fabDefaultPosition: {},
-  addMenu: { backgroundColor: Colors.anchorBlue, borderRadius: 8, padding: 8, marginBottom: 8 },
+  addMenu: { backgroundColor: Colors.sage, borderRadius: 8, padding: 8, marginBottom: 8 },
   // Draft notification styles
   draftNotification: {
     position: 'absolute',
@@ -306,7 +306,7 @@ const fallbackStyles = {
     zIndex: 1000,
   },
   formattingModal: {
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: 20,
@@ -423,7 +423,7 @@ const fallbackStyles = {
     opacity: 0.7,
   },
   modeToggleTextActive: {
-    color: Colors.anchorBlue,
+    color: Colors.sage,
     opacity: 1,
   },
   editModeInput: {

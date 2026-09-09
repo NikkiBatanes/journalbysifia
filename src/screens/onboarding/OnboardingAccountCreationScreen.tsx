@@ -223,7 +223,7 @@ const OnboardingAccountCreationScreen: React.FC = () => {
   return (
     <OnboardingErrorBoundary>
       <View style={styles.container}>
-        <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
+        <StatusBar barStyle="light-content" backgroundColor={Colors.sage} />
 
         <View style={OnboardingStyles.innerContainer}>
           <View style={[styles.logoSection, { width: contentWidth }]}>

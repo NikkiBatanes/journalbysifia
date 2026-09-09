@@ -767,7 +767,7 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
     if (type.includes('trial')) {
       return Colors.alertCoral;
     }
-    return Colors.anchorBlue;
+    return Colors.sage;
   };
 
   // Format time ago
@@ -909,7 +909,7 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
   },
   androidModalRoot: {
     flex: 1,
@@ -935,7 +935,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingVertical: 16,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     width: '100%',
   },
   backButton: {

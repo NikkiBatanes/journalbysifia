@@ -506,7 +506,7 @@ const PrayerEditorScreen: React.FC<PrayerEditorScreenProps> = ({ route, navigati
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     zIndex: 1,
   },
   fullScreenPrayerModalContainer: {
@@ -625,7 +625,7 @@ const styles = StyleSheet.create({
   // Walkthrough styles
   stepContainer: {
     flex: 1,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
   },
   stepScroll: {
     flex: 1,

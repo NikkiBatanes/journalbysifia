@@ -89,7 +89,7 @@ const styles = StyleSheet.create({
   buttonText: { color: Colors.hopeWhite, fontSize: 13 },
   buttonTextCompact: { fontSize: 12 },
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
-  sheet: { backgroundColor: Colors.anchorBlue, borderRadius: 24, padding: 20, maxWidth: 280, alignSelf: 'center' },
+  sheet: { backgroundColor: Colors.sage, borderRadius: 24, padding: 20, maxWidth: 280, alignSelf: 'center' },
   sheetTitle: { fontSize: 16, color: Colors.hopeWhite, marginBottom: 16, textTransform: 'uppercase' },
   optionsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, alignItems: 'center' },
   optionPill: {

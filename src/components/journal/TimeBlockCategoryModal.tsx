@@ -311,7 +311,7 @@ const TimeBlockCategoryModal: React.FC<TimeBlockCategoryModalProps> = ({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
   },
   stepContainer: {
     flex: 1,
@@ -380,7 +380,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     alignItems: 'center',
     justifyContent: 'center',
   },

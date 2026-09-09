@@ -1222,7 +1222,7 @@ const TodaysWinWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
   },
   stepContainer: {
     flex: 1,
@@ -1390,7 +1390,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 16,
     alignItems: 'center',
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     zIndex: 100,
   },
   completionButtonContainerPad: {

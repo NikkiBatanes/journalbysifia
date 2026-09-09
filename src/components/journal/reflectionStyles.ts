@@ -13,7 +13,7 @@ export const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
   },
   keyboardAvoidingView: {
     flex: 1,
@@ -25,7 +25,7 @@ export const styles = StyleSheet.create({
     borderTopLeftRadius: 30,
     borderTopRightRadius: 30,
     overflow: 'hidden',
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
   },
   scrollContent: {
     flexGrow: 1,
@@ -59,7 +59,7 @@ export const styles = StyleSheet.create({
     paddingTop: 0,
     paddingBottom: 16,
     paddingHorizontal: 16,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     position: 'relative',
     bottom: 0,
     left: 0,
@@ -165,11 +165,11 @@ export const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontFamily: Fonts.bold,
-    color: Colors.anchorBlue,
+    color: Colors.sage,
     fontWeight: '700',
   },
   addButton: {
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     width: 40,
     height: 40,
     borderRadius: 20,
@@ -212,7 +212,7 @@ export const styles = StyleSheet.create({
     marginHorizontal: 0,
   },
   headerSaveButton: {
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
@@ -227,7 +227,7 @@ export const styles = StyleSheet.create({
   },
   contentCard: {
     flex: 1,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     borderTopLeftRadius: 30,
     borderTopRightRadius: 30,
     overflow: 'hidden',
@@ -626,7 +626,7 @@ export const styles = StyleSheet.create({
   },
   tagText: {
     fontSize: 8,
-    color: Colors.anchorBlue,
+    color: Colors.sage,
     fontWeight: '500',
     letterSpacing: 0.5,
     textTransform: 'uppercase',

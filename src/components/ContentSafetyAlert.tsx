@@ -175,7 +175,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   closeButton: {
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     padding: 16,
     margin: 16,
     borderRadius: 12,

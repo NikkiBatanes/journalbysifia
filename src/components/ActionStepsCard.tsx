@@ -1045,7 +1045,7 @@ export default function ActionStepsCard({
     exampleText: {
       ...styles.exampleText,
       fontStyle: 'italic' as const,  // Use 'as const' to ensure type is 'italic' literal
-      color: solidCardBackground ? Colors.anchorBlue : styles.exampleText.color,
+      color: solidCardBackground ? Colors.sage : styles.exampleText.color,
     },
     circle: {
       ...styles.circle,
@@ -1374,7 +1374,7 @@ export default function ActionStepsCard({
                         <Ionicons
                           name="chatbubble-ellipses-outline"
                           size={14}
-                          color={solidCardBackground ? Colors.anchorBlue : 'rgba(255,255,255,0.8)'}
+                          color={solidCardBackground ? Colors.sage : 'rgba(255,255,255,0.8)'}
                           style={styles.examplesIcon}
                         />
                       </View>
@@ -1584,7 +1584,7 @@ export default function ActionStepsCard({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     borderRadius: 20,
     padding: 20,
     marginBottom: 24,

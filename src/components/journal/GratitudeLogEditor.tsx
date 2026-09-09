@@ -75,7 +75,7 @@ const defaultStyles = {
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
   },
   keyboardAvoidingView: {
     flex: 1,
@@ -85,7 +85,7 @@ const defaultStyles = {
     // Blue background so that when iOS fires spurious keyboard-lifecycle events
     // on app resume and KAV briefly adds bottom padding, the gap below
     // contentCard shows blue — not the white container behind it.
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
   },
   scrollContent: {
     flexGrow: 1,
@@ -101,7 +101,7 @@ const defaultStyles = {
     paddingHorizontal: 16,
     paddingBottom: 16,
     zIndex: 10,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
   },
   modeToggle: {
     flexDirection: 'row',
@@ -126,12 +126,12 @@ const defaultStyles = {
   mainTitle: {
     fontSize: 24,
     // Typography handled by ThemedText weight="bold"
-    color: Colors.anchorBlue,
+    color: Colors.sage,
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
-    color: Colors.anchorBlue,
+    color: Colors.sage,
     opacity: 0.7,
   },
 
@@ -211,7 +211,7 @@ const defaultStyles = {
   },
   contentCard: {
     flex: 1,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     borderTopLeftRadius: 30,
     borderTopRightRadius: 30,
     overflow: 'hidden',
@@ -382,7 +382,7 @@ const defaultStyles = {
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
   },
   fabContainer: {
     position: 'absolute',

@@ -87,14 +87,14 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: '600',
-    color: Colors.anchorBlue,
+    color: Colors.sage,
     marginBottom: 8,
     textAlign: 'center',
     fontFamily: Fonts.medium,
   },
   message: {
     fontSize: 16,
-    color: Colors.anchorBlue,
+    color: Colors.sage,
     textAlign: 'center',
     lineHeight: 22,
     marginBottom: 24,
@@ -104,7 +104,7 @@ const styles = StyleSheet.create({
   retryButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,
@@ -133,13 +133,13 @@ const styles = StyleSheet.create({
   debugTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.anchorBlue,
+    color: Colors.sage,
     marginBottom: 8,
     fontFamily: Fonts.medium,
   },
   debugText: {
     fontSize: 12,
-    color: Colors.anchorBlue,
+    color: Colors.sage,
     fontFamily: 'monospace',
     lineHeight: 16,
   },

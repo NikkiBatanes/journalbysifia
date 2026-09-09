@@ -51,7 +51,7 @@ const defaultStyles = {
   // Main container styles (matching reflection editor)
   container: {
     flex: 1,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     borderTopLeftRadius: 30,
     borderTopRightRadius: 30,
     overflow: 'hidden',
@@ -62,12 +62,12 @@ const defaultStyles = {
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     zIndex: -2,
   },
   keyboardAvoidingView: {
     flex: 1,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     borderTopLeftRadius: 30,
     borderTopRightRadius: 30,
     overflow: 'hidden',
@@ -86,7 +86,7 @@ const defaultStyles = {
     paddingHorizontal: 16,
     paddingBottom: 16,
     zIndex: 10,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
   },
   headerLeft: {
     flex: 1,
@@ -102,11 +102,11 @@ const defaultStyles = {
   headerTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: Colors.anchorBlue,
+    color: Colors.sage,
   },
   headerSubtitle: {
     fontSize: 12,
-    color: Colors.anchorBlue,
+    color: Colors.sage,
     opacity: 0.7,
     marginTop: 2,
   },
@@ -117,7 +117,7 @@ const defaultStyles = {
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
   },
   fabContainer: {
     position: 'absolute',
@@ -138,7 +138,7 @@ const defaultStyles = {
     width: 42,
     height: 42,
     borderRadius: 21,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     justifyContent: 'center',
     alignItems: 'center',
     ...Platform.select({
@@ -165,7 +165,7 @@ const defaultStyles = {
     }),
   },
   saveFab: {
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
   },
   cancelFab: {
     backgroundColor: 'rgba(255, 255, 255, 0.09)',
@@ -179,7 +179,7 @@ const defaultStyles = {
   dateContainer: {
     paddingHorizontal: 16,
     paddingVertical: 8,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
   },
   dateText: {
     color: Colors.hopeWhite,
@@ -239,7 +239,7 @@ const defaultStyles = {
   },
   contentCard: {
     flex: 1,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     borderTopLeftRadius: 30,
     borderTopRightRadius: 30,
     overflow: 'hidden',
@@ -247,7 +247,7 @@ const defaultStyles = {
   content: {
     flex: 1,
     padding: 24,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
   },
   metadataContainer: {
     marginTop: 32,

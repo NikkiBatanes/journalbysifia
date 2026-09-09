@@ -127,7 +127,7 @@ const styles = StyleSheet.create({
   buttonText: { color: Colors.hopeWhite, fontSize: 13 },
   buttonTextCompact: { fontSize: 12 },
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
-  sheet: { backgroundColor: Colors.anchorBlue, borderRadius: 24, padding: 20, maxWidth: 320, alignSelf: 'center' },
+  sheet: { backgroundColor: Colors.sage, borderRadius: 24, padding: 20, maxWidth: 320, alignSelf: 'center' },
   sheetHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
   sheetTitle: { fontSize: 16, color: Colors.hopeWhite, textTransform: 'uppercase' },
   clearButton: { padding: 4 },

@@ -534,7 +534,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   affirmationItem: {
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     borderRadius: 10,
     paddingVertical: 10,
     paddingHorizontal: 12,

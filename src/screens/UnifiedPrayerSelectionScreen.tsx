@@ -721,7 +721,7 @@ const UnifiedPrayerSelectionScreen: React.FC<Props> = ({ route, navigation }) =>
 const styles = StyleSheet.create({
   stepContainer: {
     flex: 1,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
   },
   stepScroll: {
     flex: 1,
@@ -790,7 +790,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -947,7 +947,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 16,
     alignItems: 'center',
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     zIndex: 100,
   },
   completionButtonContainerPad: {

@@ -313,10 +313,10 @@ const StreakPlanScreen: React.FC = () => {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: Colors.anchorBlue }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: Colors.sage }]}>
       <StatusBar
         barStyle="light-content"
-        backgroundColor={Platform.OS === 'android' ? 'transparent' : Colors.anchorBlue}
+        backgroundColor={Platform.OS === 'android' ? 'transparent' : Colors.sage}
         translucent={Platform.OS === 'android'}
       />
       {/* Share button */}

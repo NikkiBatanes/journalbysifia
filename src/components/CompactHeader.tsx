@@ -75,7 +75,7 @@ const styles = StyleSheet.create({
   },
   progressText: {
     fontSize: 12,
-    color: Colors.anchorBlue,
+    color: Colors.sage,
     fontWeight: '600',
     minWidth: 60,
     textAlign: 'right',

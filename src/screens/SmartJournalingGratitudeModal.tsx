@@ -502,7 +502,7 @@ const styles = StyleSheet.create({
   androidSheet: {
     flex: 1,
     width: '100%',
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     borderTopLeftRadius: 30,
     borderTopRightRadius: 30,
     overflow: 'hidden',
@@ -516,10 +516,10 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 30,
     borderTopRightRadius: 30,
     overflow: 'hidden',
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
   },
   androidBottomFill: {
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     bottom: 0,
   },
 });

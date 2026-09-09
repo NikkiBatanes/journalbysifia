@@ -1159,8 +1159,8 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
                   onPressArrowLeft={subtractMonth => { triggerLightHaptic(); subtractMonth(); }}
                   onPressArrowRight={addMonth => { triggerLightHaptic(); addMonth(); }}
                   theme={{
-                    backgroundColor: Colors.anchorBlue,
-                    calendarBackground: Colors.anchorBlue,
+                    backgroundColor: Colors.sage,
+                    calendarBackground: Colors.sage,
                     textSectionTitleColor: Colors.hopeWhite,
                     selectedDayBackgroundColor: Colors.alertCoral,
                     selectedDayTextColor: Colors.hopeWhite,
@@ -1560,7 +1560,7 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   modalContainer: {
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     borderRadius: 32,
     padding: 32,
     width: '100%',
@@ -1647,7 +1647,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   calendarWrapper: {
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     borderRadius: 12,
     overflow: 'hidden',
     marginTop: 8,

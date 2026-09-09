@@ -94,7 +94,7 @@ const PersonalizedPreview: React.FC<Props> = ({ userProfile, onContinue, onBack 
         duration: `${Math.min(timeAvailability, 10)} min`,
         difficulty: 'beginner',
         icon: 'book',
-        color: Colors.anchorBlue,
+        color: Colors.sage,
         preview: 'Discover the life-changing truths in Scripture with easy-to-understand explanations',
       },
     ];
@@ -200,7 +200,7 @@ const PersonalizedPreview: React.FC<Props> = ({ userProfile, onContinue, onBack 
   //       duration: `${Math.min(timeAvailability, 10)} min`,
   //       difficulty: 'beginner',
   //       icon: 'book',
-  //       color: Colors.anchorBlue,
+  //       color: Colors.sage,
   //       preview: 'Discover the life-changing truths in Scripture with easy-to-understand explanations',
   //     },
   //     {
@@ -335,7 +335,7 @@ const PersonalizedPreview: React.FC<Props> = ({ userProfile, onContinue, onBack 
     <View key={milestone.week} style={styles.milestoneContainer}>
       <View style={styles.milestoneHeader}>
         <View style={styles.milestoneIcon}>
-          <Ionicons name={milestone.icon as any} size={20} color={Colors.anchorBlue} />
+          <Ionicons name={milestone.icon as any} size={20} color={Colors.sage} />
         </View>
         <View style={styles.milestoneHeaderText}>
           <Text style={styles.milestoneWeek}>Week {milestone.week}</Text>
@@ -363,7 +363,7 @@ const PersonalizedPreview: React.FC<Props> = ({ userProfile, onContinue, onBack 
     {/* Header */}
     <View style={styles.header}>
       <TouchableOpacity onPress={onBack} style={styles.backButton}>
-        <Ionicons name="chevron-back" size={24} color={Colors.anchorBlue} />
+        <Ionicons name="chevron-back" size={24} color={Colors.sage} />
       </TouchableOpacity>
       <ThemedText weight="bold" style={styles.headerTitle}>Your Journey</ThemedText>
     </View>
@@ -562,7 +562,7 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 12,
     borderLeftWidth: 4,
-    borderLeftColor: Colors.anchorBlue,
+    borderLeftColor: Colors.sage,
   },
   milestoneHeader: {
     flexDirection: 'row',
@@ -573,7 +573,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: `${Colors.anchorBlue}20`,
+    backgroundColor: `${Colors.sage}20`,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -584,7 +584,7 @@ const styles = StyleSheet.create({
   milestoneWeek: {
     fontSize: 12,
     fontWeight: '600',
-    color: Colors.anchorBlue,
+    color: Colors.sage,
     marginBottom: 2,
   },
   milestoneTitle: {
@@ -635,7 +635,7 @@ const styles = StyleSheet.create({
   startButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     paddingHorizontal: 32,
     paddingVertical: 16,
     borderRadius: 25,

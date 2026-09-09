@@ -1606,7 +1606,7 @@ const styles = StyleSheet.create({
   },
   fullScreenModalContainer: {
     flex: 1,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     zIndex: 1,
   },
   fullScreenPrayerModalContainer: {
@@ -1732,7 +1732,7 @@ const styles = StyleSheet.create({
   editActionBtn: {
     flex: 1,
     height: '100%',
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     justifyContent: 'center',
     alignItems: 'center',
     paddingLeft: 12,

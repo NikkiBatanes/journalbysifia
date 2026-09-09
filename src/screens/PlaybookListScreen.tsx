@@ -716,10 +716,10 @@ const PickerModal = React.memo(({
       borderColor: 'rgba(255, 255, 255, 0.15)',
       backgroundColor: 'rgba(255, 255, 255, 0.05)',
     },
-    pillActive: { backgroundColor: Colors.anchorBlue, borderColor: Colors.anchorBlue },
-    pillActiveOngoing: { backgroundColor: Colors.anchorBlue, borderColor: Colors.anchorBlue },
-    pillActiveCompleted: { backgroundColor: Colors.anchorBlue, borderColor: Colors.anchorBlue },
-    pillActiveFaithful: { backgroundColor: Colors.anchorBlue, borderColor: Colors.anchorBlue },
+    pillActive: { backgroundColor: Colors.sage, borderColor: Colors.sage },
+    pillActiveOngoing: { backgroundColor: Colors.sage, borderColor: Colors.sage },
+    pillActiveCompleted: { backgroundColor: Colors.sage, borderColor: Colors.sage },
+    pillActiveFaithful: { backgroundColor: Colors.sage, borderColor: Colors.sage },
     pillPressed: { transform: [{ scale: 0.93 }] as any, opacity: 0.75 },
     pillText: { fontSize: 13, fontFamily: Fonts.regular, color: 'rgba(255, 255, 255, 0.5)' },
     pillTextActive: { color: Colors.hopeWhite },
@@ -730,7 +730,7 @@ const PickerModal = React.memo(({
     applyBtn: {
       marginHorizontal: 16, marginTop: 12, marginBottom: 2,
       paddingVertical: 10, borderRadius: 999,
-      backgroundColor: Colors.anchorBlue, alignItems: 'center' as const,
+      backgroundColor: Colors.sage, alignItems: 'center' as const,
     },
     applyBtnText: { fontSize: 13, color: Colors.hopeWhite },
     customDateRow: {
@@ -1624,7 +1624,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
 
   const isEmptyState = playbooks.length === 0 && !isLoading && !!userId;
 
-  useScreenStatusBar(isEmptyState ? 'light' : 'auto', isEmptyState ? Colors.anchorBlue : undefined);
+  useScreenStatusBar(isEmptyState ? 'light' : 'auto', isEmptyState ? Colors.sage : undefined);
 
   const handleDelete = useCallback(async (id: string) => {
     if (!userId) {
@@ -1920,9 +1920,9 @@ const PlaybookListScreen = ({ navigation }: any) => {
   if (playbooks.length === 0 && !isLoading && userId) {
 
     return (
-      <SafeAreaView style={[styles.safeArea, { backgroundColor: Colors.anchorBlue }]} edges={['left','right']}>
-        <View style={[styles.container, styles.containerEmpty, { backgroundColor: Colors.anchorBlue }]}>
-          <View style={[styles.headerBar, IS_IPAD && styles.headerBarPad, { paddingTop: insets.top, backgroundColor: Colors.anchorBlue }]}>
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: Colors.sage }]} edges={['left','right']}>
+        <View style={[styles.container, styles.containerEmpty, { backgroundColor: Colors.sage }]}>
+          <View style={[styles.headerBar, IS_IPAD && styles.headerBarPad, { paddingTop: insets.top, backgroundColor: Colors.sage }]}>
             <View style={[styles.pageInner, IS_IPAD && styles.pageInnerPad]}>
               {/* Hide header when empty; keep layout with spacer */}
               <View style={styles.headerSpacer} />
@@ -2024,7 +2024,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
                   onPress={() => { triggerLightHaptic(); setShowStatusPicker(true); }}
                   activeOpacity={0.75}
                 >
-                  <MaterialCommunityIcons name="tune" size={16} color={Colors.anchorBlue} />
+                  <MaterialCommunityIcons name="tune" size={16} color={Colors.sage} />
                 </TouchableOpacity>
 
                 {/* Search circle */}
@@ -2033,7 +2033,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
                   onPress={() => { triggerLightHaptic(); toggleSearch(); }}
                   activeOpacity={0.75}
                 >
-                  <Ionicons name={showSearch ? 'close' : 'search'} size={17} color={Colors.anchorBlue} />
+                  <Ionicons name={showSearch ? 'close' : 'search'} size={17} color={Colors.sage} />
                 </TouchableOpacity>
               </View>
             </View>
@@ -2900,7 +2900,7 @@ const createStyles = (_theme: any) => StyleSheet.create({
     marginTop: 2,
   },
   faithfulActionContinueButton: {
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     borderRadius: 8,
     paddingVertical: 10,
     paddingHorizontal: 16,
@@ -2988,11 +2988,11 @@ const createStyles = (_theme: any) => StyleSheet.create({
   },
   continueTimeDropdownOptionText: {
     fontSize: 15,
-    color: Colors.anchorBlue,
+    color: Colors.sage,
   },
   continueTimeDropdownOptionTextActive: {
     fontFamily: Fonts.semiBold,
-    color: Colors.anchorBlue,
+    color: Colors.sage,
   },
   carouselTitle: {
     fontSize: 12,
@@ -3173,7 +3173,7 @@ const createStyles = (_theme: any) => StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 0.04,
     textTransform: 'uppercase',
-    color: Colors.anchorBlue,
+    color: Colors.sage,
   },
   menuButton: {
     position: 'absolute',
@@ -3309,7 +3309,7 @@ const createStyles = (_theme: any) => StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
   },
   modalButtonConfirm: {
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
   },
   modalButtonTextCancel: {
     color: Colors.hopeWhite,
@@ -3387,7 +3387,7 @@ const createStyles = (_theme: any) => StyleSheet.create({
     marginBottom: 8,
   },
   tagItemSelected: {
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
   },
   tagItemText: {
     color: Colors.hopeWhite,
@@ -3574,7 +3574,7 @@ const createStyles = (_theme: any) => StyleSheet.create({
   headerTitle: {
     fontSize: 24,
     fontFamily: Fonts.bold,
-    color: Colors.anchorBlue,
+    color: Colors.sage,
     letterSpacing: 0.5,
     flex: 1,
   },
@@ -3616,7 +3616,7 @@ const createStyles = (_theme: any) => StyleSheet.create({
     height: Platform.OS === 'ios' ? 22 : '100%',
     fontSize: 14,
     lineHeight: Platform.OS === 'ios' ? 18 : undefined,
-    color: Colors.anchorBlue,
+    color: Colors.sage,
     padding: 0,
     margin: 0,
     fontFamily: Fonts.regular,
@@ -3697,7 +3697,7 @@ const createStyles = (_theme: any) => StyleSheet.create({
     tintColor: Colors.alertCoral,
   },
   expandText: {
-    color: Colors.anchorBlue,
+    color: Colors.sage,
     fontSize: 14,
     marginLeft: 8,
     overflow: 'hidden',
@@ -3923,7 +3923,7 @@ const createStyles = (_theme: any) => StyleSheet.create({
     color: Colors.growthGreen,
   },
   statusDropdownBtnTextFaithful: {
-    color: Colors.anchorBlue,
+    color: Colors.sage,
   },
   // Status picker modal
   statusPickerOverlay: {
@@ -3990,20 +3990,20 @@ const createStyles = (_theme: any) => StyleSheet.create({
     paddingVertical: 3,
   },
   pickerPillActive: {
-    backgroundColor: Colors.anchorBlue,
-    borderColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
+    borderColor: Colors.sage,
   },
   pickerPillPressed: {
     transform: [{ scale: 0.93 }],
     opacity: 0.75,
   },
   pickerPillActiveOngoing: {
-    backgroundColor: Colors.anchorBlue,
-    borderColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
+    borderColor: Colors.sage,
   },
   pickerPillActiveCompleted: {
-    backgroundColor: Colors.anchorBlue,
-    borderColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
+    borderColor: Colors.sage,
   },
   pickerPillText: {
     fontSize: 13,
@@ -4054,7 +4054,7 @@ const createStyles = (_theme: any) => StyleSheet.create({
     marginBottom: 0,
     paddingVertical: 8,
     borderRadius: 999,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -4122,7 +4122,7 @@ const createStyles = (_theme: any) => StyleSheet.create({
   },
   statusPickerOptionTextActive: {
     fontFamily: Fonts.semiBold,
-    color: Colors.anchorBlue,
+    color: Colors.sage,
   },
   statusPickerOptionTextOngoing: {
     fontFamily: Fonts.semiBold,
@@ -4213,19 +4213,19 @@ const createStyles = (_theme: any) => StyleSheet.create({
     backgroundColor: 'rgba(3, 32, 61, 0.06)',
   },
   filterTabActiveOnWhite: {
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
   },
   filterTabTextOnWhite: {
     fontFamily: Fonts.semiBold,
     fontSize: 13,
-    color: Colors.anchorBlue,
+    color: Colors.sage,
     letterSpacing: 0.2,
   },
   filterTabTextActiveOnWhite: {
     color: Colors.hopeWhite,
   },
   sectionHeader: {
-    backgroundColor: '#1A3C6D',
+    backgroundColor: 'Colors.sage',
     paddingVertical: 6,
     paddingHorizontal: 8,
     borderRadius: 8,

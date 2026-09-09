@@ -180,7 +180,7 @@ export const PurchaseSuccessModal: React.FC<PurchaseSuccessModalProps> = ({
           style={[
             styles.modalContainer,
             {
-              backgroundColor: Colors.anchorBlue,
+              backgroundColor: Colors.sage,
               transform: [{ scale: scaleAnim }],
               opacity: fadeAnim,
             },
@@ -242,7 +242,7 @@ export const PurchaseSuccessModal: React.FC<PurchaseSuccessModalProps> = ({
 
           {/* Trial Notice */}
           {isTrial && (
-            <View style={[styles.trialNotice, { backgroundColor: Colors.anchorBlue }]}
+            <View style={[styles.trialNotice, { backgroundColor: Colors.sage }]}
             >
               <Ionicons name="information-circle" size={20} color="#B99562" />
               <ThemedText style={[styles.trialNoticeText, { color: Colors.hopeWhite }]}

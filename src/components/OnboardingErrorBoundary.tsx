@@ -119,7 +119,7 @@ class OnboardingErrorBoundary extends Component<Props, State> {
 
       return (
         <View style={styles.container}>
-          <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
+          <StatusBar barStyle="light-content" backgroundColor={Colors.sage} />
 
           <ScrollView
             style={styles.scrollView}
@@ -192,7 +192,7 @@ class OnboardingErrorBoundary extends Component<Props, State> {
                   onPress={this.handleReload}
                   activeOpacity={0.8}
                 >
-                  <Ionicons name="reload" size={20} color={Colors.anchorBlue} />
+                  <Ionicons name="reload" size={20} color={Colors.sage} />
                   <ThemedText weight="semiBold" style={styles.secondaryButtonText}>
                     Restart App
                   </ThemedText>
@@ -216,7 +216,7 @@ class OnboardingErrorBoundary extends Component<Props, State> {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
   },
   scrollView: {
     flex: 1,
@@ -315,7 +315,7 @@ const styles = StyleSheet.create({
   },
   secondaryButtonText: {
     fontSize: 16,
-    color: Colors.anchorBlue,
+    color: Colors.sage,
   },
   helpText: {
     fontSize: 14,

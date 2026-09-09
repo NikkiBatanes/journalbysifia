@@ -353,7 +353,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   focusedSubtaskBubble: {
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     borderRadius: 20,
     paddingHorizontal: 20,
     paddingVertical: 14,

@@ -940,7 +940,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
           {
             zIndex: 2,
             elevation: 2,
-            backgroundColor: Colors.anchorBlue,
+            backgroundColor: Colors.sage,
             // Respect safe area so sticky header doesn't move under the status bar
             paddingTop: insets.top + 4,
             // Make header background span edge-to-edge while keeping inner content aligned
@@ -1040,7 +1040,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
         <View style={[
           styles.carouselContainer,
           {
-            backgroundColor: Colors.anchorBlue,
+            backgroundColor: Colors.sage,
             // bleed past ScrollView and safe-area paddings for true edge-to-edge
             marginLeft: -16 - insets.left,
             marginRight: -16 - insets.right,
@@ -1199,7 +1199,7 @@ const styles = StyleSheet.create({
   modalCard: {
     width: '100%',
     maxWidth: 500,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     borderRadius: BorderRadii.cardXL,
     padding: 24,
     borderWidth: 0,
@@ -1258,7 +1258,7 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
   },
   scrollContainer: {
     flex: 1,
@@ -1396,7 +1396,7 @@ const styles = StyleSheet.create({
   userInputContainer: {
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderWidth: 0.5,
-    borderColor: '#1A3C6D',
+    borderColor: 'Colors.sage',
     padding: 12,
     borderRadius: 12,
     // marginTop and marginBottom now applied dynamically inline based on orientation
@@ -1646,15 +1646,15 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   cardContainerLarge: {
-    backgroundColor: '#1A3C6D',
+    backgroundColor: 'Colors.sage',
     padding: 24,
   },
   cardContainerMedium: {
-    backgroundColor: '#1A3C6D',
+    backgroundColor: 'Colors.sage',
     padding: 16,
   },
   cardContainerMinimal: {
-    backgroundColor: '#1A3C6D',
+    backgroundColor: 'Colors.sage',
   },
   centeredContent: {
     alignItems: 'center',

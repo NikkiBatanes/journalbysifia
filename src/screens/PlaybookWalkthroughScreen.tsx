@@ -8481,7 +8481,7 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
 
   if (!loadingGatePassed) {
     return (
-      <View style={{ flex: 1, backgroundColor: '#1a3c6d' }}>
+      <View style={{ flex: 1, backgroundColor: 'Colors.sage' }}>
         <StatusBar hidden={true} />
         <PlaybookSkeletonLoader
           variant={routeCoverPage ? 'cover' : 'legacy'}
@@ -8942,7 +8942,7 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
   },
   // Dots — matches original PlaybookDetailGuided pagination style
   dotsRow: {
@@ -8950,7 +8950,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
     paddingBottom: 10,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
   },
   dot: {
     width: 8,
@@ -9809,7 +9809,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#1A3C6D',
+    backgroundColor: 'Colors.sage',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.15)',
     alignItems: 'center',
@@ -9826,7 +9826,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#1A3C6D',
+    backgroundColor: 'Colors.sage',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.15)',
     alignItems: 'center',
@@ -9849,7 +9849,7 @@ const styles = StyleSheet.create({
     minWidth: 104,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#1A3C6D',
+    backgroundColor: 'Colors.sage',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.15)',
     flexDirection: 'row',
@@ -9880,7 +9880,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 28,
     borderBottomLeftRadius: 0,
     borderBottomRightRadius: 0,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.14)',
     paddingTop: 22,
@@ -9905,7 +9905,7 @@ const styles = StyleSheet.create({
   truthScriptureConfirmPrimary: {
     height: 46,
     borderRadius: 23,
-    backgroundColor: '#1A3C6D',
+    backgroundColor: 'Colors.sage',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.16)',
     flexDirection: 'row',
@@ -9987,7 +9987,7 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.16)',
-    backgroundColor: '#1A3C6D',
+    backgroundColor: 'Colors.sage',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -10022,7 +10022,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 28,
     borderBottomLeftRadius: 0,
     borderBottomRightRadius: 0,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.14)',
     paddingTop: 18,
@@ -11293,7 +11293,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: -15,
     right: 18,
-    backgroundColor: '#1A3C6D',
+    backgroundColor: 'Colors.sage',
     borderRadius: 999,
     paddingHorizontal: 14,
     paddingVertical: 7,
@@ -11368,7 +11368,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#1A3C6D',
+    backgroundColor: 'Colors.sage',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
@@ -11377,7 +11377,7 @@ const styles = StyleSheet.create({
   actionFABDone: {
     flex: 1,
     height: 44,
-    backgroundColor: '#1A3C6D',
+    backgroundColor: 'Colors.sage',
     borderRadius: 22,
     paddingHorizontal: 16,
     alignItems: 'center',
@@ -11392,7 +11392,7 @@ const styles = StyleSheet.create({
   actionFABSkip: {
     height: 44,
     paddingHorizontal: 14,
-    backgroundColor: '#1A3C6D',
+    backgroundColor: 'Colors.sage',
     borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
@@ -11462,7 +11462,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.15)',
   },
   doneButtonCommitted: {
-    backgroundColor: '#1A3C6D',
+    backgroundColor: 'Colors.sage',
     borderColor: 'rgba(255, 107, 107, 0.3)',
   },
   doneButtonTextCommitted: {

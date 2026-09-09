@@ -256,7 +256,7 @@ const BadgesModal: React.FC<BadgesModalProps> = ({ visible, onClose }) => {
         edges={['top']}
         style={[
           styles.container,
-          { backgroundColor: Colors.anchorBlue },
+          { backgroundColor: Colors.sage },
         ]}
       >
         {/* Header */}

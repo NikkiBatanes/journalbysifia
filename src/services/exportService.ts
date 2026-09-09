@@ -237,7 +237,7 @@ export class ExportService {
         <title>${playbook.title} - siFia Playbook</title>
         <style>
           body { font-family: Arial, sans-serif; margin: 40px; }
-          h1 { color: #1A3C6D; }
+          h1 { color: #526A5B; }
           h2 { color: #526A5B; }
           h3 { color: #29342E; }
           .action-step { margin-bottom: 30px; }

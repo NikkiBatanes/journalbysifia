@@ -52,7 +52,7 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
     try {
       StatusBar.setBarStyle('light-content');
       if (Platform.OS === 'android') {
-        StatusBar.setBackgroundColor(Colors.anchorBlue);
+        StatusBar.setBackgroundColor(Colors.sage);
       }
     } catch (error) {
       logger.error('Error setting status bar:', error as Error);
@@ -562,7 +562,7 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
+      <StatusBar barStyle="light-content" backgroundColor={Colors.sage} />
 
       {/* Logo Section */}
       <View style={styles.logoSection}>
@@ -579,7 +579,7 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     justifyContent: 'center',
     alignItems: 'center',
   },

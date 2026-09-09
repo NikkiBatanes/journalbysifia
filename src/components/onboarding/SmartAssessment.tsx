@@ -436,7 +436,7 @@ const SmartAssessment: React.FC<Props> = ({ onComplete, onBack }) => {
                         <Ionicons
                           name={option.icon as any}
                           size={24}
-                          color={isSelected ? 'white' : Colors.anchorBlue}
+                          color={isSelected ? 'white' : Colors.sage}
                         />
                       </View>
                     )}
@@ -493,7 +493,7 @@ const SmartAssessment: React.FC<Props> = ({ onComplete, onBack }) => {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={onBack} style={styles.backButton}>
-          <Ionicons name="chevron-back" size={24} color={Colors.anchorBlue} />
+          <Ionicons name="chevron-back" size={24} color={Colors.sage} />
         </TouchableOpacity>
 
         <View style={styles.progressContainer}>
@@ -551,7 +551,7 @@ const styles = StyleSheet.create({
   },
   progressFill: {
     height: '100%',
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     borderRadius: 2,
   },
   progressText: {
@@ -594,8 +594,8 @@ const styles = StyleSheet.create({
     borderColor: Colors.lightGray,
   },
   optionCardSelected: {
-    borderColor: Colors.anchorBlue,
-    backgroundColor: Colors.anchorBlue,
+    borderColor: Colors.sage,
+    backgroundColor: Colors.sage,
   },
   optionContent: {
     flexDirection: 'row',
@@ -611,7 +611,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: `${Colors.anchorBlue}15`,
+    backgroundColor: `${Colors.sage}15`,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 16,
@@ -656,7 +656,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     paddingVertical: 16,
     paddingHorizontal: 32,
     borderRadius: 25,

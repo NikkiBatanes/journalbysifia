@@ -48,13 +48,13 @@ const StreakDetailScreen: React.FC = () => {
     <View style={[styles.container, { backgroundColor: Colors.hopeWhite }]}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <MaterialCommunityIcons name="chevron-left" size={28} color={Colors.anchorBlue} />
+          <MaterialCommunityIcons name="chevron-left" size={28} color={Colors.sage} />
         </TouchableOpacity>
-        <Text style={[styles.title, { color: Colors.anchorBlue }]}>{getLabel(type)}</Text>
+        <Text style={[styles.title, { color: Colors.sage }]}>{getLabel(type)}</Text>
         <View style={styles.spacer} />
       </View>
 
-      <View style={[styles.hero, { backgroundColor: Colors.anchorBlue }]}>
+      <View style={[styles.hero, { backgroundColor: Colors.sage }]}>
         <MaterialCommunityIcons name={getIcon(type)} size={40} color={Colors.hopeWhite} />
         <Text style={[styles.heroTitle, { color: Colors.hopeWhite }]}>{getLabel(type)}</Text>
         <Text style={[styles.heroSubtitle, { color: Colors.hopeWhite }]}>Detailed streak insights coming soon</Text>

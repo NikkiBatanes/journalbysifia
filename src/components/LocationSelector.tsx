@@ -270,7 +270,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   modalContent: {
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     borderRadius: 24,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.2)',
@@ -304,7 +304,7 @@ const styles = StyleSheet.create({
     top: '100%',
     left: 0,
     right: 0,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     borderRadius: 24,
     marginTop: -240,
     maxHeight: 200,

@@ -120,7 +120,7 @@ const ReflectCarousel: React.FC<ReflectCarouselProps> = ({ selectedDate, refresh
       title: "TODAY'S WIN",
       icon: 'trophy-outline',
       component: <TodayWinReactQuery selectedDate={selectedDate} />,
-      color: Colors.anchorBlue,
+      color: Colors.sage,
     },
     {
       id: 'lookingforward',

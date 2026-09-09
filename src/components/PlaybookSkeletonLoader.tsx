@@ -174,7 +174,7 @@ const PlaybookSkeletonLoader: React.FC<PlaybookSkeletonLoaderProps> = ({ variant
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
   },
   coverContent: {
     flex: 1,

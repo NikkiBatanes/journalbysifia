@@ -235,7 +235,7 @@ const createStyles = (fonts: any) => StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 0,
     paddingVertical: 12,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255, 255, 255, 0.1)',
   },

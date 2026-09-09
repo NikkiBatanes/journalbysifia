@@ -238,7 +238,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   modalContainer: {
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     borderRadius: 20,
     padding: 24,
     width: '100%',

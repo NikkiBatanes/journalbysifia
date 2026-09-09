@@ -34,7 +34,7 @@ type CustomTabBarProps = {
 
 
 // Glass-looking pill background - opaque blue with glass-like border
-const PILL_BG = '#1A3C6D';
+const PILL_BG = 'Colors.sage';
 
 // Pill occupies screen width minus 16px margin on each side
 const PILL_WIDTH = Dimensions.get('window').width - 32;
@@ -441,7 +441,7 @@ export default function BottomTabNavigator({ onLogout: _onLogout }: BottomTabNav
       // so scrollable content gaps and the safe-area floor never show white.
       // tabBarStyle position:absolute stops RN from reserving space for the floating pill.
       // @ts-ignore — sceneContainerStyle works at runtime; type added in a later @react-navigation/bottom-tabs version
-      sceneContainerStyle={{ backgroundColor: Colors.anchorBlue }}
+      sceneContainerStyle={{ backgroundColor: Colors.sage }}
       screenOptions={{
         headerShown: true,
         headerShadowVisible: false,
@@ -501,7 +501,7 @@ const styles = StyleSheet.create({
     borderRadius: 32,
     backgroundColor: PILL_BG,
     borderWidth: 1,
-    borderColor: '#1A3C6D',
+    borderColor: 'Colors.sage',
     paddingHorizontal: 4,
     shadowColor: '#29342E',
     shadowOffset: { width: 0, height: 4 },
@@ -556,7 +556,7 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     backgroundColor: PILL_BG,
     borderWidth: 1,
-    borderColor: '#1A3C6D',
+    borderColor: 'Colors.sage',
     shadowColor: '#29342E',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.18,

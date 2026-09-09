@@ -88,7 +88,7 @@ const splitSummaryAndCue = (raw: string): { summaryText: string; cueText: string
 const PlaybookDetailGuided: React.FC<PlaybookGuidedProps> = ({ route, navigation }) => {
   const insets = useSafeAreaInsets();
 
-  useScreenStatusBar('light', Colors.anchorBlue);
+  useScreenStatusBar('light', Colors.sage);
   useFocusEffect(
     React.useCallback(() => {
       StatusBar.setHidden(true, 'slide');
@@ -601,12 +601,12 @@ const PlaybookDetailGuided: React.FC<PlaybookGuidedProps> = ({ route, navigation
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
   },
   paginationContainer: {
     paddingVertical: 12,
     alignItems: 'center',
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
   },
   progressDots: {
     flexDirection: 'row',
@@ -751,7 +751,7 @@ const styles = StyleSheet.create({
     width: 160,
     padding: 12,
     borderRadius: 999,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     justifyContent: 'center',
     alignItems: 'center',
     gap: 8,
@@ -782,7 +782,7 @@ const styles = StyleSheet.create({
   playbookLabelContainer: {
     alignItems: 'center',
     paddingBottom: 8,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
   },
   playbookLabelButton: {
     flexDirection: 'row',
@@ -823,7 +823,7 @@ const styles = StyleSheet.create({
   },
   errorContainer: {
     flex: 1,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     justifyContent: 'center',
     alignItems: 'center',
   },

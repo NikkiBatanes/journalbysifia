@@ -202,7 +202,7 @@ const styles = StyleSheet.create({
     color: Colors.darkGray,
   },
   syncButton: {
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 4,

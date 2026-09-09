@@ -73,7 +73,7 @@ export const BibleCopyrightModal: React.FC<BibleCopyrightModalProps> = ({
   if (!visible) { return null; }
 
   const content = (
-    <View style={[styles.modalContainer, { backgroundColor: Colors.anchorBlue }]}>
+    <View style={[styles.modalContainer, { backgroundColor: Colors.sage }]}>
       <View style={styles.header}>
         <ThemedText weight="semiBold" style={[styles.title, { color: Colors.hopeWhite }]}>
           Bible Translation Information

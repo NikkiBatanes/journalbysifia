@@ -331,7 +331,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#D97872',
   },
   winContainer: {
-    backgroundColor: '#1A3C6D',
+    backgroundColor: 'Colors.sage',
     borderRadius: 6,
     paddingVertical: 12,
     paddingHorizontal: 12,
@@ -343,7 +343,7 @@ const styles = StyleSheet.create({
     alignSelf: 'stretch',
   },
   winContainerInline: {
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
   },
   deleteButton: {
     width: 80,

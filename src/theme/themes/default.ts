@@ -8,6 +8,8 @@ export const defaultTheme: Theme = {
   colors: {
     // Core Brand Colors (siFia palette)
     anchorBlue: '#1A3C6D',          // Anchor Blue - siFia connection (sparing)
+    sage: '#526A5B',                // Deep Sage - new main primary
+    sageMuted: '#718476',           // Muted Sage - secondary/soft sage
     anchorBlueLight: '#E6EBE5',     // Pale Sage - soft sage background
     modalBlue: '#29342E',           // Forest Ink - modal surfaces
     faithGold: '#B99562',           // Muted Gold - gold accent (sparing)

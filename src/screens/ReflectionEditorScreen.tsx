@@ -195,7 +195,7 @@ const ReflectionEditorScreen: React.FC = () => {
 
   return (
     <>
-      <View style={{ flex: 1, backgroundColor: '#1A3C6D' }}>
+      <View style={{ flex: 1, backgroundColor: '#526A5B' }}>
         <ReflectionLogEditor
           ref={editorRef}
           onSave={handleSave}

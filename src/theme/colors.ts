@@ -8,7 +8,7 @@ export const Colors = defaultTheme.colors;
 // Legacy support - will be deprecated
 export const standardColors = {
   // Core mappings to new theme system
-  primary: defaultTheme.colors.anchorBlue,
+  primary: defaultTheme.colors.sage,
   text: defaultTheme.colors.text,
   gray: defaultTheme.colors.textGray,
   error: defaultTheme.colors.error,

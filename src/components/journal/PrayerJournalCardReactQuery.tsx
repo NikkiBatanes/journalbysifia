@@ -60,7 +60,7 @@ const PRAYER_TYPES = [
     key: 'adoration',
     label: 'ADORATION',
     displayName: 'Adoration',
-    color: Colors.anchorBlue,
+    color: Colors.sage,
     description: 'Praising God',
     icon: 'star', // Using star instead of sparkles
   },
@@ -68,7 +68,7 @@ const PRAYER_TYPES = [
     key: 'confession',
     label: 'CONFESSION',
     displayName: 'Confession',
-    color: Colors.anchorBlue, // Using anchorBlue for all
+    color: Colors.sage, // Using anchorBlue for all
     description: 'Acknowledging Sins',
     icon: 'heart', // Using heart instead of heart-broken
   },
@@ -76,7 +76,7 @@ const PRAYER_TYPES = [
     key: 'thanksgiving',
     label: 'THANKSGIVING',
     displayName: 'Thanksgiving',
-    color: Colors.anchorBlue, // Using anchorBlue for all
+    color: Colors.sage, // Using anchorBlue for all
     description: 'Giving Thanks',
     icon: 'gift',
   },
@@ -84,7 +84,7 @@ const PRAYER_TYPES = [
     key: 'supplication',
     label: 'SUPPLICATION',
     displayName: 'Supplication',
-    color: Colors.anchorBlue, // Using anchorBlue for all
+    color: Colors.sage, // Using anchorBlue for all
     description: 'Making Requests',
     icon: 'hand-right', // Using hand-right instead of hands-praying
   },
@@ -92,7 +92,7 @@ const PRAYER_TYPES = [
     key: 'freeform',
     label: 'FREE-FORM PRAYER',
     displayName: 'Free-form Prayer',
-    color: Colors.anchorBlue,
+    color: Colors.sage,
     description: 'Open Prayer',
     icon: 'create', // Using create/edit icon for free-form
   },
@@ -399,7 +399,7 @@ const PrayerJournalCardReactQuery: React.FC<PrayerJournalCardReactQueryProps> = 
             <Ionicons
               name={selectedType.icon as any}
               size={20}
-              color={Colors.anchorBlue}
+              color={Colors.sage}
               style={styles.dropdownIcon}
             />
             <View style={styles.dropdownTextContainer}>
@@ -410,7 +410,7 @@ const PrayerJournalCardReactQuery: React.FC<PrayerJournalCardReactQueryProps> = 
           <Ionicons
             name={isDropdownOpen ? 'chevron-up' : 'chevron-down'}
             size={20}
-            color={Colors.anchorBlue}
+            color={Colors.sage}
           />
         </TouchableOpacity>
 
@@ -428,7 +428,7 @@ const PrayerJournalCardReactQuery: React.FC<PrayerJournalCardReactQueryProps> = 
                 <Ionicons
                   name={type.icon as any}
                   size={18}
-                  color={Colors.anchorBlue}
+                  color={Colors.sage}
                   style={styles.dropdownIcon}
                 />
                 <View style={styles.dropdownTextContainer}>
@@ -470,9 +470,9 @@ const PrayerJournalCardReactQuery: React.FC<PrayerJournalCardReactQueryProps> = 
           accessibilityState={{ disabled: !prayerText.trim() || createPrayerMutation.isPending }}
         >
           {createPrayerMutation.isPending ? (
-            <ActivityIndicator size="small" color={Colors.anchorBlue} />
+            <ActivityIndicator size="small" color={Colors.sage} />
           ) : (
-            <Ionicons name="checkmark" size={24} color={Colors.anchorBlue} />
+            <Ionicons name="checkmark" size={24} color={Colors.sage} />
           )}
         </TouchableOpacity>
       </View>
@@ -494,7 +494,7 @@ const PrayerJournalCardReactQuery: React.FC<PrayerJournalCardReactQueryProps> = 
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     borderRadius: 18,
     padding: 18,
     shadowColor: '#29342E',
@@ -573,7 +573,7 @@ const styles = StyleSheet.create({
   dropdownDesc: {
     fontFamily: Fonts.regular,
     fontSize: 13,
-    color: Colors.anchorBlue,
+    color: Colors.sage,
     opacity: 0.8,
   },
   dropdownMenu: {
@@ -603,7 +603,7 @@ const styles = StyleSheet.create({
   dropdownItemDesc: {
     fontFamily: Fonts.regular,
     fontSize: 13,
-    color: Colors.anchorBlue,
+    color: Colors.sage,
     opacity: 0.8,
     marginLeft: 'auto',
   },
@@ -652,7 +652,7 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 12,
     borderLeftWidth: 4,
-    borderLeftColor: Colors.anchorBlue,
+    borderLeftColor: Colors.sage,
   },
   prayerGroupHeader: {
     flexDirection: 'row',
@@ -806,7 +806,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   retryButton: {
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 20,
@@ -835,7 +835,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   emptySubtext: {
-    color: Colors.anchorBlue,
+    color: Colors.sage,
     fontFamily: Fonts.regular,
     fontSize: 14,
     textAlign: 'center',
@@ -846,40 +846,40 @@ const styles = StyleSheet.create({
 // Markdown styles for prayer content
 const prayerMarkdownStyles = {
   body: {
-    color: Colors.anchorBlue,
+    color: Colors.sage,
     fontSize: 15,
     lineHeight: 22,
   },
   heading1: {
-    color: Colors.anchorBlue,
+    color: Colors.sage,
     fontSize: 18,
     fontWeight: 'bold' as const,
     marginBottom: 6,
   },
   heading2: {
-    color: Colors.anchorBlue,
+    color: Colors.sage,
     fontSize: 16,
     fontWeight: 'bold' as const,
     marginBottom: 4,
   },
   strong: {
-    color: Colors.anchorBlue,
+    color: Colors.sage,
     fontWeight: 'bold' as const,
   },
   em: {
-    color: Colors.anchorBlue,
+    color: Colors.sage,
     fontStyle: 'italic' as const,
   },
   blockquote: {
     backgroundColor: 'rgba(26, 60, 109, 0.1)',
     borderLeftWidth: 3,
-    borderLeftColor: Colors.anchorBlue,
+    borderLeftColor: Colors.sage,
     paddingLeft: 8,
     paddingVertical: 4,
     marginVertical: 4,
   },
   list_item: {
-    color: Colors.anchorBlue,
+    color: Colors.sage,
     marginBottom: 2,
   },
 };

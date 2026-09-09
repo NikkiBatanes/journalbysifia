@@ -64,7 +64,7 @@ const StreakPlanTestDashboard: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
   },
   header: {
     padding: 24,

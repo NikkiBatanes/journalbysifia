@@ -202,7 +202,7 @@ const styles = StyleSheet.create({
   card: {
     width: '100%',
     maxWidth: 500,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     borderRadius: BorderRadii.cardXL,
     padding: 24,
     position: 'relative',

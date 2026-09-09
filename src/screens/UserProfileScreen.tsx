@@ -1467,7 +1467,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           onPress={() => { try { triggerLightHaptic(); } catch {} handleShareApp(); }}
         >
           <View style={styles.menuIconBox}>
-            <Ionicons name="share-social" size={18} color={Colors.anchorBlue} />
+            <Ionicons name="share-social" size={18} color={Colors.sage} />
           </View>
           <Text style={[styles.menuText, font]}>Share with Friends</Text>
           <Ionicons name="chevron-forward" size={20} color={theme.colors.chevronColor} />
@@ -1478,7 +1478,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           onPress={() => { try { triggerLightHaptic(); } catch {} handleLeaveReview(); }}
         >
           <View style={styles.menuIconBox}>
-            <Ionicons name="star" size={18} color={Colors.anchorBlue} />
+            <Ionicons name="star" size={18} color={Colors.sage} />
           </View>
           <Text style={[styles.menuText, font]}>Leave a Review</Text>
           <Ionicons name="chevron-forward" size={20} color={theme.colors.chevronColor} />
@@ -1491,7 +1491,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           accessibilityLabel="Open Instagram @sifia.app"
         >
           <View style={styles.menuIconBox}>
-            <Ionicons name="logo-instagram" size={18} color={Colors.anchorBlue} />
+            <Ionicons name="logo-instagram" size={18} color={Colors.sage} />
           </View>
           <Text style={[styles.menuText, font]}>Instagram</Text>
           <Text style={[styles.menuValueText, font]}>@sifia.app</Text>
@@ -1505,7 +1505,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           accessibilityLabel="Open Facebook page siFiaapp"
         >
           <View style={styles.menuIconBox}>
-            <Ionicons name="logo-facebook" size={18} color={Colors.anchorBlue} />
+            <Ionicons name="logo-facebook" size={18} color={Colors.sage} />
           </View>
           <Text style={[styles.menuText, font]}>Facebook</Text>
           <Text style={[styles.menuValueText, font]}>/siFiaapp</Text>
@@ -1533,7 +1533,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           accessibilityLabel="Open YouTube channel @sifiaapp"
         >
           <View style={styles.menuIconBox}>
-            <Ionicons name="logo-youtube" size={18} color={Colors.anchorBlue} />
+            <Ionicons name="logo-youtube" size={18} color={Colors.sage} />
           </View>
           <Text style={[styles.menuText, font]}>YouTube</Text>
           <Text style={[styles.menuValueText, font]}>@sifiaapp</Text>
@@ -1553,7 +1553,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           accessibilityLabel="Open Terms of Service"
         >
           <View style={styles.menuIconBox}>
-            <Ionicons name="document-text" size={18} color={Colors.anchorBlue} />
+            <Ionicons name="document-text" size={18} color={Colors.sage} />
           </View>
           <Text style={[styles.menuText, font]}>Terms of Service</Text>
           <Ionicons name="chevron-forward" size={20} color={theme.colors.chevronColor} />
@@ -1565,7 +1565,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           accessibilityLabel="Open Privacy Policy"
         >
           <View style={styles.menuIconBox}>
-            <Ionicons name="lock-closed" size={18} color={Colors.anchorBlue} />
+            <Ionicons name="lock-closed" size={18} color={Colors.sage} />
           </View>
           <Text style={[styles.menuText, font]}>Privacy Policy</Text>
           <Ionicons name="chevron-forward" size={20} color={theme.colors.chevronColor} />
@@ -1584,7 +1584,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           accessibilityLabel="Open Frequently Asked Questions"
         >
           <View style={styles.menuIconBox}>
-            <Ionicons name="help-circle" size={18} color={Colors.anchorBlue} />
+            <Ionicons name="help-circle" size={18} color={Colors.sage} />
           </View>
           <Text style={[styles.menuText, font]}>FAQ</Text>
           <Ionicons name="chevron-forward" size={20} color={theme.colors.chevronColor} />
@@ -1595,7 +1595,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           onPress={() => { try { triggerLightHaptic(); } catch {} setFeatureModal(true); }}
         >
           <View style={styles.menuIconBox}>
-            <Ionicons name="bulb" size={18} color={Colors.anchorBlue} />
+            <Ionicons name="bulb" size={18} color={Colors.sage} />
           </View>
           <Text style={[styles.menuText, font]}>Suggest a Feature</Text>
           <Ionicons name="chevron-forward" size={20} color={theme.colors.chevronColor} />
@@ -1606,7 +1606,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           onPress={() => { try { triggerLightHaptic(); } catch {} setReportBugModal(true); }}
         >
           <View style={styles.menuIconBox}>
-            <Ionicons name="bug" size={18} color={Colors.anchorBlue} />
+            <Ionicons name="bug" size={18} color={Colors.sage} />
           </View>
           <Text style={[styles.menuText, font]}>Report a Bug</Text>
           <Ionicons name="chevron-forward" size={20} color={theme.colors.chevronColor} />
@@ -1627,7 +1627,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           }}
         >
           <View style={styles.menuIconBox}>
-            <Ionicons name="notifications" size={18} color={Colors.anchorBlue} />
+            <Ionicons name="notifications" size={18} color={Colors.sage} />
           </View>
           <Text style={[styles.menuText, font]}>Notifications</Text>
           <Ionicons name="chevron-forward" size={20} color={theme.colors.chevronColor} />
@@ -1639,7 +1639,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           disabled={isSavingCalendarAutoSync}
         >
           <View style={styles.menuIconBox}>
-            <Ionicons name="calendar-outline" size={18} color={Colors.anchorBlue} />
+            <Ionicons name="calendar-outline" size={18} color={Colors.sage} />
           </View>
           <Text style={[styles.menuText, font]}>Auto-sync to Calendar</Text>
           <TouchableOpacity
@@ -1667,7 +1667,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           }}
         >
           <View style={styles.menuIconBox}>
-            <Ionicons name="shield-checkmark" size={18} color={Colors.anchorBlue} />
+            <Ionicons name="shield-checkmark" size={18} color={Colors.sage} />
           </View>
           <Text style={[styles.menuText, font]}>System Permissions</Text>
           <Ionicons name="chevron-forward" size={20} color={theme.colors.chevronColor} />
@@ -1715,7 +1715,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
             onPress={handleSubscriptionTap}
           >
             <View style={styles.menuIconBox}>
-              <Ionicons name="diamond" size={18} color={Colors.anchorBlue} />
+              <Ionicons name="diamond" size={18} color={Colors.sage} />
             </View>
             <View style={styles.flex1}>
               <Text style={[styles.menuText, font]}>{tierDisplayName}</Text>
@@ -1733,7 +1733,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
             onPress={() => { try { triggerLightHaptic(); } catch {} handleRestorePurchases(); }}
           >
             <View style={styles.menuIconBox}>
-              <Ionicons name="refresh" size={18} color={Colors.anchorBlue} />
+              <Ionicons name="refresh" size={18} color={Colors.sage} />
             </View>
             <Text style={[styles.menuText, font]}>{Platform.OS === 'android' ? 'Sync Purchases' : 'Restore Purchases'}</Text>
             <Ionicons name="chevron-forward" size={20} color={theme.colors.chevronColor} />
@@ -1752,7 +1752,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           onPress={() => { try { triggerLightHaptic(); } catch {} setBibleVersionModal(true); }}
         >
           <View style={styles.menuIconBox}>
-            <Ionicons name="book" size={18} color={Colors.anchorBlue} />
+            <Ionicons name="book" size={18} color={Colors.sage} />
           </View>
           <Text style={[styles.menuText, font]}>Bible Version</Text>
           <Ionicons name="chevron-forward" size={20} color={theme.colors.chevronColor} />
@@ -1763,7 +1763,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           onPress={() => { try { triggerLightHaptic(); } catch {} setWeekStartModal(true); }}
         >
           <View style={styles.menuIconBox}>
-            <Ionicons name="calendar" size={18} color={Colors.anchorBlue} />
+            <Ionicons name="calendar" size={18} color={Colors.sage} />
           </View>
           <Text style={[styles.menuText, font]}>Week Start</Text>
           <Ionicons name="chevron-forward" size={20} color={'rgba(255,255,255,0.85)'} />
@@ -1774,7 +1774,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           onPress={() => { try { triggerLightHaptic(); } catch {} setAppearanceModal(true); }}
         >
           <View style={styles.menuIconBox}>
-            <Ionicons name="color-palette" size={18} color={Colors.anchorBlue} />
+            <Ionicons name="color-palette" size={18} color={Colors.sage} />
           </View>
           <Text style={[styles.menuText, font]}>Appearance</Text>
           <Ionicons name="chevron-forward" size={20} color={'rgba(255,255,255,0.85)'} />
@@ -1785,7 +1785,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           onPress={() => { try { triggerLightHaptic(); } catch {} setSettingsModal(true); }}
         >
           <View style={styles.menuIconBox}>
-            <Ionicons name="pulse" size={18} color={Colors.anchorBlue} />
+            <Ionicons name="pulse" size={18} color={Colors.sage} />
           </View>
           <Text style={[styles.menuText, font]}>Haptics</Text>
           <TouchableOpacity
@@ -1809,7 +1809,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           onPress={() => { try { triggerLightHaptic(); } catch {} setSettingsModal(true); }}
         >
           <View style={styles.menuIconBox}>
-            <Ionicons name="volume-high" size={18} color={Colors.anchorBlue} />
+            <Ionicons name="volume-high" size={18} color={Colors.sage} />
           </View>
           <Text style={[styles.menuText, font]}>Sounds</Text>
           <TouchableOpacity
@@ -1833,7 +1833,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           onPress={() => { try { triggerLightHaptic(); } catch {} onToggleShowTabLabels(!showTabLabelsEnabled); }}
         >
           <View style={styles.menuIconBox}>
-            <Ionicons name="albums" size={18} color={Colors.anchorBlue} />
+            <Ionicons name="albums" size={18} color={Colors.sage} />
           </View>
           <Text style={[styles.menuText, font]}>Show Tab Labels</Text>
           <TouchableOpacity
@@ -1874,7 +1874,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
             accessibilityLabel="Open Admin Dashboard"
           >
             <View style={styles.menuIconBox}>
-              <Ionicons name="stats-chart" size={18} color={Colors.anchorBlue} />
+              <Ionicons name="stats-chart" size={18} color={Colors.sage} />
             </View>
             <Text style={[styles.menuText, font]}>Subscription Dashboard</Text>
             <Ionicons name="chevron-forward" size={20} color={theme.colors.chevronColor} />
@@ -2733,7 +2733,7 @@ const styles = StyleSheet.create({
     zIndex: 0,
     elevation: 0,
     marginTop: 0,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingHorizontal: 12,
@@ -2795,7 +2795,7 @@ const styles = StyleSheet.create({
   },
   headerGradient: {
     paddingBottom: 20,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
   },
   profileHeader: {
     flexDirection: 'row',
@@ -2967,7 +2967,7 @@ const styles = StyleSheet.create({
   },
   badgePoints: {
     fontSize: 10,
-    color: Colors.anchorBlue,
+    color: Colors.sage,
     fontWeight: '500',
   },
   menuContainer: {
@@ -3027,7 +3027,7 @@ const styles = StyleSheet.create({
   },
   modalContainer: {
     flex: 1,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -3215,7 +3215,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   timePickerContainer: {
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     borderRadius: 30,
     padding: 20,
     width: '85%',
@@ -3319,7 +3319,7 @@ const styles = StyleSheet.create({
   usageNumbers: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: Colors.anchorBlue,
+    color: Colors.sage,
     marginBottom: 4,
   },
   usageLabel: {
@@ -3327,7 +3327,7 @@ const styles = StyleSheet.create({
     color: Colors.textGray,
   },
   upgradeButton: {
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -3430,7 +3430,7 @@ const styles = StyleSheet.create({
   },
   progressValue: {
     height: 8,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     borderRadius: 6,
   },
   progressValueAlt: {
@@ -3519,7 +3519,7 @@ const styles = StyleSheet.create({
     height: 12,
   },
   twitterIconText: {
-    color: Colors.anchorBlue,
+    color: Colors.sage,
     fontSize: 16,
     fontWeight: '800',
   },
@@ -3617,7 +3617,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   modalCard: {
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     borderRadius: 48,
     width: '100%',
     maxWidth: 400,

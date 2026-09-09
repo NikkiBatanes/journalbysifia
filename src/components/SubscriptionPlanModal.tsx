@@ -877,7 +877,7 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
   },
   header: {
     flexDirection: 'row',
@@ -885,7 +885,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingVertical: 16,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     width: '100%',
   },
   backButton: {
@@ -911,7 +911,7 @@ const styles = StyleSheet.create({
     paddingBottom: 15,
   },
   stickyFooter: {
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     paddingHorizontal: 24,
     paddingVertical: 16,
     borderTopWidth: 1,

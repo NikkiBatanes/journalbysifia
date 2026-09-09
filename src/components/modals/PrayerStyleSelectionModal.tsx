@@ -344,7 +344,7 @@ export const PrayerStyleSelectionModal: React.FC<PrayerStyleSelectionModalProps>
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
   },
   header: {
     flexDirection: 'row',
@@ -354,7 +354,7 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     paddingBottom: 20,
     zIndex: 1000,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
   },
   headerButton: {
     padding: 8,

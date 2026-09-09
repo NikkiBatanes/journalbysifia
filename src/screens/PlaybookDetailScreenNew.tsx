@@ -228,7 +228,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
   const cardPadding = isTablet ? 44 : 64; // 22px padding on each side for iPad header
   const maxCardWidth = Math.min(windowWidth - cardPadding, 660);
   // Status bar: force light icons (white) on dark header background
-  useScreenStatusBar('dark', Colors.anchorBlue);
+  useScreenStatusBar('dark', Colors.sage);
   // Measure header height so we can place the card overlay precisely below it
   const [_headerMeasuredHeight, setHeaderMeasuredHeight] = useState(0);
   const [playbookHeaderHeight, setPlaybookHeaderHeight] = useState(0);
@@ -1341,7 +1341,7 @@ const PlaybookDetailScreen: React.FC<PlaybookScreenProps> = ({ route, navigation
       headerShown: false, // hide native header; screen will control its own header/z-order
       headerTransparent: false,
       headerStyle: {
-        backgroundColor: Colors.anchorBlue,
+        backgroundColor: Colors.sage,
         height: 50, // Reduced from default ~60
       },
       headerTitleStyle: {
@@ -2156,7 +2156,7 @@ interface PlaybookDetailStyles {
 const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
   container: {
     flex: 1,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     position: 'relative',
   },
   contentContainer: {
@@ -2234,7 +2234,7 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
     // pointerEvents is set on the View usage; style kept purely for layout
   },
   compactHeaderContainer: {
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     right: 0,
     alignItems: 'center',
     paddingHorizontal: 20,
@@ -2320,7 +2320,7 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
     opacity: 0.7,
   },
   headerSafeArea: {
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     // Ensure children can visually overflow without being clipped
     overflow: 'visible',
   },
@@ -2330,7 +2330,7 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
     justifyContent: 'center',
     paddingHorizontal: 16,
     paddingVertical: 2,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     marginBottom: -6,
     // Allow profile to render above any overlapping elements
     overflow: 'visible',
@@ -2365,7 +2365,7 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
     alignSelf: 'center',
     marginBottom: 24,
     borderRadius: 28,
-    backgroundColor: '#1A3C6D',
+    backgroundColor: 'Colors.sage',
     overflow: 'hidden',
     padding: 24,
   },
@@ -2446,7 +2446,7 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
     borderRadius: 3,
   },
   userInputCard: {
-    backgroundColor: '#1A3C6D',
+    backgroundColor: 'Colors.sage',
     borderRadius: 8,
     padding: 12,
     marginTop: 8,
@@ -2496,25 +2496,25 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
     marginHorizontal: 4,
   },
   truthCard: {
-    backgroundColor: '#1A3C6D',
+    backgroundColor: 'Colors.sage',
     borderRadius: 28,
     marginBottom: 16,
     padding: 24,
   },
   actionCard: {
-    backgroundColor: '#1A3C6D',
+    backgroundColor: 'Colors.sage',
     borderRadius: 28,
     marginBottom: 16,
     padding: 24,
   },
   affirmationsCard: {
-    backgroundColor: '#1A3C6D',
+    backgroundColor: 'Colors.sage',
     borderRadius: 28,
     marginBottom: 16,
     padding: 24,
   },
   bibleCard: {
-    backgroundColor: '#1A3C6D',
+    backgroundColor: 'Colors.sage',
     borderRadius: 28,
     marginBottom: 16,
     padding: 24,
@@ -2669,7 +2669,7 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
     textAlign: 'left',
   },
   affirmationCardStyle: {
-    backgroundColor: '#1A3C6D',
+    backgroundColor: 'Colors.sage',
   },
   expandedCardPadding: {
     // paddingBottom applied inline based on orientation
@@ -2683,15 +2683,15 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
     backgroundColor: 'transparent',
   },
   cardContainerLarge: {
-    backgroundColor: '#1A3C6D',
+    backgroundColor: 'Colors.sage',
     padding: 24,
   },
   cardContainerMedium: {
-    backgroundColor: '#1A3C6D',
+    backgroundColor: 'Colors.sage',
     padding: 24,
   },
   cardContainerMinimal: {
-    backgroundColor: '#1A3C6D',
+    backgroundColor: 'Colors.sage',
     padding: 24,
   },
   // Affirmations styles (stack view)

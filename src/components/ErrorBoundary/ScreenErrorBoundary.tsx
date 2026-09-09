@@ -146,20 +146,20 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontFamily: Fonts.bold,
-    color: Colors.anchorBlue,
+    color: Colors.sage,
     marginBottom: 12,
     textAlign: 'center',
   },
   message: {
     fontSize: 16,
     fontFamily: Fonts.regular,
-    color: Colors.anchorBlue,
+    color: Colors.sage,
     textAlign: 'center',
     marginBottom: 32,
     lineHeight: 24,
   },
   button: {
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     paddingHorizontal: 32,
     paddingVertical: 16,
     borderRadius: 12,

@@ -273,7 +273,7 @@ const styles = StyleSheet.create({
   editButton: {
     flex: 1,
     height: '100%',
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     justifyContent: 'center',
     alignItems: 'center',
     paddingLeft: 12,

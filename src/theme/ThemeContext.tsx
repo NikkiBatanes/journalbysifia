@@ -11,6 +11,8 @@ export interface Theme {
   colors: {
     // Core brand colors
     anchorBlue: string;
+    sage: string;
+    sageMuted: string;
     anchorBlueLight: string;
     modalBlue: string;
     faithGold: string;

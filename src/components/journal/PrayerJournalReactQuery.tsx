@@ -1128,7 +1128,7 @@ const styles = StyleSheet.create({
     borderRadius: 12, // Match the card border radius
   },
   prayerItemAnswered: {
-    backgroundColor: '#1A3C6D',
+    backgroundColor: 'Colors.sage',
   },
   prayerText: {
     fontSize: 16,
@@ -1191,7 +1191,7 @@ const styles = StyleSheet.create({
   editActionBtn: {
     flex: 1, // Fill all space left of delete button
     height: '100%',
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     justifyContent: 'center',
     alignItems: 'center',
     paddingLeft: 12, // Add padding to move icon to the right

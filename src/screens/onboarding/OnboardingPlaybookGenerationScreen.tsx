@@ -874,7 +874,7 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
   return (
     <OnboardingErrorBoundary>
       <SafeAreaView style={styles.container}>
-        <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
+        <StatusBar barStyle="light-content" backgroundColor={Colors.sage} />
 
       <Animated.View
         style={[styles.content, { opacity: fadeAnim }]}
@@ -992,7 +992,7 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
   },
   content: {
     flex: 1,
@@ -1207,7 +1207,7 @@ const styles = StyleSheet.create({
   },
   retryButtonText: {
     fontSize: 16,
-    color: Colors.anchorBlue,
+    color: Colors.sage,
   },
   successTitle: {
     fontSize: 24,
@@ -1307,7 +1307,7 @@ const styles = StyleSheet.create({
   },
   continueButtonText: {
     fontSize: 16,
-    color: Colors.anchorBlue,
+    color: Colors.sage,
   },
   buttonIcon: {
     marginLeft: 8,

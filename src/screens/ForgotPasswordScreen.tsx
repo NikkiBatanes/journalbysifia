@@ -87,7 +87,7 @@ const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
+      <StatusBar barStyle="light-content" backgroundColor={Colors.sage} />
       <ScrollView
         contentContainerStyle={styles.scrollContainer}
         showsVerticalScrollIndicator={false}
@@ -143,7 +143,7 @@ const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
               disabled={loading}
             >
               {loading ? (
-                <ActivityIndicator color={Colors.anchorBlue} />
+                <ActivityIndicator color={Colors.sage} />
               ) : (
                 <ThemedText weight="bold" style={styles.resetButtonText}>
                   Send Reset Link
@@ -166,7 +166,7 @@ const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
   },
   scrollContainer: {
     flexGrow: 1,

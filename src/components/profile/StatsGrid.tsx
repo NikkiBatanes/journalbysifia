@@ -22,7 +22,7 @@ const StatsGrid: React.FC<Props> = ({ title = 'Your Journey', stats }) => {
       <Text style={styles.sectionTitle}>{title}</Text>
       <View style={styles.statsGrid}>
         <View style={styles.statCard}>
-          <Ionicons name="trophy" size={24} color={Colors.anchorBlue} />
+          <Ionicons name="trophy" size={24} color={Colors.sage} />
           <Text style={styles.statNumber}>{stats.totalBadges || 0}</Text>
           <Text style={styles.statLabel}>Badges</Text>
         </View>

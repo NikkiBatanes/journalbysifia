@@ -265,7 +265,7 @@ export const PeoplePrayerModal: React.FC<PeoplePrayerModalProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
   },
   header: {
     flexDirection: 'row',

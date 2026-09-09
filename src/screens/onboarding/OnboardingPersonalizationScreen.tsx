@@ -374,7 +374,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
       paddingHorizontal: 20,
       marginTop: -30,
       marginBottom: isVerySmallPhone ? 15 : (isSmallPhone ? 20 : 30),
-      backgroundColor: Colors.anchorBlue,
+      backgroundColor: Colors.sage,
     },
     scrollContainer: {
       flex: 1,
@@ -1998,7 +1998,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
         keyboardVerticalOffset={Platform.select({ ios: -70, android: 0 })}
         enabled={false}
       >
-        <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
+        <StatusBar barStyle="light-content" backgroundColor={Colors.sage} />
         <View style={{ flex: 1, width: contentWidth }}>
       {/* ── Center area: header only (or generating state) ─────────────── */}
       <View style={styles.content}>
@@ -2554,7 +2554,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
   },
   content: {
     flex: 1,
@@ -2642,7 +2642,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     marginBottom: 30,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
   },
   title: {
     fontSize: 28,
@@ -2661,7 +2661,7 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     flex: 1,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     paddingTop: 0,
   },
   scrollArea: {
@@ -2678,7 +2678,7 @@ const styles = StyleSheet.create({
   challengeDetailsStepContainer: {
     flex: 1,
     width: '100%',
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     paddingHorizontal: 12,
     paddingTop: 8,
     paddingBottom: 24,
@@ -2793,7 +2793,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 24,
     paddingBottom: 18,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.14)',
     shadowColor: '#29342E',
@@ -3080,7 +3080,7 @@ const styles = StyleSheet.create({
     overflow: 'visible',
   },
   footer: {
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     paddingHorizontal: 12,
     paddingTop: 8,
   },
@@ -3324,7 +3324,7 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   helperSelectorContainer: {
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     borderRadius: 28,
     padding: 20,
     width: '100%',
@@ -3528,7 +3528,7 @@ const styles = StyleSheet.create({
     marginRight: 16,
   },
   stepActive: {
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.2)',
   },

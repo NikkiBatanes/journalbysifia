@@ -144,7 +144,7 @@ const ResetPasswordScreen: React.FC<Props> = ({ navigation, route }) => {
   if (!accessToken) {
     return (
       <View style={styles.container}>
-        <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
+        <StatusBar barStyle="light-content" backgroundColor={Colors.sage} />
         <ActivityIndicator size="large" color={Colors.alertCoral} />
       </View>
     );
@@ -155,7 +155,7 @@ const ResetPasswordScreen: React.FC<Props> = ({ navigation, route }) => {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
+      <StatusBar barStyle="light-content" backgroundColor={Colors.sage} />
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
 
         {/* Header */}
@@ -254,7 +254,7 @@ const ResetPasswordScreen: React.FC<Props> = ({ navigation, route }) => {
             disabled={loading}
           >
             {loading ? (
-              <ActivityIndicator color={Colors.anchorBlue} />
+              <ActivityIndicator color={Colors.sage} />
             ) : (
               <ThemedText weight="bold" style={styles.resetButtonText}>Update Password</ThemedText>
             )}
@@ -277,7 +277,7 @@ const ResetPasswordScreen: React.FC<Props> = ({ navigation, route }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
   },
   scrollContent: {
     flexGrow: 1,
@@ -392,7 +392,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontFamily: Fonts.system.semiBold,
     fontWeight: '600',
-    color: Colors.anchorBlue,
+    color: Colors.sage,
   },
   backToLoginContainer: {
     flexDirection: 'row',

@@ -17,7 +17,7 @@ export const createOnboardingStyles = (fonts: {
   // Container Styles
   container: {
     flex: 1,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     alignItems: 'center',
   },
 
@@ -399,7 +399,7 @@ export const OnboardingSpacing = {
 
 // Color Variants for Onboarding
 export const OnboardingColors = {
-  primary: Colors.anchorBlue,
+  primary: Colors.sage,
   accent: Colors.alertCoral,
   text: Colors.hopeWhite,
   textSecondary: 'rgba(255, 255, 255, 0.8)',

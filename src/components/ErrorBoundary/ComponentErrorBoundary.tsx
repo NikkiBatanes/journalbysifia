@@ -88,13 +88,13 @@ const styles = StyleSheet.create({
   errorMessage: {
     fontSize: 14,
     fontFamily: Fonts.regular,
-    color: Colors.anchorBlue,
+    color: Colors.sage,
     textAlign: 'center',
     marginBottom: 20,
     opacity: 0.8,
   },
   retryButton: {
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 20,

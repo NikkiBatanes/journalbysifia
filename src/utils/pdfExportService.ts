@@ -319,7 +319,7 @@ class PDFExportService {
             .page-meta {
               text-align: right;
               font-size: 12px;
-              color: #1A3C6D;
+              color: #526A5B;
               margin-bottom: 8px;
               font-weight: 600;
             }
@@ -344,7 +344,7 @@ class PDFExportService {
             
             h1 {
               font-size: 26px;
-              color: #1A3C6D;
+              color: #526A5B;
               margin: 14px 0 4px 0;
               font-weight: 700;
               line-height: 1.3;
@@ -364,7 +364,7 @@ class PDFExportService {
             .section-title {
               font-size: 16px;
               font-weight: 600;
-              color: #1A3C6D;
+              color: #526A5B;
               margin-bottom: 8px;
               text-transform: uppercase;
               letter-spacing: 0.04em;
@@ -412,7 +412,7 @@ class PDFExportService {
             .verse-reference {
               font-size: 12px;
               font-weight: 700;
-              color: #1A3C6D;
+              color: #526A5B;
               text-align: right;
               margin-top: 12px;
             }
@@ -457,7 +457,7 @@ class PDFExportService {
             .action-step-title {
               font-size: 14px;
               font-weight: 600;
-              color: #1A3C6D;
+              color: #526A5B;
               text-transform: uppercase;
               letter-spacing: 0.5px;
               flex: 1;
@@ -688,7 +688,7 @@ class PDFExportService {
             .footer-logo {
               font-size: 18px;
               font-weight: 700;
-              color: #1A3C6D;
+              color: #526A5B;
               margin-bottom: 8px;
             }
             

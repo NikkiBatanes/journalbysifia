@@ -139,7 +139,7 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 720,
     height: '92%',
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     overflow: 'hidden',

@@ -900,7 +900,7 @@ const styles = StyleSheet.create({
     height: CARD_HEIGHT,
     borderRadius: 22,
     overflow: 'hidden',
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
   },
   templateLoading: {
     alignItems: 'center',
@@ -914,7 +914,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   anchorBackground: {
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
   },
   cardContent: {
     flex: 1,

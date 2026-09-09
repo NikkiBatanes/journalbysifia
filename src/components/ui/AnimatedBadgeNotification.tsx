@@ -134,7 +134,7 @@ const AnimatedBadgeNotification: React.FC<AnimatedBadgeNotificationProps> = ({ b
       case 'legendary':
         return Colors.faithGold;
       default:
-        return Colors.anchorBlue;
+        return Colors.sage;
     }
   };
 
@@ -315,7 +315,7 @@ const styles = StyleSheet.create({
     elevation: 999999999,
   },
   notificationBox: {
-    backgroundColor: '#1a3c6d',
+    backgroundColor: 'Colors.sage',
     borderRadius: 24,
     padding: 16,
     borderWidth: 0.5,

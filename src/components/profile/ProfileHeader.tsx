@@ -279,7 +279,7 @@ const styles = StyleSheet.create({
   userName: {
     fontSize: 20,
     fontWeight: '700',
-    color: Colors.anchorBlue,
+    color: Colors.sage,
     marginBottom: 4,
   },
   planPill: {
@@ -397,7 +397,7 @@ const styles = StyleSheet.create({
   levelText: {
     fontSize: 14,
     fontWeight: '700',
-    color: Colors.anchorBlue,
+    color: Colors.sage,
     opacity: 0.9,
   },
   progressBar: {
@@ -415,7 +415,7 @@ const styles = StyleSheet.create({
   faithPointsText: {
     fontSize: 12,
     fontWeight: '500',
-    color: Colors.anchorBlue,
+    color: Colors.sage,
     marginTop: 4,
   },
   // Skeleton styles

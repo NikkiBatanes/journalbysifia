@@ -27,7 +27,7 @@ export default function SwipeUpIndicator() {
   return (
     <View style={styles.container} pointerEvents="none">
       <Animated.View style={[styles.iconContainer, animatedStyle]}>
-        <Ionicons name="chevron-up" size={32} color={Colors.anchorBlue} style={styles.icon} />
+        <Ionicons name="chevron-up" size={32} color={Colors.sage} style={styles.icon} />
       </Animated.View>
       <Text style={styles.text}>Tap the card or Swipe up to continue</Text>
     </View>
@@ -47,7 +47,7 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   text: {
-    color: Colors.anchorBlue,
+    color: Colors.sage,
     fontSize: 13,
     opacity: 0.85,
     fontWeight: '600',

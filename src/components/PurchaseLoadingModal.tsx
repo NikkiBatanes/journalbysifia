@@ -109,7 +109,7 @@ export const PurchaseLoadingModal: React.FC<PurchaseLoadingModalProps> = ({
   const stepInfo = getStepInfo();
 
   // Compute dynamic styles to avoid inline style warnings
-  const modalBackgroundColor = '#1A3C6D'; // Solid anchor blue
+  const modalBackgroundColor = 'Colors.sage'; // Solid anchor blue
   const iconContainerBackgroundColor = Colors.alertCoral + '26'; // Alert coral with 15% opacity
   const progressBarBackgroundColor = '#526A5B'; // Always growth green for consistency
   const progressBarContainerBackgroundColor = 'rgba(248, 249, 250, 0.2)'; // Light background for progress bar

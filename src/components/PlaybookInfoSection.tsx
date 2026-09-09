@@ -50,7 +50,7 @@ const PlaybookInfoSection: React.FC<PlaybookInfoSectionProps> = ({
             <Ionicons
               name="chevron-down"
               size={15}
-              color={Colors.anchorBlue}
+              color={Colors.sage}
             />
           </Animated.View>
         </TouchableOpacity>

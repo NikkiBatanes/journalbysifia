@@ -278,7 +278,7 @@ const UsageTooltipModal: React.FC<Props> = ({
           title: 'Info',
           description: 'No information available.',
           icon: 'information',
-          iconColor: Colors.anchorBlue,
+          iconColor: Colors.sage,
         };
     }
   };
@@ -451,7 +451,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalContainer: {
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.sage,
     borderRadius: 24,
     padding: 20,
     maxWidth: 340,
