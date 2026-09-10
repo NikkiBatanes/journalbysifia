@@ -14,7 +14,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 
 import ThemedText from '../../components/common/ThemedText';
 import { Colors } from '../../theme/colors';
@@ -133,7 +132,9 @@ const EmotionCheckInScreen = () => {
     if (!selected) { return; }
     triggerMediumHaptic();
     navigation.navigate('UnderneathIt', {
-      feeling: selected?.name,
+      feeling: selected.name,
+      feelingIcon: selected.icon,
+      feelingIconType: selected.iconType,
       morningFlow: route.params?.morningFlow === true,
     });
   }, [navigation, route.params?.morningFlow, selected]);
@@ -175,7 +176,7 @@ const EmotionCheckInScreen = () => {
       >
         <StepFadeIn delay={0}>
           <View style={styles.focusLabelContainer}>
-            <MaterialIcons name="favorite-border" size={16} color={Colors.sage} style={styles.labelIcon} />
+            <MaterialCommunityIcons name="weather-sunset-up" size={16} color={Colors.sage} style={styles.labelIcon} />
             <ThemedText weight="semiBold" style={styles.focusLabel}>MORNING CHECK-IN</ThemedText>
           </View>
         </StepFadeIn>

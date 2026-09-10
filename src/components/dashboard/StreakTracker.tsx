@@ -62,9 +62,13 @@ const StreakTracker: React.FC<StreakTrackerProps> = ({
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
-  const [streaks, setStreaks] = useState<Streak[]>([]);
+  const [streaks, setStreaks] = useState<Streak[]>([
+    { id: 'playbook', type: 'playbook', currentStreak: 0, longestStreak: 0, lastActivity: '', isActive: false },
+    { id: 'devotional', type: 'devotional', currentStreak: 0, longestStreak: 0, lastActivity: '', isActive: false },
+    { id: 'journal', type: 'journal', currentStreak: 0, longestStreak: 0, lastActivity: '', isActive: false },
+    { id: 'prayer', type: 'prayer', currentStreak: 0, longestStreak: 0, lastActivity: '', isActive: false },
+  ]);
   const [activities, setActivities] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Streak | null>(null);
   const [profileStat, setProfileStat] = useState<'faithPoints' | 'badges' | null>(null);
   const [sheetVisible, setSheetVisible] = useState(false);
@@ -164,8 +168,6 @@ const StreakTracker: React.FC<StreakTrackerProps> = ({
     if (!user) {return;}
 
     try {
-      setLoading(true);
-
       // Fetch user activity data for streak calculation
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
@@ -192,8 +194,6 @@ const StreakTracker: React.FC<StreakTrackerProps> = ({
 
     } catch (err) {
       Logger.error('Error fetching streaks', err as Error, { component: 'StreakTracker' });
-    } finally {
-      setLoading(false);
     }
   }, [user, calculateStreaks]);
 
@@ -483,25 +483,6 @@ const StreakTracker: React.FC<StreakTrackerProps> = ({
       }
     });
   };
-
-  if (loading) {
-    return (
-      <View style={[styles.container, showProfileStats && styles.profileContainer, isPill && styles.pillContainer]}>
-        <View style={[styles.header, isPill && styles.pillHeader]}>
-          <MaterialCommunityIcons name="fire" size={isPill ? 18 : 24} color={isPill ? Colors.hopeWhite : Colors.alertCoral} />
-          <ThemedText weight="semiBold" style={[styles.title, isPill && styles.pillTitle]}>Streak Tracker</ThemedText>
-        </View>
-        <View style={[styles.grid, isPill && styles.pillGrid, { paddingHorizontal: isPill ? 0 : CONTENT_HORIZONTAL_PADDING }]}>
-          {(showProfileStats ? [1, 2, 3, 4, 5, 6] : [1, 2, 3, 4]).map((i) => (
-            <View key={i} style={[styles.chip, useCompactChips && styles.pillChip, styles.chipLoading, !useCompactChips && { width: chipWidth }]}>
-              <MaterialCommunityIcons name="fire" size={18} color={Colors.textGray} />
-              <ThemedText weight="semiBold" style={styles.streakNumber}>-</ThemedText>
-            </View>
-          ))}
-        </View>
-      </View>
-    );
-  }
 
   return (
     <View style={[styles.container, showProfileStats && styles.profileContainer, isPill && styles.pillContainer]}>

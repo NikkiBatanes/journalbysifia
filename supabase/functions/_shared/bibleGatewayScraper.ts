@@ -43,6 +43,7 @@ interface ScrapedVerse {
   reference: string;
   version: string;
   timestamp: number;
+  verses?: { number: string; lines: string[] }[];
 }
 
 interface CacheEntry {
@@ -394,6 +395,67 @@ class BibleGatewayScraper {
   }
 
   /**
+   * Extract Psalm verses with line breaks and verse numbers for formatted display
+   */
+  private extractPsalmVerses(html: string): { number: string; lines: string[] }[] | undefined {
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    if (!doc) { return undefined; }
+
+    const passageDiv = doc.querySelector('.passage-content');
+    if (!passageDiv) { return undefined; }
+
+    // Remove passage title, headings, footnotes, and cross-references
+    passageDiv.querySelector('.passage-title')?.remove();
+    passageDiv.querySelectorAll('h1, h2, h3, h4, h5, h6, .footnote, .crossreference').forEach((node: Node) => {
+      (node as Element).remove();
+    });
+
+    const poetryDivs = passageDiv.querySelectorAll('.poetry');
+    if (!poetryDivs.length) { return undefined; }
+
+    const verseMap = new Map<string, { number?: string; lines: string[] }>();
+    const keys: string[] = [];
+
+    for (const poetry of poetryDivs) {
+      const textSpans = (poetry as Element).querySelectorAll('.text');
+      for (const span of textSpans) {
+        const el = span as Element;
+        const className = el.getAttribute('class') || '';
+        const match = className.match(/\bPs-\d+-(\d+)\b/);
+        if (!match) { continue; }
+
+        const key = match[0];
+        if (!verseMap.has(key)) {
+          verseMap.set(key, { lines: [] });
+          keys.push(key);
+        }
+
+        const entry = verseMap.get(key)!;
+        const numEl = el.querySelector('.chapternum, .versenum');
+        const number = numEl ? (numEl as Element).textContent?.trim() : undefined;
+
+        let lineText = el.textContent?.trim() || '';
+        if (entry.lines.length === 0 && number) {
+          const escaped = number.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          lineText = lineText.replace(new RegExp(`^${escaped}\\s*`), '').trim();
+          entry.number = number;
+        }
+
+        if (lineText) {
+          entry.lines.push(lineText);
+        }
+      }
+    }
+
+    return keys
+      .map(key => {
+        const entry = verseMap.get(key)!;
+        return { number: entry.number || '', lines: entry.lines };
+      })
+      .filter(v => v.lines.length > 0);
+  }
+
+  /**
    * Scrape a Bible verse from BibleGateway
    */
   async scrapeVerse(reference: string, version: string): Promise<ScrapedVerse> {
@@ -421,6 +483,10 @@ class BibleGatewayScraper {
     // Extract verse text
     const { text, startVerse, endVerse } = this.extractVerseText(html);
 
+    // Extract formatted Psalm verses only when scraping a Psalm
+    const isPsalm = /psalm/i.test(reference);
+    const verses = isPsalm ? this.extractPsalmVerses(html) : undefined;
+
     let actualReference = reference;
     if (startVerse !== undefined) {
       const bookChapterMatch = reference.match(/^([1-3]?\s?[A-Za-z ]+\s\d+)/);
@@ -440,6 +506,7 @@ class BibleGatewayScraper {
       reference: actualReference,
       version,
       timestamp: Date.now(),
+      verses,
     };
 
     // Cache the result

@@ -14,7 +14,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
 import ThemedText from '../../components/common/ThemedText';
 import { Colors } from '../../theme/colors';
@@ -68,6 +68,8 @@ const UnderneathItScreen = () => {
   const { width: screenWidth } = useWindowDimensions();
   const route = useRoute<any>();
   const feeling = route.params?.feeling as string | undefined;
+  const feelingIcon = route.params?.feelingIcon as string | undefined;
+  const feelingIconType = route.params?.feelingIconType as 'ionicons' | 'material' | undefined;
   const morningFlow = route.params?.morningFlow === true;
   const [text, setText] = useState('');
   useMorningStatusBar();
@@ -120,6 +122,8 @@ const UnderneathItScreen = () => {
         morningFlow: true,
         selectedDate: new Date().toISOString(),
         feeling,
+        feelingIcon,
+        feelingIconType,
         underneath: text,
       });
       return;
@@ -127,10 +131,12 @@ const UnderneathItScreen = () => {
 
     navigation.navigate('MorningClosing', {
       feeling,
+      feelingIcon,
+      feelingIconType,
       underneath: text,
       standalone: true,
     });
-  }, [feeling, morningFlow, navigation, text]);
+  }, [feeling, feelingIcon, feelingIconType, morningFlow, navigation, text]);
 
   // Horizontal swipe to advance / go back, same as Today\'s Focus
   const panResponder = React.useMemo(
@@ -170,7 +176,7 @@ const UnderneathItScreen = () => {
       >
         <StepFadeIn delay={0}>
           <View style={styles.focusLabelContainer}>
-            <MaterialIcons name="favorite-border" size={16} color={Colors.sage} style={styles.labelIcon} />
+            <MaterialCommunityIcons name="weather-sunset-up" size={16} color={Colors.sage} style={styles.labelIcon} />
             <ThemedText weight="semiBold" style={styles.focusLabel}>MORNING CHECK-IN</ThemedText>
           </View>
         </StepFadeIn>
@@ -188,7 +194,7 @@ const UnderneathItScreen = () => {
             style={[styles.personalInput, { fontFamily: getFontFamily(fontKey, 'regular') }]}
             value={text}
             onChangeText={setText}
-            placeholder="If there's more beneath the surface, let it out here..."
+            placeholder="Take a moment to notice what’s on your heart."
             placeholderTextColor={Colors.textGray}
             multiline
             textAlignVertical="top"
@@ -201,7 +207,21 @@ const UnderneathItScreen = () => {
           <View style={styles.metadataContainer}>
             <Animated.View style={[styles.verticalLine, { height: verticalLineHeight }]} />
             <View style={styles.metadataContent}>
-              <Ionicons name="heart-outline" size={18} color={Colors.sage} style={styles.metadataIcon} />
+              {feelingIconType === 'material' && feelingIcon ? (
+                <MaterialCommunityIcons
+                  name={feelingIcon as any}
+                  size={18}
+                  color={Colors.sage}
+                  style={styles.metadataIcon}
+                />
+              ) : (
+                <Ionicons
+                  name={(feelingIcon || 'heart-outline') as any}
+                  size={18}
+                  color={Colors.sage}
+                  style={styles.metadataIcon}
+                />
+              )}
               <ThemedText weight="medium" style={styles.fromText}>
                 FEELING
               </ThemedText>
@@ -213,7 +233,7 @@ const UnderneathItScreen = () => {
                 )}
               </ThemedText>
               <ThemedText style={styles.metadataText}>
-                Add one short note if you want to name what's beneath it.
+                If there’s more on your heart, bring it before God here…
               </ThemedText>
             </View>
           </View>

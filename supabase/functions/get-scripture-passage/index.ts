@@ -39,6 +39,7 @@ serve(async request => {
       text: passage.text,
       reference: passage.reference || reference,
       version: passage.version || version,
+      verses: passage.verses,
     });
   } catch (error) {
     console.error('[Get-Scripture-Passage] Fetch failed:', error);

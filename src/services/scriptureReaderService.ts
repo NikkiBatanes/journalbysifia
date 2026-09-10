@@ -4,6 +4,7 @@ export interface ScriptureReaderResult {
   text: string;
   reference: string;
   version: string;
+  verses?: { number: string; lines: string[] }[];
 }
 
 const passageCache = new Map<string, ScriptureReaderResult>();
@@ -30,6 +31,7 @@ export async function getScripturePassage(
     text: String(data.text).trim(),
     reference: String(data.reference || reference).trim(),
     version: String(data.version || version).trim().toUpperCase(),
+    verses: data.verses,
   };
   passageCache.set(cacheKey, result);
   return result;

@@ -185,7 +185,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
   // TODO: Add updateProfile and updatePreferences to IndustryStandardAuthContext
   const [_userProgress, setUserProgress] = useState<UserProgress | null>(null);
   const [profileStats, setProfileStats] = useState<ProfileStats | null>(null);
-  const [subscription, setSubscription] = useState<Subscription | null>(null);
+  const [subscription, setSubscription] = useState<Subscription | null>({ id: 'default', tier: 'seeker', status: 'active' });
   const [_usage, setUsage] = useState<UsageTracking | null>(null);
   // Form states
   const [profileForm, setProfileForm] = useState({

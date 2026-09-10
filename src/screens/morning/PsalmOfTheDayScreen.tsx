@@ -6,9 +6,10 @@ import { differenceInCalendarDays } from 'date-fns';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
 import ThemedText from '../../components/common/ThemedText';
+import { BibleCopyrightModal } from '../../components/BibleCopyrightModal';
 import { Colors } from '../../theme/colors';
 import { Fonts, type FontFamily, getFontFamily } from '../../theme/fonts';
-import { triggerLightHaptic } from '../../utils/haptics';
+import { triggerLightHaptic, triggerSuccessHaptic } from '../../utils/haptics';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { useMorningStatusBar } from '../../hooks/useMorningStatusBar';
 import { getScripturePassage } from '../../services/scriptureReaderService';
@@ -83,11 +84,14 @@ const PsalmOfTheDayScreen = () => {
   }, [user]);
 
   const [psalmText, setPsalmText] = useState<string | null>(null);
+  const [psalmVerses, setPsalmVerses] = useState<{ number: string; lines: string[] }[] | null>(null);
   const [psalmReference, setPsalmReference] = useState<string | null>(null);
   const [psalmVersion, setPsalmVersion] = useState<string | null>(null);
   const [psalmLoading, setPsalmLoading] = useState(false);
   const [psalmError, setPsalmError] = useState<string | null>(null);
   const [showAaSettings, setShowAaSettings] = useState(false);
+  const [showCopyright, setShowCopyright] = useState(false);
+  const [hasReadPsalm, setHasReadPsalm] = useState(false);
 
   const [psalmFontSize, setPsalmFontSize] = useState(18);
   const [psalmFont, setPsalmFont] = useState<FontFamily>('lora');
@@ -110,6 +114,7 @@ const PsalmOfTheDayScreen = () => {
       .then((result) => {
         if (cancelled) { return; }
         setPsalmText(result.text);
+        setPsalmVerses(result.verses || null);
         setPsalmReference(result.reference);
         setPsalmVersion(result.version);
       })
@@ -125,8 +130,17 @@ const PsalmOfTheDayScreen = () => {
 
   const onNext = React.useCallback(() => {
     triggerLightHaptic();
-    navigation.navigate('CarryIt', { ...params });
-  }, [navigation, params]);
+    navigation.navigate('CarryIt', { ...params, psalmNumber, psalmRead: hasReadPsalm });
+  }, [hasReadPsalm, navigation, params, psalmNumber]);
+
+  const togglePsalmRead = React.useCallback(() => {
+    if (hasReadPsalm) {
+      triggerLightHaptic();
+    } else {
+      triggerSuccessHaptic();
+    }
+    setHasReadPsalm((current) => !current);
+  }, [hasReadPsalm]);
 
   const panResponder = React.useMemo(
     () =>
@@ -180,6 +194,27 @@ const PsalmOfTheDayScreen = () => {
           <ThemedText weight="bold" style={styles.aaButtonText}>aA</ThemedText>
         </TouchableOpacity>
       </View>
+      {psalmReference && psalmVersion && (
+        <View style={styles.psalmReferenceRow}>
+          <ThemedText weight="semiBold" style={styles.psalmReference}>
+            {psalmReference} · {psalmVersion}
+          </ThemedText>
+          <TouchableOpacity
+            onPress={() => {
+              triggerLightHaptic();
+              setShowCopyright(true);
+            }}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="Bible translation information">
+            <Ionicons
+              name="information-circle-outline"
+              size={16}
+              color={Colors.sage}
+            />
+          </TouchableOpacity>
+        </View>
+      )}
 
       {showAaSettings && (
         <View style={styles.settingsPanel}>
@@ -229,6 +264,34 @@ const PsalmOfTheDayScreen = () => {
             <ActivityIndicator color={Colors.sage} style={styles.psalmLoader} />
           ) : psalmError ? (
             <ThemedText style={[styles.psalmLine, psalmLineStyle]}>{psalmError}</ThemedText>
+          ) : psalmVerses && psalmVerses.length > 0 ? (
+            <>
+              {psalmVerses.map((verse, vIndex) => (
+                <View key={`psalm-verse-${vIndex}`} style={styles.verseRow}>
+                  <ThemedText
+                    weight="bold"
+                    style={[
+                      styles.verseNumber,
+                      {
+                        fontSize: psalmFontSize,
+                        lineHeight: psalmFontSize * 1.6 + psalmLineSpacing,
+                        fontFamily: getFontFamily(psalmFont, 'bold'),
+                      },
+                    ]}>
+                    {verse.number}
+                  </ThemedText>
+                  <View style={styles.verseLines}>
+                    {verse.lines.map((line, lIndex) => (
+                      <ThemedText
+                        key={`psalm-line-${vIndex}-${lIndex}`}
+                        style={[styles.verseLine, psalmLineStyle]}>
+                        {line}
+                      </ThemedText>
+                    ))}
+                  </View>
+                </View>
+              ))}
+            </>
           ) : (
             <>
               {psalmLines.map((line, index) => (
@@ -243,15 +306,28 @@ const PsalmOfTheDayScreen = () => {
                   </ThemedText>
                 )
               ))}
-              {psalmReference && psalmVersion && (
-                <ThemedText weight="semiBold" style={styles.psalmReference}>
-                  {psalmReference} · {psalmVersion}
-                </ThemedText>
-              )}
             </>
           )}
         </ScrollView>
       </View>
+
+      <TouchableOpacity
+        style={[styles.readButton, hasReadPsalm && styles.readButtonActive, { bottom: insets.bottom + 20 }]}
+        onPress={togglePsalmRead}
+        activeOpacity={0.8}
+        accessibilityRole="checkbox"
+        accessibilityState={{ checked: hasReadPsalm }}
+        accessibilityLabel={`I've read Psalm ${psalmNumber}`}
+      >
+        <Ionicons
+          name={hasReadPsalm ? 'checkmark-circle' : 'book-outline'}
+          size={16}
+          color={hasReadPsalm ? Colors.hopeWhite : Colors.sage}
+        />
+        <ThemedText weight="medium" style={[styles.readButtonText, hasReadPsalm && styles.readButtonTextActive]}>
+          {hasReadPsalm ? `Psalm ${psalmNumber} read` : `I've read Psalm ${psalmNumber}`}
+        </ThemedText>
+      </TouchableOpacity>
 
       <View style={[styles.primaryButton, { bottom: insets.bottom + 20 }]}>
         <TouchableOpacity
@@ -264,6 +340,11 @@ const PsalmOfTheDayScreen = () => {
           <Ionicons name="chevron-forward" size={24} color={Colors.hopeWhite} />
         </TouchableOpacity>
       </View>
+      <BibleCopyrightModal
+        visible={showCopyright}
+        onClose={() => setShowCopyright(false)}
+        bibleVersion={psalmVersion || ''}
+      />
     </View>
   );
 };
@@ -383,8 +464,57 @@ const styles = StyleSheet.create({
     color: Colors.sage,
     fontFamily: Fonts.semiBold,
     fontSize: 13,
-    marginTop: 20,
     letterSpacing: 0.4,
+  },
+  psalmReferenceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+    marginTop: 4,
+    marginBottom: 16,
+  },
+  verseRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 12,
+  },
+  verseNumber: {
+    width: 48,
+    paddingRight: 12,
+    color: Colors.sage,
+  },
+  verseLines: {
+    flex: 1,
+  },
+  verseLine: {
+    color: Colors.text,
+    marginBottom: 6,
+  },
+  readButton: {
+    position: 'absolute',
+    left: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 11,
+    paddingHorizontal: 16,
+    backgroundColor: 'rgba(82, 106, 91, 0.08)',
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: 'rgba(82, 106, 91, 0.2)',
+    zIndex: 100,
+  },
+  readButtonActive: {
+    backgroundColor: Colors.sage,
+    borderColor: Colors.sage,
+  },
+  readButtonText: {
+    color: Colors.sage,
+    fontSize: 14,
+  },
+  readButtonTextActive: {
+    color: Colors.hopeWhite,
   },
   primaryButton: {
     position: 'absolute',

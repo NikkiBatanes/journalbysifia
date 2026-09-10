@@ -244,6 +244,19 @@ export default function RootStackNavigator({
         }}
       />
 
+      {/* Morning Flow - multi-page morning check-in modal */}
+      <Stack.Screen
+        name="MorningFlow"
+        component={MorningFlowStackNavigator as React.ComponentType}
+        options={{
+          headerShown: false,
+          presentation: 'fullScreenModal',
+          animation: 'slide_from_bottom',
+          gestureEnabled: false,
+          contentStyle: { backgroundColor: Colors.lightBackground },
+        }}
+      />
+
       {/* Pre-auth screens */}
       {!isAuthenticated ? (
         <>
@@ -500,19 +513,6 @@ export default function RootStackNavigator({
               headerShown: false,
               presentation: 'fullScreenModal',
               animation: 'fade',
-              contentStyle: { backgroundColor: Colors.sage },
-            }}
-          />
-
-          {/* Morning Flow - multi-page morning check-in modal */}
-          <Stack.Screen
-            name="MorningFlow"
-            component={MorningFlowStackNavigator as React.ComponentType}
-            options={{
-              headerShown: false,
-              presentation: 'fullScreenModal',
-              animation: 'slide_from_bottom',
-              gestureEnabled: false,
               contentStyle: { backgroundColor: Colors.sage },
             }}
           />

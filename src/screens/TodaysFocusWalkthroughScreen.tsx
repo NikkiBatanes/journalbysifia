@@ -587,7 +587,7 @@ const PersonalTextInputStep: React.FC<{
                   <>You chose <ThemedText weight="semiBold">{category.name}</ThemedText></>
                 )}
               </ThemedText>
-              <ThemedText style={styles.metadataText}>
+              <ThemedText style={[styles.metadataText, { color: isMorning ? Colors.textGray : Colors.hopeWhite }]}>
                 Add one short sentence if you want to make it personal.
               </ThemedText>
             </View>
@@ -1085,7 +1085,7 @@ const TodaysFocusWalkthroughScreen: React.FC<Props> = ({ route, navigation }) =>
   const [priorities, setPriorities] = useState(initialState.priorities);
 
   // Morning flow passes data through instead of saving at the end of this screen.
-  const { morningFlow, feeling, underneath } = (route.params as any) || {};
+  const { morningFlow, feeling, feelingIcon, feelingIconType, underneath } = (route.params as any) || {};
   const isMorning = !!morningFlow;
 
   const createMutation = useCreateJournalEntry();
@@ -1173,8 +1173,12 @@ const TodaysFocusWalkthroughScreen: React.FC<Props> = ({ route, navigation }) =>
           morningFlow: true,
           selectedDate: selectedDate.toISOString(),
           feeling,
+          feelingIcon,
+          feelingIconType,
           underneath,
           focus: focusToSave,
+          focusIcon: selectedCategory?.icon,
+          focusIconType: selectedCategory?.iconType,
           focusCategory: focusCategoryToSave,
           customFocus: customFocusToSave,
           personalText: personalTextToSave,
@@ -1201,6 +1205,8 @@ const TodaysFocusWalkthroughScreen: React.FC<Props> = ({ route, navigation }) =>
     analytics,
     morningFlow,
     feeling,
+    feelingIcon,
+    feelingIconType,
     underneath,
     selectedDate,
     navigation,

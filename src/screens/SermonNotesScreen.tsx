@@ -9,12 +9,16 @@ import {
   ActivityIndicator,
   Alert,
   Animated,
+  Easing,
   Keyboard,
+  Linking,
+  Platform,
   ScrollView,
   StatusBar,
   StyleSheet,
   TextInput,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import {SafeAreaView, useSafeAreaInsets} from 'react-native-safe-area-context';
@@ -23,11 +27,14 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import {Pencil} from 'lucide-react-native';
 
+import {BibleCopyrightModal} from '../components/BibleCopyrightModal';
 import ThemedText from '../components/common/ThemedText';
 import {useAuth} from '../context/IndustryStandardAuthContext';
 import {useScroll} from '../context/ScrollContext';
-import {PILL_HEIGHT} from '../navigation/BottomTabNavigator';
-import {useCreateReflection} from '../services/hooks/useReflectionData';
+import {
+  useCreateReflection,
+  useUpdateReflection,
+} from '../services/hooks/useReflectionData';
 import {
   getScripturePassage,
   type ScriptureReaderResult,
@@ -35,7 +42,10 @@ import {
 import {Colors} from '../theme/colors';
 import {Fonts} from '../theme/fonts';
 import {toLocalDateString} from '../utils/date';
-import {triggerLightHaptic} from '../utils/haptics';
+import {triggerLightHaptic, triggerMediumHaptic} from '../utils/haptics';
+
+const AnimatedTouchableOpacity =
+  Animated.createAnimatedComponent(TouchableOpacity);
 
 type BlockKind =
   | 'text'
@@ -47,6 +57,8 @@ type BlockKind =
   | 'outline'
   | 'character'
   | 'language'
+  | 'link'
+  | 'table'
   | 'history'
   | 'remember'
   | 'response'
@@ -54,6 +66,9 @@ type BlockKind =
   | 'revisit'
   | 'prayer';
 type OutlineStyle = 'numbered' | 'acronym' | 'simple';
+type HistoryType = 'era' | 'place' | 'culture' | 'custom' | 'politics';
+type LanguageKind = 'hebrew' | 'greek' | 'aramaic' | 'latin';
+type LanguageDetail = 'meaning' | 'transliteration' | 'origin' | 'scripture';
 type NoteBlock = {
   id: string;
   kind: BlockKind;
@@ -66,6 +81,14 @@ type NoteBlock = {
   scriptureVersion?: string;
   outlineStyle?: OutlineStyle;
   points?: string[];
+  historyTypes?: HistoryType[];
+  eraPeriod?: 'BC' | 'AD';
+  languageKind?: LanguageKind;
+  languageDetails?: LanguageDetail[];
+  meaning?: string;
+  origin?: string;
+  tableRows?: string[][];
+  tableEditing?: boolean;
 };
 
 const REFERENCE_PATTERN =
@@ -108,27 +131,39 @@ const BLOCKS: Record<
   outline: {
     label: 'MESSAGE OUTLINE',
     action: '☷ Outline',
-    placeholder: 'Outline title, 3 Calls to Courage',
+    placeholder: 'Outline title',
     icon: 'list-outline',
   },
   character: {
     label: 'BIBLE CHARACTER',
     action: '♙ Bible Character',
-    placeholder: 'Name, Joseph',
-    icon: 'person-outline',
+    placeholder: 'Name',
+    icon: 'person-circle-outline',
   },
   language: {
     label: 'LANGUAGE NOTE',
     action: 'א Language Note',
-    placeholder: 'Original Hebrew or Greek word',
+    placeholder: 'Original Word',
     icon: 'translate',
     iconFamily: 'MaterialCommunityIcons',
   },
+  link: {
+    label: 'LINK',
+    action: 'Link',
+    placeholder: 'Paste or type a link',
+    icon: 'link-outline',
+  },
+  table: {
+    label: 'TABLE',
+    action: '▦ Table',
+    placeholder: '',
+    icon: 'grid-outline',
+  },
   history: {
     label: 'HISTORICAL CONTEXT',
-    action: '⌛ Historical Context',
-    placeholder: 'Place, custom, event, or setting',
-    icon: 'hourglass-outline',
+    action: 'Historical Context',
+    placeholder: 'Why does this background matter?',
+    icon: 'map-outline',
   },
   remember: {
     label: 'REMEMBER',
@@ -146,7 +181,7 @@ const BLOCKS: Record<
     label: 'QUESTION',
     action: '? Question',
     placeholder: 'What question came up as you listened?',
-    icon: 'help-outline',
+    icon: 'help-circle-outline',
   },
   revisit: {
     label: 'REVISIT',
@@ -184,6 +219,7 @@ const CAPTURE_KINDS = [
   'history',
   'key',
   'language',
+  'link',
   'outline',
   'prayer',
   'question',
@@ -193,6 +229,7 @@ const CAPTURE_KINDS = [
   'revisit',
   'scripture',
   'song',
+  'table',
 ] as const;
 
 const newBlock = (kind: BlockKind): NoteBlock => ({
@@ -202,7 +239,30 @@ const newBlock = (kind: BlockKind): NoteBlock => ({
   ...(kind === 'outline'
     ? {outlineStyle: 'numbered' as const, points: ['', '', '']}
     : {}),
+  ...(kind === 'history'
+    ? {historyTypes: ['place'] as HistoryType[], eraPeriod: 'AD' as const}
+    : {}),
+  ...(kind === 'language'
+    ? {
+        languageKind: 'hebrew' as const,
+        languageDetails: ['meaning'] as LanguageDetail[],
+      }
+    : {}),
+  ...(kind === 'table'
+    ? {tableRows: [['', ''], ['', '']], tableEditing: true}
+    : {}),
 });
+
+const normalizeLink = (value: string): string | null => {
+  const candidate = value.trim();
+  if (!candidate) {
+    return null;
+  }
+  const url = /^https?:\/\//i.test(candidate)
+    ? candidate
+    : `https://${candidate}`;
+  return /^https?:\/\/[^\s]+\.[^\s]+$/i.test(url) ? url : null;
+};
 
 type ScriptureLookupInputProps = {
   value: string;
@@ -229,6 +289,7 @@ const ScriptureLookupInput = ({
     null,
   );
   const [resolving, setResolving] = useState(false);
+  const [showCopyright, setShowCopyright] = useState(false);
   const lookupVersionRef = useRef(0);
   const onResolvedRef = useRef(onResolved);
 
@@ -293,29 +354,56 @@ const ScriptureLookupInput = ({
           <ThemedText style={styles.scripturePreviewText}>
             {resolvedVerse.text}
           </ThemedText>
-          <ThemedText weight="bold" style={styles.scripturePreviewReference}>
-            {resolvedVerse.reference} · {resolvedVerse.version}
-          </ThemedText>
+          <View style={styles.scripturePreviewReferenceRow}>
+            <ThemedText weight="bold" style={styles.scripturePreviewReference}>
+              {resolvedVerse.reference} · {resolvedVerse.version}
+            </ThemedText>
+            <TouchableOpacity
+              onPress={() => {
+                triggerLightHaptic();
+                setShowCopyright(true);
+              }}
+              activeOpacity={0.7}
+              accessibilityRole="button"
+              accessibilityLabel="Bible translation information">
+              <Ionicons
+                name="information-circle-outline"
+                size={14}
+                color={Colors.sage}
+              />
+            </TouchableOpacity>
+          </View>
         </View>
       )}
+      <BibleCopyrightModal
+        visible={showCopyright}
+        onClose={() => setShowCopyright(false)}
+        bibleVersion={resolvedVerse?.version || version}
+      />
     </>
   );
 };
 
 const SermonNotesScreen = ({navigation}: any) => {
+  const {width: screenWidth} = useWindowDimensions();
   const {user} = useAuth();
   const bibleVersion =
     (user as any)?.user_metadata?.preferences?.content?.bibleVersion || 'NASB';
   const createReflection = useCreateReflection();
-  const {showTabBar, setShowTabBar, collapsedTabBarCenterY, setCollapsedTabBarCenterY} =
-    useScroll();
+  const updateReflection = useUpdateReflection();
+  const {
+    setShowTabBar,
+    setSuppressTabBar,
+    collapsedTabBarCenterY,
+    setCollapsedTabBarCenterY,
+  } = useScroll();
   const insets = useSafeAreaInsets();
   const screenRef = useRef<View>(null);
   const [screenBottomY, setScreenBottomY] = useState<number | null>(null);
   const restingComposerBottom =
     collapsedTabBarCenterY !== null && screenBottomY !== null
       ? Math.max(0, screenBottomY - collapsedTabBarCenterY - 28)
-      : Math.max(insets.bottom, 8) + (showTabBar ? PILL_HEIGHT : 0);
+      : Math.max(insets.bottom, 8);
   const scrollRef = useRef<ScrollView>(null);
   const blockInputRefs = useRef(new Map<string, TextInput>());
   const pendingFocusBlockIdRef = useRef<string | null>(null);
@@ -324,6 +412,7 @@ const SermonNotesScreen = ({navigation}: any) => {
   );
   const keepAtEndTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const keepScrollAtEndRef = useRef(false);
+  const keyboardVisibleRef = useRef(false);
   const composerBottom = useRef(
     new Animated.Value(restingComposerBottom),
   ).current;
@@ -331,16 +420,17 @@ const SermonNotesScreen = ({navigation}: any) => {
     CAPTURE_KINDS.map(() => new Animated.Value(0)),
   ).current;
   const plusRotation = useRef(new Animated.Value(0)).current;
+  const pickerColorAnim = useRef(new Animated.Value(0)).current;
   const actionBarAnim = useRef(new Animated.Value(0)).current;
   const actionButtonAnims = useRef(
     [0, 1, 2, 3].map(() => new Animated.Value(0)),
   ).current;
   const [stage, setStage] = useState<1 | 2 | 3>(1);
-  const [composerHeight, setComposerHeight] = useState(0);
   const [showDetails, setShowDetails] = useState(false);
   const [showMore, setShowMore] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [saved, setSaved] = useState(false);
+  const [savedReflectionId, setSavedReflectionId] = useState<string | null>(null);
   const [title, setTitle] = useState('');
   const [mainScripture, setMainScripture] = useState('');
   const [series, setSeries] = useState('');
@@ -349,19 +439,26 @@ const SermonNotesScreen = ({navigation}: any) => {
   const [church, setChurch] = useState('');
   const [blocks, setBlocks] = useState<NoteBlock[]>([]);
   const [notice, setNotice] = useState('');
-  const [carryType, setCarryType] = useState('');
   const [carry, setCarry] = useState('');
   const [prayer, setPrayer] = useState('');
+  const [expandedReflection, setExpandedReflection] = useState<
+    'god' | 'truth' | 'response' | null
+  >(null);
 
   useFocusEffect(
     useCallback(() => {
+      setSuppressTabBar(true);
       setShowTabBar(true);
       setCollapsedTabBarCenterY(null);
-    }, [setShowTabBar, setCollapsedTabBarCenterY]),
+
+      return () => {
+        setSuppressTabBar(false);
+      };
+    }, [setShowTabBar, setSuppressTabBar, setCollapsedTabBarCenterY]),
   );
 
   useEffect(() => {
-    if (stage !== 2 || showTabBar) {
+    if (stage !== 2) {
       actionBarAnim.setValue(0);
       actionButtonAnims.forEach(animation => animation.setValue(0));
       return;
@@ -384,33 +481,45 @@ const SermonNotesScreen = ({navigation}: any) => {
         useNativeDriver: true,
       }).start();
     });
-  }, [actionBarAnim, actionButtonAnims, showTabBar, stage]);
+  }, [actionBarAnim, actionButtonAnims, stage]);
 
   useEffect(() => {
-    if (keyboardHeight === 0) {
-      Animated.timing(composerBottom, {
-        toValue: restingComposerBottom,
-        duration: 160,
-        useNativeDriver: false,
-      }).start();
+    if (!keyboardVisibleRef.current) {
+      composerBottom.setValue(restingComposerBottom);
     }
-  }, [composerBottom, keyboardHeight, restingComposerBottom]);
+  }, [composerBottom, restingComposerBottom]);
 
   useEffect(() => {
-    const showSubscription = Keyboard.addListener('keyboardDidShow', event => {
+    const showEvent =
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent =
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const showSubscription = Keyboard.addListener(showEvent, event => {
       const height = event.endCoordinates.height;
+      keyboardVisibleRef.current = true;
+      if (Platform.OS === 'ios') {
+        Keyboard.scheduleLayoutAnimation(event);
+      }
       setKeyboardHeight(height);
-      Animated.timing(composerBottom, {
+      composerBottom.stopAnimation();
+      Animated.spring(composerBottom, {
         toValue: height + 12,
-        duration: 180,
+        tension: 80,
+        friction: 12,
         useNativeDriver: false,
       }).start();
     });
-    const hideSubscription = Keyboard.addListener('keyboardDidHide', () => {
+    const hideSubscription = Keyboard.addListener(hideEvent, event => {
+      keyboardVisibleRef.current = false;
+      if (Platform.OS === 'ios') {
+        Keyboard.scheduleLayoutAnimation(event);
+      }
       setKeyboardHeight(0);
-      Animated.timing(composerBottom, {
+      composerBottom.stopAnimation();
+      Animated.spring(composerBottom, {
         toValue: restingComposerBottom,
-        duration: 180,
+        tension: 80,
+        friction: 12,
         useNativeDriver: false,
       }).start();
     });
@@ -461,39 +570,74 @@ const SermonNotesScreen = ({navigation}: any) => {
     scrollRef.current?.scrollTo({y: 0, animated: true});
   };
 
-  const openCapturePicker = () => {
+  const openCapturePicker = (dismissKeyboard = true) => {
+    if (dismissKeyboard) {
+      Keyboard.dismiss();
+    }
     pillAnimations.forEach(animation => {
       animation.stopAnimation();
       animation.setValue(0);
     });
     setShowMore(true);
     requestAnimationFrame(() => {
-      Animated.stagger(
-        38,
-        [...pillAnimations].reverse().map(animation =>
-          Animated.spring(animation, {
-            toValue: 1,
-            tension: 90,
-            friction: 12,
-            useNativeDriver: true,
-          }),
+      plusRotation.stopAnimation();
+      pickerColorAnim.stopAnimation();
+      Animated.parallel([
+        Animated.timing(pickerColorAnim, {
+          toValue: 1,
+          duration: 240,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: false,
+        }),
+        Animated.spring(plusRotation, {
+          toValue: 1,
+          tension: 90,
+          friction: 12,
+          useNativeDriver: true,
+        }),
+        Animated.stagger(
+          38,
+          [...pillAnimations].reverse().map(animation =>
+            Animated.spring(animation, {
+              toValue: 1,
+              tension: 90,
+              friction: 12,
+              useNativeDriver: true,
+            }),
+          ),
         ),
-      ).start();
+      ]).start();
     });
   };
 
   const closeCapturePicker = (onComplete?: () => void) => {
     pillAnimations.forEach(animation => animation.stopAnimation());
-    Animated.stagger(
-      28,
-      [...pillAnimations].reverse().map(animation =>
-        Animated.timing(animation, {
-          toValue: 0,
-          duration: 130,
-          useNativeDriver: true,
-        }),
+    plusRotation.stopAnimation();
+    pickerColorAnim.stopAnimation();
+    Animated.parallel([
+      Animated.timing(pickerColorAnim, {
+        toValue: 0,
+        duration: 240,
+        easing: Easing.inOut(Easing.ease),
+        useNativeDriver: false,
+      }),
+      Animated.spring(plusRotation, {
+        toValue: 0,
+        tension: 90,
+        friction: 12,
+        useNativeDriver: true,
+      }),
+      Animated.stagger(
+        28,
+        pillAnimations.map(animation =>
+          Animated.timing(animation, {
+            toValue: 0,
+            duration: 130,
+            useNativeDriver: true,
+          }),
+        ),
       ),
-    ).start(() => {
+    ]).start(() => {
       setShowMore(false);
       onComplete?.();
     });
@@ -515,12 +659,47 @@ const SermonNotesScreen = ({navigation}: any) => {
   };
 
   const selectCaptureKind = (kind: (typeof CAPTURE_KINDS)[number]) => {
+    triggerMediumHaptic();
     closeCapturePicker(() => addBlock(kind));
+  };
+
+  const runAfterClosingPicker = (action: () => void) => {
+    if (showMore) {
+      closeCapturePicker(action);
+    } else {
+      action();
+    }
+  };
+
+  const removeBlock = (
+    id: string,
+    withHaptic = true,
+    reopenPicker = true,
+  ) => {
+    if (withHaptic) {
+      triggerMediumHaptic();
+    }
+    const remainingBlocks = blocks.filter(item => item.id !== id);
+    const remainingEditableBlock = [...remainingBlocks]
+      .reverse()
+      .find(item => item.kind !== 'section');
+    const shouldKeepKeyboard =
+      remainingBlocks.length > 0 && keyboardVisibleRef.current;
+    setBlocks(remainingBlocks);
+    if (reopenPicker && remainingBlocks.length === 0) {
+      requestAnimationFrame(() => {
+        openCapturePicker();
+      });
+    } else if (shouldKeepKeyboard && remainingEditableBlock) {
+      requestAnimationFrame(() => {
+        blockInputRefs.current.get(remainingEditableBlock.id)?.focus();
+      });
+    }
   };
 
   const updateBlock = (
     id: string,
-    field: 'text' | 'secondary' | 'note' | 'reference',
+    field: 'text' | 'secondary' | 'note' | 'reference' | 'meaning' | 'origin',
     value: string,
   ) => {
     setBlocks(current =>
@@ -536,6 +715,38 @@ const SermonNotesScreen = ({navigation}: any) => {
   ) => {
     setBlocks(current =>
       current.map(block => (block.id === id ? {...block, ...changes} : block)),
+    );
+  };
+
+  const updateHistory = (
+    id: string,
+    changes: Partial<Pick<NoteBlock, 'historyTypes' | 'eraPeriod'>>,
+  ) => {
+    setBlocks(current =>
+      current.map(block => (block.id === id ? {...block, ...changes} : block)),
+    );
+  };
+
+  const updateLanguage = (
+    id: string,
+    changes: Partial<Pick<NoteBlock, 'languageKind' | 'languageDetails'>>,
+  ) => {
+    setBlocks(current =>
+      current.map(block => (block.id === id ? {...block, ...changes} : block)),
+    );
+  };
+
+  const updateTableRows = (id: string, tableRows: string[][]) => {
+    setBlocks(current =>
+      current.map(block => (block.id === id ? {...block, tableRows} : block)),
+    );
+  };
+
+  const setTableEditing = (id: string, tableEditing: boolean) => {
+    setBlocks(current =>
+      current.map(block =>
+        block.id === id ? {...block, tableEditing} : block,
+      ),
     );
   };
 
@@ -579,6 +790,18 @@ const SermonNotesScreen = ({navigation}: any) => {
     setTimeout(() => scrollRef.current?.scrollToEnd({animated: true}), 60);
   };
 
+  const hasBlockContent = (block: NoteBlock) =>
+    Boolean(
+      block.text.trim() ||
+        block.secondary?.trim() ||
+        block.note?.trim() ||
+        block.reference?.trim() ||
+        block.meaning?.trim() ||
+        block.origin?.trim() ||
+        block.points?.some(point => point.trim()) ||
+        block.tableRows?.some(row => row.some(cell => cell.trim())),
+    );
+
   const summary = useMemo(
     () =>
       Object.entries(BLOCKS)
@@ -586,32 +809,25 @@ const SermonNotesScreen = ({navigation}: any) => {
           kind,
           label: config.label,
           count: blocks.filter(
-            block => block.kind === kind && block.text.trim(),
+            block => block.kind === kind && hasBlockContent(block),
           ).length,
         }))
         .filter(item => item.count > 0),
     [blocks],
   );
 
-  const saveSermon = async () => {
+  const saveSermon = async (markComplete = true): Promise<boolean> => {
     if (!user) {
       Alert.alert('Sign in required', 'Please sign in to save sermon notes.');
-      return;
+      return false;
     }
-    const meaningfulBlocks = blocks.filter(
-      block =>
-        block.text.trim() ||
-        block.secondary?.trim() ||
-        block.note?.trim() ||
-        block.reference?.trim() ||
-        block.points?.some(point => point.trim()),
-    );
+    const meaningfulBlocks = blocks.filter(hasBlockContent);
     if (!title.trim() && meaningfulBlocks.length === 0) {
       Alert.alert('Nothing to save', 'Add a sermon title or a note first.');
-      return;
+      return false;
     }
     try {
-      await createReflection.mutateAsync({
+      const entry = {
         user_id: user.id,
         selected_date: toLocalDateString(new Date()),
         title: title.trim() || 'Sermon Notes',
@@ -626,15 +842,28 @@ const SermonNotesScreen = ({navigation}: any) => {
           speaker,
           church,
           blocks: meaningfulBlocks,
-          reflection: {notice, carryType, carry, prayer},
+          reflection: {god: notice, truth: carry, response: prayer},
         }),
-      });
-      setSaved(true);
+      };
+      if (savedReflectionId) {
+        await updateReflection.mutateAsync({
+          id: savedReflectionId,
+          updates: entry,
+        });
+      } else {
+        const created = await createReflection.mutateAsync(entry);
+        setSavedReflectionId(created.id);
+      }
+      if (markComplete) {
+        setSaved(true);
+      }
+      return true;
     } catch {
       Alert.alert(
         'Could not save',
         'Your sermon notes could not be saved. Please try again.',
       );
+      return false;
     }
   };
 
@@ -655,7 +884,18 @@ const SermonNotesScreen = ({navigation}: any) => {
           placeholder="Write as you listen…"
           placeholderTextColor={Colors.textGray}
           value={block.text}
-          onChangeText={value => updateBlock(block.id, 'text', value)}
+          onChangeText={value => {
+            if (!value && block.text) {
+              removeBlock(block.id, false);
+            } else {
+              updateBlock(block.id, 'text', value);
+            }
+          }}
+          onBlur={() => {
+            if (!block.text.trim()) {
+              removeBlock(block.id, false);
+            }
+          }}
         />
       );
     }
@@ -667,15 +907,16 @@ const SermonNotesScreen = ({navigation}: any) => {
             {block.text}
           </ThemedText>
           <TouchableOpacity
-            onPress={() =>
-              setBlocks(current => current.filter(item => item.id !== block.id))
-            }>
+            onPress={() => removeBlock(block.id)}>
             <Ionicons name="close" size={15} color={Colors.textGray} />
           </TouchableOpacity>
         </View>
       );
     }
     const config = BLOCKS[block.kind];
+    const linkUrl = block.kind === 'link' ? normalizeLink(block.text) : null;
+    const selectedHistoryTypes = block.historyTypes || [];
+    const selectedLanguageDetails = block.languageDetails || [];
     return (
       <View
         key={block.id}
@@ -690,13 +931,13 @@ const SermonNotesScreen = ({navigation}: any) => {
               {config.label}
             </ThemedText>
           </View>
-          <TouchableOpacity
-            onPress={() =>
-              setBlocks(current => current.filter(item => item.id !== block.id))
-            }
-            hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}>
-            <Ionicons name="close" size={17} color={Colors.textGray} />
-          </TouchableOpacity>
+          {(block.kind !== 'table' || block.tableEditing) && (
+            <TouchableOpacity
+              onPress={() => removeBlock(block.id)}
+              hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}>
+              <Ionicons name="close" size={17} color={Colors.textGray} />
+            </TouchableOpacity>
+          )}
         </View>
         {block.kind === 'scripture' ? (
           <ScriptureLookupInput
@@ -714,7 +955,8 @@ const SermonNotesScreen = ({navigation}: any) => {
             onChange={value => updateBlock(block.id, 'text', value)}
             onResolved={result => updateBlockScripture(block.id, result)}
           />
-        ) : (
+        ) : block.kind !== 'history' &&
+          block.kind !== 'table' ? (
           <TextInput
             ref={input => {
               if (input) {
@@ -727,13 +969,38 @@ const SermonNotesScreen = ({navigation}: any) => {
               styles.captureInput,
               (block.kind === 'quote' || block.kind === 'prayer') &&
                 styles.serifInput,
+              block.kind === 'character' && styles.characterName,
             ]}
-            multiline={block.kind !== 'outline'}
+            multiline={
+              block.kind !== 'outline' &&
+              block.kind !== 'link' &&
+              block.kind !== 'character'
+            }
             placeholder={config.placeholder}
             placeholderTextColor={Colors.textGray}
             value={block.text}
             onChangeText={value => updateBlock(block.id, 'text', value)}
+            keyboardType={block.kind === 'link' ? 'url' : 'default'}
+            autoCapitalize={block.kind === 'link' ? 'none' : 'sentences'}
+            autoCorrect={block.kind !== 'link'}
           />
+        ) : null}
+        {block.kind === 'link' && linkUrl && (
+          <TouchableOpacity
+            accessibilityRole="link"
+            accessibilityLabel={`Open ${block.text.trim()}`}
+            style={styles.openLink}
+            onPress={() => {
+              triggerLightHaptic();
+              Linking.openURL(linkUrl).catch(() => {
+                Alert.alert('Could not open link', 'Please check the address.');
+              });
+            }}>
+            <Ionicons name="open-outline" size={15} color={Colors.sage} />
+            <ThemedText weight="bold" style={styles.openLinkText}>
+              Open link
+            </ThemedText>
+          </TouchableOpacity>
         )}
         {block.kind === 'outline' && (
           <>
@@ -766,7 +1033,7 @@ const SermonNotesScreen = ({navigation}: any) => {
                   {block.outlineStyle === 'numbered'
                     ? `${index + 1}.`
                     : block.outlineStyle === 'acronym'
-                    ? `${point.trim().charAt(0).toUpperCase() || '•'}.`
+                    ? `${point.trim().charAt(0).toUpperCase() || '•'} —`
                     : '•'}
                 </ThemedText>
                 <TextInput
@@ -806,27 +1073,25 @@ const SermonNotesScreen = ({navigation}: any) => {
             style={styles.secondaryInput}
             placeholder={
               block.kind === 'song'
-                ? 'Artist / worship team (optional)'
-                : '— Speaker (optional)'
+                ? 'Artist / Worship Team'
+                : '— Speaker / Author'
             }
             placeholderTextColor={Colors.textGray}
             value={block.secondary || ''}
-            onChangeText={value => updateBlock(block.id, 'secondary', value)}
-          />
-        )}
-        {block.kind === 'character' && (
-          <ScriptureLookupInput
-            value={block.secondary || ''}
-            placeholder="Search related Scripture (optional)"
-            version={bibleVersion}
-            style={styles.secondaryInput}
-            onChange={value => updateBlock(block.id, 'secondary', value)}
-            onResolved={result => updateBlockScripture(block.id, result)}
+            onChangeText={value =>
+              updateBlock(
+                block.id,
+                'secondary',
+                block.kind === 'quote' && value && !value.startsWith('—')
+                  ? `— ${value}`
+                  : value,
+              )
+            }
           />
         )}
         {block.kind === 'character' && (
           <TextInput
-            style={[styles.captureInput, styles.characterNote]}
+            style={[styles.captureInput, styles.characterReflection]}
             multiline
             placeholder="What stood out about this person?"
             placeholderTextColor={Colors.textGray}
@@ -834,53 +1099,396 @@ const SermonNotesScreen = ({navigation}: any) => {
             onChangeText={value => updateBlock(block.id, 'note', value)}
           />
         )}
+        {block.kind === 'character' && (
+          <ScriptureLookupInput
+            value={block.secondary || ''}
+            placeholder="Search related Scripture"
+            version={bibleVersion}
+            style={[styles.secondaryInput, styles.characterScripture]}
+            onChange={value => updateBlock(block.id, 'secondary', value)}
+            onResolved={result => updateBlockScripture(block.id, result)}
+          />
+        )}
         {block.kind === 'language' && (
           <>
-            <TextInput
-              style={styles.secondaryInput}
-              placeholder="Transliteration / pronunciation"
-              placeholderTextColor={Colors.textGray}
-              value={block.secondary || ''}
-              onChangeText={value => updateBlock(block.id, 'secondary', value)}
-            />
-            <TextInput
-              style={[styles.captureInput, styles.characterNote]}
-              multiline
-              placeholder="Meaning, word origin, and why it matters here"
-              placeholderTextColor={Colors.textGray}
-              value={block.note || ''}
-              onChangeText={value => updateBlock(block.id, 'note', value)}
-            />
-            <ScriptureLookupInput
-              value={block.reference || ''}
-              placeholder="Search related Scripture (optional)"
-              version={bibleVersion}
-              style={styles.secondaryInput}
-              onChange={value => updateBlock(block.id, 'reference', value)}
-              onResolved={result => updateBlockScripture(block.id, result)}
-            />
+            <View style={styles.languageKindChoices}>
+              {(['hebrew', 'greek', 'aramaic', 'latin'] as const).map(option => (
+                <TouchableOpacity
+                  key={option}
+                  style={[
+                    styles.languageKindChoice,
+                    block.languageKind === option &&
+                      styles.languageKindChoiceActive,
+                  ]}
+                  onPress={() => updateLanguage(block.id, {languageKind: option})}>
+                  <ThemedText
+                    weight="bold"
+                    style={[
+                      styles.languageKindText,
+                      block.languageKind === option &&
+                        styles.languageKindTextActive,
+                    ]}>
+                    {option === 'hebrew'
+                      ? 'א Hebrew'
+                      : option === 'greek'
+                      ? 'α Greek'
+                      : option === 'aramaic'
+                      ? '𐡀 Aramaic'
+                      : 'L Latin'}
+                  </ThemedText>
+                </TouchableOpacity>
+              ))}
+            </View>
+            <View style={styles.historyChoices}>
+              {(
+                ['meaning', 'transliteration', 'origin', 'scripture'] as const
+              ).map(option => (
+                <TouchableOpacity
+                  key={option}
+                  style={[
+                    styles.historyChoice,
+                    selectedLanguageDetails.includes(option) &&
+                      styles.historyChoiceActive,
+                  ]}
+                  onPress={() =>
+                    updateLanguage(block.id, {
+                      languageDetails: selectedLanguageDetails.includes(option)
+                        ? selectedLanguageDetails.filter(item => item !== option)
+                        : [...selectedLanguageDetails, option],
+                    })
+                  }>
+                  <ThemedText
+                    weight="bold"
+                    style={[
+                      styles.historyChoiceText,
+                      selectedLanguageDetails.includes(option) &&
+                        styles.historyChoiceTextActive,
+                    ]}>
+                    {option === 'origin'
+                      ? 'Word Origin'
+                      : option[0].toUpperCase() + option.slice(1)}
+                  </ThemedText>
+                </TouchableOpacity>
+              ))}
+            </View>
+            {selectedLanguageDetails.includes('meaning') && (
+              <TextInput
+                style={[styles.captureInput, styles.characterNote]}
+                multiline
+                placeholder="What does this word mean here?"
+                placeholderTextColor={Colors.textGray}
+                value={block.meaning || ''}
+                onChangeText={value => updateBlock(block.id, 'meaning', value)}
+              />
+            )}
+            {selectedLanguageDetails.includes('transliteration') && (
+              <TextInput
+                style={styles.secondaryInput}
+                placeholder="Transliteration / pronunciation"
+                placeholderTextColor={Colors.textGray}
+                value={block.secondary || ''}
+                onChangeText={value => updateBlock(block.id, 'secondary', value)}
+              />
+            )}
+            {selectedLanguageDetails.includes('origin') && (
+              <TextInput
+                style={[styles.captureInput, styles.characterNote]}
+                multiline
+                placeholder="Where does this word come from?"
+                placeholderTextColor={Colors.textGray}
+                value={block.origin || ''}
+                onChangeText={value => updateBlock(block.id, 'origin', value)}
+              />
+            )}
+            {selectedLanguageDetails.includes('scripture') && (
+              <ScriptureLookupInput
+                value={block.reference || ''}
+                placeholder="Search related Scripture"
+                version={bibleVersion}
+                style={styles.secondaryInput}
+                onChange={value => updateBlock(block.id, 'reference', value)}
+                onResolved={result => updateBlockScripture(block.id, result)}
+              />
+            )}
           </>
+        )}
+        {block.kind === 'table' && (
+          block.tableEditing ? (
+            <>
+              <ScrollView
+                horizontal
+                style={styles.editingTableHorizontalScroll}
+                keyboardShouldPersistTaps="handled"
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.tableGrid}>
+                <View>
+                  {(block.tableRows || []).map((row, rowIndex) => (
+                    <View key={rowIndex} style={styles.tableRow}>
+                      {row.map((cell, columnIndex) => (
+                        <TextInput
+                          key={columnIndex}
+                          ref={input => {
+                            if (rowIndex === 0 && columnIndex === 0 && input) {
+                              blockInputRefs.current.set(block.id, input);
+                            }
+                          }}
+                          style={[
+                            styles.tableCell,
+                            row.length === 2 && {
+                              width: (screenWidth - 92) / 2,
+                            },
+                            rowIndex === 0 && styles.tableHeaderCell,
+                          ]}
+                          placeholder={rowIndex === 0 ? 'Heading' : ''}
+                          placeholderTextColor={Colors.textGray}
+                          value={cell}
+                          multiline
+                          onChangeText={value => {
+                            const rows = (block.tableRows || []).map(item => [
+                              ...item,
+                            ]);
+                            rows[rowIndex][columnIndex] = value;
+                            updateTableRows(block.id, rows);
+                          }}
+                        />
+                      ))}
+                    </View>
+                  ))}
+                </View>
+              </ScrollView>
+              <View style={styles.structureActions}>
+                <TouchableOpacity
+                    style={styles.structureAction}
+                  onPress={() => {
+                    const rows = block.tableRows || [['', '']];
+                    updateTableRows(block.id, [
+                      ...rows,
+                      Array(rows[0]?.length || 2).fill(''),
+                    ]);
+                  }}
+                  accessibilityRole="button"
+                  accessibilityLabel="Add row">
+                  <MaterialCommunityIcons
+                    name="table-row-plus-after"
+                    size={18}
+                    color={Colors.sage}
+                  />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.structureAction}
+                  onPress={() =>
+                    updateTableRows(
+                      block.id,
+                      (block.tableRows || [[''], ['']]).map(row => [...row, '']),
+                    )
+                  }
+                  accessibilityRole="button"
+                  accessibilityLabel="Add column">
+                  <MaterialCommunityIcons
+                    name="table-column-plus-after"
+                    size={18}
+                    color={Colors.sage}
+                  />
+                </TouchableOpacity>
+                {(block.tableRows?.length || 0) > 2 && (
+                  <TouchableOpacity
+                    style={styles.structureAction}
+                    onPress={() =>
+                      updateTableRows(
+                        block.id,
+                        (block.tableRows || []).slice(0, -1),
+                      )
+                    }
+                    accessibilityRole="button"
+                    accessibilityLabel="Remove last row">
+                    <MaterialCommunityIcons
+                      name="table-row-remove"
+                      size={18}
+                      color={Colors.alertCoral}
+                    />
+                  </TouchableOpacity>
+                )}
+                {(block.tableRows?.[0]?.length || 0) > 2 && (
+                  <TouchableOpacity
+                    style={styles.structureAction}
+                    onPress={() =>
+                      updateTableRows(
+                        block.id,
+                        (block.tableRows || []).map(row => row.slice(0, -1)),
+                      )
+                    }
+                    accessibilityRole="button"
+                    accessibilityLabel="Remove last column">
+                    <MaterialCommunityIcons
+                      name="table-column-remove"
+                      size={18}
+                      color={Colors.alertCoral}
+                    />
+                  </TouchableOpacity>
+                )}
+              </View>
+              <TouchableOpacity
+                style={styles.saveTableButton}
+                onPress={() => {
+                  triggerLightHaptic();
+                  Keyboard.dismiss();
+                  setTableEditing(block.id, false);
+                }}>
+                <ThemedText weight="bold" style={styles.saveTableButtonText}>
+                  Save table
+                </ThemedText>
+              </TouchableOpacity>
+            </>
+          ) : (
+            <TouchableOpacity
+              activeOpacity={0.75}
+              accessibilityRole="button"
+              accessibilityLabel="Edit table"
+              onPress={() => setTableEditing(block.id, true)}>
+            <ScrollView
+              horizontal
+              style={styles.savedTableHorizontalScroll}
+              scrollEnabled
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.savedTableGrid}>
+              <View>
+                {(block.tableRows || []).map((row, rowIndex) => (
+                  <View key={rowIndex} style={styles.savedTableRow}>
+                    {row.map((cell, columnIndex) => (
+                      <ThemedText
+                        key={columnIndex}
+                        weight={rowIndex === 0 ? 'bold' : 'regular'}
+                        style={[
+                          styles.savedTableCell,
+                          row.length === 2 && {
+                            width: (screenWidth - 92) / 2,
+                          },
+                          rowIndex === 0 && styles.savedTableHeaderCell,
+                        ]}>
+                        {cell}
+                      </ThemedText>
+                    ))}
+                  </View>
+                ))}
+              </View>
+            </ScrollView>
+            </TouchableOpacity>
+          )
         )}
         {block.kind === 'history' && (
           <>
-            <TextInput
-              style={styles.secondaryInput}
-              placeholder="Time / place (optional)"
-              placeholderTextColor={Colors.textGray}
-              value={block.secondary || ''}
-              onChangeText={value => updateBlock(block.id, 'secondary', value)}
-            />
+            <View style={styles.historyChoices}>
+              {(
+                ['era', 'place', 'culture', 'custom', 'politics'] as const
+              ).map(option => (
+                <TouchableOpacity
+                  key={option}
+                  style={[
+                    styles.historyChoice,
+                    selectedHistoryTypes.includes(option) &&
+                      styles.historyChoiceActive,
+                  ]}
+                  onPress={() =>
+                    updateHistory(block.id, {
+                      historyTypes: selectedHistoryTypes.includes(option)
+                        ? selectedHistoryTypes.filter(item => item !== option)
+                        : [...selectedHistoryTypes, option],
+                    })
+                  }>
+                  <ThemedText
+                    weight="bold"
+                    style={[
+                      styles.historyChoiceText,
+                      selectedHistoryTypes.includes(option) &&
+                        styles.historyChoiceTextActive,
+                    ]}>
+                    {option[0].toUpperCase() + option.slice(1)}
+                  </ThemedText>
+                </TouchableOpacity>
+              ))}
+            </View>
+            {selectedHistoryTypes.includes('era') && (
+              <View style={styles.historyDetailRow}>
+                <TextInput
+                  ref={input => {
+                    if (input) {
+                      blockInputRefs.current.set(block.id, input);
+                    } else {
+                      blockInputRefs.current.delete(block.id);
+                    }
+                  }}
+                  style={[styles.secondaryInput, styles.historyDetailInput]}
+                  placeholder="Year or period"
+                  placeholderTextColor={Colors.textGray}
+                  value={block.secondary || ''}
+                  onChangeText={value =>
+                    updateBlock(block.id, 'secondary', value)
+                  }
+                />
+                {(['BC', 'AD'] as const).map(period => (
+                  <TouchableOpacity
+                    key={period}
+                    style={[
+                      styles.eraChoice,
+                      block.eraPeriod === period && styles.eraChoiceActive,
+                    ]}
+                    onPress={() => updateHistory(block.id, {eraPeriod: period})}>
+                    <ThemedText
+                      weight="bold"
+                      style={[
+                        styles.eraChoiceText,
+                        block.eraPeriod === period && styles.eraChoiceTextActive,
+                      ]}>
+                      {period}
+                    </ThemedText>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+            {selectedHistoryTypes.includes('place') && (
+              <View style={styles.historyDetailRow}>
+                <Ionicons name="location-outline" size={17} color={Colors.sage} />
+                <TextInput
+                  ref={input => {
+                    if (input) {
+                      blockInputRefs.current.set(block.id, input);
+                    } else {
+                      blockInputRefs.current.delete(block.id);
+                    }
+                  }}
+                  style={[styles.secondaryInput, styles.historyDetailInput]}
+                  placeholder="Ephesus or modern-day Turkey"
+                  placeholderTextColor={Colors.textGray}
+                  value={block.secondary || ''}
+                  onChangeText={value =>
+                    updateBlock(block.id, 'secondary', value)
+                  }
+                />
+              </View>
+            )}
             <TextInput
               style={[styles.captureInput, styles.characterNote]}
               multiline
-              placeholder="Cultural background, geography, customs, or political setting"
+              placeholder={
+                selectedHistoryTypes.length !== 1
+                  ? 'What background helps explain this passage?'
+                  : selectedHistoryTypes.includes('era')
+                  ? 'What was happening during this period?'
+                  : selectedHistoryTypes.includes('place')
+                  ? 'Why does this location matter?'
+                  : selectedHistoryTypes.includes('culture')
+                  ? 'What cultural detail explains the message?'
+                  : selectedHistoryTypes.includes('custom')
+                  ? 'What ancient custom should you remember?'
+                  : 'What political or social setting matters?'
+              }
               placeholderTextColor={Colors.textGray}
               value={block.note || ''}
               onChangeText={value => updateBlock(block.id, 'note', value)}
             />
             <ScriptureLookupInput
               value={block.reference || ''}
-              placeholder="Search related Scripture (optional)"
+              placeholder="Search related Scripture"
               version={bibleVersion}
               style={styles.secondaryInput}
               onChange={value => updateBlock(block.id, 'reference', value)}
@@ -896,6 +1504,7 @@ const SermonNotesScreen = ({navigation}: any) => {
     <SafeAreaView
       ref={screenRef}
       style={styles.safeArea}
+      edges={['left', 'right']}
       onLayout={() => {
         screenRef.current?.measureInWindow(
           (_x, y, _width, height) => setScreenBottomY(y + height),
@@ -905,21 +1514,15 @@ const SermonNotesScreen = ({navigation}: any) => {
         barStyle="dark-content"
         backgroundColor={Colors.lightBackground}
       />
-      <View style={styles.header}>
-        <View style={styles.actionProgressBar}>
-          <View
-            style={[
-              styles.actionProgressFill,
-              {width: `${(stage / 3) * 100}%`},
-            ]}
-          />
-        </View>
-        <View style={styles.stepLabelRow}>
-          <Ionicons name="book" size={18} color={Colors.sage} />
-          <ThemedText weight="semiBold" style={styles.headerTitle}>
-            Sermon Notes
-          </ThemedText>
-        </View>
+      <View
+        style={[styles.actionProgressBar, {top: insets.top + 25}]}
+        pointerEvents="none">
+        <View
+          style={[
+            styles.actionProgressFill,
+            {width: `${(stage / 3) * 100}%`},
+          ]}
+        />
       </View>
       <TouchableOpacity
         style={[styles.closeButton, {top: insets.top + 8}]}
@@ -934,15 +1537,21 @@ const SermonNotesScreen = ({navigation}: any) => {
       </TouchableOpacity>
       <ScrollView
         ref={scrollRef}
+        style={{flex: 1}}
         contentContainerStyle={[
           styles.content,
+          {
+            paddingTop: insets.top + 72,
+            paddingBottom: insets.bottom + 28,
+          },
           stage === 2 && {
-            paddingBottom:
-              composerHeight +
-              (keyboardHeight > 0
-                ? keyboardHeight + 12
-                : restingComposerBottom) +
-              8,
+            paddingBottom: blocks.length
+              ? 48 +
+                (keyboardHeight > 0
+                  ? keyboardHeight + 12
+                  : restingComposerBottom) +
+                8
+              : insets.bottom + 28,
           },
         ]}
         keyboardShouldPersistTaps="handled"
@@ -952,6 +1561,14 @@ const SermonNotesScreen = ({navigation}: any) => {
             scrollRef.current?.scrollToEnd({animated: true});
           }
         }}>
+        <View style={styles.header}>
+          <View style={styles.stepLabelRow}>
+            <Ionicons name="book" size={18} color={Colors.sage} />
+            <ThemedText weight="semiBold" style={styles.headerTitle}>
+              Sermon Notes
+            </ThemedText>
+          </View>
+        </View>
         {stage === 1 && (
           <>
             <ThemedText weight="bold" style={styles.label}>
@@ -964,16 +1581,6 @@ const SermonNotesScreen = ({navigation}: any) => {
               value={title}
               onChangeText={setTitle}
             />
-            <ThemedText weight="bold" style={styles.label}>
-              Main Scripture
-            </ThemedText>
-            <TextInput
-              style={styles.input}
-              placeholder="Romans 12:1–2"
-              placeholderTextColor={Colors.textGray}
-              value={mainScripture}
-              onChangeText={setMainScripture}
-            />
             <TouchableOpacity
               style={styles.toggle}
               onPress={() => setShowDetails(value => !value)}>
@@ -983,6 +1590,16 @@ const SermonNotesScreen = ({navigation}: any) => {
             </TouchableOpacity>
             {showDetails && (
               <View>
+                <ThemedText weight="bold" style={styles.label}>
+                  Main Scripture
+                </ThemedText>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Romans 12:1–2"
+                  placeholderTextColor={Colors.textGray}
+                  value={mainScripture}
+                  onChangeText={setMainScripture}
+                />
                 <ThemedText weight="bold" style={styles.label}>
                   Series{' '}
                   <ThemedText style={styles.optional}>Optional</ThemedText>
@@ -1009,11 +1626,11 @@ const SermonNotesScreen = ({navigation}: any) => {
                   </View>
                   <View style={styles.flex}>
                     <ThemedText weight="bold" style={styles.label}>
-                      Speaker
+                      Pastor
                     </ThemedText>
                     <TextInput
                       style={styles.input}
-                      placeholder="Pastor / speaker"
+                      placeholder="Pastor name"
                       placeholderTextColor={Colors.textGray}
                       value={speaker}
                       onChangeText={setSpeaker}
@@ -1032,7 +1649,12 @@ const SermonNotesScreen = ({navigation}: any) => {
                 />
               </View>
             )}
-            <TouchableOpacity style={styles.primary} onPress={() => goTo(2)}>
+            <TouchableOpacity
+              style={styles.primary}
+              onPress={() => {
+                goTo(2);
+                requestAnimationFrame(() => openCapturePicker());
+              }}>
               <ThemedText weight="bold" style={styles.primaryText}>
                 Start taking notes
               </ThemedText>
@@ -1080,85 +1702,59 @@ const SermonNotesScreen = ({navigation}: any) => {
                 </ThemedText>
               </TouchableOpacity>
             </View>
-            <ReflectionStep
-              number="1"
-              eyebrow="NOTICE"
-              title="What stayed with you?"
-              detail="Name the truth, Scripture, phrase, or conviction you don’t want to lose."
+            <ExpandableReflection
+              eyebrow="GOD"
+              title="What does this show you about God?"
               value={notice}
               onChange={setNotice}
-              placeholder="What stayed with me…"
+              expanded={expandedReflection === 'god'}
+              onExpand={() =>
+                setExpandedReflection(current =>
+                  current === 'god' ? null : 'god',
+                )
+              }
             />
-            <View style={styles.reflectionStep}>
-              <View style={styles.number}>
-                <ThemedText weight="bold" style={styles.numberText}>
-                  2
-                </ThemedText>
-              </View>
-              <View style={styles.flex}>
-                <ThemedText weight="bold" style={styles.eyebrow}>
-                  CARRY
-                </ThemedText>
-                <ThemedText weight="bold" style={styles.stepTitle}>
-                  Is there something to carry forward?
-                </ThemedText>
-                <ThemedText style={styles.stepDetail}>
-                  It can be an action, something to remember, a question, or
-                  simply something to sit with.
-                </ThemedText>
-                <View style={styles.choices}>
-                  {['Respond', 'Remember', 'Revisit', 'Sit with it'].map(
-                    choice => (
-                      <TouchableOpacity
-                        key={choice}
-                        style={[
-                          styles.choice,
-                          carryType === choice && styles.choiceActive,
-                        ]}
-                        onPress={() => setCarryType(choice)}>
-                        <ThemedText
-                          style={[
-                            styles.choiceText,
-                            carryType === choice && styles.choiceTextActive,
-                          ]}>
-                          {choice}
-                        </ThemedText>
-                      </TouchableOpacity>
-                    ),
-                  )}
-                </View>
-                <TextInput
-                  style={[styles.input, styles.textarea]}
-                  multiline
-                  placeholder="What I want to carry forward…"
-                  placeholderTextColor={Colors.textGray}
-                  value={carry}
-                  onChangeText={setCarry}
-                />
-              </View>
-            </View>
-            <ReflectionStep
-              number="3"
-              eyebrow="PRAY"
-              title="Bring what you heard to God."
-              detail="Respond in your own words."
+            <ExpandableReflection
+              eyebrow="TRUTH"
+              title="What is He teaching you?"
+              value={carry}
+              onChange={setCarry}
+              expanded={expandedReflection === 'truth'}
+              onExpand={() =>
+                setExpandedReflection(current =>
+                  current === 'truth' ? null : 'truth',
+                )
+              }
+            />
+            <ExpandableReflection
+              eyebrow="RESPONSE"
+              title="How will you respond?"
               value={prayer}
               onChange={setPrayer}
-              placeholder="Lord…"
+              expanded={expandedReflection === 'response'}
+              onExpand={() =>
+                setExpandedReflection(current =>
+                  current === 'response' ? null : 'response',
+                )
+              }
             />
             {!saved ? (
               <>
                 <TouchableOpacity
                   style={styles.primary}
-                  disabled={createReflection.isPending}
-                  onPress={saveSermon}>
+                  disabled={
+                    createReflection.isPending || updateReflection.isPending
+                  }
+                  onPress={() => saveSermon()}>
                   <ThemedText weight="bold" style={styles.primaryText}>
                     {createReflection.isPending
                       ? 'Saving…'
                       : 'Remember this sermon'}
                   </ThemedText>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.quiet} onPress={saveSermon}>
+                <TouchableOpacity
+                  style={styles.quiet}
+                  onPress={() => saveSermon()}>
                   <ThemedText weight="bold" style={styles.quietText}>
                     Save notes without reflection
                   </ThemedText>
@@ -1192,10 +1788,7 @@ const SermonNotesScreen = ({navigation}: any) => {
       {stage === 2 && (
         <Animated.View
           pointerEvents="box-none"
-          style={[styles.floatingComposer, {bottom: composerBottom}]}
-          onLayout={event =>
-            setComposerHeight(event.nativeEvent.layout.height)
-          }>
+          style={[styles.floatingComposer, {bottom: composerBottom}]}>
           {showMore && (
             <View style={[styles.floatingTools, styles.floatingToolsContent]}>
               {CAPTURE_KINDS.map((kind, index) => (
@@ -1228,11 +1821,13 @@ const SermonNotesScreen = ({navigation}: any) => {
                         styles.floatingToolLast,
                     ]}
                     onPress={() => selectCaptureKind(kind)}>
-                    <BlockIcon
-                      config={BLOCKS[kind]}
-                      size={14}
-                      color={Colors.sage}
-                    />
+                    <View style={styles.floatingToolIcon}>
+                      <BlockIcon
+                        config={BLOCKS[kind]}
+                        size={13}
+                        color={Colors.sage}
+                      />
+                    </View>
                     <ThemedText weight="bold" style={styles.floatingToolText}>
                       {BLOCKS[kind].label}
                     </ThemedText>
@@ -1275,7 +1870,7 @@ const SermonNotesScreen = ({navigation}: any) => {
                 accessibilityRole="button"
                 accessibilityLabel="Edit sermon details"
                 style={styles.floatingBackButton}
-                onPress={() => goTo(1)}>
+                onPress={() => runAfterClosingPicker(() => goTo(1))}>
                 <Ionicons name="chevron-back" size={21} color={Colors.sage} />
               </TouchableOpacity>
             </Animated.View>
@@ -1297,7 +1892,7 @@ const SermonNotesScreen = ({navigation}: any) => {
               <TouchableOpacity
                 accessibilityRole="button"
                 style={styles.journalButton}
-                onPress={() => addBlock('text')}>
+                onPress={() => runAfterClosingPicker(() => addBlock('text'))}>
                 <Pencil
                   size={16}
                   color={Colors.hopeWhite}
@@ -1323,22 +1918,22 @@ const SermonNotesScreen = ({navigation}: any) => {
                   ],
                 },
               ]}>
-              <TouchableOpacity
+              <AnimatedTouchableOpacity
               accessibilityRole="button"
               accessibilityLabel={
                 showMore ? 'Close note type picker' : 'Choose a note type'
               }
               style={[
                 styles.capturePickerButton,
-                showMore && styles.capturePickerButtonOpen,
+                {
+                  backgroundColor: pickerColorAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [Colors.sage, Colors.text],
+                  }),
+                },
               ]}
               onPress={() => {
                 triggerLightHaptic();
-                Animated.timing(plusRotation, {
-                  toValue: showMore ? 0 : 1,
-                  duration: 180,
-                  useNativeDriver: true,
-                }).start();
                 if (showMore) {
                   closeCapturePicker();
                 } else {
@@ -1358,7 +1953,7 @@ const SermonNotesScreen = ({navigation}: any) => {
                 }}>
                 <Ionicons name="add" size={24} color={Colors.hopeWhite} />
               </Animated.View>
-              </TouchableOpacity>
+              </AnimatedTouchableOpacity>
             </Animated.View>
             <Animated.View
               style={[
@@ -1379,7 +1974,16 @@ const SermonNotesScreen = ({navigation}: any) => {
                 accessibilityRole="button"
                 accessibilityLabel="Finished taking notes"
                 style={styles.finishNotesButton}
-                onPress={() => goTo(3)}>
+                disabled={
+                  createReflection.isPending || updateReflection.isPending
+                }
+                onPress={() =>
+                  runAfterClosingPicker(async () => {
+                    if (await saveSermon(false)) {
+                      goTo(3);
+                    }
+                  })
+                }>
                 <Ionicons
                   name="chevron-forward"
                   size={21}
@@ -1395,53 +1999,68 @@ const SermonNotesScreen = ({navigation}: any) => {
   );
 };
 
-const ReflectionStep = ({
-  number,
+const ExpandableReflection = ({
   eyebrow,
   title,
-  detail,
   value,
   onChange,
-  placeholder,
-}: any) => (
-  <View style={styles.reflectionStep}>
-    <View style={styles.number}>
-      <ThemedText weight="bold" style={styles.numberText}>
-        {number}
-      </ThemedText>
+  expanded,
+  onExpand,
+}: any) => {
+  const inputRef = useRef<TextInput>(null);
+
+  useEffect(() => {
+    if (expanded) {
+      requestAnimationFrame(() => inputRef.current?.focus());
+    }
+  }, [expanded]);
+
+  return (
+    <View style={styles.expandableReflection}>
+      <TouchableOpacity
+        activeOpacity={0.75}
+        accessibilityRole="button"
+        accessibilityState={{expanded}}
+        onPress={onExpand}
+        style={styles.expandableReflectionHeader}>
+        <View style={styles.flex}>
+          <ThemedText weight="bold" style={styles.eyebrow}>
+            {eyebrow}
+          </ThemedText>
+          <ThemedText weight="bold" style={styles.stepTitle}>
+            {title}
+          </ThemedText>
+        </View>
+        <Ionicons
+          name={expanded ? 'chevron-up' : 'chevron-down'}
+          size={18}
+          color={Colors.sage}
+        />
+      </TouchableOpacity>
+      {expanded && (
+        <TextInput
+          ref={inputRef}
+          style={styles.expandableReflectionInput}
+          multiline
+          value={value}
+          onChangeText={onChange}
+        />
+      )}
     </View>
-    <View style={styles.flex}>
-      <ThemedText weight="bold" style={styles.eyebrow}>
-        {eyebrow}
-      </ThemedText>
-      <ThemedText weight="bold" style={styles.stepTitle}>
-        {title}
-      </ThemedText>
-      <ThemedText style={styles.stepDetail}>{detail}</ThemedText>
-      <TextInput
-        style={[styles.input, styles.textarea]}
-        multiline
-        placeholder={placeholder}
-        placeholderTextColor={Colors.textGray}
-        value={value}
-        onChangeText={onChange}
-      />
-    </View>
-  </View>
-);
+  );
+};
 
 const styles = StyleSheet.create({
   safeArea: {flex: 1, backgroundColor: Colors.lightBackground},
   header: {
     alignItems: 'flex-start',
     justifyContent: 'center',
-    paddingTop: 8,
-    paddingBottom: 0,
-    paddingHorizontal: 18,
+    paddingBottom: 20,
   },
   closeButton: {
     position: 'absolute',
     right: 18,
+    zIndex: 21,
     width: 42,
     height: 42,
     justifyContent: 'center',
@@ -1449,21 +2068,23 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.cardBackground,
     borderRadius: 21,
   },
-  stepLabelRow: {flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 48},
+  stepLabelRow: {flexDirection: 'row', alignItems: 'center', gap: 8},
   headerTitle: {
     fontSize: 16,
     letterSpacing: 1,
     color: Colors.text,
   },
-  content: {paddingHorizontal: 22, paddingBottom: 0},
+  content: {paddingHorizontal: 22, paddingBottom: 0, flexGrow: 1},
   actionProgressBar: {
+    position: 'absolute',
+    left: '50%',
+    zIndex: 20,
     height: 6,
     width: 120,
+    marginLeft: -60,
     backgroundColor: Colors.cardBorder,
     borderRadius: 3,
-    marginBottom: 24,
     overflow: 'hidden' as const,
-    alignSelf: 'center' as const,
   },
   actionProgressFill: {
     height: '100%',
@@ -1489,8 +2110,7 @@ const styles = StyleSheet.create({
   optional: {fontSize: 11, color: Colors.textGray},
   input: {
     minHeight: 46,
-    borderWidth: 1,
-    borderColor: Colors.cardBorder,
+    borderWidth: 0,
     backgroundColor: Colors.cardBackground,
     borderRadius: 13,
     paddingHorizontal: 13,
@@ -1528,8 +2148,8 @@ const styles = StyleSheet.create({
   toolText: {fontSize: 11, color: Colors.sage},
   floatingComposer: {
     position: 'absolute',
-    left: 80,
-    right: 16,
+    left: 18,
+    right: 18,
     alignItems: 'flex-end',
   },
   floatingTools: {
@@ -1547,17 +2167,31 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
     minHeight: 34,
-    paddingHorizontal: 10,
+    paddingLeft: 5,
+    paddingRight: 12,
     borderWidth: 1,
-    borderColor: Colors.cardBorder,
+    borderColor: Colors.sage,
     borderRadius: 17,
-    backgroundColor: Colors.anchorBlueLight,
+    backgroundColor: Colors.cardBackground,
+    shadowColor: Colors.text,
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    shadowOffset: {width: 0, height: 2},
+    elevation: 3,
   },
   floatingToolLast: {},
+  floatingToolIcon: {
+    width: 24,
+    height: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 12,
+    backgroundColor: Colors.anchorBlueLight,
+  },
   floatingToolText: {
     fontSize: 10,
     letterSpacing: 0.7,
-    color: Colors.sage,
+    color: Colors.text,
   },
   floatingActions: {
     width: '100%',
@@ -1565,16 +2199,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
   },
-  floatingCircleAnimationWrapper: {width: 56, height: 56},
-  floatingWriteAnimationWrapper: {flex: 1, height: 56},
+  floatingCircleAnimationWrapper: {width: 48, height: 48},
+  floatingWriteAnimationWrapper: {flex: 1, height: 48},
   floatingBackButton: {
-    width: 56,
-    height: 56,
+    width: 48,
+    height: 48,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
     borderColor: Colors.cardBorder,
-    borderRadius: 28,
+    borderRadius: 24,
     backgroundColor: Colors.cardBackground,
     shadowColor: Colors.text,
     shadowOpacity: 0.1,
@@ -1584,13 +2218,13 @@ const styles = StyleSheet.create({
   },
   journalButton: {
     width: '100%',
-    height: 56,
+    height: 48,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
     paddingHorizontal: 12,
-    borderRadius: 28,
+    borderRadius: 24,
     backgroundColor: Colors.sage,
     shadowColor: Colors.text,
     shadowOpacity: 0.16,
@@ -1600,11 +2234,11 @@ const styles = StyleSheet.create({
   },
   journalButtonText: {fontSize: 13, color: Colors.hopeWhite},
   capturePickerButton: {
-    width: 56,
-    height: 56,
+    width: 48,
+    height: 48,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 28,
+    borderRadius: 24,
     backgroundColor: Colors.sage,
     shadowColor: Colors.text,
     shadowOpacity: 0.16,
@@ -1614,12 +2248,12 @@ const styles = StyleSheet.create({
   },
   capturePickerButtonOpen: {backgroundColor: Colors.text},
   finishNotesButton: {
-    width: 56,
-    height: 56,
+    width: 48,
+    height: 48,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 28,
+    borderRadius: 24,
     backgroundColor: Colors.sage,
     shadowColor: Colors.text,
     shadowOpacity: 0.16,
@@ -1655,24 +2289,34 @@ const styles = StyleSheet.create({
     padding: 12,
     marginBottom: 9,
   },
-  keyCapture: {borderLeftWidth: 3, borderLeftColor: Colors.sage},
-  quoteCapture: {backgroundColor: Colors.lightBackground},
-  songCapture: {backgroundColor: '#F7F3EB'},
-  characterCapture: {backgroundColor: '#F4F2EA', borderColor: '#E3DED0'},
+  keyCapture: {
+    backgroundColor: '#EDF1EC',
+    borderColor: '#D7DED7',
+    borderLeftWidth: 3,
+    borderLeftColor: Colors.sage,
+  },
+  quoteCapture: {backgroundColor: '#F4F3ED', borderColor: Colors.cardBorder},
+  songCapture: {backgroundColor: '#F1F2ED', borderColor: '#DCE1DA'},
+  outlineCapture: {backgroundColor: Colors.cardBackground},
+  characterCapture: {backgroundColor: '#F2F1EB', borderColor: '#DEE1D9'},
+  languageCapture: {backgroundColor: '#EAEFEA', borderColor: '#D5DED6'},
+  linkCapture: {backgroundColor: Colors.cardBackground},
+  tableCapture: {backgroundColor: Colors.cardBackground},
+  historyCapture: {backgroundColor: '#EEF1EC', borderColor: '#DAE0D8'},
   rememberCapture: {
-    backgroundColor: Colors.anchorBlueLight,
-    borderColor: Colors.anchorBlueLight,
+    backgroundColor: '#F1F2ED',
+    borderColor: '#DCE1DA',
   },
   scriptureCapture: {
     backgroundColor: Colors.anchorBlueLight,
-    borderColor: Colors.anchorBlueLight,
+    borderColor: '#D4DDD4',
   },
-  responseCapture: {backgroundColor: '#F7F3EB'},
-  questionCapture: {backgroundColor: '#F4F5F1'},
-  revisitCapture: {backgroundColor: Colors.lightBackground},
+  responseCapture: {backgroundColor: '#EDF1EC', borderColor: '#D7DED7'},
+  questionCapture: {backgroundColor: Colors.cardBackground},
+  revisitCapture: {backgroundColor: '#F4F3ED', borderColor: Colors.cardBorder},
   prayerCapture: {
-    backgroundColor: Colors.anchorBlueLight,
-    borderColor: Colors.anchorBlueLight,
+    backgroundColor: '#E9EEE9',
+    borderColor: '#D4DDD5',
   },
   textCapture: {},
   captureHeader: {
@@ -1709,10 +2353,184 @@ const styles = StyleSheet.create({
     lineHeight: 21,
     color: Colors.text,
   },
-  scripturePreviewReference: {
+  scripturePreviewReferenceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
     marginTop: 7,
+  },
+  scripturePreviewReference: {
     fontSize: 10,
     color: Colors.sage,
+  },
+  openLink: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 6,
+    paddingHorizontal: 11,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+    borderRadius: 18,
+    backgroundColor: Colors.anchorBlueLight,
+  },
+  openLinkText: {fontSize: 11, color: Colors.sage},
+  tableGrid: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    paddingTop: 14,
+  },
+  editingTableHorizontalScroll: {marginHorizontal: -12},
+  savedTableHorizontalScroll: {marginHorizontal: -12},
+  tableRow: {flexDirection: 'row'},
+  tableCell: {
+    width: 126,
+    minHeight: 48,
+    paddingHorizontal: 9,
+    paddingVertical: 8,
+    borderRightWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: Colors.cardBorder,
+    fontFamily: Fonts.regular,
+    fontSize: 12,
+    lineHeight: 17,
+    color: Colors.text,
+    textAlignVertical: 'top',
+  },
+  tableHeaderCell: {
+    minHeight: 40,
+    backgroundColor: Colors.anchorBlueLight,
+    fontFamily: Fonts.bold,
+  },
+  savedTableGrid: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    paddingTop: 9,
+    paddingBottom: 3,
+  },
+  savedTableRow: {
+    flexDirection: 'row',
+  },
+  savedTableCell: {
+    width: 126,
+    minHeight: 34,
+    paddingHorizontal: 5,
+    paddingVertical: 5,
+    borderWidth: 0.5,
+    borderColor: Colors.cardBorder,
+    fontSize: 12,
+    lineHeight: 17,
+    color: Colors.text,
+  },
+  savedTableHeaderCell: {
+    backgroundColor: Colors.anchorBlueLight,
+  },
+  structureActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: 7,
+    marginTop: 9,
+  },
+  structureAction: {
+    width: 34,
+    height: 34,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+    borderRadius: 17,
+    backgroundColor: Colors.cardBackground,
+  },
+  saveTableButton: {
+    alignSelf: 'flex-end',
+    marginTop: 11,
+    paddingHorizontal: 15,
+    paddingVertical: 9,
+    borderRadius: 18,
+    backgroundColor: Colors.sage,
+  },
+  saveTableButtonText: {fontSize: 11, color: Colors.hopeWhite},
+  languageKindChoices: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginTop: 10,
+  },
+  languageKindChoice: {
+    flexGrow: 1,
+    flexBasis: '47%',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+    borderRadius: 16,
+    backgroundColor: Colors.cardBackground,
+  },
+  languageKindChoiceActive: {
+    backgroundColor: Colors.sage,
+    borderColor: Colors.sage,
+  },
+  languageKindText: {fontSize: 10, color: Colors.textGray},
+  languageKindTextActive: {color: Colors.hopeWhite},
+  historyChoices: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginTop: 10,
+  },
+  historyChoice: {
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+    borderRadius: 16,
+    backgroundColor: Colors.cardBackground,
+  },
+  historyChoiceActive: {backgroundColor: Colors.sage, borderColor: Colors.sage},
+  historyChoiceText: {fontSize: 10, color: Colors.textGray},
+  historyChoiceTextActive: {color: Colors.hopeWhite},
+  historyDetailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    marginTop: 9,
+    paddingHorizontal: 10,
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+    borderRadius: 12,
+    backgroundColor: Colors.cardBackground,
+  },
+  historyDetailInput: {flex: 1, minHeight: 42, paddingTop: 0},
+  eraChoice: {
+    paddingHorizontal: 9,
+    paddingVertical: 6,
+    borderRadius: 14,
+    backgroundColor: Colors.anchorBlueLight,
+  },
+  eraChoiceActive: {backgroundColor: Colors.sage},
+  eraChoiceText: {fontSize: 9, color: Colors.sage},
+  eraChoiceTextActive: {color: Colors.hopeWhite},
+  characterName: {
+    minHeight: 38,
+    paddingTop: 7,
+    fontSize: 16,
+    lineHeight: 21,
+  },
+  characterReflection: {
+    minHeight: 46,
+    marginTop: 2,
+    paddingTop: 5,
+    fontSize: 13,
+    lineHeight: 19,
+  },
+  characterScripture: {
+    minHeight: 34,
+    paddingTop: 4,
+    paddingBottom: 2,
   },
   characterNote: {marginTop: 8},
   serifInput: {fontFamily: Fonts.lora.regular, fontSize: 16, lineHeight: 24},
@@ -1750,6 +2568,32 @@ const styles = StyleSheet.create({
   },
   chipText: {fontSize: 10, color: Colors.sage},
   review: {fontSize: 11, color: Colors.sage, marginTop: 15},
+  expandableReflection: {
+    marginBottom: 10,
+    paddingHorizontal: 15,
+    paddingVertical: 14,
+    borderWidth: 0,
+    borderRadius: 16,
+    backgroundColor: Colors.anchorBlueLight,
+  },
+  expandableReflectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  expandableReflectionInput: {
+    minHeight: 88,
+    marginTop: 10,
+    paddingHorizontal: 0,
+    paddingVertical: 4,
+    borderWidth: 0,
+    backgroundColor: 'transparent',
+    fontFamily: Fonts.regular,
+    fontSize: 14,
+    lineHeight: 22,
+    color: Colors.text,
+    textAlignVertical: 'top',
+  },
   reflectionStep: {
     flexDirection: 'row',
     gap: 12,

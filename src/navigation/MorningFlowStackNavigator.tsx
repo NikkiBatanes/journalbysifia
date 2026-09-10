@@ -13,20 +13,43 @@ import TodosWalkthroughScreen from '../screens/TodosWalkthroughScreen';
 
 export type MorningFlowParamList = {
   EmotionCheckIn: { morningFlow?: boolean } | undefined;
-  UnderneathIt: { feeling?: string | null; morningFlow?: boolean } | undefined;
-  TodaysFocus: { selectedDate?: string; feeling?: string | null; underneath?: string } | undefined;
+  UnderneathIt: {
+    feeling?: string | null;
+    feelingIcon?: string;
+    feelingIconType?: 'ionicons' | 'material';
+    morningFlow?: boolean;
+  } | undefined;
+  TodaysFocus: {
+    selectedDate?: string;
+    feeling?: string | null;
+    feelingIcon?: string;
+    feelingIconType?: 'ionicons' | 'material';
+    underneath?: string;
+  } | undefined;
   Todos: { [key: string]: any } | undefined;
-  PsalmOfTheDay: undefined;
-  CarryIt: undefined;
+  PsalmOfTheDay: { [key: string]: any } | undefined;
+  CarryIt: { [key: string]: any } | undefined;
   MorningClosing:
     | {
         feeling?: string;
+        feelingIcon?: string;
+        feelingIconType?: 'ionicons' | 'material';
         underneath?: string;
         standalone?: boolean;
         checkedInAt?: string;
         focus?: string;
+        focusIcon?: string;
+        focusIconType?: 'ionicons' | 'material' | 'fontawesome';
+        focusCategory?: string;
+        customFocus?: string;
+        personalText?: string;
+        priorities?: Array<{ id?: string; text: string; completed?: boolean }>;
         mainPriority?: string;
         topTodos?: string[];
+        psalmNumber?: number;
+        psalmRead?: boolean;
+        selectedAttributes?: string[];
+        customAttribute?: string;
         carry?: string;
       }
     | undefined;

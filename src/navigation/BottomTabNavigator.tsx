@@ -6,7 +6,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { StyleSheet, Pressable, TouchableOpacity, Animated, NativeModules, View, Text, Dimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useScroll } from '../context/ScrollContext';
-import { ParamListBase, TabNavigationState } from '@react-navigation/native';
+import { getFocusedRouteNameFromRoute, ParamListBase, TabNavigationState } from '@react-navigation/native';
 import { JournalScreenRef } from '../screens/JournalScreen';
 
 import ThemedText from '../components/common/ThemedText';
@@ -39,7 +39,7 @@ type CustomTabBarProps = {
 const PILL_BG = Colors.sage;
 
 // Pill now occupies the full screen width
-const PILL_WIDTH = Dimensions.get('window').width;
+const PILL_WIDTH = Dimensions.get('window').width - 32;
 export const PILL_HEIGHT = 56;
 const TAB_CIRCLE_SIZE = 40;
 const CIRCLE_SIZE = 48;
@@ -57,7 +57,7 @@ const CustomTabBarComponent = ({
   descriptors: _descriptors,
   navigation,
 }: CustomTabBarProps) => {
-  const { showTabBar, setShowTabBar, setCollapsedTabBarCenterY } = useScroll();
+  const { showTabBar, suppressTabBar } = useScroll();
   const theme = useTheme();
   const currentFont = theme.currentFont || 'lexend';
   const fontRegular = getFontFamily(currentFont, 'regular');
@@ -113,9 +113,7 @@ const CustomTabBarComponent = ({
   const currentRouteName = state.routes[state.index].name;
   const isReflect = currentRouteName === 'Reflect';
   const activeTabRoute = state.routes[state.index] as any;
-  const nestedState = activeTabRoute?.state;
-  const activeNestedRouteName =
-    nestedState?.routes?.[nestedState.index ?? 0]?.name;
+  const activeNestedRouteName = getFocusedRouteNameFromRoute(activeTabRoute);
   const isSermonNotes = activeNestedRouteName === 'SermonNotes';
 
   // ── Pill visibility: opacity + translateY ────────────────────────────────
@@ -226,26 +224,11 @@ const CustomTabBarComponent = ({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.index, updateSelectorPosition]);
 
-  // Hide the pill entirely when Sermon Notes is open
-  useEffect(() => {
-    if (isSermonNotes) {
-      Animated.spring(pillAnim, {
-        toValue: 0,
-        tension: 55,
-        friction: 14,
-        useNativeDriver: true,
-      }).start();
-    } else if (!isReflect) {
-      Animated.spring(pillAnim, {
-        toValue: 1,
-        tension: 55,
-        friction: 12,
-        useNativeDriver: true,
-      }).start();
-    }
-  }, [isSermonNotes, isReflect, pillAnim]);
-
   const { onTabPress } = React.useContext(TabPressContext);
+
+  if (suppressTabBar || isSermonNotes) {
+    return null;
+  }
 
   // pillAnim 0→1 drives: opacity 0→1 + translateY 28→0 (entrance/exit mirror)
   const pillOpacity   = pillAnim;
@@ -306,7 +289,7 @@ const CustomTabBarComponent = ({
           transform: [{ translateY: pillTranslateY }],
         },
       ]}
-      pointerEvents={isReflect || isSermonNotes ? 'none' : 'box-none'}
+      pointerEvents={isReflect ? 'none' : 'box-none'}
     >
       {/* ── Add menu dim — behind the pill and menu ───────── */}
       <AnimatedPressable
@@ -600,8 +583,8 @@ const styles = StyleSheet.create({
   // Full-width absolute anchor (no side margins)
   pillWrapper: {
     position: 'absolute',
-    left: 0,
-    right: 0,
+    left: 16,
+    right: 16,
   },
   // Floating pill — full width, slightly smaller to fit icon + label
   pill: {

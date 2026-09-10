@@ -404,8 +404,8 @@ const TodosWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
           </StepFadeIn>
           {todos.map((todo: string, index: number) => (
             <View key={index} style={styles.priorityInputRow}>
-              <View style={[styles.priorityNumberContainer, isMorningFlow && { backgroundColor: Colors.sageMuted }]}>
-                <ThemedText weight="semiBold" style={[styles.priorityNumber, isMorningFlow && { color: Colors.sage }]}>{index + 1}</ThemedText>
+              <View style={[styles.priorityNumberContainer, { backgroundColor: isMorningFlow ? Colors.sage : 'rgba(255, 107, 107, 0.2)' }]}>
+                <ThemedText weight="semiBold" style={[styles.priorityNumber, { color: isMorningFlow ? Colors.hopeWhite : Colors.alertCoral }]}>{index + 1}</ThemedText>
               </View>
               <TextInput
                 ref={(ref) => {
@@ -414,7 +414,7 @@ const TodosWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
                 style={[
                   styles.priorityInput,
                   { fontFamily: getFontFamily(fontKey, 'regular') },
-                  isMorningFlow && { backgroundColor: 'transparent', borderWidth: 0, color: Colors.text },
+                  isMorningFlow && { color: Colors.text },
                 ]}
                 value={todo}
                 onChangeText={(text) => {
