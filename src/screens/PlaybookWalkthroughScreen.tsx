@@ -7587,10 +7587,11 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
     if (initialStep !== undefined && initialStep >= 0 && initialStep < TOTAL_STEPS) {
       return routeHasTruthBeats && initialStep === 0 ? 1 : initialStep;
     }
-    if (routeCoverPage && routePlaybook?.status !== 'completed' && (routePlaybook.walkthroughProgress ?? -1) < 0 && !fromNotification) {
+    if (routeCoverPage && (routePlaybook?.status === 'completed' || ((routePlaybook.walkthroughProgress ?? -1) < 0 && !fromNotification))) {
       return COVER_STEP_INDEX;
     }
-    if (!routePlaybook || routePlaybook.status === 'completed') { return routeHasTruthBeats ? 1 : 0; }
+    if (routePlaybook?.status === 'completed') { return routeHasTruthBeats ? 1 : 0; }
+    if (!routePlaybook) { return routeHasTruthBeats ? 1 : 0; }
     const wp = routePlaybook.walkthroughProgress ?? -1;
     if (wp < 0) { return routeHasTruthBeats ? 1 : 0; }
     // wp = last step where Next was pressed → resume at wp + 1, capped at step 5 (never auto-land on completion)
@@ -7711,7 +7712,7 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
       } else if (!fromNotification) {
         const progress = playbook.walkthroughProgress ?? -1;
         let nextStep = playbook.status === 'completed'
-          ? firstStep
+          ? (coverPage ? COVER_STEP_INDEX : firstStep)
           : progress >= 0
             ? Math.min(Math.max(progress + 1, firstStep), TOTAL_STEPS - 2)
             : coverPage ? COVER_STEP_INDEX : firstStep;
