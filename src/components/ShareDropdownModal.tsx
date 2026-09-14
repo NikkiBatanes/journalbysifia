@@ -22,6 +22,8 @@ interface ShareDropdownModalProps {
   playbookTitle?: string;
   shareText?: string;
   hideExportPDF?: boolean; // Hide PDF export option
+  exportSubject?: string;
+  shareTitle?: string;
 }
 
 const ShareDropdownModal: React.FC<ShareDropdownModalProps> = ({
@@ -30,6 +32,8 @@ const ShareDropdownModal: React.FC<ShareDropdownModalProps> = ({
   onExportPDF,
   shareText,
   hideExportPDF = false,
+  exportSubject = 'playbook',
+  shareTitle,
 }) => {
   const insets = useSafeAreaInsets();
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
@@ -153,7 +157,7 @@ const ShareDropdownModal: React.FC<ShareDropdownModalProps> = ({
                 </View>
                 <View style={styles.dropdownItemTextContainer}>
                   <ThemedText weight="semiBold" style={styles.dropdownItemTitle}>
-                    Share siFia with friends
+                    {shareTitle ?? 'Share siFia with friends'}
                   </ThemedText>
                   <ThemedText style={styles.dropdownItemSubtitle}>
                     Share the app with your friends
@@ -176,7 +180,7 @@ const ShareDropdownModal: React.FC<ShareDropdownModalProps> = ({
                       Export as PDF
                     </ThemedText>
                     <ThemedText style={styles.dropdownItemSubtitle}>
-                      Export this playbook as a PDF file
+                      Export this {exportSubject} as a PDF file
                     </ThemedText>
                   </View>
                   <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.4)" />

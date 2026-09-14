@@ -2,6 +2,7 @@
 import React, { useEffect } from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { Feather } from 'lucide-react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { StyleSheet, Pressable, TouchableOpacity, Animated, NativeModules, View, Text, Dimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -47,7 +48,7 @@ const CIRCLE_SIZE = 48;
 const LABELS: Record<string, string> = {
   Today: 'Today',
   Prayer: 'Prayer',
-  Journal: 'Journal',
+  Journal: 'Moments',
   More: 'More',
 };
 
@@ -79,7 +80,8 @@ const CustomTabBarComponent = ({
 
   const addMenuItems = React.useMemo(
     () => [
-      { icon: '▤', title: 'Sermon Notes', subtitle: 'Message, Scripture & reflection', target: 'Journal', params: { screen: 'SermonNotes' } },
+      { icon: '▤', title: 'Bible Study', subtitle: 'Message, Scripture & reflection', target: 'Journal', params: { screen: 'SermonNotes' } },
+      { icon: '▧', title: 'Sermon Notes', subtitle: 'Message, Scripture & reflection', target: 'Journal', params: { screen: 'SermonNotes' } },
       { icon: '✎', title: 'Heart Journal', subtitle: 'Write freely', target: 'Journal', params: { screen: 'ReflectionEditor' } },
       { icon: '◌', title: 'Emotional Check-In', subtitle: 'Notice and name how you feel', target: 'MorningFlow', params: { screen: 'EmotionCheckIn' } },
       { icon: '♡', title: 'Gratitude', subtitle: 'Remember what you\'re thankful for', target: 'Journal', params: { screen: 'JournalMoments' } },
@@ -114,7 +116,9 @@ const CustomTabBarComponent = ({
   const isReflect = currentRouteName === 'Reflect';
   const activeTabRoute = state.routes[state.index] as any;
   const activeNestedRouteName = getFocusedRouteNameFromRoute(activeTabRoute);
-  const isSermonNotes = activeNestedRouteName === 'SermonNotes';
+  const isSermonNotes =
+    activeNestedRouteName === 'SermonNotes' ||
+    activeNestedRouteName === 'SermonNotesDetail';
 
   // ── Pill visibility: opacity + translateY ────────────────────────────────
   // 0 = hidden below screen, 1 = visible in place
@@ -274,7 +278,7 @@ const CustomTabBarComponent = ({
     const name = state.routes[state.index].name;
     if (name === 'Today')       { return <Ionicons name="sunny-outline" size={22} color={INACTIVE_CIRCLE_COLOR} />; }
     if (name === 'Prayer')      { return <Ionicons name="hand-left-outline" size={22} color={INACTIVE_CIRCLE_COLOR} />; }
-    if (name === 'Journal')     { return <MaterialCommunityIcons name="notebook-edit" size={22} color={INACTIVE_CIRCLE_COLOR} />; }
+    if (name === 'Journal')     { return <Feather size={22} color={INACTIVE_CIRCLE_COLOR} />; }
     if (name === 'More')        { return <Ionicons name="ellipsis-horizontal" size={22} color={INACTIVE_CIRCLE_COLOR} />; }
     return <Ionicons name="apps-outline" size={22} color={INACTIVE_CIRCLE_COLOR} />;
   })();
@@ -295,7 +299,7 @@ const CustomTabBarComponent = ({
       <AnimatedPressable
         style={[
           styles.addMenuDim,
-          { top: -(screenHeight - insets.bottom - 64), bottom: -insets.bottom, opacity: menuAnim },
+          { left: -16, right: -16, top: -(screenHeight - insets.bottom - PILL_HEIGHT), bottom: -insets.bottom, opacity: menuAnim },
         ]}
         pointerEvents={showAddMenu ? 'auto' : 'none'}
         onPress={() => setShowAddMenu(false)}
@@ -349,14 +353,18 @@ const CustomTabBarComponent = ({
               updateSelectorPosition(tabLayouts[index]?.x ?? 0);
               onTabPress(route.name);
               if (!event.defaultPrevented) {
-                navigation.navigate(route.name);
+                if (route.name === 'Journal') {
+                  navigation.navigate('Journal', { screen: 'JournalMoments' });
+                } else {
+                  navigation.navigate(route.name);
+                }
               }
             };
 
             const icon = (() => {
               if (route.name === 'Today')       { return <Ionicons name={isFocused ? 'sunny' : 'sunny-outline'} size={20} color={iconColor} />; }
               if (route.name === 'Prayer')      { return <Ionicons name={isFocused ? 'hand-left' : 'hand-left-outline'} size={20} color={iconColor} />; }
-              if (route.name === 'Journal')     { return <MaterialCommunityIcons name={isFocused ? 'notebook-edit' : 'notebook'} size={20} color={iconColor} />; }
+              if (route.name === 'Journal')     { return <Feather size={20} color={iconColor} />; }
               if (route.name === 'More')        { return <Ionicons name={isFocused ? 'ellipsis-horizontal' : 'ellipsis-horizontal-outline'} size={20} color={iconColor} />; }
               const iconName = isFocused
                 ? TabBarIcons[route.name as keyof typeof TabBarIcons]?.focused
@@ -426,9 +434,7 @@ const CustomTabBarComponent = ({
         <ThemedText weight="bold" style={styles.addMenuTitle}>
           What would you like to write?
         </ThemedText>
-        <ThemedText style={styles.addMenuSubtitle}>
-          Jump straight into a full-screen journal.
-        </ThemedText>
+
         {addMenuItems.map((item) => (
           <TouchableOpacity
             key={item.title}
@@ -585,6 +591,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 16,
     right: 16,
+    overflow: 'visible',
   },
   // Floating pill — full width, slightly smaller to fit icon + label
   pill: {

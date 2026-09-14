@@ -19,8 +19,11 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import ThemedText from '../components/common/ThemedText';
 import NewSuccessModal from '../components/NewSuccessModal';
 import ScriptureReaderModal from '../components/ScriptureReaderModal';
-import { useAuth } from '../context/IndustryStandardAuthContext';
-import { useCreateReflection, useUpdateReflection } from '../services/hooks/useReflectionData';
+import {
+  createLocalReflection,
+  getLocalReflection,
+  updateLocalReflection,
+} from '../storage/reflectionStorage';
 import { getScripturePassage, type ScriptureReaderResult } from '../services/scriptureReaderService';
 import { styles as s } from '../components/journal/reflectionStyles';
 import { Colors } from '../theme/colors';
@@ -45,7 +48,6 @@ const ScriptureNoteEditorScreen: React.FC = () => {
   const route = useRoute();
   const navigation = useNavigation();
   const params = (route.params as RouteParams) || {};
-  const { user } = useAuth();
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';
   const fontFamilyRegular = getFontFamily(fontKey, 'regular');
@@ -54,10 +56,7 @@ const ScriptureNoteEditorScreen: React.FC = () => {
   const selectedDate = params.selectedDate ? new Date(params.selectedDate) : new Date();
   const dateStr = toLocalDateString(selectedDate);
 
-  const createMutation = useCreateReflection();
-  const updateMutation = useUpdateReflection();
-  const isSaving = createMutation.isPending || updateMutation.isPending;
-
+  const [isSaving, setIsSaving] = useState(false);
   const [editingId] = useState<string | null>(params.existingReflection?.id || null);
   const [reference, setReference] = useState<string>(params.existingReflection?.title || '');
   const [content, setContent] = useState<string>(params.existingReflection?.content || '');
@@ -65,6 +64,19 @@ const ScriptureNoteEditorScreen: React.FC = () => {
   const [resolvedVerse, setResolvedVerse] = useState<ScriptureReaderResult | null>(null);
   const [resolving, setResolving] = useState(false);
   const [showReader, setShowReader] = useState(false);
+
+  useEffect(() => {
+    if (!editingId) {return;}
+    let mounted = true;
+    (async () => {
+      const existing = await getLocalReflection(editingId, 'scripture', dateStr);
+      if (!existing || !mounted) return;
+      setReference(existing.title || existing.metadata?.scripture_reference || '');
+      setContent(existing.content || '');
+      setHasChanges(true);
+    })();
+    return () => { mounted = false; };
+  }, [editingId, dateStr]);
 
   const contentInputRef = useRef<TextInput>(null);
   const lookupVersionRef = useRef(0);
@@ -139,32 +151,52 @@ const ScriptureNoteEditorScreen: React.FC = () => {
 
   const handleSave = async () => {
     triggerLightHaptic();
-    if (!user) {
-      Logger.error('User not authenticated', undefined, { component: 'ScriptureNoteEditorScreen' });
-      return;
-    }
 
     const trimmedReference = (resolvedVerse?.reference || reference).trim();
     const trimmedContent = content.trim();
     if (!trimmedReference || !trimmedContent) { return; }
 
+    setIsSaving(true);
+
     try {
-      const saveData = {
-        title: trimmedReference,
-        content: trimmedContent,
-        type: 'free',
-        user_id: user.id,
-        selected_date: dateStr,
-        source: 'scripture',
-      };
+      const parsedRef = trimmedReference.match(/^(\d?\s*[A-Za-z]+)\s*(.*)$/);
+      const book = parsedRef ? parsedRef[1].trim() : '';
+      const chapterVerse = parsedRef ? parsedRef[2].trim() : '';
 
       if (editingId) {
-        await updateMutation.mutateAsync({ id: editingId, updates: saveData });
+        const existing = await getLocalReflection(editingId, 'scripture', dateStr);
+        if (existing) {
+          await updateLocalReflection({
+            ...existing,
+            title: trimmedReference,
+            content: trimmedContent,
+            source: 'scripture_note',
+            updated_at: new Date().toISOString(),
+            version: (existing.version || 1) + 1,
+          });
+        } else {
+          await createLocalReflection({
+            title: trimmedReference,
+            content: trimmedContent,
+            type: 'scripture',
+            source: 'scripture_note',
+            selected_date: dateStr,
+            metadata: { book, reference: trimmedReference, chapter_verse: chapterVerse },
+          });
+        }
       } else {
-        await createMutation.mutateAsync(saveData);
+        await createLocalReflection({
+          title: trimmedReference,
+          content: trimmedContent,
+          type: 'scripture',
+          source: 'scripture_note',
+          selected_date: dateStr,
+          metadata: { book, reference: trimmedReference, chapter_verse: chapterVerse },
+        });
       }
 
       setTimeout(() => {
+        setIsSaving(false);
         successModal.showSuccess({
           title: editingId ? 'Scripture Note Updated' : 'Scripture Note Saved',
           message: editingId
@@ -174,6 +206,7 @@ const ScriptureNoteEditorScreen: React.FC = () => {
         });
       }, 100);
     } catch (saveError) {
+      setIsSaving(false);
       Logger.error('ScriptureNoteEditorScreen: Save failed', saveError as Error, {
         component: 'ScriptureNoteEditorScreen',
       });

@@ -3,11 +3,11 @@
   "displayName": "Journal by siFia",
   "version": "1.0.0",
   "orientation": "portrait",
-  "icon": "./assets/images/siFiaAppIcon.png",
+  "icon": "./assets/images/journalbysifia.png",
   "splash": {
-    "image": "./assets/icons/siFia-logo-white.png",
+    "image": "./assets/images/journalbysifia.png",
     "resizeMode": "contain",
-    "backgroundColor": "#1A3C6D"
+    "backgroundColor": "#869C7B"
   },
   "ios": {
     "supportsTablet": true,
@@ -16,8 +16,8 @@
   },
   "android": {
     "adaptiveIcon": {
-      "foregroundImage": "./assets/images/siFiaAppIcon.png",
-      "backgroundColor": "#1A3C6D"
+      "foregroundImage": "./assets/images/journalbysifia.png",
+      "backgroundColor": "#869C7B"
     },
     "package": "app.journal.sifia",
     "versionCode": 1

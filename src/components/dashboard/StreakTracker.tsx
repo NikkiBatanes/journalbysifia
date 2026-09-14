@@ -487,24 +487,24 @@ const StreakTracker: React.FC<StreakTrackerProps> = ({
   return (
     <View style={[styles.container, showProfileStats && styles.profileContainer, isPill && styles.pillContainer]}>
       <View style={[styles.header, isPill && styles.pillHeader]}>
-        <MaterialCommunityIcons name="fire" size={isPill ? 18 : 24} color={isPill ? Colors.hopeWhite : Colors.alertCoral} />
-        <ThemedText weight="semiBold" style={[styles.title, isPill && styles.pillTitle]}>Streak Tracker</ThemedText>
+        <MaterialCommunityIcons name="fire" size={isPill ? 18 : 24} color={isPill ? Colors.hopeWhite : showProfileStats ? Colors.sage : Colors.alertCoral} />
+        <ThemedText weight="semiBold" style={[styles.title, showProfileStats && styles.profileTitle, isPill && styles.pillTitle]}>Streak Tracker</ThemedText>
       </View>
 
       <View style={[styles.grid, isPill && styles.pillGrid]}>
         {streaks.map(streak => (
           <TouchableOpacity
             key={streak.id}
-            style={[styles.chip, useCompactChips && styles.pillChip]}
+            style={[styles.chip, useCompactChips && styles.pillChip, showProfileStats && styles.profileChip]}
             onPress={() => { triggerLightHaptic(); openSheet(streak); }}
             activeOpacity={0.85}
           >
             <MaterialCommunityIcons
               name={getStreakIcon(streak.type) as any}
               size={useCompactChips ? 12 : 18}
-              color={useCompactChips ? Colors.hopeWhite : Colors.textGray}
+              color={useCompactChips ? (showProfileStats ? Colors.sage : Colors.hopeWhite) : Colors.textGray}
             />
-            <ThemedText weight="semiBold" style={[styles.streakNumber, useCompactChips && styles.pillStreakNumber]}>{streak.currentStreak}</ThemedText>
+            <ThemedText weight="semiBold" style={[styles.streakNumber, useCompactChips && styles.pillStreakNumber, showProfileStats && styles.profileStreakNumber]}>{streak.currentStreak}</ThemedText>
             {streak.isActive && !useCompactChips && (
               <MaterialCommunityIcons name="fire" size={14} color={Colors.alertCoral} style={styles.iconMarginLeft} />
             )}
@@ -513,20 +513,20 @@ const StreakTracker: React.FC<StreakTrackerProps> = ({
         {showProfileStats && (
           <>
             <TouchableOpacity
-              style={[styles.chip, styles.pillChip]}
+              style={[styles.chip, styles.pillChip, styles.profileChip]}
               onPress={() => { triggerLightHaptic(); if (onFaithPointsPress) { onFaithPointsPress(); } else { openProfileSheet('faithPoints'); } }}
               activeOpacity={0.85}
             >
-              <MaterialCommunityIcons name="star-four-points" size={12} color={Colors.hopeWhite} />
-              <ThemedText weight="semiBold" style={styles.pillStreakNumber}>{faithPoints} FP</ThemedText>
+              <MaterialCommunityIcons name="star-four-points" size={12} color={Colors.sage} />
+              <ThemedText weight="semiBold" style={[styles.pillStreakNumber, styles.profileStreakNumber]}>{faithPoints} FP</ThemedText>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.chip, styles.pillChip]}
+              style={[styles.chip, styles.pillChip, styles.profileChip]}
               onPress={() => { triggerLightHaptic(); if (onBadgesPress) { onBadgesPress(); } else { openProfileSheet('badges'); } }}
               activeOpacity={0.85}
             >
-              <MaterialCommunityIcons name="trophy" size={12} color={Colors.hopeWhite} />
-              <ThemedText weight="semiBold" style={styles.pillStreakNumber}>{badgesCount}</ThemedText>
+              <MaterialCommunityIcons name="trophy" size={12} color={Colors.sage} />
+              <ThemedText weight="semiBold" style={[styles.pillStreakNumber, styles.profileStreakNumber]}>{badgesCount}</ThemedText>
             </TouchableOpacity>
           </>
         )}
@@ -729,6 +729,9 @@ const styles = StyleSheet.create({
     fontSize: 14,
     letterSpacing: 0.8,
   },
+  profileTitle: {
+    color: Colors.text,
+  },
   loadingText: {
     fontSize: 14,
     color: Colors.textGray,
@@ -770,6 +773,13 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: Colors.hopeWhite,
     marginHorizontal: 2,
+  },
+  profileStreakNumber: {
+    color: Colors.text,
+  },
+  profileChip: {
+    backgroundColor: Colors.anchorBlueLight,
+    borderColor: Colors.lightBorder,
   },
   streakNumber: {
     fontSize: 14,

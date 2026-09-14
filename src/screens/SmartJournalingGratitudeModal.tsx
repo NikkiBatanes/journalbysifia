@@ -10,12 +10,11 @@ import { useAuth } from '../context/IndustryStandardAuthContext';
 import { withErrorBoundary } from '../components/ErrorBoundary/withErrorBoundary';
 import { useActionSteps } from '../context/ActionStepsContext';
 import {
-  useCreateJournalEntry,
-  useUpdateJournalEntry,
-  useDeleteJournalEntry,
-} from '../services/hooks/useJournalData';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { JournalApi } from '../services/api/journalApi';
+  createLocalJournalEntry,
+  getLocalJournalEntries,
+  updateLocalJournalEntry,
+  deleteLocalJournalEntry,
+} from '../storage/journalStorage';
 import { toLocalDateString } from '../utils/date';
 import { visibleStreakService } from '../services/visibleStreakService';
 import type { NavigationProp } from '@react-navigation/native';
@@ -67,7 +66,6 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
 
   const { user } = useAuth();
   const { handleAutoCheckStep, actionSteps } = useActionSteps();
-  const queryClient = useQueryClient();
   // Store saved result to call onSave when user clicks Done in success modal
   const [savedGratitudeResult, setSavedGratitudeResult] = useState<any>(null);
   const [isSuccessModalShown, setIsSuccessModalShown] = useState(false);
@@ -132,37 +130,23 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
 
   // Fetch existing gratitude data for this subtask
   const dateStr = toLocalDateString(selectedDate);
-  const { data: existingGratitudeEntries = [] } = useQuery({
-    queryKey: ['gratitude', user?.id, dateStr, subtaskId],
-    queryFn: async () => {
-      if (!user?.id || !subtaskId) {return [];}
+  const [localGratitudeEntries, setLocalGratitudeEntries] = useState<any[]>([]);
 
-      // Fetch gratitude entries for today that match this subtask
-      const entries = await JournalApi.getGratitudeEntries(user.id, dateStr);
-      return entries.filter((entry: any) => {
-        // Check subtask_id in metadata field first (new format)
-        if (entry.metadata?.subtask_id) {
-          return entry.metadata.subtask_id === subtaskId;
-        }
-
-        // Fallback to checking in content for backward compatibility (old format)
-        try {
-          const parsedContent = typeof entry.content === 'string' ? JSON.parse(entry.content) : entry.content;
-          return parsedContent.metadata?.subtask_id === subtaskId || parsedContent.subtask_id === subtaskId;
-        } catch (error) {
-          Logger.error('Error parsing gratitude content', error as Error, {
-      component: 'SmartJournalingGratitudeModal',
-    });
-          return false;
-        }
-      });
-    },
-    enabled: !!user?.id && !!subtaskId, // Remove 'visible' dependency to prefetch data
-    staleTime: 30000, // 30 seconds
-  });
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      const entries = await getLocalJournalEntries('gratitude', dateStr);
+      if (!mounted) return;
+      const matches = subtaskId
+        ? entries.filter(e => e.metadata?.subtask_id === subtaskId)
+        : entries.filter(e => !e.metadata?.subtask_id);
+      setLocalGratitudeEntries(matches);
+    })();
+    return () => { mounted = false; };
+  }, [dateStr, subtaskId]);
 
   // Get the most recent gratitude entry for this subtask
-  const currentGratitudeEntry = existingGratitudeEntries[0] || existingGratitude;
+  const currentGratitudeEntry = localGratitudeEntries[0] || existingGratitude;
 
   //     subtaskTitle,
   //     subtaskId,
@@ -229,23 +213,6 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
     setPrevVisible(visible);
   }, [visible, prevVisible, currentGratitudeEntry, actionSteps, stepId, subtaskId, hasMetadata]);
 
-  // React Query mutations
-  const createMutation = useCreateJournalEntry();
-  const updateMutation = useUpdateJournalEntry();
-  const deleteMutation = useDeleteJournalEntry();
-
-  // Track mutation states
-  useEffect(() => {
-
-  }, [
-    createMutation.isPending,
-    createMutation.isSuccess,
-    createMutation.isError,
-    updateMutation.isPending,
-    updateMutation.isSuccess,
-    updateMutation.isError,
-  ]);
-
   // Track actionSteps changes to see if completion state is being lost
   // Removed unused debug effect
 
@@ -255,11 +222,6 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
     date: Date;
   }) => {
     try {
-      if (!user?.id) {
-        Alert.alert('Error', 'User not authenticated');
-        return;
-      }
-
       // Filter out blank items and remove number prefixes
       const cleanedItems = gratitudeData.items
         .filter(item => item.trim().length > 0)
@@ -269,36 +231,20 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
         })
         .filter(item => item.length > 0);
 
-      // Delete only gratitude entries that match this subtaskId to prevent duplicates
-      // If no subtaskId, delete all entries for the day (general gratitude editing)
-      const allEntries = await JournalApi.getGratitudeEntries(user.id, dateStr);
+      const allEntries = await getLocalJournalEntries('gratitude', toLocalDateString(gratitudeData.date));
       const entriesToDelete = subtaskId
-        ? allEntries.filter((entry: any) => {
-            // Check subtask_id in metadata field first (new format)
-            if (entry.metadata?.subtask_id) {
-              return entry.metadata.subtask_id === subtaskId;
-            }
-            // Fallback to checking in content for backward compatibility (old format)
-            try {
-              const parsedContent = typeof entry.content === 'string' ? JSON.parse(entry.content) : entry.content;
-              return parsedContent.metadata?.subtask_id === subtaskId || parsedContent.subtask_id === subtaskId;
-            } catch {
-              return false;
-            }
-          })
-        : allEntries; // Delete all if no subtaskId (general gratitude from journal screen)
+        ? allEntries.filter(entry => entry.metadata?.subtask_id === subtaskId)
+        : allEntries.filter(entry => !entry.metadata?.subtask_id);
 
       for (const entry of entriesToDelete) {
-        await deleteMutation.mutateAsync(entry.id);
+        await deleteLocalJournalEntry(entry.id, 'gratitude', toLocalDateString(gratitudeData.date));
       }
 
-      const gratitudeEntry = {
-        user_id: user?.id || '',
-        selected_date: toLocalDateString(gratitudeData.date),
-        content_type: 'gratitude' as const,
-        content: JSON.stringify({
-          items: cleanedItems,
-        }),
+      const savedDate = toLocalDateString(gratitudeData.date);
+      const created = await createLocalJournalEntry({
+        content_type: 'gratitude',
+        selected_date: savedDate,
+        content: JSON.stringify({ items: cleanedItems }),
         metadata: {
           subtaskTitle,
           playbookTitle,
@@ -309,13 +255,9 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
           step_id: stepId || null,
           playbook_id: playbookId || null,
         },
-      };
+      });
 
-      // Always create a new entry after deleting all existing ones
-      const result = await createMutation.mutateAsync(gratitudeEntry);
-
-      // Store result to call onSave when user clicks Done in success modal
-      setSavedGratitudeResult(result);
+      setSavedGratitudeResult(created);
 
       // Check if streak celebration should show for gratitude
       // Only show streak if not associated with a playbook OR playbook is completed
@@ -343,18 +285,6 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
           message: 'Your gratitude has been saved to your journal.',
           showEditButton: true,
         });
-      }
-
-      // PERFORMANCE: All cache invalidation is non-blocking - happens after UI updates
-      if (user?.id) {
-        setTimeout(() => {
-          queryClient.invalidateQueries({
-            queryKey: ['journal', 'gratitude', user.id, dateStr],
-          });
-          queryClient.invalidateQueries({
-            queryKey: ['journal', 'all'],
-          });
-        }, 0);
       }
 
       // PERFORMANCE: Handle action steps completion asynchronously (non-blocking)
@@ -449,7 +379,7 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
         playbookTitle={preservedPlaybookTitle}
         actionStepNumber={preservedActionStepNumber}
         actionStepTitle={preservedActionStepTitle}
-        isLoading={createMutation.isPending || updateMutation.isPending}
+        isLoading={false}
         styles={gratitudeEditorStyles}
         stepBody={stepBody}
         stepExample={stepExample}

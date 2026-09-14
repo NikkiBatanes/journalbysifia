@@ -684,10 +684,10 @@ const GratitudeLogEditorInner = (
     // Call onSave synchronously for immediate UI response
     onSave({
       items: cleanItems,
-      date: new Date(),
+      date: selectedDate || new Date(),
     });
 
-  }, [gratitudeItems, onSave]);
+  }, [gratitudeItems, onSave, selectedDate]);
 
   // Check if form is valid (has content) AND user has made changes
   const isFormValid = gratitudeItems.some(item => item.trim()) && hasUserMadeChanges;

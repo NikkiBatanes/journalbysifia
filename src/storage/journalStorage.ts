@@ -14,6 +14,263 @@ import { Logger } from '../utils/ProductionLogger';
 import { safeJsonParse, parseStorageValue } from '../utils/safeJsonParse';
 import { streakTrackingService } from '../services/streakTrackingService';
 
+// ===================================================================
+// CANONICAL LOCAL-FIRST JOURNAL REPOSITORY
+// -------------------------------------------------------------------
+// Auth-independent, offline-first storage for canonical journal
+// content. Cloud sync is a separate concern; this module does not
+// call Supabase. Legacy cloud-coupled helpers remain below for
+// backward compatibility, but new UI should use these functions.
+// ===================================================================
+
+export type LocalJournalContentType =
+  | 'gratitude'
+  | 'todo'
+  | 'todays_focus'
+  | 'today_win'
+  | 'looking_forward';
+
+export interface LocalJournalEntry {
+  id: string;
+  server_id?: string | null;
+  content_type: LocalJournalContentType;
+  selected_date: string; // YYYY-MM-DD
+  content: string;       // JSON string
+  completed?: boolean;
+  priority?: 'high' | 'medium' | 'low';
+  created_at: string;
+  updated_at: string;
+  deleted?: boolean;
+  sync_status?: 'local' | 'pending' | 'synced' | 'error';
+  version?: number;
+  metadata?: Record<string, any>;
+  linked_account_id?: string | null;
+}
+
+const LOCAL_JOURNAL_PREFIX = 'journal_local';
+const LOCAL_JOURNAL_INDEX_PREFIX = 'journal_local_index';
+const LOCAL_JOURNAL_SINGLETON_PREFIX = 'journal_local_singleton';
+
+const formatLocalDate = (date: string | Date): string => {
+  if (typeof date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    return date;
+  }
+  if (typeof date === 'string' && date.includes('T')) {
+    return date.split('T')[0];
+  }
+  if (date instanceof Date && !isNaN(date.getTime())) {
+    return toLocalDateString(date);
+  }
+  return toLocalDateString(new Date(date));
+};
+
+const getCollectionKey = (contentType: string, date: string, id: string): string =>
+  `${LOCAL_JOURNAL_PREFIX}:${contentType}:${date}:${id}`;
+
+const getIndexKey = (contentType: string, date: string): string =>
+  `${LOCAL_JOURNAL_INDEX_PREFIX}:${contentType}:${date}`;
+
+const getSingletonKey = (contentType: string, date: string): string =>
+  `${LOCAL_JOURNAL_SINGLETON_PREFIX}:${contentType}:${date}`;
+
+const readIndex = async (contentType: string, date: string): Promise<string[]> => {
+  const raw = await AsyncStorage.getItem(getIndexKey(contentType, date));
+  if (!raw) {return [];}
+  return parseStorageValue<string[]>(raw, []);
+};
+
+const writeIndex = async (contentType: string, date: string, ids: string[]): Promise<void> => {
+  await AsyncStorage.setItem(getIndexKey(contentType, date), JSON.stringify(ids));
+};
+
+export const createLocalJournalEntry = async (
+  data: Omit<LocalJournalEntry, 'id' | 'created_at' | 'updated_at' | 'version' | 'sync_status'>
+): Promise<LocalJournalEntry> => {
+  const now = new Date().toISOString();
+  const selectedDate = formatLocalDate(data.selected_date);
+  const id = generateUUID();
+  const entry: LocalJournalEntry = {
+    ...data,
+    id,
+    selected_date: selectedDate,
+    server_id: data.server_id ?? null,
+    created_at: now,
+    updated_at: now,
+    version: 1,
+    sync_status: 'local',
+    deleted: false,
+  };
+
+  const key = getCollectionKey(data.content_type, selectedDate, id);
+  await AsyncStorage.setItem(key, JSON.stringify(entry));
+
+  const index = await readIndex(data.content_type, selectedDate);
+  if (!index.includes(id)) {
+    index.push(id);
+    await writeIndex(data.content_type, selectedDate, index);
+  }
+
+  return entry;
+};
+
+export const getLocalJournalEntry = async (
+  id: string,
+  contentType: string,
+  date: string | Date
+): Promise<LocalJournalEntry | null> => {
+  const selectedDate = formatLocalDate(date);
+  const raw = await AsyncStorage.getItem(getCollectionKey(contentType, selectedDate, id));
+  if (!raw) {return null;}
+  const parsed = safeJsonParse<LocalJournalEntry>(raw, { fallback: null });
+  if (parsed && parsed.deleted) {return null;}
+  return parsed;
+};
+
+export const getLocalJournalEntries = async (
+  contentType: string,
+  date: string | Date
+): Promise<LocalJournalEntry[]> => {
+  const selectedDate = formatLocalDate(date);
+  const index = await readIndex(contentType, selectedDate);
+  const entries: LocalJournalEntry[] = [];
+  for (const id of index) {
+    const raw = await AsyncStorage.getItem(getCollectionKey(contentType, selectedDate, id));
+    if (!raw) {continue;}
+    const parsed = safeJsonParse<LocalJournalEntry>(raw, { fallback: null });
+    if (parsed && !parsed.deleted) {
+      entries.push(parsed);
+    }
+  }
+  return entries.sort((a, b) => a.created_at.localeCompare(b.created_at));
+};
+
+export const updateLocalJournalEntry = async (
+  entry: LocalJournalEntry
+): Promise<LocalJournalEntry> => {
+  const now = new Date().toISOString();
+  const selectedDate = formatLocalDate(entry.selected_date);
+  const updated: LocalJournalEntry = {
+    ...entry,
+    selected_date: selectedDate,
+    updated_at: now,
+    version: (entry.version || 1) + 1,
+    sync_status: 'pending',
+  };
+  const key = getCollectionKey(updated.content_type, selectedDate, updated.id);
+  await AsyncStorage.setItem(key, JSON.stringify(updated));
+  return updated;
+};
+
+export const deleteLocalJournalEntry = async (
+  id: string,
+  contentType: string,
+  date: string | Date
+): Promise<void> => {
+  const selectedDate = formatLocalDate(date);
+  const raw = await AsyncStorage.getItem(getCollectionKey(contentType, selectedDate, id));
+  if (!raw) {return;}
+  const parsed = safeJsonParse<LocalJournalEntry>(raw, { fallback: null });
+  if (!parsed) {return;}
+
+  const tombstone: LocalJournalEntry = {
+    ...parsed,
+    updated_at: new Date().toISOString(),
+    deleted: true,
+    sync_status: 'pending',
+  };
+  await AsyncStorage.setItem(getCollectionKey(contentType, selectedDate, id), JSON.stringify(tombstone));
+
+  const index = await readIndex(contentType, selectedDate);
+  const nextIndex = index.filter(itemId => itemId !== id);
+  await writeIndex(contentType, selectedDate, nextIndex);
+};
+
+export const deleteLocalJournalEntriesForDate = async (
+  contentType: string,
+  date: string | Date
+): Promise<void> => {
+  const selectedDate = formatLocalDate(date);
+  const entries = await getLocalJournalEntries(contentType, selectedDate);
+  for (const entry of entries) {
+    await deleteLocalJournalEntry(entry.id, contentType, selectedDate);
+  }
+};
+
+export const saveLocalJournalSingleton = async (
+  contentType: string,
+  date: string | Date,
+  content: string,
+  metadata?: Record<string, any>
+): Promise<LocalJournalEntry> => {
+  const selectedDate = formatLocalDate(date);
+  const key = getSingletonKey(contentType, selectedDate);
+  const raw = await AsyncStorage.getItem(key);
+  const now = new Date().toISOString();
+
+  if (raw) {
+    const parsed = safeJsonParse<LocalJournalEntry>(raw, { fallback: null });
+    if (parsed && !parsed.deleted) {
+      const updated: LocalJournalEntry = {
+        ...parsed,
+        content,
+        metadata: metadata ?? parsed.metadata,
+        updated_at: now,
+        version: (parsed.version || 1) + 1,
+        sync_status: 'pending',
+      };
+      await AsyncStorage.setItem(key, JSON.stringify(updated));
+      return updated;
+    }
+  }
+
+  const entry: LocalJournalEntry = {
+    id: generateUUID(),
+    server_id: null,
+    content_type: contentType as LocalJournalContentType,
+    selected_date: selectedDate,
+    content,
+    created_at: now,
+    updated_at: now,
+    version: 1,
+    sync_status: 'local',
+    deleted: false,
+    metadata,
+  };
+  await AsyncStorage.setItem(key, JSON.stringify(entry));
+  return entry;
+};
+
+export const getLocalJournalSingleton = async (
+  contentType: string,
+  date: string | Date
+): Promise<LocalJournalEntry | null> => {
+  const selectedDate = formatLocalDate(date);
+  const raw = await AsyncStorage.getItem(getSingletonKey(contentType, selectedDate));
+  if (!raw) {return null;}
+  const parsed = safeJsonParse<LocalJournalEntry>(raw, { fallback: null });
+  if (parsed && parsed.deleted) {return null;}
+  return parsed;
+};
+
+export const deleteLocalJournalSingleton = async (
+  contentType: string,
+  date: string | Date
+): Promise<void> => {
+  const selectedDate = formatLocalDate(date);
+  const key = getSingletonKey(contentType, selectedDate);
+  const raw = await AsyncStorage.getItem(key);
+  if (!raw) {return;}
+  const parsed = safeJsonParse<LocalJournalEntry>(raw, { fallback: null });
+  if (!parsed) {return;}
+  const tombstone: LocalJournalEntry = {
+    ...parsed,
+    updated_at: new Date().toISOString(),
+    deleted: true,
+    sync_status: 'pending',
+  };
+  await AsyncStorage.setItem(key, JSON.stringify(tombstone));
+};
+
 // Storage keys for journal entries
 // const JOURNAL_ENTRIES_KEY = 'journal_entries';
 // const JOURNAL_ENTRIES_VERSION = '1.0';

@@ -1511,11 +1511,6 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
   );
 
   const handleSave = async () => {
-    if (!user) {
-      Alert.alert('Error', 'You must be logged in to save your prayer.');
-      return;
-    }
-
     try {
       const isEditing = !!editingPrayerId;
 
@@ -1535,13 +1530,13 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
                   status: step.key === 'supplication' && supplicationTrackAnswered ? 'pending' : undefined,
                   metadata: step.key === 'supplication' ? { track_answered: supplicationTrackAnswered } : undefined,
                 },
-                _userId: user.id,
+                _userId: user?.id ?? 'local',
                 _dateStr: dateStr,
               });
             } else {
               // Create new prayer
               await createMutation.mutateAsync({
-                user_id: user.id,
+                user_id: user?.id ?? 'local',
                 selected_date: dateStr,
                 prayer_type: 'journal',
                 journal_category: step.key as 'adoration' | 'confession' | 'thanksgiving' | 'supplication',
@@ -1554,7 +1549,7 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
             // Delete empty prayer if editing
             await deletePrayerMutation.mutateAsync({
               id: existingId,
-              _userId: user.id,
+              _userId: user?.id ?? 'local',
               _dateStr: dateStr,
             });
           }
@@ -1571,13 +1566,13 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
               status: openPrayerTrackAnswered ? 'pending' : undefined,
               metadata: { track_answered: openPrayerTrackAnswered },
             },
-            _userId: user.id,
+            _userId: user?.id ?? 'local',
             _dateStr: dateStr,
           });
         } else {
           // Create new open prayer
           await createMutation.mutateAsync({
-            user_id: user.id,
+            user_id: user?.id ?? 'local',
             selected_date: dateStr,
             prayer_type: 'journal',
             journal_category: 'personal_prayer',
@@ -1589,7 +1584,7 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
       }
 
       // Invalidate cache to ensure UI updates with new data
-      await queryClient.invalidateQueries({ queryKey: ['prayers', 'acts', user.id, dateStr] });
+      await queryClient.invalidateQueries({ queryKey: ['prayers', 'acts', user?.id ?? 'local', dateStr] });
       await queryClient.invalidateQueries({ queryKey: ['journal', 'all'] });
 
       // Check if streak celebration should show for prayer journal.
@@ -1600,9 +1595,9 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
       const shouldCheckPrayerStreak = !fromPlaybook || playbookStatus === 'completed';
       let navigatedToStreak = false;
       if (shouldCheckPrayerStreak) {
-        const shouldShowStreak = await visibleStreakService.shouldShowCelebration(user.id, prayerActivityType);
+        const shouldShowStreak = await visibleStreakService.shouldShowCelebration(user?.id ?? 'local', prayerActivityType);
         if (shouldShowStreak) {
-          await visibleStreakService.markShownToday(user.id);
+          await visibleStreakService.markShownToday(user?.id ?? 'local');
           if (fromPlaybook) {
             DeviceEventEmitter.emit('playbookPrayerSaved', {
               playbookId,
@@ -1613,7 +1608,7 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
             });
           }
           (navigation as any).navigate('StreakPlan', {
-            userId: user.id,
+            userId: user?.id ?? 'local',
             source: prayerActivityType,
             dismissRouteCount: 2,
           });
@@ -1627,7 +1622,7 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
           ? Object.values(prayerTexts).join('').length
           : openPrayerText.length,
         date: dateStr,
-      }, user.id);
+      }, user?.id ?? 'local');
 
       if (fromPlaybook && !navigatedToStreak) {
         // Show success modal inside this screen; Done handler will pop + emit
@@ -1684,7 +1679,7 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
       markSupplicationAnsweredMutation.mutateAsync({
         id: editingPrayerId,
         isAnswered: true,
-        _userId: user.id,
+        _userId: user?.id ?? 'local',
         _dateStr: dateStr,
       }).catch(() => {
         Alert.alert('Error', 'Failed to mark prayer as answered. Please try again.');
@@ -1696,7 +1691,7 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
           status: 'answered' as const,
           answered_date: new Date().toISOString(),
         },
-        _userId: user.id,
+        _userId: user?.id ?? 'local',
         _dateStr: dateStr,
       }).catch(() => {
         Alert.alert('Error', 'Failed to mark prayer as answered. Please try again.');

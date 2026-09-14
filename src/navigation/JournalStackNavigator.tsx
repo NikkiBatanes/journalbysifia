@@ -8,22 +8,25 @@ import TimeBlockEditorScreen from '../screens/TimeBlockEditorScreen';
 import ReflectionEditorScreen from '../screens/ReflectionEditorScreen';
 import ScriptureNoteEditorScreen from '../screens/ScriptureNoteEditorScreen';
 import SermonNotesScreen from '../screens/SermonNotesScreen';
+import SermonNotesDetailScreen from '../screens/SermonNotesDetailScreen';
+import ReviewScreen from '../screens/ReviewScreen';
+import PastReviewsScreen from '../screens/PastReviewsScreen';
+import ReviewSettingsScreen from '../screens/ReviewSettingsScreen';
 
 const Stack = createNativeStackNavigator();
 
 const JournalStackNavigator: React.FC = () => {
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Navigator initialRouteName="JournalMoments" screenOptions={{ headerShown: false }}>
       <Stack.Screen name="JournalMain" component={JournalScreen as React.ComponentType} />
       <Stack.Screen
         name="JournalMoments"
         component={MomentsScreen as React.ComponentType}
         options={{
           headerShown: false,
-          presentation: Platform.OS === 'android' ? 'transparentModal' : 'modal',
-          animation: Platform.OS === 'android' ? 'none' : 'slide_from_bottom',
+          presentation: 'fullScreenModal',
+          animation: 'slide_from_bottom',
           gestureEnabled: true,
-          contentStyle: Platform.OS === 'android' ? { backgroundColor: 'transparent' } : undefined,
         }}
       />
       <Stack.Screen
@@ -53,8 +56,52 @@ const JournalStackNavigator: React.FC = () => {
         }}
       />
       <Stack.Screen
+        name="SermonNotesDetail"
+        component={SermonNotesDetailScreen as React.ComponentType}
+        options={{
+          headerShown: false,
+          presentation: 'fullScreenModal',
+          animation: 'slide_from_bottom',
+          gestureEnabled: true,
+          contentStyle: { backgroundColor: '#F6F5EF' },
+        }}
+      />
+      <Stack.Screen
         name="SermonNotes"
         component={SermonNotesScreen as React.ComponentType}
+        options={{
+          headerShown: false,
+          presentation: 'fullScreenModal',
+          animation: 'slide_from_bottom',
+          gestureEnabled: true,
+          contentStyle: { backgroundColor: '#F6F5EF' },
+        }}
+      />
+      <Stack.Screen
+        name="Review"
+        component={ReviewScreen as React.ComponentType}
+        options={{
+          headerShown: false,
+          presentation: 'fullScreenModal',
+          animation: 'slide_from_bottom',
+          gestureEnabled: true,
+          contentStyle: { backgroundColor: '#F6F5EF' },
+        }}
+      />
+      <Stack.Screen
+        name="ReviewSettings"
+        component={ReviewSettingsScreen as React.ComponentType}
+        options={{
+          headerShown: false,
+          presentation: 'fullScreenModal',
+          animation: 'slide_from_bottom',
+          gestureEnabled: true,
+          contentStyle: { backgroundColor: '#F6F5EF' },
+        }}
+      />
+      <Stack.Screen
+        name="PastReviews"
+        component={PastReviewsScreen as React.ComponentType}
         options={{
           headerShown: false,
           presentation: 'fullScreenModal',

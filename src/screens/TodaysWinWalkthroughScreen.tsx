@@ -5,6 +5,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   Animated,
+  Easing,
   StatusBar,
   TextInput,
   Alert,
@@ -30,9 +31,7 @@ import { withErrorBoundary } from '../components/ErrorBoundary/withErrorBoundary
 import { triggerLightHaptic, triggerMediumHaptic } from '../utils/haptics';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { toLocalDateString } from '../utils/date';
-import { useCreateTodayWinEntry, useUpdateTodayWinEntry, useTodayWinData } from '../services/hooks/useJournalData';
-import { useQueryClient } from '@tanstack/react-query';
-import { queryKeys } from '../services/queryKeys';
+import { saveLocalJournalSingleton, getLocalJournalSingleton } from '../storage/journalStorage';
 import { isToday, isYesterday, startOfDay } from 'date-fns';
 import { visibleStreakService } from '../services/visibleStreakService';
 
@@ -309,11 +308,11 @@ const WinTypeSelectionStep: React.FC<{
   onNext: () => void;
   onOtherStateChange: (isOtherSelected: boolean) => void;
   insets: { top: number; bottom: number };
-  navigation: any;
+  onClose?: () => void;
   customWin: string;
   setCustomWin: (text: string) => void;
   dateContext: DateContext;
-}> = ({ selectedWinType, onSelect, onNext, onOtherStateChange, insets, navigation, customWin, setCustomWin, dateContext }) => {
+}> = ({ selectedWinType, onSelect, onNext, onOtherStateChange, insets, onClose, customWin, setCustomWin, dateContext }) => {
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('Faith');
@@ -377,19 +376,19 @@ const WinTypeSelectionStep: React.FC<{
   useEffect(() => {
     const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', (e) => {
       setKeyboardVisible(true);
-      Animated.spring(buttonPosition, {
+      Animated.timing(buttonPosition, {
         toValue: insets.bottom + ((e.endCoordinates.height || 325) * 0.95),
-        tension: 80,
-        friction: 12,
+        duration: 250,
+        easing: Easing.out(Easing.cubic),
         useNativeDriver: false,
       }).start();
     });
     const keyboardDidHideListener = Keyboard.addListener('keyboardDidHide', () => {
       setKeyboardVisible(false);
-      Animated.spring(buttonPosition, {
+      Animated.timing(buttonPosition, {
         toValue: insets.bottom + 20,
-        tension: 80,
-        friction: 12,
+        duration: 200,
+        easing: Easing.out(Easing.cubic),
         useNativeDriver: false,
       }).start();
     });
@@ -631,7 +630,7 @@ const WinTypeSelectionStep: React.FC<{
         <TouchableOpacity
           onPress={() => {
             triggerLightHaptic();
-            navigation.goBack();
+            onClose?.();
           }}
           style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}
           activeOpacity={0.7}
@@ -651,11 +650,11 @@ const QuietWinStep: React.FC<{
   onNext: () => void;
   onBack: () => void;
   insets: { top: number; bottom: number };
-  navigation: any;
+  onClose?: () => void;
   selectedWinType: WinType | null;
   customWin: string;
   dateContext: DateContext;
-}> = ({ quietWin, onChange, onNext, onBack: _onBack, insets, navigation, selectedWinType, customWin, dateContext }) => {
+}> = ({ quietWin, onChange, onNext, onBack: _onBack, insets, onClose, selectedWinType, customWin, dateContext }) => {
   const verticalLineHeight = useRef(new Animated.Value(0)).current;
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   const buttonPosition = useRef(new Animated.Value(insets.bottom + 20)).current;
@@ -679,19 +678,19 @@ const QuietWinStep: React.FC<{
   useEffect(() => {
     const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', (e) => {
       setKeyboardVisible(true);
-      Animated.spring(buttonPosition, {
+      Animated.timing(buttonPosition, {
         toValue: insets.bottom + ((e.endCoordinates.height || 325) * 0.95),
-        tension: 80,
-        friction: 12,
+        duration: 250,
+        easing: Easing.out(Easing.cubic),
         useNativeDriver: false,
       }).start();
     });
     const keyboardDidHideListener = Keyboard.addListener('keyboardDidHide', () => {
       setKeyboardVisible(false);
-      Animated.spring(buttonPosition, {
+      Animated.timing(buttonPosition, {
         toValue: insets.bottom + 20,
-        tension: 80,
-        friction: 12,
+        duration: 200,
+        easing: Easing.out(Easing.cubic),
         useNativeDriver: false,
       }).start();
     });
@@ -796,7 +795,7 @@ const QuietWinStep: React.FC<{
         <TouchableOpacity
           onPress={() => {
             triggerLightHaptic();
-            navigation.goBack();
+            onClose?.();
           }}
           style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}
           activeOpacity={0.7}
@@ -815,10 +814,9 @@ const CompletionStep: React.FC<{
   quietWin: string;
   onDone: () => void;
   insets: { top: number; bottom: number };
-  navigation: any;
   customWin: string;
   dateContext: DateContext;
-}> = ({ winType, quietWin, onDone, insets, navigation: _navigation, customWin, dateContext }) => {
+}> = ({ winType, quietWin, onDone, insets, customWin, dateContext }) => {
   const checkmarkScale = useRef(new Animated.Value(0)).current;
   const iconScale = useRef(new Animated.Value(0)).current;
   const iconRotation = useRef(new Animated.Value(0)).current;
@@ -987,36 +985,32 @@ const CompletionStep: React.FC<{
   );
 };
 
-// Main Screen Component
-const TodaysWinWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
-  const insets = { top: 50, bottom: 34 };
-  const { user } = useAuth();
-  const queryClient = useQueryClient();
-  const { selectedDate: selectedDateStr } = route.params || {};
-  const selectedDate = selectedDateStr ? new Date(selectedDateStr) : new Date();
+// Reusable experience component (multiple entry points: standalone, evening routine)
+export const TodayWinExperience: React.FC<{
+  selectedDate: Date;
+  insets?: { top: number; bottom: number };
+  onClose?: () => void;
+  onComplete: (record: any) => void | Promise<void>;
+}> = ({ selectedDate, insets: insetsProp, onClose, onComplete }) => {
+  const insets = insetsProp ?? { top: 50, bottom: 34 };
   const screenWidth = Dimensions.get('window').width;
 
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedWinType, setSelectedWinType] = useState<WinType | null>(null);
   const [quietWin, setQuietWin] = useState('');
   const [customWin, setCustomWin] = useState('');
-  const [existingEntryId, setExistingEntryId] = useState<string | null>(null);
   const [isOtherStateActive, setIsOtherStateActive] = useState(false);
 
   const dateStr = toLocalDateString(selectedDate);
   const dateContext = getDateContext(selectedDate);
 
-  const createMutation = useCreateTodayWinEntry();
-  const updateMutation = useUpdateTodayWinEntry();
-
-  // Fetch existing Today's Win data when component mounts
-  const { data: existingEntries } = useTodayWinData(user?.id || '', dateStr);
-  const existingEntry = existingEntries?.[0] || null;
-
   React.useEffect(() => {
-    if (existingEntry) {
+    let mounted = true;
+    (async () => {
+      const existing = await getLocalJournalSingleton('today_win', dateStr);
+      if (!existing || !mounted) {return;}
       try {
-        const content = typeof existingEntry.content === 'string' ? JSON.parse(existingEntry.content) : existingEntry.content;
+        const content = typeof existing.content === 'string' ? JSON.parse(existing.content) : existing.content;
         if (content.winType) {
           const winType = WIN_TYPES.find(wt => wt.id === content.winType);
           if (winType) {
@@ -1029,12 +1023,12 @@ const TodaysWinWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
         if (content.quietWin) {
           setQuietWin(content.quietWin);
         }
-        setExistingEntryId(existingEntry.id);
       } catch (error) {
         console.error('Error parsing existing win data:', error);
       }
-    }
-  }, [existingEntry]);
+    })();
+    return () => { mounted = false; };
+  }, [dateStr]);
 
   const handleNext = useCallback(() => {
     if (currentStep === 1) {
@@ -1096,45 +1090,15 @@ const TodaysWinWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
   );
 
   const handleDone = async () => {
-    if (!user) {
-      Alert.alert('Error', 'You must be logged in to save your win.');
-      return;
-    }
-
     try {
-      // Use new values if changed, otherwise keep existing values
-      // If user selected a new win type, use it. Otherwise keep existing.
       const winTypeId = selectedWinType?.id === 'other' ? 'other' : (selectedWinType?.id || '');
       const winTypeName = selectedWinType?.id === 'other' ? customWin.trim() : (selectedWinType?.name || '');
-
-      // If user entered new text, use it and clear win type. If win type was selected, clear text.
       const quietWinToSave = quietWin.trim() !== '' ? quietWin.trim() : '';
 
       const contentToSave = JSON.stringify({ winType: winTypeId, winTypeName, quietWin: quietWinToSave });
 
-      if (existingEntryId) {
-        await updateMutation.mutateAsync({ id: existingEntryId, updates: { content: contentToSave } });
-      } else {
-        await createMutation.mutateAsync({ user_id: user.id, selected_date: dateStr, content: contentToSave });
-      }
+      const record = await saveLocalJournalSingleton('today_win', dateStr, contentToSave);
 
-      // Invalidate cache and refetch to ensure UI updates with new data
-      await queryClient.invalidateQueries({ queryKey: queryKeys.journal.todayWin(user.id, dateStr) });
-      await queryClient.refetchQueries({ queryKey: queryKeys.journal.todayWin(user.id, dateStr) });
-      await queryClient.invalidateQueries({ queryKey: queryKeys.journal.all });
-
-      // Check if streak celebration should show for today's win
-      const shouldShowStreak = await visibleStreakService.shouldShowCelebration(user.id, 'journal_win_added');
-      if (shouldShowStreak) {
-        await visibleStreakService.markShownToday(user.id);
-        (navigation as any).navigate('StreakPlan', {
-          userId: user.id,
-          source: 'journal_win_added',
-          dismissRouteCount: 2,
-        });
-      }
-
-      // Increment completion message index for next time
       try {
         const currentIndex = await AsyncStorage.getItem('winCompletionIndex');
         const index = currentIndex ? parseInt(currentIndex, 10) : 0;
@@ -1143,7 +1107,6 @@ const TodaysWinWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
         console.error('Error incrementing completion message index:', error);
       }
 
-      // Increment footer message index for next time
       try {
         const currentIndex = await AsyncStorage.getItem('winFooterIndex');
         const index = currentIndex ? parseInt(currentIndex, 10) : 0;
@@ -1153,13 +1116,80 @@ const TodaysWinWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
       }
 
       triggerMediumHaptic();
-      // Only go back if we did NOT navigate to StreakPlan (streak screen handles its own dismiss)
-      if (!shouldShowStreak) {
-        navigation.goBack();
-      }
+      await onComplete(record);
     } catch (error) {
       Alert.alert('Error', 'Failed to save your win. Please try again.');
     }
+  };
+
+  return (
+    <View style={styles.container} {...panResponder.panHandlers}>
+      {currentStep === 1 && (
+        <WinTypeSelectionStep
+          selectedWinType={selectedWinType}
+          onSelect={setSelectedWinType}
+          onNext={handleNext}
+          insets={insets}
+          onClose={onClose}
+          customWin={customWin}
+          setCustomWin={setCustomWin}
+          onOtherStateChange={setIsOtherStateActive}
+          dateContext={dateContext}
+        />
+      )}
+
+      {currentStep === 2 && selectedWinType && (
+        <QuietWinStep
+          quietWin={quietWin}
+          onChange={setQuietWin}
+          onNext={handleNext}
+          onBack={handleBack}
+          insets={insets}
+          onClose={onClose}
+          selectedWinType={selectedWinType}
+          customWin={customWin}
+          dateContext={dateContext}
+        />
+      )}
+
+      {currentStep === 3 && selectedWinType && (
+        <CompletionStep
+          winType={selectedWinType}
+          quietWin={quietWin}
+          onDone={handleDone}
+          insets={insets}
+          customWin={customWin}
+          dateContext={dateContext}
+        />
+      )}
+    </View>
+  );
+};
+
+// Standalone screen wrapper
+const TodaysWinWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
+  const { user } = useAuth();
+  const { selectedDate: selectedDateStr } = route.params || {};
+  const selectedDate = selectedDateStr ? new Date(selectedDateStr) : new Date();
+
+  const handleComplete = async (_record: any) => {
+    if (user?.id) {
+      const shouldShowStreak = await visibleStreakService.shouldShowCelebration(user.id, 'journal_win_added');
+      if (shouldShowStreak) {
+        await visibleStreakService.markShownToday(user.id);
+        (navigation as any).navigate('StreakPlan', {
+          userId: user.id,
+          source: 'journal_win_added',
+          dismissRouteCount: 2,
+        });
+        return;
+      }
+    }
+    navigation.goBack();
+  };
+
+  const handleClose = () => {
+    navigation.goBack();
   };
 
   // Hide status bar for translucent scrolling effect
@@ -1175,47 +1205,12 @@ const TodaysWinWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
   );
 
   return (
-    <View style={styles.container} {...panResponder.panHandlers}>
-      {currentStep === 1 && (
-        <WinTypeSelectionStep
-          selectedWinType={selectedWinType}
-          onSelect={setSelectedWinType}
-          onNext={handleNext}
-          insets={insets}
-          navigation={navigation}
-          customWin={customWin}
-          setCustomWin={setCustomWin}
-          onOtherStateChange={setIsOtherStateActive}
-          dateContext={dateContext}
-        />
-      )}
-
-      {currentStep === 2 && selectedWinType && (
-        <QuietWinStep
-          quietWin={quietWin}
-          onChange={setQuietWin}
-          onNext={handleNext}
-          onBack={handleBack}
-          insets={insets}
-          navigation={navigation}
-          selectedWinType={selectedWinType}
-          customWin={customWin}
-          dateContext={dateContext}
-        />
-      )}
-
-      {currentStep === 3 && selectedWinType && (
-        <CompletionStep
-          winType={selectedWinType}
-          quietWin={quietWin}
-          onDone={handleDone}
-          insets={insets}
-          navigation={navigation}
-          customWin={customWin}
-          dateContext={dateContext}
-        />
-      )}
-    </View>
+    <TodayWinExperience
+      selectedDate={selectedDate}
+      insets={{ top: 50, bottom: 34 }}
+      onClose={handleClose}
+      onComplete={handleComplete}
+    />
   );
 };
 

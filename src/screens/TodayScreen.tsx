@@ -1,17 +1,21 @@
-import React, { useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ScrollView, StatusBar, StyleSheet, TouchableOpacity, View } from 'react-native';
+import Animated, { FadeInUp } from 'react-native-reanimated';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Pencil } from 'lucide-react-native';
-import { endOfWeek, format, startOfWeek, subYears } from 'date-fns';
+import { differenceInCalendarDays, endOfWeek, format, startOfWeek, subYears } from 'date-fns';
 
 import ThemedText from '../components/common/ThemedText';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { Colors } from '../theme/colors';
 import { Fonts } from '../theme/fonts';
 import { triggerLightHaptic } from '../utils/haptics';
+import { getReviewEligibility, type ReviewEligibilityResult } from '../services/reviewEligibilityService';
+import { getLocalReviewsByType, type LocalReviewEntry } from '../storage/reviewStorage';
+import { preloadScripturePassages } from '../services/scriptureReaderService';
 
 const SectionHeading = ({ title, detail }: { title: string; detail: string }) => (
   <View style={styles.sectionHeading}>
@@ -25,6 +29,21 @@ const IconTile = ({ icon, family = 'ion' }: { icon: string; family?: 'ion' | 'ma
     {family === 'material'
       ? <MaterialCommunityIcons name={icon} size={25} color={Colors.sage} />
       : <Ionicons name={icon} size={25} color={Colors.sage} />}
+  </View>
+);
+
+const Stagger = ({ children }: { children: React.ReactNode }) => (
+  <View style={{ width: '100%' }}>
+    {React.Children.toArray(children).map((child, i) =>
+      child != null ? (
+        <Animated.View
+          key={i}
+          entering={FadeInUp.delay(i * 80).springify().damping(14).stiffness(180)}
+        >
+          {child}
+        </Animated.View>
+      ) : null
+    )}
   </View>
 );
 
@@ -44,6 +63,75 @@ const TodayScreen = () => {
     return String(value).trim().split(/\s+/)[0];
   }, [user]);
 
+  useEffect(() => {
+    const createdAt = (user as any)?.created_at;
+    const start = createdAt ? new Date(createdAt) : now;
+    const psalmNumber = (Math.max(0, differenceInCalendarDays(now, start)) % 150) + 1;
+    preloadScripturePassages([
+      `Psalm ${psalmNumber}`,
+      `Proverbs ${now.getDate()}`,
+    ]);
+  }, [now, user]);
+
+  const [eligibility, setEligibility] = useState<ReviewEligibilityResult | null>(null);
+  const [weeklyReview, setWeeklyReview] = useState<LocalReviewEntry | null>(null);
+  const [tick, setTick] = useState(0);
+
+  useEffect(() => {
+    getReviewEligibility().then(setEligibility);
+    getLocalReviewsByType('weekly').then(reviews => {
+      const sorted = [...reviews].sort((a, b) =>
+        b.periodEnd.localeCompare(a.periodEnd),
+      );
+      setWeeklyReview(sorted[0] ?? null);
+    });
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      setTick((t) => t + 1);
+    }, [])
+  );
+
+  const reviewCard = useMemo(() => {
+    if (!eligibility?.main) {return null;}
+    const main = eligibility.main;
+    if (main.review.status === 'completed') {return null;}
+
+    const typeLabel = main.type.replace('_', ' ');
+    const periodStart = new Date(main.period.periodStart);
+    const periodEnd = new Date(main.period.periodEnd);
+    const month = periodStart.toLocaleString('default', { month: 'short' }).toUpperCase();
+    const periodText = `${month} ${periodStart.getDate()}–${periodEnd.getDate()}`;
+
+    return (
+      <TouchableOpacity
+        style={[styles.card, styles.reviewCard]}
+        onPress={() => {
+          triggerLightHaptic();
+          (navigation as any).navigate('Journal', {
+            screen: 'Review',
+            params: { type: main.type, periodStart: main.period.periodStart, periodEnd: main.period.periodEnd },
+          });
+        }}
+        activeOpacity={0.7}>
+        <View style={styles.reviewHeader}>
+          <ThemedText style={styles.reviewEyebrow}>TIME TO LOOK BACK</ThemedText>
+          <Ionicons name="chevron-forward" size={20} color={Colors.sage} />
+        </View>
+        <ThemedText weight="bold" style={styles.reviewTitle}>
+          {typeLabel.toUpperCase()} REVIEW
+        </ThemedText>
+        <ThemedText style={styles.reviewPeriod}>{periodText}</ThemedText>
+        {eligibility.alsoReady.length > 0 ? (
+          <ThemedText style={styles.reviewAlso}>
+            Also ready: {eligibility.alsoReady.map(a => a.type.replace('_', ' ')).join(', ')}
+          </ThemedText>
+        ) : null}
+      </TouchableOpacity>
+    );
+  }, [eligibility, navigation]);
+
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <StatusBar barStyle="dark-content" backgroundColor={Colors.lightBackground} />
@@ -52,9 +140,12 @@ const TodayScreen = () => {
         contentContainerStyle={[styles.content, { paddingBottom: Math.max(insets.bottom, 16) + 104 }]}
         showsVerticalScrollIndicator={false}
       >
-        <ThemedText style={styles.date}>{format(now, 'EEE, MMM d').toUpperCase()}</ThemedText>
+        <Stagger key={tick}>
+          <ThemedText style={styles.date}>{format(now, 'EEE, MMM d').toUpperCase()}</ThemedText>
         <ThemedText style={styles.greeting}>Hi, {firstName}.</ThemedText>
         <ThemedText style={styles.subtitle}>Begin where you are.</ThemedText>
+
+        {reviewCard}
 
         <SectionHeading title="MORNING" detail="your daily rhythm" />
         <View style={[styles.card, styles.heroCard]}>
@@ -73,8 +164,8 @@ const TodayScreen = () => {
               onPress={() => {
                 triggerLightHaptic();
                 (navigation as any).navigate('MorningFlow', {
+                  selectedDate: new Date().toISOString(),
                   screen: 'EmotionCheckIn',
-                  params: { morningFlow: true },
                 });
               }}
             >
@@ -85,12 +176,47 @@ const TodayScreen = () => {
         </View>
 
         <SectionHeading title="YOUR RHYTHM" detail="for this season" />
-        <View style={styles.card}>
-          <ThemedText style={styles.cardLabel}>THIS WEEK · {weekLabel}</ThemedText>
-          <ThemedText style={styles.compactTitle}>Take a moment to look back.</ThemedText>
-          <ThemedText style={styles.body}>Your weekly review is ready whenever you are. Notice what happened before you move into another week.</ThemedText>
-          <View style={[styles.button, styles.leftButton]}><ThemedText style={styles.buttonText}>Weekly Review  →</ThemedText></View>
-        </View>
+        {weeklyReview ? (
+          <TouchableOpacity
+            style={[styles.card, styles.weeklyPreviewCard]}
+            activeOpacity={0.7}
+            onPress={() => {
+              triggerLightHaptic();
+              (navigation as any).navigate('Journal', {
+                screen: 'Review',
+                params: {
+                  type: 'weekly',
+                  periodStart: weeklyReview.periodStart,
+                  periodEnd: weeklyReview.periodEnd,
+                },
+              });
+            }}>
+            <ThemedText style={styles.cardLabel}>FROM YOUR WEEK · {weekLabel}</ThemedText>
+            <ThemedText style={styles.compactTitle}>You said this mattered.</ThemedText>
+            {(['priority_1', 'priority_2', 'priority_3'] as const).map(key =>
+              weeklyReview.answers[key]?.trim() ? (
+                <View key={key} style={styles.priorityRow}>
+                  <ThemedText style={styles.priorityBullet}>○</ThemedText>
+                  <ThemedText style={styles.priorityText}>{weeklyReview.answers[key]}</ThemedText>
+                </View>
+              ) : null,
+            )}
+            {weeklyReview.answers.faithful_step?.trim() ? (
+              <View style={styles.faithfulStepBox}>
+                <ThemedText style={styles.meta}>One faithful step</ThemedText>
+                <ThemedText style={styles.faithfulStepText}>{weeklyReview.answers.faithful_step}</ThemedText>
+              </View>
+            ) : null}
+            <ThemedText style={styles.textLink}>Look back into this week →</ThemedText>
+          </TouchableOpacity>
+        ) : (
+          <View style={styles.card}>
+            <ThemedText style={styles.cardLabel}>THIS WEEK · {weekLabel}</ThemedText>
+            <ThemedText style={styles.compactTitle}>Take a moment to look back.</ThemedText>
+            <ThemedText style={styles.body}>Your weekly review is ready whenever you are. Notice what happened before you move into another week.</ThemedText>
+            <View style={[styles.button, styles.leftButton]}><ThemedText style={styles.buttonText}>Weekly Review  →</ThemedText></View>
+          </View>
+        )}
 
         <SectionHeading title="JOURNAL" detail="write anytime" />
         <TouchableOpacity
@@ -164,7 +290,7 @@ const TodayScreen = () => {
               triggerLightHaptic();
               (navigation as any).navigate('EveningFlow', {
                 screen: 'Gratitude',
-                params: { selectedDate: new Date().toISOString() },
+                params: { selectedDate: new Date().toISOString(), routine: 'evening' },
               });
             }}
           >
@@ -216,6 +342,24 @@ const TodayScreen = () => {
           <ThemedText weight="bold" style={styles.writeButtonText}>Write anything</ThemedText>
         </View>
         <ThemedText style={styles.closing}>Nothing on Today has to be completed.</ThemedText>
+
+        {__DEV__ ? (
+          <TouchableOpacity
+            style={[styles.card, styles.rowCard]}
+            activeOpacity={0.7}
+            onPress={() => {
+              triggerLightHaptic();
+              (navigation as any).navigate('DevReviewTriggers');
+            }}>
+            <Ionicons name="bug-outline" size={25} color={Colors.sage} />
+            <View style={styles.rowCopy}>
+              <ThemedText weight="bold" style={styles.rowTitle}>Dev review flows</ThemedText>
+              <ThemedText style={styles.meta}>Open any review cadence for testing</ThemedText>
+            </View>
+            <Ionicons name="chevron-forward" size={24} color={Colors.chevronColor} />
+          </TouchableOpacity>
+        ) : null}
+        </Stagger>
       </ScrollView>
     </SafeAreaView>
   );
@@ -265,6 +409,18 @@ const styles = StyleSheet.create({
   writeButton: { height: 58, borderRadius: 20, backgroundColor: Colors.sage, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 20 },
   writeButtonText: { color: Colors.hopeWhite, fontFamily: Fonts.semiBold, fontSize: 17 },
   closing: { color: Colors.textGray, fontFamily: Fonts.regular, fontSize: 12, textAlign: 'center', marginTop: 12 },
+  reviewCard: { backgroundColor: Colors.sage, borderColor: Colors.sage, marginBottom: 4 },
+  reviewHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  reviewEyebrow: { color: Colors.hopeWhite, fontFamily: Fonts.semiBold, fontSize: 11, letterSpacing: 1.5, opacity: 0.9 },
+  reviewTitle: { color: Colors.hopeWhite, fontFamily: Fonts.bold, fontSize: 21, marginTop: 6 },
+  reviewPeriod: { color: Colors.hopeWhite, fontFamily: Fonts.regular, fontSize: 14, marginTop: 2, opacity: 0.95 },
+  reviewAlso: { color: Colors.hopeWhite, fontFamily: Fonts.regular, fontSize: 12, marginTop: 10, opacity: 0.85 },
+  weeklyPreviewCard: { padding: 18 },
+  priorityRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginTop: 10 },
+  priorityBullet: { color: Colors.sage, fontFamily: Fonts.semiBold, fontSize: 14, lineHeight: 21 },
+  priorityText: { color: Colors.text, fontFamily: Fonts.regular, fontSize: 15, lineHeight: 21, flex: 1 },
+  faithfulStepBox: { marginTop: 18, padding: 14, backgroundColor: Colors.anchorBlueLight, borderRadius: 14 },
+  faithfulStepText: { color: Colors.text, fontFamily: Fonts.lora.medium, fontSize: 17, lineHeight: 24, marginTop: 6 },
 });
 
 export default TodayScreen;

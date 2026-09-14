@@ -1,0 +1,42 @@
+import React, { useCallback } from 'react';
+import { useNavigation } from '@react-navigation/native';
+
+import { useRoutine } from '../../context/RoutineContext';
+import TodaysFocusExperience from '../../components/journal/TodaysFocusExperience';
+import { useMorningStatusBar } from '../../hooks/useMorningStatusBar';
+
+const MorningTodaysFocusScreen: React.FC = () => {
+  const navigation = useNavigation<any>();
+  const { selectedDate, markStepCompleted } = useRoutine();
+  useMorningStatusBar();
+
+  const handleComplete = useCallback(async (record: any) => {
+    await markStepCompleted('todays_focus', {
+      domain: 'journal',
+      content_type: 'todays_focus',
+      local_id: record.id,
+    });
+    navigation.navigate('Todos');
+  }, [markStepCompleted, navigation]);
+
+  const handleClose = useCallback(() => {
+    const parent = navigation.getParent();
+    if (parent?.canGoBack()) {
+      parent.goBack();
+    } else {
+      navigation.navigate('MainTabs', { screen: 'Today' });
+    }
+  }, [navigation]);
+
+  return (
+    <TodaysFocusExperience
+      selectedDate={new Date(selectedDate)}
+      onClose={handleClose}
+      onComplete={handleComplete}
+      completionButtonText="Continue"
+      footerText="A simple morning anchor before you move into the rest of your day."
+    />
+  );
+};
+
+export default MorningTodaysFocusScreen;

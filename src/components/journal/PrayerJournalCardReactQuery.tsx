@@ -157,14 +157,6 @@ const PrayerJournalCardReactQuery: React.FC<PrayerJournalCardReactQueryProps> = 
     loadStartTime.current = Date.now();
   }, [dateStr]);
 
-  if (!user) {
-    return (
-      <View style={styles.card}>
-        <ThemedText style={styles.errorText}>Please log in to view prayers</ThemedText>
-      </View>
-    );
-  }
-
   if (error) {
     return (
       <View
@@ -198,14 +190,14 @@ const PrayerJournalCardReactQuery: React.FC<PrayerJournalCardReactQueryProps> = 
 
       // Debug: Check user authentication
 
-      if (!user || !user.id) {
-        Logger.error('User not authenticated or missing ID', undefined, { component: 'PrayerJournalCardReactQuery' });
+      if (!dateStr) {
+        Logger.error('No date selected', undefined, { component: 'PrayerJournalCardReactQuery' });
         return;
       }
 
       try {
         await createPrayerMutation.mutateAsync({
-          user_id: user.id,
+          user_id: user?.id ?? 'local',
           content: prayerContent, // Only the main text
           type: selectedType.key as PrayerApiEntry['type'],
           selected_date: dateStr,
@@ -225,13 +217,13 @@ const PrayerJournalCardReactQuery: React.FC<PrayerJournalCardReactQueryProps> = 
           prayer_type: selectedType.key as 'adoration' | 'confession' | 'thanksgiving' | 'supplication',
           content_length: prayerContent.length,
           date: dateStr,
-        }, user.id);
+        }, user?.id ?? 'local');
 
         // Track prayer type selection
         analytics.trackPrayerEvent('prayer_type_selected', {
           prayer_type: selectedType.key as 'adoration' | 'confession' | 'thanksgiving' | 'supplication',
           date: dateStr,
-        }, user.id);
+        }, user?.id ?? 'local');
 
         setPrayerText('');
       } catch (err) {
@@ -241,7 +233,7 @@ const PrayerJournalCardReactQuery: React.FC<PrayerJournalCardReactQueryProps> = 
           operation: 'create_prayer',
           prayer_type: selectedType.key,
           date: dateStr,
-        }, user.id);
+        }, user?.id ?? 'local');
 
         Logger.error('Error adding prayer', err as Error, { component: 'PrayerJournalCardReactQuery' });
         // Error is handled by React Query
@@ -261,7 +253,7 @@ const PrayerJournalCardReactQuery: React.FC<PrayerJournalCardReactQueryProps> = 
       await markAnsweredMutation.mutateAsync({
         id,
         isAnswered: newIsAnswered,
-        _userId: user.id,
+        _userId: user?.id ?? 'local',
         _dateStr: dateStr,
       });
 
@@ -277,7 +269,7 @@ const PrayerJournalCardReactQuery: React.FC<PrayerJournalCardReactQueryProps> = 
           prayer_type: 'supplication',
           time_to_answer_days: daysDiff,
           date: dateStr,
-        }, user.id);
+        }, user?.id ?? 'local');
       }
     } catch (err) {
       // Track error
@@ -286,7 +278,7 @@ const PrayerJournalCardReactQuery: React.FC<PrayerJournalCardReactQueryProps> = 
         operation: 'toggle_answered',
         prayer_type: 'supplication',
         date: dateStr,
-      }, user.id);
+      }, user?.id ?? 'local');
 
       Logger.error('Error updating prayer status', err as Error, { component: 'PrayerJournalCardReactQuery' });
       // Error is handled by React Query

@@ -20,11 +20,24 @@ import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
 import { getFontFamily } from '../../theme/fonts';
 import { useTheme } from '../../hooks/useTheme';
-import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { triggerLightHaptic } from '../../utils/haptics';
 import { toLocalDateString } from '../../utils/date';
 import { getScripturePassage } from '../../services/scriptureReaderService';
-import { useCreateJournalEntry } from '../../services/hooks/useJournalData';
+import { useRoutine } from '../../context/RoutineContext';
+import {
+  createLocalJournalEntry,
+  getLocalJournalEntry,
+  getLocalJournalEntries,
+  updateLocalJournalEntry,
+} from '../../storage/journalStorage';
+import {
+  createLocalReflection,
+  getLocalReflection,
+  getLocalReflections,
+  updateLocalReflection,
+} from '../../storage/reflectionStorage';
+
+const IS_IPAD = Platform.OS === 'ios' && (Platform as any).isPad === true;
 
 const StepShell: React.FC<{
   eyebrow: string;
@@ -56,7 +69,7 @@ const NextButton: React.FC<{ onPress: () => void }> = ({ onPress }) => {
   React.useEffect(() => {
     const showSub = Keyboard.addListener('keyboardDidShow', (e) => {
       Animated.spring(buttonPosition, {
-        toValue: insets.bottom + ((e.endCoordinates?.height || 325) * 0.95),
+        toValue: insets.bottom + (e.endCoordinates?.height || 325) + 20,
         useNativeDriver: false,
         tension: 80,
         friction: 12,
@@ -97,7 +110,55 @@ const NextButton: React.FC<{ onPress: () => void }> = ({ onPress }) => {
   );
 };
 
-const NoteInput: React.FC<{ value: string; onChangeText: (text: string) => void; placeholder: string }> = ({
+const SageNextButton: React.FC<{ onPress: () => void }> = ({ onPress }) => {
+  const insets = useSafeAreaInsets();
+  const buttonPosition = React.useRef(new Animated.Value(insets.bottom + 20)).current;
+
+  React.useEffect(() => {
+    const showSub = Keyboard.addListener('keyboardDidShow', (e) => {
+      Animated.spring(buttonPosition, {
+        toValue: insets.bottom + (e.endCoordinates?.height || 325) + 20,
+        useNativeDriver: false,
+        tension: 80,
+        friction: 12,
+      }).start();
+    });
+    const hideSub = Keyboard.addListener('keyboardDidHide', () => {
+      Animated.spring(buttonPosition, {
+        toValue: insets.bottom + 20,
+        useNativeDriver: false,
+        tension: 80,
+        friction: 12,
+      }).start();
+    });
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, [insets.bottom, buttonPosition]);
+
+  return (
+    <Animated.View
+      style={[styles.sagePrimaryButton, IS_IPAD && styles.sagePrimaryButtonPad, { bottom: buttonPosition }]}
+      pointerEvents="box-none"
+    >
+      <TouchableOpacity
+        style={styles.nextButtonTouchable}
+        activeOpacity={0.7}
+        accessibilityRole="button"
+        accessibilityLabel="Next"
+        onPress={() => {
+          triggerLightHaptic();
+          onPress();
+        }}
+      >
+        <Ionicons name="chevron-forward" size={24} color={Colors.hopeWhite} />
+      </TouchableOpacity>
+    </Animated.View>
+  );
+};
+
+const SageNoteInput: React.FC<{ value: string; onChangeText: (text: string) => void; placeholder: string }> = ({
   value,
   onChangeText,
   placeholder,
@@ -106,7 +167,7 @@ const NoteInput: React.FC<{ value: string; onChangeText: (text: string) => void;
   const fontKey = currentFont || 'lexend';
   return (
     <TextInput
-      style={[styles.input, { fontFamily: getFontFamily(fontKey, 'regular') }]}
+      style={[styles.sageInput, { fontFamily: getFontFamily(fontKey, 'regular') }]}
       multiline
       placeholder={placeholder}
       placeholderTextColor={Colors.textGray}
@@ -114,20 +175,72 @@ const NoteInput: React.FC<{ value: string; onChangeText: (text: string) => void;
       onChangeText={onChangeText}
       textAlignVertical="top"
       autoFocus
+      keyboardAppearance="light"
     />
   );
 };
 
-const StepFooter: React.FC<{ hint: string }> = ({ hint }) => (
-  <View style={styles.metadataContainer}>
-    <View style={styles.verticalLine} />
-    <View style={styles.metadataContent}>
-      <ThemedText style={styles.metadataText}>{hint}</ThemedText>
+const SageStepFooter: React.FC<{ hint: string }> = ({ hint }) => (
+  <View style={styles.sageMetadataContainer}>
+    <View style={styles.sageVerticalLine} />
+    <View style={styles.sageMetadataContent}>
+      <ThemedText style={styles.sageMetadataText}>{hint}</ThemedText>
     </View>
   </View>
 );
 
-export const EveningGratitudeScreen: React.FC = () => {
+const SageStepShell: React.FC<{
+  eyebrow: string;
+  title: string;
+  Icon: any;
+  iconName: any;
+  children: React.ReactNode;
+  footer?: React.ReactNode;
+}> = ({ eyebrow, title, Icon, iconName, children, footer }) => {
+  const insets = useSafeAreaInsets();
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
+
+  React.useEffect(() => {
+    const showSub = Keyboard.addListener('keyboardDidShow', () => {
+      setKeyboardVisible(true);
+    });
+    const hideSub = Keyboard.addListener('keyboardDidHide', () => {
+      setKeyboardVisible(false);
+    });
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
+
+  return (
+    <View style={styles.sageContainer}>
+      <ScrollView
+        style={styles.sageStepScroll}
+        contentContainerStyle={[
+          styles.sageStepContent,
+          IS_IPAD && styles.sageStepContentPad,
+          { paddingTop: insets.top + (IS_IPAD ? 28 : 8), paddingBottom: keyboardVisible ? 320 : 30 },
+        ]}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
+        <View style={styles.sageFocusLabelContainer}>
+          <Icon name={iconName} size={16} color={Colors.sage} style={styles.sageLabelIcon} />
+          <ThemedText weight="semiBold" style={styles.sageEyebrow}>{eyebrow}</ThemedText>
+        </View>
+        <View style={styles.sageTitleRow}>
+          <ThemedText weight="semiBold" style={styles.sageStepTitle}>{title}</ThemedText>
+        </View>
+        {children}
+      </ScrollView>
+      {footer}
+    </View>
+  );
+};
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const _EveningGratitudeScreenOld: React.FC = () => {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
@@ -135,10 +248,32 @@ export const EveningGratitudeScreen: React.FC = () => {
   const { currentFont } = useTheme();
   const fontRegular = getFontFamily(currentFont || 'lexend', 'regular');
 
-  const initialItems = Array.isArray(params.gratitudeItems) && params.gratitudeItems.length > 0
-    ? params.gratitudeItems
-    : ['', '', ''];
-  const [items, setItems] = useState<string[]>(initialItems);
+  const selectedDate = params.selectedDate ? new Date(params.selectedDate) : new Date();
+  const dateStr = toLocalDateString(selectedDate);
+
+  const [items, setItems] = useState<string[]>(['', '', '']);
+  const [gratitudeId, setGratitudeId] = useState<string | null>(params.gratitudeId || null);
+
+  React.useEffect(() => {
+    let mounted = true;
+    (async () => {
+      const entries = await getLocalJournalEntries('gratitude', dateStr);
+      const existing = entries.find(e => !e.metadata?.subtask_id) || entries[0];
+      if (!existing || !mounted) {return;}
+      try {
+        const parsed = typeof existing.content === 'string'
+          ? JSON.parse(existing.content)
+          : existing.content;
+        if (Array.isArray(parsed?.items)) {
+          setItems(parsed.items);
+          setGratitudeId(existing.id);
+        }
+      } catch (error) {
+        console.warn('Error loading evening gratitude:', error);
+      }
+    })();
+    return () => { mounted = false; };
+  }, [dateStr]);
 
   const updateItem = (index: number, text: string) => {
     const next = [...items];
@@ -146,10 +281,46 @@ export const EveningGratitudeScreen: React.FC = () => {
     setItems(next);
   };
 
-  const onNext = () => {
+  const onNext = async () => {
     triggerLightHaptic();
     const filled = items.map((item) => item.trim()).filter(Boolean);
-    navigation.navigate('Win', { ...params, gratitude: filled.join('\n'), gratitudeItems: items });
+    const content = JSON.stringify({ items: filled });
+
+    let id = gratitudeId;
+    try {
+      if (id) {
+        const existing = await getLocalJournalEntry(id, 'gratitude', dateStr);
+        if (existing) {
+          const updated = await updateLocalJournalEntry({
+            ...existing,
+            content,
+            metadata: { ...existing.metadata, source: 'evening' },
+          });
+          id = updated.id;
+        } else {
+          const created = await createLocalJournalEntry({
+            content_type: 'gratitude',
+            selected_date: dateStr,
+            content,
+            metadata: { source: 'evening' },
+          });
+          id = created.id;
+        }
+      } else {
+        const created = await createLocalJournalEntry({
+          content_type: 'gratitude',
+          selected_date: dateStr,
+          content,
+          metadata: { source: 'evening' },
+        });
+        id = created.id;
+      }
+      setGratitudeId(id);
+    } catch (error) {
+      console.error('Error saving evening gratitude:', error);
+    }
+
+    navigation.navigate('Win', { ...params, selectedDate: dateStr, gratitude: filled.join('\n'), gratitudeItems: items, gratitudeId: id });
   };
 
   return (
@@ -197,40 +368,17 @@ export const EveningGratitudeScreen: React.FC = () => {
   );
 };
 
-export const EveningWinScreen: React.FC = () => {
-  const navigation = useNavigation<any>();
-  const route = useRoute<any>();
-  const params = route.params ?? {};
-  const [text, setText] = useState('');
-
-  const onNext = () => {
-    triggerLightHaptic();
-    navigation.navigate('Proverbs', { ...params, win: text });
-  };
-
-  return (
-    <StepShell
-      eyebrow="EVENING"
-      title="What was a win today?"
-      iconName="trophy-outline"
-      footer={<NextButton onPress={onNext} />}
-    >
-      <NoteInput value={text} onChangeText={setText} placeholder="A moment, a choice, or a step forward..." />
-      <StepFooter hint="Wins are not always loud. Notice the quiet ones too." />
-    </StepShell>
-  );
-};
-
 export const EveningProverbsScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
+  const { selectedDate, markStepCompleted } = useRoutine();
   const params = route.params ?? {};
 
   const proverbNumber = useMemo(() => {
-    const day = new Date().getDate();
+    const day = parseInt(selectedDate.split('-')[2] || '0', 10);
     return Math.min(Math.max(day, 1), 31);
-  }, []);
+  }, [selectedDate]);
 
   const [text, setText] = useState<string | null>(null);
   const [reference, setReference] = useState<string | null>(null);
@@ -243,23 +391,29 @@ export const EveningProverbsScreen: React.FC = () => {
     setError(null);
     getScripturePassage(`Proverbs ${proverbNumber}`)
       .then((result) => {
-        if (cancelled) return;
+        if (cancelled) {return;}
         setText(result.text);
         setReference(result.reference);
       })
       .catch((err) => {
-        if (cancelled) return;
+        if (cancelled) {return;}
         setError(err?.message || 'Could not load Proverbs of the Day.');
       })
       .finally(() => {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) {setLoading(false);}
       });
     return () => { cancelled = true; };
   }, [proverbNumber]);
 
-  const onNext = () => {
+  const onNext = async () => {
     triggerLightHaptic();
-    navigation.navigate('CarryWisdom', { ...params, proverbNumber, proverbReference: reference || `Proverbs ${proverbNumber}` });
+    await markStepCompleted('proverbs');
+    navigation.navigate('CarryWisdom', {
+      ...params,
+      selectedDate,
+      proverbNumber,
+      proverbReference: reference || `Proverbs ${proverbNumber}`,
+    });
   };
 
   return (
@@ -295,48 +449,104 @@ export const EveningProverbsScreen: React.FC = () => {
 export const EveningCarryWisdomScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
+  const { selectedDate, markStepCompleted } = useRoutine();
   const params = route.params ?? {};
   const [text, setText] = useState('');
+  const [proverbReflectionId, setProverbReflectionId] = useState<string | null>(params.proverbReflectionId || null);
 
-  const onNext = () => {
+  const dateStr = toLocalDateString(new Date(selectedDate));
+
+  React.useEffect(() => {
+    let mounted = true;
+    (async () => {
+      const entries = await getLocalReflections('scripture', dateStr);
+      if (!mounted) {return;}
+      const existing = entries.find(e => e.source === 'evening_proverbs' || e.metadata?.source === 'evening_proverbs');
+      if (existing && existing.content) {
+        setText(existing.content);
+        setProverbReflectionId(existing.id);
+      }
+    })();
+    return () => { mounted = false; };
+  }, [dateStr]);
+
+  const onNext = async () => {
     triggerLightHaptic();
-    navigation.navigate('LookingForward', { ...params, wisdom: text });
+
+    const title = params.proverbReference || `Proverbs ${params.proverbNumber}`;
+    const content = text.trim();
+    const metadata = {
+      source: 'evening_proverbs',
+      proverbNumber: params.proverbNumber,
+      proverbReference: params.proverbReference,
+    };
+
+    let id = proverbReflectionId;
+    try {
+      if (id) {
+        const existing = await getLocalReflection(id, 'scripture', dateStr);
+        if (existing) {
+          const updated = await updateLocalReflection({
+            ...existing,
+            title,
+            content,
+            metadata,
+          });
+          id = updated.id;
+        } else {
+          const created = await createLocalReflection({
+            title,
+            content,
+            type: 'scripture',
+            source: 'evening_proverbs',
+            selected_date: dateStr,
+            metadata,
+          });
+          id = created.id;
+        }
+      } else {
+        const created = await createLocalReflection({
+          title,
+          content,
+          type: 'scripture',
+          source: 'evening_proverbs',
+          selected_date: dateStr,
+          metadata,
+        });
+        id = created.id;
+      }
+      setProverbReflectionId(id);
+    } catch (error) {
+      console.error('Error saving evening proverbs reflection:', error);
+    }
+
+    if (!id) { return; }
+
+    await markStepCompleted('wisdom', {
+      domain: 'reflection',
+      content_type: 'scripture',
+      local_id: id,
+    });
+
+    navigation.navigate('LookingForward', {
+      ...params,
+      selectedDate,
+      wisdom: text,
+      proverbReflectionId: id,
+    });
   };
 
   return (
-    <StepShell
-      eyebrow="EVENING"
+    <SageStepShell
+      eyebrow="WISDOM"
       title="What wisdom do you want to carry into tomorrow?"
+      Icon={Ionicons}
       iconName="bulb-outline"
-      footer={<NextButton onPress={onNext} />}
+      footer={<SageNextButton onPress={onNext} />}
     >
-      <NoteInput value={text} onChangeText={setText} placeholder="A lesson, a truth, or a posture..." />
-      <StepFooter hint="A small word can shape a whole day." />
-    </StepShell>
-  );
-};
-
-export const EveningLookingForwardScreen: React.FC = () => {
-  const navigation = useNavigation<any>();
-  const route = useRoute<any>();
-  const params = route.params ?? {};
-  const [text, setText] = useState('');
-
-  const onNext = () => {
-    triggerLightHaptic();
-    navigation.navigate('EveningClosing', { ...params, lookingForward: text });
-  };
-
-  return (
-    <StepShell
-      eyebrow="EVENING"
-      title="What are you looking forward to?"
-      iconName="sunny-outline"
-      footer={<NextButton onPress={onNext} />}
-    >
-      <NoteInput value={text} onChangeText={setText} placeholder="Something that gives you hope for tomorrow..." />
-      <StepFooter hint="Hope looks ahead with gentle expectation." />
-    </StepShell>
+      <SageNoteInput value={text} onChangeText={setText} placeholder="A lesson, a truth, or a posture..." />
+      <SageStepFooter hint="A small word can shape a whole day." />
+    </SageStepShell>
   );
 };
 
@@ -344,35 +554,18 @@ export const EveningClosingScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
-  const { user } = useAuth();
-  const createMutation = useCreateJournalEntry();
+  const { completeRoutine } = useRoutine();
   const params = route.params ?? {};
-
-  const selectedDate = params.selectedDate ? new Date(params.selectedDate) : new Date();
-  const dateStr = toLocalDateString(selectedDate);
 
   const onDone = async () => {
     triggerLightHaptic();
-    if (user) {
-      try {
-        const content = JSON.stringify({
-          gratitude: params.gratitude,
-          win: params.win,
-          proverbNumber: params.proverbNumber,
-          proverbReference: params.proverbReference,
-          wisdom: params.wisdom,
-          lookingForward: params.lookingForward,
-        });
-        await createMutation.mutateAsync({
-          user_id: user.id,
-          selected_date: dateStr,
-          content_type: 'evening_flow',
-          content,
-        });
-      } catch (error) {
-        // Handled silently; continue to close the flow.
-      }
+
+    try {
+      await completeRoutine();
+    } catch (error) {
+      console.error('Error saving evening routine state:', error);
     }
+
     const parent = navigation.getParent();
     if (parent?.canGoBack()) {
       parent.goBack();
@@ -391,15 +584,15 @@ export const EveningClosingScreen: React.FC = () => {
 
       <View style={styles.summaryCard}>
         <SummaryRow label="Gratitude" value={params.gratitude || '—'} />
-        <SummaryRow label="Win" value={params.win || '—'} />
+        <SummaryRow label="Win" value={params.win || '—'} context={params.winContext} />
         <SummaryRow label="Proverbs" value={params.proverbReference || '—'} />
         <SummaryRow label="Wisdom" value={params.wisdom || '—'} />
-        <View style={styles.summaryRowLast}>
-          <ThemedText style={styles.summaryLabel}>Looking forward</ThemedText>
-          <ThemedText weight="medium" style={params.lookingForward ? styles.summaryValue : styles.summaryValueMuted}>
-            {params.lookingForward || 'Nothing added'}
-          </ThemedText>
-        </View>
+        <SummaryRow
+          label="Looking forward"
+          value={params.lookingForward || 'Nothing added'}
+          context={params.lookingForwardContext}
+          last
+        />
       </View>
 
       <View style={styles.footer}>
@@ -411,10 +604,13 @@ export const EveningClosingScreen: React.FC = () => {
   );
 };
 
-const SummaryRow: React.FC<{ label: string; value: string }> = ({ label, value }) => (
-  <View style={styles.summaryRow}>
+const SummaryRow: React.FC<{ label: string; value: string; context?: string; last?: boolean }> = ({ label, value, context, last }) => (
+  <View style={last ? styles.summaryRowLast : styles.summaryRow}>
     <ThemedText style={styles.summaryLabel}>{label}</ThemedText>
-    <ThemedText weight="medium" style={styles.summaryValue}>{value}</ThemedText>
+    <View style={styles.summaryRight}>
+      <ThemedText weight="medium" style={styles.summaryValue}>{value}</ThemedText>
+      {context ? <ThemedText style={styles.summaryContext}>{context}</ThemedText> : null}
+    </View>
   </View>
 );
 
@@ -603,6 +799,19 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
   },
+  summaryRight: {
+    flexDirection: 'column',
+    alignItems: 'flex-end',
+    flexShrink: 1,
+    gap: 2,
+  },
+  summaryContext: {
+    color: Colors.sage,
+    fontFamily: Fonts.regular,
+    fontSize: 12,
+    lineHeight: 16,
+    textAlign: 'right',
+  },
   doneButton: {
     backgroundColor: Colors.sage,
     borderWidth: 1,
@@ -663,5 +872,93 @@ const styles = StyleSheet.create({
   addAnotherText: {
     color: Colors.sage,
     fontSize: 15,
+  },
+  sageContainer: {
+    flex: 1,
+    backgroundColor: Colors.lightBackground,
+  },
+  sageStepScroll: {
+    flex: 1,
+  },
+  sageStepContent: {
+    paddingHorizontal: 24,
+  },
+  sageStepContentPad: {
+    paddingHorizontal: 160,
+  },
+  sageFocusLabelContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    marginBottom: 8,
+    marginTop: 32,
+  },
+  sageLabelIcon: {
+    marginTop: 1,
+  },
+  sageEyebrow: {
+    fontSize: 11,
+    letterSpacing: 1,
+    color: Colors.sage,
+  },
+  sageTitleRow: {
+    marginBottom: 16,
+  },
+  sageStepTitle: {
+    fontSize: 24,
+    color: Colors.text,
+    lineHeight: 32,
+    textAlign: 'center',
+  },
+  sageInput: {
+    borderRadius: 12,
+    paddingHorizontal: 0,
+    paddingVertical: 16,
+    fontSize: 18,
+    color: Colors.text,
+    minHeight: 140,
+    textAlignVertical: 'top',
+  },
+  sageMetadataContainer: {
+    marginTop: 48,
+    marginBottom: 24,
+    flexDirection: 'row',
+  },
+  sageVerticalLine: {
+    width: 1,
+    backgroundColor: Colors.text,
+    opacity: 0.3,
+    marginRight: 12,
+    borderRadius: 2,
+    height: 75,
+  },
+  sageMetadataContent: {
+    flex: 1,
+  },
+  sageMetadataText: {
+    fontSize: 12,
+    color: Colors.textGray,
+    opacity: 0.8,
+    lineHeight: 16,
+  },
+  sagePrimaryButton: {
+    position: 'absolute',
+    right: 20,
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: Colors.sage,
+    borderRadius: 999,
+    shadowColor: '#29342E',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+    zIndex: 100,
+  },
+  sagePrimaryButtonPad: {
+    right: 48,
   },
 });

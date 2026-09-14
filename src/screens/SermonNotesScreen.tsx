@@ -31,11 +31,12 @@ import {useFocusEffect} from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import {BlurView} from '@react-native-community/blur';
-import {Pencil} from 'lucide-react-native';
+import {Pencil, Sparkles} from 'lucide-react-native';
 
 import {BibleCopyrightModal} from '../components/BibleCopyrightModal';
 import ScriptureReaderModal from '../components/ScriptureReaderModal';
 import ShareComposer from '../components/TruthToCarryShareComposer';
+import ShareDropdownModal from '../components/ShareDropdownModal';
 import ThemedText from '../components/common/ThemedText';
 import {useScroll} from '../context/ScrollContext';
 import {useAuth} from '../context/IndustryStandardAuthContext';
@@ -465,6 +466,9 @@ const SermonNotesScreen = ({navigation, route}: any) => {
   const plusRotation = useRef(new Animated.Value(0)).current;
   const pickerColorAnim = useRef(new Animated.Value(0)).current;
   const actionBarAnim = useRef(new Animated.Value(0)).current;
+  const savedShareButtonAnim = useRef(new Animated.Value(0)).current;
+  const savedStageAnim = useRef(new Animated.Value(0)).current;
+  const savedCheckCircleAnim = useRef(new Animated.Value(0)).current;
   const actionButtonAnims = useRef(
     [0, 1, 2, 3].map(() => new Animated.Value(0)),
   ).current;
@@ -503,6 +507,7 @@ const SermonNotesScreen = ({navigation, route}: any) => {
   const [scriptureReaderOpen, setScriptureReaderOpen] = useState(false);
   const [scriptureReaderIndex, setScriptureReaderIndex] = useState(0);
   const [shareComposerOpen, setShareComposerOpen] = useState(false);
+  const [shareDropdownOpen, setShareDropdownOpen] = useState(false);
   const [shareComposerText, setShareComposerText] = useState('');
   const [bibleCopyrightOpen, setBibleCopyrightOpen] = useState(false);
   const sermonDate = useMemo(
@@ -708,6 +713,39 @@ const SermonNotesScreen = ({navigation, route}: any) => {
       active = false;
     };
   }, [bibleVersion, isOnline, mainScriptureRefs, stage]);
+
+  useEffect(() => {
+    if (stage === 5) {
+      savedStageAnim.setValue(0);
+      savedShareButtonAnim.setValue(0);
+      savedCheckCircleAnim.setValue(0);
+      Animated.spring(savedStageAnim, {
+        toValue: 1,
+        tension: 80,
+        friction: 8,
+        useNativeDriver: true,
+      }).start();
+      Animated.spring(savedShareButtonAnim, {
+        toValue: 1,
+        tension: 80,
+        friction: 8,
+        delay: 350,
+        useNativeDriver: true,
+      }).start();
+      Animated.spring(savedCheckCircleAnim, {
+        toValue: 1,
+        tension: 120,
+        friction: 7,
+        delay: 120,
+        useNativeDriver: true,
+      }).start();
+      triggerMediumHaptic();
+    } else {
+      savedStageAnim.setValue(0);
+      savedShareButtonAnim.setValue(0);
+      savedCheckCircleAnim.setValue(0);
+    }
+  }, [savedCheckCircleAnim, savedShareButtonAnim, savedStageAnim, stage]);
 
   useEffect(() => {
     if (!keyboardVisibleRef.current) {
@@ -1994,7 +2032,7 @@ const SermonNotesScreen = ({navigation, route}: any) => {
         onPress={() => {
           triggerLightHaptic();
           Keyboard.dismiss();
-          navigation.goBack();
+          navigation.popToTop();
         }}
         activeOpacity={0.7}
         accessibilityRole="button"
@@ -2002,39 +2040,65 @@ const SermonNotesScreen = ({navigation, route}: any) => {
         <Ionicons name="close" size={20} color={Colors.text} />
       </TouchableOpacity>
       {stage === 5 && (
-        <TouchableOpacity
-          style={[styles.shareButton, {top: insets.top + 8}]}
-          onPress={handleExportPDF}
-          activeOpacity={0.7}
-          accessibilityRole="button"
-          accessibilityLabel="Export sermon notes PDF">
-          <Ionicons name="paper-plane-outline" size={20} color={Colors.text} />
-        </TouchableOpacity>
+        <Animated.View
+          style={[
+            styles.shareButton,
+            {top: insets.top + 8},
+            {
+              opacity: savedShareButtonAnim,
+              transform: [
+                {
+                  scale: savedShareButtonAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0.4, 1],
+                  }),
+                },
+              ],
+            },
+          ]}>
+          <TouchableOpacity
+            style={styles.shareButtonPressable}
+            onPress={() => {
+              triggerLightHaptic();
+              setShareDropdownOpen(true);
+            }}
+            activeOpacity={0.7}
+            hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}
+            accessibilityRole="button"
+            accessibilityLabel="Share sermon notes">
+            <Ionicons name="paper-plane-outline" size={17} color={Colors.text} />
+          </TouchableOpacity>
+        </Animated.View>
       )}
       <View style={{flex: 1}} {...panResponder.panHandlers}>
         <ScrollView
           ref={scrollRef}
           style={{flex: 1}}
-        contentContainerStyle={[
-          styles.content,
-          {
-            paddingTop: insets.top + 36,
-            paddingBottom:
-              insets.bottom +
-              28 +
-              (stage === 1 && keyboardHeight > 0 ? keyboardHeight + 48 : 0),
-          },
-          stage === 2 && {
-            paddingBottom: blocks.length
-              ? (keyboardHeight > 0 ? keyboardHeight : restingComposerBottom) +
-                80
-              : insets.bottom + 28,
-          },
-          stage === 4 && {
-            paddingBottom:
-              keyboardHeight > 0 ? keyboardHeight + 100 : insets.bottom + 80,
-          },
-        ]}
+          contentContainerStyle={[
+            styles.content,
+            {
+              paddingTop: stage === 5 ? insets.top : insets.top + 36,
+              paddingBottom:
+                stage === 5
+                  ? insets.bottom
+                  : insets.bottom +
+                    28 +
+                    (stage === 1 && keyboardHeight > 0 ? keyboardHeight + 48 : 0),
+            },
+            stage === 2 && {
+              paddingBottom: blocks.length
+                ? (keyboardHeight > 0 ? keyboardHeight : restingComposerBottom) +
+                  80
+                : insets.bottom + 28,
+            },
+            stage === 4 && {
+              paddingBottom:
+                keyboardHeight > 0 ? keyboardHeight + 100 : insets.bottom + 80,
+            },
+            stage === 5 && {
+              justifyContent: 'center' as const,
+            },
+          ]}
         keyboardShouldPersistTaps="always"
         showsVerticalScrollIndicator={false}
         onContentSizeChange={() => {
@@ -2598,7 +2662,11 @@ const SermonNotesScreen = ({navigation, route}: any) => {
               </View>
 
               <View style={styles.reflectionLabelRow}>
-                <Ionicons name="leaf" size={16} color={Colors.sage} />
+                {isLastStep ? (
+                  <Ionicons name="leaf-outline" size={16} color={Colors.sage} />
+                ) : (
+                  <Sparkles size={16} color={Colors.sage} />
+                )}
                 <ThemedText weight="semiBold" style={styles.reflectionLabel}>
                   {isLastStep ? 'Prayer' : 'Reflection'}
                 </ThemedText>
@@ -2696,10 +2764,39 @@ const SermonNotesScreen = ({navigation, route}: any) => {
       )}
 
       {stage === 5 && (
-        <View style={styles.savedStage}>
-          <View style={styles.savedCheckCircle}>
+        <Animated.View
+          style={[
+            styles.savedStage,
+            {minHeight: screenHeight - insets.top - insets.bottom},
+            {
+              opacity: savedStageAnim,
+              transform: [
+                {
+                  translateY: savedStageAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [30, 0],
+                  }),
+                },
+              ],
+            },
+          ]}>
+          <Animated.View
+            style={[
+              styles.savedCheckCircle,
+              {
+                opacity: savedCheckCircleAnim,
+                transform: [
+                  {
+                    scale: savedCheckCircleAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0.4, 1],
+                    }),
+                  },
+                ],
+              },
+            ]}>
             <Ionicons name="checkmark" size={34} color={Colors.sage} />
-          </View>
+          </Animated.View>
 
           <ThemedText weight="semiBold" style={styles.savedEyebrow}>
             REFLECTION SAVED
@@ -2723,32 +2820,49 @@ const SermonNotesScreen = ({navigation, route}: any) => {
             </ThemedText>
 
             <View style={styles.savedIncludes}>
-              <View style={styles.savedIncludeItem}>
-                <ThemedText weight="bold" style={styles.savedIncludeCount}>
-                  {blocks.filter(hasBlockContent).length}
-                </ThemedText>
-                <ThemedText style={styles.savedIncludeLabel}>Notes</ThemedText>
-              </View>
+              {(() => {
+                const noteCount = blocks.filter(hasBlockContent).length;
+                const reflectionCount = [notice, carry].filter(
+                  s => s.trim(),
+                ).length;
+                const prayerCount = [prayer, prayerAnswer].filter(
+                  s => s.trim(),
+                ).length;
+                return (
+                  <>
+                    <View style={styles.savedIncludeItem}>
+                      <ThemedText weight="bold" style={styles.savedIncludeCount}>
+                        {noteCount}
+                      </ThemedText>
+                      <ThemedText style={styles.savedIncludeLabel}>
+                        {noteCount === 1 ? 'Note' : 'Notes'}
+                      </ThemedText>
+                    </View>
 
-              <View style={styles.savedIncludeDivider} />
+                    <View style={styles.savedIncludeDivider} />
 
-              <View style={styles.savedIncludeItem}>
-                <ThemedText weight="bold" style={styles.savedIncludeCount}>
-                  {[notice, carry].filter(s => s.trim()).length}
-                </ThemedText>
-                <ThemedText style={styles.savedIncludeLabel}>
-                  Reflection
-                </ThemedText>
-              </View>
+                    <View style={styles.savedIncludeItem}>
+                      <ThemedText weight="bold" style={styles.savedIncludeCount}>
+                        {reflectionCount}
+                      </ThemedText>
+                      <ThemedText style={styles.savedIncludeLabel}>
+                        {reflectionCount === 1 ? 'Reflection' : 'Reflections'}
+                      </ThemedText>
+                    </View>
 
-              <View style={styles.savedIncludeDivider} />
+                    <View style={styles.savedIncludeDivider} />
 
-              <View style={styles.savedIncludeItem}>
-                <ThemedText weight="bold" style={styles.savedIncludeCount}>
-                  {[prayer, prayerAnswer].filter(s => s.trim()).length}
-                </ThemedText>
-                <ThemedText style={styles.savedIncludeLabel}>Prayer</ThemedText>
-              </View>
+                    <View style={styles.savedIncludeItem}>
+                      <ThemedText weight="bold" style={styles.savedIncludeCount}>
+                        {prayerCount}
+                      </ThemedText>
+                      <ThemedText style={styles.savedIncludeLabel}>
+                        {prayerCount === 1 ? 'Prayer' : 'Prayers'}
+                      </ThemedText>
+                    </View>
+                  </>
+                );
+              })()}
             </View>
           </View>
 
@@ -2769,28 +2883,15 @@ const SermonNotesScreen = ({navigation, route}: any) => {
             activeOpacity={0.7}
             onPress={() => {
               triggerLightHaptic();
-              navigation.goBack();
+              navigation.popToTop();
             }}>
             <ThemedText weight="semiBold" style={styles.savedSecondaryButtonText}>
               Done
             </ThemedText>
           </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.savedExportButton}
-            activeOpacity={0.7}
-            onPress={handleExportPDF}>
-            <Ionicons
-              name="document-text-outline"
-              size={18}
-              color={Colors.sage}
-              style={{marginRight: 8}}
-            />
-            <ThemedText weight="semiBold" style={styles.savedExportButtonText}>
-              Export PDF
-            </ThemedText>
-          </TouchableOpacity>
-        </View>
+
+        </Animated.View>
       )}
 
       {stage === 2 && (
@@ -3010,6 +3111,15 @@ const SermonNotesScreen = ({navigation, route}: any) => {
         onClose={() => setScriptureReaderOpen(false)}
       />
 
+      <ShareDropdownModal
+        visible={shareDropdownOpen}
+        onClose={() => setShareDropdownOpen(false)}
+        onExportPDF={handleExportPDF}
+        shareText="I’m using Journal by siFia to capture sermon notes, reflections, and prayer."
+        shareTitle="Share Journal by siFia with friends"
+        exportSubject="sermon notes"
+      />
+
       <ShareComposer
         visible={shareComposerOpen}
         text={shareComposerText}
@@ -3054,7 +3164,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: Colors.cardBackground,
-    borderRadius: 21,
+    borderRadius: 999,
+  },
+  shareButtonPressable: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   stepLabelRow: {flexDirection: 'row', alignItems: 'center', gap: 8},
   headerTitle: {
@@ -4094,10 +4210,10 @@ const styles = StyleSheet.create({
   },
 
   savedStage: {
+    flex: 1,
+    justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 28,
-    paddingTop: 60,
-    paddingBottom: 40,
     minHeight: 420,
   },
   savedCheckCircle: {
@@ -4203,18 +4319,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: Colors.textGray,
   },
-  savedExportButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 24,
-    paddingVertical: 8,
-    marginTop: 4,
-  },
-  savedExportButtonText: {
-    fontSize: 15,
-    color: Colors.sage,
-  },
+
 });
 
 export const SermonNotesStyles = styles;

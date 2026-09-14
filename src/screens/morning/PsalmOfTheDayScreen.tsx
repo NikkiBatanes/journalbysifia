@@ -1,18 +1,26 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, PanResponder, ScrollView, StyleSheet, TouchableOpacity, useWindowDimensions, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ActivityIndicator, Animated, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { differenceInCalendarDays } from 'date-fns';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
 import ThemedText from '../../components/common/ThemedText';
 import { BibleCopyrightModal } from '../../components/BibleCopyrightModal';
 import { Colors } from '../../theme/colors';
 import { Fonts, type FontFamily, getFontFamily } from '../../theme/fonts';
+import { toLocalDateString } from '../../utils/date';
 import { triggerLightHaptic, triggerSuccessHaptic } from '../../utils/haptics';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
-import { useMorningStatusBar } from '../../hooks/useMorningStatusBar';
+import { useRoutine } from '../../context/RoutineContext';
+import RoutineStepShell from '../../components/routine/RoutineStepShell';
 import { getScripturePassage } from '../../services/scriptureReaderService';
+import {
+  createLocalReflection,
+  getLocalReflection,
+  getLocalReflections,
+  updateLocalReflection,
+} from '../../storage/reflectionStorage';
 
 type TextAlign = 'left' | 'center' | 'right' | 'justify';
 
@@ -23,58 +31,23 @@ const FONT_OPTIONS: { key: FontFamily; label: string }[] = [
   { key: 'nunito', label: 'Nunito' },
 ];
 
-const ALIGN_OPTIONS: { key: TextAlign; label: string }[] = [
-  { key: 'left', label: 'Left' },
-  { key: 'center', label: 'Center' },
-  { key: 'right', label: 'Right' },
-  { key: 'justify', label: 'Justify' },
+const ALIGN_OPTIONS: { key: TextAlign; icon: string; label: string }[] = [
+  { key: 'left', icon: 'format-align-left', label: 'Left' },
+  { key: 'center', icon: 'format-align-center', label: 'Center' },
+  { key: 'right', icon: 'format-align-right', label: 'Right' },
+  { key: 'justify', icon: 'format-align-justify', label: 'Justify' },
 ];
+
+const FONT_SIZES = [18, 20, 22, 24, 26, 28, 30, 32];
 
 const INDENT_OPTIONS = [0, 16, 32];
 const LINE_SPACING_OPTIONS = [0, 4, 8, 12];
 const LETTER_SPACING_OPTIONS = [0, 0.5, 1, 2];
 
-interface SettingRowProps<T extends string | number> {
-  label: string;
-  options: { key: T; label: string }[];
-  active: T;
-  onSelect: (value: T) => void;
-}
-
-const SettingRow = <T extends string | number>({ label, options, active, onSelect }: SettingRowProps<T>) => (
-  <View style={styles.settingRow}>
-    <ThemedText style={styles.settingLabel}>{label}</ThemedText>
-    <View style={styles.chipsRow}>
-      {options.map((option) => {
-        const isActive = option.key === active;
-        return (
-          <TouchableOpacity
-            key={String(option.key)}
-            style={[styles.chip, isActive && styles.chipActive]}
-            onPress={() => {
-              triggerLightHaptic();
-              onSelect(option.key);
-            }}
-            activeOpacity={0.7}
-          >
-            <ThemedText style={[styles.chipText, isActive && styles.chipTextActive]}>
-              {option.label}
-            </ThemedText>
-          </TouchableOpacity>
-        );
-      })}
-    </View>
-  </View>
-);
-
 const PsalmOfTheDayScreen = () => {
-  const insets = useSafeAreaInsets();
   const navigation = useNavigation<any>();
-  const route = useRoute<any>();
-  const { width: screenWidth } = useWindowDimensions();
   const { user } = useAuth();
-  const params = useMemo(() => route.params ?? {}, [route.params]);
-  useMorningStatusBar();
+  const { selectedDate, markStepCompleted } = useRoutine();
 
   const psalmNumber = useMemo(() => {
     const createdAt = (user as any)?.created_at;
@@ -92,13 +65,34 @@ const PsalmOfTheDayScreen = () => {
   const [showAaSettings, setShowAaSettings] = useState(false);
   const [showCopyright, setShowCopyright] = useState(false);
   const [hasReadPsalm, setHasReadPsalm] = useState(false);
+  const [psalmReflectionId, setPsalmReflectionId] = useState<string | null>(null);
 
   const [psalmFontSize, setPsalmFontSize] = useState(18);
   const [psalmFont, setPsalmFont] = useState<FontFamily>('lora');
+  const [psalmBold, setPsalmBold] = useState(false);
   const [psalmAlign, setPsalmAlign] = useState<TextAlign>('left');
   const [psalmIndent, setPsalmIndent] = useState(0);
   const [psalmLineSpacing, setPsalmLineSpacing] = useState(0);
   const [psalmLetterSpacing, setPsalmLetterSpacing] = useState(0);
+  const [advancedSettingsOpen, setAdvancedSettingsOpen] = useState(false);
+
+  const settingsAnim = useRef(new Animated.Value(0)).current;
+
+  const dateStr = toLocalDateString(new Date(selectedDate));
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      const entries = await getLocalReflections('scripture', dateStr);
+      if (!mounted) {return;}
+      const existing = entries.find(e => e.source === 'morning_psalm' || e.metadata?.source === 'morning_psalm');
+      if (existing) {
+        setHasReadPsalm(Boolean(existing.metadata?.psalmRead));
+        setPsalmReflectionId(existing.id);
+      }
+    })();
+    return () => { mounted = false; };
+  }, [dateStr, psalmNumber]);
 
   const psalmLines = useMemo(() => {
     if (!psalmText) { return []; }
@@ -128,10 +122,62 @@ const PsalmOfTheDayScreen = () => {
     return () => { cancelled = true; };
   }, [psalmNumber]);
 
-  const onNext = React.useCallback(() => {
+  const onNext = React.useCallback(async () => {
     triggerLightHaptic();
-    navigation.navigate('CarryIt', { ...params, psalmNumber, psalmRead: hasReadPsalm });
-  }, [hasReadPsalm, navigation, params, psalmNumber]);
+
+    const metadata = {
+      psalmNumber,
+      psalmRead: hasReadPsalm,
+      source: 'morning_psalm',
+    };
+
+    let id = psalmReflectionId;
+    try {
+      if (id) {
+        const existing = await getLocalReflection(id, 'scripture', dateStr);
+        if (existing) {
+          const updated = await updateLocalReflection({
+            ...existing,
+            title: `Psalm ${psalmNumber}`,
+            content: existing.content,
+            metadata: { ...existing.metadata, ...metadata },
+          });
+          id = updated.id;
+        } else {
+          const created = await createLocalReflection({
+            title: `Psalm ${psalmNumber}`,
+            content: '',
+            type: 'scripture',
+            source: 'morning_psalm',
+            selected_date: dateStr,
+            metadata,
+          });
+          id = created.id;
+        }
+      } else {
+        const created = await createLocalReflection({
+          title: `Psalm ${psalmNumber}`,
+          content: '',
+          type: 'scripture',
+          source: 'morning_psalm',
+          selected_date: dateStr,
+          metadata,
+        });
+        id = created.id;
+      }
+      setPsalmReflectionId(id);
+    } catch (error) {
+      console.error('Error saving morning psalm read state:', error);
+    }
+
+    await markStepCompleted('psalm', {
+      domain: 'reflection',
+      content_type: 'scripture',
+      local_id: id!,
+    });
+
+    navigation.navigate('CarryIt');
+  }, [hasReadPsalm, markStepCompleted, navigation, psalmNumber, psalmReflectionId, dateStr]);
 
   const togglePsalmRead = React.useCallback(() => {
     if (hasReadPsalm) {
@@ -142,58 +188,112 @@ const PsalmOfTheDayScreen = () => {
     setHasReadPsalm((current) => !current);
   }, [hasReadPsalm]);
 
-  const panResponder = React.useMemo(
-    () =>
-      PanResponder.create({
-        onMoveShouldSetPanResponderCapture: (_, gestureState) => {
-          return gestureState.dx < -14 && Math.abs(gestureState.dx) > Math.abs(gestureState.dy) * 1.15;
-        },
-        onPanResponderRelease: (_, gestureState) => {
-          const isHorizontalSwipe = Math.abs(gestureState.dx) > Math.abs(gestureState.dy) * 1.15;
-          const hasEnoughDistance = Math.abs(gestureState.dx) > screenWidth * 0.15;
-          const hasEnoughVelocity = Math.abs(gestureState.vx) > 0.45;
-
-          if (!isHorizontalSwipe || (!hasEnoughDistance && !hasEnoughVelocity)) {
-            return;
-          }
-
-          if (gestureState.dx < 0) {
-            onNext();
-          }
-        },
-      }),
-    [onNext, screenWidth]
-  );
-
   const psalmLineStyle = useMemo(() => ({
     fontSize: psalmFontSize,
     lineHeight: psalmFontSize * 1.6 + psalmLineSpacing,
     letterSpacing: psalmLetterSpacing,
     textAlign: psalmAlign,
     paddingLeft: psalmIndent,
-    fontFamily: getFontFamily(psalmFont, 'regular'),
-  }), [psalmAlign, psalmFont, psalmFontSize, psalmIndent, psalmLetterSpacing, psalmLineSpacing]);
+    fontFamily: getFontFamily(psalmFont, psalmBold ? 'bold' : 'regular'),
+  }), [psalmAlign, psalmBold, psalmFont, psalmFontSize, psalmIndent, psalmLetterSpacing, psalmLineSpacing]);
 
-  const sizeOptions = useMemo(() => [16, 18, 20, 22, 24].map((size) => ({ key: size, label: String(size) })), []);
+  const togglePsalmSettings = useCallback(() => {
+    triggerLightHaptic();
+    const opening = !showAaSettings;
+    setShowAaSettings(opening);
+    Animated.timing(settingsAnim, {
+      toValue: opening ? 1 : 0,
+      duration: opening ? 260 : 200,
+      useNativeDriver: false,
+    }).start();
+  }, [settingsAnim, showAaSettings]);
 
-  return (
-    <View style={[styles.container, { paddingTop: insets.top + 24, paddingBottom: Math.max(insets.bottom, 16) + 16 }]} {...panResponder.panHandlers}>
-      <ThemedText style={styles.eyebrow}>PSALM OF THE DAY</ThemedText>
-      <View style={styles.titleRow}>
-        <ThemedText style={styles.title}>Psalm {psalmNumber}</ThemedText>
-        <TouchableOpacity
-          style={styles.aaButton}
-          onPress={() => {
-            triggerLightHaptic();
-            setShowAaSettings(!showAaSettings);
-          }}
-          activeOpacity={0.7}
-          accessibilityRole="button"
-          accessibilityLabel="Text settings"
-        >
-          <ThemedText weight="bold" style={styles.aaButtonText}>aA</ThemedText>
-        </TouchableOpacity>
-      </View>
+  const togglePsalmBold = useCallback(() => {
+    triggerLightHaptic();
+    setPsalmBold(current => !current);
+  }, []);
+
+  const selectPsalmFont = useCallback((font: FontFamily) => {
+    triggerLightHaptic();
+    setPsalmFont(font);
+  }, []);
+
+  const selectPsalmAlign = useCallback((align: TextAlign) => {
+    triggerLightHaptic();
+    setPsalmAlign(align);
+  }, []);
+
+  const increasePsalmFontSize = useCallback(() => {
+    triggerLightHaptic();
+    const currentIndex = FONT_SIZES.indexOf(psalmFontSize);
+    const nextIndex = Math.min(currentIndex + 1, FONT_SIZES.length - 1);
+    setPsalmFontSize(FONT_SIZES[nextIndex]);
+  }, [psalmFontSize]);
+
+  const decreasePsalmFontSize = useCallback(() => {
+    triggerLightHaptic();
+    const currentIndex = FONT_SIZES.indexOf(psalmFontSize);
+    const prevIndex = Math.max(currentIndex - 1, 0);
+    setPsalmFontSize(FONT_SIZES[prevIndex]);
+  }, [psalmFontSize]);
+
+  const increasePsalmLineSpacing = useCallback(() => {
+    triggerLightHaptic();
+    const currentIndex = LINE_SPACING_OPTIONS.indexOf(psalmLineSpacing);
+    const nextIndex = Math.min(currentIndex + 1, LINE_SPACING_OPTIONS.length - 1);
+    setPsalmLineSpacing(LINE_SPACING_OPTIONS[nextIndex]);
+  }, [psalmLineSpacing]);
+
+  const decreasePsalmLineSpacing = useCallback(() => {
+    triggerLightHaptic();
+    const currentIndex = LINE_SPACING_OPTIONS.indexOf(psalmLineSpacing);
+    const prevIndex = Math.max(currentIndex - 1, 0);
+    setPsalmLineSpacing(LINE_SPACING_OPTIONS[prevIndex]);
+  }, [psalmLineSpacing]);
+
+  const increasePsalmLetterSpacing = useCallback(() => {
+    triggerLightHaptic();
+    const currentIndex = LETTER_SPACING_OPTIONS.indexOf(psalmLetterSpacing);
+    const nextIndex = Math.min(currentIndex + 1, LETTER_SPACING_OPTIONS.length - 1);
+    setPsalmLetterSpacing(LETTER_SPACING_OPTIONS[nextIndex]);
+  }, [psalmLetterSpacing]);
+
+  const decreasePsalmLetterSpacing = useCallback(() => {
+    triggerLightHaptic();
+    const currentIndex = LETTER_SPACING_OPTIONS.indexOf(psalmLetterSpacing);
+    const prevIndex = Math.max(currentIndex - 1, 0);
+    setPsalmLetterSpacing(LETTER_SPACING_OPTIONS[prevIndex]);
+  }, [psalmLetterSpacing]);
+
+  const increasePsalmIndent = useCallback(() => {
+    triggerLightHaptic();
+    const currentIndex = INDENT_OPTIONS.indexOf(psalmIndent);
+    const nextIndex = Math.min(currentIndex + 1, INDENT_OPTIONS.length - 1);
+    setPsalmIndent(INDENT_OPTIONS[nextIndex]);
+  }, [psalmIndent]);
+
+  const decreasePsalmIndent = useCallback(() => {
+    triggerLightHaptic();
+    const currentIndex = INDENT_OPTIONS.indexOf(psalmIndent);
+    const prevIndex = Math.max(currentIndex - 1, 0);
+    setPsalmIndent(INDENT_OPTIONS[prevIndex]);
+  }, [psalmIndent]);
+
+  const resetPsalmPreferences = useCallback(() => {
+    triggerLightHaptic();
+    setPsalmFontSize(18);
+    setPsalmFont('lora');
+    setPsalmBold(false);
+    setPsalmAlign('left');
+    setPsalmIndent(0);
+    setPsalmLineSpacing(0);
+    setPsalmLetterSpacing(0);
+  }, []);
+
+  const onBack = () => navigation.goBack();
+
+  const children = (
+    <>
       {psalmReference && psalmVersion && (
         <View style={styles.psalmReferenceRow}>
           <ThemedText weight="semiBold" style={styles.psalmReference}>
@@ -216,43 +316,203 @@ const PsalmOfTheDayScreen = () => {
         </View>
       )}
 
-      {showAaSettings && (
-        <View style={styles.settingsPanel}>
-          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.settingsContent}>
-            <SettingRow label="Size" options={sizeOptions} active={psalmFontSize} onSelect={setPsalmFontSize} />
-            <SettingRow
-              label="Font"
-              options={FONT_OPTIONS}
-              active={psalmFont}
-              onSelect={(value) => setPsalmFont(value as FontFamily)}
-            />
-            <SettingRow
-              label="Align"
-              options={ALIGN_OPTIONS}
-              active={psalmAlign}
-              onSelect={(value) => setPsalmAlign(value as TextAlign)}
-            />
-            <SettingRow
-              label="Indent"
-              options={INDENT_OPTIONS.map((v) => ({ key: v, label: v === 0 ? 'None' : `${v}` }))}
-              active={psalmIndent}
-              onSelect={setPsalmIndent}
-            />
-            <SettingRow
-              label="Line"
-              options={LINE_SPACING_OPTIONS.map((v) => ({ key: v, label: v === 0 ? 'None' : `+${v}` }))}
-              active={psalmLineSpacing}
-              onSelect={setPsalmLineSpacing}
-            />
-            <SettingRow
-              label="Letter"
-              options={LETTER_SPACING_OPTIONS.map((v) => ({ key: v, label: v === 0 ? 'None' : `${v}` }))}
-              active={psalmLetterSpacing}
-              onSelect={setPsalmLetterSpacing}
-            />
-          </ScrollView>
+      <Animated.View
+        pointerEvents={showAaSettings ? 'auto' : 'none'}
+        style={[
+          styles.psalmSettingsPanel,
+          {
+            maxHeight: settingsAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 420] }),
+            opacity: settingsAnim,
+            transform: [{ translateY: settingsAnim.interpolate({ inputRange: [0, 1], outputRange: [-8, 0] }) }],
+          },
+        ]}
+      >
+        <View style={styles.psalmAppearanceTopRow}>
+          <View style={styles.psalmQuickControls}>
+            <View style={styles.psalmSizeControls}>
+              <TouchableOpacity
+                style={styles.psalmControlButton}
+                onPress={decreasePsalmFontSize}
+                activeOpacity={0.72}
+                accessibilityRole="button"
+                accessibilityLabel="Decrease font size"
+              >
+                <ThemedText weight="semiBold" style={styles.psalmDecreaseFontIcon}>A</ThemedText>
+              </TouchableOpacity>
+              <ThemedText weight="semiBold" style={styles.psalmFontSizeLabel}>{psalmFontSize}</ThemedText>
+              <TouchableOpacity
+                style={styles.psalmControlButton}
+                onPress={increasePsalmFontSize}
+                activeOpacity={0.72}
+                accessibilityRole="button"
+                accessibilityLabel="Increase font size"
+              >
+                <ThemedText weight="semiBold" style={styles.psalmIncreaseFontIcon}>A</ThemedText>
+              </TouchableOpacity>
+            </View>
+            <TouchableOpacity
+              style={[styles.psalmBoldToggle, psalmBold && styles.psalmBoldToggleActive]}
+              onPress={togglePsalmBold}
+              activeOpacity={0.72}
+              accessibilityRole="button"
+              accessibilityLabel="Bold text"
+              accessibilityState={{ selected: psalmBold }}
+            >
+              <ThemedText weight="semiBold" style={[styles.psalmBoldToggleText, psalmBold && styles.psalmBoldToggleTextActive]}>Bold</ThemedText>
+            </TouchableOpacity>
+          </View>
+          <TouchableOpacity
+            style={styles.psalmResetIconButton}
+            onPress={resetPsalmPreferences}
+            activeOpacity={0.72}
+            accessibilityRole="button"
+            accessibilityLabel="Reset reader settings"
+          >
+            <Ionicons name="refresh-outline" size={15} color={Colors.sage} />
+          </TouchableOpacity>
         </View>
-      )}
+
+        <View style={styles.psalmOptionGroup}>
+          <View style={styles.psalmFontControls}>
+            {FONT_OPTIONS.map(option => {
+              const isActive = option.key === psalmFont;
+              return (
+                <TouchableOpacity
+                  key={option.key}
+                  style={[styles.psalmFontChip, isActive && styles.psalmFontChipActive]}
+                  onPress={() => selectPsalmFont(option.key)}
+                  activeOpacity={0.72}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Set font to ${option.label}`}
+                >
+                  <ThemedText
+                    weight="semiBold"
+                    style={[styles.psalmFontChipText, isActive && styles.psalmFontChipTextActive]}
+                  >
+                    {option.label}
+                  </ThemedText>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+          <View style={styles.psalmOptionDivider} />
+          <View style={styles.psalmAlignControls}>
+            {ALIGN_OPTIONS.map(option => {
+              const isActive = option.key === psalmAlign;
+              return (
+                <TouchableOpacity
+                  key={option.key}
+                  style={[styles.psalmAlignButton, isActive && styles.psalmFontChipActive]}
+                  onPress={() => selectPsalmAlign(option.key)}
+                  activeOpacity={0.72}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Align ${option.label}`}
+                >
+                  <MaterialCommunityIcons
+                    name={option.icon}
+                    size={16}
+                    color={isActive ? Colors.hopeWhite : Colors.textGray}
+                  />
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
+
+        <TouchableOpacity
+          style={styles.psalmAdvancedButton}
+          onPress={() => {
+            triggerLightHaptic();
+            setAdvancedSettingsOpen(current => !current);
+          }}
+          activeOpacity={0.72}
+          accessibilityRole="button"
+          accessibilityLabel="Toggle advanced text settings"
+          accessibilityState={{ expanded: advancedSettingsOpen }}
+        >
+          <ThemedText style={styles.psalmAdvancedButtonText}>Advanced</ThemedText>
+          <Ionicons name={advancedSettingsOpen ? 'chevron-up' : 'chevron-down'} size={14} color={Colors.textGray} />
+        </TouchableOpacity>
+
+        {advancedSettingsOpen && (
+          <View style={styles.psalmAdvancedSettings}>
+            <View style={styles.psalmSettingsRow}>
+              <ThemedText style={styles.psalmSettingsLabel}>Lines</ThemedText>
+              <View style={styles.psalmSizeControls}>
+                <TouchableOpacity
+                  style={styles.psalmControlButton}
+                  onPress={decreasePsalmLineSpacing}
+                  activeOpacity={0.72}
+                  accessibilityRole="button"
+                  accessibilityLabel="Decrease line spacing"
+                >
+                  <ThemedText weight="semiBold" style={styles.psalmControlButtonText}>−</ThemedText>
+                </TouchableOpacity>
+                <ThemedText weight="semiBold" style={styles.psalmFontSizeLabel}>{psalmLineSpacing}</ThemedText>
+                <TouchableOpacity
+                  style={styles.psalmControlButton}
+                  onPress={increasePsalmLineSpacing}
+                  activeOpacity={0.72}
+                  accessibilityRole="button"
+                  accessibilityLabel="Increase line spacing"
+                >
+                  <ThemedText weight="semiBold" style={styles.psalmControlButtonText}>+</ThemedText>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <View style={styles.psalmSettingsRow}>
+              <ThemedText style={styles.psalmSettingsLabel}>Letters</ThemedText>
+              <View style={styles.psalmSizeControls}>
+                <TouchableOpacity
+                  style={styles.psalmControlButton}
+                  onPress={decreasePsalmLetterSpacing}
+                  activeOpacity={0.72}
+                  accessibilityRole="button"
+                  accessibilityLabel="Decrease letter spacing"
+                >
+                  <ThemedText weight="semiBold" style={styles.psalmControlButtonText}>−</ThemedText>
+                </TouchableOpacity>
+                <ThemedText weight="semiBold" style={styles.psalmFontSizeLabel}>{psalmLetterSpacing}</ThemedText>
+                <TouchableOpacity
+                  style={styles.psalmControlButton}
+                  onPress={increasePsalmLetterSpacing}
+                  activeOpacity={0.72}
+                  accessibilityRole="button"
+                  accessibilityLabel="Increase letter spacing"
+                >
+                  <ThemedText weight="semiBold" style={styles.psalmControlButtonText}>+</ThemedText>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <View style={styles.psalmSettingsRow}>
+              <ThemedText style={styles.psalmSettingsLabel}>Indent</ThemedText>
+              <View style={styles.psalmSizeControls}>
+                <TouchableOpacity
+                  style={styles.psalmControlButton}
+                  onPress={decreasePsalmIndent}
+                  activeOpacity={0.72}
+                  accessibilityRole="button"
+                  accessibilityLabel="Decrease indent"
+                >
+                  <ThemedText weight="semiBold" style={styles.psalmControlButtonText}>−</ThemedText>
+                </TouchableOpacity>
+                <ThemedText weight="semiBold" style={styles.psalmFontSizeLabel}>{psalmIndent}</ThemedText>
+                <TouchableOpacity
+                  style={styles.psalmControlButton}
+                  onPress={increasePsalmIndent}
+                  activeOpacity={0.72}
+                  accessibilityRole="button"
+                  accessibilityLabel="Increase indent"
+                >
+                  <ThemedText weight="semiBold" style={styles.psalmControlButtonText}>+</ThemedText>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        )}
+      </Animated.View>
 
       <View style={styles.card}>
         <ScrollView
@@ -263,13 +523,12 @@ const PsalmOfTheDayScreen = () => {
           {psalmLoading ? (
             <ActivityIndicator color={Colors.sage} style={styles.psalmLoader} />
           ) : psalmError ? (
-            <ThemedText style={[styles.psalmLine, psalmLineStyle]}>{psalmError}</ThemedText>
+            <Text style={[styles.psalmLine, psalmLineStyle]}>{psalmError}</Text>
           ) : psalmVerses && psalmVerses.length > 0 ? (
             <>
               {psalmVerses.map((verse, vIndex) => (
                 <View key={`psalm-verse-${vIndex}`} style={styles.verseRow}>
-                  <ThemedText
-                    weight="bold"
+                  <Text
                     style={[
                       styles.verseNumber,
                       {
@@ -279,14 +538,14 @@ const PsalmOfTheDayScreen = () => {
                       },
                     ]}>
                     {verse.number}
-                  </ThemedText>
+                  </Text>
                   <View style={styles.verseLines}>
                     {verse.lines.map((line, lIndex) => (
-                      <ThemedText
+                      <Text
                         key={`psalm-line-${vIndex}-${lIndex}`}
                         style={[styles.verseLine, psalmLineStyle]}>
                         {line}
-                      </ThemedText>
+                      </Text>
                     ))}
                   </View>
                 </View>
@@ -298,21 +557,25 @@ const PsalmOfTheDayScreen = () => {
                 line.trim() === '' ? (
                   <View key={`psalm-space-${index}`} style={styles.psalmStanzaBreak} />
                 ) : (
-                  <ThemedText
+                  <Text
                     key={`psalm-line-${index}`}
                     style={[styles.psalmLine, psalmLineStyle]}
                   >
                     {line.trim()}
-                  </ThemedText>
+                  </Text>
                 )
               ))}
             </>
           )}
         </ScrollView>
       </View>
+    </>
+  );
 
+  const footer = (
+    <View style={styles.footerRow}>
       <TouchableOpacity
-        style={[styles.readButton, hasReadPsalm && styles.readButtonActive, { bottom: insets.bottom + 20 }]}
+        style={[styles.readButton, hasReadPsalm && styles.readButtonActive]}
         onPress={togglePsalmRead}
         activeOpacity={0.8}
         accessibilityRole="checkbox"
@@ -329,120 +592,248 @@ const PsalmOfTheDayScreen = () => {
         </ThemedText>
       </TouchableOpacity>
 
-      <View style={[styles.primaryButton, { bottom: insets.bottom + 20 }]}>
-        <TouchableOpacity
-          onPress={onNext}
-          activeOpacity={0.7}
-          style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}
-          accessibilityRole="button"
-          accessibilityLabel="Next"
-        >
-          <Ionicons name="chevron-forward" size={24} color={Colors.hopeWhite} />
-        </TouchableOpacity>
-      </View>
+      <TouchableOpacity
+        onPress={onNext}
+        activeOpacity={0.7}
+        style={styles.primaryButton}
+        accessibilityRole="button"
+        accessibilityLabel="Next"
+      >
+        <Ionicons name="chevron-forward" size={24} color={Colors.hopeWhite} />
+      </TouchableOpacity>
+    </View>
+  );
+
+  const aAButton = (
+    <TouchableOpacity
+      style={[styles.aaHeaderButton, showAaSettings && styles.aaHeaderButtonActive]}
+      onPress={togglePsalmSettings}
+      activeOpacity={0.72}
+      accessibilityRole="button"
+      accessibilityLabel="Text settings"
+      accessibilityState={{ expanded: showAaSettings }}
+    >
+      <ThemedText weight="bold" style={[styles.aaHeaderButtonText, showAaSettings && styles.aaHeaderButtonTextActive]}>aA</ThemedText>
+    </TouchableOpacity>
+  );
+
+  return (
+    <RoutineStepShell
+      step={4}
+      totalSteps={6}
+      eyebrow="PSALM OF THE DAY"
+      title={`Psalm ${psalmNumber}`}
+      footer={footer}
+      onBack={onBack}
+      backgroundColor={Colors.lightBackground}
+      rightControl={aAButton}
+    >
+      {children}
+
       <BibleCopyrightModal
         visible={showCopyright}
         onClose={() => setShowCopyright(false)}
         bibleVersion={psalmVersion || ''}
       />
-    </View>
+    </RoutineStepShell>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.lightBackground,
-    paddingHorizontal: 18,
+  psalmReferenceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    marginTop: 0,
+    marginBottom: 4,
   },
-  eyebrow: {
-    color: Colors.sageMuted,
+  psalmReference: {
+    color: Colors.sage,
     fontFamily: Fonts.semiBold,
-    fontSize: 12,
-    lineHeight: 16,
-    letterSpacing: 1.8,
-    textAlign: 'center',
+    fontSize: 13,
+    letterSpacing: 0.4,
   },
-  title: {
-    color: Colors.text,
-    fontFamily: Fonts.bold,
-    fontWeight: '900',
-    fontSize: 24,
-    lineHeight: 30,
-    letterSpacing: -0.4,
-  },
-  titleRow: {
-    flexDirection: 'row',
+  aaHeaderButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 8,
-    marginBottom: 24,
-    position: 'relative',
-  },
-  aaButton: {
-    position: 'absolute',
-    right: 0,
-    width: 40,
-    height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: Colors.sage,
-    borderRadius: 20,
-  },
-  aaButtonText: {
-    fontSize: 16,
-    color: Colors.hopeWhite,
-  },
-  settingsPanel: {
-    maxHeight: 180,
-    backgroundColor: Colors.cardBackground,
-    borderColor: Colors.cardBorder,
+    backgroundColor: Colors.hopeWhite,
     borderWidth: 1,
-    borderRadius: 16,
-    marginBottom: 16,
-    padding: 12,
+    borderColor: Colors.sage,
   },
-  settingsContent: {
-    gap: 10,
-  },
-  settingRow: {
-    marginBottom: 2,
-  },
-  settingLabel: {
-    color: Colors.textGray,
-    fontFamily: Fonts.regular,
-    fontSize: 12,
-    marginBottom: 6,
-  },
-  chipsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  chip: {
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: Colors.lightGray,
-    backgroundColor: 'transparent',
-  },
-  chipActive: {
+  aaHeaderButtonActive: {
     backgroundColor: Colors.sage,
     borderColor: Colors.sage,
   },
-  chipText: {
-    color: Colors.text,
-    fontSize: 13,
+  aaHeaderButtonText: {
+    fontSize: 16,
+    color: Colors.sage,
   },
-  chipTextActive: {
+  aaHeaderButtonTextActive: {
     color: Colors.hopeWhite,
+  },
+  psalmSettingsPanel: {
+    marginBottom: 16,
+    padding: 16,
+    borderRadius: 22,
+    backgroundColor: Colors.hopeWhite,
+    borderWidth: 1,
+    borderColor: 'rgba(82, 106, 91, 0.2)',
+    overflow: 'hidden',
+    gap: 12,
+  },
+  psalmAppearanceTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  psalmQuickControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  psalmSizeControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  psalmControlButton: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(82, 106, 91, 0.1)',
+  },
+  psalmControlButtonText: {
+    fontSize: 14,
+    color: Colors.text,
+  },
+  psalmDecreaseFontIcon: {
+    fontSize: 12,
+    color: Colors.textGray,
+  },
+  psalmIncreaseFontIcon: {
+    fontSize: 18,
+    color: Colors.text,
+  },
+  psalmFontSizeLabel: {
+    width: 28,
+    textAlign: 'center',
+    fontSize: 13,
+    color: Colors.sage,
+  },
+  psalmBoldToggle: {
+    height: 34,
+    paddingHorizontal: 13,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(82, 106, 91, 0.2)',
+    backgroundColor: 'rgba(82, 106, 91, 0.06)',
+  },
+  psalmBoldToggleActive: {
+    borderColor: Colors.sage,
+    backgroundColor: Colors.sage,
+  },
+  psalmBoldToggleText: {
+    fontSize: 12,
+    color: Colors.text,
+  },
+  psalmBoldToggleTextActive: {
+    color: Colors.hopeWhite,
+  },
+  psalmResetIconButton: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(82, 106, 91, 0.06)',
+  },
+  psalmOptionGroup: {
+    padding: 8,
+    borderRadius: 14,
+    backgroundColor: 'rgba(82, 106, 91, 0.06)',
+  },
+  psalmFontControls: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 6,
+  },
+  psalmFontChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(82, 106, 91, 0.1)',
+  },
+  psalmFontChipActive: {
+    backgroundColor: Colors.sage,
+  },
+  psalmFontChipText: {
+    fontSize: 11,
+    color: Colors.text,
+  },
+  psalmFontChipTextActive: {
+    color: Colors.hopeWhite,
+  },
+  psalmOptionDivider: {
+    height: StyleSheet.hairlineWidth,
+    marginVertical: 8,
+    backgroundColor: 'rgba(82, 106, 91, 0.15)',
+  },
+  psalmAlignControls: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 6,
+  },
+  psalmAlignButton: {
+    flex: 1,
+    height: 30,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  psalmAdvancedButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+    paddingVertical: 5,
+  },
+  psalmAdvancedButtonText: {
+    fontSize: 11,
+    color: Colors.textGray,
+  },
+  psalmAdvancedSettings: {
+    paddingTop: 2,
+    gap: 10,
+  },
+  psalmSettingsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  psalmSettingsLabel: {
+    width: 56,
+    fontSize: 12,
+    color: Colors.textGray,
   },
   card: {
     flex: 1,
     backgroundColor: 'transparent',
     borderRadius: 22,
-    padding: 22,
+    paddingHorizontal: 22,
+    paddingBottom: 22,
+    paddingTop: 8,
+    minHeight: 320,
   },
   psalmScroll: {
     flex: 1,
@@ -459,20 +850,6 @@ const styles = StyleSheet.create({
   },
   psalmStanzaBreak: {
     height: 16,
-  },
-  psalmReference: {
-    color: Colors.sage,
-    fontFamily: Fonts.semiBold,
-    fontSize: 13,
-    letterSpacing: 0.4,
-  },
-  psalmReferenceRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 5,
-    marginTop: 4,
-    marginBottom: 16,
   },
   verseRow: {
     flexDirection: 'row',
@@ -491,9 +868,13 @@ const styles = StyleSheet.create({
     color: Colors.text,
     marginBottom: 6,
   },
+  footerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
   readButton: {
-    position: 'absolute',
-    left: 20,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
@@ -503,7 +884,6 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     borderWidth: 1,
     borderColor: 'rgba(82, 106, 91, 0.2)',
-    zIndex: 100,
   },
   readButtonActive: {
     backgroundColor: Colors.sage,
@@ -517,8 +897,6 @@ const styles = StyleSheet.create({
     color: Colors.hopeWhite,
   },
   primaryButton: {
-    position: 'absolute',
-    right: 20,
     width: 40,
     height: 40,
     justifyContent: 'center',
@@ -530,7 +908,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 8,
-    zIndex: 100,
   },
 });
 

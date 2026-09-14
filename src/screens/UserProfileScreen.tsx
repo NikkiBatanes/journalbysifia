@@ -1930,7 +1930,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
       >
         <View style={styles.modalHeader}>
           <TouchableOpacity onPress={() => { try { triggerLightHaptic(); } catch {} setEditProfileModal(false); }} accessibilityRole="button" accessibilityLabel="Go back">
-            <Ionicons name="chevron-back" size={24} color={Colors.hopeWhite} />
+            <Ionicons name="chevron-back" size={24} color={Colors.sage} />
           </TouchableOpacity>
           <Text style={[styles.modalTitle, font]}>Edit Profile</Text>
           <TouchableOpacity onPress={() => { try { triggerLightHaptic(); } catch {} handleUpdateProfile(); }}>
@@ -2595,28 +2595,19 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
 
   const profileContent = (
     <>
-      {/* Fixed white header area with extra padding */}
-      <View
-        style={[
-          styles.headerWrapper,
-          styles.paddingTop22,
-          { backgroundColor: theme.colors.hopeWhite },
-        ]}
-      >
-        {renderProfileHeader()}
-      </View>
-
-      {/* Body with rounded top; only its content scrolls */}
-      <View style={[styles.bodyContainer, { backgroundColor: theme.colors.anchorBlue }]}>
+      <View style={[styles.bodyContainer, { backgroundColor: theme.colors.lightBackground }]}>
         <ScrollView
           style={styles.scrollView}
           contentInsetAdjustmentBehavior="never"
-          contentContainerStyle={[styles.scrollContent, { paddingBottom: (insets?.bottom || 0) + 16 }]}
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: (insets?.bottom || 0) + 50 }]}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
           showsVerticalScrollIndicator={false}
         >
+          <View style={[styles.headerWrapper, { backgroundColor: theme.colors.lightBackground }]}>
+            {renderProfileHeader()}
+          </View>
           <View style={styles.streakSection}>
             <StreakTracker
               showProfileStats
@@ -2678,7 +2669,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           style={[
             styles.androidRouteSheet,
             {
-              backgroundColor: theme.colors.hopeWhite,
+              backgroundColor: theme.colors.lightBackground,
               transform: [{ translateY: androidSheetTranslateY }],
             },
           ]}
@@ -2687,7 +2678,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
             edges={['left', 'right']}
             style={[
               styles.container,
-              { backgroundColor: theme.colors.hopeWhite },
+              { backgroundColor: theme.colors.lightBackground },
             ]}
           >
             {profileContent}
@@ -2702,7 +2693,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
       edges={['top']}
       style={[
         styles.container,
-        { backgroundColor: theme.colors.hopeWhite },
+        { backgroundColor: theme.colors.lightBackground },
       ]}
     >
       {profileContent}
@@ -2713,7 +2704,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.hopeWhite,
+    backgroundColor: Colors.lightBackground,
   },
   androidModalRoot: {
     flex: 1,
@@ -2749,9 +2740,7 @@ const styles = StyleSheet.create({
     zIndex: 0,
     elevation: 0,
     marginTop: 0,
-    backgroundColor: Colors.sage,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    backgroundColor: Colors.lightBackground,
     paddingHorizontal: 12,
     paddingTop: 0,
     paddingBottom: 0,
@@ -2760,6 +2749,11 @@ const styles = StyleSheet.create({
   streakSection: {
     paddingHorizontal: 0,
     paddingBottom: 16,
+    marginHorizontal: 12,
+    marginBottom: 20,
+    backgroundColor: Colors.hopeWhite,
+    borderRadius: 20,
+    overflow: 'hidden',
   },
   headerWrapper: {
     // extra space so the header isn't cut by the notch
@@ -2811,7 +2805,7 @@ const styles = StyleSheet.create({
   },
   headerGradient: {
     paddingBottom: 20,
-    backgroundColor: Colors.sage,
+    backgroundColor: Colors.sageMuted,
   },
   profileHeader: {
     flexDirection: 'row',
@@ -2987,14 +2981,14 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   menuContainer: {
-    marginHorizontal: 0,
+    marginHorizontal: 12,
     borderRadius: 20,
     marginBottom: 20,
     borderWidth: 0,
     borderColor: 'transparent',
-    backgroundColor: 'transparent',
-    overflow: 'visible',
-    width: '100%',
+    backgroundColor: Colors.hopeWhite,
+    overflow: 'hidden',
+    width: 'auto',
   },
   menuItem: {
     flexDirection: 'row',
@@ -3010,27 +3004,27 @@ const styles = StyleSheet.create({
   menuText: {
     flex: 1,
     fontSize: 16,
-    color: Colors.hopeWhite,
+    color: Colors.text,
     marginLeft: 10,
   },
   menuSubtext: {
     fontSize: 13,
-    color: 'rgba(255,255,255,0.6)',
+    color: Colors.textGray,
     marginLeft: 10,
     marginTop: 2,
   },
   menuValueText: {
     fontSize: 14,
-    color: 'rgba(255,255,255,0.85)',
+    color: Colors.textGray,
     marginRight: 8,
   },
   menuIconBox: {
     width: 28,
     height: 28,
     borderRadius: 8,
-    backgroundColor: 'rgba(255,255,255,0.14)',
+    backgroundColor: Colors.anchorBlueLight,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.22)',
+    borderColor: Colors.lightBorder,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 10,
@@ -3043,7 +3037,7 @@ const styles = StyleSheet.create({
   },
   modalContainer: {
     flex: 1,
-    backgroundColor: Colors.sage,
+    backgroundColor: Colors.hopeWhite,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -3056,16 +3050,16 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: Colors.hopeWhite,
+    color: Colors.text,
   },
   cancelText: {
     fontSize: 16,
-    color: Colors.hopeWhite,
+    color: Colors.textGray,
     opacity: 0.8,
   },
   saveText: {
     fontSize: 16,
-    color: Colors.hopeWhite,
+    color: Colors.sage,
     fontWeight: '600',
   },
   saveTextDisabled: {
@@ -3094,7 +3088,7 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontSize: 12,
     fontWeight: '700',
-    color: 'rgba(255,255,255,0.85)',
+    color: Colors.textGray,
     marginBottom: 8,
     marginTop: 16,
     letterSpacing: 0.6,
@@ -3108,8 +3102,8 @@ const styles = StyleSheet.create({
     flexDirection: 'column',
     alignItems: 'stretch',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.25)',
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderColor: Colors.lightBorder,
+    backgroundColor: Colors.hopeWhite,
     borderRadius: 20,
   },
   nameField: {
@@ -3117,12 +3111,12 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 12,
     fontSize: 16,
-    color: Colors.hopeWhite,
+    color: Colors.text,
   },
   nameDivider: {
     height: StyleSheet.hairlineWidth,
     width: '100%',
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    backgroundColor: Colors.lightBorder,
   },
   // Edit Profile modal avatar styles
   modalAvatarSection: {
@@ -3144,7 +3138,7 @@ const styles = StyleSheet.create({
   modalInitialAvatar: {
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: Colors.alertCoral,
+    backgroundColor: Colors.sage,
   },
   modalInitialLetter: {
     fontSize: 40,
@@ -3500,15 +3494,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.25)',
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderColor: Colors.lightBorder,
+    backgroundColor: Colors.hopeWhite,
     borderRadius: 16,
     paddingVertical: 12,
     paddingHorizontal: 16,
   },
   yearSelectorText: {
     fontSize: 16,
-    color: Colors.hopeWhite,
+    color: Colors.text,
   },
   yearPickerList: {
     maxHeight: 300,
@@ -3517,14 +3511,14 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     paddingHorizontal: 20,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: 'rgba(255,255,255,0.1)',
+    borderBottomColor: Colors.lightBorder,
   },
   yearOptionSelected: {
-    backgroundColor: 'rgba(255,107,107,0.15)',
+    backgroundColor: Colors.anchorBlueLight,
   },
   yearOptionText: {
     fontSize: 16,
-    color: Colors.hopeWhite,
+    color: Colors.text,
     textAlign: 'center',
   },
   yearOptionTextSelected: {
@@ -3759,7 +3753,7 @@ const styles = StyleSheet.create({
   },
   settingLabel: {
     fontSize: 14,
-    color: Colors.hopeWhite,
+    color: Colors.text,
   },
   // Custom toggle styles matching TimeBlockLogEditor
   switchContainer: {
@@ -3784,7 +3778,7 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   switchTrackActive: {
-    backgroundColor: Colors.alertCoral,
+    backgroundColor: Colors.sage,
   },
   switchTrackInactive: {
     backgroundColor: '#DFE4DD',

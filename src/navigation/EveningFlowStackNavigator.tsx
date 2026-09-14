@@ -2,15 +2,16 @@ import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 import { Colors } from '../theme/colors';
+import { RoutineProvider } from '../context/RoutineContext';
 
 import {
-  EveningGratitudeScreen,
-  EveningWinScreen,
   EveningProverbsScreen,
   EveningCarryWisdomScreen,
-  EveningLookingForwardScreen,
   EveningClosingScreen,
 } from '../screens/evening/EveningFlowScreens';
+import EveningGratitudeScreen from '../screens/evening/EveningGratitudeScreen';
+import EveningWinScreen from '../screens/evening/EveningWinScreen';
+import EveningLookingForwardScreen from '../screens/evening/EveningLookingForwardScreen';
 
 export type EveningFlowParamList = {
   Gratitude: { selectedDate?: string } | undefined;
@@ -24,7 +25,8 @@ export type EveningFlowParamList = {
 const Stack = createNativeStackNavigator<EveningFlowParamList>();
 
 const EveningFlowStackNavigator = () => (
-  <Stack.Navigator
+  <RoutineProvider>
+    <Stack.Navigator
     initialRouteName="Gratitude"
     screenOptions={{
       headerShown: false,
@@ -43,6 +45,7 @@ const EveningFlowStackNavigator = () => (
     <Stack.Screen name="LookingForward" component={EveningLookingForwardScreen} />
     <Stack.Screen name="EveningClosing" component={EveningClosingScreen} />
   </Stack.Navigator>
+  </RoutineProvider>
 );
 
 export default EveningFlowStackNavigator;

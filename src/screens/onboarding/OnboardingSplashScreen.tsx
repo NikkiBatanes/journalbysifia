@@ -52,7 +52,7 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
     try {
       StatusBar.setBarStyle('light-content');
       if (Platform.OS === 'android') {
-        StatusBar.setBackgroundColor(Colors.sage);
+        StatusBar.setBackgroundColor('#869C7B');
       }
     } catch (error) {
       logger.error('Error setting status bar:', error as Error);
@@ -562,12 +562,12 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor={Colors.sage} />
+      <StatusBar barStyle="light-content" backgroundColor={'#869C7B'} />
 
       {/* Logo Section */}
       <View style={styles.logoSection}>
         <Image
-          source={require('../../../assets/icons/siFia-logo-white.png')}
+          source={require('../../../assets/images/journalbysifia.png')}
           style={[styles.logoImage, { width: logoSize, height: logoSize }]}
           resizeMode="contain"
         />
@@ -579,7 +579,7 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.sage,
+    backgroundColor: '#869C7B',
     justifyContent: 'center',
     alignItems: 'center',
   },

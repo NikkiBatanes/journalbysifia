@@ -2,14 +2,15 @@ import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 import { Colors } from '../theme/colors';
+import { RoutineProvider } from '../context/RoutineContext';
 
 import EmotionCheckInScreen from '../screens/morning/EmotionCheckInScreen';
 import UnderneathItScreen from '../screens/morning/UnderneathItScreen';
 import PsalmOfTheDayScreen from '../screens/morning/PsalmOfTheDayScreen';
 import CarryItScreen from '../screens/morning/CarryItScreen';
 import MorningClosingScreen from '../screens/morning/MorningClosingScreen';
-import TodaysFocusWalkthroughScreen from '../screens/TodaysFocusWalkthroughScreen';
-import TodosWalkthroughScreen from '../screens/TodosWalkthroughScreen';
+import MorningTodaysFocusScreen from '../screens/morning/MorningTodaysFocusScreen';
+import MorningTodosScreen from '../screens/morning/MorningTodosScreen';
 
 export type MorningFlowParamList = {
   EmotionCheckIn: { morningFlow?: boolean } | undefined;
@@ -58,28 +59,30 @@ export type MorningFlowParamList = {
 const Stack = createNativeStackNavigator<MorningFlowParamList>();
 
 const MorningFlowStackNavigator = () => (
-  <Stack.Navigator
-    initialRouteName="EmotionCheckIn"
-    screenOptions={{
-      headerShown: false,
-      presentation: 'card',
-      // Every screen shares the same cream canvas, so this reads as content rising
-      // into place instead of the whole page sliding horizontally.
-      animation: 'fade_from_bottom',
-      gestureEnabled: true,
-      fullScreenGestureEnabled: true,
-      animationMatchesGesture: true,
-      contentStyle: { backgroundColor: Colors.lightBackground },
-    }}
-  >
-    <Stack.Screen name="EmotionCheckIn" component={EmotionCheckInScreen} />
-    <Stack.Screen name="UnderneathIt" component={UnderneathItScreen} />
-    <Stack.Screen name="TodaysFocus" component={TodaysFocusWalkthroughScreen as React.ComponentType} />
-    <Stack.Screen name="Todos" component={TodosWalkthroughScreen as React.ComponentType} />
-    <Stack.Screen name="PsalmOfTheDay" component={PsalmOfTheDayScreen} />
-    <Stack.Screen name="CarryIt" component={CarryItScreen} />
-    <Stack.Screen name="MorningClosing" component={MorningClosingScreen} />
-  </Stack.Navigator>
+  <RoutineProvider>
+    <Stack.Navigator
+      initialRouteName="EmotionCheckIn"
+      screenOptions={{
+        headerShown: false,
+        presentation: 'card',
+        // Every screen shares the same cream canvas, so this reads as content rising
+        // into place instead of the whole page sliding horizontally.
+        animation: 'fade_from_bottom',
+        gestureEnabled: true,
+        fullScreenGestureEnabled: true,
+        animationMatchesGesture: true,
+        contentStyle: { backgroundColor: Colors.lightBackground },
+      }}
+    >
+      <Stack.Screen name="EmotionCheckIn" component={EmotionCheckInScreen} />
+      <Stack.Screen name="UnderneathIt" component={UnderneathItScreen} />
+      <Stack.Screen name="TodaysFocus" component={MorningTodaysFocusScreen} />
+      <Stack.Screen name="Todos" component={MorningTodosScreen} />
+      <Stack.Screen name="PsalmOfTheDay" component={PsalmOfTheDayScreen} />
+      <Stack.Screen name="CarryIt" component={CarryItScreen} />
+      <Stack.Screen name="MorningClosing" component={MorningClosingScreen} />
+    </Stack.Navigator>
+  </RoutineProvider>
 );
 
 export default MorningFlowStackNavigator;

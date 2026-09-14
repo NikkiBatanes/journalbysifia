@@ -10,6 +10,7 @@ import { TodayWinReactQuery } from '../../../components/journal/TodayWinReactQue
 import { LookingForwardReactQuery } from '../../../components/journal/LookingForwardReactQuery';
 import { PrayerJournalReactQuery } from '../../../components/journal/PrayerJournalReactQuery';
 import EnhancedPrayerListReactQuery from '../../../components/journal/EnhancedPrayerListReactQuery';
+import { SermonNotesReactQuery } from '../../../components/journal/SermonNotesReactQuery';
 
 // Plugin Registry - Auto-discovery system
 export const JOURNAL_PLUGINS: JournalPlugin[] = [
@@ -78,6 +79,17 @@ export const JOURNAL_PLUGINS: JournalPlugin[] = [
     viewModes: ['carousel', 'inline', 'moments'],
     title: 'Looking Forward',
     subtitle: "Tomorrow's aspirations",
+  },
+
+  // REFLECT Category (Sermon notes)
+  {
+    id: 'sermon',
+    category: 'reflect',
+    component: SermonNotesReactQuery,
+    priority: 5,
+    viewModes: ['carousel', 'inline', 'moments'],
+    title: 'Sermon Notes',
+    subtitle: 'Sermon captures',
   },
 
   // PRAY Category

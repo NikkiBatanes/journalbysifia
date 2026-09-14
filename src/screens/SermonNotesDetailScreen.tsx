@@ -15,7 +15,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { format } from 'date-fns';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { Pencil, Trash2, X } from 'lucide-react-native';
+import { Pencil, Trash2, X, FileText, Sparkles, Leaf } from 'lucide-react-native';
 import { Colors } from '../theme/colors';
 import ThemedText from '../components/common/ThemedText';
 import { deleteLocalReflection, getLocalReflection } from '../storage/reflectionStorage';
@@ -49,9 +49,9 @@ type NoteBlock = {
 };
 
 const TAB_ICONS = {
-  notes: 'book-outline',
-  reflection: 'chatbubbles-outline',
-  prayer: 'leaf-outline',
+  notes: FileText,
+  reflection: Sparkles,
+  prayer: Leaf,
 } as const;
 
 const SermonNotesDetailScreen: React.FC = () => {
@@ -490,7 +490,7 @@ const SermonNotesDetailScreen: React.FC = () => {
       params.initialReflectionStep = 0;
     } else if (activeTab === 'prayer') {
       params.initialStage = 4;
-      params.initialReflectionStep = 2;
+      params.initialReflectionStep = 3;
     }
     navigation.push('SermonNotes', params);
   };
@@ -504,14 +504,14 @@ const SermonNotesDetailScreen: React.FC = () => {
     <View style={styles.pills}>
       {(['notes', 'reflection', 'prayer'] as const).map(tab => {
         const active = activeTab === tab;
+        const TabIcon = TAB_ICONS[tab];
         return (
           <TouchableOpacity
             key={tab}
             onPress={() => setActiveTab(tab)}
             style={[styles.pill, active && styles.pillActive]}
             activeOpacity={0.7}>
-            <Ionicons
-              name={TAB_ICONS[tab]}
+            <TabIcon
               size={17}
               color={active ? Colors.hopeWhite : Colors.sage}
             />
@@ -724,7 +724,7 @@ const SermonNotesDetailScreen: React.FC = () => {
         )}
 
         {activeTab === 'reflection' && (
-          <View style={[SermonNotesStyles.editor, {paddingHorizontal: 22, paddingTop: 20}]}>
+          <View style={[SermonNotesStyles.editor, {paddingHorizontal: 22, paddingTop: 8}]}>
             {hasReflection ? (
               <>
                 <ThemedText weight="bold" style={SermonNotesStyles.sermonEyebrow}>
@@ -791,6 +791,7 @@ const SermonNotesDetailScreen: React.FC = () => {
           ]}>
           {(['notes', 'reflection', 'prayer'] as const).map(tab => {
             const active = activeTab === tab;
+            const TabIcon = TAB_ICONS[tab];
             return (
               <TouchableOpacity
                 key={tab}
@@ -800,8 +801,7 @@ const SermonNotesDetailScreen: React.FC = () => {
                 onPress={() => setActiveTab(tab)}
                 style={[styles.compactTab, active && styles.compactTabActive]}
                 activeOpacity={0.7}>
-                <Ionicons
-                  name={TAB_ICONS[tab]}
+                <TabIcon
                   size={17}
                   color={active ? Colors.hopeWhite : Colors.sage}
                 />

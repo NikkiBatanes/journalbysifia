@@ -7,6 +7,8 @@ import { PluginRenderer } from '../PluginRenderer';
 import { Colors } from '../../../theme/colors';
 import { format, startOfMonth, endOfMonth, getWeek } from 'date-fns';
 import { getWeekStart, getWeekEnd, WeekStartDay } from '../../../utils/weekStartUtils';
+import { toLocalDateString } from '../../../utils/date';
+import { getAllLocalReflectionsByType } from '../../../storage/reflectionStorage';
 import ThemedText from '../../../components/common/ThemedText';
 import { useTheme } from '../../../hooks/useTheme';
 import { getFontFamily } from '../../../theme/fonts';
@@ -110,6 +112,7 @@ const TYPE_ORDER = {
   timeblocks: 2,
   gratitude: 3,
   reflection: 4,
+  sermon: 4.5,
   prayerjournal: 5,
   guidedprayers: 6,
   peopleprayers: 7,
@@ -127,6 +130,8 @@ const textToOrderKey = (text: string): keyof typeof TYPE_ORDER | null => {
   if (s.includes('gratitude list') || s.includes('gratitude')) {return 'gratitude';}
   // Reflection variants
   if (s.includes('reflections') || s.includes('reflection journal') || s.includes('reflection')) {return 'reflection';}
+  // Sermon notes
+  if (s.includes('sermon')) {return 'sermon';}
   // Prayer journal
   if (s.includes('prayer journal')) {return 'prayerjournal';}
   // Guided/prayed prayers
@@ -150,6 +155,7 @@ const normalizePluginIdToKey = (pidRaw: string): keyof typeof TYPE_ORDER | null 
   if (pid === 'timeblock' || pid === 'timeblocks' || pid === 'time-blocks') {return 'timeblocks';}
   if (pid === 'gratitude' || pid === 'gratitudejournal') {return 'gratitude';}
   if (pid === 'reflection' || pid === 'reflections' || pid === 'reflectionjournal') {return 'reflection';}
+  if (pid === 'sermon') {return 'sermon';}
   if (pid === 'prayer-journal' || pid === 'openprayer' || pid === 'actsprayer') {return 'prayerjournal';}
   if (pid === 'guidedprayers' || pid === 'guided_playbook' || pid === 'guided-prayers' || pid === 'prayedguided') {return 'guidedprayers';}
   if (pid === 'people' || pid === 'people-prayers' || pid === 'prayerpeople' || pid === 'prayerlist') {return 'peopleprayers';}
@@ -223,6 +229,7 @@ const buildSearchText = (...values: unknown[]): string => {
 const createStyles = (fonts: any) => StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: Colors.lightBackground,
   },
   listContent: {
     paddingBottom: 0,
@@ -235,9 +242,9 @@ const createStyles = (fonts: any) => StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 0,
     paddingVertical: 12,
-    backgroundColor: Colors.sage,
+    backgroundColor: Colors.lightBackground,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+    borderBottomColor: Colors.borderLight,
   },
   sectionHeaderInner: {
     width: '100%',
@@ -253,7 +260,7 @@ const createStyles = (fonts: any) => StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontFamily: fonts.semiBold,
-    color: Colors.hopeWhite,
+    color: Colors.text,
   },
   sectionCount: {
     fontSize: 12,
@@ -280,7 +287,7 @@ const createStyles = (fonts: any) => StyleSheet.create({
   timelineLine: {
     width: 2,
     flex: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: Colors.borderLight,
     minHeight: 40,
   },
   momentContent: {
@@ -318,7 +325,7 @@ const createStyles = (fonts: any) => StyleSheet.create({
   emptyTitle: {
     fontSize: 18,
     fontFamily: fonts.semiBold,
-    color: Colors.hopeWhite,
+    color: Colors.text,
     marginBottom: 8,
     textAlign: 'center',
   },
@@ -333,7 +340,7 @@ const createStyles = (fonts: any) => StyleSheet.create({
   },
   emptyButton: {
     marginTop: 16,
-    backgroundColor: Colors.alertCoral,
+    backgroundColor: Colors.sage,
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 8,
@@ -367,7 +374,7 @@ const createStyles = (fonts: any) => StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    backgroundColor: Colors.borderLight,
     marginHorizontal: 4,
   },
   paginationDotActive: {
@@ -378,21 +385,21 @@ const createStyles = (fonts: any) => StyleSheet.create({
     marginHorizontal: 16,
     marginTop: 12,
     marginBottom: 8,
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    backgroundColor: Colors.cardBackground,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: Colors.cardBorder,
     overflow: 'hidden',
   },
   weekCardHeader: {
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: 'rgba(0,0,0,0.15)',
+    backgroundColor: Colors.anchorBlueLight,
   },
   weekRangeTitle: {
     fontSize: 16,
     fontFamily: fonts.regular,
-    color: Colors.hopeWhite,
+    color: Colors.text,
     marginBottom: 4,
   },
   weekCountsText: {
@@ -418,14 +425,14 @@ const createStyles = (fonts: any) => StyleSheet.create({
   dayHeaderText: {
     fontSize: 14,
     fontFamily: fonts.semiBold,
-    color: Colors.hopeWhite,
+    color: Colors.text,
   },
   // New styles for cleaned up inline styles
   chevronIcon: {
     marginRight: 8,
     fontSize: 18,
     fontFamily: fonts.regular,
-    color: Colors.hopeWhite,
+    color: Colors.text,
   },
   transparentBackground: {
     backgroundColor: 'transparent',
@@ -554,8 +561,45 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
 
   // Fetch real journal entries from user interactions - NOT generated content
   const fetchRealEntries = React.useCallback(async () => {
+    // Load local sermon notes regardless of auth
+    const sermonPlugin = plugins.find((p: JournalPlugin) => p.id === 'sermon');
+    let sermonEntries: MomentEntry[] = [];
+    if (sermonPlugin) {
+      try {
+        const allSermons = await getAllLocalReflectionsByType('sermon');
+        const seenSermonDates = new Set<string>();
+        allSermons.forEach(entry => {
+          const [y, m, d] = entry.selected_date.split('-').map(Number);
+          const entryDate = new Date(y, m - 1, d);
+          const dateKey = entryDate.toDateString();
+          if (seenSermonDates.has(dateKey)) {return;}
+          seenSermonDates.add(dateKey);
+          const metadata = entry.metadata || {};
+          sermonEntries.push({
+            plugin: sermonPlugin,
+            date: entryDate,
+            category: 'Reflection',
+            type: 'Sermon Notes',
+            _isReflection: true,
+            _searchText: buildSearchText(
+              entry.title,
+              entry.content,
+              metadata.main_scripture,
+              metadata.speaker,
+              metadata.series,
+              metadata.church,
+              metadata.carry,
+              metadata.prayer,
+            ),
+          });
+        });
+      } catch (sermonError) {
+        Logger.error('Error loading local sermon notes', sermonError as Error, { component: 'EnhancedMomentsRenderer' });
+      }
+    }
+
     if (!user) {
-      setRealEntries([]);
+      setRealEntries(sermonEntries);
       setLoading(false);
       return;
     }
@@ -1214,6 +1258,9 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
       } else {
 
       }
+
+      // Merge local sermon notes with Supabase entries
+      entries.push(...sermonEntries);
 
       setRealEntries(entries);
     } catch (error) {

@@ -9,18 +9,17 @@ import { Colors } from '../../theme/colors';
 import { useTheme } from '../../hooks/useTheme';
 import { getFontFamily } from '../../theme/fonts';
 import ThemedText from '../common/ThemedText';
-import { useQueryClient } from '@tanstack/react-query';
 
 import { Check, HandHeart as LuHandHeart, X, Pencil } from 'lucide-react-native';
 
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { toLocalDateString } from '../../utils/date';
 import {
-  useGratitudeData,
-  useCreateJournalEntry,
-  useUpdateJournalEntry,
-  useDeleteJournalEntry,
-} from '../../services/hooks/useJournalData';
+  createLocalJournalEntry,
+  getLocalJournalEntries,
+  updateLocalJournalEntry,
+  deleteLocalJournalEntry,
+} from '../../storage/journalStorage';
 import { useEditModeSafe } from '../../systems/journal/context/EditModeContext';
 
 import { ErrorBoundary } from '../ErrorBoundary';
@@ -59,9 +58,6 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
   // Global edit mode context (only for inline view)
   // Global edit mode context - safe version that handles missing provider
   const globalEditMode = useEditModeSafe();
-
-  // Get query client for immediate cache updates
-  const queryClient = useQueryClient();
 
   // Dynamic theming for fonts (match dashboard)
   const { currentFont } = useTheme();
@@ -121,13 +117,31 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
   const isYesterday = dateStr === yesterdayStr;
   const isEarlier = !isToday && !isYesterday;
 
-  // React Query hooks with performance tracking
+  // Local-first gratitude data
   const loadStartTime = React.useRef<number>(Date.now());
-  const { data: gratitudeEntries = [], isLoading, error } = useGratitudeData(user?.id || '', dateStr);
+  const [gratitudeEntries, setGratitudeEntries] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
 
-  const createMutation = useCreateJournalEntry();
-  const updateMutation = useUpdateJournalEntry();
-  const deleteMutation = useDeleteJournalEntry();
+  useEffect(() => {
+    let mounted = true;
+    setIsLoading(true);
+    (async () => {
+      try {
+        const entries = await getLocalJournalEntries('gratitude', dateStr);
+        if (!mounted) return;
+        setGratitudeEntries(entries.filter(e => !e.metadata?.subtask_id));
+      } catch (loadError) {
+        if (!mounted) return;
+        setError(loadError as Error);
+      } finally {
+        if (mounted) {
+          setIsLoading(false);
+        }
+      }
+    })();
+    return () => { mounted = false; };
+  }, [dateStr]);
 
   // Check for multiple entries
   if (gratitudeEntries.length > 1) {
@@ -335,108 +349,67 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
   // editGratitudeItem removed - was defined but never called
 
   const saveGratitudeItems = async () => {
-    if (!user) {
-      Alert.alert('Error', 'You must be logged in to save gratitude items.');
-      return;
-    }
-
     const validItems = newItems.filter(item => item.trim());
 
     if (validItems.length > 0) {
       try {
-        // Prepare the items to save
-        let itemsToSave;
-
-        if (isEditing && gratitudeEntries.length > 0) {
-          // When editing, replace all items with the edited versions from newItems
-          // This ensures edited text is saved, not just added as new items
-          itemsToSave = validItems.map((text, index) => ({
-            id: `gratitude_${Date.now()}_${index}`,
-            text: text.trim(),
-            date: selectedDate,
-          }));
-        } else {
-          // When adding new (not editing), create fresh items
-          itemsToSave = validItems.map((text, index) => ({
-            id: `gratitude_${Date.now()}_${index}`,
-            text: text.trim(),
-            date: selectedDate,
-          }));
-        }
+        const itemsToSave = validItems.map((text, index) => ({
+          id: `gratitude_${Date.now()}_${index}`,
+          text: text.trim(),
+          date: selectedDate,
+        }));
 
         const contentToSave = JSON.stringify({ items: itemsToSave });
 
-        // CRITICAL: Immediately update cache for instant UI feedback
-        const currentQueryKey = ['journal', 'gratitude', user.id, dateStr];
-        const updatedEntry = {
-          id: gratitudeEntries[0]?.id || `temp_${Date.now()}`,
-          user_id: user.id,
-          selected_date: dateStr,
-          content_type: 'gratitude',
-          content: contentToSave,
-          created_at: gratitudeEntries[0]?.created_at || new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        };
-
-        // Set the cache data BEFORE the mutation
-        queryClient.setQueryData(currentQueryKey, [updatedEntry]);
-
         if (gratitudeEntries.length > 0) {
-          // Update the first entry with all new content
-          await updateMutation.mutateAsync({
-            id: gratitudeEntries[0].id,
-            updates: {
-              content: contentToSave,
-            },
+          const updated = await updateLocalJournalEntry({
+            ...gratitudeEntries[0],
+            content: contentToSave,
+            updated_at: new Date().toISOString(),
+            version: (gratitudeEntries[0].version || 1) + 1,
           });
+          setGratitudeEntries([updated]);
 
-          // Re-set cache after mutation to ensure it persists
-          queryClient.setQueryData(currentQueryKey, [updatedEntry]);
-
-          // Delete any extra entries to ensure only one exists
           if (gratitudeEntries.length > 1) {
             for (let i = 1; i < gratitudeEntries.length; i++) {
               try {
-                await deleteMutation.mutateAsync(gratitudeEntries[i].id);
+                await deleteLocalJournalEntry(gratitudeEntries[i].id, 'gratitude', dateStr);
               } catch (deleteError) {
                 Logger.error('Error deleting extra gratitude entry', deleteError as Error, {
-        component: 'GratitudeListReactQuery',
-      });
+                  component: 'GratitudeListReactQuery',
+                });
               }
             }
           }
         } else {
-          // Create new entry when none exists
-          await createMutation.mutateAsync({
-            user_id: user.id,
-            selected_date: dateStr,
+          const created = await createLocalJournalEntry({
             content_type: 'gratitude',
+            selected_date: dateStr,
             content: contentToSave,
           });
+          setGratitudeEntries([created]);
 
-          // Re-set cache after mutation to ensure it persists
-          queryClient.setQueryData(currentQueryKey, [updatedEntry]);
-
-          // Check if streak celebration should show for gratitude (journal screen — always independent)
-          const shouldShowStreak = await visibleStreakService.shouldShowCelebration(user.id, 'journal_gratitude_added');
-          if (shouldShowStreak) {
-            await visibleStreakService.markShownToday(user.id);
-            (navigation as any).navigate('StreakPlan', {
-              userId: user.id,
-              source: 'journal_gratitude_added',
-            });
+          if (user?.id) {
+            const shouldShowStreak = await visibleStreakService.shouldShowCelebration(user.id, 'journal_gratitude_added');
+            if (shouldShowStreak) {
+              await visibleStreakService.markShownToday(user.id);
+              (navigation as any).navigate('StreakPlan', {
+                userId: user.id,
+                source: 'journal_gratitude_added',
+              });
+            }
           }
         }
 
-        // Track successful gratitude save
-        analytics.trackGratitudeEvent('gratitude_items_saved', {
-          items_count: validItems.length,
-          total_text_length: validItems.join('').length,
-          is_editing: isEditing,
-          date: dateStr,
-        }, user.id);
+        if (user?.id) {
+          analytics.trackGratitudeEvent('gratitude_items_saved', {
+            items_count: validItems.length,
+            total_text_length: validItems.join('').length,
+            is_editing: isEditing,
+            date: dateStr,
+          }, user.id);
+        }
 
-        // Scroll to reflect section (contains gratitude) after successful save
         setTimeout(() => {
           scrollToSection('reflect-carousel', -100);
         }, 100);
@@ -447,27 +420,21 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
 
         triggerSuccessHaptic();
 
-        // Close global edit mode if active
         if ((viewMode === 'inline' || viewMode === 'carousel') && globalEditMode?.isGlobalEditMode) {
           globalEditMode.setGlobalEditMode(false);
         }
       } catch (saveError) {
         Logger.error('Error saving gratitude items', saveError as Error, {
-        component: 'GratitudeListReactQuery',
-      });
+          component: 'GratitudeListReactQuery',
+        });
         Alert.alert('Error', 'Failed to save gratitude items. Please try again.');
         triggerErrorHaptic();
       }
     } else {
-      // Handle case when all items are empty - should delete the entry
       if (gratitudeEntries.length > 0) {
         try {
-          // CRITICAL: Immediately update cache for instant UI feedback
-          const currentQueryKey = ['journal', 'gratitude', user.id, dateStr];
-          queryClient.setQueryData(currentQueryKey, []);
-
-          // Delete the gratitude entry when all items are empty
-          await deleteMutation.mutateAsync(gratitudeEntries[0].id);
+          await deleteLocalJournalEntry(gratitudeEntries[0].id, 'gratitude', dateStr);
+          setGratitudeEntries([]);
 
           setNewItems(['', '', '']);
           setIsAdding(false);
@@ -475,12 +442,10 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
 
           triggerSuccessHaptic();
 
-          // Scroll to reflect section (contains gratitude) after deletion
           setTimeout(() => {
             scrollToSection('reflect-carousel', -100);
           }, 100);
 
-          // Close global edit mode if active
           if ((viewMode === 'inline' || viewMode === 'carousel') && globalEditMode?.isGlobalEditMode) {
             globalEditMode.setGlobalEditMode(false);
           }
@@ -492,12 +457,10 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
           triggerErrorHaptic();
         }
       } else {
-        // Just close the form if there's nothing to delete
         setNewItems(['', '', '']);
         setIsAdding(false);
         setIsEditing(false);
 
-        // Scroll to reflect section (contains gratitude) when canceling
         setTimeout(() => {
           scrollToSection('reflect-carousel', -100);
         }, 100);
@@ -811,12 +774,12 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
                     styles.saveButton,
                     !newItems.some(item => item.trim()) && styles.disabledButton,
                   ]}
-                  disabled={!newItems.some(item => item.trim()) || createMutation.isPending || updateMutation.isPending}
+                  disabled={!newItems.some(item => item.trim())}
                   activeOpacity={0.8}
                   accessibilityRole="button"
                   accessibilityLabel="Save gratitude items"
                   accessibilityHint="Saves your gratitude items and closes the form"
-                  accessibilityState={{ disabled: !newItems.some(item => item.trim()) || createMutation.isPending || updateMutation.isPending }}
+                  accessibilityState={{ disabled: !newItems.some(item => item.trim()) }}
                 >
                   <Check size={14} color={Colors.hopeWhite} strokeWidth={3.5} />
                 </TouchableOpacity>

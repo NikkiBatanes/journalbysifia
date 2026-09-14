@@ -18,7 +18,7 @@ export const usePrayerData = (userId: string, dateStr: string) => {
     queryKey: queryKeys.prayers.entries(userId, dateStr),
     queryFn: () => PrayerApi.getPrayers(userId, dateStr),
     staleTime: 5 * 60 * 1000, // 5 minutes
-    enabled: !!userId && !!dateStr,
+    enabled: !!dateStr,
     initialData: () => {
       // Cache will be handled by React Query's built-in caching
       return [];
@@ -34,7 +34,7 @@ export const useACTSPrayerData = (userId: string, dateStr: string) => {
     queryKey: queryKeys.prayers.acts(userId, dateStr),
     queryFn: () => PrayerApi.getACTSPrayers(userId, dateStr),
     staleTime: 5 * 60 * 1000,
-    enabled: !!userId && !!dateStr,
+    enabled: !!dateStr,
     retry: createRetryFunction(RETRY_CONFIGS.PRAYER_ENHANCED),
   });
 };
@@ -47,7 +47,7 @@ export const usePeoplePrayerData = (userId: string, dateStr: string) => {
     queryKey: queryKeys.prayers.people(userId, dateStr),
     queryFn: () => PrayerApi.getPeoplePrayers(userId, dateStr),
     staleTime: 5 * 60 * 1000,
-    enabled: !!userId && !!dateStr,
+    enabled: !!dateStr,
     retry: createRetryFunction(RETRY_CONFIGS.PRAYER_ENHANCED),
   });
 };
@@ -63,7 +63,7 @@ export const useUnprayedPrayerRequests = (userId: string) => {
       return PrayerApi.getUnprayedPrayerRequests(userId);
     },
     staleTime: 0, // Always consider stale to ensure immediate updates after deletion
-    enabled: !!userId,
+    enabled: true,
     retry: createRetryFunction(RETRY_CONFIGS.PRAYER_ENHANCED),
     refetchOnMount: true, // Refetch on mount to ensure dashboard shows latest data
     refetchOnWindowFocus: true, // Refetch when app comes to foreground
@@ -78,7 +78,7 @@ export const useAllPeoplePrayerData = (userId: string) => {
     queryKey: queryKeys.prayers.allPeople(userId),
     queryFn: () => PrayerApi.getAllPeoplePrayers(userId),
     staleTime: 5 * 60 * 1000,
-    enabled: !!userId,
+    enabled: true,
     retry: createRetryFunction(RETRY_CONFIGS.PRAYER_ENHANCED),
   });
 };
@@ -95,7 +95,7 @@ export const usePrayersByType = (
     queryKey: queryKeys.prayers.byType(userId, dateStr, type),
     queryFn: () => PrayerApi.getPrayersByType(userId, dateStr, type),
     staleTime: 5 * 60 * 1000,
-    enabled: !!userId && !!dateStr && !!type,
+    enabled: !!dateStr && !!type,
   });
 };
 
@@ -110,7 +110,7 @@ export const usePersonalPrayerData = (userId: string, dateStr: string) => {
       return actsData.freeform || [];
     },
     staleTime: 5 * 60 * 1000,
-    enabled: !!userId && !!dateStr,
+    enabled: !!dateStr,
     retry: createRetryFunction(RETRY_CONFIGS.PRAYER_ENHANCED),
   });
 };
@@ -127,7 +127,7 @@ export const useSearchPrayers = (
     queryKey: queryKeys.prayers.search(userId, searchTerm),
     queryFn: () => PrayerApi.searchPrayers(userId, searchTerm, limit),
     staleTime: 2 * 60 * 1000, // 2 minutes for search results
-    enabled: !!userId && !!searchTerm && searchTerm.length > 2,
+    enabled: !!searchTerm && searchTerm.length > 2,
   });
 };
 
@@ -143,7 +143,7 @@ export const usePrayerStats = (
     queryKey: queryKeys.prayers.stats(userId, startDate, endDate),
     queryFn: () => PrayerApi.getPrayerStats(userId, startDate, endDate),
     staleTime: 15 * 60 * 1000, // 15 minutes for stats
-    enabled: !!userId && !!startDate && !!endDate,
+    enabled: !!startDate && !!endDate,
   });
 };
 
@@ -161,23 +161,23 @@ export const useCreatePrayer = () => {
     onMutate: async (newPrayer) => {
       // Cancel any outgoing refetches
       await queryClient.cancelQueries({
-        queryKey: queryKeys.prayers.entries(newPrayer.user_id, newPrayer.selected_date),
+        queryKey: queryKeys.prayers.entries(newPrayer.user_id ?? 'local', newPrayer.selected_date),
       });
 
       // Also cancel people prayers query if this is a people prayer
       if (newPrayer.prayer_type === 'people') {
         await queryClient.cancelQueries({
-          queryKey: queryKeys.prayers.people(newPrayer.user_id, newPrayer.selected_date),
+          queryKey: queryKeys.prayers.people(newPrayer.user_id ?? 'local', newPrayer.selected_date),
         });
       }
 
       // Snapshot the previous values
       const previousPrayers = queryClient.getQueryData<PrayerApiEntry[]>(
-        queryKeys.prayers.entries(newPrayer.user_id, newPrayer.selected_date)
+        queryKeys.prayers.entries(newPrayer.user_id ?? 'local', newPrayer.selected_date)
       );
       const previousPeoplePrayers = newPrayer.prayer_type === 'people'
         ? queryClient.getQueryData<PrayerApiEntry[]>(
-            queryKeys.prayers.people(newPrayer.user_id, newPrayer.selected_date)
+            queryKeys.prayers.people(newPrayer.user_id ?? 'local', newPrayer.selected_date)
           )
         : undefined;
 
@@ -191,14 +191,14 @@ export const useCreatePrayer = () => {
 
       // Update main prayers query
       queryClient.setQueryData<PrayerApiEntry[]>(
-        queryKeys.prayers.entries(newPrayer.user_id, newPrayer.selected_date),
+        queryKeys.prayers.entries(newPrayer.user_id ?? 'local', newPrayer.selected_date),
         (old = []) => [optimisticPrayer, ...old]
       );
 
       // Update people prayers query if applicable
       if (newPrayer.prayer_type === 'people') {
         queryClient.setQueryData<PrayerApiEntry[]>(
-          queryKeys.prayers.people(newPrayer.user_id, newPrayer.selected_date),
+          queryKeys.prayers.people(newPrayer.user_id ?? 'local', newPrayer.selected_date),
           (old = []) => [optimisticPrayer, ...old]
         );
       }
@@ -207,13 +207,13 @@ export const useCreatePrayer = () => {
       let previousUnprayedRequests: PrayerApiEntry[] | undefined;
       if (newPrayer.prayer_type === 'people' && newPrayer.is_prayer_request === true) {
         await queryClient.cancelQueries({
-          queryKey: queryKeys.prayers.unprayedRequests(newPrayer.user_id),
+          queryKey: queryKeys.prayers.unprayedRequests(newPrayer.user_id ?? 'local'),
         });
         previousUnprayedRequests = queryClient.getQueryData<PrayerApiEntry[]>(
-          queryKeys.prayers.unprayedRequests(newPrayer.user_id)
+          queryKeys.prayers.unprayedRequests(newPrayer.user_id ?? 'local')
         );
         queryClient.setQueryData<PrayerApiEntry[]>(
-          queryKeys.prayers.unprayedRequests(newPrayer.user_id),
+          queryKeys.prayers.unprayedRequests(newPrayer.user_id ?? 'local'),
           (old = []) => [optimisticPrayer, ...old]
         );
       }
@@ -228,19 +228,19 @@ export const useCreatePrayer = () => {
       // If the mutation fails, use the context returned from onMutate to roll back
       if (context?.previousPrayers) {
         queryClient.setQueryData(
-          queryKeys.prayers.entries(newPrayer.user_id, newPrayer.selected_date),
+          queryKeys.prayers.entries(newPrayer.user_id ?? 'local', newPrayer.selected_date),
           context.previousPrayers
         );
       }
       if (context?.previousPeoplePrayers && newPrayer.prayer_type === 'people') {
         queryClient.setQueryData(
-          queryKeys.prayers.people(newPrayer.user_id, newPrayer.selected_date),
+          queryKeys.prayers.people(newPrayer.user_id ?? 'local', newPrayer.selected_date),
           context.previousPeoplePrayers
         );
       }
       if (context?.previousUnprayedRequests !== undefined) {
         queryClient.setQueryData(
-          queryKeys.prayers.unprayedRequests(newPrayer.user_id),
+          queryKeys.prayers.unprayedRequests(newPrayer.user_id ?? 'local'),
           context.previousUnprayedRequests
         );
       }
@@ -249,13 +249,13 @@ export const useCreatePrayer = () => {
       // Cache is automatically handled by React Query
 
       // Update prayer streak
-      if (variables.user_id) {
+      if (variables.user_id ?? 'local') {
         try {
-          await streakTrackingService.updateStreak(variables.user_id, 'prayer');
+          await streakTrackingService.updateStreak(variables.user_id ?? 'local', 'prayer');
 
           // Invalidate streak tracker to refresh UI
           queryClient.invalidateQueries({
-            queryKey: queryKeys.dashboard.streaks(variables.user_id),
+            queryKey: queryKeys.dashboard.streaks(variables.user_id ?? 'local'),
           });
         } catch (error) {
           Logger.warn('Failed to update prayer streak', {
@@ -268,28 +268,28 @@ export const useCreatePrayer = () => {
     onSettled: (data, error, variables) => {
       // Always refetch after error or success
       queryClient.invalidateQueries({
-        queryKey: queryKeys.prayers.entries(variables.user_id, variables.selected_date),
+        queryKey: queryKeys.prayers.entries(variables.user_id ?? 'local', variables.selected_date),
       });
 
       // Invalidate specific prayer type queries
       if (variables.prayer_type === 'people') {
         queryClient.invalidateQueries({
-          queryKey: queryKeys.prayers.people(variables.user_id, variables.selected_date),
+          queryKey: queryKeys.prayers.people(variables.user_id ?? 'local', variables.selected_date),
         });
         // Ensure dashboard unprayed requests list is refreshed when people prayers change
         queryClient.invalidateQueries({
-          queryKey: queryKeys.prayers.unprayedRequests(variables.user_id),
+          queryKey: queryKeys.prayers.unprayedRequests(variables.user_id ?? 'local'),
         });
       } else if (variables.prayer_type === 'guided_playbook') {
         queryClient.invalidateQueries({
-          queryKey: queryKeys.prayers.guided(variables.user_id, variables.selected_date),
+          queryKey: queryKeys.prayers.guided(variables.user_id ?? 'local', variables.selected_date),
         });
         queryClient.invalidateQueries({
-          queryKey: queryKeys.prayers.allGuided(variables.user_id),
+          queryKey: queryKeys.prayers.allGuided(variables.user_id ?? 'local'),
         });
       } else if (variables.prayer_type === 'journal') {
         queryClient.invalidateQueries({
-          queryKey: queryKeys.prayers.acts(variables.user_id, variables.selected_date),
+          queryKey: queryKeys.prayers.acts(variables.user_id ?? 'local', variables.selected_date),
         });
       }
     },

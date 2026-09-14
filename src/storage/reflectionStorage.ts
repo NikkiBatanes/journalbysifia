@@ -4,6 +4,193 @@ import { safeJsonParse } from '../utils/safeJsonParse';
 import { supabase } from '../services/supabaseClient';
 import { checkSession } from './journalStorage';
 
+// ===================================================================
+// CANONICAL LOCAL-FIRST REFLECTION REPOSITORY
+// -------------------------------------------------------------------
+// Auth-independent, offline-first storage for reflection-style content
+// (sermon notes, free reflections, guided reflections, etc.).
+// Cloud sync is a separate concern; this module does not call Supabase.
+// Legacy cloud-coupled helpers remain below for backward compatibility.
+// ===================================================================
+
+export interface LocalReflectionEntry {
+  id: string;
+  server_id?: string | null;
+  title?: string;
+  content: string;           // main written content as JSON string
+  type: string;              // 'sermon', 'free', 'guided', 'playbook', etc.
+  source?: string;           // e.g. 'sermon_notes'
+  tags?: string[];
+  selected_date: string;     // YYYY-MM-DD
+  created_at: string;
+  updated_at: string;
+  deleted?: boolean;
+  sync_status?: 'local' | 'pending' | 'synced' | 'error';
+  version?: number;
+  metadata?: Record<string, any>;
+  linked_account_id?: string | null;
+}
+
+const generateLocalUUID = (): string => {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.floor(Math.random() * 16);
+    const v = c === 'x' ? r : (r % 4) + 8;
+    return v.toString(16);
+  });
+};
+
+const LOCAL_REFLECTION_PREFIX = 'reflection_local';
+const LOCAL_REFLECTION_INDEX_PREFIX = 'reflection_local_index';
+
+const formatLocalDate = (date: string | Date): string => {
+  if (typeof date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    return date;
+  }
+  if (typeof date === 'string' && date.includes('T')) {
+    return date.split('T')[0];
+  }
+  if (date instanceof Date && !isNaN(date.getTime())) {
+    return toLocalDateString(date);
+  }
+  return toLocalDateString(new Date(date));
+};
+
+const getLocalReflectionKey = (type: string, date: string, id: string): string =>
+  `${LOCAL_REFLECTION_PREFIX}:${type}:${date}:${id}`;
+
+const getReflectionIndexKey = (type: string, date: string): string =>
+  `${LOCAL_REFLECTION_INDEX_PREFIX}:${type}:${date}`;
+
+const readReflectionIndex = async (type: string, date: string): Promise<string[]> => {
+  const raw = await AsyncStorage.getItem(getReflectionIndexKey(type, date));
+  if (!raw) {return [];}
+  return safeJsonParse<string[]>(raw, { fallback: [] }) ?? [];
+};
+
+const writeReflectionIndex = async (type: string, date: string, ids: string[]): Promise<void> => {
+  await AsyncStorage.setItem(getReflectionIndexKey(type, date), JSON.stringify(ids));
+};
+
+export const createLocalReflection = async (
+  data: Omit<LocalReflectionEntry, 'id' | 'created_at' | 'updated_at' | 'version' | 'sync_status'>
+): Promise<LocalReflectionEntry> => {
+  const now = new Date().toISOString();
+  const selectedDate = formatLocalDate(data.selected_date);
+  const id = generateLocalUUID();
+  const entry: LocalReflectionEntry = {
+    ...data,
+    id,
+    selected_date: selectedDate,
+    server_id: data.server_id ?? null,
+    created_at: now,
+    updated_at: now,
+    version: 1,
+    sync_status: 'local',
+    deleted: false,
+  };
+
+  const key = getLocalReflectionKey(data.type, selectedDate, id);
+  await AsyncStorage.setItem(key, JSON.stringify(entry));
+
+  const index = await readReflectionIndex(data.type, selectedDate);
+  if (!index.includes(id)) {
+    index.push(id);
+    await writeReflectionIndex(data.type, selectedDate, index);
+  }
+
+  return entry;
+};
+
+export const getLocalReflection = async (
+  id: string,
+  type: string,
+  date: string | Date
+): Promise<LocalReflectionEntry | null> => {
+  const selectedDate = formatLocalDate(date);
+  const raw = await AsyncStorage.getItem(getLocalReflectionKey(type, selectedDate, id));
+  if (!raw) {return null;}
+  const parsed = safeJsonParse<LocalReflectionEntry>(raw, { fallback: null });
+  if (parsed && parsed.deleted) {return null;}
+  return parsed;
+};
+
+export const getLocalReflections = async (
+  type: string,
+  date: string | Date
+): Promise<LocalReflectionEntry[]> => {
+  const selectedDate = formatLocalDate(date);
+  const index = await readReflectionIndex(type, selectedDate);
+  const entries: LocalReflectionEntry[] = [];
+  for (const id of index) {
+    const raw = await AsyncStorage.getItem(getLocalReflectionKey(type, selectedDate, id));
+    if (!raw) {continue;}
+    const parsed = safeJsonParse<LocalReflectionEntry>(raw, { fallback: null });
+    if (parsed && !parsed.deleted) {
+      entries.push(parsed);
+    }
+  }
+  return entries.sort((a, b) => a.created_at.localeCompare(b.created_at));
+};
+
+export const updateLocalReflection = async (
+  entry: LocalReflectionEntry
+): Promise<LocalReflectionEntry> => {
+  const now = new Date().toISOString();
+  const selectedDate = formatLocalDate(entry.selected_date);
+  const updated: LocalReflectionEntry = {
+    ...entry,
+    selected_date: selectedDate,
+    updated_at: now,
+    version: (entry.version || 1) + 1,
+    sync_status: 'pending',
+  };
+  const key = getLocalReflectionKey(updated.type, selectedDate, updated.id);
+  await AsyncStorage.setItem(key, JSON.stringify(updated));
+  return updated;
+};
+
+export const deleteLocalReflection = async (
+  id: string,
+  type: string,
+  date: string | Date
+): Promise<void> => {
+  const selectedDate = formatLocalDate(date);
+  const raw = await AsyncStorage.getItem(getLocalReflectionKey(type, selectedDate, id));
+  if (!raw) {return;}
+  const parsed = safeJsonParse<LocalReflectionEntry>(raw, { fallback: null });
+  if (!parsed) {return;}
+
+  const tombstone: LocalReflectionEntry = {
+    ...parsed,
+    updated_at: new Date().toISOString(),
+    deleted: true,
+    sync_status: 'pending',
+  };
+  await AsyncStorage.setItem(getLocalReflectionKey(type, selectedDate, id), JSON.stringify(tombstone));
+
+  const index = await readReflectionIndex(type, selectedDate);
+  const nextIndex = index.filter(itemId => itemId !== id);
+  await writeReflectionIndex(type, selectedDate, nextIndex);
+};
+
+export const getAllLocalReflectionsByType = async (
+  type: string
+): Promise<LocalReflectionEntry[]> => {
+  const prefix = `${LOCAL_REFLECTION_PREFIX}:${type}:`;
+  const allKeys = await AsyncStorage.getAllKeys();
+  const keys = allKeys.filter(key => key.startsWith(prefix));
+  const entries: LocalReflectionEntry[] = [];
+  for (const key of keys) {
+    const raw = await AsyncStorage.getItem(key);
+    if (!raw) {continue;}
+    const parsed = safeJsonParse<LocalReflectionEntry>(raw, { fallback: null });
+    if (parsed && !parsed.deleted) {
+      entries.push(parsed);
+    }
+  }
+  return entries.sort((a, b) => a.created_at.localeCompare(b.created_at));
+};
+
 // --- Types ---
 export interface ReflectionLogEntry {
   id: string;

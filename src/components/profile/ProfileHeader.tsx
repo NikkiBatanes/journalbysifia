@@ -195,7 +195,7 @@ const ProfileHeader: React.FC<Props> = ({ user, onEditPress, onEditAvatar: _onEd
             accessibilityLabel="Edit profile"
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            <LuPencil size={14} color={Colors.alertCoral} />
+            <LuPencil size={14} color={Colors.sage} />
           </TouchableOpacity>
         </TouchableOpacity>
 
@@ -224,7 +224,7 @@ const ProfileHeader: React.FC<Props> = ({ user, onEditPress, onEditAvatar: _onEd
 
 const styles = StyleSheet.create({
   headerGradient: {
-    backgroundColor: Colors.hopeWhite,
+    backgroundColor: Colors.lightBackground,
     overflow: 'visible',
     paddingTop: 0,
     paddingBottom: 30,
@@ -247,7 +247,7 @@ const styles = StyleSheet.create({
   initialAvatar: {
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: Colors.alertCoral,
+    backgroundColor: Colors.sage,
   },
   initialLetter: {
     fontSize: 24,
@@ -279,7 +279,7 @@ const styles = StyleSheet.create({
   userName: {
     fontSize: 20,
     fontWeight: '700',
-    color: Colors.sage,
+    color: Colors.text,
     marginBottom: 4,
   },
   planPill: {

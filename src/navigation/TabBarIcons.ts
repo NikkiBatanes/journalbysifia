@@ -25,8 +25,8 @@ export const TabBarIcons = {
     focused: 'person',
   },
   Journal: {
-    name: 'calendar-outline',
-    focused: 'calendar',
+    name: 'time-outline',
+    focused: 'time',
   },
   Moments: {
     name: 'time-outline',

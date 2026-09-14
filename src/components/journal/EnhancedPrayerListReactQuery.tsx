@@ -310,7 +310,7 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
           person_name: prayerEntry.person_name || '',
           content: prayerEntry.content || '',
           id: prayerEntry.id,
-          user_id: prayerEntry.user_id,
+          user_id: prayerEntry.user_id || 'local',
           selected_date: dateStr,
         },
       });

@@ -1,19 +1,32 @@
 // src/services/api/prayerApi.ts
-import { supabase } from '../supabaseClient';
-import { Logger } from '../../utils/ProductionLogger';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { toLocalDateString } from '../../utils/date';
+import { Logger } from '../../utils/ProductionLogger';
+import {
+  createLocalPrayer,
+  getLocalPrayer,
+  getLocalPrayers,
+  getLocalPrayersByType,
+  getLocalPeoplePrayers,
+  updateLocalPrayer,
+  deleteLocalPrayer,
+  LocalPrayerEntry,
+  PrayerType,
+  JournalCategory,
+  PrayerStatus,
+} from '../../storage/prayerStorage';
 
 export interface PrayerApiEntry {
   id: string;
-  user_id: string;
-  prayer_type: 'journal' | 'people' | 'guided_playbook';
-  journal_category?: 'adoration' | 'confession' | 'thanksgiving' | 'supplication' | 'personal_prayer';
+  user_id?: string;
+  prayer_type: PrayerType;
+  journal_category?: JournalCategory | 'personal_prayer';
   content: string;
   metadata?: Record<string, any>;
   selected_date: string;
   created_at: string;
   updated_at: string;
-  status?: 'pending' | 'answered';
+  status?: PrayerStatus;
   answered_date?: string | null;
   person_name?: string;
   is_prayer_request?: boolean;
@@ -23,6 +36,7 @@ export interface PrayerApiEntry {
   day_number?: number;
   day_title?: string;
   total_days?: number;
+  question_number?: number;
   // Legacy compatibility - computed fields
   type?: 'adoration' | 'confession' | 'thanksgiving' | 'supplication' | 'people' | 'freeform';
   is_answered?: boolean;
@@ -30,699 +44,222 @@ export interface PrayerApiEntry {
   is_prayed?: boolean;
 }
 
-/**
- * Robust session retrieval with retry logic
- * Handles race conditions during operation protection periods
- */
-async function getSessionWithRetry(retries = 3): Promise<any> {
-  for (let i = 0; i < retries; i++) {
+const toApiFormat = (prayer: LocalPrayerEntry): PrayerApiEntry => ({
+  ...prayer,
+  user_id: prayer.linked_account_id || prayer.user_id || '',
+  type:
+    prayer.journal_category ||
+    (prayer.prayer_type === 'people' ? 'people' : 'freeform') as any,
+  is_answered: prayer.status === 'answered',
+  is_request: prayer.is_prayer_request,
+  is_prayed: prayer.prayed,
+});
+
+const toLocalFormat = (
+  prayer: Omit<PrayerApiEntry, 'id' | 'created_at' | 'updated_at'> & { id?: string }
+): any => {
+  const result: any = { ...prayer };
+  if (result.user_id !== undefined) {delete result.user_id;}
+  if (result.type !== undefined) {delete result.type;}
+  if (result.is_answered !== undefined) {delete result.is_answered;}
+  if (result.is_request !== undefined) {delete result.is_request;}
+  if (result.is_prayed !== undefined) {delete result.is_prayed;}
+  if (prayer.type && prayer.type !== 'people' && prayer.type !== 'freeform') {
+    result.journal_category = prayer.type as JournalCategory;
+  }
+  if (prayer.is_answered !== undefined && !prayer.status) {
+    result.status = prayer.is_answered ? 'answered' : 'pending';
+  }
+  if (prayer.is_request !== undefined && prayer.is_prayer_request === undefined) {
+    result.is_prayer_request = prayer.is_request;
+  }
+  if (prayer.is_prayed !== undefined && prayer.prayed === undefined) {
+    result.prayed = prayer.is_prayed;
+  }
+  return result;
+};
+
+const listAllPrayerIds = async (): Promise<string[]> => {
+  const keys = await AsyncStorage.getAllKeys();
+  return keys.filter(key => key.startsWith('prayer_local_index:'));
+};
+
+const listAllPrayerEntries = async (): Promise<LocalPrayerEntry[]> => {
+  const indexKeys = await listAllPrayerIds();
+  if (indexKeys.length === 0) {return [];}
+  const indexValues = await AsyncStorage.multiGet(indexKeys);
+  const ids: { date: string; id: string }[] = [];
+  for (const [key, raw] of indexValues) {
+    if (!raw) {continue;}
+    const date = key.replace('prayer_local_index:', '');
+    const list = JSON.parse(raw) as string[];
+    for (const id of list) {
+      ids.push({ date, id });
+    }
+  }
+  const dataKeys = ids.map(({ date, id }) => `prayer_local:${date}:${id}`);
+  const dataValues = dataKeys.length > 0 ? await AsyncStorage.multiGet(dataKeys) : [];
+  const entries: LocalPrayerEntry[] = [];
+  for (const [, raw] of dataValues) {
+    if (!raw) {continue;}
     try {
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-
-      if (sessionError) {
-        Logger.warn(`Prayer API session retrieval error (attempt ${i + 1}/${retries}):`, {
-      component: 'prayerApi',
-      error: sessionError,
-    });
-        if (i === retries - 1) {throw sessionError;}
-        await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1))); // Exponential backoff
-        continue;
+      const parsed = JSON.parse(raw) as LocalPrayerEntry;
+      if (!parsed.deleted) {
+        entries.push(parsed);
       }
-
-      if (!session) {
-        Logger.warn(`Prayer API no session found (attempt ${i + 1}/${retries})`, {
-      component: 'prayerApi',
-    });
-        if (i === retries - 1) {
-          // Final attempt - try to refresh session
-          try {
-            const { data: { session: refreshedSession } } = await supabase.auth.refreshSession();
-            if (refreshedSession) {
-
-              return refreshedSession;
-            }
-          } catch (refreshError) {
-            Logger.error('❌ Prayer API session refresh failed', refreshError as Error, {
-      component: 'prayerApi',
-      action: 'error',
-    });
-          }
-          throw new Error('No active session. Please login.');
-        }
-        await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
-        continue;
-      }
-
-      return session;
-    } catch (error) {
-      Logger.error(`Prayer API session retrieval failed (attempt ${i + 1}/${retries}):`, error as Error, {
-      component: 'prayerApi',
-      action: 'error',
-    });
-      if (i === retries - 1) {throw error;}
-      await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
+    } catch {
+      // ignore invalid entries
     }
   }
-
-  throw new Error('No active session. Please login.');
-}
-
-// Helper function to ensure Supabase is authenticated with robust session handling
-const ensureAuthenticated = async () => {
-  try {
-    const session = await getSessionWithRetry();
-
-    if (!session?.access_token) {
-      throw new Error('Invalid authentication token. Please login again.');
-    }
-
-    return session;
-  } catch (error) {
-    Logger.error('Error setting Supabase session', error as Error, {
-      component: 'prayerApi',
-      action: 'error',
-    });
-  }
+  return entries;
 };
 
 export class PrayerApi {
-  private static async suppressAnsweredCheckNotifications(
-    prayerId: string,
-    userId?: string | null
-  ): Promise<void> {
-    const nowIso = new Date().toISOString();
-    const deepLink = `sifia://journal/prayer?id=${prayerId}`;
-    const logUserId = userId ?? undefined;
-
-    try {
-      let queueQuery = supabase
-        .from('notification_queue')
-        .update({ status: 'cancelled', updated_at: nowIso })
-        .eq('type', 'prayer_answered_check')
-        .in('status', ['pending', 'sent', 'processing'])
-        .filter('data->>source_id', 'eq', prayerId)
-        .select('id');
-
-      if (userId) {
-        queueQuery = queueQuery.eq('user_id', userId);
-      }
-
-      const { data: cancelledQueueRows, error: queueError } = await queueQuery;
-
-      if (queueError) {
-        Logger.warn('Failed to suppress prayer_answered_check queue items', {
-          component: 'prayerApi',
-          prayerId,
-          userId: logUserId,
-          error: queueError,
-        });
-      }
-
-      const markHistoryRead = async (field: string, value: string) => {
-        let historyQuery = supabase
-          .from('notifications')
-          .update({ is_read: true })
-          .filter(field, 'eq', value);
-
-        if (userId) {
-          historyQuery = historyQuery.eq('user_id', userId);
-        }
-
-        const { error } = await historyQuery;
-        if (error) {
-          Logger.warn('Failed to suppress prayer_answered_check history item', {
-            component: 'prayerApi',
-            prayerId,
-            userId: logUserId,
-            field,
-            error,
-          });
-        }
-      };
-
-      await Promise.all([
-        markHistoryRead('data->>source_id', prayerId),
-        markHistoryRead('data->>deep_link', deepLink),
-        ...((cancelledQueueRows || []) as Array<{ id: string }>).flatMap(row => [
-          markHistoryRead('data->>notification_id', row.id),
-          markHistoryRead('data->>queue_notification_id', row.id),
-        ]),
-      ]);
-    } catch (error) {
-      Logger.warn('Failed to suppress answered-prayer notifications', {
-        component: 'prayerApi',
-        prayerId,
-        userId: logUserId,
-        error: error as Error,
-      });
-    }
+  static async getPrayers(_userId: string, date: string): Promise<PrayerApiEntry[]> {
+    const prayers = await getLocalPrayers(date);
+    return prayers.map(toApiFormat);
   }
 
-  // Get all prayers for a user and date
-  static async getPrayers(userId: string, date: string): Promise<PrayerApiEntry[]> {
-    const { data, error } = await supabase
-      .from('prayers')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('selected_date', date)
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      Logger.error('Error fetching prayers', error as Error, {
-      component: 'prayerApi',
-      action: 'error',
-    });
-      throw new Error(`Failed to fetch prayers: ${error.message}`);
-    }
-
-    return data || [];
-  }
-
-  /**
-   * Get all unprayed prayer requests for a user (no date restriction)
-   * Criteria: is_prayer_request = true AND prayed != true
-   */
-  static async getUnprayedPrayerRequests(userId: string): Promise<PrayerApiEntry[]> {
-    console.log('[PrayerApi.getUnprayedPrayerRequests] Fetching for user:', userId);
-    const session = await ensureAuthenticated();
-
-    if (userId !== session.user.id) {
-      Logger.warn('Prayer query user_id mismatch, correcting for RLS compliance', {
-        component: 'prayerApi',
-        provided: userId,
-        authenticated: session.user.id,
-      });
-      userId = session.user.id;
-    }
-
-    const { data, error } = await supabase
-      .from('prayers')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('is_prayer_request', true)
-      .or('prayed.is.null,prayed.eq.false')
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      Logger.error('Error fetching unprayed prayer requests', error as Error, {
-        component: 'prayerApi',
-        action: 'error',
-    });
-      throw new Error(`Failed to fetch unprayed prayer requests: ${error.message}`);
-    }
-
-    console.log('[PrayerApi.getUnprayedPrayerRequests] Found', data?.length || 0, 'unprayed requests');
-    return (data || []).map((p) => ({
-      ...p,
-      type: p.journal_category || (p.prayer_type === 'people' ? 'people' : 'freeform'),
-      is_answered: p.status === 'answered',
-      is_request: p.is_prayer_request,
-      is_prayed: p.prayed,
-    })) as PrayerApiEntry[];
-  }
-
-  // Get prayers by type
-  static async getPrayersByType(
-    userId: string,
-    date: string,
-    type: PrayerApiEntry['type']
-  ): Promise<PrayerApiEntry[]> {
-    const session = await ensureAuthenticated();
-
-    // Ensure userId matches authenticated user for RLS compliance
-    if (userId !== session.user.id) {
-      Logger.warn('Prayer query user_id mismatch, correcting for RLS compliance', {
-        component: 'prayerApi',
-        provided: userId,
-        authenticated: session.user.id,
-      });
-      userId = session.user.id;
-    }
-
-    const { data, error } = await supabase
-      .from('prayers')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('selected_date', date)
-      .eq('prayer_type', type)
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      Logger.error('Error fetching prayers by type', error as Error, {
-      component: 'prayerApi',
-      action: 'error',
-    });
-      throw new Error(`Failed to fetch prayers: ${error.message}`);
-    }
-
-    return data || [];
-  }
-
-  // Get ACTS prayers (Adoration, Confession, Thanksgiving, Supplication)
-  static async getACTSPrayers(userId: string, date: string): Promise<{
+  static async getACTSPrayers(_userId: string, date: string): Promise<{
     adoration: PrayerApiEntry[];
     confession: PrayerApiEntry[];
     thanksgiving: PrayerApiEntry[];
     supplication: PrayerApiEntry[];
     freeform: PrayerApiEntry[];
   }> {
-    // Ensure Supabase is authenticated
-    await ensureAuthenticated();
-
-    const { data, error } = await supabase
-      .from('prayers')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('selected_date', date)
-      .eq('prayer_type', 'journal')
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      Logger.error('Error fetching ACTS prayers', error as Error, {
-      component: 'prayerApi',
-      action: 'error',
-    });
-      throw new Error(`Failed to fetch ACTS prayers: ${error.message}`);
-    }
-
-    const prayers = (data || []).map(prayer => ({
-      ...prayer,
-      // Add legacy compatibility fields - check if it's a freeform prayer by looking at content pattern or use a custom field
-      type: prayer.journal_category || (prayer.prayer_type === 'people' ? 'people' : 'freeform'),
-      is_answered: prayer.status === 'answered',
-      is_request: prayer.is_prayer_request,
-      is_prayed: prayer.prayed,
-    })) as PrayerApiEntry[];
-
+    const prayers = await getLocalPrayersByType(date, 'journal');
+    const mapped = prayers.map(toApiFormat);
     return {
-      adoration: prayers.filter(p => p.journal_category === 'adoration'),
-      confession: prayers.filter(p => p.journal_category === 'confession'),
-      thanksgiving: prayers.filter(p => p.journal_category === 'thanksgiving'),
-      supplication: prayers.filter(p => p.journal_category === 'supplication'),
-      freeform: prayers.filter(p => p.journal_category === 'personal_prayer'),
+      adoration: mapped.filter(p => p.journal_category === 'adoration'),
+      confession: mapped.filter(p => p.journal_category === 'confession'),
+      thanksgiving: mapped.filter(p => p.journal_category === 'thanksgiving'),
+      supplication: mapped.filter(p => p.journal_category === 'supplication'),
+      freeform: mapped.filter(p => p.journal_category === 'personal_prayer'),
     };
   }
 
-  // Get people prayers
-  static async getPeoplePrayers(userId: string, date: string): Promise<PrayerApiEntry[]> {
-    const session = await ensureAuthenticated();
-
-    // Ensure userId matches authenticated user for RLS compliance
-    if (userId !== session.user.id) {
-      Logger.warn('Prayer query user_id mismatch, correcting for RLS compliance', {
-        component: 'prayerApi',
-        provided: userId,
-        authenticated: session.user.id,
-      });
-      userId = session.user.id;
-    }
-
-    const { data, error } = await supabase
-      .from('prayers')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('selected_date', date)
-      .eq('prayer_type', 'people')
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      Logger.error('Error fetching people prayers', error as Error, {
-      component: 'prayerApi',
-      action: 'error',
-    });
-      throw new Error(`Failed to fetch people prayers: ${error.message}`);
-    }
-
-    return data || [];
+  static async getPeoplePrayers(_userId: string, date: string): Promise<PrayerApiEntry[]> {
+    const prayers = await getLocalPeoplePrayers(date);
+    return prayers.map(toApiFormat);
   }
 
-  // Get all people prayers for a user (no date restriction)
-  static async getAllPeoplePrayers(userId: string): Promise<PrayerApiEntry[]> {
-    const session = await ensureAuthenticated();
-
-    if (userId !== session.user.id) {
-      Logger.warn('Prayer query user_id mismatch, correcting for RLS compliance', {
-        component: 'prayerApi',
-        provided: userId,
-        authenticated: session.user.id,
-      });
-      userId = session.user.id;
-    }
-
-    const { data, error } = await supabase
-      .from('prayers')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('prayer_type', 'people')
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      Logger.error('Error fetching all people prayers', error as Error, {
-        component: 'prayerApi',
-        action: 'error',
-      });
-      throw new Error(`Failed to fetch people prayers: ${error.message}`);
-    }
-
-    return (data || []).map((p) => ({
-      ...p,
-      type: p.journal_category || (p.prayer_type === 'people' ? 'people' : 'freeform'),
-      is_answered: p.status === 'answered',
-      is_request: p.is_prayer_request,
-      is_prayed: p.prayed,
-    })) as PrayerApiEntry[];
+  static async getAllPeoplePrayers(_userId: string): Promise<PrayerApiEntry[]> {
+    const all = await listAllPrayerEntries();
+    return all.filter(p => p.prayer_type === 'people').map(toApiFormat);
   }
 
-  // Create a new prayer
+  static async getUnprayedPrayerRequests(_userId: string): Promise<PrayerApiEntry[]> {
+    const all = await listAllPrayerEntries();
+    return all
+      .filter(p => p.prayer_type === 'people' && p.is_prayer_request && !p.prayed)
+      .map(toApiFormat);
+  }
+
+  static async getPrayersByType(
+    _userId: string,
+    date: string,
+    type: PrayerApiEntry['type']
+  ): Promise<PrayerApiEntry[]> {
+    if (type === 'people') {
+      const prayers = await getLocalPeoplePrayers(date);
+      return prayers.map(toApiFormat);
+    }
+    if (['adoration', 'confession', 'thanksgiving', 'supplication'].includes(type || '')) {
+      const prayers = await getLocalPrayers(date);
+      return prayers
+        .filter(p => p.journal_category === (type as JournalCategory))
+        .map(toApiFormat);
+    }
+    const prayers = await getLocalPrayers(date);
+    return prayers.map(toApiFormat);
+  }
+
   static async createPrayer(
     prayer: Omit<PrayerApiEntry, 'id' | 'created_at' | 'updated_at'>
   ): Promise<PrayerApiEntry> {
-    // Ensure Supabase is authenticated with robust session handling
-    const session = await ensureAuthenticated();
-
-    // Ensure user_id matches the authenticated user for RLS compliance
-    if (prayer.user_id !== session.user.id) {
-      Logger.warn('Prayer user_id mismatch, correcting for RLS compliance', {
-        component: 'prayerApi',
-        provided: prayer.user_id,
-        authenticated: session.user.id,
-      });
-      prayer.user_id = session.user.id;
-    }
-
-    const now = new Date().toISOString();
-
-    // Transform legacy format to database format
-    const dbPrayer: any = {
-      user_id: prayer.user_id,
-      content: prayer.content,
-      metadata: prayer.metadata ?? null,
-      selected_date: typeof prayer.selected_date === 'string' ? prayer.selected_date : toLocalDateString(prayer.selected_date),
-      prayer_type: prayer.prayer_type || (prayer.type === 'people' ? 'people' : 'journal'),
-      journal_category: prayer.journal_category || (
-        ['adoration', 'confession', 'thanksgiving', 'supplication'].includes(prayer.type || '')
-          ? prayer.type as 'adoration' | 'confession' | 'thanksgiving' | 'supplication'
-          : null
-      ),
-      status: prayer.status || (prayer.is_answered ? 'answered' : 'pending'),
-      person_name: prayer.person_name || null,
-      is_prayer_request: prayer.is_prayer_request || prayer.is_request || null,
-      prayed: prayer.prayed || prayer.is_prayed || null,
-      day_number: prayer.day_number || null,
-      day_title: prayer.day_title || null,
-      total_days: prayer.total_days || null,
-      created_at: now,
-      updated_at: now,
-    };
-
-    // Add optional fields if they exist in the prayer object
-    if (prayer.requested_by !== undefined) {
-      dbPrayer.requested_by = prayer.requested_by;
-    }
-    if (prayer.notes !== undefined) {
-      dbPrayer.notes = prayer.notes;
-    }
-
-    // If this is a guided playbook prayer, ensure idempotency: return an existing
-    // entry for the same user/date identifiers instead of inserting a duplicate.
-    if (
-      dbPrayer.prayer_type === 'guided_playbook' &&
-      dbPrayer.user_id &&
-      dbPrayer.selected_date &&
-      (dbPrayer.day_number !== null || dbPrayer.day_title)
-    ) {
-      const { data: existing, error: lookupError } = await supabase
-        .from('prayers')
-        .select('*')
-        .eq('user_id', dbPrayer.user_id)
-        .eq('prayer_type', 'guided_playbook')
-        .eq('selected_date', dbPrayer.selected_date)
-        .eq('day_number', dbPrayer.day_number)
-        .limit(1)
-        .maybeSingle();
-
-      if (lookupError) {
-        Logger.warn('[PrayerApi.createPrayer] Guided prayer lookup warning', {
-      component: 'prayerApi',
-      error: lookupError,
-    });
-      }
-
-      if (existing) {
-        // Return existing in API format
-        return {
-          ...existing,
-          type: existing.journal_category || (existing.prayer_type === 'people' ? 'people' : 'freeform'),
-          is_answered: existing.status === 'answered',
-          is_request: existing.is_prayer_request,
-          is_prayed: existing.prayed,
-        } as PrayerApiEntry;
-      }
-    }
-
-    // Use INSERT to avoid dependency on unique index being applied. Pre-lookup above provides idempotency.
-    const { data, error } = await supabase
-      .from('prayers')
-      .insert(dbPrayer)
-      .select()
-      .single();
-
-    if (error) {
-      // If conflict arises (e.g., partial unique index), fetch the existing row and return it
-      // Supabase/Postgrest error code for unique violation is typically '23505'
-      // Fallback: try to read existing guided prayer row and return
-      if (
-        (error as any)?.code === '23505' &&
-        dbPrayer.prayer_type === 'guided_playbook'
-      ) {
-        const { data: existingAfterConflict } = await supabase
-          .from('prayers')
-          .select('*')
-          .eq('user_id', dbPrayer.user_id)
-          .eq('prayer_type', 'guided_playbook')
-          .eq('selected_date', dbPrayer.selected_date)
-          .eq('day_number', dbPrayer.day_number)
-          .limit(1)
-          .maybeSingle();
-        if (existingAfterConflict) {
-          return {
-            ...existingAfterConflict,
-            type: existingAfterConflict.journal_category || (existingAfterConflict.prayer_type === 'people' ? 'people' : 'freeform'),
-            is_answered: existingAfterConflict.status === 'answered',
-            is_request: existingAfterConflict.is_prayer_request,
-            is_prayed: existingAfterConflict.prayed,
-          } as PrayerApiEntry;
-        }
-      }
-      Logger.error('Error creating prayer', error as Error, {
-      component: 'prayerApi',
-      action: 'error',
-    });
-      throw new Error(`Failed to create prayer: ${error.message}`);
-    }
-
-    // Transform back to API format
-    return {
-      ...data,
-      type: data.journal_category || (data.prayer_type === 'people' ? 'people' : 'freeform'),
-      is_answered: data.status === 'answered',
-      is_request: data.is_prayer_request,
-      is_prayed: data.prayed,
-    } as PrayerApiEntry;
+    const localData = toLocalFormat(prayer);
+    const newPrayer = await createLocalPrayer(localData);
+    return toApiFormat(newPrayer);
   }
 
-  // Update a prayer
   static async updatePrayer(
     id: string,
     updates: Partial<Omit<PrayerApiEntry, 'id' | 'user_id' | 'created_at'>>
   ): Promise<PrayerApiEntry> {
-    await ensureAuthenticated();
-
-    // RLS will automatically ensure user can only update their own prayers
-
-    // Transform API format to database format
-    const dbUpdates: any = {
-      updated_at: new Date().toISOString(),
-    };
-
-    // Map API fields to database fields
-    if (updates.content !== undefined) {dbUpdates.content = updates.content;}
-    if (updates.metadata !== undefined) {dbUpdates.metadata = updates.metadata;}
-    if (updates.selected_date !== undefined) {dbUpdates.selected_date = updates.selected_date;}
-    if (updates.status !== undefined) {dbUpdates.status = updates.status;}
-    if (updates.answered_date !== undefined) {dbUpdates.answered_date = updates.answered_date;}
-    if (updates.person_name !== undefined) {dbUpdates.person_name = updates.person_name;}
-    if (updates.is_prayer_request !== undefined) {dbUpdates.is_prayer_request = updates.is_prayer_request;}
-    if (updates.prayed !== undefined) {dbUpdates.prayed = updates.prayed;}
-    if (updates.day_number !== undefined) {dbUpdates.day_number = updates.day_number;}
-    if (updates.day_title !== undefined) {dbUpdates.day_title = updates.day_title;}
-    if (updates.total_days !== undefined) {dbUpdates.total_days = updates.total_days;}
-    if (updates.journal_category !== undefined) {dbUpdates.journal_category = updates.journal_category;}
-    if (updates.prayer_type !== undefined) {dbUpdates.prayer_type = updates.prayer_type;}
-
-    const { data, error } = await supabase
-      .from('prayers')
-      .update(dbUpdates)
-      .eq('id', id)
-      .select()
-      .single();
-
-    if (error) {
-      Logger.error('Error updating prayer', error as Error, {
-      component: 'prayerApi',
-      action: 'error',
-    });
-      throw new Error(`Failed to update prayer: ${error.message}`);
+    const all = await listAllPrayerEntries();
+    const existing = all.find(p => p.id === id);
+    if (!existing) {
+      throw new Error('Prayer not found');
     }
-
-    if (dbUpdates.status === 'answered') {
-      await this.suppressAnsweredCheckNotifications(id, data.user_id);
-    }
-
-    // Transform back to API format
-    return {
-      ...data,
-      type: data.journal_category || (data.prayer_type === 'people' ? 'people' : 'freeform'),
-      is_answered: data.status === 'answered',
-      is_request: data.is_prayer_request,
-      is_prayed: data.prayed,
-    } as PrayerApiEntry;
+    const localUpdates = toLocalFormat({ ...updates, id } as any);
+    const updated = await updateLocalPrayer({ ...existing, ...localUpdates });
+    return toApiFormat(updated);
   }
 
-  // Delete a prayer
   static async deletePrayer(id: string): Promise<void> {
-    console.log('[PrayerApi.deletePrayer] Deleting prayer with id:', id);
-    const session = await ensureAuthenticated();
-    const userId = session?.user?.id;
-
-    let deleteQuery = supabase
-      .from('prayers')
-      .delete()
-      .eq('id', id);
-
-    if (userId) {
-      deleteQuery = deleteQuery.eq('user_id', userId);
+    const all = await listAllPrayerEntries();
+    const existing = all.find(p => p.id === id);
+    if (!existing) {
+      throw new Error('Prayer not found');
     }
-
-    const { error } = await deleteQuery;
-
-    if (error) {
-      console.error('[PrayerApi.deletePrayer] Error deleting prayer:', error);
-      Logger.error('Error deleting prayer', error as Error, {
-      component: 'prayerApi',
-      action: 'error',
-    });
-      throw new Error(`Failed to delete prayer: ${error.message}`);
-    }
-
-    console.log('[PrayerApi.deletePrayer] Successfully deleted prayer from database');
-    // Cancel queue rows and hide history rows tied to this prayer so deleted
-    // prayers cannot keep surfacing in notification center.
-    await this.suppressAnsweredCheckNotifications(id, userId);
+    await deleteLocalPrayer(id, existing.selected_date);
   }
 
-  // Mark supplication as answered
-  static async markSupplicationAnswered(id: string, isAnswered: boolean): Promise<PrayerApiEntry> {
-    const updates: Partial<PrayerApiEntry> = {
+  static async searchPrayers(_userId: string, searchTerm: string, limit: number = 20): Promise<PrayerApiEntry[]> {
+    const all = await listAllPrayerEntries();
+    const lowerTerm = searchTerm.toLowerCase();
+    return all
+      .filter(
+        p =>
+          (p.content && p.content.toLowerCase().includes(lowerTerm)) ||
+          (p.title && p.title.toLowerCase().includes(lowerTerm)) ||
+          (p.person_name && p.person_name.toLowerCase().includes(lowerTerm)) ||
+          (p.notes && p.notes.toLowerCase().includes(lowerTerm))
+      )
+      .slice(0, limit)
+      .map(toApiFormat);
+  }
+
+  static async markSupplicationAnswered(
+    id: string,
+    isAnswered: boolean
+  ): Promise<PrayerApiEntry> {
+    const all = await listAllPrayerEntries();
+    const existing = all.find(p => p.id === id);
+    if (!existing) {throw new Error('Prayer not found');}
+    const updated = await updateLocalPrayer({
+      ...existing,
       status: isAnswered ? 'answered' : 'pending',
-    };
-
-    // Only update the answered_date when marking as answered
-    if (isAnswered) {
-      updates.answered_date = new Date().toISOString();
-    } else {
-      // When marking as pending again, we could clear the answered_date
-      // But this is optional depending on your requirements
-      updates.answered_date = null;
-    }
-
-    return this.updatePrayer(id, updates);
+      answered_date: isAnswered ? new Date().toISOString() : undefined,
+    });
+    return toApiFormat(updated);
   }
 
-  // Mark prayer request as prayed
-  static async markPrayerRequestPrayed(id: string, isPrayed: boolean): Promise<PrayerApiEntry> {
-    return this.updatePrayer(id, { prayed: isPrayed });
+  static async markPrayerRequestPrayed(id: string, isPrayed: boolean = true): Promise<PrayerApiEntry> {
+    const all = await listAllPrayerEntries();
+    const existing = all.find(p => p.id === id);
+    if (!existing) {throw new Error('Prayer not found');}
+    const updated = await updateLocalPrayer({
+      ...existing,
+      prayed: true,
+    });
+    return toApiFormat(updated);
   }
 
-  // Get prayers across multiple dates
-  static async getPrayersInDateRange(
-    userId: string,
+  static async getPrayerStats(
+    _userId: string,
     startDate: string,
     endDate: string
-  ): Promise<PrayerApiEntry[]> {
-    const { data, error } = await supabase
-      .from('prayers')
-      .select('*')
-      .eq('user_id', userId)
-      .gte('selected_date', startDate)
-      .lte('selected_date', endDate)
-      .order('selected_date', { ascending: false })
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      Logger.error('Error fetching prayers in date range', error as Error, {
-      component: 'prayerApi',
-      action: 'error',
-    });
-      throw new Error(`Failed to fetch prayers: ${error.message}`);
-    }
-
-    return data || [];
-  }
-
-  // Search prayers by content
-  static async searchPrayers(
-    userId: string,
-    searchTerm: string,
-    limit: number = 20
-  ): Promise<PrayerApiEntry[]> {
-    const { data, error } = await supabase
-      .from('prayers')
-      .select('*')
-      .eq('user_id', userId)
-      .ilike('content', `%${searchTerm}%`)
-      .order('created_at', { ascending: false })
-      .limit(limit);
-
-    if (error) {
-      Logger.error('Error searching prayers', error as Error, {
-      component: 'prayerApi',
-      action: 'error',
-    });
-      throw new Error(`Failed to search prayers: ${error.message}`);
-    }
-
-    return data || [];
-  }
-
-  // Get prayer statistics
-  static async getPrayerStats(userId: string, startDate: string, endDate: string) {
-    const { data, error } = await supabase
-      .from('prayers')
-      .select('type, is_answered, created_at')
-      .eq('user_id', userId)
-      .gte('selected_date', startDate)
-      .lte('selected_date', endDate);
-
-    if (error) {
-      Logger.error('Error fetching prayer stats', error as Error, {
-      component: 'prayerApi',
-      action: 'error',
-    });
-      throw new Error(`Failed to fetch prayer stats: ${error.message}`);
-    }
-
-    const stats = {
-      total: data?.length || 0,
-      adoration: data?.filter(p => p.type === 'adoration').length || 0,
-      confession: data?.filter(p => p.type === 'confession').length || 0,
-      thanksgiving: data?.filter(p => p.type === 'thanksgiving').length || 0,
-      supplication: data?.filter(p => p.type === 'supplication').length || 0,
-      people: data?.filter(p => p.type === 'people').length || 0,
-      guided: data?.filter(p => (p as any).prayer_type === 'guided_playbook').length || 0,
-      answered: data?.filter(p => p.is_answered === true).length || 0,
+  ): Promise<{ total: number; answered: number; requests: number; prayed: number }> {
+    const all = await listAllPrayerEntries();
+    const filtered = all.filter(
+      p => p.selected_date >= startDate && p.selected_date <= endDate
+    );
+    return {
+      total: filtered.length,
+      answered: filtered.filter(p => p.status === 'answered').length,
+      requests: filtered.filter(p => p.is_prayer_request).length,
+      prayed: filtered.filter(p => p.prayed).length,
     };
-
-    return stats;
   }
 }

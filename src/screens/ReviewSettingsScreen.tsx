@@ -1,0 +1,312 @@
+import React, { useCallback, useEffect, useState } from 'react';
+import {
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
+import Ionicons from 'react-native-vector-icons/Ionicons';
+
+import ThemedText from '../components/common/ThemedText';
+import { Colors } from '../theme/colors';
+import { Fonts } from '../theme/fonts';
+import { triggerLightHaptic } from '../utils/haptics';
+import {
+  getReviewSettings,
+  setReviewSettings,
+  type ReviewSettings,
+  DEFAULT_REVIEW_SETTINGS,
+} from '../storage/reviewSettingsStorage';
+import { rescheduleReviewNotifications } from '../services/reviewNotificationService';
+import { type ReviewType } from '../storage/reviewStorage';
+
+const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+const CADENCE_LABELS: Record<ReviewType, string> = {
+  weekly: 'Weekly review',
+  monthly: 'Monthly review',
+  quarterly: 'Quarterly review',
+  year_end: 'Year End review',
+  begin_year: 'Begin Year review',
+};
+
+const CADENCE_ORDER: ReviewType[] = [
+  'weekly',
+  'monthly',
+  'quarterly',
+  'year_end',
+  'begin_year',
+];
+
+const isValidTime = (value: string): boolean => {
+  return /^([01]?\d|2[0-3]):([0-5]\d)$/.test(value);
+};
+
+const ReviewSettingsScreen: React.FC = () => {
+  const navigation = useNavigation<any>();
+  const insets = useSafeAreaInsets();
+  const [settings, setLocalSettings] = useState<ReviewSettings | null>(null);
+
+  useEffect(() => {
+    getReviewSettings().then(setLocalSettings);
+  }, []);
+
+  const update = useCallback((patch: Partial<ReviewSettings>) => {
+    setLocalSettings(prev => (prev ? { ...prev, ...patch } : prev));
+  }, []);
+
+  const toggleCadence = useCallback((type: ReviewType) => {
+    setLocalSettings(prev => {
+      if (!prev) {return prev;}
+      return {
+        ...prev,
+        enabledCadences: {
+          ...prev.enabledCadences,
+          [type]: !prev.enabledCadences[type],
+        },
+      };
+    });
+  }, []);
+
+  const save = useCallback(async () => {
+    if (!settings) {return;}
+    if (!isValidTime(settings.reminderTime)) {
+      // fallback to default if user typed something invalid
+      settings.reminderTime = DEFAULT_REVIEW_SETTINGS.reminderTime;
+    }
+    await setReviewSettings(settings);
+    await rescheduleReviewNotifications();
+    triggerLightHaptic();
+    navigation.goBack();
+  }, [settings, navigation]);
+
+  if (!settings) {
+    return (
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
+        <StatusBar barStyle="dark-content" backgroundColor={Colors.lightBackground} />
+        <View style={styles.loading}>
+          <ThemedText style={styles.sectionTitle}>Loading…</ThemedText>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  return (
+    <SafeAreaView style={styles.safeArea} edges={['top']}>
+      <StatusBar barStyle="dark-content" backgroundColor={Colors.lightBackground} />
+      <View style={styles.header}>
+        <TouchableOpacity
+          style={styles.closeButton}
+          onPress={() => {
+            triggerLightHaptic();
+            navigation.goBack();
+          }}
+          activeOpacity={0.7}>
+          <Ionicons name="close" size={20} color={Colors.text} />
+        </TouchableOpacity>
+        <ThemedText weight="bold" style={styles.title}>
+          Review Settings
+        </ThemedText>
+        <View style={styles.closeButton} />
+      </View>
+
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{
+          paddingTop: 8,
+          paddingBottom: insets.bottom + 28,
+          paddingHorizontal: 24,
+        }}
+        showsVerticalScrollIndicator={false}>
+        <ThemedText weight="semiBold" style={styles.sectionTitle}>
+          My week ends on
+        </ThemedText>
+        <View style={styles.dayRow}>
+          {DAY_NAMES.map((day, index) => {
+            const selected = settings.weekEndsOn === index;
+            return (
+              <TouchableOpacity
+                key={day}
+                style={[
+                  styles.dayButton,
+                  selected && styles.dayButtonActive,
+                ]}
+                onPress={() => update({ weekEndsOn: index })}
+                activeOpacity={0.7}>
+                <ThemedText
+                  style={[
+                    styles.dayText,
+                    selected && styles.dayTextActive,
+                  ]}>
+                  {day}
+                </ThemedText>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+
+        <ThemedText weight="semiBold" style={styles.sectionTitle}>
+          Reminder time
+        </ThemedText>
+        <TextInput
+          style={styles.timeInput}
+          value={settings.reminderTime}
+          onChangeText={t => update({ reminderTime: t })}
+          placeholder="19:00"
+          keyboardType="numbers-and-punctuation"
+          maxLength={5}
+          placeholderTextColor={Colors.textGray}
+        />
+
+        <ThemedText weight="semiBold" style={styles.sectionTitle}>
+          Review cadences
+        </ThemedText>
+        {CADENCE_ORDER.map(type => (
+          <TouchableOpacity
+            key={type}
+            style={styles.toggleRow}
+            onPress={() => toggleCadence(type)}
+            activeOpacity={0.7}>
+            <ThemedText style={styles.toggleLabel}>
+              {CADENCE_LABELS[type]}
+            </ThemedText>
+            <View
+              style={[
+                styles.togglePill,
+                settings.enabledCadences[type] && styles.togglePillActive,
+              ]}>
+              <Ionicons
+                name={settings.enabledCadences[type] ? 'checkmark' : 'close'}
+                size={14}
+                color={
+                  settings.enabledCadences[type] ? Colors.hopeWhite : Colors.textGray
+                }
+              />
+            </View>
+          </TouchableOpacity>
+        ))}
+
+        <TouchableOpacity
+          style={styles.saveButton}
+          onPress={save}
+          activeOpacity={0.7}>
+          <ThemedText weight="bold" style={styles.saveButtonText}>
+            Save
+          </ThemedText>
+        </TouchableOpacity>
+      </ScrollView>
+    </SafeAreaView>
+  );
+};
+
+const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: Colors.lightBackground,
+  },
+  loading: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 18,
+    paddingTop: 12,
+    paddingBottom: 12,
+  },
+  closeButton: {
+    width: 42,
+    height: 42,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  title: {
+    fontFamily: Fonts.lora.bold,
+    fontSize: 24,
+    color: Colors.text,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    color: Colors.text,
+    marginTop: 24,
+    marginBottom: 12,
+  },
+  dayRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  dayButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+    backgroundColor: Colors.cardBackground,
+  },
+  dayButtonActive: {
+    backgroundColor: Colors.sage,
+    borderColor: Colors.sage,
+  },
+  dayText: {
+    fontSize: 14,
+    color: Colors.text,
+  },
+  dayTextActive: {
+    color: Colors.hopeWhite,
+  },
+  timeInput: {
+    fontFamily: Fonts.regular,
+    fontSize: 18,
+    color: Colors.text,
+    backgroundColor: Colors.cardBackground,
+    borderRadius: 16,
+    padding: 16,
+  },
+  toggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: Colors.cardBackground,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 10,
+  },
+  toggleLabel: {
+    fontSize: 15,
+    color: Colors.text,
+  },
+  togglePill: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: Colors.cardBorder,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  togglePillActive: {
+    backgroundColor: Colors.sage,
+  },
+  saveButton: {
+    width: '100%',
+    height: 54,
+    borderRadius: 27,
+    backgroundColor: Colors.sage,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 32,
+  },
+  saveButtonText: {
+    fontSize: 16,
+    color: Colors.hopeWhite,
+  },
+});
+
+export default ReviewSettingsScreen;
