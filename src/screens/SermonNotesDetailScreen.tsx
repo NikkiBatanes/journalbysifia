@@ -103,29 +103,6 @@ const SermonNotesDetailScreen: React.FC = () => {
   }, [reflectionId, selectedDate]);
 
   useEffect(() => {
-    if (mainScriptureRefs.length === 0) {
-      setMainScriptureTexts([]);
-      return;
-    }
-    if (!isOnline) {
-      setMainScriptureTexts([]);
-      return;
-    }
-    let active = true;
-    setMainScriptureTexts([]);
-    Promise.all(
-      mainScriptureRefs.map(reference =>
-        getScripturePassage(reference, bibleVersion)
-          .then(result => (result.text ? formatBibleVerse(result.text) : ''))
-          .catch(() => ''),
-      ),
-    ).then(texts => {
-      if (active) {setMainScriptureTexts(texts);}
-    });
-    return () => { active = false; };
-  }, [bibleVersion, isOnline, mainScriptureRefs]);
-
-  useEffect(() => {
     const listenerId = snapOffset.addListener(({value}) => {
       scrollViewRef.current?.scrollTo({y: value, animated: false});
     });
@@ -175,6 +152,30 @@ const SermonNotesDetailScreen: React.FC = () => {
       .map((r: string) => r.trim())
       .filter(Boolean);
   }, [mainScripture]);
+
+  useEffect(() => {
+    if (mainScriptureRefs.length === 0) {
+      setMainScriptureTexts([]);
+      return;
+    }
+    if (!isOnline) {
+      setMainScriptureTexts([]);
+      return;
+    }
+    let active = true;
+    setMainScriptureTexts([]);
+    Promise.all(
+      mainScriptureRefs.map(reference =>
+        getScripturePassage(reference, bibleVersion)
+          .then(result => (result.text ? formatBibleVerse(result.text) : ''))
+          .catch(() => ''),
+      ),
+    ).then(texts => {
+      if (active) {setMainScriptureTexts(texts);}
+    });
+    return () => { active = false; };
+  }, [bibleVersion, isOnline, mainScriptureRefs]);
+
   const hasAdditionalDetails = useMemo(() => series || church, [series, church]);
 
   const reflectionKinds = useMemo(() => ['question', 'reflection_question', 'remember', 'revisit', 'response'], []);
@@ -481,7 +482,17 @@ const SermonNotesDetailScreen: React.FC = () => {
 
   const handleEdit = () => {
     triggerLightHaptic();
-    navigation.replace('SermonNotes', { reflectionId, selectedDate });
+    const params: any = { reflectionId, selectedDate };
+    if (activeTab === 'notes') {
+      params.initialStage = 2;
+    } else if (activeTab === 'reflection') {
+      params.initialStage = 4;
+      params.initialReflectionStep = 0;
+    } else if (activeTab === 'prayer') {
+      params.initialStage = 4;
+      params.initialReflectionStep = 2;
+    }
+    navigation.replace('SermonNotes', params);
   };
 
   const handleClose = () => {

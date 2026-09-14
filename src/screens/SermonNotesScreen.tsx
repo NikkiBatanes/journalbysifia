@@ -9,11 +9,14 @@ import {
   ActivityIndicator,
   Alert,
   Animated,
+  DeviceEventEmitter,
   Easing,
   Keyboard,
   Linking,
+  PanResponder,
   Platform,
   ScrollView,
+  Share,
   StatusBar,
   StyleSheet,
   TextInput,
@@ -21,27 +24,36 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
+import RNShare from 'react-native-share';
+import { generatePDF } from 'react-native-html-to-pdf';
 import {SafeAreaView, useSafeAreaInsets} from 'react-native-safe-area-context';
 import {useFocusEffect} from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import {BlurView} from '@react-native-community/blur';
 import {Pencil} from 'lucide-react-native';
 
 import {BibleCopyrightModal} from '../components/BibleCopyrightModal';
+import ScriptureReaderModal from '../components/ScriptureReaderModal';
+import ShareComposer from '../components/TruthToCarryShareComposer';
 import ThemedText from '../components/common/ThemedText';
-import {useAuth} from '../context/IndustryStandardAuthContext';
 import {useScroll} from '../context/ScrollContext';
+import {useAuth} from '../context/IndustryStandardAuthContext';
 import {
-  useCreateReflection,
-  useUpdateReflection,
-} from '../services/hooks/useReflectionData';
+  createLocalReflection,
+  getLocalReflection,
+  getLocalReflections,
+  updateLocalReflection,
+} from '../storage/reflectionStorage';
 import {
   getScripturePassage,
   type ScriptureReaderResult,
 } from '../services/scriptureReaderService';
+import {useNetworkStore} from '../services/network/networkManager';
 import {Colors} from '../theme/colors';
 import {Fonts} from '../theme/fonts';
 import {toLocalDateString} from '../utils/date';
+import {formatBibleVerse} from '../utils/textFormatting';
 import {triggerLightHaptic, triggerMediumHaptic} from '../utils/haptics';
 
 const AnimatedTouchableOpacity =
@@ -63,8 +75,10 @@ type BlockKind =
   | 'remember'
   | 'response'
   | 'question'
+  | 'reflection_question'
   | 'revisit'
-  | 'prayer';
+  | 'prayer'
+  | 'book';
 type OutlineStyle = 'numbered' | 'acronym' | 'simple';
 type HistoryType = 'era' | 'place' | 'culture' | 'custom' | 'politics';
 type LanguageKind = 'hebrew' | 'greek' | 'aramaic' | 'latin';
@@ -94,7 +108,7 @@ type NoteBlock = {
 const REFERENCE_PATTERN =
   /^[1-3]?\s*[a-zA-Z]+\.?\s+\d{1,3}(:\d{1,3}([–—-]\d{1,3})?(,\s*\d{1,3}([–—-]\d{1,3})?)*)?$/;
 
-const BLOCKS: Record<
+export const BLOCKS: Record<
   Exclude<BlockKind, 'text' | 'section'>,
   {
     label: string;
@@ -123,15 +137,15 @@ const BLOCKS: Record<
     icon: 'chatbox-outline',
   },
   song: {
-    label: 'SONG',
-    action: '♪ Song',
+    label: 'WORSHIP SONG',
+    action: '♪ Worship Song',
     placeholder: 'Song title',
     icon: 'musical-note-outline',
   },
   outline: {
     label: 'MESSAGE OUTLINE',
     action: '☷ Outline',
-    placeholder: 'Outline title',
+    placeholder: 'Outline Title',
     icon: 'list-outline',
   },
   character: {
@@ -183,6 +197,12 @@ const BLOCKS: Record<
     placeholder: 'What question came up as you listened?',
     icon: 'help-circle-outline',
   },
+  reflection_question: {
+    label: 'REFLECTION QUESTION',
+    action: '◆ Reflection Question',
+    placeholder: 'What is the reflection question?',
+    icon: 'chatbubbles-outline',
+  },
   revisit: {
     label: 'REVISIT',
     action: '↻ Revisit',
@@ -195,9 +215,15 @@ const BLOCKS: Record<
     placeholder: 'Turn this moment into prayer…',
     icon: 'leaf-outline',
   },
+  book: {
+    label: 'BOOK TO READ',
+    action: '📕 Book to read',
+    placeholder: 'Book title',
+    icon: 'book-outline',
+  },
 };
 
-const BlockIcon: React.FC<{
+export const BlockIcon: React.FC<{
   config: (typeof BLOCKS)['language'];
   size?: number;
   color?: string;
@@ -224,11 +250,13 @@ const CAPTURE_KINDS = [
   'prayer',
   'question',
   'quote',
+  'reflection_question',
   'remember',
   'response',
   'revisit',
   'scripture',
   'song',
+  'book',
   'table',
 ] as const;
 
@@ -251,6 +279,7 @@ const newBlock = (kind: BlockKind): NoteBlock => ({
   ...(kind === 'table'
     ? {tableRows: [['', ''], ['', '']], tableEditing: true}
     : {}),
+  ...(kind === 'reflection_question' ? {note: ''} : {}),
 });
 
 const normalizeLink = (value: string): string | null => {
@@ -273,6 +302,7 @@ type ScriptureLookupInputProps = {
   registerInput?: (input: TextInput | null) => void;
   onChange: (value: string) => void;
   onResolved: (result: ScriptureReaderResult | null) => void;
+  onFocus?: () => void;
 };
 
 const ScriptureLookupInput = ({
@@ -284,6 +314,7 @@ const ScriptureLookupInput = ({
   registerInput,
   onChange,
   onResolved,
+  onFocus,
 }: ScriptureLookupInputProps) => {
   const [resolvedVerse, setResolvedVerse] = useState<ScriptureReaderResult | null>(
     null,
@@ -344,6 +375,7 @@ const ScriptureLookupInput = ({
           placeholderTextColor={Colors.textGray}
           value={value}
           onChangeText={onChange}
+          onFocus={onFocus}
           autoCapitalize="words"
           autoCorrect={false}
         />
@@ -384,13 +416,16 @@ const ScriptureLookupInput = ({
   );
 };
 
-const SermonNotesScreen = ({navigation}: any) => {
-  const {width: screenWidth} = useWindowDimensions();
+const SermonNotesScreen = ({navigation, route}: any) => {
+  const {width: screenWidth, height: screenHeight} = useWindowDimensions();
   const {user} = useAuth();
-  const bibleVersion =
-    (user as any)?.user_metadata?.preferences?.content?.bibleVersion || 'NASB';
-  const createReflection = useCreateReflection();
-  const updateReflection = useUpdateReflection();
+  const bibleVersion = useMemo(
+    () =>
+      (user as any)?.user_metadata?.preferences?.content?.bibleVersion ||
+      'NASB',
+    [user],
+  );
+  const isOnline = useNetworkStore(state => state.isOnline);
   const {
     setShowTabBar,
     setSuppressTabBar,
@@ -405,6 +440,11 @@ const SermonNotesScreen = ({navigation}: any) => {
       ? Math.max(0, screenBottomY - collapsedTabBarCenterY - 28)
       : Math.max(insets.bottom, 8);
   const scrollRef = useRef<ScrollView>(null);
+  const inputLayouts = useRef<{
+    [key: string]: {y: number; height: number; absolute?: boolean};
+  }>({});
+  const editorLayout = useRef<{y: number} | null>(null);
+  const detailsLayout = useRef<{y: number} | null>(null);
   const blockInputRefs = useRef(new Map<string, TextInput>());
   const pendingFocusBlockIdRef = useRef<string | null>(null);
   const focusScrollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
@@ -413,6 +453,9 @@ const SermonNotesScreen = ({navigation}: any) => {
   const keepAtEndTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const keepScrollAtEndRef = useRef(false);
   const keyboardVisibleRef = useRef(false);
+  const startButtonBottom = useRef(
+    new Animated.Value(insets.bottom + 20),
+  ).current;
   const composerBottom = useRef(
     new Animated.Value(restingComposerBottom),
   ).current;
@@ -425,14 +468,26 @@ const SermonNotesScreen = ({navigation}: any) => {
   const actionButtonAnims = useRef(
     [0, 1, 2, 3].map(() => new Animated.Value(0)),
   ).current;
-  const [stage, setStage] = useState<1 | 2 | 3>(1);
+  const initialStage = [1, 2, 3, 4, 5].includes(Number(route?.params?.initialStage))
+    ? (Number(route?.params?.initialStage) as 1 | 2 | 3 | 4 | 5)
+    : 1;
+  const initialReflectionStep =
+    typeof route?.params?.initialReflectionStep === 'number'
+      ? route.params.initialReflectionStep
+      : 0;
+  const [stage, setStage] = useState<1 | 2 | 3 | 4 | 5>(initialStage);
   const [showDetails, setShowDetails] = useState(false);
+  const [showAllStats, setShowAllStats] = useState(false);
   const [showMore, setShowMore] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [focusedInput, setFocusedInput] = useState<string | null>(null);
+  const [inputLayoutVersion, setInputLayoutVersion] = useState(0);
   const [saved, setSaved] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [savedReflectionId, setSavedReflectionId] = useState<string | null>(null);
   const [title, setTitle] = useState('');
   const [mainScripture, setMainScripture] = useState('');
+  const [mainScriptureInput, setMainScriptureInput] = useState('');
   const [series, setSeries] = useState('');
   const [part, setPart] = useState('');
   const [speaker, setSpeaker] = useState('');
@@ -441,9 +496,144 @@ const SermonNotesScreen = ({navigation}: any) => {
   const [notice, setNotice] = useState('');
   const [carry, setCarry] = useState('');
   const [prayer, setPrayer] = useState('');
-  const [expandedReflection, setExpandedReflection] = useState<
-    'god' | 'truth' | 'response' | null
-  >(null);
+  const [prayerAnswer, setPrayerAnswer] = useState('');
+  const [reflectionStep, setReflectionStep] = useState(initialReflectionStep);
+  const [mainScriptureTexts, setMainScriptureTexts] = useState<string[]>([]);
+  const [scriptureLoading, setScriptureLoading] = useState(false);
+  const [scriptureReaderOpen, setScriptureReaderOpen] = useState(false);
+  const [scriptureReaderIndex, setScriptureReaderIndex] = useState(0);
+  const [shareComposerOpen, setShareComposerOpen] = useState(false);
+  const [shareComposerText, setShareComposerText] = useState('');
+  const [bibleCopyrightOpen, setBibleCopyrightOpen] = useState(false);
+  const sermonDate = useMemo(
+    () =>
+      new Date().toLocaleDateString('en-US', {
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric',
+      }),
+    [],
+  );
+  const mainScriptureRefs = useMemo(
+    () =>
+      mainScripture
+        .split(/[;\n]+/)
+        .map(s => s.trim())
+        .filter(Boolean),
+    [mainScripture],
+  );
+  const hasAdditionalDetails = useMemo(
+    () => series.trim().length > 0 || church.trim().length > 0,
+    [series, church],
+  );
+  const handleShareScripture = useCallback(
+    (index: number) => {
+      const ref = mainScriptureRefs[index];
+      const text = mainScriptureTexts[index];
+      const message = text
+        ? `${text}\n\n— ${ref.toUpperCase()} ${bibleVersion}`
+        : `${ref.toUpperCase()} ${bibleVersion}`;
+      triggerLightHaptic();
+      setShareComposerText(message);
+      setShareComposerOpen(true);
+    },
+    [bibleVersion, mainScriptureRefs, mainScriptureTexts],
+  );
+  const routeParams = route?.params ?? {};
+  const selectedDate = useMemo(
+    () =>
+      routeParams?.selectedDate
+        ? toLocalDateString(new Date(routeParams.selectedDate))
+        : toLocalDateString(new Date()),
+    [routeParams?.selectedDate],
+  );
+  const reflectionId = routeParams?.reflectionId ?? null;
+
+  const coverDate = useMemo(() => {
+    const [year, month, day] = selectedDate.split('-').map(Number);
+    const date = new Date(year, month - 1, day);
+    const now = new Date();
+    const includeYear = date.getFullYear() !== now.getFullYear();
+    const weekdays = [
+      'Sunday',
+      'Monday',
+      'Tuesday',
+      'Wednesday',
+      'Thursday',
+      'Friday',
+      'Saturday',
+    ];
+    const months = [
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
+    ];
+    let formatted = `${weekdays[date.getDay()]}, ${months[date.getMonth()]} ${date.getDate()}`;
+    if (includeYear) {
+      formatted += `, ${date.getFullYear()}`;
+    }
+    return formatted;
+  }, [selectedDate]);
+
+  // Load an existing sermon note when opened from Moments, or the most recent
+  // in-progress sermon note for today when starting fresh.
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        let entry: any = null;
+        if (reflectionId) {
+          entry = await getLocalReflection(reflectionId, 'sermon', selectedDate);
+        }
+        if (!entry) {
+          const entries = await getLocalReflections('sermon', selectedDate);
+          if (entries.length) {
+            const latest = entries[entries.length - 1];
+            const latestMetadata = latest.metadata || {};
+            if (latestMetadata.is_complete === false) {
+              entry = latest;
+            }
+          }
+        }
+        if (!entry || !mounted) {
+          return;
+        }
+        const content = typeof entry.content === 'string'
+          ? JSON.parse(entry.content)
+          : entry.content;
+        const metadata = entry.metadata || {};
+
+        setSavedReflectionId(entry.id);
+        setTitle(entry.title || '');
+        setMainScripture(metadata.main_scripture || '');
+        setSeries(metadata.series || '');
+        setPart(metadata.part || '');
+        setSpeaker(metadata.speaker || '');
+        setChurch(metadata.church || '');
+        setNotice(metadata.notice || '');
+        setCarry(metadata.carry || '');
+        setPrayer(metadata.prayer || '');
+        setPrayerAnswer(metadata.prayer_answer || '');
+        setBlocks(content?.blocks || []);
+        setShowDetails(false);
+        setSaved(false);
+      } catch (error) {
+        console.warn('Error loading local sermon notes:', error);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [selectedDate, reflectionId]);
 
   useFocusEffect(
     useCallback(() => {
@@ -484,6 +674,42 @@ const SermonNotesScreen = ({navigation}: any) => {
   }, [actionBarAnim, actionButtonAnims, stage]);
 
   useEffect(() => {
+    if (stage !== 2 || mainScriptureRefs.length === 0) {
+      setMainScriptureTexts([]);
+      setScriptureLoading(false);
+      return;
+    }
+    if (!isOnline) {
+      setMainScriptureTexts([]);
+      setScriptureLoading(false);
+      return;
+    }
+    let active = true;
+    setScriptureLoading(true);
+    setMainScriptureTexts([]);
+    Promise.all(
+      mainScriptureRefs.map(reference =>
+        getScripturePassage(reference, bibleVersion)
+          .then(result => formatBibleVerse(result.text))
+          .catch(() => ''),
+      ),
+    )
+      .then(texts => {
+        if (active) {
+          setMainScriptureTexts(texts);
+        }
+      })
+      .finally(() => {
+        if (active) {
+          setScriptureLoading(false);
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, [bibleVersion, isOnline, mainScriptureRefs, stage]);
+
+  useEffect(() => {
     if (!keyboardVisibleRef.current) {
       composerBottom.setValue(restingComposerBottom);
     }
@@ -501,6 +727,13 @@ const SermonNotesScreen = ({navigation}: any) => {
         Keyboard.scheduleLayoutAnimation(event);
       }
       setKeyboardHeight(height);
+      startButtonBottom.stopAnimation();
+      Animated.spring(startButtonBottom, {
+        toValue: insets.bottom + height * 0.93,
+        tension: 80,
+        friction: 12,
+        useNativeDriver: false,
+      }).start();
       composerBottom.stopAnimation();
       Animated.spring(composerBottom, {
         toValue: height + 12,
@@ -515,6 +748,13 @@ const SermonNotesScreen = ({navigation}: any) => {
         Keyboard.scheduleLayoutAnimation(event);
       }
       setKeyboardHeight(0);
+      startButtonBottom.stopAnimation();
+      Animated.spring(startButtonBottom, {
+        toValue: insets.bottom + 20,
+        tension: 80,
+        friction: 12,
+        useNativeDriver: false,
+      }).start();
       composerBottom.stopAnimation();
       Animated.spring(composerBottom, {
         toValue: restingComposerBottom,
@@ -529,6 +769,23 @@ const SermonNotesScreen = ({navigation}: any) => {
       hideSubscription.remove();
     };
   }, [composerBottom, restingComposerBottom]);
+
+  useEffect(() => {
+    if (!focusedInput || !scrollRef.current || keyboardHeight === 0) {
+      return;
+    }
+    const layout = inputLayouts.current[focusedInput];
+    if (!layout) {
+      return;
+    }
+    const visibleHeight = screenHeight - keyboardHeight;
+    const baseY = layout.absolute ? 0 : editorLayout.current?.y || 0;
+    const targetY =
+      baseY + layout.y + layout.height - visibleHeight + 80;
+    if (targetY > 0) {
+      scrollRef.current.scrollTo({y: targetY, animated: true});
+    }
+  }, [focusedInput, keyboardHeight, screenHeight, inputLayoutVersion]);
 
   useEffect(() => {
     const blockId = pendingFocusBlockIdRef.current;
@@ -564,11 +821,121 @@ const SermonNotesScreen = ({navigation}: any) => {
     [],
   );
 
-  const goTo = (next: 1 | 2 | 3) => {
+  const goTo = (next: 1 | 2 | 3 | 4 | 5) => {
     triggerLightHaptic();
+    Keyboard.dismiss();
     setStage(next);
     scrollRef.current?.scrollTo({y: 0, animated: true});
   };
+
+  const handleShareJournal = useCallback(async () => {
+    triggerLightHaptic();
+    try {
+      await Share.share({
+        message:
+          'I’m using Journal by siFia to capture sermon notes, reflections, and prayer. Join me!',
+        title: 'Share Journal by siFia with friends',
+      });
+    } catch {
+      // cancelled
+    }
+  }, []);
+
+  const handleExportPDF = useCallback(async () => {
+    triggerLightHaptic();
+    try {
+      const blockHtml = blocks
+        .filter(hasBlockContent)
+        .map(block => {
+          const safeText = block.text.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>');
+          return `<p style="margin:0 0 12px 0; font-size:14px; line-height:20px; color:#29342E;">${safeText}</p>`;
+        })
+        .join('');
+
+      const html = `
+        <html>
+          <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color:#29342E; padding:24px;">
+            <h1 style="font-size:24px; margin-bottom:8px; color:#526A5B;">${(title.trim() || 'Sermon Notes').replace(/</g, '&lt;')}</h1>
+            <p style="font-size:12px; color:#7A7A7A; margin-bottom:24px;">${coverDate}${speaker.trim() ? ` · ${speaker.trim()}` : ''}</p>
+            ${mainScripture ? `<p style="font-size:14px; font-style:italic; margin-bottom:24px; color:#526A5B;">${mainScripture.replace(/</g, '&lt;')}</p>` : ''}
+            ${blockHtml}
+            ${notice.trim() ? `<p style="margin-top:24px; font-size:14px;"><strong>God:</strong> ${notice.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>')}</p>` : ''}
+            ${carry.trim() ? `<p style="font-size:14px;"><strong>Truth:</strong> ${carry.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>')}</p>` : ''}
+            ${prayer.trim() ? `<p style="font-size:14px;"><strong>Response:</strong> ${prayer.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>')}</p>` : ''}
+            ${prayerAnswer.trim() ? `<p style="font-size:14px;"><strong>Prayer:</strong> ${prayerAnswer.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>')}</p>` : ''}
+          </body>
+        </html>
+      `;
+
+      const file = await generatePDF({
+        html,
+        fileName: `sermon-notes-${Date.now()}`,
+        width: 595,
+        height: 842,
+        padding: 20,
+        bgColor: '#FFFEFA',
+        ...(Platform.OS === 'ios' ? {directory: 'Documents'} : {}),
+      });
+
+      const filePath = (file as any).filePath;
+      const fileUri = filePath.startsWith('file://') ? filePath : `file://${filePath}`;
+
+      await RNShare.open({
+        url: fileUri,
+        type: 'application/pdf',
+        title: 'Export Sermon Notes',
+        filename: `${title.trim() || 'Sermon Notes'}.pdf`,
+        failOnCancel: false,
+      });
+    } catch (error) {
+      console.warn('Sermon PDF export failed:', error);
+      Alert.alert('Could not export PDF', 'Please try again.');
+    }
+  }, [blocks, title, coverDate, speaker, mainScripture, notice, carry, prayer, prayerAnswer]);
+
+  const stageRef = useRef(stage);
+  const goToRef = useRef(goTo);
+  const reflectionStepRef = useRef(reflectionStep);
+  useEffect(() => {
+    stageRef.current = stage;
+    goToRef.current = goTo;
+    reflectionStepRef.current = reflectionStep;
+  }, [stage, goTo, reflectionStep]);
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => false,
+      onMoveShouldSetPanResponder: (_e, g) =>
+        Math.abs(g.dx) > 12 && Math.abs(g.dy) < Math.abs(g.dx),
+      onPanResponderRelease: (_e, g) => {
+        const threshold = 40;
+        if (stageRef.current === 5) {
+          return;
+        }
+        if (stageRef.current === 4) {
+          if (g.dx < -threshold) {
+            if (reflectionStepRef.current < 3) {
+              triggerLightHaptic();
+              setReflectionStep(reflectionStepRef.current + 1);
+              scrollRef.current?.scrollTo({y: 0, animated: true});
+            }
+          } else if (g.dx > threshold) {
+            if (reflectionStepRef.current > 0) {
+              triggerLightHaptic();
+              setReflectionStep(reflectionStepRef.current - 1);
+              scrollRef.current?.scrollTo({y: 0, animated: true});
+            } else {
+              goToRef.current(3);
+            }
+          }
+        } else if (g.dx < -threshold && stageRef.current < 4) {
+          goToRef.current((stageRef.current + 1) as 1 | 2 | 3 | 4);
+        } else if (g.dx > threshold && stageRef.current > 1) {
+          goToRef.current((stageRef.current - 1) as 1 | 2 | 3 | 4);
+        }
+      },
+    }),
+  ).current;
 
   const openCapturePicker = (dismissKeyboard = true) => {
     if (dismissKeyboard) {
@@ -579,7 +946,7 @@ const SermonNotesScreen = ({navigation}: any) => {
       animation.setValue(0);
     });
     setShowMore(true);
-    requestAnimationFrame(() => {
+    setTimeout(() => {
       plusRotation.stopAnimation();
       pickerColorAnim.stopAnimation();
       Animated.parallel([
@@ -607,7 +974,7 @@ const SermonNotesScreen = ({navigation}: any) => {
           ),
         ),
       ]).start();
-    });
+    }, 80);
   };
 
   const closeCapturePicker = (onComplete?: () => void) => {
@@ -671,11 +1038,7 @@ const SermonNotesScreen = ({navigation}: any) => {
     }
   };
 
-  const removeBlock = (
-    id: string,
-    withHaptic = true,
-    reopenPicker = true,
-  ) => {
+  const removeBlock = (id: string, withHaptic = true) => {
     if (withHaptic) {
       triggerMediumHaptic();
     }
@@ -686,11 +1049,7 @@ const SermonNotesScreen = ({navigation}: any) => {
     const shouldKeepKeyboard =
       remainingBlocks.length > 0 && keyboardVisibleRef.current;
     setBlocks(remainingBlocks);
-    if (reopenPicker && remainingBlocks.length === 0) {
-      requestAnimationFrame(() => {
-        openCapturePicker();
-      });
-    } else if (shouldKeepKeyboard && remainingEditableBlock) {
+    if (shouldKeepKeyboard && remainingEditableBlock) {
       requestAnimationFrame(() => {
         blockInputRefs.current.get(remainingEditableBlock.id)?.focus();
       });
@@ -805,60 +1164,110 @@ const SermonNotesScreen = ({navigation}: any) => {
   const summary = useMemo(
     () =>
       Object.entries(BLOCKS)
-        .map(([kind, config]) => ({
-          kind,
-          label: config.label,
-          count: blocks.filter(
+        .map(([kind, config]) => {
+          const blockCount = blocks.filter(
             block => block.kind === kind && hasBlockContent(block),
-          ).length,
-        }))
+          ).length;
+          const mainCount =
+            kind === 'scripture' ? mainScriptureRefs.length : 0;
+          return {kind, label: config.label, count: blockCount + mainCount};
+        })
         .filter(item => item.count > 0),
+    [blocks, mainScriptureRefs],
+  );
+
+  const coverStatCount = (kind: BlockKind) => {
+    const blockCount = blocks.filter(
+      block => block.kind === kind && hasBlockContent(block),
+    ).length;
+    const mainCount = kind === 'scripture' ? mainScriptureRefs.length : 0;
+    return blockCount + mainCount;
+  };
+
+  const coverFirstQuote = useMemo(
+    () =>
+      blocks.find(block => block.kind === 'quote' && block.text.trim())?.text,
     [blocks],
   );
 
   const saveSermon = async (markComplete = true): Promise<boolean> => {
-    if (!user) {
-      Alert.alert('Sign in required', 'Please sign in to save sermon notes.');
+    if (isSaving) {
       return false;
     }
+    setIsSaving(true);
     const meaningfulBlocks = blocks.filter(hasBlockContent);
     if (!title.trim() && meaningfulBlocks.length === 0) {
+      setIsSaving(false);
       Alert.alert('Nothing to save', 'Add a sermon title or a note first.');
       return false;
     }
     try {
-      const entry = {
-        user_id: user.id,
-        selected_date: toLocalDateString(new Date()),
-        title: title.trim() || 'Sermon Notes',
-        type: 'free',
-        source: 'sermon_notes',
-        tags: ['sermon'],
-        content: JSON.stringify({
-          format: 'sermon_notes_v1',
-          mainScripture,
-          series,
-          part,
-          speaker,
-          church,
-          blocks: meaningfulBlocks,
-          reflection: {god: notice, truth: carry, response: prayer},
-        }),
+      const pendingMainScriptureInput = mainScriptureInput.trim();
+      const mainScriptureForSave = pendingMainScriptureInput
+        ? (mainScripture ? mainScripture + '; ' : '') + pendingMainScriptureInput
+        : mainScripture;
+      setMainScripture(mainScriptureForSave);
+      setMainScriptureInput('');
+      const content = JSON.stringify({
+        format: 'sermon_notes_v1',
+        blocks: meaningfulBlocks,
+      });
+      const metadata = {
+        main_scripture: mainScriptureForSave.trim(),
+        series: series.trim(),
+        part: part.trim(),
+        speaker: speaker.trim(),
+        church: church.trim(),
+        notice: notice.trim(),
+        carry: carry.trim(),
+        prayer: prayer.trim(),
+        prayer_answer: prayerAnswer.trim(),
+        is_complete: markComplete,
       };
+
       if (savedReflectionId) {
-        await updateReflection.mutateAsync({
-          id: savedReflectionId,
-          updates: entry,
-        });
+        const existing = await getLocalReflection(savedReflectionId, 'sermon', selectedDate);
+        if (existing) {
+          const updated = await updateLocalReflection({
+            ...existing,
+            title: title.trim() || 'Sermon Notes',
+            content,
+            metadata,
+          });
+          setSavedReflectionId(updated.id);
+        } else {
+          const created = await createLocalReflection({
+            title: title.trim() || 'Sermon Notes',
+            content,
+            type: 'sermon',
+            source: 'sermon_notes',
+            tags: ['sermon'],
+            selected_date: selectedDate,
+            metadata,
+          });
+          setSavedReflectionId(created.id);
+        }
       } else {
-        const created = await createReflection.mutateAsync(entry);
+        const created = await createLocalReflection({
+          title: title.trim() || 'Sermon Notes',
+          content,
+          type: 'sermon',
+          source: 'sermon_notes',
+          tags: ['sermon'],
+          selected_date: selectedDate,
+          metadata,
+        });
         setSavedReflectionId(created.id);
       }
       if (markComplete) {
         setSaved(true);
       }
+      DeviceEventEmitter.emit('sermon_saved');
+      setIsSaving(false);
       return true;
-    } catch {
+    } catch (error) {
+      console.error('Error saving sermon notes locally:', error);
+      setIsSaving(false);
       Alert.alert(
         'Could not save',
         'Your sermon notes could not be saved. Please try again.',
@@ -896,6 +1305,11 @@ const SermonNotesScreen = ({navigation}: any) => {
               removeBlock(block.id, false);
             }
           }}
+          onLayout={e => {
+            const {y, height} = e.nativeEvent.layout;
+            inputLayouts.current[block.id] = {y, height};
+          }}
+          onFocus={() => setFocusedInput(block.id)}
         />
       );
     }
@@ -917,13 +1331,18 @@ const SermonNotesScreen = ({navigation}: any) => {
     const linkUrl = block.kind === 'link' ? normalizeLink(block.text) : null;
     const selectedHistoryTypes = block.historyTypes || [];
     const selectedLanguageDetails = block.languageDetails || [];
+    const focusBlock = () => setFocusedInput(block.id);
     return (
       <View
         key={block.id}
         style={[
           styles.capture,
           styles[`${block.kind}Capture` as keyof typeof styles] as any,
-        ]}>
+        ]}
+        onLayout={e => {
+          const {y, height} = e.nativeEvent.layout;
+          inputLayouts.current[block.id] = {y, height};
+        }}>
         <View style={styles.captureHeader}>
           <View style={styles.captureLabelRow}>
             <BlockIcon config={config} size={14} color={Colors.sage} />
@@ -954,6 +1373,7 @@ const SermonNotesScreen = ({navigation}: any) => {
             }}
             onChange={value => updateBlock(block.id, 'text', value)}
             onResolved={result => updateBlockScripture(block.id, result)}
+            onFocus={focusBlock}
           />
         ) : block.kind !== 'history' &&
           block.kind !== 'table' ? (
@@ -970,6 +1390,7 @@ const SermonNotesScreen = ({navigation}: any) => {
               (block.kind === 'quote' || block.kind === 'prayer') &&
                 styles.serifInput,
               block.kind === 'character' && styles.characterName,
+              block.kind === 'outline' && styles.outlineTitleInput,
             ]}
             multiline={
               block.kind !== 'outline' &&
@@ -980,11 +1401,32 @@ const SermonNotesScreen = ({navigation}: any) => {
             placeholderTextColor={Colors.textGray}
             value={block.text}
             onChangeText={value => updateBlock(block.id, 'text', value)}
+            onFocus={focusBlock}
             keyboardType={block.kind === 'link' ? 'url' : 'default'}
             autoCapitalize={block.kind === 'link' ? 'none' : 'sentences'}
             autoCorrect={block.kind !== 'link'}
           />
         ) : null}
+        {block.kind === 'reflection_question' && (
+          <>
+            <ThemedText
+              weight="bold"
+              style={[styles.detailLabel, {marginTop: 12}]}>
+              ANSWER
+            </ThemedText>
+            <TextInput
+              style={styles.captureInput}
+              placeholder="Type your reflection..."
+              placeholderTextColor={Colors.textGray}
+              value={block.note || ''}
+              onChangeText={value => updateBlock(block.id, 'note', value)}
+              onFocus={focusBlock}
+              multiline
+              autoCapitalize="sentences"
+              autoCorrect
+            />
+          </>
+        )}
         {block.kind === 'link' && linkUrl && (
           <TouchableOpacity
             accessibilityRole="link"
@@ -1046,6 +1488,7 @@ const SermonNotesScreen = ({navigation}: any) => {
                     points[index] = value;
                     updateOutline(block.id, {points});
                   }}
+                  onFocus={focusBlock}
                 />
                 <TouchableOpacity
                   style={styles.startSection}
@@ -1068,12 +1511,16 @@ const SermonNotesScreen = ({navigation}: any) => {
             </TouchableOpacity>
           </>
         )}
-        {(block.kind === 'quote' || block.kind === 'song') && (
+        {(block.kind === 'quote' ||
+          block.kind === 'song' ||
+          block.kind === 'book') && (
           <TextInput
             style={styles.secondaryInput}
             placeholder={
               block.kind === 'song'
-                ? 'Artist / Worship Team'
+                ? '— Artist / Worship Team'
+                : block.kind === 'book'
+                ? '— Author'
                 : '— Speaker / Author'
             }
             placeholderTextColor={Colors.textGray}
@@ -1082,11 +1529,16 @@ const SermonNotesScreen = ({navigation}: any) => {
               updateBlock(
                 block.id,
                 'secondary',
-                block.kind === 'quote' && value && !value.startsWith('—')
+                (block.kind === 'quote' ||
+                  block.kind === 'book' ||
+                  block.kind === 'song') &&
+                  value &&
+                  !value.startsWith('—')
                   ? `— ${value}`
                   : value,
               )
             }
+            onFocus={focusBlock}
           />
         )}
         {block.kind === 'character' && (
@@ -1097,6 +1549,7 @@ const SermonNotesScreen = ({navigation}: any) => {
             placeholderTextColor={Colors.textGray}
             value={block.note || ''}
             onChangeText={value => updateBlock(block.id, 'note', value)}
+            onFocus={focusBlock}
           />
         )}
         {block.kind === 'character' && (
@@ -1107,6 +1560,7 @@ const SermonNotesScreen = ({navigation}: any) => {
             style={[styles.secondaryInput, styles.characterScripture]}
             onChange={value => updateBlock(block.id, 'secondary', value)}
             onResolved={result => updateBlockScripture(block.id, result)}
+            onFocus={focusBlock}
           />
         )}
         {block.kind === 'language' && (
@@ -1179,6 +1633,7 @@ const SermonNotesScreen = ({navigation}: any) => {
                 placeholderTextColor={Colors.textGray}
                 value={block.meaning || ''}
                 onChangeText={value => updateBlock(block.id, 'meaning', value)}
+                onFocus={focusBlock}
               />
             )}
             {selectedLanguageDetails.includes('transliteration') && (
@@ -1188,6 +1643,7 @@ const SermonNotesScreen = ({navigation}: any) => {
                 placeholderTextColor={Colors.textGray}
                 value={block.secondary || ''}
                 onChangeText={value => updateBlock(block.id, 'secondary', value)}
+                onFocus={focusBlock}
               />
             )}
             {selectedLanguageDetails.includes('origin') && (
@@ -1198,6 +1654,7 @@ const SermonNotesScreen = ({navigation}: any) => {
                 placeholderTextColor={Colors.textGray}
                 value={block.origin || ''}
                 onChangeText={value => updateBlock(block.id, 'origin', value)}
+                onFocus={focusBlock}
               />
             )}
             {selectedLanguageDetails.includes('scripture') && (
@@ -1208,6 +1665,7 @@ const SermonNotesScreen = ({navigation}: any) => {
                 style={styles.secondaryInput}
                 onChange={value => updateBlock(block.id, 'reference', value)}
                 onResolved={result => updateBlockScripture(block.id, result)}
+                onFocus={focusBlock}
               />
             )}
           </>
@@ -1250,6 +1708,7 @@ const SermonNotesScreen = ({navigation}: any) => {
                             rows[rowIndex][columnIndex] = value;
                             updateTableRows(block.id, rows);
                           }}
+                          onFocus={focusBlock}
                         />
                       ))}
                     </View>
@@ -1424,6 +1883,7 @@ const SermonNotesScreen = ({navigation}: any) => {
                   onChangeText={value =>
                     updateBlock(block.id, 'secondary', value)
                   }
+                  onFocus={focusBlock}
                 />
                 {(['BC', 'AD'] as const).map(period => (
                   <TouchableOpacity
@@ -1463,6 +1923,7 @@ const SermonNotesScreen = ({navigation}: any) => {
                   onChangeText={value =>
                     updateBlock(block.id, 'secondary', value)
                   }
+                  onFocus={focusBlock}
                 />
               </View>
             )}
@@ -1485,6 +1946,7 @@ const SermonNotesScreen = ({navigation}: any) => {
               placeholderTextColor={Colors.textGray}
               value={block.note || ''}
               onChangeText={value => updateBlock(block.id, 'note', value)}
+              onFocus={focusBlock}
             />
             <ScriptureLookupInput
               value={block.reference || ''}
@@ -1493,6 +1955,7 @@ const SermonNotesScreen = ({navigation}: any) => {
               style={styles.secondaryInput}
               onChange={value => updateBlock(block.id, 'reference', value)}
               onResolved={result => updateBlockScripture(block.id, result)}
+              onFocus={focusBlock}
             />
           </>
         )}
@@ -1514,20 +1977,23 @@ const SermonNotesScreen = ({navigation}: any) => {
         barStyle="dark-content"
         backgroundColor={Colors.lightBackground}
       />
-      <View
-        style={[styles.actionProgressBar, {top: insets.top + 25}]}
-        pointerEvents="none">
+      {stage <= 2 && (
         <View
-          style={[
-            styles.actionProgressFill,
-            {width: `${(stage / 3) * 100}%`},
-          ]}
-        />
-      </View>
+          style={[styles.actionProgressBar, {top: insets.top + 25}]}
+          pointerEvents="none">
+          <View
+            style={[
+              styles.actionProgressFill,
+              {width: `${(stage / 3) * 100}%`},
+            ]}
+          />
+        </View>
+      )}
       <TouchableOpacity
         style={[styles.closeButton, {top: insets.top + 8}]}
         onPress={() => {
           triggerLightHaptic();
+          Keyboard.dismiss();
           navigation.goBack();
         }}
         activeOpacity={0.7}
@@ -1535,33 +2001,48 @@ const SermonNotesScreen = ({navigation}: any) => {
         accessibilityLabel="Close sermon notes">
         <Ionicons name="close" size={20} color={Colors.text} />
       </TouchableOpacity>
-      <ScrollView
-        ref={scrollRef}
-        style={{flex: 1}}
+      {stage === 5 && (
+        <TouchableOpacity
+          style={[styles.shareButton, {top: insets.top + 8}]}
+          onPress={handleShareJournal}
+          activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel="Share Journal by siFia">
+          <Ionicons name="share-outline" size={20} color={Colors.text} />
+        </TouchableOpacity>
+      )}
+      <View style={{flex: 1}} {...panResponder.panHandlers}>
+        <ScrollView
+          ref={scrollRef}
+          style={{flex: 1}}
         contentContainerStyle={[
           styles.content,
           {
-            paddingTop: insets.top + 72,
-            paddingBottom: insets.bottom + 28,
+            paddingTop: insets.top + 36,
+            paddingBottom:
+              insets.bottom +
+              28 +
+              (stage === 1 && keyboardHeight > 0 ? keyboardHeight + 48 : 0),
           },
           stage === 2 && {
             paddingBottom: blocks.length
-              ? 48 +
-                (keyboardHeight > 0
-                  ? keyboardHeight + 12
-                  : restingComposerBottom) +
-                8
+              ? (keyboardHeight > 0 ? keyboardHeight : restingComposerBottom) +
+                80
               : insets.bottom + 28,
           },
+          stage === 4 && {
+            paddingBottom:
+              keyboardHeight > 0 ? keyboardHeight + 100 : insets.bottom + 80,
+          },
         ]}
-        keyboardShouldPersistTaps="handled"
+        keyboardShouldPersistTaps="always"
         showsVerticalScrollIndicator={false}
         onContentSizeChange={() => {
           if (keepScrollAtEndRef.current) {
             scrollRef.current?.scrollToEnd({animated: true});
           }
         }}>
-        {stage !== 1 && (
+        {stage === 3 && (
           <View style={styles.header}>
             <View style={styles.stepLabelRow}>
               <Ionicons name="book" size={18} color={Colors.sage} />
@@ -1595,26 +2076,40 @@ const SermonNotesScreen = ({navigation}: any) => {
             </ThemedText>
             <TextInput
               style={styles.input}
-              placeholder="Title of the message"
-              placeholderTextColor={Colors.textGray}
+              placeholder="Title of the message..."
+              placeholderTextColor={Colors.placeholderText}
               value={title}
               onChangeText={setTitle}
+              autoFocus
+              onLayout={e => {
+                const {y, height} = e.nativeEvent.layout;
+                inputLayouts.current.title = {y, height, absolute: true};
+              }}
+              onFocus={() => setFocusedInput('title')}
             />
 
             <ThemedText weight="bold" style={styles.label}>
-              Pastor
+              Pastor / Speaker
             </ThemedText>
             <TextInput
               style={styles.input}
-              placeholder="Pastor name"
-              placeholderTextColor={Colors.textGray}
+              placeholder="Pastor name..."
+              placeholderTextColor={Colors.placeholderText}
               value={speaker}
               onChangeText={setSpeaker}
+              onLayout={e => {
+                const {y, height} = e.nativeEvent.layout;
+                inputLayouts.current.speaker = {y, height, absolute: true};
+              }}
+              onFocus={() => setFocusedInput('speaker')}
             />
 
             <TouchableOpacity
               style={styles.toggle}
-              onPress={() => setShowDetails(value => !value)}
+              onPress={() => {
+                triggerLightHaptic();
+                setShowDetails(value => !value);
+              }}
               activeOpacity={0.7}>
               <Ionicons
                 name={showDetails ? 'chevron-up' : 'chevron-down'}
@@ -1622,72 +2117,308 @@ const SermonNotesScreen = ({navigation}: any) => {
                 color={Colors.sage}
               />
               <ThemedText weight="bold" style={styles.toggleText}>
-                Add more details (optional)
+                Add more details
               </ThemedText>
             </TouchableOpacity>
 
             {showDetails && (
-              <View>
+              <View
+                onLayout={e => {
+                  const base = e.nativeEvent.layout.y;
+                  detailsLayout.current = {y: base};
+                  (['series', 'mainScripture', 'church'] as const).forEach(
+                    key => {
+                      const layout = inputLayouts.current[key];
+                      if (layout && !layout.absolute) {
+                        layout.y += base;
+                        layout.absolute = true;
+                      }
+                    },
+                  );
+                  setInputLayoutVersion(v => v + 1);
+                }}>
                 <ThemedText weight="bold" style={styles.label}>
-                  Series{' '}
-                  <ThemedText style={styles.optional}>(optional)</ThemedText>
+                  Series
                 </ThemedText>
                 <TextInput
                   style={styles.input}
-                  placeholder="The Book of Romans"
-                  placeholderTextColor={Colors.textGray}
+                  placeholder="The Book of Romans..."
+                  placeholderTextColor={Colors.placeholderText}
                   value={series}
                   onChangeText={setSeries}
+                  onLayout={e => {
+                    const base = detailsLayout.current?.y || 0;
+                    const {y, height} = e.nativeEvent.layout;
+                    inputLayouts.current.series = {
+                      y: base + y,
+                      height,
+                      absolute: base !== 0,
+                    };
+                  }}
+                  onFocus={() => setFocusedInput('series')}
                 />
                 <ThemedText weight="bold" style={styles.label}>
                   Main Scripture
                 </ThemedText>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Romans 12:1–2"
-                  placeholderTextColor={Colors.textGray}
-                  value={mainScripture}
-                  onChangeText={setMainScripture}
-                />
-                <ThemedText weight="bold" style={styles.label}>
-                  Part
-                </ThemedText>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Part 3"
-                  placeholderTextColor={Colors.textGray}
-                  value={part}
-                  onChangeText={setPart}
-                />
+                <View style={styles.scriptureInputRow}>
+                  <TextInput
+                    style={[styles.input, styles.scriptureInput]}
+                    placeholder="Romans 12:1–2..."
+                    placeholderTextColor={Colors.placeholderText}
+                    value={mainScriptureInput}
+                    onChangeText={setMainScriptureInput}
+                    blurOnSubmit={false}
+                    onSubmitEditing={() => {
+                      const trimmed = mainScriptureInput.trim();
+                      if (!trimmed) {return;}
+                      setMainScripture(prev => (prev ? prev + '; ' : '') + trimmed);
+                      setMainScriptureInput('');
+                    }}
+                    onLayout={e => {
+                      const base = detailsLayout.current?.y || 0;
+                      const {y, height} = e.nativeEvent.layout;
+                      inputLayouts.current.mainScripture = {
+                        y: base + y,
+                        height,
+                        absolute: base !== 0,
+                      };
+                    }}
+                    onFocus={() => setFocusedInput('mainScripture')}
+                  />
+                  <TouchableOpacity
+                    style={styles.addScriptureButton}
+                    onPress={() => {
+                      triggerLightHaptic();
+                      const trimmed = mainScriptureInput.trim();
+                      if (!trimmed) {return;}
+                      setMainScripture(prev => (prev ? prev + '; ' : '') + trimmed);
+                      setMainScriptureInput('');
+                    }}
+                    activeOpacity={0.75}
+                    accessibilityRole="button"
+                    accessibilityLabel="Add main scripture">
+                    <Ionicons
+                      name="add"
+                      size={16}
+                      color={Colors.hopeWhite}
+                    />
+                  </TouchableOpacity>
+                </View>
+                {mainScriptureRefs.length > 0 && (
+                  <View style={styles.scriptureChips}>
+                    {mainScriptureRefs.map((ref, index) => (
+                      <View key={ref + index} style={styles.scriptureChip}>
+                        <ThemedText
+                          weight="semiBold"
+                          style={styles.scriptureChipText}
+                          numberOfLines={1}
+                          ellipsizeMode="tail">
+                          {ref}
+                        </ThemedText>
+                        <TouchableOpacity
+                          onPress={() => {
+                            triggerLightHaptic();
+                            const refs = mainScriptureRefs.filter(
+                              (_, i) => i !== index,
+                            );
+                            setMainScripture(refs.join('; '));
+                          }}
+                          style={styles.scriptureChipRemove}
+                          activeOpacity={0.7}
+                          accessibilityRole="button"
+                          accessibilityLabel="Remove main scripture">
+                          <Ionicons
+                            name="close"
+                            size={14}
+                            color={Colors.sage}
+                          />
+                        </TouchableOpacity>
+                      </View>
+                    ))}
+                  </View>
+                )}
                 <ThemedText weight="bold" style={styles.label}>
                   Church / Event
                 </ThemedText>
                 <TextInput
                   style={styles.input}
-                  placeholder="Where you heard it"
-                  placeholderTextColor={Colors.textGray}
+                  placeholder="Where you heard it..."
+                  placeholderTextColor={Colors.placeholderText}
                   value={church}
                   onChangeText={setChurch}
+                  onLayout={e => {
+                    const base = detailsLayout.current?.y || 0;
+                    const {y, height} = e.nativeEvent.layout;
+                    inputLayouts.current.church = {
+                      y: base + y,
+                      height,
+                      absolute: base !== 0,
+                    };
+                  }}
+                  onFocus={() => setFocusedInput('church')}
                 />
               </View>
             )}
-
-            <TouchableOpacity
-              style={styles.startButton}
-              onPress={() => {
-                goTo(2);
-                requestAnimationFrame(() => openCapturePicker());
-              }}>
-              <ThemedText weight="bold" style={styles.startButtonText}>
-                Start taking notes
-              </ThemedText>
-            </TouchableOpacity>
           </>
         )}
 
         {stage === 2 && (
           <>
-            <View style={styles.editor}>
+            {(title.trim() ||
+              speaker.trim() ||
+              series.trim() ||
+              mainScriptureRefs.length > 0 ||
+              church.trim()) && (
+              <View style={styles.sermonDetails}>
+                <ThemedText style={styles.sermonDate}>{sermonDate}</ThemedText>
+                <ThemedText weight="bold" style={styles.sermonEyebrow}>
+                  SERMON NOTES
+                </ThemedText>
+                {title.trim() && (
+                  <ThemedText weight="bold" style={styles.sermonTitle}>
+                    {title}
+                  </ThemedText>
+                )}
+                {speaker.trim() && (
+                  <ThemedText weight="bold" style={styles.sermonPastor}>
+                    {speaker}
+                  </ThemedText>
+                )}
+                {hasAdditionalDetails && (
+                  <>
+                    <View style={styles.divider} />
+                    <View style={styles.detailGrid}>
+                      {series.trim() && (
+                        <View style={styles.detailItem}>
+                          <ThemedText weight="bold" style={styles.detailLabel}>
+                            SERIES
+                          </ThemedText>
+                          <ThemedText weight="bold" style={styles.detailValue}>
+                            {series}
+                          </ThemedText>
+                        </View>
+                      )}
+                      {church.trim() && (
+                        <View style={styles.detailItem}>
+                          <ThemedText weight="bold" style={styles.detailLabel}>
+                            CHURCH / EVENT
+                          </ThemedText>
+                          <ThemedText weight="bold" style={styles.detailValue}>
+                            {church}
+                          </ThemedText>
+                        </View>
+                      )}
+                    </View>
+                  </>
+                )}
+                {mainScriptureRefs.length > 0 && (
+                  <>
+                    <ThemedText
+                      weight="bold"
+                      style={[styles.detailLabel, {marginTop: 8}]}>
+                      {mainScriptureRefs.length > 1
+                        ? 'MAIN SCRIPTURES'
+                        : 'MAIN SCRIPTURE'}
+                    </ThemedText>
+                    {mainScriptureRefs.map((ref, index) => (
+                      <View key={ref + index}>
+                        {index > 0 && <View style={styles.divider} />}
+                        <TouchableOpacity
+                          style={[styles.sermonQuote, {marginTop: 12}]}
+                          activeOpacity={0.9}
+                          onPress={() => {
+                            triggerLightHaptic();
+                            setScriptureReaderIndex(index);
+                            setScriptureReaderOpen(true);
+                          }}
+                          accessibilityRole="button"
+                          accessibilityLabel="Open scripture in reader">
+                          <View style={styles.sermonQuoteLine} />
+                          <View style={styles.sermonQuoteContent}>
+                            <ThemedText style={styles.sermonQuoteText}>
+                              {mainScriptureTexts[index]
+                                ? mainScriptureTexts[index]
+                                : scriptureLoading
+                                ? 'Loading…'
+                                : ref}
+                            </ThemedText>
+                            {mainScriptureTexts[index] && (
+                              <View style={styles.sermonQuoteReferenceRow}>
+                                <ThemedText
+                                  weight="bold"
+                                  style={styles.sermonQuoteReference}>
+                                  {ref.toUpperCase()} {bibleVersion}
+                                </ThemedText>
+                                <TouchableOpacity
+                                  style={styles.scriptureAction}
+                                  onPress={() => {
+                                    triggerLightHaptic();
+                                    setScriptureReaderIndex(index);
+                                    setScriptureReaderOpen(true);
+                                  }}
+                                  activeOpacity={0.7}
+                                  accessibilityRole="button"
+                                  accessibilityLabel="Open scripture reader">
+                                  <MaterialCommunityIcons
+                                    name="script-text"
+                                    size={16}
+                                    color={Colors.sage}
+                                  />
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                  style={[
+                                    styles.scriptureAction,
+                                    {marginLeft: 4},
+                                  ]}
+                                  onPress={() => handleShareScripture(index)}
+                                  activeOpacity={0.7}
+                                  accessibilityRole="button"
+                                  accessibilityLabel="Share scripture">
+                                  <Ionicons
+                                    name="paper-plane-outline"
+                                    size={16}
+                                    color={Colors.sage}
+                                  />
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                  style={[
+                                    styles.scriptureAction,
+                                    {marginLeft: 4},
+                                  ]}
+                                  onPress={() => {
+                                    triggerLightHaptic();
+                                    setBibleCopyrightOpen(true);
+                                  }}
+                                  activeOpacity={0.7}
+                                  accessibilityRole="button"
+                                  accessibilityLabel="Bible translation information">
+                                  <Ionicons
+                                    name="information-circle-outline"
+                                    size={16}
+                                    color={Colors.sage}
+                                  />
+                                </TouchableOpacity>
+                              </View>
+                            )}
+                          </View>
+                        </TouchableOpacity>
+                      </View>
+                    ))}
+                  </>
+                )}
+                {(hasAdditionalDetails || mainScriptureRefs.length > 0) && (
+                  <View style={styles.divider} />
+                )}
+                <ThemedText weight="bold" style={styles.sermonEyebrow}>
+                  MY NOTES
+                </ThemedText>
+              </View>
+            )}
+            <View
+              style={styles.editor}
+              onLayout={e => {
+                editorLayout.current = {y: e.nativeEvent.layout.y};
+              }}>
               {blocks.map(renderBlock)}
             </View>
           </>
@@ -1695,119 +2426,373 @@ const SermonNotesScreen = ({navigation}: any) => {
 
         {stage === 3 && (
           <>
-            <View style={styles.summary}>
+            <ThemedText weight="bold" style={styles.eyebrow}>
+              FROM YOUR NOTES
+            </ThemedText>
+            <ThemedText style={styles.coverDate}>{coverDate}</ThemedText>
+            <ThemedText weight="bold" style={styles.coverWhatTitle}>
+              What you captured
+            </ThemedText>
+            <ThemedText style={styles.coverSubtitle}>
+              Your sermon notes are saved. Here’s what you captured from the
+              message.
+            </ThemedText>
+
+            <View style={styles.coverCard}>
               <ThemedText weight="bold" style={styles.eyebrow}>
-                FROM YOUR NOTES
+                SERMON REMEMBERED
               </ThemedText>
-              <ThemedText weight="bold" style={styles.summaryTitle}>
-                What did you capture?
+              <ThemedText weight="bold" style={styles.coverSermonTitle}>
+                {title.trim() || 'This sermon'}
               </ThemedText>
-              <View style={styles.chips}>
-                {summary.length ? (
-                  summary.map(item => (
-                    <View key={item.kind} style={styles.chip}>
-                      <ThemedText weight="bold" style={styles.chipText}>
-                        {item.count} {item.label}
-                      </ThemedText>
-                    </View>
-                  ))
-                ) : (
-                  <View style={styles.chip}>
-                    <ThemedText weight="bold" style={styles.chipText}>
-                      Your sermon notes
+              {series.trim() ? (
+                <ThemedText style={styles.coverDetail}>{series}</ThemedText>
+              ) : null}
+              {(speaker.trim() || mainScriptureRefs[0]) ? (
+                <ThemedText style={styles.coverDetail}>
+                  {speaker.trim() || 'Sermon'}
+                  {mainScriptureRefs[0] ? ` · ${mainScriptureRefs[0]}` : ''}
+                </ThemedText>
+              ) : null}
+
+              <View style={styles.coverStats}>
+                {[
+                  {kind: 'scripture', label: 'Scriptures'},
+                  {kind: 'key', label: 'Key Points'},
+                  {kind: 'quote', label: 'Quotes'},
+                  {kind: 'prayer', label: 'Prayer'},
+                ].map(item => (
+                  <View key={item.kind} style={styles.coverStatItem}>
+                    <ThemedText weight="bold" style={styles.coverStatNumber}>
+                      {coverStatCount(item.kind as BlockKind)}
+                    </ThemedText>
+                    <ThemedText style={styles.coverStatLabel}>
+                      {item.label}
                     </ThemedText>
                   </View>
-                )}
+                ))}
               </View>
-              <TouchableOpacity onPress={() => goTo(2)}>
-                <ThemedText weight="bold" style={styles.review}>
-                  Review my notes →
+
+              {(() => {
+                const mainKinds: BlockKind[] = ['scripture', 'key', 'quote', 'prayer'];
+                const extra = summary.filter(s => !mainKinds.includes(s.kind as BlockKind));
+                if (!extra.length) {return null;}
+                return showAllStats ? (
+                  <>
+                    <View style={styles.coverStats}>
+                      {extra.map(item => (
+                        <View key={item.kind} style={styles.coverStatItem}>
+                          <ThemedText weight="bold" style={styles.coverStatNumber}>
+                            {item.count}
+                          </ThemedText>
+                          <ThemedText style={styles.coverStatLabel}>
+                            {item.label}
+                          </ThemedText>
+                        </View>
+                      ))}
+                    </View>
+                    <TouchableOpacity
+                      style={styles.coverShowMore}
+                      onPress={() => setShowAllStats(false)}>
+                      <ThemedText weight="semiBold" style={styles.coverShowMoreText}>
+                        Show less
+                      </ThemedText>
+                    </TouchableOpacity>
+                  </>
+                ) : (
+                  <TouchableOpacity
+                    style={styles.coverShowMore}
+                    onPress={() => setShowAllStats(true)}>
+                    <ThemedText weight="semiBold" style={styles.coverShowMoreText}>
+                      + {extra.length} more
+                    </ThemedText>
+                  </TouchableOpacity>
+                );
+              })()}
+            </View>
+
+            {coverFirstQuote ? (
+              <>
+                <ThemedText
+                  weight="bold"
+                  style={[styles.eyebrow, {marginTop: 28}]}>
+                  A LINE YOU CAPTURED
+                </ThemedText>
+                <ThemedText weight="bold" style={styles.lineCaptured}>
+                  “{coverFirstQuote}”
+                </ThemedText>
+              </>
+            ) : null}
+
+            <View style={styles.coverActions}>
+              <TouchableOpacity
+                style={styles.floatingBackButton}
+                onPress={() => goTo(2)}>
+                <Ionicons name="chevron-back" size={21} color={Colors.sage} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.startReflectingButton, {flex: 1}]}
+                onPress={() => goTo(4)}>
+                <ThemedText weight="bold" style={styles.startButtonText}>
+                  Start reflecting
                 </ThemedText>
               </TouchableOpacity>
             </View>
-            <ExpandableReflection
-              eyebrow="GOD"
-              title="What does this show you about God?"
-              value={notice}
-              onChange={setNotice}
-              expanded={expandedReflection === 'god'}
-              onExpand={() =>
-                setExpandedReflection(current =>
-                  current === 'god' ? null : 'god',
-                )
-              }
-            />
-            <ExpandableReflection
-              eyebrow="TRUTH"
-              title="What is He teaching you?"
-              value={carry}
-              onChange={setCarry}
-              expanded={expandedReflection === 'truth'}
-              onExpand={() =>
-                setExpandedReflection(current =>
-                  current === 'truth' ? null : 'truth',
-                )
-              }
-            />
-            <ExpandableReflection
-              eyebrow="RESPONSE"
-              title="How will you respond?"
-              value={prayer}
-              onChange={setPrayer}
-              expanded={expandedReflection === 'response'}
-              onExpand={() =>
-                setExpandedReflection(current =>
-                  current === 'response' ? null : 'response',
-                )
-              }
-            />
-            {!saved ? (
-              <>
-                <TouchableOpacity
-                  style={styles.primary}
-                  disabled={
-                    createReflection.isPending || updateReflection.isPending
-                  }
-                  onPress={() => saveSermon()}>
-                  <ThemedText weight="bold" style={styles.primaryText}>
-                    {createReflection.isPending
-                      ? 'Saving…'
-                      : 'Remember this sermon'}
-                  </ThemedText>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.quiet}
-                  onPress={() => saveSermon()}>
-                  <ThemedText weight="bold" style={styles.quietText}>
-                    Save notes without reflection
-                  </ThemedText>
-                </TouchableOpacity>
-              </>
-            ) : (
-              <View style={styles.finished}>
-                <ThemedText weight="bold" style={styles.eyebrow}>
-                  SERMON REMEMBERED
-                </ThemedText>
-                <ThemedText weight="bold" style={styles.finishedTitle}>
-                  {title.trim() || 'This sermon'}
-                </ThemedText>
-                <ThemedText style={styles.stepDetail}>
-                  Your notes, Scriptures, Bible characters, key points, quotes,
-                  questions, revisits, responses, and prayers are saved together
-                  in the order you captured them.
-                </ThemedText>
-                <TouchableOpacity
-                  style={styles.primary}
-                  onPress={() => navigation.goBack()}>
-                  <ThemedText weight="bold" style={styles.primaryText}>
-                    Done
-                  </ThemedText>
-                </TouchableOpacity>
-              </View>
-            )}
+
           </>
         )}
-      </ScrollView>
+
+        {stage === 4 && (() => {
+          const step = [
+            {
+              eyebrow: 'GOD',
+              title: 'What does this show you about God?',
+              subtitle:
+                'Take a moment with what you heard and what Scripture revealed.',
+              value: notice,
+              onChange: setNotice,
+            },
+            {
+              eyebrow: 'TRUTH',
+              title: 'What truth from Scripture do you want to hold onto?',
+              subtitle: mainScriptureRefs[0]
+                ? `Hold onto a truth rooted in ${mainScriptureRefs[0]}.`
+                : 'Take a moment with what you heard and what Scripture revealed.',
+              value: carry,
+              onChange: setCarry,
+            },
+            {
+              eyebrow: 'RESPONSE',
+              title: 'How will you respond?',
+              subtitle:
+                'Reflect on how this truth shapes your next step.',
+              value: prayer,
+              onChange: setPrayer,
+            },
+            {
+              eyebrow: 'PRAYER',
+              title: 'What do you want to bring to God in prayer?',
+              subtitle:
+                'Speak to God about what this sermon has stirred in you.',
+              value: prayerAnswer,
+              onChange: setPrayerAnswer,
+            },
+          ][reflectionStep];
+          const isLastStep = reflectionStep === 3;
+
+          return (
+            <>
+              <ThemedText style={styles.reflectionCounter}>
+                {reflectionStep + 1} of 4
+              </ThemedText>
+
+              <View style={styles.reflectionProgress}>
+                <View
+                  style={[
+                    styles.reflectionProgressFill,
+                    {
+                      width: `${((reflectionStep + 1) / 4) * 100}%`,
+                    },
+                  ]}
+                />
+              </View>
+
+              <View style={styles.reflectionLabelRow}>
+                <Ionicons name="leaf" size={16} color={Colors.sage} />
+                <ThemedText weight="semiBold" style={styles.reflectionLabel}>
+                  {isLastStep ? 'Prayer' : 'Reflection'}
+                </ThemedText>
+              </View>
+
+              <ThemedText weight="bold" style={styles.reflectionQuestion}>
+                {step.title}
+              </ThemedText>
+
+              <ThemedText style={styles.reflectionPrompt}>
+                {step.subtitle}
+              </ThemedText>
+
+              <TextInput
+                style={styles.reflectionInput}
+                multiline
+                autoFocus={stage === 4}
+                placeholder="Start writing..."
+                placeholderTextColor={Colors.textGray}
+                value={step.value}
+                onChangeText={step.onChange}
+                textAlignVertical="top"
+              />
+
+              <View style={{height: 120}} />
+            </>
+          );
+        })()}
+        </ScrollView>
+      </View>
+      {showMore &&
+        (Platform.OS === 'ios' ? (
+          <BlurView
+            style={[StyleSheet.absoluteFill, {zIndex: 25}]}
+            pointerEvents="none"
+            blurType="dark"
+            blurAmount={10}
+            reducedTransparencyFallbackColor="rgba(0,0,0,0.5)"
+          />
+        ) : (
+          <View
+            style={[
+              StyleSheet.absoluteFill,
+              styles.androidBlur,
+              {zIndex: 25},
+            ]}
+            pointerEvents="none"
+          />
+        ))}
+      {stage === 1 && (
+        <AnimatedTouchableOpacity
+          activeOpacity={0.7}
+          style={[
+            styles.startButton,
+            styles.floatingStartButton,
+            {bottom: startButtonBottom},
+          ]}
+          onPress={() => {
+            const trimmed = mainScriptureInput.trim();
+            if (trimmed) {
+              setMainScripture(prev => (prev ? prev + '; ' : '') + trimmed);
+              setMainScriptureInput('');
+            }
+            goTo(2);
+          }}>
+          <ThemedText weight="bold" style={styles.startButtonText}>
+            Start taking notes
+          </ThemedText>
+        </AnimatedTouchableOpacity>
+      )}
+      {stage === 4 && (
+        <AnimatedTouchableOpacity
+          style={[styles.reflectionFab, {bottom: startButtonBottom}]}
+          activeOpacity={0.7}
+          onPress={() => {
+            triggerLightHaptic();
+            if (reflectionStep === 3) {
+              Keyboard.dismiss();
+              saveSermon(true).then(didSave => {
+                if (didSave) {
+                  goTo(5);
+                }
+              });
+            } else {
+              setReflectionStep(reflectionStep + 1);
+              scrollRef.current?.scrollTo({y: 0, animated: true});
+            }
+          }}>
+          <Ionicons
+            name={reflectionStep === 3 ? 'checkmark' : 'chevron-forward'}
+            size={24}
+            color={Colors.hopeWhite}
+          />
+        </AnimatedTouchableOpacity>
+      )}
+
+      {stage === 5 && (
+        <View style={styles.savedStage}>
+          <View style={styles.savedCheckCircle}>
+            <Ionicons name="checkmark" size={34} color={Colors.sage} />
+          </View>
+
+          <ThemedText weight="semiBold" style={styles.savedEyebrow}>
+            REFLECTION SAVED
+          </ThemedText>
+
+          <ThemedText weight="bold" style={styles.savedTitle}>
+            Sermon reflected
+          </ThemedText>
+
+          <ThemedText style={styles.savedSubtitle}>
+            Your notes, reflection, and prayer are saved together so you can
+            return to what you captured and how you responded.
+          </ThemedText>
+
+          <View style={styles.savedCard}>
+            <ThemedText weight="semiBold" style={styles.savedCardEyebrow}>
+              YOUR SERMON NOW INCLUDES
+            </ThemedText>
+            <ThemedText weight="bold" style={styles.savedCardTitle}>
+              {title.trim() || 'This sermon'}
+            </ThemedText>
+
+            <View style={styles.savedIncludes}>
+              <View style={styles.savedIncludeItem}>
+                <ThemedText weight="bold" style={styles.savedIncludeCount}>
+                  {blocks.filter(hasBlockContent).length}
+                </ThemedText>
+                <ThemedText style={styles.savedIncludeLabel}>Notes</ThemedText>
+              </View>
+
+              <View style={styles.savedIncludeDivider} />
+
+              <View style={styles.savedIncludeItem}>
+                <ThemedText weight="bold" style={styles.savedIncludeCount}>
+                  4
+                </ThemedText>
+                <ThemedText style={styles.savedIncludeLabel}>
+                  Reflection
+                </ThemedText>
+              </View>
+
+              <View style={styles.savedIncludeDivider} />
+
+              <View style={styles.savedIncludeItem}>
+                <ThemedText weight="bold" style={styles.savedIncludeCount}>
+                  {prayerAnswer.trim() ? 1 : 0}
+                </ThemedText>
+                <ThemedText style={styles.savedIncludeLabel}>Prayer</ThemedText>
+              </View>
+            </View>
+          </View>
+
+          <TouchableOpacity
+            style={styles.savedPrimaryButton}
+            activeOpacity={0.7}
+            onPress={() => {
+              triggerLightHaptic();
+              navigation.goBack();
+            }}>
+            <ThemedText weight="bold" style={styles.savedPrimaryButtonText}>
+              View sermon
+            </ThemedText>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.savedSecondaryButton}
+            activeOpacity={0.7}
+            onPress={() => {
+              triggerLightHaptic();
+              navigation.goBack();
+            }}>
+            <ThemedText weight="semiBold" style={styles.savedSecondaryButtonText}>
+              Done
+            </ThemedText>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.savedExportButton}
+            activeOpacity={0.7}
+            onPress={handleExportPDF}>
+            <Ionicons
+              name="document-text-outline"
+              size={18}
+              color={Colors.sage}
+              style={{marginRight: 8}}
+            />
+            <ThemedText weight="semiBold" style={styles.savedExportButtonText}>
+              Export PDF
+            </ThemedText>
+          </TouchableOpacity>
+        </View>
+      )}
+
       {stage === 2 && (
         <Animated.View
           pointerEvents="box-none"
@@ -1997,9 +2982,7 @@ const SermonNotesScreen = ({navigation}: any) => {
                 accessibilityRole="button"
                 accessibilityLabel="Finished taking notes"
                 style={styles.finishNotesButton}
-                disabled={
-                  createReflection.isPending || updateReflection.isPending
-                }
+                disabled={isSaving}
                 onPress={() =>
                   runAfterClosingPicker(async () => {
                     if (await saveSermon(false)) {
@@ -2018,58 +3001,29 @@ const SermonNotesScreen = ({navigation}: any) => {
 
         </Animated.View>
       )}
+
+      <ScriptureReaderModal
+        visible={scriptureReaderOpen}
+        passages={mainScriptureRefs.map(r => ({reference: r}))}
+        initialIndex={scriptureReaderIndex}
+        version={bibleVersion}
+        onClose={() => setScriptureReaderOpen(false)}
+      />
+
+      <ShareComposer
+        visible={shareComposerOpen}
+        text={shareComposerText}
+        userId=""
+        onClose={() => setShareComposerOpen(false)}
+        onUpgrade={() => setShareComposerOpen(false)}
+      />
+
+      <BibleCopyrightModal
+        visible={bibleCopyrightOpen}
+        onClose={() => setBibleCopyrightOpen(false)}
+        bibleVersion={bibleVersion}
+      />
     </SafeAreaView>
-  );
-};
-
-const ExpandableReflection = ({
-  eyebrow,
-  title,
-  value,
-  onChange,
-  expanded,
-  onExpand,
-}: any) => {
-  const inputRef = useRef<TextInput>(null);
-
-  useEffect(() => {
-    if (expanded) {
-      requestAnimationFrame(() => inputRef.current?.focus());
-    }
-  }, [expanded]);
-
-  return (
-    <View style={styles.expandableReflection}>
-      <TouchableOpacity
-        activeOpacity={0.75}
-        accessibilityRole="button"
-        accessibilityState={{expanded}}
-        onPress={onExpand}
-        style={styles.expandableReflectionHeader}>
-        <View style={styles.flex}>
-          <ThemedText weight="bold" style={styles.eyebrow}>
-            {eyebrow}
-          </ThemedText>
-          <ThemedText weight="bold" style={styles.stepTitle}>
-            {title}
-          </ThemedText>
-        </View>
-        <Ionicons
-          name={expanded ? 'chevron-up' : 'chevron-down'}
-          size={18}
-          color={Colors.sage}
-        />
-      </TouchableOpacity>
-      {expanded && (
-        <TextInput
-          ref={inputRef}
-          style={styles.expandableReflectionInput}
-          multiline
-          value={value}
-          onChangeText={onChange}
-        />
-      )}
-    </View>
   );
 };
 
@@ -2083,6 +3037,17 @@ const styles = StyleSheet.create({
   closeButton: {
     position: 'absolute',
     right: 18,
+    zIndex: 21,
+    width: 42,
+    height: 42,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: Colors.cardBackground,
+    borderRadius: 21,
+  },
+  shareButton: {
+    position: 'absolute',
+    right: 70,
     zIndex: 21,
     width: 42,
     height: 42,
@@ -2144,6 +3109,48 @@ const styles = StyleSheet.create({
     color: Colors.text,
     backgroundColor: 'transparent',
   },
+  scriptureInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  scriptureInput: {
+    flex: 1,
+    marginRight: 12,
+  },
+  addScriptureButton: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: Colors.sage,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  scriptureChips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginTop: 12,
+    marginBottom: 4,
+  },
+  scriptureChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.anchorBlueLight,
+    borderRadius: 16,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    marginRight: 8,
+    marginBottom: 8,
+    maxWidth: '100%',
+  },
+  scriptureChipText: {
+    fontSize: 13,
+    color: Colors.text,
+    maxWidth: 160,
+  },
+  scriptureChipRemove: {
+    marginLeft: 6,
+    padding: 2,
+  },
   heroHeader: {
     marginTop: 4,
     marginBottom: 24,
@@ -2197,6 +3204,13 @@ const styles = StyleSheet.create({
     marginTop: 28,
   },
   startButtonText: {fontSize: 15, color: Colors.hopeWhite},
+  floatingStartButton: {
+    position: 'absolute',
+    left: 22,
+    right: 22,
+    marginTop: 0,
+    zIndex: 20,
+  },
   quiet: {padding: 15, alignItems: 'center'},
   quietText: {fontSize: 12, color: Colors.textGray},
   toolbar: {flexDirection: 'row', flexWrap: 'wrap', gap: 7, marginBottom: 10},
@@ -2209,10 +3223,12 @@ const styles = StyleSheet.create({
     paddingVertical: 9,
   },
   toolText: {fontSize: 11, color: Colors.sage},
+  androidBlur: {backgroundColor: 'rgba(0, 0, 0, 0.5)'},
   floatingComposer: {
     position: 'absolute',
     left: 18,
     right: 18,
+    zIndex: 30,
     alignItems: 'flex-end',
   },
   floatingTools: {
@@ -2330,10 +3346,134 @@ const styles = StyleSheet.create({
     fontSize: 9,
     color: Colors.textGray,
   },
+  sermonDetails: {
+    marginTop: 0,
+    marginBottom: 10,
+    paddingTop: 8,
+    paddingBottom: 8,
+  },
+  sermonDate: {
+    fontSize: 11,
+    letterSpacing: 1.5,
+    color: Colors.textGray,
+    textTransform: 'uppercase',
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  sermonEyebrow: {
+    fontSize: 11,
+    letterSpacing: 2,
+    color: Colors.sage,
+    textTransform: 'uppercase',
+    marginBottom: 6,
+  },
+  sermonTitle: {
+    fontFamily: Fonts.lora.bold,
+    fontSize: 32,
+    lineHeight: 38,
+    color: Colors.text,
+    marginBottom: 8,
+  },
+  sermonPastor: {
+    fontFamily: Fonts.lora.bold,
+    fontSize: 16,
+    color: Colors.sage,
+    marginBottom: 12,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: Colors.cardBorder,
+    marginVertical: 14,
+  },
+  detailGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  detailItem: {
+    flex: 1,
+    minWidth: '48%',
+    marginBottom: 18,
+  },
+  detailLabel: {
+    fontSize: 10,
+    letterSpacing: 1.2,
+    color: Colors.textGray,
+    textTransform: 'uppercase',
+    marginBottom: 5,
+  },
+  detailValue: {
+    fontSize: 15,
+    color: Colors.text,
+    flex: 1,
+  },
+  detailValueRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  scriptureActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  scriptureAction: {
+    padding: 2,
+    marginLeft: 0,
+  },
+  detailItemFull: {
+    flex: 0,
+    width: '100%',
+    minWidth: '100%',
+  },
+  detailScripturesList: {
+    width: '100%',
+  },
+  detailScriptureReference: {
+    fontSize: 15,
+    color: Colors.text,
+    textAlign: 'left',
+    marginRight: 8,
+    maxWidth: '82%',
+  },
+  sermonQuote: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  sermonQuoteLine: {
+    width: 2,
+    alignSelf: 'stretch',
+    minHeight: 22,
+    backgroundColor: Colors.sage,
+    borderRadius: 1,
+    marginRight: 12,
+  },
+  sermonQuoteContent: {
+    flex: 1,
+  },
+  sermonQuoteText: {
+    fontFamily: Fonts.lora.regular,
+    fontStyle: 'italic',
+    fontSize: 16,
+    color: Colors.text,
+    lineHeight: 24,
+  },
+  sermonQuoteReference: {
+    fontSize: 12,
+    color: Colors.sage,
+    marginRight: 4,
+  },
+  sermonQuoteReferenceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    marginTop: 12,
+  },
   editor: {
     borderWidth: 0,
     backgroundColor: 'transparent',
-    padding: 12,
+    paddingHorizontal: 12,
+    paddingTop: 4,
+    paddingBottom: 12,
     minHeight: 330,
   },
   freeText: {
@@ -2360,6 +3500,7 @@ const styles = StyleSheet.create({
   },
   quoteCapture: {backgroundColor: '#F4F3ED', borderColor: Colors.cardBorder},
   songCapture: {backgroundColor: '#F1F2ED', borderColor: '#DCE1DA'},
+  bookCapture: {backgroundColor: '#F0F2ED', borderColor: '#D9E0D9'},
   outlineCapture: {backgroundColor: Colors.cardBackground},
   characterCapture: {backgroundColor: '#F2F1EB', borderColor: '#DEE1D9'},
   languageCapture: {backgroundColor: '#EAEFEA', borderColor: '#D5DED6'},
@@ -2376,6 +3517,10 @@ const styles = StyleSheet.create({
   },
   responseCapture: {backgroundColor: '#EDF1EC', borderColor: '#D7DED7'},
   questionCapture: {backgroundColor: Colors.cardBackground},
+  reflection_questionCapture: {
+    backgroundColor: '#E9F0EA',
+    borderColor: '#D3DED4',
+  },
   revisitCapture: {backgroundColor: '#F4F3ED', borderColor: Colors.cardBorder},
   prayerCapture: {
     backgroundColor: '#E9EEE9',
@@ -2397,6 +3542,11 @@ const styles = StyleSheet.create({
     lineHeight: 21,
     color: Colors.text,
     textAlignVertical: 'top',
+  },
+  outlineTitleInput: {
+    fontFamily: Fonts.bold,
+    fontSize: 16,
+    lineHeight: 24,
   },
   scriptureLookupRow: {
     flexDirection: 'row',
@@ -2764,6 +3914,308 @@ const styles = StyleSheet.create({
   startSection: {paddingHorizontal: 7, paddingVertical: 7},
   startSectionText: {fontSize: 9, color: Colors.sage},
   addPoint: {paddingTop: 9, alignSelf: 'flex-start'},
+  coverHeader: {alignItems: 'center', marginTop: 10, marginBottom: 22},
+  coverHeading: {fontSize: 16, color: Colors.text},
+  coverWhatTitle: {
+    fontFamily: Fonts.lora.bold,
+    fontSize: 26,
+    lineHeight: 32,
+    color: Colors.text,
+    marginTop: 6,
+  },
+  coverSubtitle: {
+    fontSize: 14,
+    lineHeight: 22,
+    color: Colors.textGray,
+    marginTop: 10,
+    marginBottom: 24,
+  },
+  coverCard: {
+    backgroundColor: Colors.anchorBlueLight,
+    borderRadius: 22,
+    padding: 20,
+    marginBottom: 8,
+  },
+  coverSermonTitle: {
+    fontFamily: Fonts.lora.bold,
+    fontSize: 22,
+    lineHeight: 28,
+    color: Colors.text,
+    marginTop: 6,
+  },
+  coverDate: {
+    fontSize: 11,
+    lineHeight: 16,
+    color: Colors.textGray,
+    marginTop: 0,
+    marginBottom: 8,
+  },
+  coverDetail: {
+    fontSize: 13,
+    lineHeight: 20,
+    color: Colors.textGray,
+    marginTop: 4,
+  },
+  coverStats: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    marginTop: 18,
+  },
+  coverStatItem: {
+    flex: 1,
+    minWidth: '22%',
+    backgroundColor: Colors.hopeWhite,
+    borderRadius: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 6,
+    alignItems: 'center',
+  },
+  coverStatNumber: {
+    fontSize: 22,
+    color: Colors.text,
+  },
+  coverStatLabel: {
+    fontSize: 10,
+    color: Colors.textGray,
+    marginTop: 4,
+    textAlign: 'center',
+  },
+  coverShowMore: {
+    alignSelf: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    marginTop: 12,
+  },
+  coverShowMoreText: {
+    fontSize: 13,
+    color: Colors.sage,
+  },
+  lineCaptured: {
+    fontFamily: Fonts.lora.bold,
+    fontSize: 18,
+    lineHeight: 26,
+    color: Colors.text,
+    marginTop: 8,
+  },
+  coverActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginTop: 32,
+  },
+  startReflectingButton: {
+    minHeight: 54,
+    borderRadius: 27,
+    backgroundColor: Colors.sage,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  reflectionLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  reflectionLabel: {
+    fontSize: 11,
+    letterSpacing: 1,
+    color: Colors.sage,
+    textTransform: 'uppercase',
+  },
+  reflectionCounter: {
+    fontSize: 13,
+    color: Colors.textGray,
+    marginTop: 32,
+    marginBottom: 8,
+    letterSpacing: 0.5,
+    textAlign: 'center' as const,
+  },
+  reflectionProgress: {
+    alignSelf: 'center',
+    width: 120,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: Colors.cardBorder,
+    overflow: 'hidden' as const,
+    marginBottom: 28,
+  },
+  reflectionProgressFill: {
+    height: '100%',
+    borderRadius: 2,
+    backgroundColor: Colors.sage,
+  },
+  reflectionQuestion: {
+    fontFamily: Fonts.lora.bold,
+    fontSize: 24,
+    lineHeight: 30,
+    textAlign: 'center',
+    color: Colors.text,
+    marginTop: 8,
+    marginBottom: 32,
+    paddingHorizontal: 12,
+  },
+  reflectionPrompt: {
+    fontSize: 14,
+    lineHeight: 22,
+    textAlign: 'center',
+    color: Colors.textGray,
+    marginBottom: 16,
+    paddingHorizontal: 12,
+  },
+  reflectionInput: {
+    fontFamily: Fonts.regular,
+    fontSize: 18,
+    lineHeight: 26,
+    color: Colors.text,
+    paddingVertical: 16,
+    minHeight: 140,
+    textAlignVertical: 'top',
+  },
+  reflectionFab: {
+    position: 'absolute',
+    right: 20,
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: Colors.sage,
+    borderRadius: 20,
+    shadowColor: '#29342E',
+    shadowOffset: {width: 0, height: 4},
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+    zIndex: 30,
+  },
+
+  savedStage: {
+    alignItems: 'center',
+    paddingHorizontal: 28,
+    paddingTop: 60,
+    paddingBottom: 40,
+    minHeight: 420,
+  },
+  savedCheckCircle: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    borderWidth: 2,
+    borderColor: Colors.sage,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 32,
+  },
+  savedEyebrow: {
+    fontSize: 12,
+    letterSpacing: 1.5,
+    color: Colors.sage,
+    textTransform: 'uppercase' as const,
+    marginBottom: 12,
+  },
+  savedTitle: {
+    fontFamily: Fonts.lora.bold,
+    fontSize: 36,
+    lineHeight: 44,
+    textAlign: 'center' as const,
+    color: Colors.text,
+    marginBottom: 16,
+  },
+  savedSubtitle: {
+    fontSize: 16,
+    lineHeight: 24,
+    textAlign: 'center' as const,
+    color: Colors.textGray,
+    marginBottom: 40,
+    paddingHorizontal: 8,
+  },
+  savedCard: {
+    width: '100%',
+    backgroundColor: Colors.hopeWhite,
+    borderRadius: 20,
+    padding: 24,
+    marginBottom: 28,
+    shadowColor: '#29342E',
+    shadowOffset: {width: 0, height: 6},
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    elevation: 3,
+  },
+  savedCardEyebrow: {
+    fontSize: 11,
+    letterSpacing: 1.2,
+    color: Colors.sage,
+    textTransform: 'uppercase' as const,
+    marginBottom: 6,
+  },
+  savedCardTitle: {
+    fontFamily: Fonts.lora.bold,
+    fontSize: 24,
+    lineHeight: 30,
+    color: Colors.text,
+    marginBottom: 24,
+  },
+  savedIncludes: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  savedIncludeItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  savedIncludeCount: {
+    fontSize: 22,
+    color: Colors.text,
+    marginBottom: 4,
+  },
+  savedIncludeLabel: {
+    fontSize: 13,
+    color: Colors.textGray,
+  },
+  savedIncludeDivider: {
+    width: 1,
+    height: 32,
+    backgroundColor: Colors.cardBorder,
+  },
+  savedPrimaryButton: {
+    width: '100%',
+    height: 54,
+    borderRadius: 27,
+    backgroundColor: Colors.sage,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  savedPrimaryButtonText: {
+    fontSize: 16,
+    color: Colors.hopeWhite,
+  },
+  savedSecondaryButton: {
+    paddingHorizontal: 24,
+    paddingVertical: 8,
+  },
+  savedSecondaryButtonText: {
+    fontSize: 15,
+    color: Colors.textGray,
+  },
+  savedExportButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 8,
+    marginTop: 4,
+  },
+  savedExportButtonText: {
+    fontSize: 15,
+    color: Colors.sage,
+  },
 });
+
+export const SermonNotesStyles = styles;
 
 export default SermonNotesScreen;
