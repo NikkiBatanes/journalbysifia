@@ -5,14 +5,14 @@
 
 require 'xcodeproj'
 
-project_path = 'siFia.xcodeproj'
+project_path = 'JournalBySiFia.xcodeproj'
 project = Xcodeproj::Project.open(project_path)
 
 # Find the main target
-target = project.targets.find { |t| t.name == 'siFia' }
+target = project.targets.find { |t| t.name == 'JournalBySiFia' }
 
 if target.nil?
-  puts "❌ Could not find siFia target"
+  puts "❌ Could not find JournalBySiFia target"
   exit 1
 end
 

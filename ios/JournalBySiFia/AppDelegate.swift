@@ -47,7 +47,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
     window = UIWindow(frame: UIScreen.main.bounds)
 
     factory.startReactNative(
-      withModuleName: "siFia",
+      withModuleName: "JournalBySiFia",
       in: window,
       launchOptions: launchOptions
     )

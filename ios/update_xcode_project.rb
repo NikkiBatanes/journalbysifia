@@ -3,13 +3,13 @@
 require 'xcodeproj'
 
 # Path to the Xcode project
-project_path = 'siFia.xcodeproj'
+project_path = 'JournalBySiFia.xcodeproj'
 
 # Open the Xcode project
 project = Xcodeproj::Project.open(project_path)
 
 # Find the main target
-main_target = project.targets.find { |target| target.name == 'siFia' }
+main_target = project.targets.find { |target| target.name == 'JournalBySiFia' }
 
 # Add the sound file to the resources build phase
 sound_file = project.new_file('Sounds/bell.mp3')

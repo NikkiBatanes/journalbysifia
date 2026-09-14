@@ -38,7 +38,7 @@ echo ""
 
 # Step 3: Verify Xcode project
 echo "📋 Step 3: Verifying Xcode project configuration..."
-if grep -q "Copy Hermes dSYM" siFia.xcodeproj/project.pbxproj; then
+if grep -q "Copy Hermes dSYM" JournalBySiFia.xcodeproj/project.pbxproj; then
     echo "✅ Build script added to Xcode project"
 else
     echo "⚠️  Build script may not be properly configured"
@@ -48,7 +48,7 @@ echo ""
 echo "✅ Hermes dSYM fix completed!"
 echo ""
 echo "📋 Next steps:"
-echo "   1. Open Xcode: open siFia.xcworkspace"
+echo "   1. Open Xcode: open JournalBySiFia.xcworkspace"
 echo "   2. Clean build folder: Product → Clean Build Folder (Cmd+Shift+K)"
 echo "   3. Archive your app: Product → Archive"
 echo "   4. The Hermes dSYM will be automatically included in the archive"

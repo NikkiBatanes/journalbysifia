@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "🚀 Building siFia for TestFlight..."
+echo "🚀 Building JournalBySiFia for TestFlight..."
 
 # Navigate to iOS directory
 cd "$(dirname "$0")"
@@ -9,7 +9,7 @@ echo "🧹 Cleaning build folder..."
 rm -rf build
 
 echo "🧹 Cleaning derived data..."
-rm -rf ~/Library/Developer/Xcode/DerivedData/siFia-*
+rm -rf ~/Library/Developer/Xcode/DerivedData/JournalBySiFia-*
 
 echo "📱 Opening Xcode for archiving..."
 echo ""

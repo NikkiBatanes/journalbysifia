@@ -24,9 +24,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "13B07F861A680F5B00A75B9A"
-               BuildableName = "siFia.app"
-               BlueprintName = "siFia"
-               ReferencedContainer = "container:siFia.xcodeproj">
+               BuildableName = "JournalBySiFia.app"
+               BlueprintName = "JournalBySiFia"
+               ReferencedContainer = "container:JournalBySiFia.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -53,9 +53,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "13B07F861A680F5B00A75B9A"
-            BuildableName = "siFia.app"
-            BlueprintName = "siFia"
-            ReferencedContainer = "container:siFia.xcodeproj">
+            BuildableName = "JournalBySiFia.app"
+            BlueprintName = "JournalBySiFia"
+            ReferencedContainer = "container:JournalBySiFia.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </LaunchAction>
@@ -70,9 +70,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "13B07F861A680F5B00A75B9A"
-            BuildableName = "siFia.app"
-            BlueprintName = "siFia"
-            ReferencedContainer = "container:siFia.xcodeproj">
+            BuildableName = "JournalBySiFia.app"
+            BlueprintName = "JournalBySiFia"
+            ReferencedContainer = "container:JournalBySiFia.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>

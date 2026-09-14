@@ -14,7 +14,7 @@ cd "$(dirname "$0")/.."
 echo "📦 Cleaning build artifacts..."
 rm -rf ios/build
 rm -rf ios/Pods
-rm -rf ~/Library/Developer/Xcode/DerivedData/siFia-*
+rm -rf ~/Library/Developer/Xcode/DerivedData/JournalBySiFia-*
 rm -rf ~/Library/Caches/com.apple.dt.Xcode
 
 # Step 2: Reinstall dependencies
@@ -66,7 +66,7 @@ echo ""
 echo "✅ iOS project is ready for Xcode!"
 echo ""
 echo "Next steps:"
-echo "1. Open ios/siFia.xcworkspace in Xcode"
+echo "1. Open ios/JournalBySiFia.xcworkspace in Xcode"
 echo "2. Select your device/simulator"
 echo "3. Product → Build (Cmd+B)"
 echo "4. Product → Archive (for App Store)"

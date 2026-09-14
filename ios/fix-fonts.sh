@@ -7,7 +7,7 @@ cd "$(dirname "$0")"
 
 # Clean derived data
 echo "🧹 Cleaning derived data..."
-rm -rf ~/Library/Developer/Xcode/DerivedData/siFia-*
+rm -rf ~/Library/Developer/Xcode/DerivedData/JournalBySiFia-*
 
 # Clean build folder  
 echo "🧹 Cleaning build folder..."
