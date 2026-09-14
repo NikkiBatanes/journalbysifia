@@ -66,6 +66,10 @@ import { experiencePreferences } from './src/services/experiencePreferences';
 import { initializeMetaAppEvents } from './src/services/metaAppEventsService';
 import { onboardingService } from './src/services/onboardingService';
 import {
+  isJournalOnboardingComplete,
+} from './src/services/journalOnboardingState';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import {
   clearLoginFlowRedirect,
   getPostAuthRedirect,
 } from './src/utils/postAuthRedirect';
@@ -93,6 +97,22 @@ const INTRO_AUTH_ROUTES = new Set([
   'OnboardingPosture',
   'OnboardingAccountCreation',
   'OnboardingWelcome',
+]);
+
+// Routes a Journal user should never remain on after authentication.
+// Covers the Journal first-launch flow plus legacy siFia destinations
+// written by post_auth_redirect (UserInput, OnboardingPersonalization, ...).
+const JOURNAL_POST_AUTH_EXIT_ROUTES = new Set([
+  ...INTRO_AUTH_ROUTES,
+  'JournalOnboarding',
+  'OnboardingSplash',
+  'OnboardingPersonalization',
+  'OnboardingPlaybookGeneration',
+  'OnboardingPlaybookReady',
+  'OnboardingSalesOffer',
+  'OnboardingTrialOffer',
+  'OnboardingNotificationSetup',
+  'UserInput',
 ]);
 
 const isRecentlyCreatedAuthUser = (createdAt?: string): boolean => {
@@ -162,6 +182,8 @@ function AppWithAuth({
   );
   const [appState, setAppState] = useState<AppStateStatus>(AppState.currentState);
   const lastHandledLoginRedirectRef = React.useRef<string | null>(null);
+  // Journal first-launch flag (local, auth-independent). null = not loaded yet.
+  const [journalOnboarded, setJournalOnboarded] = useState<boolean | null>(null);
 
   // Linking configuration for deep links - MUST be before any early returns
   // Only enable linking when authenticated to prevent interference with logout
@@ -214,6 +236,7 @@ function AppWithAuth({
   const HIDE_NETWORK_ON = React.useMemo(
     () =>
       new Set<string>([
+        'JournalOnboarding',
         'OnboardingSplash',
         'TransformJourney',
         'OnboardingWelcome',
@@ -235,6 +258,20 @@ function AppWithAuth({
       ]),
     [],
   );
+
+  // Load Journal first-launch flag once at startup. This is local state
+  // (AsyncStorage) and intentionally independent of authentication.
+  useEffect(() => {
+    let mounted = true;
+    isJournalOnboardingComplete().then(done => {
+      if (mounted) {
+        setJournalOnboarded(done);
+      }
+    });
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     // Initialize app-level services
@@ -348,6 +385,29 @@ function AppWithAuth({
       const currentRoute = navigation.getCurrentRoute()?.name;
 
       try {
+        // Journal by siFia: once the local first-launch flag is set,
+        // post-auth always lands on MainTabs. Legacy post_auth_redirect
+        // targets (UserInput, OnboardingPersonalization, ...) belong to
+        // siFia flows and are dropped here.
+        const journalOnboardedNow = await isJournalOnboardingComplete();
+        if (journalOnboardedNow) {
+          try {
+            await AsyncStorage.removeItem('post_auth_redirect');
+          } catch {}
+          if (
+            !cancelled &&
+            currentRoute &&
+            JOURNAL_POST_AUTH_EXIT_ROUTES.has(currentRoute)
+          ) {
+            lastHandledLoginRedirectRef.current = `${user.id}:MainTabs`;
+            navigation.reset({
+              index: 0,
+              routes: [{name: 'MainTabs' as never}],
+            });
+          }
+          return;
+        }
+
         const redirect = await getPostAuthRedirect('App:postAuthRedirect');
         const target = redirect?.target;
         const params = redirect?.params || {};
@@ -464,7 +524,7 @@ function AppWithAuth({
   // Only block initial render while bootstrapping the initial session.
   // DO NOT block on transient auth action loading to avoid navigator remounts
   // that can reset to onboarding after failed logins.
-  if (!fontsLoaded || bootstrapping) {
+  if (!fontsLoaded || bootstrapping || journalOnboarded === null) {
     return (
       <View style={styles.loadingContainer}>
         <Image
@@ -543,6 +603,9 @@ function AppWithAuth({
                             handleLogout={async () => {}}
                             onLogin={async () => {}}
                             AuthStack={AuthStackNavigator}
+                            initialRouteName={
+                              journalOnboarded ? 'MainTabs' : 'JournalOnboarding'
+                            }
                           />
                           {currentRouteName &&
                           !HIDE_NETWORK_ON.has(currentRouteName) ? (

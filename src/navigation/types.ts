@@ -81,6 +81,9 @@ export type RootStackParamList = {
     userType: 'trial' | 'paid' | 'freemium';
   };
 
+  // Journal first-launch onboarding (local AsyncStorage flag, no auth)
+  JournalOnboarding: undefined;
+
   // Main App
   MainTabs: undefined;
   UserProfileModal: undefined;

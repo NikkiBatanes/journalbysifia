@@ -97,8 +97,10 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
   // Refetch data when screen comes back into focus (after saving in walkthrough)
   useFocusEffect(
     useCallback(() => {
-      refetch();
-    }, [refetch])
+      if (user?.id) {
+        refetch();
+      }
+    }, [refetch, user?.id])
   );
 
   // Transform API data to local format

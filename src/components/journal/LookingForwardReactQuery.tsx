@@ -284,8 +284,10 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
   // Refetch data when screen comes back into focus (after saving in walkthrough)
   useFocusEffect(
     React.useCallback(() => {
-      refetch();
-    }, [refetch])
+      if (userId) {
+        refetch();
+      }
+    }, [refetch, userId])
   );
 
   // Handle global edit mode activation - disabled for LookingForward since it uses walkthrough

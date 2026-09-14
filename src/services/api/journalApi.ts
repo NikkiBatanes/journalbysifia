@@ -15,6 +15,10 @@ export class JournalApi {
     date: string,
     contentType?: string
   ): Promise<JournalApiEntry[]> {
+    if (!userId || !userId.trim()) {
+      return [];
+    }
+
     let query = supabase
       .from('journal_entries')
       .select('*')
@@ -251,6 +255,10 @@ export class JournalApi {
     endDate: string,
     contentType?: string
   ): Promise<JournalApiEntry[]> {
+    if (!userId || !userId.trim()) {
+      return [];
+    }
+
     let query = supabase
       .from('journal_entries')
       .select('*')

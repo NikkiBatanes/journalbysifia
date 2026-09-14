@@ -93,8 +93,10 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
   // Refetch data when screen comes back into focus (after saving in walkthrough)
   useFocusEffect(
     useCallback(() => {
-      refetch();
-    }, [refetch])
+      if (userId) {
+        refetch();
+      }
+    }, [refetch, userId])
   );
 
   // Track loading performance

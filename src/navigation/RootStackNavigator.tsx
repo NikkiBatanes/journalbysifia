@@ -42,6 +42,7 @@ import OnboardingPostureScreen from '../screens/onboarding/OnboardingPostureScre
 import OnboardingAccountCreationScreen from '../screens/onboarding/OnboardingAccountCreationScreen';
 
 import OnboardingPersonalizationScreen from '../screens/onboarding/OnboardingPersonalizationScreen';
+import JournalOnboardingScreen from '../screens/journalOnboarding/JournalOnboardingScreen';
 
 // New Simplified Onboarding Flow Screens
 import OnboardingPlaybookReadyScreen from '../screens/onboarding/OnboardingPlaybookReadyScreenNew';
@@ -171,6 +172,7 @@ interface RootStackNavigatorProps {
   handleLogout: () => Promise<void>;
   AuthStack: React.ComponentType<{ onLogin: () => void }>;
   onLogin: () => void;
+  initialRouteName?: string;
 }
 
 export default function RootStackNavigator({
@@ -179,6 +181,7 @@ export default function RootStackNavigator({
   handleLogout: _handleLogout, // Prefix with underscore to indicate intentionally unused
   AuthStack,
   onLogin: _onLogin, // Prefix with underscore to indicate intentionally unused
+  initialRouteName = 'MainTabs',
 }: RootStackNavigatorProps) {
   // Start directly with TransformJourney - navigation logic moved there
   // including post_auth_redirect, completion checks, and authentication state
@@ -189,7 +192,7 @@ export default function RootStackNavigator({
         headerShown: false,
         contentStyle: { backgroundColor: Colors.sage },
       }}
-      initialRouteName="MainTabs"
+      initialRouteName={initialRouteName}
     >
       {/* Splash Screen */}
       <Stack.Screen
@@ -254,6 +257,31 @@ export default function RootStackNavigator({
           animation: 'slide_from_bottom',
           gestureEnabled: false,
           contentStyle: { backgroundColor: Colors.lightBackground },
+        }}
+      />
+
+      {/* Evening Flow - multi-page evening reflection modal */}
+      <Stack.Screen
+        name="EveningFlow"
+        component={EveningFlowStackNavigator as React.ComponentType}
+        options={{
+          headerShown: false,
+          presentation: 'fullScreenModal',
+          animation: 'slide_from_bottom',
+          gestureEnabled: false,
+          contentStyle: { backgroundColor: Colors.sage },
+        }}
+      />
+
+      {/* Journal first-launch onboarding (local flag, no auth required) */}
+      <Stack.Screen
+        name="JournalOnboarding"
+        component={JournalOnboardingScreen as React.ComponentType}
+        options={{
+          headerShown: false,
+          animation: 'fade',
+          gestureEnabled: false,
+          contentStyle: { backgroundColor: Colors.sage },
         }}
       />
 
@@ -513,19 +541,6 @@ export default function RootStackNavigator({
               headerShown: false,
               presentation: 'fullScreenModal',
               animation: 'fade',
-              contentStyle: { backgroundColor: Colors.sage },
-            }}
-          />
-
-          {/* Evening Flow - multi-page evening reflection modal */}
-          <Stack.Screen
-            name="EveningFlow"
-            component={EveningFlowStackNavigator as React.ComponentType}
-            options={{
-              headerShown: false,
-              presentation: 'fullScreenModal',
-              animation: 'slide_from_bottom',
-              gestureEnabled: false,
               contentStyle: { backgroundColor: Colors.sage },
             }}
           />

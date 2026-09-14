@@ -1887,16 +1887,32 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
   const renderLogoutSection = () => (
     <View>
       <View style={styles.menuContainer}>
-        <TouchableOpacity
-          style={[styles.menuItem, styles.logoutItem]}
-          onPress={handleLogout}
-        >
-          <View style={styles.menuIconBox}>
-            <Ionicons name="log-out" size={18} color={Colors.alertCoral} />
-          </View>
-          <Text style={[styles.menuText, styles.logoutText, font]}>Logout</Text>
-          <Ionicons name="chevron-forward" size={20} color={theme.colors.chevronColor} />
-        </TouchableOpacity>
+        {user ? (
+          <TouchableOpacity
+            style={[styles.menuItem, styles.logoutItem]}
+            onPress={handleLogout}
+          >
+            <View style={styles.menuIconBox}>
+              <Ionicons name="log-out" size={18} color={Colors.alertCoral} />
+            </View>
+            <Text style={[styles.menuText, styles.logoutText, font]}>Logout</Text>
+            <Ionicons name="chevron-forward" size={20} color={theme.colors.chevronColor} />
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => {
+              try { triggerLightHaptic(); } catch {}
+              navigateFromRoot(navigation, 'Auth', { screen: 'Login' });
+            }}
+          >
+            <View style={styles.menuIconBox}>
+              <Ionicons name="log-in" size={18} color={Colors.sage} />
+            </View>
+            <Text style={[styles.menuText, font]}>Sign in to siFia</Text>
+            <Ionicons name="chevron-forward" size={20} color={theme.colors.chevronColor} />
+          </TouchableOpacity>
+        )}
       </View>
     </View>
   );
