@@ -1561,16 +1561,47 @@ const SermonNotesScreen = ({navigation}: any) => {
             scrollRef.current?.scrollToEnd({animated: true});
           }
         }}>
-        <View style={styles.header}>
-          <View style={styles.stepLabelRow}>
-            <Ionicons name="book" size={18} color={Colors.sage} />
-            <ThemedText weight="semiBold" style={styles.headerTitle}>
-              Sermon Notes
-            </ThemedText>
+        {stage !== 1 && (
+          <View style={styles.header}>
+            <View style={styles.stepLabelRow}>
+              <Ionicons name="book" size={18} color={Colors.sage} />
+              <ThemedText weight="semiBold" style={styles.headerTitle}>
+                Sermon Notes
+              </ThemedText>
+            </View>
           </View>
-        </View>
+        )}
         {stage === 1 && (
           <>
+            <View style={styles.heroHeader}>
+              <View style={styles.heroTitleRow}>
+                <Ionicons
+                  name="book"
+                  size={22}
+                  color={Colors.sage}
+                  style={styles.heroIcon}
+                />
+                <ThemedText weight="bold" style={styles.heroTitle}>
+                  Sermon Notes
+                </ThemedText>
+              </View>
+              <ThemedText style={styles.heroSubtitle}>
+                Keep what you want to remember.
+              </ThemedText>
+            </View>
+
+            <ThemedText weight="bold" style={styles.label}>
+              Series{' '}
+              <ThemedText style={styles.optional}>(optional)</ThemedText>
+            </ThemedText>
+            <TextInput
+              style={styles.input}
+              placeholder="The Book of Romans"
+              placeholderTextColor={Colors.textGray}
+              value={series}
+              onChangeText={setSeries}
+            />
+
             <ThemedText weight="bold" style={styles.label}>
               Sermon title
             </ThemedText>
@@ -1581,62 +1612,55 @@ const SermonNotesScreen = ({navigation}: any) => {
               value={title}
               onChangeText={setTitle}
             />
+
+            <ThemedText weight="bold" style={styles.label}>
+              Pastor
+            </ThemedText>
+            <TextInput
+              style={styles.input}
+              placeholder="Pastor name"
+              placeholderTextColor={Colors.textGray}
+              value={speaker}
+              onChangeText={setSpeaker}
+            />
+
+            <ThemedText weight="bold" style={styles.label}>
+              Main Scripture
+            </ThemedText>
+            <TextInput
+              style={styles.input}
+              placeholder="Romans 12:1–2"
+              placeholderTextColor={Colors.textGray}
+              value={mainScripture}
+              onChangeText={setMainScripture}
+            />
+
             <TouchableOpacity
               style={styles.toggle}
-              onPress={() => setShowDetails(value => !value)}>
+              onPress={() => setShowDetails(value => !value)}
+              activeOpacity={0.7}>
+              <Ionicons
+                name={showDetails ? 'chevron-up' : 'chevron-down'}
+                size={16}
+                color={Colors.sage}
+              />
               <ThemedText weight="bold" style={styles.toggleText}>
-                {showDetails ? '− Hide details' : '＋ Add details'}
+                Add more details (optional)
               </ThemedText>
             </TouchableOpacity>
+
             {showDetails && (
               <View>
                 <ThemedText weight="bold" style={styles.label}>
-                  Main Scripture
+                  Part
                 </ThemedText>
                 <TextInput
                   style={styles.input}
-                  placeholder="Romans 12:1–2"
+                  placeholder="Part 3"
                   placeholderTextColor={Colors.textGray}
-                  value={mainScripture}
-                  onChangeText={setMainScripture}
+                  value={part}
+                  onChangeText={setPart}
                 />
-                <ThemedText weight="bold" style={styles.label}>
-                  Series{' '}
-                  <ThemedText style={styles.optional}>Optional</ThemedText>
-                </ThemedText>
-                <TextInput
-                  style={styles.input}
-                  placeholder="The Book of Romans"
-                  placeholderTextColor={Colors.textGray}
-                  value={series}
-                  onChangeText={setSeries}
-                />
-                <View style={styles.grid}>
-                  <View style={styles.flex}>
-                    <ThemedText weight="bold" style={styles.label}>
-                      Part
-                    </ThemedText>
-                    <TextInput
-                      style={styles.input}
-                      placeholder="Part 3"
-                      placeholderTextColor={Colors.textGray}
-                      value={part}
-                      onChangeText={setPart}
-                    />
-                  </View>
-                  <View style={styles.flex}>
-                    <ThemedText weight="bold" style={styles.label}>
-                      Pastor
-                    </ThemedText>
-                    <TextInput
-                      style={styles.input}
-                      placeholder="Pastor name"
-                      placeholderTextColor={Colors.textGray}
-                      value={speaker}
-                      onChangeText={setSpeaker}
-                    />
-                  </View>
-                </View>
                 <ThemedText weight="bold" style={styles.label}>
                   Church / Event
                 </ThemedText>
@@ -1649,13 +1673,14 @@ const SermonNotesScreen = ({navigation}: any) => {
                 />
               </View>
             )}
+
             <TouchableOpacity
-              style={styles.primary}
+              style={styles.startButton}
               onPress={() => {
                 goTo(2);
                 requestAnimationFrame(() => openCapturePicker());
               }}>
-              <ThemedText weight="bold" style={styles.primaryText}>
+              <ThemedText weight="bold" style={styles.startButtonText}>
                 Start taking notes
               </ThemedText>
             </TouchableOpacity>
@@ -2106,21 +2131,49 @@ const styles = StyleSheet.create({
     marginTop: 6,
     marginBottom: 20,
   },
-  label: {fontSize: 12, color: Colors.text, marginTop: 14, marginBottom: 7},
-  optional: {fontSize: 11, color: Colors.textGray},
+  label: {fontSize: 13, color: Colors.text, marginTop: 22, marginBottom: 10},
+  optional: {fontSize: 13, color: Colors.textGray},
   input: {
-    minHeight: 46,
+    height: 40,
+    paddingHorizontal: 0,
+    paddingTop: 0,
+    paddingBottom: 8,
     borderWidth: 0,
-    backgroundColor: Colors.cardBackground,
-    borderRadius: 13,
-    paddingHorizontal: 13,
-    paddingVertical: 10,
+    borderBottomWidth: 1.5,
+    borderBottomColor: Colors.sage,
     fontFamily: Fonts.regular,
-    fontSize: 14,
+    fontSize: 15,
+    color: Colors.text,
+    backgroundColor: 'transparent',
+  },
+  heroHeader: {
+    marginTop: 4,
+    marginBottom: 24,
+    gap: 4,
+  },
+  heroTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  heroIcon: {marginTop: 2},
+  heroTitle: {
+    fontSize: 22,
     color: Colors.text,
   },
+  heroSubtitle: {
+    fontSize: 13,
+    lineHeight: 20,
+    color: Colors.textGray,
+  },
   textarea: {minHeight: 90, textAlignVertical: 'top'},
-  toggle: {paddingVertical: 15, alignSelf: 'flex-start'},
+  toggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 18,
+    alignSelf: 'flex-start',
+  },
   toggleText: {fontSize: 12, color: Colors.sage},
   grid: {flexDirection: 'row', gap: 10},
   flex: {flex: 1},
@@ -2134,6 +2187,18 @@ const styles = StyleSheet.create({
     marginTop: 18,
   },
   primaryText: {fontSize: 13, color: Colors.hopeWhite},
+  startButton: {
+    minHeight: 54,
+    borderRadius: 27,
+    backgroundColor: Colors.sage,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    paddingHorizontal: 24,
+    marginTop: 28,
+  },
+  startButtonText: {fontSize: 15, color: Colors.hopeWhite},
   quiet: {padding: 15, alignItems: 'center'},
   quietText: {fontSize: 12, color: Colors.textGray},
   toolbar: {flexDirection: 'row', flexWrap: 'wrap', gap: 7, marginBottom: 10},
