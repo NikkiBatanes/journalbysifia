@@ -1591,18 +1591,6 @@ const SermonNotesScreen = ({navigation}: any) => {
             </View>
 
             <ThemedText weight="bold" style={styles.label}>
-              Series{' '}
-              <ThemedText style={styles.optional}>(optional)</ThemedText>
-            </ThemedText>
-            <TextInput
-              style={styles.input}
-              placeholder="The Book of Romans"
-              placeholderTextColor={Colors.textGray}
-              value={series}
-              onChangeText={setSeries}
-            />
-
-            <ThemedText weight="bold" style={styles.label}>
               Sermon title
             </ThemedText>
             <TextInput
@@ -1624,17 +1612,6 @@ const SermonNotesScreen = ({navigation}: any) => {
               onChangeText={setSpeaker}
             />
 
-            <ThemedText weight="bold" style={styles.label}>
-              Main Scripture
-            </ThemedText>
-            <TextInput
-              style={styles.input}
-              placeholder="Romans 12:1–2"
-              placeholderTextColor={Colors.textGray}
-              value={mainScripture}
-              onChangeText={setMainScripture}
-            />
-
             <TouchableOpacity
               style={styles.toggle}
               onPress={() => setShowDetails(value => !value)}
@@ -1651,6 +1628,27 @@ const SermonNotesScreen = ({navigation}: any) => {
 
             {showDetails && (
               <View>
+                <ThemedText weight="bold" style={styles.label}>
+                  Series{' '}
+                  <ThemedText style={styles.optional}>(optional)</ThemedText>
+                </ThemedText>
+                <TextInput
+                  style={styles.input}
+                  placeholder="The Book of Romans"
+                  placeholderTextColor={Colors.textGray}
+                  value={series}
+                  onChangeText={setSeries}
+                />
+                <ThemedText weight="bold" style={styles.label}>
+                  Main Scripture
+                </ThemedText>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Romans 12:1–2"
+                  placeholderTextColor={Colors.textGray}
+                  value={mainScripture}
+                  onChangeText={setMainScripture}
+                />
                 <ThemedText weight="bold" style={styles.label}>
                   Part
                 </ThemedText>
