@@ -3,7 +3,7 @@
  * Handles secure account deletion with grace period and proper validation
  */
 
-import { supabase, supabaseAdmin } from './supabaseClient';
+import { supabase } from './supabaseClient';
 import { Logger } from '../utils/ProductionLogger';
 
 export interface AccountDeletionRequest {
@@ -81,11 +81,7 @@ class AccountDeletionService {
    */
   async getDeletionStatus(userId: string): Promise<AccountDeletionStatus | null> {
     try {
-      if (!supabaseAdmin) {
-        throw new Error('Admin client not available');
-      }
-
-      const { data, error } = await supabaseAdmin
+      const { data, error } = await supabase
         .from('account_deletions')
         .select('*')
         .eq('user_id', userId)
@@ -130,17 +126,13 @@ class AccountDeletionService {
    */
   async cancelAccountDeletion(userId: string, deletionId: string): Promise<boolean> {
     try {
-      if (!supabaseAdmin) {
-        throw new Error('Admin client not available');
-      }
-
       Logger.debug('[AccountDeletionService] Cancelling account deletion', {
         component: 'AccountDeletionService',
         userId,
         deletionId,
       });
 
-      const { error } = await supabaseAdmin
+      const { error } = await supabase
         .from('account_deletions')
         .update({
           status: 'cancelled',
@@ -203,76 +195,8 @@ class AccountDeletionService {
     return { isValid: true };
   }
 
-  /**
-   * Immediate account deletion (admin only - for emergency situations)
-   */
-  async immediateAccountDeletion(userId: string): Promise<boolean> {
-    try {
-      if (!supabaseAdmin) {
-        throw new Error('Admin client not available');
-      }
-
-      Logger.warn('[AccountDeletionService] Performing immediate account deletion', {
-        component: 'AccountDeletionService',
-        userId,
-      });
-
-      // Get all playbook IDs first
-      const { data: userPlaybooks } = await supabaseAdmin
-        .from('playbooks')
-        .select('id')
-        .eq('user_id', userId);
-
-      if (userPlaybooks && userPlaybooks.length > 0) {
-        const playbookIds = userPlaybooks.map(p => p.id);
-
-        // Delete playbook-related data
-        await supabaseAdmin.from('playbook_action_steps').delete().in('playbook_id', playbookIds);
-        await supabaseAdmin.from('playbook_affirmations').delete().in('playbook_id', playbookIds);
-      }
-
-      // Delete user data from all tables
-      const deletionPromises = [
-        supabaseAdmin.from('playbooks').delete().eq('user_id', userId),
-        supabaseAdmin.from('journal_entries').delete().eq('user_id', userId),
-        supabaseAdmin.from('prayers').delete().eq('user_id', userId),
-        supabaseAdmin.from('reflections').delete().eq('user_id', userId),
-        supabaseAdmin.from('time_blocks').delete().eq('user_id', userId),
-        supabaseAdmin.from('notification_preferences').delete().eq('user_id', userId),
-        supabaseAdmin.from('faith_points_profiles').delete().eq('user_id', userId),
-        supabaseAdmin.from('faith_points_log').delete().eq('user_id', userId),
-        supabaseAdmin.from('user_streaks').delete().eq('user_id', userId),
-        supabaseAdmin.from('subscriptions').delete().eq('user_id', userId),
-        supabaseAdmin.from('user_profiles').delete().eq('id', userId),
-      ];
-
-      await Promise.all(deletionPromises);
-
-      // Delete the auth user
-      const { error: deleteAuthError } = await supabaseAdmin.auth.admin.deleteUser(userId);
-
-      if (deleteAuthError) {
-        Logger.error('Failed to delete auth user during immediate deletion', deleteAuthError as Error, {
-          component: 'AccountDeletionService',
-          userId,
-        });
-        throw deleteAuthError;
-      }
-
-      Logger.info('[AccountDeletionService] Immediate account deletion completed', {
-        component: 'AccountDeletionService',
-        userId,
-      });
-
-      return true;
-    } catch (error) {
-      Logger.error('Failed to perform immediate account deletion', error as Error, {
-        component: 'AccountDeletionService',
-        userId,
-      });
-      throw error;
-    }
-  }
+  // Removed: immediateAccountDeletion relied on a mobile Supabase service-role client.
+  // Account deletion now goes through the backend `delete-account` Edge Function only.
 }
 
 export const accountDeletionService = AccountDeletionService.getInstance();

@@ -14,7 +14,6 @@ export const ENV = {
   // Supabase Configuration
   SUPABASE_URL: Config.SUPABASE_URL || '',
   SUPABASE_ANON_KEY: Config.SUPABASE_ANON_KEY || '',
-  SUPABASE_SERVICE_ROLE_KEY: Config.SUPABASE_SERVICE_ROLE_KEY || '',
 
   // Note: OpenAI API keys are managed in Supabase Edge Functions secrets
   // No OPENAI_API_KEY needed in client environment for security
@@ -79,7 +78,6 @@ export const validateEnvironment = () => {
 export const EXPO_ENV = {
   SUPABASE_URL: process.env.EXPO_PUBLIC_SUPABASE_URL,
   SUPABASE_ANON_KEY: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
-  SUPABASE_SERVICE_ROLE_KEY: process.env.EXPO_PUBLIC_SUPABASE_SERVICE_ROLE_KEY,
   // ... other expo variables
 } as const;
 

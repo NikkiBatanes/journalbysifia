@@ -1,6 +1,9 @@
 apply plugin: "com.android.application"
 apply plugin: "org.jetbrains.kotlin.android"
 apply plugin: "com.facebook.react"
+
+project.ext.defaultEnvFile = ".env.mobile"
+
 apply from: project(':react-native-config').projectDir.getPath() + "/dotenv.gradle"
 
 /**

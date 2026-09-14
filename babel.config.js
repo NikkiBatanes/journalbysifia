@@ -5,7 +5,7 @@ module.exports = {
       'module:react-native-dotenv',
       {
         moduleName: '@env',
-        path: '.env',
+        path: '.env.mobile',
         blacklist: null,
         whitelist: [
           'SUPABASE_URL',

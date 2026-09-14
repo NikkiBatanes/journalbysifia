@@ -13,6 +13,7 @@ android/app/*.jks
 android/app/*.keystore
 !android/app/debug.keystore
 android/app/keystore.properties
+android/app/src/main/assets/index.android.bundle
 ios/build/
 ios/Pods/
 ios/*.xcworkspace/
@@ -27,6 +28,7 @@ ios/*.xcodeproj/project.xcworkspace/
 .env
 .env.*
 !.env.example
+!.env.mobile.example
 
 # Debug logs
 npm-debug.log*
@@ -132,6 +134,7 @@ yarn-error.log*
 *.p12
 *.key
 *.pem
+*.csr
 fastlane/report.xml
 fastlane/Preview.html
 fastlane/screenshots

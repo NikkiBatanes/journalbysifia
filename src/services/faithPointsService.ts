@@ -1188,43 +1188,24 @@ export class FaithPointsService {
     metadata?: any
   ): Promise<void> {
     try {
-      // Try manual SQL query to bypass schema cache
-      const manualQuery = `
-        INSERT INTO faith_points_log (user_id, points, activity_type, reason, metadata, created_at)
-        VALUES ('${userId}', ${points}, '${reason}', '${this.getCategoryFromReason(reason)}', ${metadata ? `'${JSON.stringify(metadata)}'` : 'NULL'}, NOW())
-        RETURNING *;
-      `;
+      const { error } = await supabase
+        .from('faith_points_log')
+        .insert({
+          user_id: userId,
+          points: points,
+          activity_type: reason,
+          reason: this.getCategoryFromReason(reason),
+          metadata: metadata || null,
+          created_at: new Date().toISOString(),
+        });
 
-      const { error: manualError } = await supabase
-        .rpc('execute_sql', { query: manualQuery });
-
-      if (manualError) {
-
-        // Try the simplest possible insert
-        const { error } = await supabase
-          .from('faith_points_log')
-          .insert({
-            user_id: userId,
-            points: points,
-            activity_type: reason,
-            reason: this.getCategoryFromReason(reason),
-            metadata: metadata || null,
-            created_at: new Date().toISOString(),
-          });
-
-        if (error) {
-          Logger.error('[FaithPointsService] All insert methods failed', error as Error, {
+      if (error) {
+        Logger.error('[FaithPointsService] Failed to record transaction', error as Error, {
       component: 'faithPointsService',
     });
-          // Don't throw error, just log it so faith points awarding continues
-
-          return;
-        }
-
+        // Don't throw error, just log it so faith points awarding continues
         return;
       }
-
-      return;
     } catch (error) {
       Logger.error('[FaithPointsService] Error recording transaction', error as Error, {
       component: 'faithPointsService',

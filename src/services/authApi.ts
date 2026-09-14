@@ -623,8 +623,10 @@ class AuthApiService {
         ]);
       }
 
-      // Delete auth user
-      const { error } = await supabase.auth.admin.deleteUser(user.user!.id);
+      // Request account deletion via the secure backend Edge Function
+      const { error } = await supabase.functions.invoke('delete-account', {
+        body: { userId: user.user!.id },
+      });
 
       if (error) {
         return {
