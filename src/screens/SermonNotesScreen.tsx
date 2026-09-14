@@ -2004,11 +2004,11 @@ const SermonNotesScreen = ({navigation, route}: any) => {
       {stage === 5 && (
         <TouchableOpacity
           style={[styles.shareButton, {top: insets.top + 8}]}
-          onPress={handleShareJournal}
+          onPress={handleExportPDF}
           activeOpacity={0.7}
           accessibilityRole="button"
-          accessibilityLabel="Share Journal by siFia">
-          <Ionicons name="share-outline" size={20} color={Colors.text} />
+          accessibilityLabel="Export sermon notes PDF">
+          <Ionicons name="paper-plane-outline" size={20} color={Colors.text} />
         </TouchableOpacity>
       )}
       <View style={{flex: 1}} {...panResponder.panHandlers}>
@@ -2734,7 +2734,7 @@ const SermonNotesScreen = ({navigation, route}: any) => {
 
               <View style={styles.savedIncludeItem}>
                 <ThemedText weight="bold" style={styles.savedIncludeCount}>
-                  4
+                  {[notice, carry].filter(s => s.trim()).length}
                 </ThemedText>
                 <ThemedText style={styles.savedIncludeLabel}>
                   Reflection
@@ -2745,7 +2745,7 @@ const SermonNotesScreen = ({navigation, route}: any) => {
 
               <View style={styles.savedIncludeItem}>
                 <ThemedText weight="bold" style={styles.savedIncludeCount}>
-                  {prayerAnswer.trim() ? 1 : 0}
+                  {[prayer, prayerAnswer].filter(s => s.trim()).length}
                 </ThemedText>
                 <ThemedText style={styles.savedIncludeLabel}>Prayer</ThemedText>
               </View>
@@ -4055,7 +4055,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: Colors.text,
     marginTop: 8,
-    marginBottom: 32,
+    marginBottom: 4,
     paddingHorizontal: 12,
   },
   reflectionPrompt: {
@@ -4063,7 +4063,7 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     textAlign: 'center',
     color: Colors.textGray,
-    marginBottom: 16,
+    marginBottom: 4,
     paddingHorizontal: 12,
   },
   reflectionInput: {
@@ -4071,7 +4071,8 @@ const styles = StyleSheet.create({
     fontSize: 18,
     lineHeight: 26,
     color: Colors.text,
-    paddingVertical: 16,
+    paddingTop: 8,
+    paddingBottom: 16,
     minHeight: 140,
     textAlignVertical: 'top',
   },

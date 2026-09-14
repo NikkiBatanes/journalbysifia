@@ -492,7 +492,7 @@ const SermonNotesDetailScreen: React.FC = () => {
       params.initialStage = 4;
       params.initialReflectionStep = 2;
     }
-    navigation.replace('SermonNotes', params);
+    navigation.push('SermonNotes', params);
   };
 
   const handleClose = () => {
