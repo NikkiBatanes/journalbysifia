@@ -507,7 +507,7 @@ const EnhancedMomentsContent: React.FC<EnhancedMomentsRendererProps> = ({
   // Use memoized styles with dynamic fonts
   const styles = useMemo(() => createStyles(fonts), [fonts]);
 
-  const { user } = useAuth();
+  const { user, preferences: appPreferences } = useAuth();
   // Removed unused insets variable
   const [realEntries, setRealEntries] = React.useState<MomentEntry[]>([]);
   const [_loading, setLoading] = React.useState(true);
@@ -544,10 +544,10 @@ const EnhancedMomentsContent: React.FC<EnhancedMomentsRendererProps> = ({
   }, [filterKeys, prayerAnswerFilter]);
 
   // Determine user's week start preference from auth user metadata if available; default to Sunday (0)
-  const weekStartsOnPref = (user as any)?.user_metadata?.preferences?.weekStartsOn
+  const weekStartsOnPref = appPreferences?.weekStartsOn
     ?? (user as any)?.user_metadata?.weekStartsOn
     ?? (user as any)?.user_metadata?.preferences?.week_start
-    ?? (user as any)?.user_metadata?.preferences?.weekStart
+    ?? appPreferences?.weekStart
     ?? (user as any)?.user_metadata?.preferences?.week_start_on
     ?? (user as any)?.user_metadata?.preferences?.week_start_day;
 

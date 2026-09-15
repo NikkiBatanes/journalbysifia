@@ -80,8 +80,8 @@ export const DateFilterBar: React.FC<DateFilterBarProps> = ({
   const fontRegular = getFontFamily(fontKey, 'regular');
   const fontMedium = getFontFamily(fontKey, 'medium');
   const fontSemiBold = getFontFamily(fontKey, 'semiBold');
-  const { user } = useAuth();
-  const weekStartPreference = (user as any)?.user_metadata?.preferences?.weekStart as
+  const { user, preferences: appPreferences } = useAuth();
+  const weekStartPreference = appPreferences?.weekStart as
     | 'sunday' | 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | undefined;
   const weekStartsOn = useMemo(() => {
     const key = weekStartPreference;

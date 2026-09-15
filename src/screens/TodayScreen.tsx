@@ -52,21 +52,22 @@ const Stagger = ({ children }: { children: React.ReactNode }) => (
 const TodayScreen = () => {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
-  const { user } = useAuth();
+  const { user, preferences: appPreferences, profile } = useAuth();
   const { showTabBar, setShowTabBar } = useScroll();
   const lastScrollYRef = useRef(0);
   const tabBarCollapsedRef = useRef(false);
   const now = useMemo(() => new Date(), []);
+  const weekStartsOn = Math.max(0, ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'].indexOf(appPreferences?.weekStart || 'sunday')) as 0 | 1 | 2 | 3 | 4 | 5 | 6;
   const weekLabel = useMemo(() => {
-    const start = startOfWeek(now);
-    const end = endOfWeek(now);
+    const start = startOfWeek(now, { weekStartsOn });
+    const end = endOfWeek(now, { weekStartsOn });
     return `${format(start, 'MMM d')}–${format(end, start.getMonth() === end.getMonth() ? 'd' : 'MMM d')}`.toUpperCase();
-  }, [now]);
+  }, [now, weekStartsOn]);
   const firstName = useMemo(() => {
-    const metadata = (user as any)?.user_metadata;
+    const metadata = profile;
     const value = metadata?.first_name || metadata?.full_name || user?.email?.split('@')[0] || 'Friend';
     return String(value).trim().split(/\s+/)[0];
-  }, [user]);
+  }, [user, profile]);
 
   useEffect(() => {
     const createdAt = (user as any)?.created_at;

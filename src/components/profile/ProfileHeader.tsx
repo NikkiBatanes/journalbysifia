@@ -1,3 +1,4 @@
+import { useAuth } from '../../context/IndustryStandardAuthContext';
 import React, { useMemo, useState } from 'react';
 import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -40,6 +41,7 @@ export const ProfilePlanUsage: React.FC<Pick<Props, 'plan' | 'usage' | 'subscrip
   isLoading = false,
   placement = 'header',
 }) => {
+  const { profile } = useAuth();
   const theme = useTheme();
   const font = useMemo(() => ({ fontFamily: theme.fontFamily }), [theme.fontFamily]);
   const [tooltipVisible, setTooltipVisible] = useState(false);
@@ -128,12 +130,13 @@ export const ProfilePlanUsage: React.FC<Pick<Props, 'plan' | 'usage' | 'subscrip
 };
 
 const ProfileHeader: React.FC<Props> = ({ user, onEditPress, onEditAvatar: _onEditAvatar }) => {
+  const { profile } = useAuth();
   const theme = useTheme();
   const font = useMemo(() => ({ fontFamily: theme.fontFamily }), [theme.fontFamily]);
 
   const [imageLoadFailed, setImageLoadFailed] = useState(false);
   const displayName = useMemo(() => {
-    const meta = (user as any)?.user_metadata || {};
+    const meta = (user as any)?.user_metadata || profile || {};
     return (
       (user as any)?.displayName ||
       meta.full_name ||
@@ -141,10 +144,10 @@ const ProfileHeader: React.FC<Props> = ({ user, onEditPress, onEditAvatar: _onEd
       user?.email ||
       'User'
     );
-  }, [user]);
+  }, [user, profile]);
 
   // Use custom avatar URL from user profile if available, but only allow local file URIs
-  const avatarUrl = (user as any)?.user_metadata?.avatar_url;
+  const avatarUrl = (user as any)?.user_metadata?.avatar_url || profile?.avatar_url;
 
   // Only allow local file URIs (starting with file://) - block any external URLs
   const safeAvatarUrl = avatarUrl && avatarUrl.startsWith('file://') ? avatarUrl : null;

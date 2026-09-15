@@ -33,7 +33,7 @@ const StreakPlanScreen: React.FC = () => {
   const theme = useTheme();
   const font = { fontFamily: theme.fontFamily };
   const params = (route.params || {}) as RouteParams;
-  const { user } = useAuth();
+  const { user, preferences: appPreferences } = useAuth();
   const insets = useSafeAreaInsets();
   const androidScrollInsets = Platform.OS === 'android'
     ? {
@@ -128,12 +128,14 @@ const StreakPlanScreen: React.FC = () => {
     // Fetch data first, then animate content in — prevents snapping/popping
     const initialize = async () => {
       if (!user?.id) {
+        const raw = String(appPreferences?.weekStart || 'sunday');
+        setWeekStart((raw.charAt(0).toUpperCase() + raw.slice(1)) as typeof weekStart);
         startEntranceAnimation();
         return;
       }
       try {
         const metadata = (user as any)?.user_metadata;
-        const userWeekStartRaw = metadata?.preferences?.weekStart || 'sunday';
+        const userWeekStartRaw = appPreferences?.weekStart || 'sunday';
         const userWeekStart = (userWeekStartRaw.charAt(0).toUpperCase() + userWeekStartRaw.slice(1)) as 'Sunday' | 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday' | 'Saturday';
         setWeekStart(userWeekStart);
 
@@ -174,7 +176,7 @@ const StreakPlanScreen: React.FC = () => {
       iconBgAnim.stopAnimation();
       iconAnim.stopAnimation();
     };
-  }, [user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [user?.id, appPreferences?.weekStart]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Helper: get local date string (YYYY-MM-DD) from any Date — avoids UTC offset issues
   const toLocalDate = (d: Date): string => {
@@ -191,7 +193,7 @@ const StreakPlanScreen: React.FC = () => {
 
     // Get week start from user preferences
     const metadata = (user as any)?.user_metadata;
-    const userWeekStartRaw = metadata?.preferences?.weekStart || 'sunday';
+    const userWeekStartRaw = appPreferences?.weekStart || 'sunday';
     const userWeekStart = (userWeekStartRaw.charAt(0).toUpperCase() + userWeekStartRaw.slice(1)) as
       'Sunday' | 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday' | 'Saturday';
 

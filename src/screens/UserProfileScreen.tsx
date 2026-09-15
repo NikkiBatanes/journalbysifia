@@ -101,7 +101,7 @@ interface ProfileStats {
 }
 
 const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
-  const { user, signOut, updatePreferences, updateProfile } = useAuth();
+  const { user, signOut, updatePreferences, preferences: savedPreferences, profile: savedProfile, updateProfile } = useAuth();
   const queryClient = useQueryClient();
   const insets = useSafeAreaInsets();
   const theme = useTheme();
@@ -189,9 +189,9 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
   const [_usage, setUsage] = useState<UsageTracking | null>(null);
   // Form states
   const [profileForm, setProfileForm] = useState({
-    firstName: (user as any)?.firstName || (user as any)?.user_metadata?.first_name || '',
-    lastName: (user as any)?.lastName || (user as any)?.user_metadata?.last_name || '',
-    birthDate: (user as any)?.user_metadata?.birth_date || '',
+    firstName: (user as any)?.firstName || savedProfile?.first_name || '',
+    lastName: (user as any)?.lastName || savedProfile?.last_name || '',
+    birthDate: savedProfile?.birth_date || '',
   });
 
   // Notification preferences from the notification management service
@@ -236,9 +236,9 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
   }, [displayAvatarUrl]);
 
     const initialLetter = useMemo(() => {
-    const first = (profileForm as any)?.firstName || (user as any)?.user_metadata?.first_name || '';
-    const last = (profileForm as any)?.lastName || (user as any)?.user_metadata?.last_name || '';
-    const fallback = (user as any)?.user_metadata?.full_name || (user as any)?.email || 'U';
+    const first = (profileForm as any)?.firstName || savedProfile?.first_name || '';
+    const last = (profileForm as any)?.lastName || savedProfile?.last_name || '';
+    const fallback = savedProfile?.full_name || (user as any)?.email || 'U';
     const name = [first, last].filter(Boolean).join(' ') || fallback;
     return String(name).trim().charAt(0).toUpperCase();
   }, [profileForm, user]);
@@ -286,7 +286,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
   const [subscriptionPlanModal, setSubscriptionPlanModal] = useState(false);
   const [badgesModalVisible, setBadgesModalVisible] = useState(false);
   const [tempBirthDate, setTempBirthDate] = useState<Date>(() => {
-    const birthDateStr = (user as any)?.user_metadata?.birth_date || (profileForm as any)?.birthDate;
+    const birthDateStr = savedProfile?.birth_date || (profileForm as any)?.birthDate;
     if (birthDateStr) {
       const date = new Date(birthDateStr);
       if (!isNaN(date.getTime())) {
@@ -696,6 +696,10 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
       showVerseOfDay: true,
     },
   });
+
+  useEffect(() => {
+    if (savedPreferences) setPreferences(prev => ({ ...prev, ...savedPreferences }));
+  }, [savedPreferences]);
 
   // Load persisted experience preferences on mount (defaults are ON)
   useEffect(() => {
@@ -1134,8 +1138,8 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
 
   // Sync profile form with user data
   useEffect(() => {
-    if (user) {
-      const meta = (user as any)?.user_metadata || {};
+    if (savedProfile) {
+      const meta = savedProfile;
       const uFirst = (user as any)?.firstName || meta.first_name || '';
       const uLast = (user as any)?.lastName || meta.last_name || '';
       // Fallback: derive from full_name if first/last missing
@@ -1146,7 +1150,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
         firstName = firstName || parts[0] || '';
         lastName = lastName || (parts.slice(1).join(' ') || '');
       }
-      setProfileForm(prev => ({ ...prev, firstName, lastName }));
+      setProfileForm(prev => ({ ...prev, firstName, lastName, birthDate: meta.birth_date || '' }));
 
       // Load preferences from user metadata if available
       const userPreferences = (user as any)?.user_metadata?.preferences;
@@ -1154,7 +1158,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
         setPreferences(prev => ({ ...prev, ...userPreferences }));
       }
     }
-  }, [user]);
+  }, [user, savedProfile]);
 
   // Live theme and font switching
   useEffect(() => {
@@ -1195,16 +1199,16 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
       }
 
       const previousFirstName = String(
-        (user as any)?.user_metadata?.first_name || (user as any)?.firstName || ''
+        savedProfile?.first_name || (user as any)?.firstName || ''
       ).trim();
 
-      // Persist to Supabase auth user_metadata via context
-      const result = await (updateProfile as any)({
-        full_name: full || undefined,
-        first_name: first || undefined,
-        last_name: last || undefined,
+      // Persist through the shared profile API for local and signed-in use
+      const result = await updateProfile({
+        full_name: full,
+        first_name: first,
+        last_name: last,
         // Store full birth date in auth user_metadata for UI reads
-        birth_date: birthDateStr || undefined,
+        birth_date: birthDateStr,
       });
 
       if (result?.success === false) {
@@ -2006,7 +2010,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
               onPress={() => {
                 Keyboard.dismiss();
                 try { triggerLightHaptic(); } catch {}
-                const birthDateStr = (user as any)?.user_metadata?.birth_date || (profileForm as any)?.birthDate;
+                const birthDateStr = savedProfile?.birth_date || (profileForm as any)?.birthDate;
                 if (birthDateStr) {
                   const date = new Date(birthDateStr);
                   if (!isNaN(date.getTime())) {
@@ -2171,7 +2175,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
       onRequestClose={() => setWeekStartModal(false)}
     >
       <SafeAreaView
-        edges={['top']}
+        edges={['top', 'bottom']}
         style={styles.modalContainer}
       >
         <View style={styles.modalHeader}>
@@ -2184,8 +2188,8 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           </TouchableOpacity>
         </View>
 
-        <View style={styles.modalContent}>
-          <Text style={[styles.settingDescription, font]}>
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.weekDayContent}>
+          <Text style={[styles.weekDayDescription, font]}>
             Choose which day your week starts on. This affects calendar views and weekly reports.
           </Text>
 
@@ -2203,13 +2207,14 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
               return (
                 <TouchableOpacity
                   key={day.key}
-                  style={[styles.weekStartOption, isSelected && styles.weekStartOptionSelected]}
+                  style={[styles.weekDayOption, isSelected && styles.weekDayOptionSelected]}
                   onPress={() => { try { triggerLightHaptic(); } catch {} setWeekStartDraft(day.key as UserPreferences['weekStart']); }}
-                  accessibilityRole="button"
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected: isSelected }}
                   accessibilityLabel={`Set week start to ${day.label}`}
                 >
                   <View style={styles.weekStartOptionContent}>
-                    <Text style={[styles.weekStartOptionLabel, isSelected && styles.weekStartOptionLabelSelected, font]}>
+                    <Text style={[styles.weekDayLabel, isSelected && styles.weekDayLabelSelected, font]}>
                       {day.label}
                     </Text>
                     {day.description && (
@@ -2219,13 +2224,13 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
                     )}
                   </View>
                   {isSelected && (
-                    <Ionicons name="checkmark" size={20} color={Colors.alertCoral} />
+                    <Ionicons name="checkmark" size={20} color={Colors.sage} />
                   )}
                 </TouchableOpacity>
               );
             })}
           </View>
-        </View>
+        </ScrollView>
       </SafeAreaView>
     </PlatformPageSheetModal>
   );
@@ -3448,6 +3453,12 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.ministryPurple,
     borderRadius: 6,
   },
+  weekDayContent: { padding: 20, paddingBottom: 28 },
+  weekDayDescription: { fontSize: 14, color: Colors.textGray, lineHeight: 21, marginBottom: 24 },
+  weekDayOption: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 14, paddingHorizontal: 18, backgroundColor: Colors.hopeWhite, borderRadius: 20, borderWidth: 1, borderColor: Colors.cardBorder },
+  weekDayOptionSelected: { backgroundColor: Colors.actionBackground, borderColor: Colors.sageMuted },
+  weekDayLabel: { color: Colors.text, fontSize: 15, fontWeight: '500' },
+  weekDayLabelSelected: { color: Colors.sage },
   // Week Start Modal Styles
   settingDescription: {
     fontSize: 14,

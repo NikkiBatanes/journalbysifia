@@ -147,9 +147,9 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
   const shouldShowAddButton = newTodo.trim().length > 0;
 
   // Auth and date context
-  const { user } = useAuth();
+  const { user, preferences: appPreferences } = useAuth();
   const weekStartsOn = useMemo(() => {
-    const key = (user as any)?.user_metadata?.preferences?.weekStart as
+    const key = appPreferences?.weekStart as
       | 'sunday' | 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | undefined;
     const map: Record<string, number> = {
       sunday: 0,
@@ -161,7 +161,7 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
       saturday: 6,
     };
     return key ? map[key] ?? 0 : 0;
-  }, [user]);
+  }, [appPreferences?.weekStart]);
   const dateStr = toLocalDateString(selectedDate); // 'YYYY-MM-DD'
   const { scrollToTop, scrollTo } = useScroll();
 

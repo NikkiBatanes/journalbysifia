@@ -39,7 +39,9 @@ interface AuthContextType {
   signUp: (email: string, password: string, userData?: { firstName?: string; lastName?: string }) => Promise<{ error: SupabaseAuthError | null }>;
   resetPassword: (email: string) => Promise<{ error: SupabaseAuthError | null }>;
   updatePassword: (newPassword: string) => Promise<{ error: SupabaseAuthError | null }>;
-  updateProfile: (profileData: { full_name?: string; bio?: string; location?: string; avatar_url?: string }) => Promise<{ success: boolean; error?: SupabaseAuthError | null }>;
+  profile: Record<string, any>;
+  updateProfile: (profileData: Record<string, any>) => Promise<{ success: boolean; error?: SupabaseAuthError | null }>;
+  preferences: Record<string, any>;
   updatePreferences: (preferences: any) => Promise<{ success: boolean; error?: SupabaseAuthError | null }>;
   signInWithGoogle: () => Promise<{ error: SupabaseAuthError | null }>;
   signInWithApple: () => Promise<{ error: SupabaseAuthError | null }>;
@@ -96,6 +98,30 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
 
   // Logout state tracking
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [localPreferences, setLocalPreferences] = useState<Record<string, any>>({});
+  const localPreferencesEdited = React.useRef(false);
+  const [localProfile, setLocalProfile] = useState<Record<string, any>>({});
+  const localProfileEdited = React.useRef(false);
+  useEffect(() => {
+    let mounted = true;
+    void AsyncStorage.getItem('journal:local-profile').then(raw => {
+      if (!mounted || localProfileEdited.current || !raw) return;
+      const parsed = safeJsonParse<Record<string, any>>(raw, { fallback: {} });
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) setLocalProfile(parsed);
+    }).catch(error => Logger.warn('Could not load local profile', { reason: String(error) }));
+    return () => { mounted = false; };
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
+    void AsyncStorage.getItem('journal:local-preferences').then(raw => {
+      if (!mounted || localPreferencesEdited.current || !raw) return;
+      const parsed = safeJsonParse<Record<string, any>>(raw, { fallback: {} });
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) setLocalPreferences(parsed);
+    }).catch(error => Logger.warn('Could not load local preferences', { reason: String(error) }));
+    return () => { mounted = false; };
+  }, []);
+
 
   // Configure Google Sign-In
   useEffect(() => {
@@ -1068,16 +1094,14 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
     }
   }, [authState]);
 
-  const updateProfile = React.useCallback(async (profileData: { full_name?: string; bio?: string; location?: string; avatar_url?: string }) => {
+  const updateProfile = React.useCallback(async (profileData: Record<string, any>) => {
     try {
       if (!authState.user) {
-        return {
-          success: false,
-          error: {
-            message: 'User not authenticated',
-            status: 401,
-          } as SupabaseAuthError,
-        };
+        const updated = { ...localProfile, ...profileData };
+        await AsyncStorage.setItem('journal:local-profile', JSON.stringify(updated));
+        localProfileEdited.current = true;
+        setLocalProfile(updated);
+        return { success: true };
       }
 
       // Update user metadata in Supabase Auth
@@ -1134,18 +1158,15 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
         } as SupabaseAuthError,
       };
     }
-  }, [authState]);
+  }, [authState, localProfile]);
 
   const updatePreferences = React.useCallback(async (preferences: any) => {
     try {
       if (!authState.user) {
-        return {
-          success: false,
-          error: {
-            message: 'User not authenticated',
-            status: 401,
-          } as SupabaseAuthError,
-        };
+        await AsyncStorage.setItem('journal:local-preferences', JSON.stringify(preferences));
+        localPreferencesEdited.current = true;
+        setLocalPreferences(preferences);
+        return { success: true };
       }
 
       // For now, store preferences in user metadata
@@ -1855,6 +1876,8 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
 
   const value: AuthContextType = useMemo(() => ({
     user: authState.user,
+    profile: authState.user?.user_metadata || localProfile,
+    preferences: authState.user?.user_metadata?.preferences || localPreferences,
     session: authState.session,
     loading: authState.loading,
     bootstrapping: authState.bootstrapping,
@@ -1870,7 +1893,7 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
     signInWithApple,
     refreshSession,
     isLoggingOut,
-  }), [authState, signIn, signOut, signUp, resetPassword, updatePassword, updateProfile, updatePreferences, signInWithGoogle, signInWithApple, refreshSession, isLoggingOut]);
+  }), [authState, localPreferences, localProfile, signIn, signOut, signUp, resetPassword, updatePassword, updateProfile, updatePreferences, signInWithGoogle, signInWithApple, refreshSession, isLoggingOut]);
 
   return (
     <AuthContext.Provider value={value}>

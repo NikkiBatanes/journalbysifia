@@ -851,14 +851,14 @@ function TimeBlockLogEditorInner(
   } = props;
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';
-  const { user } = useAuth();
+  const { user, preferences: appPreferences } = useAuth();
 
   // Get user's week start preference from metadata (default to Sunday/0)
   const weekStartDay = useMemo(() => {
-    const weekStartsOnPref = (user as any)?.user_metadata?.preferences?.weekStartsOn
+    const weekStartsOnPref = appPreferences?.weekStartsOn
       ?? (user as any)?.user_metadata?.weekStartsOn
       ?? (user as any)?.user_metadata?.preferences?.week_start
-      ?? (user as any)?.user_metadata?.preferences?.weekStart
+      ?? appPreferences?.weekStart
       ?? (user as any)?.user_metadata?.preferences?.week_start_on
       ?? (user as any)?.user_metadata?.preferences?.week_start_day;
 

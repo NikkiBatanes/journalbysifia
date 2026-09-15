@@ -31,7 +31,7 @@ export type JournalScreenRef = {
 };
 
 const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation, route }, ref) => {
-  const { user } = useAuth();
+  const { user, preferences: appPreferences } = useAuth();
   const insets = useSafeAreaInsets();
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';
@@ -56,7 +56,7 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation, rou
   // Layout constants for week header spacing
   const WEEK_HPAD = 16; // use a single consistent padding on both sides
   // Get week start preference from user metadata
-  const weekStartPreference = (user as any)?.user_metadata?.preferences?.weekStart as
+  const weekStartPreference = appPreferences?.weekStart as
     | 'sunday' | 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | undefined;
 
   // Map preferences.weekStart to date-fns weekStartsOn (0=Sun ... 6=Sat)

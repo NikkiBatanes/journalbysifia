@@ -308,7 +308,7 @@ const CustomTabBarComponent = ({
   const circleIcon = (() => {
     const name = state.routes[state.index].name;
     if (name === 'Today')       { return <Ionicons name="sunny-outline" size={22} color={INACTIVE_CIRCLE_COLOR} />; }
-    if (name === 'Prayer')      { return <Ionicons name="hand-left-outline" size={22} color={INACTIVE_CIRCLE_COLOR} />; }
+    if (name === 'Prayer')      { return <Ionicons name="hand-left-outline" size={22} color={INACTIVE_CIRCLE_COLOR} style={{ transform: [{ rotate: '-18deg' }] }} />; }
     if (name === 'Journal')     { return <Feather size={22} color={INACTIVE_CIRCLE_COLOR} />; }
     if (name === 'More')        { return <Ionicons name="ellipsis-horizontal" size={22} color={INACTIVE_CIRCLE_COLOR} />; }
     return <Ionicons name="apps-outline" size={22} color={INACTIVE_CIRCLE_COLOR} />;
@@ -394,7 +394,7 @@ const CustomTabBarComponent = ({
 
             const icon = (() => {
               if (route.name === 'Today')       { return <Ionicons name={isFocused ? 'sunny' : 'sunny-outline'} size={20} color={iconColor} />; }
-              if (route.name === 'Prayer')      { return <Ionicons name={isFocused ? 'hand-left' : 'hand-left-outline'} size={20} color={iconColor} />; }
+              if (route.name === 'Prayer')      { return <Ionicons name={isFocused ? 'hand-left' : 'hand-left-outline'} size={20} color={iconColor} style={{ transform: [{ rotate: '-18deg' }] }} />; }
               if (route.name === 'Journal')     { return <Feather size={20} color={iconColor} />; }
               if (route.name === 'More')        { return <Ionicons name={isFocused ? 'ellipsis-horizontal' : 'ellipsis-horizontal-outline'} size={20} color={iconColor} />; }
               const iconName = isFocused

@@ -166,11 +166,11 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';
 
-  const { user } = useAuth();
+  const { user, preferences: appPreferences } = useAuth();
   // Respect user auto-sync preference from profile
   const autoSyncEnabled = ((user as any)?.user_metadata?.preferences?.calendar?.autoSync ?? false) as boolean;
   const weekStartsOn = useMemo(() => {
-    const key = (user as any)?.user_metadata?.preferences?.weekStart as
+    const key = appPreferences?.weekStart as
       | 'sunday' | 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | undefined;
     const map: Record<string, number> = {
       sunday: 0,
@@ -182,7 +182,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
       saturday: 6,
     };
     return key ? map[key] ?? 0 : 0;
-  }, [user]);
+  }, [appPreferences?.weekStart]);
   const dateStr = toLocalDateString(selectedDate);
   const { scrollToTop } = useScroll();
 
