@@ -12,8 +12,10 @@ import {
   useWindowDimensions,
   Alert,
   Keyboard,
+  DeviceEventEmitter,
+  AccessibilityInfo,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -21,20 +23,26 @@ import { format } from 'date-fns';
 
 import ThemedText from '../components/common/ThemedText';
 import ScriptureReaderModal from '../components/ScriptureReaderModal';
+import BibleStudyDetailView from '../components/journal/BibleStudyDetailView';
+import AnimatedBibleStudyTopics from '../components/journal/AnimatedBibleStudyTopics';
 import { Colors } from '../theme/colors';
 import { Fonts, FontFamily, getFontFamily } from '../theme/fonts';
 import { triggerLightHaptic } from '../utils/haptics';
 import { getScripturePassage } from '../services/scriptureReaderService';
 import { BIBLE_STUDY_TOPICS, BibleStudyTopic } from '../data/bibleStudyTopics';
+import { deleteLocalReflection, getLocalReflection, LocalReflectionEntry } from '../storage/reflectionStorage';
+import { parseSavedBibleStudy } from '../storage/bibleStudyMomentsStorage';
 import {
   BibleStudyContent,
   BibleStudyHighlight,
   BibleStudySession,
   BibleStudyStage,
   completeBibleStudySession,
+  deleteBibleStudySession,
   createBibleStudySession,
   createEmptyBibleStudyContent,
   getActiveBibleStudySession,
+  getBibleStudySession,
   loadBibleStudyContent,
   parsePassageReference,
   saveBibleStudyContent,
@@ -231,15 +239,34 @@ const Card = ({
 const BibleStudyScreen = () => {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
+  const route = useRoute<any>();
+  const creatingStudy = route.params?.openMode === 'create';
+  const openRequestId = route.params?.openRequestId;
+  const savedSessionId = creatingStudy ? undefined : route.params?.sessionId as string | undefined;
+  const savedReflectionId = creatingStudy ? undefined : route.params?.reflectionId as string | undefined;
+  const savedSelectedDate = creatingStudy ? undefined : route.params?.selectedDate as string | undefined;
+  const [savedReflection, setSavedReflection] = useState<LocalReflectionEntry | null>(null);
   const { width: screenWidth } = useWindowDimensions();
 
   const [isLoading, setIsLoading] = useState(true);
   const [session, setSession] = useState<BibleStudySession | null>(null);
   const [stage, setStage] = useState<BibleStudyStage>('home');
+  const [editingSavedStudy, setEditingSavedStudy] = useState(false);
 
   const [search, setSearch] = useState('');
   const [selectedTopic, setSelectedTopic] = useState<BibleStudyTopic | null>(null);
   const [topicsExpanded, setTopicsExpanded] = useState(false);
+  const reduceMotion = useRef(false);
+  useEffect(() => {
+    let mounted = true;
+    AccessibilityInfo.isReduceMotionEnabled().then(enabled => {
+      if (mounted) {reduceMotion.current = enabled;}
+    }).catch(() => {});
+    const subscription = AccessibilityInfo.addEventListener('reduceMotionChanged', enabled => {
+      reduceMotion.current = enabled;
+    });
+    return () => { mounted = false; subscription.remove(); };
+  }, []);
   const suggestedTopics = useMemo(() => {
     const shuffled = [...BIBLE_STUDY_TOPICS];
     for (let i = shuffled.length - 1; i > 0; i -= 1) {
@@ -288,6 +315,9 @@ const BibleStudyScreen = () => {
   const [scriptureIndent, setScriptureIndent] = useState(0);
   const [advancedTextSettings, setAdvancedTextSettings] = useState(false);
   const [passageSelection, setPassageSelection] = useState({ start: 0, end: 0 });
+  const [highlightActionsVisible, setHighlightActionsVisible] = useState(false);
+  const [activeHighlightId, setActiveHighlightId] = useState<string | null>(null);
+  const ignoreSelectionEvents = useRef(true);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [scriptureReaderOpen, setScriptureReaderOpen] = useState(false);
 
@@ -306,6 +336,7 @@ const BibleStudyScreen = () => {
 
   const buildContent = useCallback((): BibleStudyContent => ({
     format: 'bible_study_v1',
+    passageRead,
     highlights,
     observation: {
       text: observationText || [
@@ -336,9 +367,10 @@ const BibleStudyScreen = () => {
       byPrompt: responsePromptNotes,
     },
     prayer: { text: prayerText, saveToPrayerJournal, trackAnswered: trackAnsweredPrayer },
-  }), [highlights, observationText, observationTags, highlightObservations, highlightPromptSelections, highlightPromptNotes, understandingText, understandingPromptSelections, understandingPromptNotes, responseText, responsePromptSelections, responsePromptNotes, prayerText, saveToPrayerJournal, trackAnsweredPrayer]);
+  }), [passageRead, highlights, observationText, observationTags, highlightObservations, highlightPromptSelections, highlightPromptNotes, understandingText, understandingPromptSelections, understandingPromptNotes, responseText, responsePromptSelections, responsePromptNotes, prayerText, saveToPrayerJournal, trackAnsweredPrayer]);
 
   const applyContent = useCallback((content: BibleStudyContent) => {
+    setPassageRead(content.passageRead === true);
     setHighlights(content.highlights ?? []);
     setObservationText(content.observation?.text ?? '');
     setObservationTags(new Set(content.observation?.tags ?? []));
@@ -374,25 +406,70 @@ const BibleStudyScreen = () => {
 
   useEffect(() => {
     let mounted = true;
+    setIsLoading(true);
+    setStage('home');
+    setSession(null);
+    setSavedReflection(null);
+    setEditingSavedStudy(false);
+    setSearch('');
+    setSelectedTopic(null);
+    setTopicsExpanded(false);
+    setObserveHighlightIndex(0);
+    setUnderstandingPhase('main');
+    setResponsePhase('journal');
+    setPassageRead(false);
+    setPassageVerses([]);
+    setPassageSelection({ start: 0, end: 0 });
+    setHighlightActionsVisible(false);
+    setActiveHighlightId(null);
+    ignoreSelectionEvents.current = true;
+    setScriptureReaderOpen(false);
+    applyContent(createEmptyBibleStudyContent());
+    if (debouncedSave.current) {clearTimeout(debouncedSave.current);}
     (async () => {
-      const active = await getActiveBibleStudySession();
+      if (savedReflectionId) {
+        if (!savedSelectedDate) {throw new Error('Saved Bible Study date is missing.');}
+        const reflection = await getLocalReflection(savedReflectionId, 'scripture', savedSelectedDate);
+        if (!mounted) {return;}
+        const content = reflection && parseSavedBibleStudy(reflection);
+        if (!reflection || !content) {throw new Error('Saved Bible Study could not be loaded.');}
+        setSavedReflection(reflection);
+        applyContent(content);
+        setStage('detail');
+        const linkedId = reflection.metadata?.bibleStudySessionId;
+        if (linkedId) {
+          const linkedSession = await getBibleStudySession(linkedId);
+          if (mounted) {setSession(linkedSession);}
+        }
+        if (mounted) {setIsLoading(false);}
+        return;
+      }
+      const active = savedSessionId
+        ? await getBibleStudySession(savedSessionId)
+        : await getActiveBibleStudySession();
       if (!mounted) {return;}
       if (active) {
         setSession(active);
         const content = await loadBibleStudyContent(active);
+        if (!mounted) {return;}
         applyContent(content);
+        if (savedSessionId) {setStage('detail');}
         if (active.passage.reference) {
           await loadPassageText(active.passage.reference, active.passage.translation ?? 'NASB');
         }
       }
       setIsLoading(false);
-    })();
+    })().catch(error => {
+      if (!mounted) {return;}
+      setIsLoading(false);
+      Alert.alert('Unable to open Bible Study', error.message, [{ text: 'Close', onPress: () => navigation.goBack() }]);
+    });
     return () => { mounted = false; };
-  }, [applyContent, loadPassageText]);
+  }, [applyContent, creatingStudy, loadPassageText, navigation, openRequestId, savedReflectionId, savedSelectedDate, savedSessionId]);
 
   const debouncedSave = useRef<NodeJS.Timeout | null>(null);
   const saveDraft = useCallback(async () => {
-    if (!session) {return;}
+    if (!session || stage === 'detail' || (session.completed && !editingSavedStudy)) {return;}
     const content = buildContent();
     try {
       const updated = await saveBibleStudyContent(session, content);
@@ -400,7 +477,7 @@ const BibleStudyScreen = () => {
     } catch (error) {
       console.warn('Bible Study draft save error:', error);
     }
-  }, [session, buildContent]);
+  }, [session, buildContent, stage, editingSavedStudy]);
 
   const scheduleDraftSave = useCallback(() => {
     if (debouncedSave.current) {
@@ -416,6 +493,9 @@ const BibleStudyScreen = () => {
     const passage = parsePassageReference(reference);
     const newSession = await createBibleStudySession(passage);
     setSession(newSession);
+    setPassageSelection({ start: 0, end: 0 });
+    setHighlightActionsVisible(false);
+    ignoreSelectionEvents.current = true;
     setPassageRead(false);
     setObserveHighlightIndex(0);
     setUnderstandingPhase('main');
@@ -427,6 +507,7 @@ const BibleStudyScreen = () => {
 
   const advance = useCallback(async (next: BibleStudyStage) => {
     if (!session) {return;}
+    if (debouncedSave.current) {clearTimeout(debouncedSave.current);}
     triggerLightHaptic();
 
     const content = buildContent();
@@ -448,6 +529,8 @@ const BibleStudyScreen = () => {
 
       if (next === 'saved') {
         updated = await completeBibleStudySession(updated, content);
+        setEditingSavedStudy(false);
+        DeviceEventEmitter.emit('bible_study_saved', updated.id);
       } else {
         updated = await updateBibleStudySession({
           ...updated,
@@ -603,7 +686,7 @@ const BibleStudyScreen = () => {
     </View>
   ) : (
     <View style={styles.top}>
-      {stage === 'saved' || stage === 'detail' ? (
+      {stage === 'saved' ? (
         <View style={styles.topIcon} />
       ) : (
         <TouchableOpacity onPress={back} style={styles.topIcon} activeOpacity={0.7}>
@@ -695,7 +778,7 @@ const BibleStudyScreen = () => {
       <ThemedText weight="semiBold" style={styles.homeTitle}>What would you like to study?</ThemedText>
       <ThemedText style={styles.homeLead}>Choose a passage and take time to read, understand, and respond.</ThemedText>
 
-      {session && !session.completed ? (
+      {session && !session.completed && !session.completed_at && session.current_stage !== 'saved' && session.current_stage !== 'detail' ? (
         <TouchableOpacity
           style={styles.resumeButton}
           activeOpacity={0.7}
@@ -728,18 +811,19 @@ const BibleStudyScreen = () => {
       </View>
 
       <ThemedText weight="semiBold" style={styles.sectionLabel}>Or browse by topic</ThemedText>
-      <View style={styles.topicGrid}>
-      {(topicsExpanded ? BIBLE_STUDY_TOPICS : suggestedTopics).map((topic) => (
-        <TouchableOpacity key={topic.id} style={styles.topicButton} activeOpacity={0.65} onPress={() => selectTopic(topic)}>
-          <ThemedText weight="semiBold" style={styles.topicButtonText}>{topic.title}</ThemedText>
-        </TouchableOpacity>
-      ))}
-      </View>
+      <AnimatedBibleStudyTopics suggestions={suggestedTopics} topics={BIBLE_STUDY_TOPICS} expanded={topicsExpanded}
+        reduceMotion={reduceMotion.current} onSelect={selectTopic} gridStyle={styles.topicGrid}
+        buttonStyle={styles.topicButton} textStyle={styles.topicButtonText} />
 
       <TouchableOpacity
         style={styles.allTopicsButton}
         activeOpacity={0.7}
-        onPress={() => { triggerLightHaptic(); setTopicsExpanded(value => !value); }}
+        accessibilityRole="button"
+        accessibilityState={{ expanded: topicsExpanded }}
+        onPress={() => {
+          triggerLightHaptic();
+          setTopicsExpanded(value => !value);
+        }}
       >
         <ThemedText weight="semiBold" style={styles.allTopicsText}>
           {topicsExpanded ? 'Show less' : 'Show more'}
@@ -775,14 +859,21 @@ const BibleStudyScreen = () => {
     .slice(passageSelection.start, passageSelection.end)
     .trim();
 
-  const selectedHighlight = highlights.find(highlight => {
+  const selectedHighlight = highlightActionsVisible ? highlights.find(highlight => highlight.id === activeHighlightId) ?? highlights.find(highlight => {
     const start = highlight.selectionStart ?? selectablePassageText.indexOf(highlight.text);
     const end = highlight.selectionEnd ?? (start + highlight.text.length);
     if (passageSelection.end > passageSelection.start) {
       return passageSelection.start < end && passageSelection.end > start;
     }
-    return passageSelection.start >= start && passageSelection.start <= end;
-  });
+    return false; // A cursor alone must not automatically open highlight controls.
+  }) : undefined;
+
+  const dismissHighlightActions = () => {
+    ignoreSelectionEvents.current = true;
+    setHighlightActionsVisible(false);
+    setActiveHighlightId(null);
+    setPassageSelection({ start: 0, end: 0 });
+  };
 
   const selectionActionTop = useMemo(() => {
     const textBeforeSelection = selectablePassageText.slice(0, passageSelection.start);
@@ -830,7 +921,7 @@ const BibleStudyScreen = () => {
   }, [highlights, selectablePassageText]);
 
   const savePassageHighlight = (color: string) => {
-    if (!selectedPassageText) {return;}
+    if (!selectedPassageText && !selectedHighlight) {return;}
     triggerLightHaptic();
     setHighlights(current => {
       if (selectedHighlight) {
@@ -850,13 +941,14 @@ const BibleStudyScreen = () => {
         },
       ];
     });
-    setPassageSelection({ start: 0, end: 0 });
+    dismissHighlightActions();
     scheduleDraftSave();
   };
 
   const removePassageHighlight = (id: string) => {
     triggerLightHaptic();
     setHighlights(current => current.filter(highlight => highlight.id !== id));
+    dismissHighlightActions();
     scheduleDraftSave();
   };
 
@@ -957,7 +1049,7 @@ const BibleStudyScreen = () => {
           {passageLoading ? (
             <ActivityIndicator color={Colors.sage} />
           ) : (
-            <View style={styles.selectablePassageLayer}>
+            <View style={styles.selectablePassageLayer} onTouchEnd={event => event.stopPropagation()}>
               <Text
                 pointerEvents="box-none"
                 style={[styles.highlightedPassageText, {
@@ -974,9 +1066,17 @@ const BibleStudyScreen = () => {
                     key={segment.key}
                     pointerEvents={segment.color ? 'auto' : 'none'}
                     style={segment.color ? { backgroundColor: segment.color } : undefined}
-                    onPress={segment.color ? () => confirmRemoveHighlight(segment.key) : undefined}
+                    onPress={segment.color ? () => {
+                      const highlight = highlights.find(item => item.id === segment.key);
+                      if (!highlight) {return;}
+                      const start = highlight.selectionStart ?? selectablePassageText.indexOf(highlight.text);
+                      if (start < 0) {return;}
+                      setActiveHighlightId(segment.key);
+                      setPassageSelection({ start, end: start });
+                      setHighlightActionsVisible(true);
+                    } : dismissHighlightActions}
                     accessibilityRole={segment.color ? 'button' : undefined}
-                    accessibilityLabel={segment.color ? 'Remove highlight' : undefined}
+                    accessibilityLabel={segment.color ? 'Edit highlight' : undefined}
                   >
                     {segment.text}
                   </Text>
@@ -990,7 +1090,28 @@ const BibleStudyScreen = () => {
                 caretHidden
                 showSoftInputOnFocus={false}
                 selectionColor="rgba(82,106,91,0.28)"
-                onSelectionChange={({ nativeEvent }) => setPassageSelection(nativeEvent.selection)}
+                onTouchStart={() => {
+                  ignoreSelectionEvents.current = false;
+                  setHighlightActionsVisible(false);
+                  setActiveHighlightId(null);
+                }}
+                onSelectionChange={({ nativeEvent }) => {
+                  if (ignoreSelectionEvents.current) {return;}
+                  setPassageSelection(nativeEvent.selection);
+                  const { start, end } = nativeEvent.selection;
+                  if (start === end) {
+                    const tapped = highlights.find(highlight => {
+                      const from = highlight.selectionStart ?? selectablePassageText.indexOf(highlight.text);
+                      const to = highlight.selectionEnd ?? (from + highlight.text.length);
+                      return from >= 0 && start >= from && start < to;
+                    });
+                    setActiveHighlightId(tapped?.id ?? null);
+                    setHighlightActionsVisible(!!tapped);
+                  } else {
+                    setActiveHighlightId(null);
+                    setHighlightActionsVisible(true);
+                  }
+                }}
                 style={[styles.selectablePassage, {
                 fontSize: scriptureFontSize,
                 lineHeight: scriptureFontSize * 1.6 + scriptureLineSpacing,
@@ -1000,21 +1121,10 @@ const BibleStudyScreen = () => {
                 fontFamily: getFontFamily(scriptureFont, scriptureBold ? 'bold' : 'regular'),
                 }]}
               />
-              {selectedPassageText || selectedHighlight ? (
+              {highlightActionsVisible && (selectedPassageText || selectedHighlight) ? (
                 <View
                   style={[styles.highlightSelectionButton, { top: selectionActionTop }]}
                 >
-                  {!selectedPassageText && selectedHighlight ? (
-                    <TouchableOpacity
-                      onPress={() => confirmRemoveHighlight(selectedHighlight.id)}
-                      style={styles.tappedHighlightRemove}
-                      accessibilityLabel="Remove highlight"
-                    >
-                      <Ionicons name="close" size={17} color={Colors.textGray} />
-                      <ThemedText weight="semiBold" style={styles.tappedHighlightRemoveText}>Remove highlight?</ThemedText>
-                    </TouchableOpacity>
-                  ) : (
-                    <>
                       <Ionicons name="color-fill-outline" size={16} color={Colors.sage} />
                       {HIGHLIGHT_COLORS.map(color => (
                         <TouchableOpacity
@@ -1028,13 +1138,15 @@ const BibleStudyScreen = () => {
                           accessibilityLabel="Apply highlight color"
                         />
                       ))}
-                      {selectedHighlight ? (
-                        <TouchableOpacity onPress={() => confirmRemoveHighlight(selectedHighlight.id)} style={styles.paletteRemoveButton} accessibilityLabel="Remove highlight">
-                          <Ionicons name="close" size={17} color={Colors.textGray} />
-                        </TouchableOpacity>
-                      ) : null}
-                    </>
-                  )}
+                      {selectedHighlight ? <TouchableOpacity
+                        onPress={() => confirmRemoveHighlight(selectedHighlight.id)}
+                        style={styles.paletteRemoveButton} accessibilityRole="button" accessibilityLabel="Remove this highlight">
+                        <Ionicons name="trash-outline" size={17} color={Colors.textGray} />
+                      </TouchableOpacity> : null}
+                      <TouchableOpacity onPress={dismissHighlightActions} style={styles.paletteRemoveButton}
+                        accessibilityRole="button" accessibilityLabel="Dismiss highlight controls">
+                        <Ionicons name="close" size={17} color={Colors.textGray} />
+                      </TouchableOpacity>
                 </View>
               ) : null}
             </View>
@@ -1363,40 +1475,6 @@ const BibleStudyScreen = () => {
     );
   };
 
-  const detailCard = (label: string, value: string, soft?: boolean) => (
-    <Card soft={soft}>
-      <Eyebrow>{label}</Eyebrow>
-      <ThemedText style={[styles.lead, { color: Colors.text }]}>{value}</ThemedText>
-    </Card>
-  );
-
-  const renderDetail = () => {
-    if (!session) {return null;}
-    const content = buildContent();
-    const dateText = session.completed_at
-      ? format(new Date(session.completed_at), 'MMMM d, yyyy')
-      : format(new Date(session.selected_date), 'MMMM d, yyyy');
-
-    return (
-      <View style={styles.page}>
-        <Eyebrow>{dateText}</Eyebrow>
-        <PageTitle>{session.passage.reference}</PageTitle>
-        <PageLead>Your complete study, kept together.</PageLead>
-
-        {content.highlights.length > 0
-          ? detailCard(
-              'Highlights',
-              content.highlights.map(h => `${h.verseNumber} ${h.text}`).join('\n'),
-              true,
-            )
-          : null}
-        {content.observation.text.trim() ? detailCard('What I noticed', content.observation.text, true) : null}
-        {content.understanding.text.trim() ? detailCard("What I'm understanding", content.understanding.text, true) : null}
-        {content.response.text.trim() ? detailCard('My response', content.response.text, true) : null}
-        {content.prayer.text.trim() ? detailCard('My prayer', content.prayer.text, true) : null}
-      </View>
-    );
-  };
 
   const content = () => {
     switch (stage) {
@@ -1406,7 +1484,7 @@ const BibleStudyScreen = () => {
       case 'understand': return renderUnderstand();
       case 'respond': return renderRespond();
       case 'saved': return renderSaved();
-      case 'detail': return renderDetail();
+      case 'detail': return null; // The saved view owns its own scrolling and action bar.
       default: return renderHome();
     }
   };
@@ -1552,8 +1630,55 @@ const BibleStudyScreen = () => {
     );
   }
 
+  if (stage === 'detail' && (savedReflection || session)) {
+    const selectedDate = savedReflection?.selected_date || session!.selected_date;
+    const reflectionId = savedReflection?.id || session?.reflection_ref?.local_id;
+    return <BibleStudyDetailView
+      reference={savedReflection?.title || savedReflection?.metadata?.passage?.reference || session?.passage.reference || 'Bible Study'}
+      selectedDate={selectedDate}
+      translation={savedReflection?.metadata?.passage?.translation || session?.passage.translation || 'NASB'}
+      content={buildContent()}
+      onClose={() => { triggerLightHaptic(); navigation.goBack(); }}
+      onEdit={async () => {
+        if (!reflectionId) {throw new Error('Saved reflection is missing.');}
+        const reflection = await getLocalReflection(reflectionId, 'scripture', selectedDate);
+        const originalContent = reflection && parseSavedBibleStudy(reflection);
+        const linkedId = reflection?.metadata?.bibleStudySessionId || session?.id;
+        const originalSession = linkedId ? await getBibleStudySession(linkedId) : null;
+        if (!originalSession || !originalContent) {throw new Error('Original study session is missing.');}
+        applyContent(originalContent);
+        // Aggregated previews must not override edits to the original structured notes.
+        if (Object.keys(originalContent.observation.byHighlight ?? {}).length ||
+            Object.keys(originalContent.observation.promptNotesByHighlight ?? {}).length) {
+          setObservationText('');
+        }
+        if (originalContent.response.prompts?.length) {setResponseText('');}
+        setSession(originalSession);
+        setSavedReflection(null);
+        setObserveHighlightIndex(0);
+        setUnderstandingPhase('main');
+        setResponsePhase('journal');
+        setPassageRead(originalContent.passageRead === true);
+        setEditingSavedStudy(true);
+        await loadPassageText(originalSession.passage.reference, originalSession.passage.translation ?? 'NASB');
+        setStage('read');
+      }}
+      onDelete={async () => {
+        if (!reflectionId) {throw new Error('Saved reflection is missing.');}
+        await deleteLocalReflection(reflectionId, 'scripture', selectedDate);
+        const sessionId = savedReflection?.metadata?.bibleStudySessionId || session?.id;
+        if (sessionId) {await deleteBibleStudySession(sessionId);}
+        // The intentionally saved prayer is a separate canonical record.
+        DeviceEventEmitter.emit('reflection_deleted', reflectionId);
+        DeviceEventEmitter.emit('bible_study_saved', reflectionId);
+        navigation.goBack();
+      }}
+    />;
+  }
+
   return (
     <KeyboardAvoidingView
+      onTouchEnd={() => { if (stage === 'read') {dismissHighlightActions();} }}
       style={[
         styles.container,
         stage === 'home' && styles.homeContainer,
@@ -1564,6 +1689,7 @@ const BibleStudyScreen = () => {
       {renderTop()}
       {renderProgress()}
       <ScrollView
+        onScrollBeginDrag={() => { if (stage === 'read') {dismissHighlightActions();} }}
         ref={screenScrollRef}
         style={styles.scroll}
         contentContainerStyle={[

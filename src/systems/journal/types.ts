@@ -47,4 +47,7 @@ export interface PluginRenderProps {
   // Optional filtering context for plugins to respect renderer-level filters
   filters?: PluginFilters;
   navigation?: any;
+  // Optional per-entry identifier (e.g., for an individual saved Bible study)
+  sessionId?: string;
+  reflectionId?: string;
 }

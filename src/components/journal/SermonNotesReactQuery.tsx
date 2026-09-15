@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { format } from 'date-fns';
-import { Feather, FileText, Sparkles, Leaf } from 'lucide-react-native';
+import { FileText, Sparkles, Leaf } from 'lucide-react-native';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
 import ThemedText from '../common/ThemedText';
@@ -45,7 +45,9 @@ export const SermonNotesReactQuery: React.FC<SermonNotesProps> = ({
         const dateStr = toLocalDateString(selectedDate);
         const sermons = await getLocalReflections('sermon', dateStr);
         if (!mounted) {return;}
-        setEntries(sermons);
+        setEntries(sermons.slice().sort((a, b) =>
+          new Date(b.updated_at || b.created_at).getTime() - new Date(a.updated_at || a.created_at).getTime(),
+        ));
       } catch (e) {
         console.warn('[SermonNotesReactQuery] load error', e);
       } finally {

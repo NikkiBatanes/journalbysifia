@@ -9,6 +9,8 @@ export const PluginRenderer: React.FC<PluginRenderProps> = ({
   viewMode,
   filters,
   navigation,
+  sessionId,
+  reflectionId,
 }) => {
   const Component = plugin.component;
 
@@ -20,10 +22,13 @@ export const PluginRenderer: React.FC<PluginRenderProps> = ({
     ...(viewMode && { viewMode }),
     ...(filters && { filters }),
     ...(navigation && { navigation }),
+    // Pass the specific saved session (e.g. Bible study) so plugins can render it individually
+    ...(sessionId !== undefined && { sessionId }),
+    ...(reflectionId !== undefined && { reflectionId }),
   };
 
   return (
-    <View key={plugin.id}>
+    <View>
       <Component {...componentProps} />
     </View>
   );

@@ -7,8 +7,8 @@ import { PluginRenderer } from '../PluginRenderer';
 import { Colors } from '../../../theme/colors';
 import { format, startOfMonth, endOfMonth, getWeek } from 'date-fns';
 import { getWeekStart, getWeekEnd, WeekStartDay } from '../../../utils/weekStartUtils';
-import { toLocalDateString } from '../../../utils/date';
 import { getAllLocalReflectionsByType } from '../../../storage/reflectionStorage';
+import { getSavedBibleStudyReflections, parseSavedBibleStudy } from '../../../storage/bibleStudyMomentsStorage';
 import ThemedText from '../../../components/common/ThemedText';
 import { useTheme } from '../../../hooks/useTheme';
 import { getFontFamily } from '../../../theme/fonts';
@@ -19,6 +19,7 @@ import { useAuth } from '../../../context/IndustryStandardAuthContext';
 import { triggerLightHaptic } from '../../../utils/haptics';
 import MomentsSkeleton from '../../../components/SkeletonLoader/MomentsSkeleton';
 import type { PluginFilters } from '../types';
+import type { FilterKey } from '../../../components/moments/FilterSelect';
 
 // Removed unused screenWidth variable
 
@@ -61,7 +62,7 @@ interface EnhancedMomentsRendererProps {
   headerComponents?: React.ReactElement[];
   refreshControl?: React.ReactElement<RefreshControlProps>;
   prayerAnswerFilter?: 'all' | 'answered' | 'unanswered';
-  filterKeys?: Array<'upcoming' | 'unansweredPrayers' | 'answeredPrayers' | 'reflectionJournals' | 'prayers' | 'prayerRequests' | 'gratitude' | 'todaysWin' | 'planCarousel'>;
+  filterKeys?: FilterKey[];
   // Optional handler for empty-state CTA button
   onAddPress?: () => void;
   navigation?: any;
@@ -81,6 +82,10 @@ interface MomentEntry {
   _isPlan?: boolean;
   _isPrayerRequest?: boolean;
   _searchText?: string;
+  // Optional per-entry identifier for direct rendering (e.g. a single saved Bible study)
+  sessionId?: string;
+  reflectionId?: string;
+  _savedAt?: number;
 }
 
 interface GroupedSection {
@@ -113,6 +118,7 @@ const TYPE_ORDER = {
   gratitude: 3,
   reflection: 4,
   sermon: 4.5,
+  biblestudy: 4.75,
   prayerjournal: 5,
   guidedprayers: 6,
   peopleprayers: 7,
@@ -132,6 +138,7 @@ const textToOrderKey = (text: string): keyof typeof TYPE_ORDER | null => {
   if (s.includes('reflections') || s.includes('reflection journal') || s.includes('reflection')) {return 'reflection';}
   // Sermon notes
   if (s.includes('sermon')) {return 'sermon';}
+  if (s.includes('bible study')) {return 'biblestudy';}
   // Prayer journal
   if (s.includes('prayer journal')) {return 'prayerjournal';}
   // Guided/prayed prayers
@@ -156,6 +163,7 @@ const normalizePluginIdToKey = (pidRaw: string): keyof typeof TYPE_ORDER | null 
   if (pid === 'gratitude' || pid === 'gratitudejournal') {return 'gratitude';}
   if (pid === 'reflection' || pid === 'reflections' || pid === 'reflectionjournal') {return 'reflection';}
   if (pid === 'sermon') {return 'sermon';}
+  if (pid === 'biblestudy') {return 'biblestudy';}
   if (pid === 'prayer-journal' || pid === 'openprayer' || pid === 'actsprayer') {return 'prayerjournal';}
   if (pid === 'guidedprayers' || pid === 'guided_playbook' || pid === 'guided-prayers' || pid === 'prayedguided') {return 'guidedprayers';}
   if (pid === 'people' || pid === 'people-prayers' || pid === 'prayerpeople' || pid === 'prayerlist') {return 'peopleprayers';}
@@ -490,6 +498,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
   const [realEntries, setRealEntries] = React.useState<MomentEntry[]>([]);
   const [_loading, setLoading] = React.useState(true);
   const hasLoadedOnce = useRef(false);
+  const fetchGeneration = useRef(0);
 
   // Derive plugin-level filters to pass into plugin components so they respect Moments filters
   const pluginFilters: PluginFilters | undefined = useMemo(() => {
@@ -561,6 +570,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
 
   // Fetch real journal entries from user interactions - NOT generated content
   const fetchRealEntries = React.useCallback(async () => {
+    const generation = ++fetchGeneration.current;
     // Load local sermon notes regardless of auth
     const sermonPlugin = plugins.find((p: JournalPlugin) => p.id === 'sermon');
     let sermonEntries: MomentEntry[] = [];
@@ -580,6 +590,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
             date: entryDate,
             category: 'Reflection',
             type: 'Sermon Notes',
+            _savedAt: new Date(entry.updated_at || entry.created_at).getTime(),
             _isReflection: true,
             _searchText: buildSearchText(
               entry.title,
@@ -598,11 +609,53 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
       }
     }
 
+    // Completed Bible Studies are local-first, just like Sermon Notes.
+    const bibleStudyPlugin = plugins.find((p: JournalPlugin) => p.id === 'biblestudy');
+    let bibleStudyEntries: MomentEntry[] = [];
+    if (bibleStudyPlugin) {
+      try {
+        const reflections = await getSavedBibleStudyReflections();
+        bibleStudyEntries = reflections.map(reflection => {
+          const content = parseSavedBibleStudy(reflection)!;
+          const [year, month, day] = reflection.selected_date.split('-').map(Number);
+          return {
+            plugin: bibleStudyPlugin,
+            reflectionId: reflection.id,
+            date: new Date(year, month - 1, day),
+            category: 'Reflection',
+            type: 'Bible Study',
+            _savedAt: new Date(reflection.updated_at || reflection.metadata?.bibleStudyCompletedAt || reflection.created_at).getTime(),
+            _isReflection: true,
+            _searchText: buildSearchText(
+              reflection.title,
+              content.observation.text,
+              content.understanding.text,
+              content.response.text,
+              content.prayer.text,
+              ...content.highlights.map(highlight => highlight.text),
+            ),
+          };
+        });
+      } catch (bibleStudyError) {
+        Logger.error('Error loading completed Bible Studies', bibleStudyError as Error, { component: 'EnhancedMomentsRenderer' });
+      }
+    }
+
+    if (generation !== fetchGeneration.current) {return;}
+
     if (!user) {
-      setRealEntries(sermonEntries);
+      setRealEntries([...sermonEntries, ...bibleStudyEntries]);
       setLoading(false);
+      hasLoadedOnce.current = true;
       return;
     }
+
+    // Publish local saved content immediately; cloud queries must not delay it.
+    setRealEntries(previous => [
+      ...previous.filter(entry => entry.plugin.id !== 'sermon' && entry.plugin.id !== 'biblestudy'),
+      ...sermonEntries,
+      ...bibleStudyEntries,
+    ]);
 
     try {
       // Use refreshKey to ensure fresh fetch when it changes
@@ -1261,14 +1314,19 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
 
       // Merge local sermon notes with Supabase entries
       entries.push(...sermonEntries);
+      entries.push(...bibleStudyEntries);
 
-      setRealEntries(entries);
+      if (generation === fetchGeneration.current) {setRealEntries(entries);}
     } catch (error) {
       Logger.error('❌ [MomentsRenderer] Error fetching journal entries', error as Error, { component: 'EnhancedMomentsRenderer' });
-      setRealEntries([]);
+      if (generation === fetchGeneration.current) {
+        setRealEntries([...sermonEntries, ...bibleStudyEntries]);
+      }
     } finally {
-      setLoading(false);
-      hasLoadedOnce.current = true;
+      if (generation === fetchGeneration.current) {
+        setLoading(false);
+        hasLoadedOnce.current = true;
+      }
     }
   }, [user, plugins, refreshKey]);
 
@@ -1403,6 +1461,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
           (categoryFilters.includes('prayers') && e._isPrayer) ||
           (categoryFilters.includes('prayerRequests') && e._isPrayerRequest) ||
           (categoryFilters.includes('reflectionJournals') && e._isReflection) ||
+          (categoryFilters.includes('bibleStudy') && e.plugin.id === 'biblestudy') ||
           (categoryFilters.includes('gratitude') && e._isGratitude) ||
           (categoryFilters.includes('todaysWin') && e._isWin) ||
           (categoryFilters.includes('planCarousel') && e._isPlan)
@@ -1433,20 +1492,20 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
 
     switch (sortBy) {
       case 'newest':
-        return sorted.sort((a, b) => b.date.getTime() - a.date.getTime());
+        return sorted.sort((a, b) => (b.date.getTime() - a.date.getTime() || (b._savedAt ?? 0) - (a._savedAt ?? 0)));
       case 'oldest':
         return sorted.sort((a, b) => a.date.getTime() - b.date.getTime());
       case 'category':
         return sorted.sort((a, b) => {
           if (a.category === b.category) {
-            return b.date.getTime() - a.date.getTime();
+            return (b.date.getTime() - a.date.getTime() || (b._savedAt ?? 0) - (a._savedAt ?? 0));
           }
           return a.category.localeCompare(b.category);
         });
       case 'type':
         return sorted.sort((a, b) => {
           if (a.type === b.type) {
-            return b.date.getTime() - a.date.getTime();
+            return (b.date.getTime() - a.date.getTime() || (b._savedAt ?? 0) - (a._savedAt ?? 0));
           }
           return a.plugin.title.localeCompare(b.plugin.title);
         });
@@ -1477,7 +1536,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
 
       // Build group list and enforce ordering similar to date grouping
       const groupEntries: { type: string; items: MomentEntry[]; repr: MomentEntry }[] = Object.entries(typeGroups).map(([type, items]) => {
-        const sorted = items.sort((a, b) => b.date.getTime() - a.date.getTime());
+        const sorted = items.sort((a, b) => (b.date.getTime() - a.date.getTime() || (b._savedAt ?? 0) - (a._savedAt ?? 0)));
         return { type, items: sorted, repr: sorted[0] };
       });
 
@@ -1570,7 +1629,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
           out.push({ title: weekHeaderTitle, data: [{ kind: 'weekHeader', key: target.key } as WeekHeaderItem] as any[], key: `weeksec-${target.key}` });
           // Day sections
           dayKeys.forEach(dk => {
-            const entries = byDay[dk].sort((a, b) => (sortBy === 'oldest' ? a.date.getTime() - b.date.getTime() : b.date.getTime() - a.date.getTime()));
+            const entries = byDay[dk].sort((a, b) => (sortBy === 'oldest' ? a.date.getTime() - b.date.getTime() : (b.date.getTime() - a.date.getTime() || (b._savedAt ?? 0) - (a._savedAt ?? 0))));
             const dayDate = entries[0]?.date ?? new Date(dk);
             const isCurrentYear = dayDate.getFullYear() === new Date().getFullYear();
             const dayTitle = isCurrentYear ? format(dayDate, 'EEEE, MMMM d') : format(dayDate, 'EEEE, MMMM d, yyyy');
@@ -1643,7 +1702,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
           sections.push({ title: format(m.start, 'MMMM') + (m.start.getFullYear() === new Date().getFullYear() ? '' : ` ${format(m.start, 'yyyy')}`), data: [monthHeader as any], key: `monthsec-${mk}` });
           const dayKeys = Object.keys(m.days).sort((a, b) => (sortBy === 'oldest' ? a.localeCompare(b) : b.localeCompare(a)));
           dayKeys.forEach((dk) => {
-            const dayEntries = m.days[dk].sort((a, b) => (sortBy === 'oldest' ? a.date.getTime() - b.date.getTime() : b.date.getTime() - a.date.getTime()));
+            const dayEntries = m.days[dk].sort((a, b) => (sortBy === 'oldest' ? a.date.getTime() - b.date.getTime() : (b.date.getTime() - a.date.getTime() || (b._savedAt ?? 0) - (a._savedAt ?? 0))));
             const dayItem: DayItem = { kind: 'day', key: dk, entries: dayEntries };
             const dayDate = dayEntries[0]?.date ?? new Date(dk);
             const isCurrentYear = dayDate.getFullYear() === new Date().getFullYear();
@@ -1734,7 +1793,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
         sections.push({ title: format(m.start, 'MMMM') + (m.start.getFullYear() === new Date().getFullYear() ? '' : ` ${format(m.start, 'yyyy')}`), data: [monthHeader], key: `monthsec-${monthKey}` });
         const dayKeys = Object.keys(m.days).sort((a, b) => (sortBy === 'oldest' ? a.localeCompare(b) : b.localeCompare(a)));
         dayKeys.forEach(dk => {
-          const dayEntries = m.days[dk].sort((a, b) => (sortBy === 'oldest' ? a.date.getTime() - b.date.getTime() : b.date.getTime() - a.date.getTime()));
+          const dayEntries = m.days[dk].sort((a, b) => (sortBy === 'oldest' ? a.date.getTime() - b.date.getTime() : (b.date.getTime() - a.date.getTime() || (b._savedAt ?? 0) - (a._savedAt ?? 0))));
           const dayItem: DayItem = { kind: 'day', key: dk, entries: dayEntries };
           const dayDate = dayEntries[0]?.date ?? new Date(dk);
           const isCurrentYear = dayDate.getFullYear() === new Date().getFullYear();
@@ -1792,11 +1851,12 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
 
         // Build groups: guided prayer types keep all entries (carousel), others collapse to latest only
         const groupEntries: { type: string; items: MomentEntry[]; repr: MomentEntry }[] = Object.entries(typeGroups).map(([type, items]) => {
-          const sorted = items.sort((a, b) => b.date.getTime() - a.date.getTime());
+          const sorted = items.sort((a, b) => (b.date.getTime() - a.date.getTime() || (b._savedAt ?? 0) - (a._savedAt ?? 0)));
           const isGuidedType = type.toLowerCase().includes('guided');
+          const hasIndividualSavedCards = sorted.some(entry => !!entry.reflectionId);
           return {
             type,
-            items: isGuidedType ? sorted : [sorted[0]],
+            items: isGuidedType || hasIndividualSavedCards ? sorted : [sorted[0]],
             repr: sorted[0],
           };
         });
@@ -2037,7 +2097,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
               <View key={`wday-${dayItem.key}-entry-${i}`} style={styles.carouselItem}>
                 <View style={styles.momentItem}>
                   <View style={styles.momentContent}>
-                    <PluginRenderer plugin={entry.plugin} selectedDate={entry.date} refreshKey={refreshKey} viewMode="inline" filters={{ ...(pluginFilters || {}), hideEmptyComponents: true }} navigation={navigation} />
+                    <PluginRenderer plugin={entry.plugin} selectedDate={entry.date} reflectionId={entry.reflectionId} sessionId={entry.sessionId} refreshKey={refreshKey} viewMode="inline" filters={{ ...(pluginFilters || {}), hideEmptyComponents: true }} navigation={navigation} />
                   </View>
                 </View>
               </View>
@@ -2143,7 +2203,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
                             <View style={styles.momentContent}>
                               <PluginRenderer
                                 plugin={entry.plugin}
-                                selectedDate={entry.date}
+                                selectedDate={entry.date} reflectionId={entry.reflectionId} sessionId={entry.sessionId}
                                 refreshKey={refreshKey}
                                 viewMode="inline"
                                 filters={{ ...(pluginFilters || {}), hideEmptyComponents: true }}
@@ -2208,7 +2268,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
               <View key={`day-${dayItem.key}-entry-${i}`} style={styles.carouselItem}>
                 <View style={styles.momentItem}>
                   <View style={styles.momentContent}>
-                    <PluginRenderer plugin={entry.plugin} selectedDate={entry.date} refreshKey={refreshKey} viewMode="moments" filters={pluginFilters} navigation={navigation} />
+                    <PluginRenderer plugin={entry.plugin} selectedDate={entry.date} reflectionId={entry.reflectionId} sessionId={entry.sessionId} refreshKey={refreshKey} viewMode="moments" filters={pluginFilters} navigation={navigation} />
                   </View>
                 </View>
               </View>
@@ -2296,7 +2356,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
                       <View key={`${month.key}-entry-${dk}-${i}`} style={styles.carouselItem}>
                         <View style={styles.momentItem}>
                           <View style={styles.momentContent}>
-                            <PluginRenderer plugin={entry.plugin} selectedDate={entry.date} refreshKey={refreshKey} viewMode="inline" filters={{ ...(pluginFilters || {}), hideEmptyComponents: true }} navigation={navigation} />
+                            <PluginRenderer plugin={entry.plugin} selectedDate={entry.date} reflectionId={entry.reflectionId} sessionId={entry.sessionId} refreshKey={refreshKey} viewMode="inline" filters={{ ...(pluginFilters || {}), hideEmptyComponents: true }} navigation={navigation} />
                           </View>
                         </View>
                       </View>
@@ -2348,7 +2408,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
               <View key={`yrday-${dayItem.key}-entry-${i}`} style={styles.carouselItem}>
                 <View style={styles.momentItem}>
                   <View style={styles.momentContent}>
-                    <PluginRenderer plugin={entry.plugin} selectedDate={entry.date} refreshKey={refreshKey} viewMode="inline" filters={{ hideEmptyComponents: true }} navigation={navigation} />
+                    <PluginRenderer plugin={entry.plugin} selectedDate={entry.date} reflectionId={entry.reflectionId} sessionId={entry.sessionId} refreshKey={refreshKey} viewMode="inline" filters={{ hideEmptyComponents: true }} navigation={navigation} />
                   </View>
                 </View>
               </View>
@@ -2428,7 +2488,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
             <View style={styles.momentContent}>
               <PluginRenderer
                 plugin={entry.plugin}
-                selectedDate={entry.date}
+                selectedDate={entry.date} reflectionId={entry.reflectionId} sessionId={entry.sessionId}
                 refreshKey={refreshKey}
                 viewMode="inline"
                 filters={{ ...(pluginFilters || {}), hideEmptyComponents: true }}
@@ -2475,6 +2535,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
     if (filterKeys?.includes('answeredPrayers')) {active.push('answered prayers');}
     if (filterKeys?.includes('unansweredPrayers')) {active.push('unanswered prayers');}
     if (filterKeys?.includes('reflectionJournals')) {active.push('reflections');}
+    if (filterKeys?.includes('bibleStudy')) {active.push('Bible Studies');}
     if (filterKeys?.includes('prayers')) {active.push('prayers');}
     if (filterKeys?.includes('prayerRequests')) {active.push('prayer requests');}
     if (filterKeys?.includes('gratitude')) {active.push('gratitude');}

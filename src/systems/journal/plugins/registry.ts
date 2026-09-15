@@ -11,6 +11,7 @@ import { LookingForwardReactQuery } from '../../../components/journal/LookingFor
 import { PrayerJournalReactQuery } from '../../../components/journal/PrayerJournalReactQuery';
 import EnhancedPrayerListReactQuery from '../../../components/journal/EnhancedPrayerListReactQuery';
 import { SermonNotesReactQuery } from '../../../components/journal/SermonNotesReactQuery';
+import { BibleStudyReactQuery } from '../../../components/journal/BibleStudyReactQuery';
 
 // Plugin Registry - Auto-discovery system
 export const JOURNAL_PLUGINS: JournalPlugin[] = [
@@ -90,6 +91,15 @@ export const JOURNAL_PLUGINS: JournalPlugin[] = [
     viewModes: ['carousel', 'inline', 'moments'],
     title: 'Sermon Notes',
     subtitle: 'Sermon captures',
+  },
+  {
+    id: 'biblestudy',
+    category: 'reflect',
+    component: BibleStudyReactQuery,
+    priority: 6,
+    viewModes: ['carousel', 'inline', 'moments'],
+    title: 'Bible Study',
+    subtitle: 'Saved Scripture studies',
   },
 
   // PRAY Category

@@ -51,6 +51,7 @@ export interface BibleStudyPassage {
 
 export interface BibleStudyContent {
   format: 'bible_study_v1';
+  passageRead?: boolean;
   highlights: BibleStudyHighlight[];
   observation: {
     text: string;
@@ -89,6 +90,7 @@ export interface BibleStudySession {
 }
 
 const BIBLE_STUDY_PREFIX = 'bible_study_session:';
+const LATEST_BIBLE_STUDY_KEY = 'bible_study_latest_session';
 
 const generateUUID = (): string => {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
@@ -141,6 +143,7 @@ export const parsePassageReference = (reference: string): BibleStudyPassage => {
 
 export const createEmptyBibleStudyContent = (): BibleStudyContent => ({
   format: 'bible_study_v1',
+  passageRead: false,
   highlights: [],
   observation: {
     text: '',
@@ -203,6 +206,7 @@ export const createBibleStudySession = async (
   };
 
   await AsyncStorage.setItem(getBibleStudySessionKey(id), JSON.stringify(session));
+  await AsyncStorage.setItem(LATEST_BIBLE_STUDY_KEY, id);
   return session;
 };
 
@@ -256,26 +260,34 @@ export const getActiveBibleStudySession = async (
   date?: string | Date,
 ): Promise<BibleStudySession | null> => {
   const dateStr = date ? formatLocalDate(date) : undefined;
-  const all = await getBibleStudySessions({
-    selected_date: dateStr,
-    completed: false,
-  });
-  if (dateStr) {
-    const exactDate = all.filter(s => s.selected_date === dateStr);
-    if (exactDate.length > 0) {return exactDate[0];}
-  }
-  const any = await getBibleStudySessions({ completed: false });
-  return any[0] ?? null;
+  const latestId = await AsyncStorage.getItem(LATEST_BIBLE_STUDY_KEY);
+  const latest = latestId
+    ? await getBibleStudySession(latestId)
+    : (await getAllBibleStudySessions()).sort((a, b) => b.started_at.localeCompare(a.started_at))[0];
+  // Only the user's latest selected study is resumable. Do not fall back to
+  // older unfinished studies after this one has been saved or deleted.
+  if (!latest || latest.completed || latest.completed_at || latest.current_stage === 'saved' || latest.current_stage === 'detail') {return null;}
+  if (dateStr && latest.selected_date !== dateStr) {return null;}
+  const reflection = latest.reflection_ref ? await getLocalReflection(
+    latest.reflection_ref.local_id, 'scripture', latest.selected_date,
+  ) : null;
+  if (!reflection || reflection.metadata?.bibleStudyCompleted === true) {return null;}
+  return latest;
 };
 
 export const updateBibleStudySession = async (
   session: BibleStudySession,
 ): Promise<BibleStudySession> => {
   const now = new Date().toISOString();
+  const existing = await getBibleStudySession(session.id);
   const updated: BibleStudySession = {
     ...session,
+    ...(existing?.completed ? {
+      completed: true,
+      completed_at: session.completed_at || existing.completed_at,
+    } : {}),
     updated_at: now,
-    version: (session.version || 1) + 1,
+    version: Math.max(session.version || 1, existing?.version || 1) + 1,
   };
   await AsyncStorage.setItem(getBibleStudySessionKey(updated.id), JSON.stringify(updated));
   return updated;
@@ -433,5 +445,15 @@ export const completeBibleStudySession = async (
     completed: true,
     completed_at: now,
   };
-  return updateBibleStudySession(completed);
+  const saved = await updateBibleStudySession(completed);
+  if (saved.reflection_ref) {
+    const reflection = await getLocalReflection(saved.reflection_ref.local_id, 'scripture', saved.selected_date);
+    if (reflection) {
+      await updateLocalReflection({
+        ...reflection,
+        metadata: { ...reflection.metadata, bibleStudyCompleted: true, bibleStudyCompletedAt: now },
+      });
+    }
+  }
+  return saved;
 };

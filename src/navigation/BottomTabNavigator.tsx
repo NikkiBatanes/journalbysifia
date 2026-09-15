@@ -95,6 +95,13 @@ const CustomTabBarComponent = ({
   const handleAddItem = (item: typeof addMenuItems[0]) => {
     triggerLightHaptic();
     setShowAddMenu(false);
+    if (item.params?.screen === 'BibleStudy') {
+      navigation.navigate('Journal' as any, {
+        screen: 'BibleStudy',
+        params: { openMode: 'create', openRequestId: `${Date.now()}-${Math.random()}`, sessionId: null, reflectionId: null, selectedDate: null },
+      } as any);
+      return;
+    }
     if (item.params) {
       navigation.navigate(item.target as any, item.params as any);
     } else {

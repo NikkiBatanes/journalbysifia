@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, StyleSheet, RefreshControl, StatusBar, DeviceEventEmitter, TextInput, TouchableOpacity, LayoutAnimation, Platform, UIManager } from 'react-native';
+import { View, StyleSheet, RefreshControl, StatusBar, DeviceEventEmitter, TextInput, TouchableOpacity, LayoutAnimation, Platform, UIManager, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { Feather, ChevronDown } from 'lucide-react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -17,6 +17,9 @@ import { GroupingType } from '../components/moments/GroupingControls';
 import { EnhancedMomentsRenderer } from '../systems/journal/renderers/EnhancedMomentsRenderer';
 import { getAllPlugins } from '../systems/journal/plugins/registry';
 import { triggerLightHaptic } from '../utils/haptics';
+import { getAllBibleStudySessions } from '../storage/bibleStudyStorage';
+import { getAllLocalReflectionsByType } from '../storage/reflectionStorage';
+import { getSavedBibleStudyReflections, parseSavedBibleStudy } from '../storage/bibleStudyMomentsStorage';
 
 // Enable LayoutAnimation on Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -55,6 +58,12 @@ export const MomentsScreen: React.FC = () => {
 
   // Refresh key to trigger data reload when reflections are saved
   const [refreshKey, setRefreshKey] = useState(0);
+
+  // Save events may occur while this tab is not mounted or focused.
+  // Returning to Moments must rediscover persisted content independently.
+  useFocusEffect(React.useCallback(() => {
+    setRefreshKey(previous => previous + 1);
+  }, []));
 
   // Search and filter modal visibility
   const [showSearch, setShowSearch] = useState(false);
@@ -106,6 +115,7 @@ export const MomentsScreen: React.FC = () => {
 
     // Refresh when sermon notes are saved
     const sermonSavedSubscription = DeviceEventEmitter.addListener('sermon_saved', handleReflectionChanged);
+    const bibleStudySavedSubscription = DeviceEventEmitter.addListener('bible_study_saved', handleReflectionChanged);
 
     return () => {
       savedSubscription.remove();
@@ -113,11 +123,40 @@ export const MomentsScreen: React.FC = () => {
       timeblockSavedSubscription.remove();
       timeblockDeletedSubscription.remove();
       sermonSavedSubscription.remove();
+      bibleStudySavedSubscription.remove();
     };
   }, []);
 
   // Get all available plugins
   const plugins = getAllPlugins();
+
+  // Temporary, read-only diagnostic for device-only missing saved studies.
+  // No passage, journal text, prayer text, or identifiers are exposed.
+  const showBibleStudyDiagnostics = async () => {
+    try {
+      const sessions = await getAllBibleStudySessions();
+      const scripture = await getAllLocalReflectionsByType('scripture');
+      const studies = scripture.filter(entry => entry.source === 'bible_study');
+      const saved = await getSavedBibleStudyReflections();
+      const missingReferences = sessions.filter(session => session.completed &&
+        !studies.some(entry => entry.id === session.reflection_ref?.local_id)).length;
+      Alert.alert('Bible Study diagnostics v1', [
+        `Development build: ${__DEV__ ? 'yes' : 'no'}`,
+        `Plugin registered: ${plugins.some(plugin => plugin.id === 'biblestudy') ? 'yes' : 'no'}`,
+        `Sessions: ${sessions.length}; completed: ${sessions.filter(session => session.completed).length}`,
+        `Scripture reflections: ${scripture.length}`,
+        `Bible Study reflections: ${studies.length}`,
+        `Valid study content: ${studies.filter(entry => parseSavedBibleStudy(entry)).length}`,
+        `Completion markers: ${studies.filter(entry => entry.metadata?.bibleStudyCompleted === true).length}`,
+        `Discoverable saved studies: ${saved.length}`,
+        `Completed sessions missing reflection: ${missingReferences}`,
+        `Saved dates: ${[...new Set(saved.map(entry => entry.selected_date))].join(', ') || 'none'}`,
+        `Filters: ${activeFilters.join(', ') || 'none'}; search: ${searchQuery.trim() ? 'active' : 'none'}`,
+      ].join('\n'));
+    } catch (error) {
+      Alert.alert('Bible Study diagnostics v1', `Read failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  };
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -154,7 +193,7 @@ export const MomentsScreen: React.FC = () => {
           <View style={styles.headerTopRow}>
             <View style={styles.headerLeftRow}>
               <Feather size={20} color={Colors.text} />
-              <ThemedText weight="bold" style={[styles.headerTitle, styles.marginLeft8, { fontFamily: fontBold, color: Colors.text }]}>Moments</ThemedText>
+              <ThemedText weight="bold" onLongPress={__DEV__ ? showBibleStudyDiagnostics : undefined} style={[styles.headerTitle, styles.marginLeft8, { fontFamily: fontBold, color: Colors.text }]}>Moments</ThemedText>
             </View>
             <View style={styles.headerActions}>
               {/* Days pill with arrow down */}
@@ -241,30 +280,6 @@ export const MomentsScreen: React.FC = () => {
           }}
         />
       </View>
-
-      <TouchableOpacity
-        style={{
-          backgroundColor: Colors.cardBackground,
-          borderColor: Colors.cardBorder,
-          borderWidth: 1,
-          borderRadius: 20,
-          marginHorizontal: 16,
-          marginVertical: 12,
-          padding: 16,
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-        }}
-        onPress={() => { triggerLightHaptic(); navigation.navigate('BibleStudy' as any); }}
-        activeOpacity={0.7}
-      >
-        <View>
-          <ThemedText weight="semiBold" style={{ fontSize: 12, color: Colors.sage, marginBottom: 4, letterSpacing: 1 }}>STUDY SCRIPTURE</ThemedText>
-          <ThemedText weight="bold" style={{ fontSize: 18, color: Colors.text }}>Bible Study</ThemedText>
-          <ThemedText style={{ fontSize: 13, color: Colors.textGray, marginTop: 2 }}>Read, notice, and go deeper</ThemedText>
-        </View>
-        <Ionicons name="chevron-forward" size={22} color={Colors.textGray} />
-      </TouchableOpacity>
 
       {/* Enhanced Moments Renderer - now handles its own scrolling */}
       <EnhancedMomentsRenderer

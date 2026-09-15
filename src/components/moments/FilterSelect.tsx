@@ -12,6 +12,7 @@ export type FilterKey =
   | 'unansweredPrayers'
   | 'answeredPrayers'
   | 'reflectionJournals'
+  | 'bibleStudy'
   | 'prayers'
   | 'prayerRequests'
   | 'gratitude'
@@ -23,6 +24,7 @@ export const FILTER_OPTIONS: { key: FilterKey; label: string }[] = [
   { key: 'unansweredPrayers', label: 'Unanswered Prayers' },
   { key: 'answeredPrayers', label: 'Answered Prayers' },
   { key: 'reflectionJournals', label: 'Reflection Journals' },
+  { key: 'bibleStudy', label: 'Bible Study' },
   { key: 'prayers', label: 'Prayers' },
   { key: 'prayerRequests', label: 'Prayer Requests' },
   { key: 'gratitude', label: 'Gratitude' },
