@@ -429,7 +429,6 @@ const SermonNotesScreen = ({navigation, route}: any) => {
   const isOnline = useNetworkStore(state => state.isOnline);
   const {
     setShowTabBar,
-    setSuppressTabBar,
     collapsedTabBarCenterY,
     setCollapsedTabBarCenterY,
   } = useScroll();
@@ -642,14 +641,9 @@ const SermonNotesScreen = ({navigation, route}: any) => {
 
   useFocusEffect(
     useCallback(() => {
-      setSuppressTabBar(true);
       setShowTabBar(true);
       setCollapsedTabBarCenterY(null);
-
-      return () => {
-        setSuppressTabBar(false);
-      };
-    }, [setShowTabBar, setSuppressTabBar, setCollapsedTabBarCenterY]),
+    }, [setShowTabBar, setCollapsedTabBarCenterY]),
   );
 
   useEffect(() => {

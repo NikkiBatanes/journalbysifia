@@ -25,9 +25,9 @@ const JournalStackNavigator: React.FC = () => {
         component={MomentsScreen as React.ComponentType}
         options={{
           headerShown: false,
-          presentation: 'fullScreenModal',
+          presentation: 'card',
           animation: 'slide_from_bottom',
-          gestureEnabled: true,
+          gestureEnabled: false,
         }}
       />
       <Stack.Screen

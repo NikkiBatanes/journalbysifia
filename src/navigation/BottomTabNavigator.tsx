@@ -58,7 +58,7 @@ const CustomTabBarComponent = ({
   descriptors: _descriptors,
   navigation,
 }: CustomTabBarProps) => {
-  const { showTabBar, setShowTabBar, suppressTabBar } = useScroll();
+  const { showTabBar, setShowTabBar } = useScroll();
   const theme = useTheme();
   const currentFont = theme.currentFont || 'lexend';
   const fontRegular = getFontFamily(currentFont, 'regular');
@@ -244,17 +244,24 @@ const CustomTabBarComponent = ({
     previousShowTabBarRef.current = showTabBar;
     if (isReflect) {return;}
 
+    if (showTabBar) {
+      // Snap selector to the active tab BEFORE the pill grows so it's already
+      // in place when it becomes visible — no sliding artifact.
+      const target = tabLayouts[state.index];
+      if (target) { selectorPosition.setValue(target.x); }
+    }
     Animated.spring(collapseAnim, {
       toValue: showTabBar ? 0 : 1,
       tension: 75,
       friction: 12,
       useNativeDriver: true,
     }).start();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [collapseAnim, isReflect, showTabBar]);
 
   const { onTabPress } = React.useContext(TabPressContext);
 
-  if (suppressTabBar || isSermonNotes || isBibleStudy || isReview || isDevReview) {
+  if (isSermonNotes || isBibleStudy || isReview || isDevReview) {
     return null;
   }
 

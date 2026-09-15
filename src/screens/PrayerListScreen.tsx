@@ -34,6 +34,33 @@ const TABS: { key: PrayerTab; label: string }[] = [
   { key: 'people', label: 'People' },
 ];
 
+const PRAYER_ACTIONS = [
+  {
+    key: 'acts',
+    label: 'CAST',
+    description: 'Pray with a guided rhythm',
+    icon: 'layers-outline',
+  },
+  {
+    key: 'open',
+    label: 'Open',
+    description: 'Bring God what is on your heart',
+    icon: 'create-outline',
+  },
+  {
+    key: 'pray-for-someone',
+    label: 'For Someone',
+    description: 'Write a prayer for someone',
+    icon: 'heart-outline',
+  },
+  {
+    key: 'prayer-request',
+    label: 'Request',
+    description: 'Remember what someone asked',
+    icon: 'chatbubble-ellipses-outline',
+  },
+] as const;
+
 const formatStarted = (dateString?: string | null) => {
   if (!dateString) { return ''; }
   try {
@@ -110,7 +137,7 @@ const PrayerListScreen = () => {
         return prayers.filter((p) => p.status === 'answered' || p.is_answered);
       case 'people':
       default:
-        return prayers.filter((p) => p.is_prayer_request === true);
+        return prayers;
     }
   }, [activeTab, prayers]);
 
@@ -155,9 +182,23 @@ const PrayerListScreen = () => {
     }
   };
 
-  const handleNewPrayer = () => {
+  const handlePrayerAction = (type: typeof PRAYER_ACTIONS[number]['key']) => {
     triggerLightHaptic();
-    navigation.navigate('PrayersForPeopleWalkthrough', { selectedDate: new Date().toISOString() });
+    const selectedDate = new Date().toISOString();
+
+    if (type === 'acts' || type === 'open') {
+      navigation.navigate('PrayerJournalWalkthrough', {
+        selectedDate,
+        initialPrayerType: type,
+        showDescription: true,
+      });
+      return;
+    }
+
+    navigation.navigate('PrayersForPeopleWalkthrough', {
+      selectedDate,
+      initialPrayerType: type,
+    });
   };
 
   return (

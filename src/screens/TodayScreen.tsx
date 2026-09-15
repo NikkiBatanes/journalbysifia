@@ -290,11 +290,11 @@ const TodayScreen = () => {
             style={[styles.card, styles.smallCard]}
             activeOpacity={0.7}
             accessibilityRole="button"
-            accessibilityLabel="Open Scripture Note"
+            accessibilityLabel="Open Bible Study"
             onPress={() => {
               triggerLightHaptic();
               (navigation as any).navigate('Journal', {
-                screen: 'ScriptureNoteEditor',
+                screen: 'BibleStudy',
                 params: {
                   selectedDate: new Date().toISOString(),
                   returnTo: 'Today',
@@ -303,8 +303,8 @@ const TodayScreen = () => {
             }}
           >
             <IconTile icon="book" family="material" />
-            <ThemedText weight="bold" style={styles.smallTitle}>Scripture Note</ThemedText>
-            <ThemedText style={styles.meta}>Write about a passage.</ThemedText>
+            <ThemedText weight="bold" style={styles.smallTitle}>Bible Study</ThemedText>
+            <ThemedText style={styles.meta}>Read, notice, and go deeper.</ThemedText>
           </TouchableOpacity>
         </View>
 
