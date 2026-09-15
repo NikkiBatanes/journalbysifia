@@ -164,7 +164,7 @@ export const MomentsScreen: React.FC = () => {
   }, []);
 
   // Get all available plugins
-  const plugins = getAllPlugins();
+  const plugins = React.useMemo(() => getAllPlugins(), [refreshKey]);
 
   // Temporary, read-only diagnostic for device-only missing saved studies.
   // No passage, journal text, prayer text, or identifiers are exposed.
@@ -204,16 +204,15 @@ export const MomentsScreen: React.FC = () => {
 
   // Removed unused handlers
 
-  const getCurrentDateRange = (): DateRange => {
-    if (filterType === 'single') {
-      return {
-        startDate: selectedDate,
-        endDate: selectedDate,
-        label: 'Selected Date',
-      };
-    }
-    return selectedRange;
-  };
+  const momentsDateRange = React.useMemo((): DateRange => {
+    const base = filterType === 'single'
+      ? { startDate: selectedDate, endDate: selectedDate, label: 'Selected Date' }
+      : selectedRange;
+    if (!activeFilters.includes('upcoming')) return base;
+    const now = new Date();
+    return { ...base, startDate: new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1),
+      endDate: new Date(now.getFullYear(), now.getMonth() + 6, now.getDate()), label: 'Upcoming' };
+  }, [filterType, selectedDate, selectedRange, activeFilters, refreshKey]);
 
   const screenContent = (
     <>
@@ -321,16 +320,7 @@ export const MomentsScreen: React.FC = () => {
       <EnhancedMomentsRenderer
         plugins={plugins}
         navigation={navigation}
-        dateRange={(function computeRange() {
-          const base = getCurrentDateRange();
-          if (activeFilters.includes('upcoming')) {
-            const now = new Date();
-            const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
-            const sixMonthsAhead = new Date(now.getFullYear(), now.getMonth() + 6, now.getDate());
-            return { ...base, startDate: tomorrow, endDate: sixMonthsAhead, label: 'Upcoming' } as DateRange;
-          }
-          return base;
-        })()}
+        dateRange={momentsDateRange}
         groupBy={groupBy}
         sortBy={sortBy}
         searchQuery={searchQuery}

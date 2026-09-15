@@ -63,6 +63,13 @@ export const JournalCard: React.FC<JournalCardProps> = ({
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
+    if (momentsPalette) {
+      fadeAnim.setValue(1);
+      scaleAnim.setValue(1);
+      slideAnim.setValue(0);
+      pulseAnim.setValue(1);
+      return;
+    }
     // Entrance animation for journal cards
     const entranceAnimation = Animated.parallel([
       AnimationUtils.fadeIn(fadeAnim, 600, 0),
@@ -73,11 +80,13 @@ export const JournalCard: React.FC<JournalCardProps> = ({
     entranceAnimation.start();
 
     // Optional subtle pulse for interactive cards
+    let pulseAnimation: Animated.CompositeAnimation | undefined;
     if (onAdd || _onExpand) {
-      const pulseAnimation = AnimationUtils.pulse(pulseAnim, 0.98, 1.02, 3000);
+      pulseAnimation = AnimationUtils.pulse(pulseAnim, 0.98, 1.02, 3000);
       pulseAnimation.start();
     }
-  }, [fadeAnim, scaleAnim, slideAnim, pulseAnim, onAdd, _onExpand]);
+    return () => { entranceAnimation.stop(); pulseAnimation?.stop(); };
+  }, [momentsPalette, fadeAnim, scaleAnim, slideAnim, pulseAnim, onAdd, _onExpand]);
 
   // Helper function to check if we should show the subtitle
   const shouldShowSubtitle = (): boolean => {

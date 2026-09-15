@@ -9,11 +9,11 @@ import { Colors } from '../../theme/colors';
 import { PrayerApiEntry } from '../../services/api/prayerApi';
 
 import { prayerNeeds, trackingStatus, type PrayerUpdateKind, describePrayerUpdate } from '../../utils/prayerTracking';
-export default function PrayerTrackingModal({ prayer, onClose, onSave, mode = 'details', onShowDetails, onDelete }: { mode?: 'update' | 'details'; onShowDetails?: () => void; onDelete?: () => Promise<void>; prayer?: PrayerApiEntry; onClose: () => void; onSave: (data: PrayerChanges) => Promise<void> }) {
+export default function PrayerTrackingModal({ prayer, onClose, onSave, mode = 'details', onShowDetails, onDelete, initialNeedId }: { initialNeedId?: string; mode?: 'update' | 'details'; onShowDetails?: () => void; onDelete?: () => Promise<void>; prayer?: PrayerApiEntry; onClose: () => void; onSave: (data: PrayerChanges) => Promise<void> }) {
   const needs = prayer ? prayerNeeds(prayer) : [];
   const [note, setNote] = useState('');
   const [updateKind, setUpdateKind] = useState<PrayerUpdateKind>(prayer && trackingStatus(prayer) === 'answered' ? 'answered' : prayer && trackingStatus(prayer) === 'closed' ? 'situation-changed' : 'still-praying');
-  const [updateNeedId, setUpdateNeedId] = useState<string | undefined>();
+  const [updateNeedId, setUpdateNeedId] = useState<string | undefined>(initialNeedId);
   const [saving, setSaving] = useState(false);
   const pill = (label: string, active: boolean, action: () => void) => <TouchableOpacity key={label} disabled={saving} style={[styles.pill, active && styles.active]} onPress={() => { triggerLightHaptic(); return (action)(); }}><ThemedText weight="semiBold" style={{ color: active ? Colors.hopeWhite : Colors.sage, fontSize: 12 }}>{label}</ThemedText></TouchableOpacity>;
   const saveUpdate = async () => {

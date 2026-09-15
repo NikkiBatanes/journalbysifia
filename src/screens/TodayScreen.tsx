@@ -8,6 +8,7 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import { Pencil } from 'lucide-react-native';
 import { differenceInCalendarDays, endOfWeek, format, startOfWeek, subYears } from 'date-fns';
 
+import PrayerToRevisit from '../components/dashboard/PrayerToRevisit';
 import ThemedText from '../components/common/ThemedText';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { useScroll } from '../context/ScrollContext';
@@ -353,23 +354,7 @@ const TodayScreen = () => {
           <ThemedText style={styles.meta}>{format(subYears(now, 1), 'MMMM d, yyyy')} · Heart Journal</ThemedText>
           <ThemedText style={styles.textLink}>Read this entry  →</ThemedText>
         </View>
-        <View style={[styles.card, styles.memoryCard]}>
-          <View style={styles.memoryTop}>
-            <ThemedText style={styles.cardLabel}>A PRAYER TO REVISIT</ThemedText>
-            <ThemedText style={styles.meta}>6 months ago</ThemedText>
-          </View>
-          <View style={styles.prayerMemory}>
-            <IconTile icon="clover" family="material" />
-            <View style={styles.rowCopy}>
-              <ThemedText style={styles.rowTitle}>Wisdom for what I’m building</ThemedText>
-              <ThemedText style={styles.meta}>You were praying for clarity and faithful direction.</ThemedText>
-            </View>
-          </View>
-          <View style={styles.chips}>
-            <View style={styles.chip}><ThemedText style={styles.chipText}>Still praying</ThemedText></View>
-            <View style={styles.chip}><ThemedText style={styles.chipText}>Answered</ThemedText></View>
-          </View>
-        </View>
+        <PrayerToRevisit />
 
         <View style={styles.writeButton}>
           <Pencil size={16} color={Colors.hopeWhite} style={{ marginRight: 8 }} />
