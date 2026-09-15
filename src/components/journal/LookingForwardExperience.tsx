@@ -293,7 +293,7 @@ const EmotionSelectionStep: React.FC<{
                 onChangeText={setCustomEmotion}
                 multiline
                 autoFocus
-                keyboardAppearance="dark"
+                keyboardAppearance="light"
               />
             </View>
           </StepFadeIn>
@@ -361,7 +361,7 @@ const EmotionSelectionStep: React.FC<{
               transform: [{ scale: chooseAgainScale }],
             }}>
               <TouchableOpacity
-                style={[styles.showMoreButton, { alignSelf: 'flex-end' }]}
+                style={[styles.showMoreButton, { alignSelf: 'center' }]}
                 onPress={handleChooseAgain}
                 activeOpacity={0.75}
               >
@@ -525,7 +525,7 @@ const LookingAheadInputStep: React.FC<{
             multiline
             textAlignVertical="top"
             autoFocus
-            keyboardAppearance="dark"
+            keyboardAppearance="light"
           />
         </StepFadeIn>
 

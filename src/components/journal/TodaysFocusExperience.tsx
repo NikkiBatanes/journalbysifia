@@ -279,7 +279,7 @@ const CategorySelectionStep: React.FC<{
                 onChangeText={setCustomFocus}
                 multiline
                 autoFocus
-                keyboardAppearance="dark"
+                keyboardAppearance="light"
               />
             </View>
           </StepFadeIn>
@@ -348,7 +348,7 @@ const CategorySelectionStep: React.FC<{
                 }}
               >
                 <TouchableOpacity
-                  style={[styles.showMoreButton, { alignSelf: isOtherSelected ? 'flex-end' : 'center' }]}
+                  style={[styles.showMoreButton, { alignSelf: 'center' }]}
                   onPress={isOtherSelected ? handleChooseAgain : handleToggleShowAll}
                   activeOpacity={0.75}
                 >
@@ -484,7 +484,7 @@ const PersonalTextInputStep: React.FC<{
             multiline
             textAlignVertical="top"
             autoFocus
-            keyboardAppearance="dark"
+            keyboardAppearance="light"
           />
         </StepFadeIn>
 
@@ -615,7 +615,7 @@ const PrioritiesInputStep: React.FC<{
                 placeholder=""
                 placeholderTextColor={Colors.textGray}
                 autoFocus={index === 0}
-                keyboardAppearance="dark"
+                keyboardAppearance="light"
               />
             </View>
           ))}

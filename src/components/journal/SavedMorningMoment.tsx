@@ -1,0 +1,82 @@
+import React, { useState } from 'react';
+import { Modal, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Ionicons from 'react-native-vector-icons/Ionicons';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { JournalCard } from './JournalCard';
+import ScriptureReaderModal from '../ScriptureReaderModal';
+import ThemedText from '../common/ThemedText';
+import { Colors } from '../../theme/colors';
+import { MorningMoment } from '../../storage/morningMomentsStorage';
+
+export const SavedMorningMoment = ({ moment, viewMode = 'inline' }: { moment: MorningMoment; viewMode?: 'carousel' | 'inline' | 'moments' }) => {
+  const [open, setOpen] = useState(false);
+  const insets = useSafeAreaInsets();
+  if (moment.pluginId === 'morningcheckin') {
+    return <JournalCard title="HOW ARE YOU FEELING?" variant="inline" viewMode={viewMode}>
+      {!!moment.underneathIt?.trim() && <ThemedText style={styles.reflection}>{moment.underneathIt}</ThemedText>}
+      {!!moment.underneathIt?.trim() && <View style={styles.divider} />}
+      <ThemedText style={styles.feelingLabel}>HOW YOU FELT</ThemedText>
+      <View style={styles.feelingRow}>
+        {moment.feelingIconType === 'material'
+          ? <MaterialCommunityIcons name={moment.feelingIcon || 'heart-outline'} size={16} color={Colors.sage} />
+          : <Ionicons name={moment.feelingIcon || 'heart-outline'} size={16} color={Colors.sage} />}
+        <ThemedText weight="semiBold" style={styles.feeling}>{moment.feeling || moment.lines[0]}</ThemedText>
+      </View>
+    </JournalCard>;
+  }
+  if (moment.pluginId === 'morningpsalm') {
+    return <>
+      <JournalCard title="PSALM & REFLECTION" variant="inline" viewMode={viewMode}>
+        {!!moment.reflection?.trim() && <ThemedText style={styles.reflection}>{moment.reflection}</ThemedText>}
+        {!!moment.reflection?.trim() && <View style={styles.divider} />}
+        {!!moment.observations?.length && <>
+          <ThemedText style={styles.feelingLabel}>WHAT YOU SAW ABOUT GOD</ThemedText>
+          <ThemedText weight="semiBold" style={[styles.feeling, styles.centered]}>{moment.observations.join(' · ')}</ThemedText>
+        </>}
+        <TouchableOpacity onPress={() => setOpen(true)} style={[styles.feelingRow, styles.passageRow]} accessibilityRole="button" accessibilityLabel={`Read ${moment.title}`}>
+          <MaterialCommunityIcons name="script-text" size={16} color={Colors.sage} />
+          <ThemedText weight="semiBold" style={styles.passageTitle}>{moment.title}</ThemedText>
+        </TouchableOpacity>
+        <View style={styles.feelingRow}>
+          <Ionicons name={moment.markedRead ? 'checkmark-circle' : 'book-outline'} size={14} color={Colors.sage} />
+          <ThemedText style={styles.readStatus}>{moment.markedRead ? 'Passage read' : 'Not marked read'}</ThemedText>
+        </View>
+      </JournalCard>
+      <ScriptureReaderModal visible={open} passages={[{ reference: moment.title }]} initialIndex={0} onClose={() => setOpen(false)} />
+    </>;
+  }
+  return <>
+    <TouchableOpacity style={styles.card} onPress={() => setOpen(true)} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel={`View ${moment.title}`}>
+      <ThemedText weight="semiBold" style={styles.label}>{moment.title.toUpperCase()}</ThemedText>
+      {moment.lines.filter(line => moment.markedRead === undefined || line !== 'Passage read').map((line, index) => <ThemedText key={index} numberOfLines={3} style={index === 0 ? styles.title : styles.answer}>{line}</ThemedText>)}
+      {moment.markedRead !== undefined && <View style={styles.feelingRow}><Ionicons name={moment.markedRead ? 'checkmark-circle' : 'book-outline'} size={16} color={Colors.sage} /><ThemedText style={styles.readStatus}>{moment.markedRead ? 'Passage read' : 'Not marked read'}</ThemedText></View>}
+    </TouchableOpacity>
+    <Modal visible={open} animationType="slide" onRequestClose={() => setOpen(false)}>
+      <View style={[styles.page, { paddingTop: insets.top + 20 }]}>
+        <TouchableOpacity style={styles.close} onPress={() => setOpen(false)} accessibilityLabel="Close" accessibilityRole="button"><Ionicons name="close" size={20} color={Colors.sage} /></TouchableOpacity>
+        <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 30 }}>
+          <ThemedText weight="semiBold" style={styles.label}>{moment.title.toUpperCase()}</ThemedText>
+          {moment.lines.map((line, index) => <ThemedText key={index} style={index === 0 ? styles.title : styles.answer}>{line}</ThemedText>)}
+        </ScrollView>
+      </View>
+    </Modal>
+  </>;
+};
+const styles = StyleSheet.create({
+  centered: { textAlign: 'center' },
+  passageRow: { marginTop: 16, marginBottom: 8 },
+  passageTitle: { color: Colors.sage, fontSize: 14 },
+  reflection: { color: Colors.text, fontSize: 16, lineHeight: 24, textAlign: 'center' },
+  divider: { height: 1, backgroundColor: Colors.cardBorder, marginVertical: 16 },
+  feelingLabel: { color: Colors.sage, fontSize: 10, letterSpacing: 1.5, textAlign: 'center', marginBottom: 8 },
+  feelingRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
+  feeling: { color: Colors.text, fontSize: 20, lineHeight: 26 },
+  readStatus: { color: Colors.sage, fontSize: 12 },
+  card: { backgroundColor: Colors.hopeWhite, borderWidth: 1, borderColor: Colors.cardBorder, borderRadius: 24, padding: 20 },
+  label: { color: Colors.textGray, fontSize: 12, letterSpacing: 1.5, marginBottom: 16 },
+  title: { color: Colors.text, fontSize: 24, lineHeight: 32, marginBottom: 12 },
+  answer: { color: Colors.text, fontSize: 16, lineHeight: 25, marginBottom: 12 },
+  page: { flex: 1, backgroundColor: Colors.lightBackground, paddingHorizontal: 24 },
+  close: { alignSelf: 'flex-end', backgroundColor: Colors.cardBackground, borderRadius: 21, width: 42, height: 42, alignItems: 'center', justifyContent: 'center', marginBottom: 20 },
+});

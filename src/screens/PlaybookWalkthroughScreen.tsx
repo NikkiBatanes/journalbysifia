@@ -2345,7 +2345,7 @@ const FloatingRefinementControl: React.FC<FloatingRefinementControlProps> = ({
                 multiline
                 placeholder="Tell siFia more..."
                 placeholderTextColor="rgba(255,255,255,0.45)"
-                keyboardAppearance="dark"
+                keyboardAppearance="light"
                 textAlignVertical="top"
                 autoFocus
                 style={[styles.refinementInput, { fontFamily }]}

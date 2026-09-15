@@ -9,6 +9,9 @@ import { format, startOfMonth, endOfMonth, getWeek } from 'date-fns';
 import { getWeekStart, getWeekEnd, WeekStartDay } from '../../../utils/weekStartUtils';
 import { getAllLocalReflectionsByType } from '../../../storage/reflectionStorage';
 import { getSavedBibleStudyReflections, parseSavedBibleStudy } from '../../../storage/bibleStudyMomentsStorage';
+import { getMorningMoments } from '../../../storage/morningMomentsStorage';
+import { SavedMorningMoment } from '../../../components/journal/SavedMorningMoment';
+import { MomentsPaletteContext } from '../../../context/MomentsPaletteContext';
 import ThemedText from '../../../components/common/ThemedText';
 import { useTheme } from '../../../hooks/useTheme';
 import { getFontFamily } from '../../../theme/fonts';
@@ -112,11 +115,13 @@ interface MonthItem {
 
 // Shared ordering helpers to guarantee consistent order across all views
 const TYPE_ORDER = {
+  morningcheckin: -1,
   focus: 0,
   todos: 1,
   timeblocks: 2,
   gratitude: 3,
   reflection: 4,
+  morningpsalm: 4.25,
   sermon: 4.5,
   biblestudy: 4.75,
   prayerjournal: 5,
@@ -464,7 +469,7 @@ const createStyles = (fonts: any) => StyleSheet.create({
   },
 });
 
-export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = ({
+const EnhancedMomentsContent: React.FC<EnhancedMomentsRendererProps> = ({
   plugins,
   dateRange,
   refreshKey,
@@ -641,10 +646,25 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
       }
     }
 
+    let morningEntries: MomentEntry[] = [];
+    try {
+      morningEntries = (await getMorningMoments()).map(moment => {
+        const [year, month, day] = moment.date.split('-').map(Number);
+        const plan = moment.pluginId === 'focus' || moment.pluginId === 'todos';
+        const plugin: JournalPlugin = {
+          id: moment.pluginId, title: moment.title, category: plan ? 'plan' : 'reflect', priority: 1,
+          viewModes: ['moments'], component: plan ? (plugins.find(candidate => candidate.id === moment.pluginId)?.component || SavedMorningMoment) : SavedMorningMoment, savedMorningMoment: moment,
+        };
+        return { plugin, date: new Date(year, month - 1, day), category: plan ? 'Plan' : 'Reflection', type: moment.title, reflectionId: moment.id, _savedAt: new Date(moment.savedAt).getTime(), _isPlan: plan, _isReflection: !plan, _searchText: buildSearchText(moment.title, ...moment.lines) };
+      });
+    } catch (error) {
+      Logger.error('Error loading local morning Moments', error as Error, { component: 'EnhancedMomentsRenderer' });
+    }
+    const localEntries = [...sermonEntries, ...bibleStudyEntries, ...morningEntries];
     if (generation !== fetchGeneration.current) {return;}
 
     if (!user) {
-      setRealEntries([...sermonEntries, ...bibleStudyEntries]);
+      setRealEntries(localEntries);
       setLoading(false);
       hasLoadedOnce.current = true;
       return;
@@ -652,9 +672,8 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
 
     // Publish local saved content immediately; cloud queries must not delay it.
     setRealEntries(previous => [
-      ...previous.filter(entry => entry.plugin.id !== 'sermon' && entry.plugin.id !== 'biblestudy'),
-      ...sermonEntries,
-      ...bibleStudyEntries,
+      ...previous.filter(entry => !['sermon', 'biblestudy', 'focus', 'todos', 'morningcheckin', 'morningpsalm'].includes(entry.plugin.id)),
+      ...localEntries,
     ]);
 
     try {
@@ -1313,14 +1332,15 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
       }
 
       // Merge local sermon notes with Supabase entries
-      entries.push(...sermonEntries);
-      entries.push(...bibleStudyEntries);
+      // Local canonical content wins over cloud copies for the same type/day.
+      entries = entries.filter(entry => !morningEntries.some(local => local.plugin.id === entry.plugin.id && local.date.getTime() === entry.date.getTime()));
+      entries.push(...localEntries);
 
       if (generation === fetchGeneration.current) {setRealEntries(entries);}
     } catch (error) {
       Logger.error('❌ [MomentsRenderer] Error fetching journal entries', error as Error, { component: 'EnhancedMomentsRenderer' });
       if (generation === fetchGeneration.current) {
-        setRealEntries([...sermonEntries, ...bibleStudyEntries]);
+        setRealEntries(localEntries);
       }
     } finally {
       if (generation === fetchGeneration.current) {
@@ -2665,4 +2685,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
   );
 };
 
+export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = props => (
+  <MomentsPaletteContext.Provider value={true}><EnhancedMomentsContent {...props} /></MomentsPaletteContext.Provider>
+);
 export default EnhancedMomentsRenderer;

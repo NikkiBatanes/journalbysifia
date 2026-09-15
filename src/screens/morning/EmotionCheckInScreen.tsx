@@ -1,11 +1,13 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Animated, DeviceEventEmitter, LayoutAnimation, Platform, UIManager, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { differenceInCalendarDays } from 'date-fns';
 
 import ThemedText from '../../components/common/ThemedText';
+import { useTheme } from '../../hooks/useTheme';
+import { getFontFamily } from '../../theme/fonts';
 import { Colors } from '../../theme/colors';
 import { triggerLightHaptic, triggerMediumHaptic } from '../../utils/haptics';
 import { useRoutine } from '../../context/RoutineContext';
@@ -55,6 +57,7 @@ const MORE_FEELINGS: Feeling[] = [
   { id: 'grumpy', name: 'Grumpy', icon: 'thunderstorm-outline', iconType: 'ionicons' },
   { id: 'stuck', name: 'Stuck', icon: 'help-circle-outline', iconType: 'ionicons' },
   { id: 'loved', name: 'Loved', icon: 'heart-outline', iconType: 'ionicons' },
+  { id: 'other', name: 'Other', icon: 'plus-circle', iconType: 'material' },
 ];
 
 const EmotionCheckInScreen = () => {
@@ -63,6 +66,11 @@ const EmotionCheckInScreen = () => {
   const { selectedDate, markStepCompleted } = useRoutine();
   const [selected, setSelected] = useState<Feeling | null>(null);
   const [showMore, setShowMore] = useState(false);
+  const [customFeeling, setCustomFeeling] = useState('');
+  const { currentFont } = useTheme();
+  const isOtherSelected = selected?.id === 'other';
+  const feelingName = isOtherSelected ? customFeeling.trim() : selected?.name;
+  const toggleOpacity = useRef(new Animated.Value(1)).current;
   const buttonScale = useRef(new Animated.Value(0)).current;
   const dateStr = selectedDate;
 
@@ -100,6 +108,7 @@ const EmotionCheckInScreen = () => {
       if (parsed.feeling) {
         const matched = allFeelings.find(f => f.name === parsed.feeling);
         if (matched) { setSelected(matched); }
+        else { setSelected(allFeelings.find(f => f.id === 'other')!); setCustomFeeling(parsed.feeling); }
       }
     })();
     return () => { mounted = false; };
@@ -108,18 +117,19 @@ const EmotionCheckInScreen = () => {
   const displayedFeelings = useMemo(() => showMore ? allFeelings : INITIAL_FEELINGS, [showMore, allFeelings]);
 
   const onNext = React.useCallback(async () => {
-    if (!selected) { return; }
+    if (!selected || !feelingName) { return; }
     triggerMediumHaptic();
 
     let record: LocalJournalEntry | null = null;
     try {
       const content = JSON.stringify({
-        feeling: selected.name,
+        feeling: feelingName,
         feelingIcon: selected.icon,
         feelingIconType: selected.iconType,
         underneathIt: '',
       });
       record = await saveLocalJournalSingleton('morning_check_in', dateStr, content);
+      DeviceEventEmitter.emit('reflection_saved', { type: 'morning_check_in', date: dateStr });
     } catch (saveError) {
       console.error('Error saving morning check-in:', saveError);
     }
@@ -130,13 +140,13 @@ const EmotionCheckInScreen = () => {
       'morning_check_in',
     );
     navigation.navigate('UnderneathIt', {
-      feeling: selected.name,
+      feeling: feelingName,
       feelingIcon: selected.icon,
       feelingIconType: selected.iconType,
     });
-  }, [navigation, selected, markStepCompleted, dateStr]);
+  }, [navigation, selected, feelingName, markStepCompleted, dateStr]);
 
-  const footer = selected ? (
+  const footer = selected && feelingName ? (
     <Animated.View style={{ transform: [{ scale: buttonScale }] }}>
       <TouchableOpacity
         onPress={onNext}
@@ -160,8 +170,20 @@ const EmotionCheckInScreen = () => {
       footer={footer}
       onBack={onBack}
       backgroundColor={Colors.lightBackground}
+      scrollWithHeader
     >
-      <View style={styles.categoriesGrid}>
+      {isOtherSelected ? (
+        <TextInput
+          value={customFeeling}
+          onChangeText={setCustomFeeling}
+          placeholder="Type how you’re feeling"
+          placeholderTextColor={Colors.textGray}
+          style={{ fontFamily: getFontFamily(currentFont || 'lexend', 'regular'), fontSize: 18, color: Colors.text, minHeight: 100, textAlignVertical: 'top' }}
+          multiline
+          autoFocus
+          accessibilityLabel="Your feeling"
+        />
+      ) : <View style={styles.categoriesGrid}>
         {displayedFeelings.map((feeling) => {
           const isSelected = selected?.id === feeling.id;
           return (
@@ -170,6 +192,7 @@ const EmotionCheckInScreen = () => {
               style={[styles.categoryCard, isSelected && styles.categoryCardSelected]}
               onPress={() => {
                 triggerLightHaptic();
+                LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
                 setSelected(feeling);
               }}
               activeOpacity={0.75}
@@ -206,16 +229,31 @@ const EmotionCheckInScreen = () => {
             </TouchableOpacity>
           );
         })}
+      </View>}
+      <Animated.View style={{ opacity: toggleOpacity }}>
         <TouchableOpacity
           style={styles.showMoreButton}
-          onPress={() => { triggerLightHaptic(); setShowMore(!showMore); }}
+          onPress={() => {
+            triggerLightHaptic();
+            if (Platform.OS === 'android') { UIManager.setLayoutAnimationEnabledExperimental?.(true); }
+            if (isOtherSelected) {
+              LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+              setSelected(null);
+              return;
+            }
+            Animated.timing(toggleOpacity, { toValue: 0, duration: 150, useNativeDriver: true }).start(() => {
+              LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+              setShowMore(value => !value);
+              Animated.timing(toggleOpacity, { toValue: 1, duration: 150, useNativeDriver: true }).start();
+            });
+          }}
           activeOpacity={0.7}
           accessibilityRole="button"
-          accessibilityLabel={showMore ? 'Show less feelings' : 'Show more feelings'}
+          accessibilityLabel={isOtherSelected ? 'Choose again' : showMore ? 'Show less feelings' : 'Show more feelings'}
         >
-          <ThemedText weight="semiBold" style={styles.showMoreText}>{showMore ? 'Show less' : 'Show more'}</ThemedText>
+          <ThemedText weight="semiBold" style={styles.showMoreText}>{isOtherSelected ? 'Choose again' : showMore ? 'Show less' : 'Show more'}</ThemedText>
         </TouchableOpacity>
-      </View>
+      </Animated.View>
     </RoutineStepShell>
   );
 };

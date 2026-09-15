@@ -33,6 +33,7 @@ const ThemedTextInput = React.forwardRef<TextInput, ThemedTextInputProps>(({ wei
     <TextInput
       ref={ref}
       {...rest}
+      keyboardAppearance="light"
       allowFontScaling={Platform.OS === 'android' ? rest.allowFontScaling ?? false : rest.allowFontScaling}
       maxFontSizeMultiplier={Platform.OS === 'android' ? rest.maxFontSizeMultiplier ?? 1 : rest.maxFontSizeMultiplier}
       style={combinedStyle}

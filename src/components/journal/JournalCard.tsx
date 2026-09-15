@@ -2,6 +2,7 @@ import React, { useRef, useEffect } from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { View, TouchableOpacity, StyleSheet, Animated, Platform } from 'react-native';
 import { Colors } from '../../theme/colors';
+import { useMomentsPalette } from '../../context/MomentsPaletteContext';
 import { Fonts } from '../../theme/fonts';
 import { Pencil } from 'lucide-react-native';
 import ThemedText from '../common/ThemedText';
@@ -44,6 +45,14 @@ export const JournalCard: React.FC<JournalCardProps> = ({
   onExpand: _onExpand,
   componentType,
 }) => {
+  const momentsPalette = useMomentsPalette();
+  const styles = React.useMemo(() => momentsPalette ? {
+    ...baseStyles,
+    card: { ...baseStyles.card, backgroundColor: Colors.hopeWhite, borderColor: Colors.cardBorder },
+    cardInline: { ...baseStyles.cardInline, backgroundColor: 'transparent' },
+    title: { ...baseStyles.title, color: Colors.sage },
+    subtitle: { ...baseStyles.subtitle, color: Colors.textGray },
+  } : baseStyles, [momentsPalette]);
   const hasContent = React.Children.count(children) > 0;
   const showContent = hasContent || isAdding;
 
@@ -287,7 +296,7 @@ export const JournalCard: React.FC<JournalCardProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   card: {
     backgroundColor: 'rgba(255, 255, 255, 0.05)', // Match filter container background
     borderColor: 'rgba(255, 255, 255, 0.05)',

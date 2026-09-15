@@ -164,6 +164,7 @@ const GlobalFontApplier: React.FC = () => {
     ];
     (RNTextInput as any).defaultProps.allowFontScaling = false;
     (RNTextInput as any).defaultProps.maxFontSizeMultiplier = 1;
+    (RNTextInput as any).defaultProps.keyboardAppearance = 'light';
   }, [currentFont]);
 
   return null;

@@ -52,6 +52,19 @@ const LOCAL_JOURNAL_PREFIX = 'journal_local';
 const LOCAL_JOURNAL_INDEX_PREFIX = 'journal_local_index';
 const LOCAL_JOURNAL_SINGLETON_PREFIX = 'journal_local_singleton';
 
+// Resolve canonical local records before routing legacy API mutations to cloud.
+export const findLocalPlanEntry = async (id: string): Promise<LocalJournalEntry | null> => {
+  const keys = (await AsyncStorage.getAllKeys()).filter(key =>
+    key.startsWith('journal_local:todo:') || key.startsWith('journal_local_singleton:todays_focus:'),
+  );
+  if (!keys.length) {return null;}
+  for (const [, raw] of await AsyncStorage.multiGet(keys)) {
+    const entry = safeJsonParse<LocalJournalEntry>(raw || '', { fallback: null });
+    if (entry?.id === id && !entry.deleted) {return entry;}
+  }
+  return null;
+};
+
 const formatLocalDate = (date: string | Date): string => {
   if (typeof date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
     return date;

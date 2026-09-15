@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../../theme/colors';
 import ThemedText from '../common/ThemedText';
 import { useTheme } from '../../hooks/useTheme';
+import { useFloatingKeyboardButton } from '../../hooks/useFloatingKeyboardButton';
 import { getFontFamily } from '../../theme/fonts';
 import { TIMEBLOCK_CATEGORIES, TimeBlockCategory } from './TimeBlockCategories';
 import { triggerLightHaptic, triggerSelectionHaptic } from '../../utils/haptics';
@@ -62,6 +63,7 @@ const TimeBlockCategoryModal: React.FC<TimeBlockCategoryModalProps> = ({
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';
   const insets = useSafeAreaInsets();
+  const { bottom: buttonBottom } = useFloatingKeyboardButton(insets.bottom);
 
   const buttonScale = useRef(new Animated.Value(0)).current;
   const buttonOpacity = useRef(new Animated.Value(1)).current;
@@ -177,7 +179,7 @@ const TimeBlockCategoryModal: React.FC<TimeBlockCategoryModalProps> = ({
                     onChangeText={setCustomCategory}
                     multiline
                     autoFocus
-                    keyboardAppearance="dark"
+                    keyboardAppearance="light"
                   />
                 </View>
               </StepFadeIn>
@@ -247,7 +249,7 @@ const TimeBlockCategoryModal: React.FC<TimeBlockCategoryModalProps> = ({
               <StepFadeIn delay={240}>
                 <Animated.View style={{ opacity: chooseAgainScale }}>
                   <TouchableOpacity
-                    style={[styles.showMoreButton, { alignSelf: 'flex-end' }]}
+                    style={[styles.showMoreButton, { alignSelf: 'center' }]}
                     onPress={handleChooseAgain}
                     activeOpacity={0.75}
                   >
@@ -264,7 +266,7 @@ const TimeBlockCategoryModal: React.FC<TimeBlockCategoryModalProps> = ({
 
           {/* Bottom button */}
           {localSelectedCategory && (!isOtherSelected || customCategory.trim() !== '') && (
-            <Animated.View style={[styles.primaryButton, { bottom: insets.bottom + 20, transform: [{ scale: buttonScale }] }]}>
+            <Animated.View style={[styles.primaryButton, { bottom: buttonBottom, transform: [{ scale: buttonScale }] }]}>
               <TouchableOpacity
                 onPress={() => {
                   triggerLightHaptic();

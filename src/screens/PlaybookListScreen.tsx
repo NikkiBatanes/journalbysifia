@@ -2054,7 +2054,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
                     autoCapitalize="none"
                     autoCorrect={false}
                     returnKeyType="search"
-                    keyboardAppearance="dark"
+                    keyboardAppearance="light"
                   />
                 </View>
                 {searchQuery.length > 0 && (
@@ -2660,7 +2660,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
               placeholder="Enter new title"
               placeholderTextColor="rgba(255, 255, 255, 0.5)"
               autoFocus
-              keyboardAppearance="dark"
+              keyboardAppearance="light"
             />
             <TouchableOpacity
               style={styles.renameModalSaveButton}

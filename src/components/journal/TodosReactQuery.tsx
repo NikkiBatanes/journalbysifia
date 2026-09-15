@@ -6,6 +6,7 @@ import { View, StyleSheet, TextInput, TouchableOpacity, Alert, Modal, Platform, 
 import { Calendar } from 'react-native-calendars';
 import { JournalCard } from './JournalCard';
 import { Colors } from '../../theme/colors';
+import { useMomentsPalette } from '../../context/MomentsPaletteContext';
 
 import { Check, ListTodo as LuListTodo, X, Pencil } from 'lucide-react-native';
 import { SwipeableTodoItem } from '../SwipeableTodoItem';
@@ -82,6 +83,12 @@ const TODOS_EMPTY_COPY: Record<'yesterday' | 'earlier' | 'future', { title: stri
 };
 
 const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Date(), refreshKey = 0, variant = 'carousel', viewMode, expanded, onExpand }) => {
+  const momentsPalette = useMomentsPalette();
+  const styles = useMemo(() => momentsPalette ? {
+    ...baseStyles,
+    todoText: { ...baseStyles.todoText, color: Colors.text },
+    showMoreText: { ...baseStyles.showMoreText, color: Colors.sage },
+  } : baseStyles, [momentsPalette]);
   // Dynamic theming for fonts
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';
@@ -619,7 +626,7 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
       <JournalCard
         title="TO-DOS"
         subtitle="Track your daily tasks"
-        icon={<LuListTodo size={24} color={Colors.alertCoral} strokeWidth={2.5} />}
+        icon={<LuListTodo size={24} color={(momentsPalette ? Colors.sage : Colors.alertCoral)} strokeWidth={2.5} />}
         showAddButton={true}
         onAdd={() => {}} // Disabled during loading
         variant={variant}
@@ -816,7 +823,7 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
     <>
     <JournalCard
       icon={showHeader ? (
-        <Entypo name="list" size={24} color={Colors.alertCoral} />
+        <Entypo name="list" size={24} color={(momentsPalette ? Colors.sage : Colors.alertCoral)} />
       ) : undefined}
       title={showHeader ? 'TO-DOS' : undefined}
       subtitle={getSubtitle()}
@@ -860,7 +867,7 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
               <Ionicons
                 name="star"
                 size={14}
-                color={showOnlyPriorities ? Colors.alertCoral : Colors.textGray}
+                color={showOnlyPriorities ? (momentsPalette ? Colors.sage : Colors.alertCoral) : Colors.textGray}
               />
             </TouchableOpacity>
           )}
@@ -885,7 +892,7 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
               <Ionicons
                 name="filter"
                 size={16}
-                color={showCompletedAtBottom ? Colors.alertCoral : Colors.textGray}
+                color={showCompletedAtBottom ? (momentsPalette ? Colors.sage : Colors.alertCoral) : Colors.textGray}
               />
             </TouchableOpacity>
           )}
@@ -959,7 +966,7 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
                   accessibilityLabel={`Show more todos. ${filteredTodos.length - visibleCount} remaining`}
                   accessibilityHint="Loads 5 more todo items to the list"
                 >
-                  <Ionicons name="chevron-down" size={12} color={Colors.alertCoral} />
+                  <Ionicons name="chevron-down" size={12} color={(momentsPalette ? Colors.sage : Colors.alertCoral)} />
                   <ThemedText weight="medium" style={[styles.paginationButtonText, styles.showMoreText]}>
                     Show more
                   </ThemedText>
@@ -1034,7 +1041,7 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
                     accessibilityHint="Adds the current todo and allows you to add another one"
                   >
                     <View style={styles.plusIcon}>
-                      <Ionicons name="add" size={17} color={Colors.alertCoral} />
+                      <Ionicons name="add" size={17} color={(momentsPalette ? Colors.sage : Colors.alertCoral)} />
                     </View>
                   </TouchableOpacity>
                 </Animated.View>
@@ -1076,7 +1083,7 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
           <View style={styles.modalTitleRow}>
             <ThemedText weight="semiBold" style={[styles.modalTitle, styles.flex1]}>Copy Incomplete To-Dos</ThemedText>
             {planningGating.currentTier === 'seeker' ? (
-              <Ionicons style={styles.modalTitleIcon} name="lock-closed" size={18} color={Colors.alertCoral} />
+              <Ionicons style={styles.modalTitleIcon} name="lock-closed" size={18} color={(momentsPalette ? Colors.sage : Colors.alertCoral)} />
             ) : (
               <Ionicons style={styles.modalTitleIcon} name="copy-outline" size={18} color={Colors.hopeWhite} />
             )}
@@ -1254,7 +1261,7 @@ export const TodosReactQuery: React.FC<TodosProps> = (props) => (
   </ErrorBoundary>
 );
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   emptyStateContainer: {
     alignItems: 'center',
     justifyContent: 'flex-start',

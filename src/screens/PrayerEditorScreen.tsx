@@ -283,7 +283,7 @@ const PrayerEditorScreen: React.FC<PrayerEditorScreenProps> = ({ route, navigati
         value={prayerRequest.person_name}
         placeholder="Name (optional)"
         placeholderTextColor={Colors.placeholderText}
-        keyboardAppearance="dark"
+        keyboardAppearance="light"
         editable={false}
       />
 
@@ -299,7 +299,7 @@ const PrayerEditorScreen: React.FC<PrayerEditorScreenProps> = ({ route, navigati
           multiline
           numberOfLines={6}
           autoFocus
-          keyboardAppearance="dark"
+          keyboardAppearance="light"
         />
         <View style={styles.combinedDivider} />
         <View style={styles.combinedReadOnlyInner}>

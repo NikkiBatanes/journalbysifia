@@ -1,6 +1,7 @@
 // src/services/api/journalApi.ts
 import { supabase } from '../supabaseClient';
 import { Logger } from '../../utils/ProductionLogger';
+import { findLocalPlanEntry, getLocalJournalEntries, createLocalJournalEntry, getLocalJournalSingleton, saveLocalJournalSingleton, updateLocalJournalEntry, deleteLocalJournalEntry, deleteLocalJournalSingleton } from '../../storage/journalStorage';
 import {
   JournalEntry,
 } from '../../types/api';
@@ -69,6 +70,14 @@ export class JournalApi {
 
   // Create a new journal entry
   static async createJournalEntry(entry: Omit<JournalApiEntry, 'id' | 'created_at' | 'updated_at'>): Promise<JournalApiEntry> {
+    if (entry.content_type === 'todo' && (await getLocalJournalEntries('todo', entry.selected_date)).length) {
+      const local = await createLocalJournalEntry({ content_type: 'todo', selected_date: entry.selected_date, content: typeof entry.content === 'string' ? entry.content : JSON.stringify(entry.content), completed: entry.completed });
+      return { ...local, user_id: entry.user_id } as JournalApiEntry;
+    }
+    if (entry.content_type === 'todays_focus' && await getLocalJournalSingleton('todays_focus', entry.selected_date)) {
+      const local = await saveLocalJournalSingleton('todays_focus', entry.selected_date, typeof entry.content === 'string' ? entry.content : JSON.stringify(entry.content));
+      return { ...local, user_id: entry.user_id } as JournalApiEntry;
+    }
     const { data, error } = await supabase
       .from('journal_entries')
       .insert({
@@ -94,7 +103,14 @@ export class JournalApi {
     id: string,
     updates: Partial<Omit<JournalApiEntry, 'id' | 'user_id' | 'created_at'>>
   ): Promise<JournalApiEntry> {
-
+    const local = await findLocalPlanEntry(id);
+    if (local) {
+      const content = updates.content === undefined ? local.content : typeof updates.content === 'string' ? updates.content : JSON.stringify(updates.content);
+      const saved = local.content_type === 'todays_focus'
+        ? await saveLocalJournalSingleton('todays_focus', local.selected_date, content)
+        : await updateLocalJournalEntry({ ...local, content, completed: updates.completed ?? local.completed });
+      return { ...saved, user_id: '' } as JournalApiEntry;
+    }
 
     // First check if there are duplicates and clean them up
     const { data: existingEntries } = await supabase
@@ -206,6 +222,12 @@ export class JournalApi {
 
   // Delete a journal entry
   static async deleteJournalEntry(id: string): Promise<void> {
+    const local = await findLocalPlanEntry(id);
+    if (local) {
+      if (local.content_type === 'todays_focus') {await deleteLocalJournalSingleton('todays_focus', local.selected_date);}
+      else {await deleteLocalJournalEntry(id, 'todo', local.selected_date);}
+      return;
+    }
     const { error, data } = await supabase
       .from('journal_entries')
       .delete()

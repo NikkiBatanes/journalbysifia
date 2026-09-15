@@ -274,7 +274,7 @@ const ScriptureNoteEditorScreen: React.FC = () => {
                   setReference(text);
                   setHasChanges(true);
                 }}
-                keyboardAppearance="dark"
+                keyboardAppearance="light"
                 autoCapitalize="words"
                 autoCorrect={false}
                 returnKeyType="done"
@@ -315,7 +315,7 @@ const ScriptureNoteEditorScreen: React.FC = () => {
                 setHasChanges(true);
               }}
               multiline
-              keyboardAppearance="dark"
+              keyboardAppearance="light"
               textAlignVertical="top"
             />
           </ScrollView>

@@ -316,7 +316,7 @@ const PrayerRequestNameStep: React.FC<{
               placeholder="Enter their name..."
               placeholderTextColor="rgba(255, 255, 255, 0.4)"
               autoFocus
-              keyboardAppearance="dark"
+              keyboardAppearance="light"
             />
           </View>
         </StepFadeIn>
@@ -445,7 +445,7 @@ const PrayerRequestPrayerFocusStep: React.FC<{
               multiline
               textAlignVertical="top"
               autoFocus
-              keyboardAppearance="dark"
+              keyboardAppearance="light"
             />
           </View>
         </StepFadeIn>
@@ -665,7 +665,7 @@ const PrayForSomeoneNameStep: React.FC<{
               placeholder="Enter their name..."
               placeholderTextColor="rgba(255, 255, 255, 0.4)"
               autoFocus
-              keyboardAppearance="dark"
+              keyboardAppearance="light"
             />
           </View>
         </StepFadeIn>
@@ -796,7 +796,7 @@ const PrayForSomeonePrayerFocusStep: React.FC<{
               multiline
               textAlignVertical="top"
               autoFocus={!readOnly}
-              keyboardAppearance="dark"
+              keyboardAppearance="light"
               editable={!readOnly}
             />
 
@@ -1726,7 +1726,7 @@ const PrayersForPeopleWalkthroughScreen: React.FC<Props> = ({ navigation, route 
                 onChangeText={setModalPrayerName}
                 placeholder="Name (optional)"
                 placeholderTextColor={Colors.placeholderText}
-                keyboardAppearance="dark"
+                keyboardAppearance="light"
                 editable={false}
               />
 
@@ -1742,7 +1742,7 @@ const PrayersForPeopleWalkthroughScreen: React.FC<Props> = ({ navigation, route 
                   multiline
                   numberOfLines={6}
                   autoFocus
-                  keyboardAppearance="dark"
+                  keyboardAppearance="light"
                 />
                 <View style={styles.combinedDivider} />
                 <View style={styles.combinedReadOnlyInner}>

@@ -1,4 +1,5 @@
 import React from 'react';
+import type { MorningMoment } from '../../storage/morningMomentsStorage';
 
 export type ViewMode = 'carousel' | 'inline' | 'moments';
 export type JournalCategory = 'plan' | 'reflect' | 'pray';
@@ -13,6 +14,7 @@ export interface JournalPlugin {
   title: string;
   subtitle?: string;
   icon?: string | React.ReactNode;
+  savedMorningMoment?: MorningMoment;
 }
 
 // Optional filters that renderers can pass down to plugin components

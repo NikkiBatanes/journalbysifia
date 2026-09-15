@@ -457,7 +457,7 @@ const WinTypeSelectionStep: React.FC<{
                 onChangeText={setCustomWin}
                 multiline
                 autoFocus
-                keyboardAppearance="dark"
+                keyboardAppearance="light"
               />
             </View>
           </StepFadeIn>
@@ -567,7 +567,7 @@ const WinTypeSelectionStep: React.FC<{
               }}
             >
               <TouchableOpacity
-                style={[styles.showMoreButton, { alignSelf: isOtherSelected ? 'flex-end' : 'center' }]}
+                style={[styles.showMoreButton, { alignSelf: 'center' }]}
                 onPress={isOtherSelected ? () => {
                   triggerLightHaptic();
                   setIsOtherSelected(false);
@@ -751,7 +751,7 @@ const QuietWinStep: React.FC<{
             multiline
             textAlignVertical="top"
             autoFocus
-            keyboardAppearance="dark"
+            keyboardAppearance="light"
           />
         </StepFadeIn>
 

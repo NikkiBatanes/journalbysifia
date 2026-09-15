@@ -839,7 +839,7 @@ const ACTSPrayerSlidesStep: React.FC<{
                 multiline
                 textAlignVertical="top"
                 autoFocus={!readOnly}
-                keyboardAppearance="dark"
+                keyboardAppearance="light"
                 editable={!readOnly}
               />
 
@@ -1062,7 +1062,7 @@ const OpenPrayerStep: React.FC<{
               multiline
               textAlignVertical="top"
               autoFocus={!readOnly}
-              keyboardAppearance="dark"
+              keyboardAppearance="light"
               editable={!readOnly}
             />
 
@@ -1240,7 +1240,7 @@ const CompletionStep: React.FC<{
             onChangeText={onCastOpeningChange}
             placeholder="e.g., Heavenly Father,"
             placeholderTextColor="rgba(255, 255, 255, 0.4)"
-            keyboardAppearance="dark"
+            keyboardAppearance="light"
           />
         </View>
 
@@ -1275,7 +1275,7 @@ const CompletionStep: React.FC<{
             onChangeText={onCastClosingChange}
             placeholder="e.g., In Jesus' Name,\nAmen"
             placeholderTextColor="rgba(255, 255, 255, 0.4)"
-            keyboardAppearance="dark"
+            keyboardAppearance="light"
             multiline
           />
         </View>

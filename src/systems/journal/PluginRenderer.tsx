@@ -16,6 +16,7 @@ export const PluginRenderer: React.FC<PluginRenderProps> = ({
 
   // Preserve all existing component props and functionality
   const componentProps = {
+    ...(plugin.savedMorningMoment && { moment: plugin.savedMorningMoment }),
     selectedDate,
     ...(refreshKey !== undefined && { refreshKey }),
     // Pass viewMode for future use (backward compatible)

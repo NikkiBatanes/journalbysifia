@@ -1535,7 +1535,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
                       setNewEntry({ ...newEntry, title: text });
                       checkForChanges(newEntry.content, text);
                     }}
-                    keyboardAppearance="dark"
+                    keyboardAppearance="light"
                     onFocus={() => {
                       // In edit mode, position cursor at end instead of selecting all
                       if (isEditing && titleInputRef.current) {
@@ -1596,7 +1596,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
                   checkForChanges(text, newEntry.title);
                 }}
                 multiline
-                keyboardAppearance="dark"
+                keyboardAppearance="light"
                 textAlignVertical="top"
                 autoFocus={!isEditing}
               />

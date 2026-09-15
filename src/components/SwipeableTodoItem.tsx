@@ -6,6 +6,7 @@ import { TouchableOpacity } from 'react-native';
 
 import { Check } from 'lucide-react-native';
 import { Colors } from '../theme/colors';
+import { useMomentsPalette } from '../context/MomentsPaletteContext';
 import { Fonts } from '../theme/fonts';
 import { triggerLightHaptic } from '../utils/haptics';
 
@@ -44,6 +45,7 @@ export const SwipeableTodoItem = forwardRef<SwipeableRef, SwipeableTodoItemProps
   disableSwipe = false,
   containerStyle,
 }, ref) => {
+  const momentsPalette = useMomentsPalette();
   const swipeableRef = useRef<Swipeable>(null);
 
   const closeSwipeable = useCallback(() => {
@@ -174,7 +176,9 @@ export const SwipeableTodoItem = forwardRef<SwipeableRef, SwipeableTodoItemProps
             <View
               style={[
                 styles.checkbox,
+                momentsPalette && { borderColor: Colors.sage, backgroundColor: 'rgba(82,106,91,0.08)' },
                 item.completed && styles.checkboxCompleted,
+                momentsPalette && item.completed && { backgroundColor: Colors.sage, borderColor: Colors.sage },
               ]}
             >
               {item.completed && (
@@ -187,7 +191,7 @@ export const SwipeableTodoItem = forwardRef<SwipeableRef, SwipeableTodoItemProps
           {children}
           {item.priority && (
             <View style={styles.priorityIndicator}>
-              <Ionicons name="star" size={12} color={Colors.alertCoral} />
+              <Ionicons name="star" size={12} color={momentsPalette ? Colors.sage : Colors.alertCoral} />
             </View>
           )}
         </View>

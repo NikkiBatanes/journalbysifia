@@ -380,7 +380,7 @@ const TodosExperience: React.FC<TodosExperienceProps> = ({
                 }}
                 returnKeyType={index < todos.length - 1 ? 'next' : 'done'}
                 autoFocus={index === 0}
-                keyboardAppearance="default"
+                keyboardAppearance="light"
               />
             </View>
           ))}

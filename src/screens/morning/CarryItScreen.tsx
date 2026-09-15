@@ -86,7 +86,7 @@ const CarryItScreen = () => {
               ...existing,
               title: `Psalm ${psalmNumber}`,
               content: carryText,
-              metadata,
+              metadata: { ...existing.metadata, ...metadata },
             });
             return updated.id;
           }

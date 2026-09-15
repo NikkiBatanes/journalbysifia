@@ -1,6 +1,7 @@
 import React from 'react';
 import {
   Keyboard,
+  Animated,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -16,6 +17,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 
 import { Colors } from '../../theme/colors';
 import ThemedText from '../common/ThemedText';
+import { useFloatingKeyboardButton } from '../../hooks/useFloatingKeyboardButton';
 
 interface RoutineStepShellProps {
   step: number;
@@ -29,6 +31,7 @@ interface RoutineStepShellProps {
   onSkip?: () => void;
   backgroundColor?: string;
   rightControl?: React.ReactNode;
+  scrollWithHeader?: boolean;
 }
 
 const RoutineStepShell: React.FC<RoutineStepShellProps> = ({
@@ -43,8 +46,10 @@ const RoutineStepShell: React.FC<RoutineStepShellProps> = ({
   onSkip,
   backgroundColor = Colors.sage,
   rightControl,
+  scrollWithHeader = false,
 }) => {
   const insets = useSafeAreaInsets();
+  const { bottom: buttonBottom, keyboardVisible } = useFloatingKeyboardButton(insets.bottom);
   const isLight = backgroundColor === Colors.lightBackground;
 
   useFocusEffect(
@@ -68,9 +73,8 @@ const RoutineStepShell: React.FC<RoutineStepShellProps> = ({
   const textColor = isLight ? Colors.text : Colors.hopeWhite;
   const mutedColor = isLight ? Colors.sage : Colors.hopeWhite;
 
-  return (
-    <View style={[styles.container, { backgroundColor }]}>
-      <View style={[styles.topRow, { paddingTop: insets.top + 8 }]}>
+  const header = (
+      <View style={[styles.topRow, { paddingTop: insets.top + 8 }, scrollWithHeader && { marginHorizontal: -24 }]}>
         <View style={styles.backPlaceholder} />
 
         <View style={styles.eyebrowRow}>
@@ -91,6 +95,11 @@ const RoutineStepShell: React.FC<RoutineStepShellProps> = ({
           <View style={styles.backPlaceholder} />
         )}
       </View>
+  );
+
+  return (
+    <View style={[styles.container, { backgroundColor }]}>
+      {!scrollWithHeader && header}
 
       <KeyboardAvoidingView
         style={styles.keyboardAvoider}
@@ -99,11 +108,12 @@ const RoutineStepShell: React.FC<RoutineStepShellProps> = ({
       >
         <ScrollView
           style={styles.scroll}
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: keyboardVisible ? 100 : 130 }]}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
           onScrollBeginDrag={dismissKeyboard}
         >
+          {scrollWithHeader && header}
           {title ? (
             <View style={styles.titleRow}>
               <ThemedText weight="semiBold" style={[styles.title, { color: textColor }]}>{title}</ThemedText>
@@ -111,8 +121,8 @@ const RoutineStepShell: React.FC<RoutineStepShellProps> = ({
           ) : null}
           {children}
         </ScrollView>
-
-        <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 16), justifyContent: onSkip ? 'space-between' : 'flex-end' }]}>
+      </KeyboardAvoidingView>
+        <Animated.View pointerEvents="box-none" style={[styles.footer, { position: 'absolute', bottom: buttonBottom, left: 0, right: 0, paddingBottom: 0, justifyContent: onSkip ? 'space-between' : 'flex-end' }]}>
           {onSkip && (
             <TouchableOpacity
               onPress={onSkip}
@@ -125,8 +135,7 @@ const RoutineStepShell: React.FC<RoutineStepShellProps> = ({
             </TouchableOpacity>
           )}
           {footer}
-        </View>
-      </KeyboardAvoidingView>
+        </Animated.View>
     </View>
   );
 };

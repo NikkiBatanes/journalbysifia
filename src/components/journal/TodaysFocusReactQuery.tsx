@@ -31,6 +31,7 @@ import { useTheme } from '../../hooks/useTheme';
 import { getFontFamily } from '../../theme/fonts';
 import { usePlanningGating } from '../../hooks/usePlanningGating';
 import PlanningLockIcon from '../PlanningLockIcon';
+import { useMomentsPalette } from '../../context/MomentsPaletteContext';
 
 interface PriorityItem {
   id: string;
@@ -69,6 +70,14 @@ interface FocusCardState {
 
 export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate = new Date(), refreshKey, variant = 'carousel', viewMode, expanded, onExpand, planningEnabled = true, navigation, morningFlow, onNext }) => {
   const isMorning = !!morningFlow;
+  const momentsPalette = useMomentsPalette();
+  const styles = useMemo(() => momentsPalette ? {
+    ...baseStyles,
+    focusText: { ...baseStyles.focusText, color: Colors.text },
+    personalText: { ...baseStyles.personalText, color: Colors.textGray },
+    prioritiesTitle: { ...baseStyles.prioritiesTitle, color: Colors.sage },
+    priorityText: { ...baseStyles.priorityText, color: Colors.text },
+  } : baseStyles, [momentsPalette]);
   const internalNavigation = useNavigation<NavigationProp<any>>();
   const nav = navigation ?? internalNavigation;
 
@@ -408,7 +417,7 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
       Alert.alert('Error', 'Failed to save today\'s focus. Please try again.');
       throw saveError;
     }
-  }, [user, dateStr, existingEntry, wasDeleted, createMutation, updateMutation, nav]);
+  }, [isMorning, user, dateStr, existingEntry, wasDeleted, createMutation, updateMutation, nav]);
 
   const toggleEditing = () => {
     // Check if planning is locked for future dates
@@ -574,7 +583,7 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
             <MaterialIcons
               name="filter-center-focus"
               size={24}
-              color={Colors.alertCoral}
+              color={(momentsPalette ? Colors.sage : Colors.alertCoral)}
             />
           }
           title="TODAY'S FOCUS"
@@ -605,7 +614,7 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
             <MaterialIcons
               name="filter-center-focus"
               size={24}
-              color={Colors.alertCoral}
+              color={(momentsPalette ? Colors.sage : Colors.alertCoral)}
             />
           }
           title="TODAY'S FOCUS"
@@ -647,7 +656,7 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
           <MaterialIcons
             name="filter-center-focus"
             size={24}
-            color={Colors.alertCoral}
+            color={(momentsPalette ? Colors.sage : Colors.alertCoral)}
           />
         ) : undefined}
         title={(hasContent || shouldShowEditingMode) ? focusState.eyebrow.toUpperCase() : undefined}
@@ -688,7 +697,7 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
                 variant="gratitude"
               >
                 <TextInput
-                  style={[styles.input, styles.focusInput, { fontFamily: fontRegular, color: isMorning ? Colors.text : Colors.hopeWhite }]}
+                  style={[styles.input, styles.focusInput, { fontFamily: fontRegular, color: isMorning || momentsPalette ? Colors.text : Colors.hopeWhite }]}
                   value={data.focus}
                   onChangeText={updateFocus}
                   placeholder={isToday(day) ? "What's your main focus today?" : focusState.title}
@@ -703,7 +712,7 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
                 <View key={`priority-${index}`} style={styles.priorityRow}>
                   <ThemedText style={styles.priorityNumber}>{index + 1}.</ThemedText>
                   <TextInput
-                    style={[styles.input, styles.priorityInput, { fontFamily: fontRegular, color: isMorning ? Colors.text : Colors.hopeWhite }]}
+                    style={[styles.input, styles.priorityInput, { fontFamily: fontRegular, color: isMorning || momentsPalette ? Colors.text : Colors.hopeWhite }]}
                     value={priority.text}
                     onChangeText={(text) => updatePriority(index, text)}
                     placeholder={`Priority ${index + 1}...`}
@@ -741,7 +750,7 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
                     styles.button,
                     styles.saveButton,
                     !canSave && styles.disabledButton,
-                    { backgroundColor: isMorning ? Colors.sage : Colors.alertCoral },
+                    { backgroundColor: isMorning || momentsPalette ? Colors.sage : Colors.alertCoral },
                   ]}
                   disabled={!canSave}
                   activeOpacity={0.8}
@@ -793,7 +802,7 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
                           {editingPriorityId === priority.id ? (
                             <View style={styles.editPriorityContainer}>
                               <TextInput
-                                style={[styles.editPriorityInput, { fontFamily: fontRegular, color: isMorning ? Colors.text : Colors.hopeWhite }]}
+                                style={[styles.editPriorityInput, { fontFamily: fontRegular, color: isMorning || momentsPalette ? Colors.text : Colors.hopeWhite }]}
                                 value={editingPriorityText}
                                 onChangeText={setEditingPriorityText}
                                 autoFocus
@@ -884,7 +893,7 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
   );
 };
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   // Container styles
   editContainer: {
     padding: 0,

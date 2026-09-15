@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
+import { Animated, DeviceEventEmitter, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -73,6 +73,7 @@ const UnderneathItScreen = () => {
         underneathIt: text.trim(),
       });
       record = await saveLocalJournalSingleton('morning_check_in', dateStr, content);
+      DeviceEventEmitter.emit('reflection_saved', { type: 'morning_check_in', date: dateStr });
     } catch (saveError) {
       console.error('Error saving morning check-in:', saveError);
     }
@@ -160,7 +161,7 @@ const UnderneathItScreen = () => {
         multiline
         textAlignVertical="top"
         autoFocus
-        keyboardAppearance="dark"
+        keyboardAppearance="light"
       />
       {children}
     </RoutineStepShell>

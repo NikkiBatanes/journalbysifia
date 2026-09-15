@@ -1705,7 +1705,7 @@ const UserInputScreen: React.FC = () => {
                     scrollEnabled={inputHeight >= activeInputMaxHeight}
                     autoCapitalize="sentences"
                     keyboardType={isAndroidEmulator ? 'visible-password' : 'default'}
-                    keyboardAppearance="dark"
+                    keyboardAppearance="light"
                     underlineColorAndroid="transparent"
                     autoCorrect={true}
                     autoFocus={false}

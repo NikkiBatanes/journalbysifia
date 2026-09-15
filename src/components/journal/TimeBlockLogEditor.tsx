@@ -1345,7 +1345,7 @@ function TimeBlockLogEditorInner(
                     value={title}
                     onChangeText={(text) => handleContentChange('title', text)}
                     multiline={false}
-                    keyboardAppearance="dark"
+                    keyboardAppearance="light"
                   />
                   {!title && (
                     <View style={{ position: 'absolute', top: 0, left: 0, pointerEvents: 'none', marginTop: 12 }}>
@@ -1677,7 +1677,7 @@ function TimeBlockLogEditorInner(
                             keyboardType="numeric"
                             maxLength={2}
                             placeholderTextColor="rgba(255, 255, 255, 0.6)"
-                            keyboardAppearance="dark"
+                            keyboardAppearance="light"
                           />
 
                           <TouchableOpacity
@@ -1876,7 +1876,7 @@ function TimeBlockLogEditorInner(
                   onChangeText={(text) => handleContentChange('notes', text)}
                   multiline
                   textAlignVertical="top"
-                  keyboardAppearance="dark"
+                  keyboardAppearance="light"
                   onFocus={() => {
                     // Give the keyboard a moment to appear, then nudge scroll so Notes is above it
                     setTimeout(() => {

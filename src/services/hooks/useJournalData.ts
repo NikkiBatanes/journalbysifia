@@ -8,6 +8,18 @@ import { createRetryFunction, createRetryDelayFunction, RETRY_CONFIGS } from '..
 import { QueryConfig } from '../../types/api';
 import { faithPointsService } from '../faithPointsService';
 import { streakTrackingService } from '../streakTrackingService';
+import { getLocalJournalEntries, getLocalJournalSingleton } from '../../storage/journalStorage';
+
+const updateWithCachedIdentity = async (client: ReturnType<typeof useQueryClient>, id: string, updates: Partial<JournalApiEntry>) => {
+  let userId = '';
+  for (const [, value] of client.getQueriesData({ queryKey: ['journal'] })) {
+    if (!Array.isArray(value)) {continue;}
+    const entry = value.find(item => item?.id === id);
+    if (entry?.user_id) {userId = entry.user_id; break;}
+  }
+  const saved = await JournalApi.updateJournalEntry(id, updates);
+  return saved.user_id ? saved : { ...saved, user_id: userId };
+};
 
 // Hook for getting gratitude entries with enhanced retry logic
 export const useGratitudeData = (userId: string, date: string, config?: Partial<QueryConfig>) => {
@@ -54,10 +66,10 @@ export const useGratitudeData = (userId: string, date: string, config?: Partial<
 // Hook for getting todo entries with enhanced retry logic
 export const useTodosData = (userId: string, date: string, config?: Partial<QueryConfig>) => {
   const defaultConfig: QueryConfig = {
-    staleTime: 5 * 60 * 1000, // 5 minutes stale time
+    staleTime: 0, // Re-read canonical local entries when an inline card mounts.
     gcTime: 10 * 60 * 1000,
-    enabled: !!userId && !!date,
-    refetchOnMount: false, // Don't refetch on mount to prevent skeleton loading
+    enabled: !!date,
+    refetchOnMount: true,
     refetchOnWindowFocus: false, // Don't refetch on window focus to avoid unnecessary requests
     retry: createRetryFunction(RETRY_CONFIGS.TODOS_ENHANCED),
     retryDelay: createRetryDelayFunction(RETRY_CONFIGS.TODOS_ENHANCED),
@@ -68,6 +80,8 @@ export const useTodosData = (userId: string, date: string, config?: Partial<Quer
   return useQuery({
     queryKey: queryKeys.journal.todos(userId, date),
     queryFn: async () => {
+      const local = await getLocalJournalEntries('todo', date);
+      if (local.length) { return local.map(entry => ({ ...entry, user_id: userId })); }
       try {
         // Try cache first
         const cached = await JournalCache.getCache(userId, date, 'todo');
@@ -96,10 +110,10 @@ export const useTodosData = (userId: string, date: string, config?: Partial<Quer
 // Hook for getting today's focus entries with enhanced retry logic
 export const useTodaysFocusData = (userId: string, date: string, refreshKey?: number, config?: Partial<QueryConfig>) => {
   const defaultConfig: QueryConfig = {
-    staleTime: 5 * 60 * 1000, // 5 minutes stale time
+    staleTime: 0,
     gcTime: 10 * 60 * 1000,
-    enabled: !!userId && !!date,
-    refetchOnMount: false, // Don't refetch on mount to prevent skeleton loading
+    enabled: !!date,
+    refetchOnMount: true,
     refetchOnWindowFocus: false, // Don't refetch on window focus to avoid unnecessary requests
     retry: createRetryFunction(RETRY_CONFIGS.FOCUS_ENHANCED),
     retryDelay: createRetryDelayFunction(RETRY_CONFIGS.FOCUS_ENHANCED),
@@ -112,6 +126,8 @@ export const useTodaysFocusData = (userId: string, date: string, refreshKey?: nu
     // Moments screen updates via DeviceEventEmitter, not queryKey changes
     queryKey: queryKeys.journal.todaysFocus(userId, date),
     queryFn: async () => {
+      const local = await getLocalJournalSingleton('todays_focus', date);
+      if (local) { return [{ ...local, user_id: userId }]; }
       try {
         // Always fetch from API first so refreshes show immediately
         const entries = await JournalApi.getTodaysFocusEntries(userId, date);
@@ -359,7 +375,7 @@ export const useUpdateJournalEntry = () => {
 
   return useMutation({
     mutationFn: ({ id, updates }: { id: string; updates: Partial<JournalApiEntry> }) =>
-      JournalApi.updateJournalEntry(id, updates),
+      updateWithCachedIdentity(queryClient, id, updates),
     onSuccess: (data) => {
       // Invalidate and refetch related queries (like create mutation)
       queryClient.invalidateQueries({
@@ -850,7 +866,7 @@ export const useUpdateTodoEntry = () => {
 
   return useMutation({
     mutationFn: ({ id, updates }: { id: string; updates: Partial<JournalApiEntry> }) =>
-      JournalApi.updateJournalEntry(id, updates),
+      updateWithCachedIdentity(queryClient, id, updates),
     onMutate: async ({ id, updates }) => {
       // Cancel any outgoing refetches for all todo queries to prevent race conditions
       await queryClient.cancelQueries({ queryKey: ['journal', 'todos'] });
