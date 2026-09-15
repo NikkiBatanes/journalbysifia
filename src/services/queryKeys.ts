@@ -53,6 +53,7 @@ export const queryKeys = {
     acts: (userId: string, date: string) => ['prayers', 'acts', userId, date] as const,
     people: (userId: string, date: string) => ['prayers', 'people', userId, date] as const,
     allPeople: (userId: string) => ['prayers', 'allPeople', userId] as const,
+    allEntries: (userId: string) => ['prayers', 'allEntries', userId] as const,
     guided: (userId: string, date: string) => ['prayers', 'guided', userId, date] as const,
     personal: (userId: string, date: string) => ['prayers', 'personal', userId, date] as const,
     allGuided: (userId: string) => ['prayers', 'allGuided', userId] as const,

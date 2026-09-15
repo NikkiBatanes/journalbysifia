@@ -36,8 +36,10 @@ import NewSuccessModal from '../components/NewSuccessModal';
 import { useSuccessModal } from '../hooks/useSuccessModal';
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '../services/queryKeys';
+import { clearPrayerDraft, getPrayerDraft, getPrayerDraftKey, savePrayerDraft } from '../storage/prayerDraftStorage';
 
 import type { RootStackParamList } from '../navigation/types';
+import { exitPrayerFlow } from '../navigation/exitPrayerFlow';
 import { visibleStreakService } from '../services/visibleStreakService';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'PrayersForPeopleWalkthrough'>;
@@ -970,13 +972,12 @@ const CompletionStep: React.FC<{
   personName: string;
   prayerNeed: string;
   prayerText: string;
-  trackAnswered: boolean;
   onDone: () => void;
   onPrayNow: () => void;
   insets: { top: number; bottom: number };
   navigation: any;
   isEditing: boolean;
-}> = ({ prayerType, personName, prayerNeed, prayerText, trackAnswered, onDone, onPrayNow, insets, navigation: _navigation, isEditing }) => {
+}> = ({ prayerType, personName, prayerNeed, prayerText, onDone, onPrayNow, insets, navigation: _navigation, isEditing }) => {
   // Animation refs
   const checkmarkScale = React.useRef(new Animated.Value(0)).current;
   const iconScale = React.useRef(new Animated.Value(0)).current;
@@ -1095,21 +1096,6 @@ const CompletionStep: React.FC<{
             </View>
           )}
 
-          {trackAnswered && (
-            <>
-              <View style={styles.divider} />
-              <View style={[styles.completionSection, styles.completionSectionSmall]}>
-                <View style={styles.trackingRow}>
-                  <ThemedText weight="medium" style={styles.completionSectionLabel}>TRACKING</ThemedText>
-                  <View style={styles.trackingBadgeContainer}>
-                    <Ionicons name="notifications-outline" size={16} color={Colors.alertCoral} />
-                    <ThemedText style={styles.trackingBadgeText}>Enabled</ThemedText>
-                  </View>
-                </View>
-              </View>
-            </>
-          )}
-
           <View style={styles.completionFooter}>
             <ThemedText style={styles.completionFooterText}>
               {prayerType.id === 'prayer-request' ? 'A quiet act of love for someone who shared a need.' : 'A quiet act of faithfulness for someone God brought to mind.'}
@@ -1188,7 +1174,6 @@ const PrayersForPeopleWalkthroughScreen: React.FC<Props> = ({ navigation, route 
   const [personName, setPersonName] = useState('');
   const [prayerNeed, setPrayerNeed] = useState('');
   const [prayerText, setPrayerText] = useState('');
-  const [trackAnswered, setTrackAnswered] = useState(true);
   const [editingPrayerId, setEditingPrayerId] = useState<string | undefined>(undefined);
 
   // State for prayer modal
@@ -1252,9 +1237,6 @@ const PrayersForPeopleWalkthroughScreen: React.FC<Props> = ({ navigation, route 
     if (route.params?.initialPrayerText) {
       setPrayerText(route.params.initialPrayerText);
     }
-    if (route.params?.initialTrackAnswered !== undefined) {
-      setTrackAnswered(route.params.initialTrackAnswered);
-    }
     if (route.params?.editingPrayerId) {
       setEditingPrayerId(route.params.editingPrayerId);
     }
@@ -1276,6 +1258,39 @@ const PrayersForPeopleWalkthroughScreen: React.FC<Props> = ({ navigation, route 
   const currentDate = new Date();
   const selectedDate = route.params?.selectedDate ? new Date(route.params.selectedDate) : currentDate;
   const dateStr = toLocalDateString(selectedDate);
+  const draftType = selectedType?.id === 'prayer-request' || selectedType?.id === 'pray-for-someone' ? selectedType.id : null;
+  const draftKey = draftType ? getPrayerDraftKey(draftType, dateStr, subtaskId) : null;
+  const loadedDraftKey = useRef<string | null>(null);
+  const [draftReady, setDraftReady] = useState(false);
+
+  useEffect(() => {
+    if (!draftKey || editingPrayerId || fromNotificationAnsweredCheck || loadedDraftKey.current === draftKey) {return;}
+    loadedDraftKey.current = draftKey;
+    setDraftReady(false);
+    getPrayerDraft(draftKey).then((draft) => {
+      if (draft) {
+        setPersonName(draft.data.personName || '');
+        setPrayerNeed(draft.data.prayerNeed || '');
+        setPrayerText(draft.data.prayerText || '');
+        setCurrentStep(draft.data.currentStep || 1);
+      }
+      setDraftReady(true);
+    });
+  }, [draftKey, editingPrayerId, fromNotificationAnsweredCheck]);
+
+  useEffect(() => {
+    if (!draftKey || !draftType || !draftReady || editingPrayerId || fromNotificationAnsweredCheck) {return;}
+    if (!personName.trim() && !prayerNeed.trim() && !prayerText.trim()) {return;}
+    const timeout = setTimeout(() => {
+      savePrayerDraft({
+        key: draftKey,
+        type: draftType,
+        selectedDate: dateStr,
+        data: { currentStep, personName, prayerNeed, prayerText },
+      });
+    }, 800);
+    return () => clearTimeout(timeout);
+  }, [currentStep, dateStr, draftKey, draftReady, draftType, editingPrayerId, fromNotificationAnsweredCheck, personName, prayerNeed, prayerText]);
 
   const savePrayer = useCallback(async () => {
     if (!personName.trim()) {
@@ -1295,9 +1310,11 @@ const PrayersForPeopleWalkthroughScreen: React.FC<Props> = ({ navigation, route 
         content: selectedType?.id === 'prayer-request' ? prayerNeed : prayerText,
         person_name: personName,
         is_prayer_request: selectedType?.id === 'prayer-request',
+        prayed: selectedType?.id === 'pray-for-someone',
+        prayer_count: selectedType?.id === 'pray-for-someone' ? 1 : 0,
+        last_prayed_at: selectedType?.id === 'pray-for-someone' ? new Date().toISOString() : undefined,
         metadata: {
           prayer_type: selectedType?.id,
-          track_answered: trackAnswered,
         },
         selected_date: dateStr,
       };
@@ -1320,6 +1337,7 @@ const PrayersForPeopleWalkthroughScreen: React.FC<Props> = ({ navigation, route 
       if (result?.id) {
         setSavedPrayerId(result.id);
       }
+      if (draftKey) {await clearPrayerDraft(draftKey);}
 
       // Check if streak celebration should show for pray for someone.
       // When opened from faithful actions (fromPlaybook), only trigger if the
@@ -1361,7 +1379,13 @@ const PrayersForPeopleWalkthroughScreen: React.FC<Props> = ({ navigation, route 
         return;
       }
 
-      setCurrentStep(4); // Show completion screen
+      if (selectedType?.id === 'prayer-request') {
+        setCurrentStep(4);
+      } else {
+        triggerSuccessHaptic();
+        DeviceEventEmitter.emit('prayerSaved');
+        exitPrayerFlow(navigation as any);
+      }
 
       // Track analytics
       analytics.trackPrayerEvent(editingPrayerId ? 'prayer_updated' : 'prayer_created', {
@@ -1373,7 +1397,7 @@ const PrayersForPeopleWalkthroughScreen: React.FC<Props> = ({ navigation, route 
     } catch (error) {
       Alert.alert('Error', 'Failed to save prayer. Please try again.');
     }
-  }, [personName, selectedType, prayerNeed, prayerText, trackAnswered, dateStr, user, editingPrayerId, createPrayerMutation, updatePrayerMutation, fromPlaybook, playbookId, playbookStatus, stepId, subtaskId, actionStepNumber, navigation, successModal]);
+  }, [personName, selectedType, prayerNeed, prayerText, dateStr, draftKey, user, editingPrayerId, createPrayerMutation, updatePrayerMutation, fromPlaybook, playbookId, playbookStatus, stepId, subtaskId, actionStepNumber, navigation, successModal]);
 
   const handleNext = useCallback(() => {
     if (currentStep === 0) {
@@ -1395,16 +1419,7 @@ const PrayersForPeopleWalkthroughScreen: React.FC<Props> = ({ navigation, route 
       if (selectedType?.id === 'pray-for-someone' && !prayerText.trim()) {
         return;
       }
-      // Prayer Request: Skip track option, go directly to completion
-      // Pray for Someone: Go to track option step
-      if (selectedType?.id === 'prayer-request') {
-        savePrayer();
-      } else {
-        setCurrentStep(3);
-      }
-    } else if (currentStep === 3) {
-      // Save and show completion (Pray for Someone only)
-      savePrayer();
+      void savePrayer();
     }
   }, [currentStep, selectedType, personName, prayerNeed, prayerText, savePrayer]);
 
@@ -1417,7 +1432,9 @@ const PrayersForPeopleWalkthroughScreen: React.FC<Props> = ({ navigation, route 
   }, [currentStep, navigation]);
 
   const handleDone = () => {
-    navigation.goBack();
+    triggerSuccessHaptic();
+    DeviceEventEmitter.emit('prayerSaved');
+    exitPrayerFlow(navigation as any);
   };
 
   const handleMarkAnsweredFromNotification = useCallback(async () => {
@@ -1617,19 +1634,6 @@ const PrayersForPeopleWalkthroughScreen: React.FC<Props> = ({ navigation, route 
         />
       )}
 
-      {currentStep === 3 && selectedType?.id === 'prayer-request' && (
-        <PrayerRequestTrackOptionStep
-          personName={personName}
-          prayerNeed={prayerNeed}
-          trackAnswered={trackAnswered}
-          onTrackAnsweredChange={setTrackAnswered}
-          onNext={handleNext}
-          onBack={handleBack}
-          insets={insets}
-          navigation={navigation}
-        />
-      )}
-
       {/* Pray for Someone Steps */}
       {currentStep === 1 && selectedType?.id === 'pray-for-someone' && (
         <PrayForSomeoneNameStep
@@ -1661,26 +1665,12 @@ const PrayersForPeopleWalkthroughScreen: React.FC<Props> = ({ navigation, route 
         />
       )}
 
-      {currentStep === 3 && selectedType?.id === 'pray-for-someone' && (
-        <PrayForSomeoneTrackOptionStep
-          personName={personName}
-          prayerText={prayerText}
-          trackAnswered={trackAnswered}
-          onTrackAnsweredChange={setTrackAnswered}
-          onNext={handleNext}
-          onBack={handleBack}
-          insets={insets}
-          navigation={navigation}
-        />
-      )}
-
       {currentStep === 4 && selectedType && (
         <CompletionStep
           prayerType={selectedType}
           personName={personName}
           prayerNeed={prayerNeed}
           prayerText={prayerText}
-          trackAnswered={trackAnswered}
           onDone={handleDone}
           onPrayNow={handlePrayNow}
           insets={insets}

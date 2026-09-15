@@ -37,8 +37,10 @@ import PlaybookMetaSection from '../components/journal/PlaybookMetaSection';
 import NewSuccessModal from '../components/NewSuccessModal';
 import { useSuccessModal } from '../hooks/useSuccessModal';
 import { visibleStreakService } from '../services/visibleStreakService';
+import { clearPrayerDraft, getPrayerDraft, getPrayerDraftKey, savePrayerDraft } from '../storage/prayerDraftStorage';
 
 import type { RootStackParamList } from '../navigation/types';
+import { exitPrayerFlow } from '../navigation/exitPrayerFlow';
 
 type DateContext = 'today' | 'yesterday' | 'earlier';
 
@@ -589,8 +591,6 @@ const ACTSPrayerSlidesStep: React.FC<{
   onBack: () => void;
   insets: { top: number; bottom: number };
   navigation: any;
-  supplicationTrackAnswered: boolean;
-  onSupplicationTrackAnsweredChange: (value: boolean) => void;
   castOpening: string;
   castClosing: string;
   playbookTitle?: string;
@@ -608,8 +608,6 @@ const ACTSPrayerSlidesStep: React.FC<{
   onBack,
   insets,
   navigation,
-  supplicationTrackAnswered,
-  onSupplicationTrackAnsweredChange,
   castOpening,
   castClosing,
   playbookTitle,
@@ -626,8 +624,6 @@ const ACTSPrayerSlidesStep: React.FC<{
   const buttonPosition = useRef(new Animated.Value(insets.bottom + 20)).current;
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const cardTranslateY = useRef(new Animated.Value(0)).current;
-  const trackingOpacity = useRef(new Animated.Value(0)).current;
-  const trackingScale = useRef(new Animated.Value(0.8)).current;
 
   const currentStep = ACTS_STEPS[actsStepIndex];
   const isNotificationMode = !!actionLabel;
@@ -659,41 +655,6 @@ const ACTSPrayerSlidesStep: React.FC<{
     };
   }, [insets.bottom, buttonPosition]);
 
-  useEffect(() => {
-    const shouldShowTracking = currentStep.key === 'supplication' && prayerTexts[currentStep.key]?.trim();
-
-    if (shouldShowTracking) {
-      Animated.parallel([
-        Animated.timing(trackingOpacity, {
-          toValue: 1,
-          duration: 300,
-          delay: 100,
-          useNativeDriver: true,
-        }),
-        Animated.spring(trackingScale, {
-          toValue: 1,
-          tension: 50,
-          friction: 7,
-          delay: 100,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    } else {
-      Animated.parallel([
-        Animated.timing(trackingOpacity, {
-          toValue: 0,
-          duration: 200,
-          useNativeDriver: true,
-        }),
-        Animated.timing(trackingScale, {
-          toValue: 0.8,
-          duration: 200,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    }
-  }, [currentStep.key, prayerTexts, trackingOpacity, trackingScale]);
-
   const animateToNext = useCallback(
     (callback: () => void, direction: 'forward' | 'backward' = 'forward') => {
       const exitOffset = direction === 'forward' ? -14 : 14;
@@ -721,30 +682,10 @@ const ACTSPrayerSlidesStep: React.FC<{
       return;
     }
 
-    // Animate tracking button out if on supplication step
-    if (currentStep.key === 'supplication') {
-      Animated.parallel([
-        Animated.timing(trackingOpacity, {
-          toValue: 0,
-          duration: 200,
-          useNativeDriver: true,
-        }),
-        Animated.timing(trackingScale, {
-          toValue: 0.8,
-          duration: 200,
-          useNativeDriver: true,
-        }),
-      ]).start(() => {
-        animateToNext(() => {
-          setActsStepIndex(prev => prev + 1);
-        });
-      });
-    } else {
-      animateToNext(() => {
-        setActsStepIndex(prev => prev + 1);
-      });
-    }
-  }, [isLastStep, onNext, animateToNext, currentStep.key, trackingOpacity, trackingScale]);
+    animateToNext(() => {
+      setActsStepIndex(prev => prev + 1);
+    });
+  }, [isLastStep, onNext, animateToNext]);
 
   const handleBack = useCallback(() => {
     triggerMediumHaptic();
@@ -869,37 +810,6 @@ const ACTSPrayerSlidesStep: React.FC<{
         <View style={{ height: 100 }} />
       </ScrollView>
 
-      {!isNotificationMode && (
-        <Animated.View style={[
-        styles.trackingFloatingButton,
-        { bottom: buttonPosition },
-        ]}>
-          <Animated.View style={[
-            styles.trackingFloatingButtonInner,
-            {
-              opacity: trackingOpacity,
-              transform: [{ scale: trackingScale }],
-            },
-          ]}>
-            <TouchableOpacity
-              onPress={() => {
-                triggerLightHaptic();
-                onSupplicationTrackAnsweredChange(!supplicationTrackAnswered);
-              }}
-              activeOpacity={0.7}
-              style={{ paddingHorizontal: 6, height: 40, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: -4 }}
-            >
-              <View style={[styles.trackAnsweredCheckbox, supplicationTrackAnswered && styles.trackAnsweredCheckboxChecked]}>
-                {supplicationTrackAnswered && <Ionicons name="checkmark" size={14} color={Colors.hopeWhite} />}
-              </View>
-              <ThemedText style={[styles.trackAnsweredText, { marginLeft: -8 }]}>
-                Track if answered
-              </ThemedText>
-            </TouchableOpacity>
-          </Animated.View>
-        </Animated.View>
-      )}
-
       {actionLabel ? (
         <Animated.View style={[styles.completionButtonContainer, IS_IPAD && styles.completionButtonContainerPad, { bottom: buttonPosition }]}>
           <Animated.View style={[
@@ -961,8 +871,6 @@ const OpenPrayerStep: React.FC<{
   onNext: () => void;
   insets: { top: number; bottom: number };
   navigation: any;
-  trackAnswered: boolean;
-  onTrackAnsweredChange: (value: boolean) => void;
   playbookTitle?: string;
   actionStepNumber?: number;
   actionStepTitle?: string;
@@ -970,11 +878,9 @@ const OpenPrayerStep: React.FC<{
   stepExample?: string | null;
   readOnly?: boolean;
   actionLabel?: string;
-}> = ({ prayerText, onChange, onNext, insets, navigation, trackAnswered, onTrackAnsweredChange, playbookTitle, actionStepNumber, actionStepTitle, stepBody, stepExample, readOnly = false, actionLabel }) => {
+}> = ({ prayerText, onChange, onNext, insets, navigation, playbookTitle, actionStepNumber, actionStepTitle, stepBody, stepExample, readOnly = false, actionLabel }) => {
   const [keyboardVisible, setKeyboardVisible] = React.useState(false);
   const buttonPosition = React.useRef(new Animated.Value(insets.bottom + 20)).current;
-  const trackingOpacity = React.useRef(new Animated.Value(0)).current;
-  const trackingScale = React.useRef(new Animated.Value(0.8)).current;
 
   React.useEffect(() => {
     const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', (e) => {
@@ -1001,40 +907,6 @@ const OpenPrayerStep: React.FC<{
       keyboardDidHideListener.remove();
     };
   }, [insets.bottom, buttonPosition]);
-
-  React.useEffect(() => {
-    const hasText = !!prayerText?.trim();
-    if (hasText) {
-      Animated.parallel([
-        Animated.timing(trackingOpacity, {
-          toValue: 1,
-          duration: 300,
-          delay: 100,
-          useNativeDriver: true,
-        }),
-        Animated.spring(trackingScale, {
-          toValue: 1,
-          tension: 50,
-          friction: 7,
-          delay: 100,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    } else {
-      Animated.parallel([
-        Animated.timing(trackingOpacity, {
-          toValue: 0,
-          duration: 200,
-          useNativeDriver: true,
-        }),
-        Animated.timing(trackingScale, {
-          toValue: 0.8,
-          duration: 200,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    }
-  }, [prayerText, trackingOpacity, trackingScale]);
 
   return (
     <View style={styles.stepContainer}>
@@ -1082,31 +954,6 @@ const OpenPrayerStep: React.FC<{
 
         <View style={{ height: 100 }} />
       </ScrollView>
-
-      {!actionLabel && (
-        <Animated.View style={[styles.trackingFloatingButton, { bottom: buttonPosition }]}>
-          <Animated.View style={[
-            styles.trackingFloatingButtonInner,
-            { opacity: trackingOpacity, transform: [{ scale: trackingScale }] },
-          ]}>
-            <TouchableOpacity
-              onPress={() => {
-                triggerLightHaptic();
-                onTrackAnsweredChange(!trackAnswered);
-              }}
-              activeOpacity={0.7}
-              style={{ paddingHorizontal: 6, height: 40, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: -4 }}
-            >
-              <View style={[styles.trackAnsweredCheckbox, trackAnswered && styles.trackAnsweredCheckboxChecked]}>
-                {trackAnswered && <Ionicons name="checkmark" size={14} color={Colors.hopeWhite} />}
-              </View>
-              <ThemedText style={[styles.trackAnsweredText, { marginLeft: -8 }]}>
-                Track if answered
-              </ThemedText>
-            </TouchableOpacity>
-          </Animated.View>
-        </Animated.View>
-      )}
 
       {actionLabel ? (
         <Animated.View style={[styles.completionButtonContainer, IS_IPAD && styles.completionButtonContainerPad, { bottom: buttonPosition }]}>
@@ -1393,6 +1240,7 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
   const [castOpening, setCastOpening] = useState('Heavenly Father,');
   const [castClosing, setCastClosing] = useState('In Jesus\' Name,\nAmen');
   const [existingPrayerIds, setExistingPrayerIds] = useState<{ [key: string]: string }>({});
+  const prayerSessionId = useRef(`prayer-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`);
   const hasAppliedInitialPrayerType = useRef(false);
 
   const dateStr = toLocalDateString(selectedDate);
@@ -1401,6 +1249,44 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
   const deletePrayerMutation = useDeletePrayer();
   const markSupplicationAnsweredMutation = useMarkSupplicationAnswered();
   const { data: prayerEntries = [] } = useACTSPrayerData(user?.id || '', dateStr);
+  const draftType = selectedPath?.id === 'acts' || selectedPath?.id === 'open' ? selectedPath.id : null;
+  const draftKey = draftType ? getPrayerDraftKey(draftType, dateStr, subtaskId) : null;
+  const loadedDraftKey = useRef<string | null>(null);
+  const [draftReady, setDraftReady] = useState(false);
+
+  useEffect(() => {
+    if (!draftKey || editingPrayerId || fromNotificationAnsweredCheck || loadedDraftKey.current === draftKey) {return;}
+    loadedDraftKey.current = draftKey;
+    setDraftReady(false);
+    getPrayerDraft(draftKey).then((draft) => {
+      if (draft?.type === 'acts') {
+        setPrayerTexts(draft.data.prayerTexts || {});
+        setCurrentStep(draft.data.currentStep || 2);
+      } else if (draft?.type === 'open') {
+        setOpenPrayerText(draft.data.openPrayerText || '');
+        setCurrentStep(draft.data.currentStep || 2);
+      }
+      setDraftReady(true);
+    });
+  }, [draftKey, editingPrayerId, fromNotificationAnsweredCheck]);
+
+  useEffect(() => {
+    if (!draftKey || !draftType || !draftReady || editingPrayerId || fromNotificationAnsweredCheck) {return;}
+    const hasContent = draftType === 'acts'
+      ? Object.values(prayerTexts).some((text) => text.trim())
+      : !!openPrayerText.trim();
+    if (!hasContent) {return;}
+    const timeout = setTimeout(() => {
+      savePrayerDraft({
+        key: draftKey,
+        type: draftType,
+        selectedDate: dateStr,
+        data: { currentStep, prayerTexts, openPrayerText },
+      });
+    }, 800);
+    return () => clearTimeout(timeout);
+  }, [currentStep, dateStr, draftKey, draftReady, draftType, editingPrayerId, fromNotificationAnsweredCheck, openPrayerText, prayerTexts]);
+
   const successModal = useSuccessModal(
     () => {
       if (fromPlaybook) {
@@ -1468,14 +1354,17 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
             ];
             const editingPrayer = allPrayers.find((p: any) => p.id === editingPrayerId);
             if (editingPrayer) {
+              const existingSessionId = editingPrayer.metadata?.prayer_session_id;
+              const editingTimestamp = new Date(editingPrayer.created_at).getTime();
+              const sessionPrayers = existingSessionId
+                ? allPrayers.filter((p: any) => p.metadata?.prayer_session_id === existingSessionId)
+                : allPrayers.filter((p: any) => Math.abs(new Date(p.created_at).getTime() - editingTimestamp) < 5 * 60 * 1000);
               const texts: { [key: string]: string } = {};
               const ids: { [key: string]: string } = {};
-              allPrayers.forEach((p: any) => {
+              prayerSessionId.current = existingSessionId || prayerSessionId.current;
+              sessionPrayers.forEach((p: any) => {
                 texts[p.journal_category] = p.content;
                 ids[p.journal_category] = p.id;
-                if (p.journal_category === 'supplication' && p.metadata?.track_answered) {
-                  setSupplicationTrackAnswered(true);
-                }
               });
               setPrayerTexts(texts);
               setExistingPrayerIds(ids);
@@ -1526,8 +1415,8 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
                 id: existingId,
                 updates: {
                   content: text.trim(),
-                  status: step.key === 'supplication' && supplicationTrackAnswered ? 'pending' : undefined,
-                  metadata: step.key === 'supplication' ? { track_answered: supplicationTrackAnswered } : undefined,
+                  status: step.key === 'supplication' ? 'pending' : undefined,
+                  metadata: { prayer_style: 'cast', prayer_session_id: prayerSessionId.current },
                 },
                 _userId: user?.id ?? 'local',
                 _dateStr: dateStr,
@@ -1540,8 +1429,11 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
                 prayer_type: 'journal',
                 journal_category: step.key as 'adoration' | 'confession' | 'thanksgiving' | 'supplication',
                 content: text.trim(),
-                status: step.key === 'supplication' && supplicationTrackAnswered ? 'pending' : undefined,
-                metadata: step.key === 'supplication' ? { track_answered: supplicationTrackAnswered } : undefined,
+                prayed: true,
+                prayer_count: 1,
+                last_prayed_at: new Date().toISOString(),
+                status: step.key === 'supplication' ? 'pending' : undefined,
+                metadata: { prayer_style: 'cast', prayer_session_id: prayerSessionId.current },
               });
             }
           } else if (isEditing && existingId) {
@@ -1562,8 +1454,8 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
             id: existingId,
             updates: {
               content: openPrayerText.trim(),
-              status: openPrayerTrackAnswered ? 'pending' : undefined,
-              metadata: { track_answered: openPrayerTrackAnswered },
+              status: 'pending',
+              metadata: { prayer_style: 'open' },
             },
             _userId: user?.id ?? 'local',
             _dateStr: dateStr,
@@ -1576,8 +1468,11 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
             prayer_type: 'journal',
             journal_category: 'personal_prayer',
             content: openPrayerText.trim(),
-            status: openPrayerTrackAnswered ? 'pending' : undefined,
-            metadata: { track_answered: openPrayerTrackAnswered },
+            prayed: true,
+            prayer_count: 1,
+            last_prayed_at: new Date().toISOString(),
+            status: 'pending',
+            metadata: { prayer_style: 'open' },
           });
         }
       }
@@ -1585,6 +1480,7 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
       // Invalidate cache to ensure UI updates with new data
       await queryClient.invalidateQueries({ queryKey: ['prayers', 'acts', user?.id ?? 'local', dateStr] });
       await queryClient.invalidateQueries({ queryKey: ['journal', 'all'] });
+      if (draftKey) {await clearPrayerDraft(draftKey);}
 
       // Check if streak celebration should show for prayer journal.
       // Use the correct activity type: ACTS/CAST → prayer_journal_acts, Open → prayer_journal_open.
@@ -1632,8 +1528,9 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
           showEditButton: false,
         });
       } else if (!navigatedToStreak) {
-        // Only go back if we did NOT navigate to StreakPlan (streak screen handles its own dismiss)
-        navigation.goBack();
+        triggerSuccessHaptic();
+        DeviceEventEmitter.emit('prayerSaved');
+        exitPrayerFlow(navigation as any);
       }
     } catch (error) {
       Alert.alert('Error', 'Failed to save prayer. Please try again.');
@@ -1658,12 +1555,12 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
       if (!hasAnyPrayerText) {
         return;
       }
-      setCurrentStep(3); // Go to completion (handled by ACTSPrayerSlidesStep)
+      void handleSave();
     } else if (currentStep === 2 && selectedPath?.id === 'open') {
       if (!openPrayerText.trim()) {
         return;
       }
-      setCurrentStep(3); // Go to completion for open prayer
+      void handleSave();
     } else {
       navigation.goBack();
     }
@@ -1794,8 +1691,6 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
             onBack={handleBack}
             insets={insets}
             navigation={navigation}
-            supplicationTrackAnswered={supplicationTrackAnswered}
-            onSupplicationTrackAnsweredChange={setSupplicationTrackAnswered}
             castOpening={castOpening}
             castClosing={castClosing}
             playbookTitle={playbookTitle}
@@ -1816,8 +1711,6 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
             onNext={fromNotificationAnsweredCheck ? handleMarkAnsweredFromNotification : handleNext}
             insets={insets}
             navigation={navigation}
-            trackAnswered={openPrayerTrackAnswered}
-            onTrackAnsweredChange={setOpenPrayerTrackAnswered}
             playbookTitle={playbookTitle}
             actionStepNumber={actionStepNumber}
             actionStepTitle={actionStepTitle}

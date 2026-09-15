@@ -19,6 +19,8 @@ export interface LocalPrayerEntry {
   is_prayer_request?: boolean;
   requested_by?: string;
   prayed?: boolean;
+  prayer_count?: number;
+  last_prayed_at?: string;
   status?: PrayerStatus;
   answered_date?: string;
   notes?: string;

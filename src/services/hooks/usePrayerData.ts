@@ -83,6 +83,16 @@ export const useAllPeoplePrayerData = (userId: string) => {
   });
 };
 
+export const useAllPrayerData = (userId: string) => {
+  return useQuery({
+    queryKey: queryKeys.prayers.allEntries(userId),
+    queryFn: () => PrayerApi.getAllPrayers(userId),
+    staleTime: 5 * 60 * 1000,
+    enabled: true,
+    retry: createRetryFunction(RETRY_CONFIGS.PRAYER_ENHANCED),
+  });
+};
+
 /**
  * Get prayers by specific type
  */
@@ -270,6 +280,9 @@ export const useCreatePrayer = () => {
       queryClient.invalidateQueries({
         queryKey: queryKeys.prayers.entries(variables.user_id ?? 'local', variables.selected_date),
       });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.prayers.allEntries(variables.user_id ?? 'local'),
+      });
 
       // Invalidate specific prayer type queries
       if (variables.prayer_type === 'people') {
@@ -408,6 +421,9 @@ export const useUpdatePrayer = () => {
       queryClient.invalidateQueries({
         queryKey: queryKeys.prayers.entries(_userId, _dateStr),
       });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.prayers.allEntries(_userId),
+      });
       // Invalidate people cache so server state is consistent
       queryClient.invalidateQueries({
         queryKey: queryKeys.prayers.people(_userId, _dateStr),
@@ -524,6 +540,9 @@ export const useDeletePrayer = () => {
       // Always refetch after error or success to ensure all views update
       queryClient.invalidateQueries({
         queryKey: queryKeys.prayers.entries(_userId, _dateStr),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.prayers.allEntries(_userId),
       });
       // People list (Prayer List for People)
       queryClient.invalidateQueries({
@@ -682,6 +701,9 @@ export const useMarkSupplicationAnswered = () => {
       queryClient.invalidateQueries({
         queryKey: queryKeys.prayers.entries(_userId, _dateStr),
       });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.prayers.allEntries(_userId),
+      });
       // Keep dashboard requests list in sync when marking a request as prayed/unprayed
       queryClient.invalidateQueries({
         queryKey: queryKeys.prayers.unprayedRequests(_userId),
@@ -799,6 +821,9 @@ export const useMarkPrayerRequestPrayed = () => {
     onSettled: (data, error, { _userId, _dateStr }) => {
       queryClient.invalidateQueries({
         queryKey: queryKeys.prayers.entries(_userId, _dateStr),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.prayers.allEntries(_userId),
       });
       queryClient.invalidateQueries({
         queryKey: queryKeys.prayers.unprayedRequests(_userId),

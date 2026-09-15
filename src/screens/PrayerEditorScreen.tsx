@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { View, TouchableOpacity, StyleSheet, Alert, KeyboardAvoidingView, Platform, TextInput, StatusBar, Animated, ScrollView, PanResponder, useWindowDimensions } from 'react-native';
+import { View, TouchableOpacity, StyleSheet, Alert, KeyboardAvoidingView, Platform, TextInput, StatusBar, Animated, ScrollView, PanResponder, useWindowDimensions, DeviceEventEmitter } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -11,6 +11,8 @@ import ThemedText from '../components/common/ThemedText';
 import { useCreatePrayer, useMarkPrayerRequestPrayed } from '../services/hooks/usePrayerData';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { visibleStreakService } from '../services/visibleStreakService';
+import { exitPrayerFlow } from '../navigation/exitPrayerFlow';
+import { clearPrayerDraft, getPrayerDraft, getPrayerDraftKey, savePrayerDraft } from '../storage/prayerDraftStorage';
 
 type RootStackParamList = {
   PrayerEditor: {
@@ -73,7 +75,7 @@ const PrayerEditorScreen: React.FC<PrayerEditorScreenProps> = ({ route, navigati
   const [currentStep, setCurrentStep] = useState(1);
   const [modalPrayerRequest, setModalPrayerRequest] = useState('');
   const [savingModalPrayer, setSavingModalPrayer] = useState(false);
-  const [trackAnswered, setTrackAnswered] = useState(true);
+  const [trackAnswered, setTrackAnswered] = useState(false);
 
   // Hide status bar when screen is mounted
   useEffect(() => {
@@ -83,6 +85,30 @@ const PrayerEditorScreen: React.FC<PrayerEditorScreenProps> = ({ route, navigati
 
   const createPrayerMutation = useCreatePrayer();
   const markPrayedMutation = useMarkPrayerRequestPrayed();
+  const draftKey = getPrayerDraftKey('prayer-editor', prayerRequest.selected_date || new Date().toLocaleDateString('en-CA'), prayerRequest.id);
+  const [draftReady, setDraftReady] = useState(false);
+
+  useEffect(() => {
+    getPrayerDraft(draftKey).then((draft) => {
+      if (draft?.data.modalPrayerRequest) {
+        setModalPrayerRequest(draft.data.modalPrayerRequest);
+      }
+      setDraftReady(true);
+    });
+  }, [draftKey]);
+
+  useEffect(() => {
+    if (!draftReady || !modalPrayerRequest.trim()) {return;}
+    const timeout = setTimeout(() => {
+      savePrayerDraft({
+        key: draftKey,
+        type: 'prayer-editor',
+        selectedDate: prayerRequest.selected_date || new Date().toLocaleDateString('en-CA'),
+        data: { modalPrayerRequest, prayerRequest },
+      });
+    }, 800);
+    return () => clearTimeout(timeout);
+  }, [draftKey, draftReady, modalPrayerRequest, prayerRequest]);
 
   // Animation refs for completion step
   const checkmarkScale = useRef(new Animated.Value(0)).current;
@@ -132,15 +158,7 @@ const PrayerEditorScreen: React.FC<PrayerEditorScreenProps> = ({ route, navigati
     outputRange: ['0deg', '360deg'],
   });
 
-  const handleSavePrayer = useCallback(() => {
-    // Step 1 → Step 2: just validate and advance to tracking question
-    if (!prayerRequest.person_name?.trim() || !modalPrayerRequest.trim()) { return; }
-    triggerLightHaptic();
-    setCurrentStep(2);
-  }, [prayerRequest.person_name, modalPrayerRequest]);
-
-  const handleTrackingNext = useCallback(async () => {
-    // Step 2 → Step 3: save the prayer NOW with the chosen trackAnswered value
+  const handleSavePrayer = useCallback(async () => {
     if (!prayerRequest.person_name?.trim() || !modalPrayerRequest.trim()) { return; }
 
     try {
@@ -156,12 +174,14 @@ const PrayerEditorScreen: React.FC<PrayerEditorScreenProps> = ({ route, navigati
         prayer_type: 'people' as const,
         content: modalPrayerRequest,
         person_name: prayerRequest.person_name,
+        prayed: true,
+        prayer_count: 1,
+        last_prayed_at: new Date().toISOString(),
         metadata: {
           prayer_type: 'pray-for-someone',
           original_request_id: prayerRequest.id,
           original_request_content: prayerRequest.content,
           prayer_request_display: prayerRequest.content,
-          track_answered: trackAnswered,
         },
         selected_date: dateStr,
       });
@@ -178,6 +198,7 @@ const PrayerEditorScreen: React.FC<PrayerEditorScreenProps> = ({ route, navigati
 
       triggerSuccessHaptic();
       setSavingModalPrayer(false);
+      await clearPrayerDraft(draftKey);
 
       // Check if streak celebration should show for praying for someone (journal screen)
       if (user?.id) {
@@ -193,13 +214,14 @@ const PrayerEditorScreen: React.FC<PrayerEditorScreenProps> = ({ route, navigati
         }
       }
 
-      setCurrentStep(3); // Move to completion step
+      DeviceEventEmitter.emit('prayerSaved');
+      exitPrayerFlow(navigation as any);
     } catch (e) {
       console.error('Failed to save prayer', e);
       Alert.alert('Error', 'Failed to save prayer. Please try again.');
       setSavingModalPrayer(false);
     }
-  }, [prayerRequest.person_name, prayerRequest.content, prayerRequest.id, prayerRequest.user_id, prayerRequest.selected_date, modalPrayerRequest, trackAnswered, user, createPrayerMutation, markPrayedMutation, navigation]);
+  }, [prayerRequest.person_name, prayerRequest.content, prayerRequest.id, prayerRequest.user_id, prayerRequest.selected_date, draftKey, modalPrayerRequest, user, createPrayerMutation, markPrayedMutation, navigation]);
 
   const handleCompletionDone = () => {
     triggerMediumHaptic();
@@ -222,11 +244,9 @@ const PrayerEditorScreen: React.FC<PrayerEditorScreenProps> = ({ route, navigati
 
   const handleNext = useCallback(() => {
     if (currentStep === 1) {
-      handleSavePrayer();
-    } else if (currentStep === 2) {
-      handleTrackingNext();
+      void handleSavePrayer();
     }
-  }, [currentStep, handleSavePrayer, handleTrackingNext]);
+  }, [currentStep, handleSavePrayer]);
 
   const panResponder = React.useMemo(
     () =>
@@ -377,7 +397,7 @@ const PrayerEditorScreen: React.FC<PrayerEditorScreenProps> = ({ route, navigati
 
       <View style={[styles.primaryButton, IS_IPAD && styles.primaryButtonPad, { bottom: insets.bottom + 20 }]}>
         <TouchableOpacity
-          onPress={handleTrackingNext}
+          onPress={handleSavePrayer}
           activeOpacity={0.7}
           disabled={savingModalPrayer}
           style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}

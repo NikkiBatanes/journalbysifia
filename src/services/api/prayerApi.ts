@@ -32,6 +32,8 @@ export interface PrayerApiEntry {
   is_prayer_request?: boolean;
   requested_by?: string;
   prayed?: boolean;
+  prayer_count?: number;
+  last_prayed_at?: string;
   notes?: string;
   day_number?: number;
   day_title?: string;
@@ -148,6 +150,13 @@ export class PrayerApi {
     return all.filter(p => p.prayer_type === 'people').map(toApiFormat);
   }
 
+  static async getAllPrayers(_userId: string): Promise<PrayerApiEntry[]> {
+    const all = await listAllPrayerEntries();
+    return all
+      .sort((a, b) => b.created_at.localeCompare(a.created_at))
+      .map(toApiFormat);
+  }
+
   static async getUnprayedPrayerRequests(_userId: string): Promise<PrayerApiEntry[]> {
     const all = await listAllPrayerEntries();
     return all
@@ -239,9 +248,12 @@ export class PrayerApi {
     const all = await listAllPrayerEntries();
     const existing = all.find(p => p.id === id);
     if (!existing) {throw new Error('Prayer not found');}
+    const previousCount = existing.prayer_count ?? (existing.prayed ? 1 : 0);
     const updated = await updateLocalPrayer({
       ...existing,
-      prayed: true,
+      prayed: isPrayed,
+      prayer_count: isPrayed ? previousCount + 1 : previousCount,
+      last_prayed_at: isPrayed ? new Date().toISOString() : existing.last_prayed_at,
     });
     return toApiFormat(updated);
   }
