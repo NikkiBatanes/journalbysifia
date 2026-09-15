@@ -18,8 +18,9 @@ import Entypo from 'react-native-vector-icons/Entypo';
 import { toLocalDateString } from '../../utils/date';
 import {
   createLocalJournalEntry,
-  deleteLocalJournalEntriesForDate,
+  deleteLocalJournalEntry,
   getLocalJournalEntries,
+  updateLocalJournalEntry,
   LocalJournalEntry,
 } from '../../storage/journalStorage';
 import { triggerLightHaptic, triggerMediumHaptic } from '../../utils/haptics';
@@ -42,12 +43,19 @@ const getDateContext = (selectedDate: Date): DateContext => {
   return 'earlier';
 };
 
+interface TodoItem {
+  id?: string;
+  text: string;
+}
+
 interface TodosExperienceProps {
   selectedDate: Date;
   initialItems?: string[];
   onClose?: () => void;
   onComplete: (result: { record: LocalJournalEntry | null; items: LocalJournalEntry[] }) => void | Promise<void>;
 }
+
+const emptyTodo = (): TodoItem => ({ text: '' });
 
 const TodosExperience: React.FC<TodosExperienceProps> = ({
   selectedDate,
@@ -61,7 +69,7 @@ const TodosExperience: React.FC<TodosExperienceProps> = ({
   const dateStr = toLocalDateString(selectedDate);
   const dateContext = getDateContext(selectedDate);
 
-  const [todos, setTodos] = useState<string[]>(['', '', '']);
+  const [todos, setTodos] = useState<TodoItem[]>([emptyTodo(), emptyTodo(), emptyTodo()]);
   const [showSaveButton, setShowSaveButton] = useState(false);
   const hasLoadedInitialTodos = useRef(false);
 
@@ -80,9 +88,9 @@ const TodosExperience: React.FC<TodosExperienceProps> = ({
     if (hasLoadedInitialTodos.current) {return;}
     hasLoadedInitialTodos.current = true;
     (async () => {
-      let loaded: string[] = [];
+      let loaded: TodoItem[] = [];
       if (initialItems && initialItems.length > 0) {
-        loaded = initialItems;
+        loaded = initialItems.map(text => ({ text }));
       } else {
         try {
           const entries = await getLocalJournalEntries('todo', dateStr);
@@ -91,9 +99,12 @@ const TodosExperience: React.FC<TodosExperienceProps> = ({
               const parsed = typeof entry.content === 'string'
                 ? JSON.parse(entry.content)
                 : entry.content;
-              return parsed.text || '';
+              return {
+                id: entry.id,
+                text: parsed.text || '',
+              };
             })
-            .filter(text => text.trim() !== '');
+            .filter(item => item.text.trim() !== '');
         } catch (error) {
           console.warn('Error loading local to-dos:', error);
         }
@@ -101,18 +112,18 @@ const TodosExperience: React.FC<TodosExperienceProps> = ({
 
       const paddedTodos = [...loaded];
       while (paddedTodos.length < 3) {
-        paddedTodos.push('');
+        paddedTodos.push(emptyTodo());
       }
 
-      const allFilled = paddedTodos.every(todo => todo.trim() !== '');
+      const allFilled = paddedTodos.every(todo => todo.text.trim() !== '');
       if (allFilled) {
-        paddedTodos.push('');
+        paddedTodos.push(emptyTodo());
       }
 
       setTodos(paddedTodos);
 
       setTimeout(() => {
-        const firstEmptyIndex = paddedTodos.findIndex(todo => todo.trim() === '');
+        const firstEmptyIndex = paddedTodos.findIndex(todo => todo.text.trim() === '');
         if (firstEmptyIndex !== -1 && inputRefs[firstEmptyIndex]) {
           inputRefs[firstEmptyIndex]?.focus();
           scrollViewRef.current?.scrollToEnd({ animated: true });
@@ -124,12 +135,12 @@ const TodosExperience: React.FC<TodosExperienceProps> = ({
   const saveButtonOpacity = useRef(new Animated.Value(showSaveButton ? 1 : 0)).current;
   const saveButtonScale = useRef(new Animated.Value(showSaveButton ? 1 : 0.8)).current;
   const saveButtonTranslateX = useRef(new Animated.Value(0)).current;
-  const addButtonOpacity = useRef(new Animated.Value(todos[2]?.trim() !== '' ? 1 : 0)).current;
-  const addButtonScale = useRef(new Animated.Value(todos[2]?.trim() !== '' ? 1 : 0.8)).current;
+  const addButtonOpacity = useRef(new Animated.Value(todos[2]?.text?.trim() !== '' ? 1 : 0)).current;
+  const addButtonScale = useRef(new Animated.Value(todos[2]?.text?.trim() !== '' ? 1 : 0.8)).current;
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
 
   useEffect(() => {
-    const shouldShow = todos.some((todo: string) => todo.trim() !== '');
+    const shouldShow = todos.some((todo: TodoItem) => todo.text.trim() !== '');
     setShowSaveButton(shouldShow);
 
     Animated.spring(saveButtonOpacity, {
@@ -148,7 +159,7 @@ const TodosExperience: React.FC<TodosExperienceProps> = ({
   }, [todos, saveButtonOpacity, saveButtonScale]);
 
   useEffect(() => {
-    const shouldShow = todos[2]?.trim() !== '';
+    const shouldShow = todos[2]?.text?.trim() !== '';
 
     Animated.spring(addButtonOpacity, {
       toValue: shouldShow ? 1 : 0,
@@ -219,34 +230,68 @@ const TodosExperience: React.FC<TodosExperienceProps> = ({
 
   const handleSave = async () => {
     try {
-      const validTodos = todos.filter((t: string) => t.trim() !== '');
+      const validTodos = todos.filter((t: TodoItem) => t.text.trim() !== '');
 
       if (validTodos.length === 0) {
         Alert.alert('No Tasks', 'Please add at least one task before saving.');
         return;
       }
 
-      await deleteLocalJournalEntriesForDate('todo', dateStr);
-      const created: LocalJournalEntry[] = [];
-      for (const todo of validTodos) {
-        const record = await createLocalJournalEntry({
-          server_id: null,
-          content_type: 'todo',
-          selected_date: dateStr,
-          content: JSON.stringify({
-            text: todo,
-            completed: false,
-            priority: false,
-          }),
-          completed: false,
-        });
-        created.push(record);
+      const existingEntries = await getLocalJournalEntries('todo', dateStr);
+      const existingById = new Map<string, LocalJournalEntry>();
+      for (const entry of existingEntries) {
+        existingById.set(entry.id, entry);
       }
 
+      const keptIds = new Set<string>();
+      const saved: LocalJournalEntry[] = [];
+
+      for (const todo of validTodos) {
+        const trimmedText = todo.text.trim();
+
+        if (todo.id && existingById.has(todo.id)) {
+          const existing = existingById.get(todo.id)!;
+          const parsed = typeof existing.content === 'string'
+            ? JSON.parse(existing.content)
+            : existing.content;
+          const updated = await updateLocalJournalEntry({
+            ...existing,
+            content: JSON.stringify({
+              text: trimmedText,
+              completed: parsed.completed ?? false,
+              priority: parsed.priority ?? false,
+            }),
+          });
+          saved.push(updated);
+          keptIds.add(todo.id);
+        } else {
+          const record = await createLocalJournalEntry({
+            server_id: null,
+            content_type: 'todo',
+            selected_date: dateStr,
+            content: JSON.stringify({
+              text: trimmedText,
+              completed: false,
+              priority: false,
+            }),
+            completed: false,
+          });
+          todo.id = record.id;
+          saved.push(record);
+        }
+      }
+
+      for (const existing of existingEntries) {
+        if (!keptIds.has(existing.id)) {
+          await deleteLocalJournalEntry(existing.id, 'todo', dateStr);
+        }
+      }
+
+      setTodos([...todos]);
       triggerMediumHaptic();
 
-      const record = created[0] || null;
-      await onComplete({ record, items: created });
+      const record = saved[0] || null;
+      await onComplete({ record, items: saved });
     } catch (saveError) {
       console.error('Error saving to-dos:', saveError);
       Alert.alert('Error', 'Failed to save to-dos. Please try again.');
@@ -255,7 +300,7 @@ const TodosExperience: React.FC<TodosExperienceProps> = ({
 
   const handleAddField = () => {
     triggerLightHaptic();
-    const newTodos = [...todos, ''];
+    const newTodos = [...todos, emptyTodo()];
     setTodos(newTodos);
     setTimeout(() => {
       const newIndex = newTodos.length - 1;
@@ -268,6 +313,12 @@ const TodosExperience: React.FC<TodosExperienceProps> = ({
 
   const handleClose = () => {
     if (onClose) {onClose();}
+  };
+
+  const updateTodoText = (index: number, text: string) => {
+    const newTodos = [...todos];
+    newTodos[index] = { ...newTodos[index], text };
+    setTodos(newTodos);
   };
 
   return (
@@ -301,7 +352,7 @@ const TodosExperience: React.FC<TodosExperienceProps> = ({
               Add the tasks you do not want to forget.
             </ThemedText>
           </StepFadeIn>
-          {todos.map((todo: string, index: number) => (
+          {todos.map((todo: TodoItem, index: number) => (
             <View key={index} style={styles.priorityInputRow}>
               <View style={[styles.priorityNumberContainer, { backgroundColor: Colors.sage }]}>
                 <ThemedText weight="semiBold" style={[styles.priorityNumber, { color: Colors.hopeWhite }]}>{index + 1}</ThemedText>
@@ -315,12 +366,8 @@ const TodosExperience: React.FC<TodosExperienceProps> = ({
                   { fontFamily: getFontFamily(fontKey, 'regular') },
                   { color: Colors.text },
                 ]}
-                value={todo}
-                onChangeText={(text) => {
-                  const newTodos = [...todos];
-                  newTodos[index] = text;
-                  setTodos(newTodos);
-                }}
+                value={todo.text}
+                onChangeText={(text) => updateTodoText(index, text)}
                 onFocus={() => {
                   if (!inputRefs[index]) {
                     inputRefs[index] = null;

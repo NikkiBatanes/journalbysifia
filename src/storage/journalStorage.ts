@@ -28,7 +28,8 @@ export type LocalJournalContentType =
   | 'todo'
   | 'todays_focus'
   | 'today_win'
-  | 'looking_forward';
+  | 'looking_forward'
+  | 'morning_check_in';
 
 export interface LocalJournalEntry {
   id: string;

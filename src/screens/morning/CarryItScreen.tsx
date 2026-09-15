@@ -66,6 +66,7 @@ const CarryItScreen = () => {
     if (!canContinue) { return; }
     triggerMediumHaptic();
     const observations = customValue ? [...selectedAttributes, customValue] : selectedAttributes;
+    const carryText = observations.join(' · ');
 
     let id = psalmReflectionId;
     try {
@@ -73,52 +74,41 @@ const CarryItScreen = () => {
         psalmNumber,
         selectedAttributes: observations,
         customAttribute: customValue || undefined,
-        carry: observations.join(' · '),
+        carry: carryText,
         source: 'morning_psalm',
       };
 
-      if (id) {
-        const existing = await getLocalReflection(id, 'scripture', dateStr);
-        if (existing) {
-          const updated = await updateLocalReflection({
-            ...existing,
-            title: `Psalm ${psalmNumber}`,
-            content: existing.content,
-            metadata,
-          });
-          id = updated.id;
-        } else {
-          const created = await createLocalReflection({
-            title: `Psalm ${psalmNumber}`,
-            content: '',
-            type: 'scripture',
-            source: 'morning_psalm',
-            selected_date: dateStr,
-            metadata,
-          });
-          id = created.id;
+      const upsertReflection = async (existingId: string | null) => {
+        if (existingId) {
+          const existing = await getLocalReflection(existingId, 'scripture', dateStr);
+          if (existing) {
+            const updated = await updateLocalReflection({
+              ...existing,
+              title: `Psalm ${psalmNumber}`,
+              content: carryText,
+              metadata,
+            });
+            return updated.id;
+          }
         }
-      } else {
         const created = await createLocalReflection({
           title: `Psalm ${psalmNumber}`,
-          content: '',
+          content: carryText,
           type: 'scripture',
           source: 'morning_psalm',
           selected_date: dateStr,
           metadata,
         });
-        id = created.id;
-      }
+        return created.id;
+      };
+
+      id = await upsertReflection(id);
       setPsalmReflectionId(id);
     } catch (error) {
       console.error('Error saving morning psalm reflection:', error);
     }
 
-    await markStepCompleted('carry', {
-      domain: 'reflection',
-      content_type: 'scripture',
-      local_id: id!,
-    });
+    await markStepCompleted('carry');
 
     navigation.navigate('MorningClosing');
   }, [canContinue, customValue, markStepCompleted, navigation, psalmNumber, psalmReflectionId, selectedAttributes, dateStr]);

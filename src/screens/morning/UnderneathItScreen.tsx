@@ -11,15 +11,24 @@ import { useTheme } from '../../hooks/useTheme';
 import { triggerLightHaptic, triggerMediumHaptic } from '../../utils/haptics';
 import { useRoutine } from '../../context/RoutineContext';
 import RoutineStepShell from '../../components/routine/RoutineStepShell';
+import {
+  getLocalJournalSingleton,
+  saveLocalJournalSingleton,
+  LocalJournalEntry,
+} from '../../storage/journalStorage';
+
 
 const UnderneathItScreen = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
-  const { markStepCompleted } = useRoutine();
-  const feeling = route.params?.feeling as string | undefined;
-  const feelingIcon = route.params?.feelingIcon as string | undefined;
-  const feelingIconType = route.params?.feelingIconType as 'ionicons' | 'material' | undefined;
+  const { selectedDate, markStepCompleted } = useRoutine();
+  const dateStr = selectedDate;
   const [text, setText] = useState('');
+  const [checkIn, setCheckIn] = useState({
+    feeling: (route.params?.feeling as string | undefined) || '',
+    feelingIcon: (route.params?.feelingIcon as string | undefined) || '',
+    feelingIconType: (route.params?.feelingIconType as 'ionicons' | 'material' | undefined) || 'ionicons',
+  });
 
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';
@@ -34,16 +43,52 @@ const UnderneathItScreen = () => {
     }).start();
   }, [verticalLineHeight]);
 
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      const existing = await getLocalJournalSingleton('morning_check_in', dateStr);
+      if (!existing || !mounted) { return; }
+      const parsed = typeof existing.content === 'string'
+        ? JSON.parse(existing.content)
+        : existing.content;
+      if (parsed.underneathIt !== undefined) { setText(parsed.underneathIt); }
+      setCheckIn(prev => ({
+        feeling: parsed.feeling || prev.feeling,
+        feelingIcon: parsed.feelingIcon || prev.feelingIcon,
+        feelingIconType: parsed.feelingIconType || prev.feelingIconType,
+      }));
+    })();
+    return () => { mounted = false; };
+  }, [dateStr]);
+
   const onNext = React.useCallback(async () => {
     triggerMediumHaptic();
-    await markStepCompleted('underneath');
+
+    let record: LocalJournalEntry | null = null;
+    try {
+      const content = JSON.stringify({
+        feeling: checkIn.feeling,
+        feelingIcon: checkIn.feelingIcon,
+        feelingIconType: checkIn.feelingIconType,
+        underneathIt: text.trim(),
+      });
+      record = await saveLocalJournalSingleton('morning_check_in', dateStr, content);
+    } catch (saveError) {
+      console.error('Error saving morning check-in:', saveError);
+    }
+
+    await markStepCompleted(
+      'underneath',
+      record ? { domain: 'journal', content_type: 'morning_check_in', local_id: record.id } : undefined,
+      'morning_check_in',
+    );
     navigation.navigate('TodaysFocus', {
-      feeling,
-      feelingIcon,
-      feelingIconType,
+      feeling: checkIn.feeling,
+      feelingIcon: checkIn.feelingIcon,
+      feelingIconType: checkIn.feelingIconType,
       underneath: text,
     });
-  }, [feeling, feelingIcon, feelingIconType, markStepCompleted, navigation, text]);
+  }, [checkIn, dateStr, markStepCompleted, navigation, text]);
 
   const footer = (
     <TouchableOpacity
@@ -62,16 +107,16 @@ const UnderneathItScreen = () => {
       <View style={styles.metadataContainer}>
         <Animated.View style={[styles.verticalLine, { height: verticalLineHeight }]} />
         <View style={styles.metadataContent}>
-          {feelingIconType === 'material' && feelingIcon ? (
+          {checkIn.feelingIconType === 'material' && checkIn.feelingIcon ? (
             <MaterialCommunityIcons
-              name={feelingIcon as any}
+              name={checkIn.feelingIcon as any}
               size={18}
               color={Colors.sage}
               style={styles.metadataIcon}
             />
           ) : (
             <Ionicons
-              name={(feelingIcon || 'heart-outline') as any}
+              name={(checkIn.feelingIcon || 'heart-outline') as any}
               size={18}
               color={Colors.sage}
               style={styles.metadataIcon}
@@ -81,8 +126,8 @@ const UnderneathItScreen = () => {
             FEELING
           </ThemedText>
           <ThemedText style={styles.metadataText}>
-            {feeling ? (
-              <>You named <ThemedText weight="semiBold">{feeling}</ThemedText></>
+            {checkIn.feeling ? (
+              <>You named <ThemedText weight="semiBold">{checkIn.feeling}</ThemedText></>
             ) : (
               'A gentle check-in for your heart'
             )}

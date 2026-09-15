@@ -11,11 +11,15 @@ const MorningTodaysFocusScreen: React.FC = () => {
   useMorningStatusBar();
 
   const handleComplete = useCallback(async (record: any) => {
-    await markStepCompleted('todays_focus', {
-      domain: 'journal',
-      content_type: 'todays_focus',
-      local_id: record.id,
-    });
+    await markStepCompleted(
+      'todays_focus',
+      {
+        domain: 'journal',
+        content_type: 'todays_focus',
+        local_id: record.id,
+      },
+      'todays_focus',
+    );
     navigation.navigate('Todos');
   }, [markStepCompleted, navigation]);
 

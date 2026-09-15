@@ -48,7 +48,6 @@ import JournalOnboardingScreen from '../screens/journalOnboarding/JournalOnboard
 import OnboardingPlaybookReadyScreen from '../screens/onboarding/OnboardingPlaybookReadyScreenNew';
 import OnboardingSalesOfferScreen from '../screens/onboarding/OnboardingSalesOfferScreen';
 import TimeBlockEditorScreen from '../screens/TimeBlockEditorScreen';
-import DevReviewTriggersScreen from '../screens/DevReviewTriggersScreen';
 // RE-ENABLED: Trial Offer screen for trial flow navigation
 import OnboardingTrialOfferScreen from '../screens/onboarding/OnboardingTrialOfferScreen';
 import OnboardingNotificationSetupScreen from '../screens/onboarding/OnboardingNotificationSetupScreen';
@@ -409,19 +408,6 @@ export default function RootStackNavigator({
               presentation: 'fullScreenModal',
               animation: 'slide_from_bottom',
               gestureEnabled: true,
-            }}
-          />
-
-          {/* Dev Review Triggers - root modal so it never hijacks the Journal tab */}
-          <Stack.Screen
-            name="DevReviewTriggers"
-            component={DevReviewTriggersScreen as React.ComponentType}
-            options={{
-              headerShown: false,
-              presentation: 'fullScreenModal',
-              animation: 'slide_from_bottom',
-              gestureEnabled: true,
-              contentStyle: { backgroundColor: '#F6F5EF' },
             }}
           />
 

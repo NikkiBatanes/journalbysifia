@@ -9,7 +9,7 @@ export interface RoutineContextValue {
   startedAt?: string;
   completedSteps: string[];
   contentRefs: Record<string, ContentRef | ContentRef[]>;
-  markStepCompleted: (step: string, ref?: ContentRef) => Promise<void>;
+  markStepCompleted: (step: string, ref?: ContentRef | ContentRef[], refKey?: string) => Promise<void>;
   completeRoutine: () => Promise<void>;
   getContentRef: (step: string) => ContentRef | ContentRef[] | undefined;
   isLoading: boolean;
@@ -79,7 +79,7 @@ export const RoutineProvider: React.FC<{ children: React.ReactNode }> = ({ child
     return () => { mounted = false; };
   }, [routine, selectedDate]);
 
-  const markStepCompleted = useCallback(async (step: string, ref?: ContentRef) => {
+  const markStepCompleted = useCallback(async (step: string, ref?: ContentRef | ContentRef[], refKey?: string) => {
     setState(prev => {
       const nextCompletedSteps = prev.completedSteps.includes(step)
         ? prev.completedSteps
@@ -87,13 +87,23 @@ export const RoutineProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
       const nextContentRefs = { ...prev.contentRefs };
       if (ref) {
-        const existing = nextContentRefs[step];
-        if (existing) {
-          const list = Array.isArray(existing) ? [...existing] : [existing];
-          list.push(ref);
-          nextContentRefs[step] = list;
+        const key = refKey ?? step;
+        if (Array.isArray(ref)) {
+          nextContentRefs[key] = ref;
+        } else if (refKey) {
+          nextContentRefs[key] = ref;
         } else {
-          nextContentRefs[step] = ref;
+          const existing = nextContentRefs[key];
+          if (existing) {
+            const list = Array.isArray(existing) ? [...existing] : [existing];
+            const duplicate = list.some(r => r.local_id === ref.local_id && r.domain === ref.domain && r.content_type === ref.content_type);
+            if (!duplicate) {
+              list.push(ref);
+            }
+            nextContentRefs[key] = list;
+          } else {
+            nextContentRefs[key] = ref;
+          }
         }
       }
 

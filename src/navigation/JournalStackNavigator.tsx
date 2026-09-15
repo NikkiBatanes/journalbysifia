@@ -9,6 +9,7 @@ import ReflectionEditorScreen from '../screens/ReflectionEditorScreen';
 import ScriptureNoteEditorScreen from '../screens/ScriptureNoteEditorScreen';
 import SermonNotesScreen from '../screens/SermonNotesScreen';
 import SermonNotesDetailScreen from '../screens/SermonNotesDetailScreen';
+import BibleStudyScreen from '../screens/BibleStudyScreen';
 import ReviewScreen from '../screens/ReviewScreen';
 import PastReviewsScreen from '../screens/PastReviewsScreen';
 import ReviewSettingsScreen from '../screens/ReviewSettingsScreen';
@@ -121,6 +122,17 @@ const JournalStackNavigator: React.FC = () => {
           // Prevent white iOS UIViewController background from flashing through
           // on app resume before React content is fully re-painted.
           contentStyle: { backgroundColor: '#526A5B' },
+        }}
+      />
+      <Stack.Screen
+        name="BibleStudy"
+        component={BibleStudyScreen as React.ComponentType}
+        options={{
+          headerShown: false,
+          presentation: 'fullScreenModal',
+          animation: 'slide_from_bottom',
+          gestureEnabled: true,
+          contentStyle: { backgroundColor: '#F6F5EF' },
         }}
       />
     </Stack.Navigator>

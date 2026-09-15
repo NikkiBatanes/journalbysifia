@@ -62,6 +62,21 @@ const MorningClosingScreen = () => {
     (async () => {
       const next = { ...summary };
 
+      const checkInRef = contentRefs.morning_check_in;
+      const checkInId = checkInRef && !Array.isArray(checkInRef) ? checkInRef.local_id : undefined;
+      if (checkInId) {
+        const checkInEntry = await getLocalJournalSingleton('morning_check_in', dateStr);
+        if (checkInEntry) {
+          const parsed = typeof checkInEntry.content === 'string'
+            ? JSON.parse(checkInEntry.content)
+            : checkInEntry.content;
+          next.feeling = parsed.feeling ?? next.feeling;
+          next.feelingIcon = parsed.feelingIcon ?? next.feelingIcon;
+          next.feelingIconType = parsed.feelingIconType ?? next.feelingIconType;
+          next.underneath = parsed.underneathIt ?? next.underneath;
+        }
+      }
+
       const focusRef = contentRefs.todays_focus;
       if (focusRef && !Array.isArray(focusRef)) {
         const focusEntry = await getLocalJournalSingleton('todays_focus', dateStr);
@@ -95,7 +110,7 @@ const MorningClosingScreen = () => {
           next.psalmNumber = psalmEntry.metadata.psalmNumber ?? next.psalmNumber;
           next.psalmRead = psalmEntry.metadata.psalmRead ?? next.psalmRead;
           next.selectedAttributes = psalmEntry.metadata.selectedAttributes ?? next.selectedAttributes;
-          next.carry = psalmEntry.metadata.carry ?? next.carry;
+          next.carry = psalmEntry?.content || psalmEntry.metadata.carry || next.carry;
         }
       }
 

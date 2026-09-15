@@ -11,13 +11,12 @@ const MorningTodosScreen: React.FC = () => {
   useMorningStatusBar();
 
   const handleComplete = useCallback(async (result: { record: any; items: any[] }) => {
-    for (const item of result.items) {
-      await markStepCompleted('todos', {
-        domain: 'journal',
-        content_type: 'todo',
-        local_id: item.id,
-      });
-    }
+    const todoRefs = result.items.map(item => ({
+      domain: 'journal' as const,
+      content_type: 'todo',
+      local_id: item.id,
+    }));
+    await markStepCompleted('todos', todoRefs, 'todos');
     navigation.navigate('PsalmOfTheDay', { selectedDate });
   }, [markStepCompleted, navigation, selectedDate]);
 

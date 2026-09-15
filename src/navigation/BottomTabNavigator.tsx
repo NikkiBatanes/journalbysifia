@@ -15,7 +15,7 @@ import { Colors } from '../theme/colors';
 import { useTheme } from '../theme/ThemeContext';
 import { getFontFamily } from '../theme/fonts';
 import { TabBarIcons } from './TabBarIcons';
-import TodayScreen from '../screens/TodayScreen';
+import TodayStackNavigator from './TodayStackNavigator';
 import PrayerListScreen from '../screens/PrayerListScreen';
 import UserProfileScreen from '../screens/UserProfileScreen';
 
@@ -80,7 +80,7 @@ const CustomTabBarComponent = ({
 
   const addMenuItems = React.useMemo(
     () => [
-      { icon: '▤', title: 'Bible Study', subtitle: 'Message, Scripture & reflection', target: 'Journal', params: { screen: 'SermonNotes' } },
+      { icon: '▤', title: 'Bible Study', subtitle: 'Read, notice, and go deeper', target: 'Journal', params: { screen: 'BibleStudy' } },
       { icon: '▧', title: 'Sermon Notes', subtitle: 'Message, Scripture & reflection', target: 'Journal', params: { screen: 'SermonNotes' } },
       { icon: '✎', title: 'Heart Journal', subtitle: 'Write freely', target: 'Journal', params: { screen: 'ReflectionEditor' } },
       { icon: '◌', title: 'Emotional Check-In', subtitle: 'Notice and name how you feel', target: 'MorningFlow', params: { screen: 'EmotionCheckIn' } },
@@ -119,6 +119,9 @@ const CustomTabBarComponent = ({
   const isSermonNotes =
     activeNestedRouteName === 'SermonNotes' ||
     activeNestedRouteName === 'SermonNotesDetail';
+  const isBibleStudy = activeNestedRouteName === 'BibleStudy';
+  const isReview = activeNestedRouteName === 'Review';
+  const isDevReview = activeNestedRouteName === 'DevReviewTriggers';
 
   // ── Pill visibility: opacity + translateY ────────────────────────────────
   // 0 = hidden below screen, 1 = visible in place
@@ -230,7 +233,7 @@ const CustomTabBarComponent = ({
 
   const { onTabPress } = React.useContext(TabPressContext);
 
-  if (suppressTabBar || isSermonNotes) {
+  if (suppressTabBar || isSermonNotes || isBibleStudy || isReview || isDevReview) {
     return null;
   }
 
@@ -547,7 +550,7 @@ export default function BottomTabNavigator({ onLogout: _onLogout }: BottomTabNav
     >
       <Tab.Screen
         name="Today"
-        component={TodayScreen}
+        component={TodayStackNavigator}
         options={{
           tabBarLabel: 'Today',
           title: 'Today',

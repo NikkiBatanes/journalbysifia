@@ -242,6 +242,30 @@ export const MomentsScreen: React.FC = () => {
         />
       </View>
 
+      <TouchableOpacity
+        style={{
+          backgroundColor: Colors.cardBackground,
+          borderColor: Colors.cardBorder,
+          borderWidth: 1,
+          borderRadius: 20,
+          marginHorizontal: 16,
+          marginVertical: 12,
+          padding: 16,
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+        }}
+        onPress={() => { triggerLightHaptic(); navigation.navigate('BibleStudy' as any); }}
+        activeOpacity={0.7}
+      >
+        <View>
+          <ThemedText weight="semiBold" style={{ fontSize: 12, color: Colors.sage, marginBottom: 4, letterSpacing: 1 }}>STUDY SCRIPTURE</ThemedText>
+          <ThemedText weight="bold" style={{ fontSize: 18, color: Colors.text }}>Bible Study</ThemedText>
+          <ThemedText style={{ fontSize: 13, color: Colors.textGray, marginTop: 2 }}>Read, notice, and go deeper</ThemedText>
+        </View>
+        <Ionicons name="chevron-forward" size={22} color={Colors.textGray} />
+      </TouchableOpacity>
+
       {/* Enhanced Moments Renderer - now handles its own scrolling */}
       <EnhancedMomentsRenderer
         plugins={plugins}

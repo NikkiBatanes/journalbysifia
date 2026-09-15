@@ -170,11 +170,15 @@ const PsalmOfTheDayScreen = () => {
       console.error('Error saving morning psalm read state:', error);
     }
 
-    await markStepCompleted('psalm', {
-      domain: 'reflection',
-      content_type: 'scripture',
-      local_id: id!,
-    });
+    await markStepCompleted(
+      'psalm',
+      {
+        domain: 'reflection',
+        content_type: 'scripture',
+        local_id: id!,
+      },
+      'psalm',
+    );
 
     navigation.navigate('CarryIt');
   }, [hasReadPsalm, markStepCompleted, navigation, psalmNumber, psalmReflectionId, dateStr]);

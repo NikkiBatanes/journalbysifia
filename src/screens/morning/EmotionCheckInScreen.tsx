@@ -12,6 +12,11 @@ import { useRoutine } from '../../context/RoutineContext';
 import RoutineStepShell from '../../components/routine/RoutineStepShell';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { preloadScripturePassages } from '../../services/scriptureReaderService';
+import {
+  getLocalJournalSingleton,
+  saveLocalJournalSingleton,
+  LocalJournalEntry,
+} from '../../storage/journalStorage';
 
 interface Feeling {
   id: string;
@@ -55,10 +60,11 @@ const MORE_FEELINGS: Feeling[] = [
 const EmotionCheckInScreen = () => {
   const navigation = useNavigation<any>();
   const { user } = useAuth();
-  const { markStepCompleted } = useRoutine();
+  const { selectedDate, markStepCompleted } = useRoutine();
   const [selected, setSelected] = useState<Feeling | null>(null);
   const [showMore, setShowMore] = useState(false);
   const buttonScale = useRef(new Animated.Value(0)).current;
+  const dateStr = selectedDate;
 
   useEffect(() => {
     const createdAt = (user as any)?.created_at;
@@ -67,6 +73,8 @@ const EmotionCheckInScreen = () => {
     const psalmNumber = (Math.max(0, differenceInCalendarDays(now, start)) % 150) + 1;
     preloadScripturePassages([`Psalm ${psalmNumber}`]);
   }, [user]);
+
+  const allFeelings = useMemo(() => [...INITIAL_FEELINGS, ...MORE_FEELINGS], []);
 
   useEffect(() => {
     if (selected) {
@@ -81,18 +89,52 @@ const EmotionCheckInScreen = () => {
     }
   }, [selected, buttonScale]);
 
-  const displayedFeelings = useMemo(() => showMore ? [...INITIAL_FEELINGS, ...MORE_FEELINGS] : INITIAL_FEELINGS, [showMore]);
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      const existing = await getLocalJournalSingleton('morning_check_in', dateStr);
+      if (!existing || !mounted) { return; }
+      const parsed = typeof existing.content === 'string'
+        ? JSON.parse(existing.content)
+        : existing.content;
+      if (parsed.feeling) {
+        const matched = allFeelings.find(f => f.name === parsed.feeling);
+        if (matched) { setSelected(matched); }
+      }
+    })();
+    return () => { mounted = false; };
+  }, [allFeelings, dateStr]);
+
+  const displayedFeelings = useMemo(() => showMore ? allFeelings : INITIAL_FEELINGS, [showMore, allFeelings]);
 
   const onNext = React.useCallback(async () => {
     if (!selected) { return; }
     triggerMediumHaptic();
-    await markStepCompleted('emotion');
+
+    let record: LocalJournalEntry | null = null;
+    try {
+      const content = JSON.stringify({
+        feeling: selected.name,
+        feelingIcon: selected.icon,
+        feelingIconType: selected.iconType,
+        underneathIt: '',
+      });
+      record = await saveLocalJournalSingleton('morning_check_in', dateStr, content);
+    } catch (saveError) {
+      console.error('Error saving morning check-in:', saveError);
+    }
+
+    await markStepCompleted(
+      'emotion',
+      record ? { domain: 'journal', content_type: 'morning_check_in', local_id: record.id } : undefined,
+      'morning_check_in',
+    );
     navigation.navigate('UnderneathIt', {
       feeling: selected.name,
       feelingIcon: selected.icon,
       feelingIconType: selected.iconType,
     });
-  }, [navigation, selected, markStepCompleted]);
+  }, [navigation, selected, markStepCompleted, dateStr]);
 
   const footer = selected ? (
     <Animated.View style={{ transform: [{ scale: buttonScale }] }}>
