@@ -22,6 +22,10 @@ import { supabase } from '../../../services/supabaseClient';
 import { useAuth } from '../../../context/IndustryStandardAuthContext';
 import { triggerLightHaptic } from '../../../utils/haptics';
 import MomentsSkeleton from '../../../components/SkeletonLoader/MomentsSkeleton';
+import PrayerMomentsCarousel from '../../../components/moments/PrayerMomentsCarousel';
+import type { PrayerHomeEntry } from '../../../components/journal/PrayerCard';
+import { groupPrayerEntries, prayerMomentType } from '../../../utils/prayerMoments';
+import { trackingStatus } from '../../../utils/prayerTracking';
 import { PrayerApi } from '../../../services/api/prayerApi';
 import type { PluginFilters } from '../types';
 import type { FilterKey } from '../../../components/moments/FilterSelect';
@@ -82,6 +86,7 @@ interface MomentEntry {
   isAnswered?: boolean; // only for Prayer entries
   // derived flags for filtering
   _isPrayer?: boolean;
+  _prayers?: PrayerHomeEntry[];
   _isReflection?: boolean;
   _isGratitude?: boolean;
   _isWin?: boolean;
@@ -708,7 +713,7 @@ const EnhancedMomentsContent: React.FC<EnhancedMomentsRendererProps> = ({
       const prayerPlugin = plugins.find((p: JournalPlugin) => p.id === 'prayerjournal') || null;
       const peoplePlugin = plugins.find((p: JournalPlugin) => p.id === 'peopleprayers') || null;
       const seenLocalPrayerKeys = new Set<string>();
-      allLocalPrayers.forEach((prayer: any) => {
+      groupPrayerEntries(allLocalPrayers).forEach((prayer) => {
         const selected = (prayer as any).selected_date as string | undefined;
         if (!selected) {return;}
         const entryDate = /\d{4}-\d{2}-\d{2}/.test(selected) ? new Date(`${selected}T00:00:00`) : new Date((prayer as any).created_at || selected);
@@ -717,8 +722,8 @@ const EnhancedMomentsContent: React.FC<EnhancedMomentsRendererProps> = ({
         if (!targetPlugin) {return;}
         const isNeed = (prayer as any).metadata?.prayer_need === true;
         const categoryLabel = (prayer as any).journal_category ? ((prayer as any).journal_category as string).charAt(0).toUpperCase() + ((prayer as any).journal_category as string).slice(1) : 'Prayer';
-        const typeLabel = isNeed ? 'Prayer Need' : (isPeople ? 'Prayer List' : `${categoryLabel} Prayer`);
-        const dateKey = `${format(entryDate, 'yyyy-MM-dd')}::${(targetPlugin as any).id}`;
+        const typeLabel = prayerMomentType(prayer);
+        const dateKey = prayer.id;
         if (seenLocalPrayerKeys.has(dateKey)) {return;}
         seenLocalPrayerKeys.add(dateKey);
         localPrayerEntries.push({
@@ -726,7 +731,8 @@ const EnhancedMomentsContent: React.FC<EnhancedMomentsRendererProps> = ({
           date: entryDate,
           category: 'Prayer',
           type: typeLabel,
-          isAnswered: (prayer as any).status === 'answered' || (prayer as any).is_answered || !!(prayer as any).answered_date,
+          isAnswered: trackingStatus(prayer) === 'answered',
+          _prayers: [prayer],
           _isPrayer: true,
           _isPrayerRequest: (prayer as any).is_prayer_request === true,
           _searchText: buildSearchText(
@@ -1592,7 +1598,19 @@ const EnhancedMomentsContent: React.FC<EnhancedMomentsRendererProps> = ({
 
     }
 
-    return filteredEntries;
+    const prayerGroups = new Map<string, MomentEntry>();
+    const collated: MomentEntry[] = [];
+    filteredEntries.forEach(entry => {
+      if (!entry._prayers) { collated.push(entry); return; }
+      const key = `${format(entry.date, 'yyyy-MM-dd')}::${entry.type}`;
+      const existing = prayerGroups.get(key);
+      if (existing) existing._prayers!.push(...entry._prayers);
+      else {
+        const group = { ...entry, _prayers: [...entry._prayers] };
+        prayerGroups.set(key, group); collated.push(group);
+      }
+    });
+    return collated;
   }, [realEntries, searchQuery, dateRange, prayerAnswerFilter, filterKeys]);
 
   // Sort entries (used in grouping logic)
@@ -1954,7 +1972,7 @@ const EnhancedMomentsContent: React.FC<EnhancedMomentsRendererProps> = ({
           // For Prayer Journal, group all ACTS/Open Prayer under a single card by plugin
           // For guided/prayed prayers, group under 'Guided Prayers' to avoid duplication
           const isGuidedGroup = entry.type?.toLowerCase().includes('guided') || entry.plugin?.id === 'guidedprayers';
-          const typeKey = entry.plugin?.id === 'prayerjournal' ? 'Prayer Journal' : (isGuidedGroup ? 'Guided Prayers' : entry.type);
+          const typeKey = entry.plugin?.id === 'prayerjournal' && !entry._prayers ? 'Prayer Journal' : (isGuidedGroup ? 'Guided Prayers' : entry.type);
           if (!typeGroups[typeKey]) {typeGroups[typeKey] = [];}
           typeGroups[typeKey].push(entry);
         });
@@ -2190,7 +2208,7 @@ const EnhancedMomentsContent: React.FC<EnhancedMomentsRendererProps> = ({
         });
         const filteredEntries = dayEntries.filter((e, i) => {
           const pid = (e as any)?.plugin?.id || '';
-          if (pid === 'prayerjournal') {
+          if (pid === 'prayerjournal' && !e._prayers) {
             return i === newestPrayerIdx;
           }
           return true;
@@ -2207,7 +2225,7 @@ const EnhancedMomentsContent: React.FC<EnhancedMomentsRendererProps> = ({
               <View key={`wday-${dayItem.key}-entry-${i}`} style={styles.carouselItem}>
                 <View style={styles.momentItem}>
                   <View style={styles.momentContent}>
-                    <PluginRenderer plugin={entry.plugin} selectedDate={entry.date} reflectionId={entry.reflectionId} sessionId={entry.sessionId} refreshKey={refreshKey} viewMode="inline" filters={{ ...(pluginFilters || {}), hideEmptyComponents: true }} navigation={navigation} />
+                    {entry._prayers ? <PrayerMomentsCarousel prayers={entry._prayers} navigation={navigation} /> : (<PluginRenderer plugin={entry.plugin} selectedDate={entry.date} reflectionId={entry.reflectionId} sessionId={entry.sessionId} refreshKey={refreshKey} viewMode="inline" filters={{ ...(pluginFilters || {}), hideEmptyComponents: true }} navigation={navigation} />)}
                   </View>
                 </View>
               </View>
@@ -2295,7 +2313,7 @@ const EnhancedMomentsContent: React.FC<EnhancedMomentsRendererProps> = ({
 
                       const filteredEntries = dayEntries.filter((e, i) => {
                         const pid = (e as any)?.plugin?.id || '';
-                        if (pid === 'prayerjournal') {
+                        if (pid === 'prayerjournal' && !e._prayers) {
                           return i === newestPrayerIdx;
                         }
                         return true;
@@ -2311,14 +2329,14 @@ const EnhancedMomentsContent: React.FC<EnhancedMomentsRendererProps> = ({
                         <View key={`${week.key}-entry-${dk}-${i}`} style={styles.carouselItem}>
                           <View style={styles.momentItem}>
                             <View style={styles.momentContent}>
-                              <PluginRenderer
+                              {entry._prayers ? <PrayerMomentsCarousel prayers={entry._prayers} navigation={navigation} /> : (<PluginRenderer
                                 plugin={entry.plugin}
                                 selectedDate={entry.date} reflectionId={entry.reflectionId} sessionId={entry.sessionId}
                                 refreshKey={refreshKey}
                                 viewMode="inline"
                                 filters={{ ...(pluginFilters || {}), hideEmptyComponents: true }}
                                 navigation={navigation}
-                              />
+                              />)}
                             </View>
                           </View>
                         </View>
@@ -2361,7 +2379,7 @@ const EnhancedMomentsContent: React.FC<EnhancedMomentsRendererProps> = ({
         });
         const filteredEntries = dayEntries.filter((e, i) => {
           const pid = (e as any)?.plugin?.id || '';
-          if (pid === 'prayerjournal') {
+          if (pid === 'prayerjournal' && !e._prayers) {
             return i === newestPrayerIdx;
           }
           return true;
@@ -2378,7 +2396,7 @@ const EnhancedMomentsContent: React.FC<EnhancedMomentsRendererProps> = ({
               <View key={`day-${dayItem.key}-entry-${i}`} style={styles.carouselItem}>
                 <View style={styles.momentItem}>
                   <View style={styles.momentContent}>
-                    <PluginRenderer plugin={entry.plugin} selectedDate={entry.date} reflectionId={entry.reflectionId} sessionId={entry.sessionId} refreshKey={refreshKey} viewMode="moments" filters={pluginFilters} navigation={navigation} />
+                    {entry._prayers ? <PrayerMomentsCarousel prayers={entry._prayers} navigation={navigation} /> : (<PluginRenderer plugin={entry.plugin} selectedDate={entry.date} reflectionId={entry.reflectionId} sessionId={entry.sessionId} refreshKey={refreshKey} viewMode="moments" filters={pluginFilters} navigation={navigation} />)}
                   </View>
                 </View>
               </View>
@@ -2453,7 +2471,7 @@ const EnhancedMomentsContent: React.FC<EnhancedMomentsRendererProps> = ({
                       });
                       const filtered = dayEntries.filter((e, i) => {
                         const pid = (e as any)?.plugin?.id || '';
-                        if (pid === 'prayerjournal') {return i === newestPrayerIdx;}
+                        if (pid === 'prayerjournal' && !e._prayers) {return i === newestPrayerIdx;}
                         return true;
                       });
                       const ordered = filtered.slice().sort((a, b) => {
@@ -2466,7 +2484,7 @@ const EnhancedMomentsContent: React.FC<EnhancedMomentsRendererProps> = ({
                       <View key={`${month.key}-entry-${dk}-${i}`} style={styles.carouselItem}>
                         <View style={styles.momentItem}>
                           <View style={styles.momentContent}>
-                            <PluginRenderer plugin={entry.plugin} selectedDate={entry.date} reflectionId={entry.reflectionId} sessionId={entry.sessionId} refreshKey={refreshKey} viewMode="inline" filters={{ ...(pluginFilters || {}), hideEmptyComponents: true }} navigation={navigation} />
+                            {entry._prayers ? <PrayerMomentsCarousel prayers={entry._prayers} navigation={navigation} /> : (<PluginRenderer plugin={entry.plugin} selectedDate={entry.date} reflectionId={entry.reflectionId} sessionId={entry.sessionId} refreshKey={refreshKey} viewMode="inline" filters={{ ...(pluginFilters || {}), hideEmptyComponents: true }} navigation={navigation} />)}
                           </View>
                         </View>
                       </View>
@@ -2503,7 +2521,7 @@ const EnhancedMomentsContent: React.FC<EnhancedMomentsRendererProps> = ({
         });
         const filteredEntries = dayEntries.filter((e, i) => {
           const pid = (e as any)?.plugin?.id || '';
-          if (pid === 'prayerjournal') {return i === newestPrayerIdx;}
+          if (pid === 'prayerjournal' && !e._prayers) {return i === newestPrayerIdx;}
           return true;
         });
         const ordered = filteredEntries.slice().sort((a, b) => {
@@ -2518,7 +2536,7 @@ const EnhancedMomentsContent: React.FC<EnhancedMomentsRendererProps> = ({
               <View key={`yrday-${dayItem.key}-entry-${i}`} style={styles.carouselItem}>
                 <View style={styles.momentItem}>
                   <View style={styles.momentContent}>
-                    <PluginRenderer plugin={entry.plugin} selectedDate={entry.date} reflectionId={entry.reflectionId} sessionId={entry.sessionId} refreshKey={refreshKey} viewMode="inline" filters={{ hideEmptyComponents: true }} navigation={navigation} />
+                    {entry._prayers ? <PrayerMomentsCarousel prayers={entry._prayers} navigation={navigation} /> : (<PluginRenderer plugin={entry.plugin} selectedDate={entry.date} reflectionId={entry.reflectionId} sessionId={entry.sessionId} refreshKey={refreshKey} viewMode="inline" filters={{ hideEmptyComponents: true }} navigation={navigation} />)}
                   </View>
                 </View>
               </View>
@@ -2591,19 +2609,22 @@ const EnhancedMomentsContent: React.FC<EnhancedMomentsRendererProps> = ({
     }
 
     const carouselGroup = item as MomentEntry[];
+    if (carouselGroup?.length && carouselGroup.every(entry => !!entry._prayers)) {
+      return <View style={styles.carouselItem}><View style={styles.momentItem}><View style={styles.momentContent}><PrayerMomentsCarousel prayers={carouselGroup.flatMap(entry => entry._prayers!)} navigation={navigation} /></View></View></View>;
+    }
     return (
       <View style={styles.carouselItem}>
         {carouselGroup && carouselGroup.map((entry, i) => (
           <View key={`entry-${index}-${i}`} style={styles.momentItem}>
             <View style={styles.momentContent}>
-              <PluginRenderer
+              {entry._prayers ? <PrayerMomentsCarousel prayers={entry._prayers} navigation={navigation} /> : (<PluginRenderer
                 plugin={entry.plugin}
                 selectedDate={entry.date} reflectionId={entry.reflectionId} sessionId={entry.sessionId}
                 refreshKey={refreshKey}
                 viewMode="inline"
                 filters={{ ...(pluginFilters || {}), hideEmptyComponents: true }}
                 navigation={navigation}
-              />
+              />)}
             </View>
           </View>
         ))}

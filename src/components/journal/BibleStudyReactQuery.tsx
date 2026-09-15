@@ -117,7 +117,7 @@ export const BibleStudyReactQuery: React.FC<Props> = ({ selectedDate, refreshKey
             )}
             <View style={styles.divider} />
             <View style={styles.footer}>
-              {content.passageRead && <View style={styles.footerItem}><BookOpen size={14} color={secondaryColor} /><ThemedText style={styles.footerText}>Passage read</ThemedText></View>}
+              {content.passageRead && <View style={styles.footerItem}>{!momentsPalette && <BookOpen size={14} color={secondaryColor} />}<ThemedText style={styles.footerText}>Passage read</ThemedText></View>}
               <View style={styles.footerItem}><Highlighter size={14} color={secondaryColor} /><ThemedText style={styles.footerText}>{content.highlights.length} Highlights</ThemedText></View>
               <View style={styles.footerItem}><Sparkles size={14} color={secondaryColor} /><ThemedText style={styles.footerText}>{observationCount} Observation</ThemedText></View>
               <View style={styles.footerItem}><MessageCircle size={14} color={secondaryColor} /><ThemedText style={styles.footerText}>{responseCount} Response</ThemedText></View>

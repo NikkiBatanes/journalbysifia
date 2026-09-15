@@ -147,7 +147,7 @@ const PrayerCard = ({
           </TouchableOpacity>}
           {onManage && <TouchableOpacity style={[styles.actionButton, styles.cardActionButton]} onPress={() => onManage(prayer)} activeOpacity={0.7}>
             <Ionicons name="chatbox-ellipses-outline" size={14} color={Colors.sage} />
-            <ThemedText weight="semiBold" style={[styles.actionButtonText, styles.cardActionText]} numberOfLines={1}>{tracked ? 'Add update' : 'Keep praying'}</ThemedText>
+            <ThemedText weight="semiBold" style={[styles.actionButtonText, styles.cardActionText]} numberOfLines={1}>{tracked ? 'Update' : 'Keep praying'}</ThemedText>
           </TouchableOpacity>}
           {onAnswered && tracked && !needsPrayer &&  <TouchableOpacity disabled={answering} style={[styles.actionButton, styles.cardActionButton, { flexGrow: 1.35 }, isAnswered && styles.actionButtonActive]} onPress={() => (onManageAnswers && prayerNeeds(prayer).length > 1) ? onManageAnswers(prayer) : onAnswered(prayer, prayerNeeds(prayer)[0]?.id)} activeOpacity={0.7}>
             <Ionicons name={isAnswered ? 'sparkles-outline' : 'checkmark-circle-outline'} size={14} color={isAnswered ? Colors.hopeWhite : Colors.sage} />

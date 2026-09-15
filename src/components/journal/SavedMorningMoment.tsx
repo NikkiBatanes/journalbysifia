@@ -10,9 +10,12 @@ import { JournalCard } from './JournalCard';
 import ScriptureReaderModal from '../ScriptureReaderModal';
 import ThemedText from '../common/ThemedText';
 import { Colors } from '../../theme/colors';
+import { useMomentsPalette } from '../../context/MomentsPaletteContext';
 import { MorningMoment } from '../../storage/morningMomentsStorage';
 
 export const SavedMorningMoment = ({ moment, viewMode = 'inline' }: { moment: MorningMoment; viewMode?: 'carousel' | 'inline' | 'moments' }) => {
+  const momentsPalette = useMomentsPalette();
+  const hideReadStatusIcon = momentsPalette || viewMode === 'moments';
   const [open, setOpen] = useState(false);
   const [reflectionOpen, setReflectionOpen] = useState(false);
   const navigation = useNavigation();
@@ -30,11 +33,11 @@ export const SavedMorningMoment = ({ moment, viewMode = 'inline' }: { moment: Mo
         </View>
         {!!moment.scripture?.reference && (
           <>
-            <View style={styles.divider} />
+            <View style={{ height: 16 }} />
             <ThemedText style={styles.feelingLabel}>SCRIPTURE</ThemedText>
             <TouchableOpacity onPress={() => setScriptureOpen(true)} style={[styles.feelingRow, styles.passageRow]} activeOpacity={0.7} accessibilityRole="button" accessibilityLabel={`Read ${moment.scripture.reference}`}>
-              <MaterialCommunityIcons name="script-text" size={16} color={Colors.sage} />
-              <ThemedText weight="semiBold" style={styles.passageTitle}>{moment.scripture.reference}</ThemedText>
+              <ThemedText weight="regular" style={styles.checkinScripture}>{moment.scripture.reference}</ThemedText>
+              <MaterialCommunityIcons name="script-text" size={12} color={Colors.sage} />
             </TouchableOpacity>
           </>
         )}
@@ -55,20 +58,21 @@ export const SavedMorningMoment = ({ moment, viewMode = 'inline' }: { moment: Mo
     const observationText = (moment.observations || []).join(' · ').trim();
     return <>
       <JournalCard title="DAILY PSALMS" variant="inline" viewMode={viewMode}>
-        <TouchableOpacity onPress={() => setOpen(true)} style={[styles.feelingRow, styles.passageRow]} accessibilityRole="button" accessibilityLabel={`Read ${moment.title}`}>
-          <MaterialCommunityIcons name="script-text" size={16} color={Colors.sage} />
+        <TouchableOpacity onPress={() => setOpen(true)} style={[styles.feelingRow, styles.psalmPassageRow]} accessibilityRole="button" accessibilityLabel={`Read ${moment.title}`}>
           <ThemedText weight="semiBold" style={styles.passageTitle}>{moment.title}</ThemedText>
+          <MaterialCommunityIcons name="script-text" size={16} color={Colors.sage} />
         </TouchableOpacity>
         <View style={styles.feelingRow}>
-          <Ionicons name={moment.markedRead ? 'checkmark-circle' : 'book-outline'} size={14} color={Colors.sage} />
+          {!hideReadStatusIcon && <Ionicons name={moment.markedRead ? 'checkmark-circle' : 'book-outline'} size={14} color={Colors.sage} />}
           <ThemedText style={styles.readStatus}>{moment.markedRead ? 'Passage read' : 'Reading in progress'}</ThemedText>
         </View>
         {!!observationText && (
-          <>
-            <View style={styles.divider} />
+          <View style={styles.observations}>
             <ThemedText style={styles.feelingLabel}>WHAT YOU SAW ABOUT GOD</ThemedText>
-            <ThemedText weight="semiBold" style={[styles.feeling, styles.centered]}>{observationText}</ThemedText>
-          </>
+            {(moment.observations || []).filter(text => text.trim()).map((text, index) => (
+              <ThemedText key={index} weight="semiBold" style={[styles.feeling, styles.centered, styles.observationText]}>{text}</ThemedText>
+            ))}
+          </View>
         )}
       </JournalCard>
       <ScriptureReaderModal visible={open} passages={[{ reference: moment.title }]} initialIndex={0} onClose={() => setOpen(false)} />
@@ -87,11 +91,11 @@ export const SavedMorningMoment = ({ moment, viewMode = 'inline' }: { moment: Mo
         <JournalCard title="EVENING PROVERBS" subtitle={proverbDate} variant="inline" viewMode={viewMode} showAddButton onAdd={handleEdit}>
           <View style={styles.proverbContent}>
             <TouchableOpacity onPress={() => setOpen(true)} style={[styles.feelingRow, styles.passageRow]} accessibilityRole="button" accessibilityLabel={`Read ${moment.title}`}>
-              <MaterialCommunityIcons name="script-text" size={16} color={Colors.sage} />
               <ThemedText weight="semiBold" style={styles.passageTitle}>{moment.title}</ThemedText>
+              <MaterialCommunityIcons name="script-text" size={16} color={Colors.sage} />
             </TouchableOpacity>
             <View style={styles.feelingRow}>
-              <Ionicons name={moment.markedRead ? 'checkmark-circle' : 'book-outline'} size={14} color={Colors.sage} />
+              {!hideReadStatusIcon && <Ionicons name={moment.markedRead ? 'checkmark-circle' : 'book-outline'} size={14} color={Colors.sage} />}
               <ThemedText style={styles.readStatus}>{moment.markedRead ? 'Passage read' : 'Reading in progress'}</ThemedText>
             </View>
             {!!wisdomText && (
@@ -130,7 +134,7 @@ export const SavedMorningMoment = ({ moment, viewMode = 'inline' }: { moment: Mo
     <TouchableOpacity style={styles.card} onPress={() => setOpen(true)} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel={`View ${moment.title}`}>
       <ThemedText weight="semiBold" style={styles.label}>{moment.title.toUpperCase()}</ThemedText>
       {moment.lines.filter(line => moment.markedRead === undefined || line !== 'Passage read').map((line, index) => <ThemedText key={index} numberOfLines={3} style={index === 0 ? styles.title : styles.answer}>{line}</ThemedText>)}
-      {moment.markedRead !== undefined && <View style={styles.feelingRow}><Ionicons name={moment.markedRead ? 'checkmark-circle' : 'book-outline'} size={16} color={Colors.sage} /><ThemedText style={styles.readStatus}>{moment.markedRead ? 'Passage read' : 'Reading in progress'}</ThemedText></View>}
+      {moment.markedRead !== undefined && <View style={styles.feelingRow}>{!hideReadStatusIcon && <Ionicons name={moment.markedRead ? 'checkmark-circle' : 'book-outline'} size={16} color={Colors.sage} />}<ThemedText style={styles.readStatus}>{moment.markedRead ? 'Passage read' : 'Reading in progress'}</ThemedText></View>}
     </TouchableOpacity>
     <Modal visible={open} animationType="slide" onRequestClose={() => setOpen(false)}>
       <View style={[styles.page, { paddingTop: insets.top + 20 }]}>
@@ -150,11 +154,15 @@ const styles = StyleSheet.create({
   proverbTopBar: { position: 'absolute', left: 0, right: 0, zIndex: 10, flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', gap: 10, paddingHorizontal: 20, backgroundColor: 'transparent' },
   proverbTopButton: { width: 42, height: 42, borderRadius: 21, backgroundColor: Colors.cardBackground, alignItems: 'center', justifyContent: 'center' },
   proverbDateText: { color: Colors.textGray, fontSize: 11, letterSpacing: 1.5, textAlign: 'center', marginBottom: 16 },
-  passageRow: { marginTop: 0, marginBottom: 8 },
+  psalmPassageRow: { marginTop: 0, marginBottom: 8 },
+  passageRow: { marginTop: 0, marginBottom: 8, alignSelf: 'center', borderWidth: 1, borderColor: Colors.cardBorder, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 9 },
+  checkinScripture: { color: Colors.sage, fontSize: 12, lineHeight: 18 },
   passageTitle: { color: Colors.sage, fontSize: 14 },
   reflection: { color: Colors.text, fontSize: 16, lineHeight: 24, textAlign: 'center' },
   viewAllButton: { alignSelf: 'center', paddingHorizontal: 12, paddingTop: 8 },
   viewAllText: { color: Colors.sage, fontSize: 12 },
+  observations: { marginTop: 16, borderWidth: 1.5, borderColor: Colors.inputBorder, borderRadius: 24, padding: 20 },
+  observationText: { marginTop: 6 },
   divider: { height: 1, backgroundColor: Colors.cardBorder, marginVertical: 16 },
   feelingLabel: { color: Colors.sage, fontSize: 10, letterSpacing: 1.5, textAlign: 'center', marginBottom: 8 },
   feelingRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
