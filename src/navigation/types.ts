@@ -147,6 +147,7 @@ export type RootStackParamList = {
   PrayerJournalWalkthrough: {
     selectedDate?: string;
     initialPrayerType?: 'acts' | 'open';
+    showDescription?: boolean;
     editingPrayerId?: string;
     subtaskTitle?: string;
     subtaskId?: string;

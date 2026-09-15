@@ -205,7 +205,27 @@ const PrayerListScreen = () => {
     <View style={[styles.container, { paddingTop: insets.top + 24, paddingBottom: Math.max(insets.bottom, 16) + 16 }]}>
       <View style={styles.header}>
         <ThemedText style={styles.eyebrow}>PRAYER</ThemedText>
-        <ThemedText style={styles.title}>Bring it to God.</ThemedText>
+        <ThemedText style={styles.title}>Return to what you’re praying about.</ThemedText>
+      </View>
+
+      <View style={styles.actionSection}>
+        <ThemedText weight="semiBold" style={styles.sectionLabel}>PRAYER</ThemedText>
+        <View style={styles.actionGrid}>
+          {PRAYER_ACTIONS.map((action) => (
+            <TouchableOpacity
+              key={action.key}
+              style={styles.prayerAction}
+              onPress={() => handlePrayerAction(action.key)}
+              activeOpacity={0.75}
+            >
+              <View style={styles.actionIcon}>
+                <Ionicons name={action.icon} size={19} color={Colors.alertCoral} />
+              </View>
+              <ThemedText weight="semiBold" style={styles.actionLabel}>{action.label}</ThemedText>
+              <ThemedText style={styles.actionDescription}>{action.description}</ThemedText>
+            </TouchableOpacity>
+          ))}
+        </View>
       </View>
 
       <View style={styles.tabs}>
@@ -258,10 +278,6 @@ const PrayerListScreen = () => {
         </ScrollView>
       )}
 
-      <TouchableOpacity style={styles.newPrayerButton} onPress={handleNewPrayer} activeOpacity={0.8}>
-        <Ionicons name="add" size={20} color={Colors.hopeWhite} />
-        <ThemedText weight="semiBold" style={styles.newPrayerText}>New prayer</ThemedText>
-      </TouchableOpacity>
     </View>
   );
 };
@@ -286,9 +302,53 @@ const styles = StyleSheet.create({
   title: {
     color: Colors.text,
     fontFamily: Fonts.bold,
-    fontSize: 34,
-    lineHeight: 40,
+    fontSize: 30,
+    lineHeight: 36,
     letterSpacing: -0.5,
+  },
+  actionSection: {
+    marginBottom: 24,
+  },
+  sectionLabel: {
+    color: Colors.textGray,
+    fontSize: 11,
+    lineHeight: 14,
+    letterSpacing: 1.6,
+    marginBottom: 10,
+  },
+  actionGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  prayerAction: {
+    width: '48.5%',
+    minHeight: 124,
+    backgroundColor: Colors.cardBackground,
+    borderColor: Colors.cardBorder,
+    borderWidth: 1,
+    borderRadius: 20,
+    padding: 16,
+  },
+  actionIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(216, 126, 104, 0.1)',
+    marginBottom: 10,
+  },
+  actionLabel: {
+    color: Colors.text,
+    fontSize: 15,
+    lineHeight: 19,
+    marginBottom: 3,
+  },
+  actionDescription: {
+    color: Colors.textGray,
+    fontSize: 12,
+    lineHeight: 17,
   },
   tabs: {
     flexDirection: 'row',
@@ -396,21 +456,6 @@ const styles = StyleSheet.create({
   },
   actionButtonTextDisabled: {
     color: Colors.textGray,
-  },
-  newPrayerButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    backgroundColor: Colors.sage,
-    borderRadius: 24,
-    paddingVertical: 16,
-    marginTop: 12,
-  },
-  newPrayerText: {
-    color: Colors.hopeWhite,
-    fontSize: 16,
-    lineHeight: 20,
   },
 });
 

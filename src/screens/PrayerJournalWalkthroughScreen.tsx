@@ -1379,7 +1379,7 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
   const { width: screenWidth } = useWindowDimensions();
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const { selectedDate: selectedDateStr, initialPrayerType, editingPrayerId, subtaskId, stepId, playbookId, playbookTitle, playbookStatus, actionStepNumber, actionStepTitle, stepBody, stepExample, fromPlaybook, fromNotificationAnsweredCheck } = route.params || {};
+  const { selectedDate: selectedDateStr, initialPrayerType, showDescription, editingPrayerId, subtaskId, stepId, playbookId, playbookTitle, playbookStatus, actionStepNumber, actionStepTitle, stepBody, stepExample, fromPlaybook, fromNotificationAnsweredCheck } = route.params || {};
   const selectedDate = selectedDateStr ? new Date(selectedDateStr) : new Date();
   const dateContext = getDateContext(selectedDate);
 
@@ -1450,8 +1450,7 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
       if (path) {
         if (!hasAppliedInitialPrayerType.current) {
           setSelectedPath(path);
-          // Skip to step 2 (prayer entry) for both CAST and open prayer
-          setCurrentStep(2);
+          setCurrentStep(showDescription ? 1 : 2);
           hasAppliedInitialPrayerType.current = true;
         }
 
@@ -1496,7 +1495,7 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
         }
       }
     }
-  }, [initialPrayerType, editingPrayerId, prayerEntries]);
+  }, [initialPrayerType, showDescription, editingPrayerId, prayerEntries]);
 
   // Hide status bar for translucent scrolling effect
   useFocusEffect(

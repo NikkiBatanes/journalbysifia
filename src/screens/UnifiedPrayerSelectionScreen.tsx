@@ -53,6 +53,12 @@ const PRAYER_PATHS: PrayerPath[] = [
     description: 'You feel nudged to pray for someone on your own.',
     icon: 'heart',
   },
+  {
+    id: 'prayer-request',
+    name: 'Prayer Request',
+    description: 'Someone asked you to remember them in prayer.',
+    icon: 'chatbubble-ellipses-outline',
+  },
 ];
 
 // Helper to compute date context from selected date
@@ -469,13 +475,12 @@ const UnifiedPrayerSelectionScreen: React.FC<Props> = ({ route, navigation }) =>
 
     triggerMediumHaptic();
 
-    // Show description step for CAST and Open Prayer, direct navigation for Pray for Someone
+    // Show description step for CAST and Open Prayer, direct navigation for people prayers
     if (currentStep === 0) {
-      if (selectedPath.id === 'pray-for-someone') {
-        // Direct navigation for Pray for Someone
+      if (selectedPath.id === 'pray-for-someone' || selectedPath.id === 'prayer-request') {
         navigation.navigate('PrayersForPeopleWalkthrough', {
           selectedDate: metadata?.selectedDate,
-          initialPrayerType: 'pray-for-someone',
+          initialPrayerType: selectedPath.id,
           subtaskTitle: metadata?.subtaskTitle,
           subtaskId: metadata?.subtaskId,
           stepId: metadata?.stepId,
