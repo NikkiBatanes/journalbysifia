@@ -187,9 +187,9 @@ const TodayScreen = () => {
             <Ionicons name="sunny-outline" size={29} color={Colors.hopeWhite} />
           </View>
           <ThemedText style={styles.cardTitle}>Begin your day.</ThemedText>
-          <ThemedText style={styles.body}>A gentle morning rhythm for your heart and your day. Check in, choose what matters, set your priorities, and begin with a Psalm.</ThemedText>
+          <ThemedText style={styles.body}>A gentle morning rhythm for your heart and your day. Check in, begin with a Psalm, choose what matters, and set your priorities.</ThemedText>
           <View style={styles.cardFooter}>
-            <ThemedText style={styles.meta}>Check in · Focus · Priorities · Psalm</ThemedText>
+            <ThemedText style={styles.meta}>Check in · Psalm · Focus · Priorities</ThemedText>
             <TouchableOpacity
               style={styles.beginButton}
               activeOpacity={0.8}

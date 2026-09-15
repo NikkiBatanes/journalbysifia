@@ -21,6 +21,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Pencil } from 'lucide-react-native';
 import { JournalCard } from './JournalCard';
+import PrayerCard, { PrayerHomeEntry } from './PrayerCard';
 import { ErrorBoundary } from '../ErrorBoundary';
 import { usePeoplePrayerData, useCreatePrayer, useUpdatePrayer, useMarkPrayerRequestPrayed, useDeletePrayer } from '../../services/hooks/usePrayerData';
 import { PrayerApiEntry } from '../../services/api/prayerApi';
@@ -317,6 +318,16 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
     }
   };
 
+  const handlePrayAgain = (prayer: PersonPrayer) => {
+    triggerLightHaptic();
+    markPrayedMutation.mutate({
+      id: prayer.id,
+      isPrayed: true,
+      _userId: user?.id || '',
+      _dateStr: dateStr,
+    });
+  };
+
   const handleMarkAsAnswered = async (prayerId: string) => {
     try {
       triggerLightHaptic();
@@ -550,25 +561,26 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
       );
     }
 
-    // Apply limits
-    const displayedRequests = localPrayerRequests.slice(0, requestsDisplayLimit);
-    const displayedPersonal = prayedForPrayers.slice(0, personalDisplayLimit);
-
-    // Check if we need to show show more/less button
-    const hasMoreRequests = localPrayerRequests.length > requestsDisplayLimit;
-    const hasMorePersonal = prayedForPrayers.length > personalDisplayLimit;
-    const hasMoreItems = hasMoreRequests || hasMorePersonal;
-    const canShowLess = userExpanded;
+    // Show all prayers — no display limits
+    const displayedRequests = localPrayerRequests;
+    const displayedPersonal = prayedForPrayers;
 
     const renderPrayerItem = (item: PersonPrayer) => (
-      <SwipeablePrayerCard
+      <PrayerCard
         key={item.id}
-        prayer={item}
-        handleAddToMyList={handleAddToMyList}
-        handleMarkAsAnswered={handleMarkAsAnswered}
-        handleMarkAsUnanswered={handleMarkAsUnanswered}
+        prayer={item as PrayerHomeEntry}
         onEdit={handleEditPrayer}
-        onDelete={handleDeletePrayer}
+        onPrayAgain={handlePrayAgain}
+        onManage={handleEditPrayer}
+        onAddPrayer={handleAddToMyList}
+        onAnswered={(p) => {
+          if (p.answered_date) {
+            handleMarkAsUnanswered(p.id);
+          } else {
+            handleMarkAsAnswered(p.id);
+          }
+        }}
+        answering={false}
       />
     );
 
@@ -602,43 +614,6 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
           )}
         </View>
 
-        {/* Show More / Show Less Button */}
-        {(hasMoreItems || canShowLess) && (
-          <View style={styles.paginationContainer}>
-            <View style={styles.paginationButtonGroup}>
-              {hasMoreItems && (
-                <TouchableOpacity
-                  style={[styles.paginationButton, styles.showMoreButton]}
-                  onPress={() => {
-                    triggerSelectionHaptic();
-                    setUserExpanded(true);
-                  }}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons name="chevron-down" size={12} color={Colors.alertCoral} />
-                  <ThemedText style={[styles.paginationButtonText, styles.showMoreText]}>
-                    Show more
-                  </ThemedText>
-                </TouchableOpacity>
-              )}
-              {canShowLess && (
-                <TouchableOpacity
-                  style={[styles.paginationButton, styles.showLessButton]}
-                  onPress={() => {
-                    triggerSelectionHaptic();
-                    setUserExpanded(false);
-                  }}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons name="chevron-up" size={12} color={Colors.textGray} />
-                  <ThemedText style={[styles.paginationButtonText, styles.showLessText]}>
-                    Show less
-                  </ThemedText>
-                </TouchableOpacity>
-              )}
-            </View>
-          </View>
-        )}
         </View>
       </View>
     );
@@ -857,7 +832,7 @@ const SwipeablePrayerCard: React.FC<{
                 <ThemedText
                   style={[
                     styles.prayerTypeLabel,
-                    { color: Colors.hopeWhite },
+                    { color: prayer.is_prayer_request === true ? Colors.alertCoral : Colors.growthGreen },
                   ]}
                   weight="semiBold"
                 >
@@ -1231,7 +1206,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   notesLabel: {
-    color: Colors.hopeWhite,
+    color: Colors.sage,
     fontSize: 12,
     // font handled by ThemedText
     marginBottom: 8,
@@ -1357,7 +1332,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   notesText: {
-    color: 'rgba(255, 255, 255, 0.8)',
+    color: Colors.text,
     fontSize: 13,
     lineHeight: 18,
     // font handled by ThemedText
@@ -1588,7 +1563,7 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   categoryTitle: {
-    color: Colors.hopeWhite,
+    color: Colors.sage,
     // font handled by ThemedText
     fontSize: 12,
     letterSpacing: 1.2,
@@ -1771,10 +1746,10 @@ const styles = StyleSheet.create({
     lineHeight: 14,
   },
   showMoreButton: {
-    backgroundColor: 'rgba(255, 107, 107, 0.1)',
+    backgroundColor: 'rgba(82, 106, 91, 0.1)',
   },
   showMoreText: {
-    color: Colors.alertCoral,
+    color: Colors.sage,
   },
   showLessButton: {
     backgroundColor: 'rgba(0, 0, 0, 0.05)',

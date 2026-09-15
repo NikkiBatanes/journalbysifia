@@ -52,9 +52,7 @@ export const SavedMorningMoment = ({ moment, viewMode = 'inline' }: { moment: Mo
     </>;
   }
   if (moment.pluginId === 'morningpsalm') {
-    const reflectionText = (moment.reflection || '').trim();
     const observationText = (moment.observations || []).join(' · ').trim();
-    const showReflection = reflectionText.length > 0 && reflectionText.toLowerCase() !== observationText.toLowerCase();
     return <>
       <JournalCard title="DAILY PSALMS" variant="inline" viewMode={viewMode}>
         <TouchableOpacity onPress={() => setOpen(true)} style={[styles.feelingRow, styles.passageRow]} accessibilityRole="button" accessibilityLabel={`Read ${moment.title}`}>
@@ -63,20 +61,13 @@ export const SavedMorningMoment = ({ moment, viewMode = 'inline' }: { moment: Mo
         </TouchableOpacity>
         <View style={styles.feelingRow}>
           <Ionicons name={moment.markedRead ? 'checkmark-circle' : 'book-outline'} size={14} color={Colors.sage} />
-          <ThemedText style={styles.readStatus}>{moment.markedRead ? 'Passage read' : 'Not marked read'}</ThemedText>
+          <ThemedText style={styles.readStatus}>{moment.markedRead ? 'Passage read' : 'Reading in progress'}</ThemedText>
         </View>
         {!!observationText && (
           <>
             <View style={styles.divider} />
             <ThemedText style={styles.feelingLabel}>WHAT YOU SAW ABOUT GOD</ThemedText>
             <ThemedText weight="semiBold" style={[styles.feeling, styles.centered]}>{observationText}</ThemedText>
-          </>
-        )}
-        {showReflection && (
-          <>
-            <View style={styles.divider} />
-            <ThemedText style={styles.feelingLabel}>REFLECTION</ThemedText>
-            <ThemedText numberOfLines={3} style={styles.reflection}>{reflectionText}</ThemedText>
           </>
         )}
       </JournalCard>
@@ -101,7 +92,7 @@ export const SavedMorningMoment = ({ moment, viewMode = 'inline' }: { moment: Mo
             </TouchableOpacity>
             <View style={styles.feelingRow}>
               <Ionicons name={moment.markedRead ? 'checkmark-circle' : 'book-outline'} size={14} color={Colors.sage} />
-              <ThemedText style={styles.readStatus}>{moment.markedRead ? 'Passage read' : 'Not marked read'}</ThemedText>
+              <ThemedText style={styles.readStatus}>{moment.markedRead ? 'Passage read' : 'Reading in progress'}</ThemedText>
             </View>
             {!!wisdomText && (
               <>
@@ -139,7 +130,7 @@ export const SavedMorningMoment = ({ moment, viewMode = 'inline' }: { moment: Mo
     <TouchableOpacity style={styles.card} onPress={() => setOpen(true)} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel={`View ${moment.title}`}>
       <ThemedText weight="semiBold" style={styles.label}>{moment.title.toUpperCase()}</ThemedText>
       {moment.lines.filter(line => moment.markedRead === undefined || line !== 'Passage read').map((line, index) => <ThemedText key={index} numberOfLines={3} style={index === 0 ? styles.title : styles.answer}>{line}</ThemedText>)}
-      {moment.markedRead !== undefined && <View style={styles.feelingRow}><Ionicons name={moment.markedRead ? 'checkmark-circle' : 'book-outline'} size={16} color={Colors.sage} /><ThemedText style={styles.readStatus}>{moment.markedRead ? 'Passage read' : 'Not marked read'}</ThemedText></View>}
+      {moment.markedRead !== undefined && <View style={styles.feelingRow}><Ionicons name={moment.markedRead ? 'checkmark-circle' : 'book-outline'} size={16} color={Colors.sage} /><ThemedText style={styles.readStatus}>{moment.markedRead ? 'Passage read' : 'Reading in progress'}</ThemedText></View>}
     </TouchableOpacity>
     <Modal visible={open} animationType="slide" onRequestClose={() => setOpen(false)}>
       <View style={[styles.page, { paddingTop: insets.top + 20 }]}>

@@ -82,9 +82,9 @@ const MorningFlowStackNavigator = () => {
     >
       <Stack.Screen name="EmotionCheckIn" component={EmotionCheckInScreen} />
       <Stack.Screen name="UnderneathIt" component={UnderneathItScreen} />
+      <Stack.Screen name="PsalmOfTheDay" component={PsalmOfTheDayScreen} />
       <Stack.Screen name="TodaysFocus" component={MorningTodaysFocusScreen} />
       <Stack.Screen name="Todos" component={MorningTodosScreen} />
-      <Stack.Screen name="PsalmOfTheDay" component={PsalmOfTheDayScreen} />
       <Stack.Screen name="CarryIt" component={CarryItScreen} />
       <Stack.Screen
         name="MorningClosing"

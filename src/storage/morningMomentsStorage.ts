@@ -80,15 +80,18 @@ export const getMorningMoments = async (): Promise<MorningMoment[]> => {
   }
   for (const entry of psalmByDate.values()) {
     const metadata = entry.metadata || {};
-    moments.push({ id: entry.id, pluginId: 'morningpsalm', title: entry.title || `Psalm ${metadata.psalmNumber}`, date: entry.selected_date, savedAt: entry.updated_at, markedRead: metadata.psalmRead === true,
-      reflection: entry.content || metadata.carry || '',
-      observations: [...(Array.isArray(metadata.selectedAttributes) ? metadata.selectedAttributes : []), metadata.customAttribute].filter(value => typeof value === 'string' && value.trim()),
-      lines: [
-      metadata.psalmRead === true ? 'Passage read' : '',
+    const psalmObservations = Array.from(new Set([
       ...(Array.isArray(metadata.selectedAttributes) ? metadata.selectedAttributes : []),
       metadata.customAttribute,
-      entry.content || metadata.carry,
-    ].filter(value => typeof value === 'string' && value.trim()) });
+    ].filter(value => typeof value === 'string' && value.trim())));
+    moments.push({ id: entry.id, pluginId: 'morningpsalm', title: entry.title || `Psalm ${metadata.psalmNumber}`, date: entry.selected_date, savedAt: entry.updated_at, markedRead: metadata.psalmRead === true,
+      reflection: entry.content || metadata.carry || '',
+      observations: psalmObservations,
+      lines: Array.from(new Set([
+        metadata.psalmRead === true ? 'Passage read' : '',
+        ...psalmObservations,
+        entry.content || metadata.carry,
+      ].filter(value => typeof value === 'string' && value.trim()))) });
   }
   return moments.sort((a, b) => b.savedAt.localeCompare(a.savedAt));
 };

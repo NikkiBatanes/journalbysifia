@@ -183,7 +183,7 @@ const PsalmOfTheDayScreen = () => {
       'psalm',
     );
 
-    navigation.navigate('CarryIt');
+    navigation.navigate('TodaysFocus');
   }, [hasReadPsalm, markStepCompleted, navigation, psalmNumber, psalmReflectionId, dateStr]);
 
   const togglePsalmRead = React.useCallback(() => {

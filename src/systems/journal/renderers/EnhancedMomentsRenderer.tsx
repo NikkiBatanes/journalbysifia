@@ -22,6 +22,7 @@ import { supabase } from '../../../services/supabaseClient';
 import { useAuth } from '../../../context/IndustryStandardAuthContext';
 import { triggerLightHaptic } from '../../../utils/haptics';
 import MomentsSkeleton from '../../../components/SkeletonLoader/MomentsSkeleton';
+import { PrayerApi } from '../../../services/api/prayerApi';
 import type { PluginFilters } from '../types';
 import type { FilterKey } from '../../../components/moments/FilterSelect';
 
@@ -123,7 +124,7 @@ const TYPE_ORDER = {
   timeblocks: 2,
   gratitude: 3,
   reflection: 4,
-  morningpsalm: 4.25,
+  morningpsalm: -0.5,
   sermon: 4.5,
   biblestudy: 4.75,
   prayerjournal: 5,
@@ -701,7 +702,50 @@ const EnhancedMomentsContent: React.FC<EnhancedMomentsRendererProps> = ({
       Logger.error('Error loading local evening Moments', error as Error, { component: 'EnhancedMomentsRenderer' });
     }
 
-    const localEntries = [...sermonEntries, ...bibleStudyEntries, ...morningEntries, ...eveningEntries];
+    let localPrayerEntries: MomentEntry[] = [];
+    try {
+      const allLocalPrayers = await PrayerApi.getAllPrayers('local');
+      const prayerPlugin = plugins.find((p: JournalPlugin) => p.id === 'prayerjournal') || null;
+      const peoplePlugin = plugins.find((p: JournalPlugin) => p.id === 'peopleprayers') || null;
+      const seenLocalPrayerKeys = new Set<string>();
+      allLocalPrayers.forEach((prayer: any) => {
+        const selected = (prayer as any).selected_date as string | undefined;
+        if (!selected) {return;}
+        const entryDate = /\d{4}-\d{2}-\d{2}/.test(selected) ? new Date(`${selected}T00:00:00`) : new Date((prayer as any).created_at || selected);
+        const isPeople = (prayer as any).prayer_type === 'people';
+        const targetPlugin = isPeople ? (peoplePlugin || prayerPlugin) : (prayerPlugin || peoplePlugin);
+        if (!targetPlugin) {return;}
+        const isNeed = (prayer as any).metadata?.prayer_need === true;
+        const categoryLabel = (prayer as any).journal_category ? ((prayer as any).journal_category as string).charAt(0).toUpperCase() + ((prayer as any).journal_category as string).slice(1) : 'Prayer';
+        const typeLabel = isNeed ? 'Prayer Need' : (isPeople ? 'Prayer List' : `${categoryLabel} Prayer`);
+        const dateKey = `${format(entryDate, 'yyyy-MM-dd')}::${(targetPlugin as any).id}`;
+        if (seenLocalPrayerKeys.has(dateKey)) {return;}
+        seenLocalPrayerKeys.add(dateKey);
+        localPrayerEntries.push({
+          plugin: targetPlugin,
+          date: entryDate,
+          category: 'Prayer',
+          type: typeLabel,
+          isAnswered: (prayer as any).status === 'answered' || (prayer as any).is_answered || !!(prayer as any).answered_date,
+          _isPrayer: true,
+          _isPrayerRequest: (prayer as any).is_prayer_request === true,
+          _searchText: buildSearchText(
+            (prayer as any).content,
+            (prayer as any).notes,
+            (prayer as any).person_name,
+            (prayer as any).title,
+            (prayer as any).metadata?.topics,
+            (prayer as any).journal_category,
+            (prayer as any).prayer_type,
+          ),
+          _savedAt: new Date((prayer as any).created_at || (prayer as any).updated_at).getTime(),
+        });
+      });
+    } catch (prayerError) {
+      Logger.error('Error loading local prayer entries', prayerError as Error, { component: 'EnhancedMomentsRenderer' });
+    }
+
+    const localEntries = [...sermonEntries, ...bibleStudyEntries, ...morningEntries, ...eveningEntries, ...localPrayerEntries];
     if (generation !== fetchGeneration.current) {return;}
 
     if (!user) {
@@ -1374,9 +1418,11 @@ const EnhancedMomentsContent: React.FC<EnhancedMomentsRendererProps> = ({
 
       // Merge local sermon notes with Supabase entries
       // Local canonical content wins over cloud copies for the same type/day.
+      const localPrayerKeys = new Set(localPrayerEntries.map(e => `${format(e.date, 'yyyy-MM-dd')}::${(e.plugin as any).id}`));
       entries = entries.filter(entry =>
         !morningEntries.some(local => local.plugin.id === entry.plugin.id && local.date.getTime() === entry.date.getTime()) &&
-        !eveningEntries.some(local => local.plugin.id === entry.plugin.id && local.date.getTime() === entry.date.getTime())
+        !eveningEntries.some(local => local.plugin.id === entry.plugin.id && local.date.getTime() === entry.date.getTime()) &&
+        !localPrayerKeys.has(`${format(entry.date, 'yyyy-MM-dd')}::${(entry.plugin as any).id}`)
       );
       entries.push(...localEntries);
 

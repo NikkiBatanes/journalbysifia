@@ -1,7 +1,6 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import { PrayerJournalReactQuery } from './PrayerJournalReactQuery';
-import EnhancedPrayerListReactQuery from './EnhancedPrayerListReactQuery';
+import PrayCarousel from './PrayCarousel';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation/types';
 
@@ -28,11 +27,7 @@ const PrayerJournalTabReactQuery: React.FC<PrayerJournalTabReactQueryProps> = ({
 
   return (
     <View style={styles.container}>
-      {/* ACTS Prayer Journal Card */}
-      <PrayerJournalReactQuery selectedDate={selectedDate} viewMode={viewMode} navigation={navigation} />
-
-      {/* People Prayers List */}
-      <EnhancedPrayerListReactQuery selectedDate={selectedDate} viewMode={viewMode} navigation={navigation} />
+      <PrayCarousel selectedDate={selectedDate} navigation={navigation} />
     </View>
   );
 };

@@ -41,6 +41,8 @@ import { clearPrayerDraft, getPrayerDraft, getPrayerDraftKey, savePrayerDraft } 
 
 import type { RootStackParamList } from '../navigation/types';
 import { exitPrayerFlow } from '../navigation/exitPrayerFlow';
+import PrayerNeedPicker from '../components/prayer/PrayerNeedPicker';
+import type { PrayerChanges } from '../components/prayer/PrayerDetails';
 
 type DateContext = 'today' | 'yesterday' | 'earlier';
 
@@ -77,6 +79,12 @@ const PRAYER_PATHS: PrayerPath[] = [
     name: 'Open Prayer',
     description: 'Pray in your own words without a fixed structure.',
     icon: 'chatbubble-ellipses-outline',
+  },
+  {
+    id: 'prayer-need',
+    name: 'Prayer Need',
+    description: 'Bring a specific need you’re waiting on God for.',
+    icon: 'hand-right',
   },
 ];
 
@@ -1246,6 +1254,7 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
   const [castOpening, setCastOpening] = useState('Heavenly Father,');
   const [castClosing, setCastClosing] = useState('In Jesus\' Name,\nAmen');
   const [existingPrayerIds, setExistingPrayerIds] = useState<{ [key: string]: string }>({});
+  const [showPrayerNeedPicker, setShowPrayerNeedPicker] = useState(false);
   const editLoaded = useRef(false);
   const saveInFlight = useRef(false);
   const saveCompleted = useRef(false);
@@ -1572,6 +1581,8 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
         setCurrentStep(1); // Go to CAST description
       } else if (selectedPath?.id === 'open') {
         setCurrentStep(1); // Go to Open prayer description
+      } else if (selectedPath?.id === 'prayer-need') {
+        setShowPrayerNeedPicker(true);
       }
     } else if (currentStep === 1) {
       if (selectedPath?.id === 'acts') {
@@ -1593,7 +1604,7 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
     } else {
       navigation.goBack();
     }
-  }, [currentStep, selectedPath, prayerTexts, openPrayerText, navigation]);
+  }, [currentStep, selectedPath, prayerTexts, openPrayerText, navigation, setShowPrayerNeedPicker]);
 
   const handleMarkAnsweredFromNotification = useCallback(() => {
     if (!user?.id || !editingPrayerId) {
@@ -1774,6 +1785,30 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
           onDone={successModal.handleDone}
           onEdit={successModal.handleEdit}
         />
+        {showPrayerNeedPicker && (
+          <PrayerNeedPicker
+            onClose={() => setShowPrayerNeedPicker(false)}
+            onSave={async (data: PrayerChanges) => {
+              await createMutation.mutateAsync({
+                user_id: user?.id ?? 'local',
+                selected_date: dateStr,
+                prayer_type: 'journal',
+                journal_category: 'supplication',
+                content: data.content,
+                notes: data.notes || '',
+                status: data.status,
+                answered_date: data.answered_date,
+                metadata: data.metadata,
+                prayed: false,
+                prayer_count: 0,
+              });
+              await queryClient.invalidateQueries({ queryKey: ['prayers', 'all'] });
+              await queryClient.invalidateQueries({ queryKey: ['journal', 'all'] });
+              setShowPrayerNeedPicker(false);
+              exitPrayerFlow(navigation);
+            }}
+          />
+        )}
       </View>
     </>
   );

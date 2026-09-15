@@ -238,7 +238,7 @@ const UnderneathItScreen = () => {
       record ? { domain: 'journal', content_type: 'morning_check_in', local_id: record.id } : undefined,
       'morning_check_in',
     );
-    navigation.navigate('TodaysFocus', {
+    navigation.navigate('PsalmOfTheDay', {
       feeling: checkIn.feeling,
       feelingIcon: checkIn.feelingIcon,
       feelingIconType: checkIn.feelingIconType,

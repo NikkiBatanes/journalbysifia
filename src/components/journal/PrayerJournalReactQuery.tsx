@@ -2,10 +2,12 @@ import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { Logger } from '../../utils/ProductionLogger';
 import {
   View,
+  ScrollView,
   TouchableOpacity,
   StyleSheet,
   Alert,
   DeviceEventEmitter,
+  useWindowDimensions,
 } from 'react-native';
 // import { format } from 'date-fns'; // Unused
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -15,11 +17,13 @@ import { Pencil } from 'lucide-react-native';
 import { Colors } from '../../theme/colors';
 // import { getFontFamily, DEFAULT_FONT_FAMILY } from '../../theme/fonts'; // Unused
 import { JournalCard } from './JournalCard';
+import PrayerCard, { PrayerHomeEntry } from './PrayerCard';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { toLocalDateString } from '../../utils/date';
 import {
   useACTSPrayerData,
   useMarkSupplicationAnswered,
+  useUpdatePrayer,
   useDeletePrayer,
 } from '../../services/hooks/usePrayerData';
 import { ErrorBoundary } from '../ErrorBoundary';
@@ -254,6 +258,39 @@ const CombinedCASTPrayerCard: React.FC<CombinedCASTPrayerCardProps> = ({
   );
 };
 
+// Horizontal carousel for prayer needs in the Moments view
+interface PrayerNeedsCarouselProps {
+  prayers: any[];
+  onEdit?: (prayer: any) => void;
+}
+
+const PrayerNeedsCarousel: React.FC<PrayerNeedsCarouselProps> = ({ prayers, onEdit }) => {
+  const { width: screenWidth } = useWindowDimensions();
+  const CARD_SPACING = 10;
+  const CARD_WIDTH = Math.min(screenWidth * 0.78, 320);
+
+  return (
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      snapToInterval={CARD_WIDTH + CARD_SPACING}
+      snapToAlignment="start"
+      decelerationRate="fast"
+      contentContainerStyle={{ paddingRight: 16 }}
+    >
+      {prayers.map((prayer: any) => (
+        <View key={prayer.id} style={{ width: CARD_WIDTH, marginRight: CARD_SPACING }}>
+          <PrayerCard
+            prayer={prayer as PrayerHomeEntry}
+            onEdit={onEdit}
+            answering={false}
+          />
+        </View>
+      ))}
+    </ScrollView>
+  );
+};
+
 // Determine date category relative to local time
 const getDateCategory = (targetDate: Date): 'today' | 'yesterday' | 'earlier' => {
   const now = new Date();
@@ -350,6 +387,7 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
   // React Query hooks
   const { data: prayerEntries = [] } = useACTSPrayerData(user?.id || '', dateStr);
   const markAnsweredMutation = useMarkSupplicationAnswered();
+  const updatePrayerMutation = useUpdatePrayer();
   const deletePrayerMutation = useDeletePrayer();
 
   // Local state
@@ -370,6 +408,7 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
     ];
 
     return allPrayers.map((entry: any) => ({
+      ...entry,
       id: entry.id,
       type: entry.journal_category === 'personal_prayer' ? 'freeform' : (entry.journal_category || 'adoration'),
       content: entry.content,
@@ -457,8 +496,9 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
     }
     if (hasContent) {
       // Count ACTS prayer sessions (1 CAST prayer = 1 prayer, not per step)
-      const actsPrayers = displayPrayers.filter(p => p.type !== 'freeform');
+      const actsPrayers = displayPrayers.filter(p => p.type !== 'freeform' && p.metadata?.prayer_need !== true);
       const openPrayers = displayPrayers.filter(p => p.type === 'freeform');
+      const needCount = displayPrayers.filter(p => p.metadata?.prayer_need === true).length;
 
       // Group ACTS prayers by time window (entries within 2 minutes = 1 prayer session)
       const sortedActs = actsPrayers.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
@@ -477,17 +517,25 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
       // Open prayers are counted individually
       const openCount = openPrayers.length;
 
-      const totalCount = actsCount + openCount;
+      const totalCount = actsCount + openCount + needCount;
       const answeredCount = displayPrayers.filter(p => p.is_answered || p.status === 'answered' || !!p.answered_at).length;
 
       // Determine prayer path type
       let prayerPath = '';
-      if (actsCount > 0 && openCount > 0) {
+      if (actsCount > 0 && openCount > 0 && needCount > 0) {
+        prayerPath = 'CAST, open & needs';
+      } else if (actsCount > 0 && openCount > 0) {
         prayerPath = 'CAST & open';
+      } else if (actsCount > 0 && needCount > 0) {
+        prayerPath = 'CAST & needs';
+      } else if (openCount > 0 && needCount > 0) {
+        prayerPath = 'open prayer & needs';
       } else if (actsCount > 0) {
         prayerPath = 'CAST method';
       } else if (openCount > 0) {
         prayerPath = 'open prayer';
+      } else if (needCount > 0) {
+        prayerPath = 'prayer needs';
       }
 
       // Main prayer count line with path
@@ -567,8 +615,8 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
               triggerLightHaptic();
 
               // For CAST prayers, delete the entire session (all prayers within 2 minutes)
-              if (prayer.type !== 'freeform') {
-                const actsPrayers = displayPrayers.filter((p: any) => p.type !== 'freeform');
+              if (prayer.type !== 'freeform' && prayer.metadata?.prayer_need !== true) {
+                const actsPrayers = displayPrayers.filter((p: any) => p.type !== 'freeform' && p.metadata?.prayer_need !== true);
                 const SESSION_WINDOW_MS = 2 * 60 * 1000; // 2 minutes
                 const prayerTime = new Date(prayer.created_at).getTime();
 
@@ -612,6 +660,9 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
   const handleEditPrayer = useCallback((prayer: any) => {
     if (!navigation) {return;}
 
+    // Prayer needs are managed through the prayer tracking flow, not the CAST/open walkthrough
+    if (prayer.metadata?.prayer_need === true) {return;}
+
     // Determine prayer type: 'acts' for CAST method, 'open' for open prayer
     const prayerType = prayer.type === 'freeform' ? 'open' : 'acts';
 
@@ -622,6 +673,20 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
       editingPrayerId: prayer.id,
     });
   }, [navigation, dateStr]);
+
+  const handlePrayAgain = useCallback((prayer: any) => {
+    triggerLightHaptic();
+    updatePrayerMutation.mutate({
+      id: prayer.id,
+      updates: {
+        prayed: true,
+        prayer_count: (prayer.prayer_count || 0) + 1,
+        last_prayed_at: new Date().toISOString(),
+      },
+      _userId: user?.id || '',
+      _dateStr: dateStr,
+    });
+  }, [updatePrayerMutation, dateStr, user?.id]);
 
   // Handle global edit mode changes for inline view
   React.useEffect(() => {
@@ -634,16 +699,37 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
 
   // Render existing prayers - redesigned to show CAST vs Open Prayer structure
   const renderExistingPrayers = () => {
-    const actsPrayers = displayPrayers.filter((p: any) => p.type !== 'freeform');
+    const prayerNeedPrayers = displayPrayers.filter((p: any) => p.metadata?.prayer_need === true);
+    const actsPrayers = displayPrayers.filter((p: any) => p.type !== 'freeform' && p.metadata?.prayer_need !== true);
     const openPrayers = displayPrayers.filter((p: any) => p.type === 'freeform');
 
-    // Group ACTS prayers by session (within 2 minutes)
+    // Group ACTS prayers by their saved prayer_session_id when present, otherwise fall back to a 2-minute time window.
     const SESSION_WINDOW_MS = 2 * 60 * 1000; // 2 minutes
     const sortedActs = actsPrayers.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
     const actsSessions: any[][] = [];
+    const sessionIndexById: Record<string, number> = {};
     let currentSession: any[] = [];
 
+    const flushNoSession = () => {
+      if (currentSession.length > 0) {
+        actsSessions.push(currentSession);
+        currentSession = [];
+      }
+    };
+
     for (const prayer of sortedActs) {
+      const sid = (prayer as any).metadata?.prayer_session_id;
+      if (sid) {
+        flushNoSession();
+        if (sessionIndexById[sid] !== undefined) {
+          actsSessions[sessionIndexById[sid]].push(prayer);
+        } else {
+          sessionIndexById[sid] = actsSessions.length;
+          actsSessions.push([prayer]);
+        }
+        continue;
+      }
+
       const prayerTime = new Date(prayer.created_at).getTime();
       if (currentSession.length === 0) {
         currentSession.push(prayer);
@@ -657,25 +743,17 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
         }
       }
     }
-    if (currentSession.length > 0) {
-      actsSessions.push(currentSession);
-    }
+    flushNoSession();
 
-    // Apply display limits
-    const displayedActsSessions = actsSessions.slice(0, actsDisplayLimit);
-    const displayedOpenPrayers = openPrayers.slice(0, openDisplayLimit);
-
-    // Check if we need to show show more/less button
-    const hasMoreActs = actsSessions.length > actsDisplayLimit;
-    const hasMoreOpen = openPrayers.length > openDisplayLimit;
-    const hasMoreItems = hasMoreActs || hasMoreOpen;
-    const canShowLess = userExpanded;
+    // Show all prayers — no display limits
+    const displayedActsSessions = actsSessions;
+    const displayedOpenPrayers = openPrayers;
 
     return (
       <View
         style={[
           styles.prayersContainer,
-          (expanded || viewMode === 'inline') && styles.prayersContainerExpanded,
+          (expanded || viewMode === 'inline' || viewMode === 'moments') && styles.prayersContainerExpanded,
         ]}
       >
         {/* CAST Method Section */}
@@ -685,7 +763,7 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
               <MaterialCommunityIcons
                 name="layers"
                 size={18}
-                color={Colors.alertCoral}
+                color={Colors.sage}
               />
               <ThemedText style={styles.prayerPathTitle} weight="semiBold">CAST METHOD</ThemedText>
               <View style={styles.prayerPathDivider} />
@@ -693,15 +771,17 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
             <View style={styles.castStepsContainer}>
               {displayedActsSessions.map((session, sessionIndex) => {
                 const supplication = session.find((p: any) => p.type === 'supplication');
+                const representative = supplication || session[0];
 
                 return (
-                  <CombinedCASTPrayerCard
-                    key={`session-${sessionIndex}`}
-                    allPrayers={session}
-                    supplicationPrayer={supplication || null}
-                    onMarkAnswered={handleMarkAnswered}
+                  <PrayerCard
+                    key={representative?.id || `session-${sessionIndex}`}
+                    prayer={{ ...representative, groupedEntries: session } as PrayerHomeEntry}
                     onEdit={handleEditPrayer}
-                    onDelete={handleDeletePrayer}
+                    onPrayAgain={handlePrayAgain}
+                    onManage={handleEditPrayer}
+                    onAnswered={(p) => handleMarkAnswered(p.id, !((p as any).answered_at || p.answered_date))}
+                    answering={markAnsweredMutation.isPending}
                   />
                 );
               })}
@@ -716,66 +796,62 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
               <Ionicons
                 name="chatbubble-ellipses-outline"
                 size={18}
-                color={Colors.alertCoral}
+                color={Colors.sage}
               />
               <ThemedText style={styles.prayerPathTitle} weight="semiBold">OPEN PRAYER</ThemedText>
               <View style={styles.prayerPathDivider} />
             </View>
             <View style={styles.openPrayerContainer}>
-              {displayedOpenPrayers.map((prayer: any) => {
-                const type = PRAYER_TYPES.find(t => t.key === 'freeform');
-                return (
-                  <SwipeablePrayerCard
-                    key={prayer.id}
-                    prayer={prayer}
-                    type={type}
-                    onMarkAnswered={handleMarkAnswered}
-                    onEdit={handleEditPrayer}
-                    onDelete={handleDeletePrayer}
-                  />
-                );
-              })}
+              {displayedOpenPrayers.map((prayer: any) => (
+                <PrayerCard
+                  key={prayer.id}
+                  prayer={prayer as PrayerHomeEntry}
+                  onEdit={handleEditPrayer}
+                  onPrayAgain={handlePrayAgain}
+                  onManage={handleEditPrayer}
+                  onAnswered={(p) => handleMarkAnswered(p.id, !((p as any).answered_at || p.answered_date))}
+                  answering={markAnsweredMutation.isPending}
+                />
+              ))}
             </View>
           </View>
         )}
 
-        {/* Show More / Show Less Button */}
-        {(hasMoreItems || canShowLess) && (
-          <View style={styles.paginationContainer}>
-            <View style={styles.paginationButtonGroup}>
-              {hasMoreItems && (
-                <TouchableOpacity
-                  style={[styles.paginationButton, styles.showMoreButton]}
-                  onPress={() => {
-                    triggerSelectionHaptic();
-                    setUserExpanded(true);
-                  }}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons name="chevron-down" size={12} color={Colors.alertCoral} />
-                  <ThemedText style={[styles.paginationButtonText, styles.showMoreText]}>
-                    Show more
-                  </ThemedText>
-                </TouchableOpacity>
-              )}
-              {canShowLess && (
-                <TouchableOpacity
-                  style={[styles.paginationButton, styles.showLessButton]}
-                  onPress={() => {
-                    triggerSelectionHaptic();
-                    setUserExpanded(false);
-                  }}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons name="chevron-up" size={12} color={Colors.textGray} />
-                  <ThemedText style={[styles.paginationButtonText, styles.showLessText]}>
-                    Show less
-                  </ThemedText>
-                </TouchableOpacity>
-              )}
+        {/* Prayer Need Section */}
+        {prayerNeedPrayers.length > 0 && (
+          <View style={styles.prayerPathSection}>
+            <View style={styles.prayerPathHeader}>
+              <Ionicons
+                name="heart-outline"
+                size={18}
+                color={Colors.sage}
+              />
+              <ThemedText style={styles.prayerPathTitle} weight="semiBold">PRAYER NEED</ThemedText>
+              <View style={styles.prayerPathDivider} />
             </View>
+            {viewMode === 'moments' ? (
+              <PrayerNeedsCarousel
+                prayers={prayerNeedPrayers}
+                onEdit={handleEditPrayer}
+              />
+            ) : (
+              <View style={styles.openPrayerContainer}>
+                {prayerNeedPrayers.map((prayer: any) => (
+                  <PrayerCard
+                    key={prayer.id}
+                    prayer={prayer as PrayerHomeEntry}
+                    onEdit={handleEditPrayer}
+                    onPrayAgain={handlePrayAgain}
+                    onManage={handleEditPrayer}
+                    onAnswered={(p) => handleMarkAnswered(p.id, !((p as any).answered_at || p.answered_date))}
+                    answering={markAnsweredMutation.isPending}
+                  />
+                ))}
+              </View>
+            )}
           </View>
         )}
+
       </View>
     );
   };
@@ -787,7 +863,7 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
           <MaterialCommunityIcons
             name="hands-pray"
             size={24}
-            color={Colors.alertCoral}
+            color={Colors.sage}
           />
         ) : undefined}
         title={hasContent || isEditing ? 'PRAYER JOURNAL' : undefined}
@@ -916,7 +992,7 @@ const styles = StyleSheet.create({
   prayerPathTitle: {
     fontSize: 12,
     letterSpacing: 1.5,
-    color: Colors.alertCoral,
+    color: Colors.sage,
   },
   prayerPathDivider: {
     flex: 1,
@@ -959,10 +1035,10 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
   },
   showMoreButton: {
-    backgroundColor: 'rgba(255, 107, 107, 0.1)',
+    backgroundColor: 'rgba(82, 106, 91, 0.1)',
   },
   showMoreText: {
-    color: Colors.alertCoral,
+    color: Colors.sage,
   },
   showLessButton: {
     backgroundColor: 'rgba(0, 0, 0, 0.05)',

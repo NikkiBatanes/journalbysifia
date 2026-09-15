@@ -145,9 +145,11 @@ export const MomentsScreen: React.FC = () => {
     const timeblockSavedSubscription = DeviceEventEmitter.addListener('timeblock_saved', handleReflectionChanged);
     const timeblockDeletedSubscription = DeviceEventEmitter.addListener('timeblock_deleted', handleReflectionChanged);
 
-    // Refresh when sermon notes are saved
+    // Refresh when sermon notes or prayers are saved
     const sermonSavedSubscription = DeviceEventEmitter.addListener('sermon_saved', handleReflectionChanged);
     const bibleStudySavedSubscription = DeviceEventEmitter.addListener('bible_study_saved', handleReflectionChanged);
+    const prayerSavedSubscription = DeviceEventEmitter.addListener('prayerSaved', handleReflectionChanged);
+    const prayerDeletedSubscription = DeviceEventEmitter.addListener('prayer_deleted', handleReflectionChanged);
 
     return () => {
       savedSubscription.remove();
@@ -156,6 +158,8 @@ export const MomentsScreen: React.FC = () => {
       timeblockDeletedSubscription.remove();
       sermonSavedSubscription.remove();
       bibleStudySavedSubscription.remove();
+      prayerSavedSubscription.remove();
+      prayerDeletedSubscription.remove();
     };
   }, []);
 

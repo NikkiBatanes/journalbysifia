@@ -76,7 +76,7 @@ const CarryItScreen = () => {
     try {
       const metadata = {
         psalmNumber,
-        selectedAttributes: observations,
+        selectedAttributes,
         customAttribute: customValue || undefined,
         carry: carryText,
         source: 'morning_psalm',
