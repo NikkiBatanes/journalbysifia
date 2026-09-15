@@ -269,7 +269,8 @@ export default function RootStackNavigator({
           presentation: 'fullScreenModal',
           animation: 'slide_from_bottom',
           gestureEnabled: false,
-          contentStyle: { backgroundColor: Colors.sage },
+          statusBarHidden: true,
+          contentStyle: { backgroundColor: Colors.lightBackground },
         }}
       />
 

@@ -3,9 +3,10 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 import { Colors } from '../theme/colors';
 import { RoutineProvider } from '../context/RoutineContext';
+import { useEveningStatusBar } from '../hooks/useEveningStatusBar';
 
+import EveningProverbsScreen from '../screens/evening/EveningProverbsScreen';
 import {
-  EveningProverbsScreen,
   EveningCarryWisdomScreen,
   EveningClosingScreen,
 } from '../screens/evening/EveningFlowScreens';
@@ -24,7 +25,10 @@ export type EveningFlowParamList = {
 
 const Stack = createNativeStackNavigator<EveningFlowParamList>();
 
-const EveningFlowStackNavigator = () => (
+const EveningFlowStackNavigator = () => {
+  useEveningStatusBar();
+
+  return (
   <RoutineProvider>
     <Stack.Navigator
     initialRouteName="Gratitude"
@@ -32,9 +36,9 @@ const EveningFlowStackNavigator = () => (
       headerShown: false,
       presentation: 'card',
       animation: 'fade_from_bottom',
-      gestureEnabled: true,
-      fullScreenGestureEnabled: true,
-      animationMatchesGesture: true,
+      // Journal experiences handle swipes, including validation, themselves.
+      gestureEnabled: false,
+      statusBarHidden: true,
       contentStyle: { backgroundColor: Colors.lightBackground },
     }}
   >
@@ -46,6 +50,7 @@ const EveningFlowStackNavigator = () => (
     <Stack.Screen name="EveningClosing" component={EveningClosingScreen} />
   </Stack.Navigator>
   </RoutineProvider>
-);
+  );
+};
 
 export default EveningFlowStackNavigator;

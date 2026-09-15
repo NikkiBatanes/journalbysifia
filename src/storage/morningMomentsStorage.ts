@@ -17,6 +17,19 @@ export interface MorningMoment {
   markedRead?: boolean;
   reflection?: string;
   observations?: string[];
+  wisdomSelections?: Array<{
+    id: string;
+    label: string;
+    verses: string;
+    prompt: string;
+    application: string;
+  }>;
+  winType?: string;
+  quietWin?: string;
+  emotionName?: string;
+  emotionIcon?: string;
+  lookingForwardText?: string;
+  customEmotion?: string;
 }
 
 export const getMorningMoments = async (): Promise<MorningMoment[]> => {

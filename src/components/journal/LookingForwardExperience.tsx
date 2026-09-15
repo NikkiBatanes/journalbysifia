@@ -1,3 +1,5 @@
+import { LOOKING_FORWARD_EMOTIONS as EMOTIONS, type Emotion } from '../../data/lookingForwardEmotions';
+import { useFloatingKeyboardButton } from '../../hooks/useFloatingKeyboardButton';
 import * as React from 'react';
 import { useState, useEffect, useCallback } from 'react';
 import {
@@ -6,13 +8,11 @@ import {
   TouchableOpacity,
   ScrollView,
   Animated,
-  Easing,
   TextInput,
   Alert,
   LayoutAnimation,
   Platform,
   UIManager,
-  Keyboard,
   PanResponder,
   useWindowDimensions,
 } from 'react-native';
@@ -22,7 +22,8 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 
 import { Colors } from '../../theme/colors';
-import { Fonts } from '../../theme/fonts';
+import { getFontFamily } from '../../theme/fonts';
+import { useTheme } from '../../hooks/useTheme';
 import ThemedText from '../../components/common/ThemedText';
 import StepFadeIn from '../../components/common/StepFadeIn';
 import { triggerLightHaptic, triggerMediumHaptic } from '../../utils/haptics';
@@ -37,44 +38,10 @@ export interface LookingForwardExperienceProps {
   onClose?: () => void;
   onComplete: (record: any) => void | Promise<void>;
   completionButtonText?: string;
+  skipCompletionPage?: boolean;
 }
 
 // Emotion Data
-interface Emotion {
-  id: string;
-  name: string;
-  icon: string;
-}
-
-const EMOTIONS: Emotion[] = [
-  { id: 'hopeful', name: 'Hopeful', icon: 'heart' },
-  { id: 'trusting', name: 'Trusting', icon: 'shield-check-outline' },
-  { id: 'anxious', name: 'Anxious', icon: 'alert-circle-outline' },
-  { id: 'frustrated', name: 'Frustrated', icon: 'emoticon-angry-outline' },
-  { id: 'reluctant', name: 'Reluctant', icon: 'pause-circle-outline' },
-  { id: 'tired', name: 'Tired', icon: 'bed-outline' },
-  { id: 'unprepared', name: 'Unprepared', icon: 'book-open-page-variant-outline' },
-  { id: 'open-handed', name: 'Open-handed', icon: 'hand-coin' },
-  { id: 'surrendered', name: 'Surrendered', icon: 'white-balance-sunny' },
-  { id: 'excited', name: 'Excited', icon: 'star-face' },
-  { id: 'expectant', name: 'Expectant', icon: 'clock-outline' },
-  { id: 'ready', name: 'Ready', icon: 'check-circle-outline' },
-  { id: 'prayerful', name: 'Prayerful', icon: 'hands-pray' },
-  { id: 'calm', name: 'Calm', icon: 'weather-sunny' },
-  { id: 'steady', name: 'Steady', icon: 'anchor' },
-  { id: 'overwhelmed', name: 'Overwhelmed', icon: 'wave' },
-  { id: 'nervous', name: 'Nervous', icon: 'lightning-bolt-outline' },
-  { id: 'hesitant', name: 'Hesitant', icon: 'dots-horizontal-circle-outline' },
-  { id: 'heavy', name: 'Heavy', icon: 'weight' },
-  { id: 'cautious', name: 'Cautious', icon: 'shield-outline' },
-  { id: 'curious', name: 'Curious', icon: 'lightbulb-outline' },
-  { id: 'thankful', name: 'Thankful', icon: 'flower' },
-  { id: 'eager', name: 'Eager', icon: 'rocket-launch-outline' },
-  { id: 'stretched', name: 'Stretched', icon: 'arrow-expand-horizontal' },
-  { id: 'unsure', name: 'Unsure', icon: 'help-circle-outline' },
-  { id: 'waiting', name: 'Waiting', icon: 'timer-outline' },
-  { id: 'other', name: 'Other', icon: 'plus-circle-outline' },
-];
 
 const COMPLETION_MESSAGES = [
   'A small act of trust for what is ahead.',
@@ -123,14 +90,15 @@ const EmotionSelectionStep: React.FC<{
   dateContext: DateContext;
 }> = ({ selectedEmotion, onSelect, onNext, insets, onClose, customEmotion, setCustomEmotion, dateContext }) => {
   const [isOtherSelected, setIsOtherSelected] = React.useState(false);
-  const [keyboardVisible, setKeyboardVisible] = React.useState(false);
   const [showAllEmotions, setShowAllEmotions] = React.useState(false);
-  const buttonPosition = React.useRef(new Animated.Value(insets.bottom + 20)).current;
+  const { bottom: buttonPosition, keyboardVisible } = useFloatingKeyboardButton(insets.bottom);
   const buttonScale = React.useRef(new Animated.Value(0)).current;
   const chooseAgainScale = React.useRef(new Animated.Value(0)).current;
   const showMoreScale = React.useRef(new Animated.Value(0)).current;
 
   const INITIAL_EMOTION_COUNT = 12; // 4x3 grid
+  const { currentFont } = useTheme();
+  const fontKey = currentFont || 'lexend';
 
   // Enable LayoutAnimation for Android
   if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -189,31 +157,7 @@ const EmotionSelectionStep: React.FC<{
     }
   }, [isOtherSelected, showMoreScale]);
 
-  React.useEffect(() => {
-    const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', (e) => {
-      setKeyboardVisible(true);
-      Animated.timing(buttonPosition, {
-        toValue: insets.bottom + ((e.endCoordinates.height || 325) * 0.95),
-        duration: 250,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: false,
-      }).start();
-    });
-    const keyboardDidHideListener = Keyboard.addListener('keyboardDidHide', () => {
-      setKeyboardVisible(false);
-      Animated.timing(buttonPosition, {
-        toValue: insets.bottom + 20,
-        duration: 200,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: false,
-      }).start();
-    });
 
-    return () => {
-      keyboardDidShowListener.remove();
-      keyboardDidHideListener.remove();
-    };
-  }, [insets.bottom, buttonPosition]);
 
   // Dynamic labels based on date context
   const getEyebrowLabel = () => {
@@ -269,7 +213,7 @@ const EmotionSelectionStep: React.FC<{
       >
         <StepFadeIn delay={0}>
           <View style={styles.focusLabelContainer}>
-            <MaterialIcons name="wb-sunny" size={16} color={Colors.alertCoral} style={styles.labelIcon} />
+            <MaterialIcons name="wb-sunny" size={16} color={Colors.sage} style={styles.labelIcon} />
             <ThemedText weight="semiBold" style={styles.focusLabel}>{getEyebrowLabel()}</ThemedText>
           </View>
         </StepFadeIn>
@@ -286,9 +230,9 @@ const EmotionSelectionStep: React.FC<{
           <StepFadeIn delay={240}>
             <View style={styles.customInputContainer}>
               <TextInput
-                style={styles.customInput}
+                style={[styles.customInput, { fontFamily: getFontFamily(fontKey, 'regular') }]}
                 placeholder="Type your emotion"
-                placeholderTextColor="rgba(255, 255, 255, 0.5)"
+                placeholderTextColor={Colors.textGray}
                 value={customEmotion}
                 onChangeText={setCustomEmotion}
                 multiline
@@ -321,7 +265,7 @@ const EmotionSelectionStep: React.FC<{
                     <MaterialCommunityIcons
                       name={emotion.icon as any}
                       size={18}
-                      color={isSelected ? Colors.hopeWhite : Colors.alertCoral}
+                      color={Colors.hopeWhite}
                     />
                   </View>
                 </View>
@@ -378,7 +322,7 @@ const EmotionSelectionStep: React.FC<{
 
       {/* Bottom buttons */}
       {selectedEmotion && (!isOtherSelected || customEmotion.trim() !== '') && (
-        <Animated.View style={[styles.primaryButton, IS_IPAD && styles.primaryButtonPad, { bottom: buttonPosition, transform: [{ scale: buttonScale }] }]}>
+        <Animated.View style={[styles.primaryButton, { bottom: buttonPosition, transform: [{ scale: buttonScale }] }]}>
           <TouchableOpacity
             onPress={() => {
               triggerMediumHaptic();
@@ -403,7 +347,7 @@ const EmotionSelectionStep: React.FC<{
           activeOpacity={0.7}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          <Ionicons name="close" size={17} color="rgba(255,255,255,0.65)" />
+          <Ionicons name="close" size={17} color={Colors.sage} />
         </TouchableOpacity>
       </View>
     </View>
@@ -421,9 +365,10 @@ const LookingAheadInputStep: React.FC<{
   customEmotion: string;
   dateContext: DateContext;
 }> = ({ emotion, lookingAheadText, onChange, onNext, insets, onClose, customEmotion, dateContext }) => {
+  const { currentFont } = useTheme();
+  const fontKey = currentFont || 'lexend';
   const verticalLineHeight = React.useRef(new Animated.Value(0)).current;
-  const [keyboardVisible, setKeyboardVisible] = React.useState(false);
-  const buttonPosition = React.useRef(new Animated.Value(insets.bottom + 20)).current;
+  const { bottom: buttonPosition, keyboardVisible } = useFloatingKeyboardButton(insets.bottom);
 
   React.useEffect(() => {
     Animated.timing(verticalLineHeight, {
@@ -433,31 +378,7 @@ const LookingAheadInputStep: React.FC<{
     }).start();
   }, [verticalLineHeight]);
 
-  React.useEffect(() => {
-    const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', (e) => {
-      setKeyboardVisible(true);
-      Animated.timing(buttonPosition, {
-        toValue: insets.bottom + ((e.endCoordinates.height || 325) * 0.95),
-        duration: 250,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: false,
-      }).start();
-    });
-    const keyboardDidHideListener = Keyboard.addListener('keyboardDidHide', () => {
-      setKeyboardVisible(false);
-      Animated.timing(buttonPosition, {
-        toValue: insets.bottom + 20,
-        duration: 200,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: false,
-      }).start();
-    });
 
-    return () => {
-      keyboardDidShowListener.remove();
-      keyboardDidHideListener.remove();
-    };
-  }, [insets.bottom, buttonPosition]);
 
   // Dynamic labels based on date context
   const getEyebrowLabel = () => {
@@ -502,14 +423,14 @@ const LookingAheadInputStep: React.FC<{
       >
         <StepFadeIn delay={0}>
           <View style={styles.focusLabelContainer}>
-            <MaterialIcons name="wb-sunny" size={16} color={Colors.alertCoral} style={styles.labelIcon} />
+            <MaterialIcons name="wb-sunny" size={16} color={Colors.sage} style={styles.labelIcon} />
             <ThemedText weight="semiBold" style={styles.focusLabel}>{getEyebrowLabel()}</ThemedText>
           </View>
         </StepFadeIn>
 
         <StepFadeIn delay={40}>
-          <View style={styles.titleRowLeft}>
-            <ThemedText weight="semiBold" style={styles.stepTitleLeft}>
+          <View style={styles.titleRow}>
+            <ThemedText weight="semiBold" style={[styles.stepTitleLeft, { textAlign: 'center' }]}>
               {getTitle()}
             </ThemedText>
           </View>
@@ -517,11 +438,11 @@ const LookingAheadInputStep: React.FC<{
 
         <StepFadeIn delay={80}>
           <TextInput
-            style={styles.personalInput}
+            style={[styles.personalInput, { fontFamily: getFontFamily(fontKey, 'regular') }]}
             value={lookingAheadText}
             onChangeText={onChange}
             placeholder={getPlaceholder()}
-            placeholderTextColor="rgba(255, 255, 255, 0.4)"
+            placeholderTextColor={Colors.textGray}
             multiline
             textAlignVertical="top"
             autoFocus
@@ -533,7 +454,7 @@ const LookingAheadInputStep: React.FC<{
           <View style={styles.metadataContainer}>
             <Animated.View style={[styles.verticalLine, { height: verticalLineHeight }]} />
             <View style={styles.metadataContent}>
-              <MaterialCommunityIcons name={emotion.icon as any} size={18} color={Colors.alertCoral} style={styles.metadataIcon} />
+              <MaterialCommunityIcons name={emotion.icon as any} size={18} color={Colors.sage} style={styles.metadataIcon} />
               <ThemedText weight="medium" style={styles.fromText}>
                 HOW YOU'RE HOLDING IT
               </ThemedText>
@@ -554,7 +475,7 @@ const LookingAheadInputStep: React.FC<{
         <View style={{ height: 100 }} />
       </ScrollView>
 
-      <Animated.View style={[styles.primaryButton, IS_IPAD && styles.primaryButtonPad, { bottom: buttonPosition }]}>
+      <Animated.View style={[styles.primaryButton, { bottom: buttonPosition }]}>
         <TouchableOpacity
           onPress={() => {
             triggerMediumHaptic();
@@ -578,7 +499,7 @@ const LookingAheadInputStep: React.FC<{
           activeOpacity={0.7}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          <Ionicons name="close" size={17} color="rgba(255,255,255,0.65)" />
+          <Ionicons name="close" size={17} color={Colors.sage} />
         </TouchableOpacity>
       </View>
     </View>
@@ -677,24 +598,25 @@ const CompletionStep: React.FC<{
         showsVerticalScrollIndicator={false}
       >
         <StepFadeIn delay={0} style={styles.stepLabelRow}>
-          <MaterialIcons name="wb-sunny" size={18} color={Colors.alertCoral} />
+          <MaterialIcons name="wb-sunny" size={18} color={Colors.sage} />
           <ThemedText weight="semiBold" style={styles.stepLabelWhite}>
             {getEyebrowLabel()}
           </ThemedText>
         </StepFadeIn>
 
-        <StepFadeIn delay={80} style={styles.completionCard}>
+        <StepFadeIn delay={80} style={[styles.completionCard, { backgroundColor: Colors.cardBackground }]}>
           <View style={styles.completionHeader}>
             <Animated.View style={[
               styles.completionIconContainer,
               {
+                backgroundColor: Colors.sage,
                 transform: [
                   { scale: iconScale },
                   { rotate: iconRotateInterpolate },
                 ],
               },
             ]}>
-              <MaterialCommunityIcons name={emotion.icon as any} size={24} color={Colors.alertCoral} />
+              <MaterialCommunityIcons name={emotion.icon as any} size={24} color={Colors.hopeWhite} />
             </Animated.View>
             <View style={styles.completionHeaderContent}>
               <ThemedText style={styles.completionSubtext}>{completionMessage}</ThemedText>
@@ -708,7 +630,7 @@ const CompletionStep: React.FC<{
           </View>
 
           {lookingAheadText.trim() && (
-            <View style={styles.completionSection}>
+            <View style={[styles.completionSection, { borderTopColor: Colors.inputBorder }]}>
               <ThemedText weight="medium" style={styles.completionSectionLabel}>LOOKING FORWARD TO</ThemedText>
               <ThemedText style={styles.completionSectionText}>
                 {lookingAheadText}
@@ -716,7 +638,7 @@ const CompletionStep: React.FC<{
             </View>
           )}
 
-          <View style={styles.completionSection}>
+          <View style={[styles.completionSection, { borderTopColor: Colors.inputBorder }]}>
             <ThemedText weight="medium" style={styles.completionSectionLabel}>HOW YOU'RE HOLDING IT</ThemedText>
             <ThemedText style={styles.completionSectionText}>{displayEmotion}</ThemedText>
           </View>
@@ -749,6 +671,7 @@ export const LookingForwardExperience: React.FC<LookingForwardExperienceProps> =
   onClose,
   onComplete,
   completionButtonText,
+  skipCompletionPage,
 }) => {
   const insets = insetsProp ?? { top: 50, bottom: 34 };
   const { width: screenWidth } = useWindowDimensions();
@@ -804,6 +727,7 @@ export const LookingForwardExperience: React.FC<LookingForwardExperienceProps> =
       const contentToSave = JSON.stringify({
         entry: { text: textToSave },
         emotionId: emotionIdToSave,
+        emotionIcon: selectedEmotion?.icon || '',
         emotionName: emotionNameToSave,
         customEmotion: customEmotionToSave,
       });
@@ -825,11 +749,20 @@ export const LookingForwardExperience: React.FC<LookingForwardExperienceProps> =
     }
   };
 
+  const handleDoneRef = React.useRef<() => Promise<void>>(handleDone);
+  handleDoneRef.current = handleDone;
+
   const handleNext = useCallback(() => {
-    if (currentStep < 2) {
-      setCurrentStep(currentStep + 1);
+    if (currentStep === 0) {
+      setCurrentStep(1);
+    } else if (currentStep === 1) {
+      if (skipCompletionPage) {
+        handleDoneRef.current();
+      } else {
+        setCurrentStep(2);
+      }
     }
-  }, [currentStep]);
+  }, [currentStep, skipCompletionPage]);
 
   const handleBack = useCallback(() => {
     if (currentStep > 0) {
@@ -918,7 +851,7 @@ export const LookingForwardExperience: React.FC<LookingForwardExperienceProps> =
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.sage,
+    backgroundColor: Colors.lightBackground,
   },
   stepContainer: {
     flex: 1,
@@ -934,21 +867,21 @@ const styles = StyleSheet.create({
   },
   stepTitle: {
     fontSize: 24,
-    color: Colors.hopeWhite,
+    color: Colors.text,
     lineHeight: 30,
     marginBottom: 32,
     textAlign: 'center',
   },
   stepTitleLeft: {
     fontSize: 24,
-    color: Colors.hopeWhite,
+    color: Colors.text,
     lineHeight: 30,
     marginBottom: 16,
     textAlign: 'left',
   },
   stepDescription: {
     fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.8)',
+    color: Colors.text,
     lineHeight: 24,
     marginBottom: 24,
     textAlign: 'center',
@@ -976,7 +909,7 @@ const styles = StyleSheet.create({
   focusLabel: {
     fontSize: 11,
     letterSpacing: 1,
-    color: Colors.hopeWhite,
+    color: Colors.sageMuted,
   },
   labelIcon: {
     marginTop: 1,
@@ -988,7 +921,7 @@ const styles = StyleSheet.create({
   },
   verticalLine: {
     width: 1,
-    backgroundColor: Colors.hopeWhite,
+    backgroundColor: Colors.text,
     opacity: 0.3,
     marginRight: 12,
     borderRadius: 2,
@@ -1002,7 +935,7 @@ const styles = StyleSheet.create({
   },
   fromText: {
     fontSize: 8,
-    color: Colors.hopeWhite,
+    color: Colors.textGray,
     opacity: 0.6,
     marginBottom: 4,
     letterSpacing: 2,
@@ -1012,7 +945,7 @@ const styles = StyleSheet.create({
   },
   metadataText: {
     fontSize: 12,
-    color: Colors.hopeWhite,
+    color: Colors.textGray,
     opacity: 0.6,
     marginBottom: 4,
     lineHeight: 16,
@@ -1030,11 +963,11 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderColor: Colors.sage,
   },
   showMoreButtonText: {
     fontSize: 14,
-    color: Colors.hopeWhite,
+    color: Colors.sage,
     fontWeight: '600',
   },
   customInputContainer: {
@@ -1044,8 +977,7 @@ const styles = StyleSheet.create({
   customInput: {
     backgroundColor: 'transparent',
     fontSize: 18,
-    color: Colors.hopeWhite,
-    fontFamily: Fonts.regular,
+    color: Colors.text,
     minHeight: 80,
     textAlignVertical: 'top',
     paddingHorizontal: 0,
@@ -1053,19 +985,19 @@ const styles = StyleSheet.create({
   },
   emotionCard: {
     width: '31%',
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: Colors.cardBackground,
     borderRadius: 20,
     padding: 12,
     marginBottom: 0,
     minHeight: 100,
     borderWidth: 0.5,
-    borderColor: 'rgba(255, 255, 255, 0.22)',
+    borderColor: Colors.cardBorder,
     alignItems: 'center',
     justifyContent: 'center',
   },
   emotionCardSelected: {
-    backgroundColor: 'rgba(255, 107, 107, 0.18)',
-    borderColor: Colors.alertCoral,
+    backgroundColor: Colors.sageMuted,
+    borderColor: Colors.sage,
   },
   emotionIconContainer: {
     marginBottom: 8,
@@ -1079,11 +1011,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   emotionIconCircleSelected: {
-    backgroundColor: Colors.alertCoral,
+    backgroundColor: Colors.sage,
   },
   emotionName: {
     fontSize: 12,
-    color: Colors.hopeWhite,
+    color: Colors.text,
     marginBottom: 4,
     textAlign: 'center',
   },
@@ -1091,12 +1023,12 @@ const styles = StyleSheet.create({
     color: Colors.hopeWhite,
   },
   personalInput: {
+    backgroundColor: 'transparent',
     borderRadius: 12,
     paddingHorizontal: 0,
     paddingVertical: 16,
     fontSize: 18,
-    color: Colors.hopeWhite,
-    fontFamily: Fonts.regular,
+    color: Colors.text,
     minHeight: 120,
     textAlignVertical: 'top',
   },
@@ -1110,11 +1042,11 @@ const styles = StyleSheet.create({
   },
   stepLabelWhite: {
     fontSize: 14,
-    color: Colors.hopeWhite,
+    color: Colors.text,
     letterSpacing: 0.5,
   },
   completionCard: {
-    borderRadius: 50,
+    borderRadius: 26,
     padding: 24,
     borderWidth: 1.5,
     borderColor: Colors.inputBorder,
@@ -1128,7 +1060,6 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: 'rgba(255, 107, 107, 0.15)',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 16,
@@ -1138,37 +1069,35 @@ const styles = StyleSheet.create({
   },
   completionTitle: {
     fontSize: 20,
-    color: Colors.hopeWhite,
+    color: Colors.text,
     marginBottom: 4,
   },
   completionSubtext: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.6)',
+    color: Colors.textGray,
   },
   completionCheckmark: {
     marginLeft: 12,
   },
   completionDivider: {
     height: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: Colors.borderLight,
     marginVertical: 20,
   },
   completionSection: {
-    marginTop: 20,
-    paddingTop: 20,
+    paddingVertical: 16,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.1)',
   },
   completionSectionLabel: {
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.5)',
+    fontSize: 11,
+    color: Colors.textGray,
     textTransform: 'uppercase',
     letterSpacing: 1,
-    marginBottom: 12,
+    marginBottom: 6,
   },
   completionSectionText: {
     fontSize: 16,
-    color: Colors.hopeWhite,
+    color: Colors.text,
     lineHeight: 24,
   },
   completionButtonContainer: {
@@ -1178,7 +1107,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 16,
     alignItems: 'center',
-    backgroundColor: Colors.sage,
+    backgroundColor: Colors.lightBackground,
     zIndex: 100,
   },
   completionButtonContainerPad: {
@@ -1188,7 +1117,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: Colors.alertCoral,
+    backgroundColor: Colors.sage,
     borderRadius: 50,
     paddingVertical: 15,
     paddingHorizontal: 28,
@@ -1211,7 +1140,7 @@ const styles = StyleSheet.create({
     height: 42,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.09)',
+    backgroundColor: Colors.cardBackground,
     borderRadius: 999,
     zIndex: 100,
   },
@@ -1222,7 +1151,7 @@ const styles = StyleSheet.create({
     height: 40,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: Colors.alertCoral,
+    backgroundColor: Colors.sage,
     borderRadius: 20,
     shadowColor: '#29342E',
     shadowOffset: { width: 0, height: 4 },

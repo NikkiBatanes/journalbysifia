@@ -1,4 +1,6 @@
+import { exitEveningFlow } from '../../navigation/exitEveningFlow';
 import * as React from 'react';
+import { DeviceEventEmitter } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 
@@ -14,8 +16,9 @@ const EveningWinScreen: React.FC = () => {
   const selectedDateObj = new Date(selectedDate);
   const params = route.params ?? {};
 
+
   const handleClose = () => {
-    navigation.goBack();
+    exitEveningFlow(navigation, 'Today');
   };
 
   const handleComplete = async (record: any) => {
@@ -35,6 +38,8 @@ const EveningWinScreen: React.FC = () => {
       local_id: record.id,
     });
 
+    DeviceEventEmitter.emit('reflection_saved', { type: 'today_win', date: selectedDate });
+
     navigation.navigate('Proverbs', {
       ...params,
       selectedDate,
@@ -47,9 +52,10 @@ const EveningWinScreen: React.FC = () => {
   return (
     <TodayWinExperience
       selectedDate={selectedDateObj}
-      insets={{ top: 50, bottom: insets.bottom + 20 }}
+      insets={insets}
       onClose={handleClose}
       onComplete={handleComplete}
+      skipCompletionPage
     />
   );
 };

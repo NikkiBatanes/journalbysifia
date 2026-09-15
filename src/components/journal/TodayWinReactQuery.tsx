@@ -8,6 +8,7 @@ import ThemedText from '../common/ThemedText';
 import { Trophy as LuTrophy, Pencil as LuPencil } from 'lucide-react-native';
 
 import { useAuth } from '../../context/IndustryStandardAuthContext';
+import { useMomentsPalette } from '../../context/MomentsPaletteContext';
 import { toLocalDateString } from '../../utils/date';
 import {
   useTodayWinData,
@@ -24,12 +25,19 @@ interface TodayWinProps {
   viewMode?: 'carousel' | 'inline' | 'moments';
   expanded?: boolean;
   onExpand?: () => void;
+  moment?: {
+    id: string;
+    lines: string[];
+    winType?: string;
+    quietWin?: string;
+  };
 }
 
-const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, expanded, onExpand }) => {
+const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, expanded, onExpand, moment }) => {
   const navigation = useNavigation();
 
   const { user } = useAuth();
+  const isPalette = useMomentsPalette();
   const [displayWin, setDisplayWin] = useState<{ id: string; text: string; winType?: string } | null>(null);
 
   const dateStr = toLocalDateString(selectedDate);
@@ -115,7 +123,7 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
 
   // Handle loading and error states
   React.useEffect(() => {
-    if (error) {
+    if (error && !moment) {
       analytics.trackWinEvent('win_error', {
         error_type: error.message || 'unknown',
         operation: 'load',
@@ -124,7 +132,7 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
 
       Alert.alert('Error', 'Failed to load today\'s win.');
     }
-  }, [error, dateStr, user?.id]);
+  }, [error, dateStr, moment, user?.id]);
 
   // Get the first entry (TodayWin typically has one entry) - moved before early returns
   const entry = entries.length > 0 ? entries[0] : null;
@@ -149,6 +157,7 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
       const result = {
         id: entry.id,
         text: content.win || '',
+        winType: undefined as string | undefined,
       };
 
       return result;
@@ -157,24 +166,38 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
       const result = {
         id: entry.id,
         text: '',
+        winType: undefined as string | undefined,
       };
 
       return result;
     }
   }, [entry]);
 
+  const fallbackWin = React.useMemo(() => moment ? {
+    id: moment.id,
+    winType: moment.winType || moment.lines[0] || '',
+    text: moment.quietWin || moment.lines[1] || '',
+  } : null, [moment]);
+  const resolvedWin = React.useMemo(() => {
+    const winHasContent = win && (win.text.trim() || win.winType?.trim());
+    const fallbackHasContent = fallbackWin && (fallbackWin.text.trim() || fallbackWin.winType?.trim());
+    if (winHasContent) {return win;}
+    if (fallbackHasContent) {return fallbackWin;}
+    return win || fallbackWin;
+  }, [win, fallbackWin]);
+
   // Update displayWin when win data changes
   React.useEffect(() => {
-    setDisplayWin(win);
-  }, [win]);
+    setDisplayWin(resolvedWin);
+  }, [resolvedWin]);
 
   // Handle loading state
-  if (isLoading) {
+  if (isLoading && !fallbackWin) {
     return <TodayWinSkeleton />;
   }
 
   // Handle error state
-  if (error) {
+  if (error && !fallbackWin) {
     return (
       <JournalCard
         title="TODAY'S WIN"
@@ -213,7 +236,7 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
   };
 
   // Hide empty component in inline and moments view
-  if ((viewMode === 'inline' || viewMode === 'moments') && !isLoading && !error && (!win || !win.text.trim())) {
+  if ((viewMode === 'inline' || viewMode === 'moments') && (!resolvedWin || (!resolvedWin.text.trim() && !resolvedWin.winType?.trim()))) {
     return null;
   }
 
@@ -231,8 +254,8 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
         const copy = getCopy(category, entries.length);
         return copy.subtitle;
       })()}
-      icon={displayWin ? <Ionicons name="trophy" size={24} color={Colors.alertCoral} /> : undefined}
-      showAddButton={!!displayWin}
+      icon={resolvedWin ? <Ionicons name="trophy" size={24} color={isPalette ? Colors.alertCoral : Colors.sage} /> : undefined}
+      showAddButton={!!resolvedWin}
       onAdd={handleEdit}
       viewMode={viewMode}
       expanded={expanded}
@@ -241,21 +264,26 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
       {displayWin ? (
         <View style={styles.completionCard}>
           <View style={styles.completionHeader}>
+            {viewMode === 'inline' && (
+              <View style={styles.completionIconContainer}>
+                <Ionicons name="trophy" size={16} color={Colors.sage} />
+              </View>
+            )}
             <View style={styles.completionHeaderContent}>
               {!!displayWin.winType?.trim() && (
-                <ThemedText weight="semiBold" style={styles.completionCategory}>
+                <ThemedText weight="semiBold" style={[styles.completionCategory, { color: isPalette ? Colors.text : Colors.hopeWhite }]}>
                   {displayWin.winType}
                 </ThemedText>
               )}
             </View>
           </View>
 
-          <View style={styles.completionDivider} />
+          <View style={[styles.completionDivider, { backgroundColor: isPalette ? Colors.borderLight : 'rgba(255, 255, 255, 0.1)' }]} />
 
           {displayWin.text.trim() && (
             <View style={styles.completionSection}>
-              <ThemedText weight="medium" style={styles.completionSectionLabel}>QUIET WIN</ThemedText>
-              <ThemedText style={styles.completionSectionText}>{displayWin.text}</ThemedText>
+              <ThemedText weight="medium" style={[styles.completionSectionLabel, { color: isPalette ? Colors.sage : Colors.alertCoral }]}>QUIET WIN</ThemedText>
+              <ThemedText style={[styles.completionSectionText, { color: isPalette ? Colors.text : Colors.hopeWhite }]}>{displayWin.text}</ThemedText>
             </View>
           )}
         </View>
@@ -333,7 +361,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#D97872',
   },
   winContainer: {
-    backgroundColor: 'Colors.sage',
+    backgroundColor: Colors.sage,
     borderRadius: 6,
     paddingVertical: 12,
     paddingHorizontal: 12,
@@ -410,19 +438,15 @@ const styles = StyleSheet.create({
   completionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: 0,
   },
   completionIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: 'rgba(255, 107, 107, 0.15)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 16,
+    marginRight: 8,
   },
   completionHeaderContent: {
-    flex: 1,
     alignItems: 'center',
   },
   completionCategory: {

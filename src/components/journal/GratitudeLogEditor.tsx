@@ -1,8 +1,11 @@
+import { getGratitudeVerse } from '../../data/getGratitudeVerse';
+import { useFloatingKeyboardButton } from '../../hooks/useFloatingKeyboardButton';
 import React, { useRef, useEffect, useImperativeHandle, useCallback, useState } from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import {
   View,
   TextInput,
+  Text,
   TouchableOpacity,
   ScrollView,
   KeyboardAvoidingView,
@@ -11,7 +14,6 @@ import {
   Keyboard,
   ActivityIndicator,
   Animated,
-  Easing,
   StyleSheet,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -58,6 +60,26 @@ export interface GratitudeLogEditorRef {
   focusInput: (skipScroll?: boolean) => void;
   reset: () => void;
 }
+
+const verseStyles = StyleSheet.create({
+  text: {
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+    fontStyle: 'italic',
+    fontSize: 16,
+    lineHeight: 25,
+    color: Colors.textGray,
+    textAlign: 'center',
+  },
+  reference: {
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+    fontSize: 12,
+    lineHeight: 18,
+    color: Colors.textGray,
+    textAlign: 'center',
+    marginTop: 8,
+    marginBottom: 20,
+  },
+});
 
 const defaultStyles = {
   container: {
@@ -238,6 +260,7 @@ const GratitudeLogEditorInner = (
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';
   const fontRegular = getFontFamily(fontKey, 'regular');
+  const gratitudeVerse = getGratitudeVerse(selectedDate);
   const insets = useSafeAreaInsets();
 
   const s = { ...defaultStyles, ...styles };
@@ -258,23 +281,24 @@ const GratitudeLogEditorInner = (
     }
   };
 
-  const removeNumbersFromItems = useCallback((items: string[]): string[] => {
-    return items.map((item) => item.replace(/^\d+\. /, ''));
+  const prepareInitialItems = useCallback((items: string[]): string[] => {
+    const cleanItems = items.map((item) => item.replace(/^\d+\. /, ''));
+    return [...cleanItems, ...Array(Math.max(0, 3 - cleanItems.length)).fill('')];
   }, []);
 
-  const processedInitialItems = initialItems.length > 0 ? removeNumbersFromItems(initialItems) : ['', '', ''];
+  const processedInitialItems = prepareInitialItems(initialItems);
 
   const [gratitudeItems, setGratitudeItems] = React.useState<string[]>(processedInitialItems);
   const [hasUserMadeChanges, setHasUserMadeChanges] = React.useState(false);
 
-  const saveButtonOpacity = useRef(new Animated.Value(0)).current;
-  const saveButtonScale = useRef(new Animated.Value(0.8)).current;
-  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+  const hasContent = gratitudeItems.some(item => item.trim() !== '');
+  const actionProgress = useRef(new Animated.Value(hasContent ? 1 : 0)).current;
+  const actionTranslateX = actionProgress.interpolate({ inputRange: [0, 1], outputRange: [54, 0] });
 
   const inputRefs = useRef<(TextInput | null)[]>([]);
   const scrollViewRef = useRef<ScrollView>(null);
   const scrollY = useRef(0);
-  const buttonPosition = useRef(new Animated.Value(insets.bottom + 20)).current;
+  const { bottom: buttonPosition, keyboardVisible: isKeyboardVisible } = useFloatingKeyboardButton(insets.bottom);
 
   useImperativeHandle(ref, () => ({
     focusInput: (skipScroll = false) => {
@@ -317,52 +341,23 @@ const GratitudeLogEditorInner = (
     if (initialItems && initialItems.length > 0 && !hasUserMadeChanges) {
       const hasExistingData = initialItems.some((item: string) => item.trim());
       if (hasExistingData) {
-        const cleanItems = removeNumbersFromItems(initialItems);
+        const cleanItems = prepareInitialItems(initialItems);
         setGratitudeItems(cleanItems);
       }
     }
-  }, [initialItems, removeNumbersFromItems, hasUserMadeChanges]);
+  }, [initialItems, prepareInitialItems, hasUserMadeChanges]);
 
   useEffect(() => {
-    const shouldShow = gratitudeItems.some(item => item.trim() !== '');
-    Animated.spring(saveButtonOpacity, {
-      toValue: shouldShow ? 1 : 0,
+    const animation = Animated.spring(actionProgress, {
+      toValue: hasContent ? 1 : 0,
       useNativeDriver: true,
-      tension: 50,
-      friction: 7,
-    }).start();
-    Animated.spring(saveButtonScale, {
-      toValue: shouldShow ? 1 : 0.8,
-      useNativeDriver: true,
-      tension: 50,
-      friction: 7,
-    }).start();
-  }, [gratitudeItems, saveButtonOpacity, saveButtonScale]);
-
-  useEffect(() => {
-    const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', (e) => {
-      setIsKeyboardVisible(true);
-      Animated.timing(buttonPosition, {
-        toValue: insets.bottom + ((e.endCoordinates.height || 325) * 0.95),
-        duration: 250,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: false,
-      }).start();
+      stiffness: 180,
+      damping: 22,
+      mass: 1,
     });
-    const keyboardDidHideListener = Keyboard.addListener('keyboardDidHide', () => {
-      setIsKeyboardVisible(false);
-      Animated.timing(buttonPosition, {
-        toValue: insets.bottom + 20,
-        duration: 200,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: false,
-      }).start();
-    });
-    return () => {
-      keyboardDidShowListener.remove();
-      keyboardDidHideListener.remove();
-    };
-  }, [insets.bottom, buttonPosition]);
+    animation.start();
+    return () => animation.stop();
+  }, [hasContent, actionProgress]);
 
   const handleItemChange = useCallback((index: number, text: string) => {
     setGratitudeItems(prev => {
@@ -447,9 +442,8 @@ const GratitudeLogEditorInner = (
 
             <StepFadeIn delay={120} style={[s.prioritiesContainer, { marginTop: 32 }]}>
               <StepFadeIn delay={0}>
-                <ThemedText style={[s.stepSubtitle, { color: Colors.textGray }]}>
-                  Add a few things you are grateful for today.
-                </ThemedText>
+                <Text style={verseStyles.text}>{gratitudeVerse.text}</Text>
+                <Text style={verseStyles.reference}>— {gratitudeVerse.reference}</Text>
               </StepFadeIn>
               {gratitudeItems.map((item, index) => (
                 <View key={index} style={s.priorityInputRow}>
@@ -497,21 +491,31 @@ const GratitudeLogEditorInner = (
 
         <View style={s.fabWrapper}>
           <Animated.View style={[s.buttonContainer, { bottom: buttonPosition }]}>
+            <Animated.View style={{ transform: [{ translateX: actionTranslateX }] }}>
             <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel="Add gratitude entry"
               onPress={addGratitudeItem}
               activeOpacity={0.7}
               style={[s.addButton, { backgroundColor: Colors.lightGray }]}
             >
               <Ionicons name="add" size={22} color={Colors.textGray} />
             </TouchableOpacity>
+            </Animated.View>
             <Animated.View
+              pointerEvents={hasContent ? 'auto' : 'none'}
+              accessibilityElementsHidden={!hasContent}
+              importantForAccessibility={hasContent ? 'auto' : 'no-hide-descendants'}
               style={{
-                opacity: saveButtonOpacity,
-                transform: [{ scale: saveButtonScale }],
+                opacity: actionProgress,
+                transform: [{ translateX: actionTranslateX }],
               }}
             >
               <TouchableOpacity
                 onPress={handleSave}
+                disabled={!hasContent || isLoading}
+                accessibilityRole="button"
+                accessibilityLabel="Next"
                 activeOpacity={0.7}
                 style={s.saveButton}
               >

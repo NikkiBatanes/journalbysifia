@@ -24,12 +24,7 @@ const MorningTodaysFocusScreen: React.FC = () => {
   }, [markStepCompleted, navigation]);
 
   const handleClose = useCallback(() => {
-    const parent = navigation.getParent();
-    if (parent?.canGoBack()) {
-      parent.goBack();
-    } else {
-      navigation.navigate('MainTabs', { screen: 'Today' });
-    }
+    navigation.navigate('MainTabs', { screen: 'Today' });
   }, [navigation]);
 
   return (

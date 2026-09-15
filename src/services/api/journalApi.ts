@@ -60,12 +60,36 @@ export class JournalApi {
 
   // Get today's win entries
   static async getTodayWinEntries(userId: string, date: string): Promise<JournalApiEntry[]> {
-    return this.getJournalEntries(userId, date, 'today_win');
+    let cloud: JournalApiEntry[] = [];
+    try {
+      cloud = await this.getJournalEntries(userId, date, 'today_win');
+    } catch (error) {
+      Logger.warn('Failed to fetch today win from cloud; falling back to local', { component: 'journalApi', userId, date });
+    }
+
+    const localEntries = [...(await getLocalJournalSingleton('today_win', date) ? [await getLocalJournalSingleton('today_win', date)] : []), ...await getLocalJournalEntries('today_win', date)]
+      .filter((entry): entry is NonNullable<typeof entry> => !!entry && !entry.deleted)
+      .map(entry => ({ ...entry, user_id: userId }) as JournalApiEntry);
+
+    const all = [...cloud, ...localEntries];
+    return all.sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
   }
 
   // Get looking forward entries
   static async getLookingForwardEntries(userId: string, date: string): Promise<JournalApiEntry[]> {
-    return this.getJournalEntries(userId, date, 'looking_forward');
+    let cloud: JournalApiEntry[] = [];
+    try {
+      cloud = await this.getJournalEntries(userId, date, 'looking_forward');
+    } catch (error) {
+      Logger.warn('Failed to fetch looking forward from cloud; falling back to local', { component: 'journalApi', userId, date });
+    }
+
+    const localEntries = [...(await getLocalJournalSingleton('looking_forward', date) ? [await getLocalJournalSingleton('looking_forward', date)] : []), ...await getLocalJournalEntries('looking_forward', date)]
+      .filter((entry): entry is NonNullable<typeof entry> => !!entry && !entry.deleted)
+      .map(entry => ({ ...entry, user_id: userId }) as JournalApiEntry);
+
+    const all = [...cloud, ...localEntries];
+    return all.sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
   }
 
   // Create a new journal entry

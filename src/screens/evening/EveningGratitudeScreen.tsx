@@ -1,5 +1,6 @@
+import { exitEveningFlow } from '../../navigation/exitEveningFlow';
 import * as React from 'react';
-import { View } from 'react-native';
+import { DeviceEventEmitter, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 
 import GratitudeLogEditor from '../../components/journal/GratitudeLogEditor';
@@ -101,6 +102,8 @@ const EveningGratitudeScreen: React.FC = () => {
       local_id: id,
     });
 
+    DeviceEventEmitter.emit('reflection_saved', { type: 'gratitude', date: savedDateStr });
+
     navigation.navigate('Win', {
       selectedDate,
       gratitude: data.items.join('\n'),
@@ -110,12 +113,13 @@ const EveningGratitudeScreen: React.FC = () => {
   };
 
   const handleCancel = () => {
-    navigation.goBack();
+    exitEveningFlow(navigation, 'Today');
   };
+
 
   if (isLoading) {
     return (
-      <View style={{ flex: 1, backgroundColor: Colors.sage }} />
+      <View style={{ flex: 1, backgroundColor: Colors.lightBackground }} />
     );
   }
 

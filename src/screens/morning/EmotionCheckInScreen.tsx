@@ -6,6 +6,7 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import { differenceInCalendarDays } from 'date-fns';
 
 import ThemedText from '../../components/common/ThemedText';
+import StepFadeIn from '../../components/common/StepFadeIn';
 import { useTheme } from '../../hooks/useTheme';
 import { getFontFamily } from '../../theme/fonts';
 import { Colors } from '../../theme/colors';
@@ -158,7 +159,7 @@ const EmotionCheckInScreen = () => {
     </Animated.View>
   ) : null;
 
-  const onBack = () => navigation.goBack();
+  const onBack = () => navigation.navigate('MainTabs', { screen: 'Today' });
 
   return (
     <RoutineStepShell
@@ -173,87 +174,93 @@ const EmotionCheckInScreen = () => {
       scrollWithHeader
     >
       {isOtherSelected ? (
-        <TextInput
-          value={customFeeling}
-          onChangeText={setCustomFeeling}
-          placeholder="Type how you’re feeling"
-          placeholderTextColor={Colors.textGray}
-          style={{ fontFamily: getFontFamily(currentFont || 'lexend', 'regular'), fontSize: 18, color: Colors.text, minHeight: 100, textAlignVertical: 'top' }}
-          multiline
-          autoFocus
-          accessibilityLabel="Your feeling"
-        />
-      ) : <View style={styles.categoriesGrid}>
-        {displayedFeelings.map((feeling) => {
-          const isSelected = selected?.id === feeling.id;
-          return (
-            <TouchableOpacity
-              key={feeling.id}
-              style={[styles.categoryCard, isSelected && styles.categoryCardSelected]}
-              onPress={() => {
-                triggerLightHaptic();
-                LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-                setSelected(feeling);
-              }}
-              activeOpacity={0.75}
-              accessibilityRole="button"
-              accessibilityLabel={`Feeling ${feeling.name}`}
-              accessibilityState={{ selected: isSelected }}
-            >
-              <View style={styles.categoryIconContainer}>
-                <View style={[
-                  styles.categoryIconCircle,
-                  isSelected && styles.categoryIconCircleSelected,
-                ]}>
-                  {feeling.iconType === 'ionicons' ? (
-                    <Ionicons
-                      name={feeling.icon as any}
-                      size={18}
-                      color={Colors.hopeWhite}
-                    />
-                  ) : (
-                    <MaterialCommunityIcons
-                      name={feeling.icon as any}
-                      size={18}
-                      color={Colors.hopeWhite}
-                    />
-                  )}
-                </View>
-              </View>
-              <ThemedText
-                weight="semiBold"
-                style={[styles.categoryName, isSelected && styles.categoryNameSelected]}
+        <StepFadeIn delay={160}>
+          <TextInput
+            value={customFeeling}
+            onChangeText={setCustomFeeling}
+            placeholder="Type how you’re feeling"
+            placeholderTextColor={Colors.textGray}
+            style={[styles.customInput, { fontFamily: getFontFamily(currentFont || 'lexend', 'regular') }]}
+            multiline
+            autoFocus
+            accessibilityLabel="Your feeling"
+          />
+        </StepFadeIn>
+      ) : (
+        <StepFadeIn delay={160} style={styles.categoriesGrid}>
+          {displayedFeelings.map((feeling) => {
+            const isSelected = selected?.id === feeling.id;
+            return (
+              <TouchableOpacity
+                key={feeling.id}
+                style={[styles.categoryCard, isSelected && styles.categoryCardSelected]}
+                onPress={() => {
+                  triggerLightHaptic();
+                  LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+                  setSelected(feeling);
+                }}
+                activeOpacity={0.75}
+                accessibilityRole="button"
+                accessibilityLabel={`Feeling ${feeling.name}`}
+                accessibilityState={{ selected: isSelected }}
               >
-                {feeling.name}
-              </ThemedText>
-            </TouchableOpacity>
-          );
-        })}
-      </View>}
-      <Animated.View style={{ opacity: toggleOpacity }}>
-        <TouchableOpacity
-          style={styles.showMoreButton}
-          onPress={() => {
-            triggerLightHaptic();
-            if (Platform.OS === 'android') { UIManager.setLayoutAnimationEnabledExperimental?.(true); }
-            if (isOtherSelected) {
-              LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-              setSelected(null);
-              return;
-            }
-            Animated.timing(toggleOpacity, { toValue: 0, duration: 150, useNativeDriver: true }).start(() => {
-              LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-              setShowMore(value => !value);
-              Animated.timing(toggleOpacity, { toValue: 1, duration: 150, useNativeDriver: true }).start();
-            });
-          }}
-          activeOpacity={0.7}
-          accessibilityRole="button"
-          accessibilityLabel={isOtherSelected ? 'Choose again' : showMore ? 'Show less feelings' : 'Show more feelings'}
-        >
-          <ThemedText weight="semiBold" style={styles.showMoreText}>{isOtherSelected ? 'Choose again' : showMore ? 'Show less' : 'Show more'}</ThemedText>
-        </TouchableOpacity>
-      </Animated.View>
+                <View style={styles.categoryIconContainer}>
+                  <View style={[
+                    styles.categoryIconCircle,
+                    isSelected && styles.categoryIconCircleSelected,
+                  ]}>
+                    {feeling.iconType === 'ionicons' ? (
+                      <Ionicons
+                        name={feeling.icon as any}
+                        size={18}
+                        color={Colors.hopeWhite}
+                      />
+                    ) : (
+                      <MaterialCommunityIcons
+                        name={feeling.icon as any}
+                        size={18}
+                        color={Colors.hopeWhite}
+                      />
+                    )}
+                  </View>
+                </View>
+                <ThemedText
+                  weight="semiBold"
+                  style={[styles.categoryName, isSelected && styles.categoryNameSelected]}
+                >
+                  {feeling.name}
+                </ThemedText>
+              </TouchableOpacity>
+            );
+          })}
+        </StepFadeIn>
+      )}
+      <StepFadeIn delay={240} style={{ alignSelf: 'center' }}>
+        <Animated.View style={{ opacity: toggleOpacity }}>
+          <TouchableOpacity
+            style={styles.showMoreButton}
+            onPress={() => {
+              triggerLightHaptic();
+              if (Platform.OS === 'android') { UIManager.setLayoutAnimationEnabledExperimental?.(true); }
+              if (isOtherSelected) {
+                LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+                setSelected(null);
+                return;
+              }
+              Animated.timing(toggleOpacity, { toValue: 0, duration: 150, useNativeDriver: true }).start(() => {
+                LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+                setShowMore(value => !value);
+                Animated.timing(toggleOpacity, { toValue: 1, duration: 150, useNativeDriver: true }).start();
+              });
+            }}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel={isOtherSelected ? 'Choose again' : showMore ? 'Show less feelings' : 'Show more feelings'}
+          >
+            <ThemedText weight="semiBold" style={styles.showMoreText}>{isOtherSelected ? 'Choose again' : showMore ? 'Show less' : 'Show more'}</ThemedText>
+          </TouchableOpacity>
+        </Animated.View>
+      </StepFadeIn>
     </RoutineStepShell>
   );
 };
@@ -266,7 +273,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   categoryCard: {
-    width: '30%',
+    width: '31%',
     backgroundColor: Colors.cardBackground,
     borderRadius: 20,
     padding: 12,
@@ -303,6 +310,15 @@ const styles = StyleSheet.create({
   },
   categoryNameSelected: {
     color: Colors.hopeWhite,
+  },
+  customInput: {
+    backgroundColor: 'transparent',
+    fontSize: 18,
+    color: Colors.text,
+    minHeight: 80,
+    textAlignVertical: 'top',
+    paddingHorizontal: 0,
+    paddingVertical: 16,
   },
   showMoreButton: {
     marginTop: 16,

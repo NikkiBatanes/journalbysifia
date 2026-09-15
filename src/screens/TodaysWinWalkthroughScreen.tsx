@@ -1,3 +1,5 @@
+import { getWinVerse } from '../data/getWinVerse';
+import { useFloatingKeyboardButton } from '../hooks/useFloatingKeyboardButton';
 import * as React from 'react';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import {
@@ -5,14 +7,13 @@ import {
   StyleSheet,
   TouchableOpacity,
   Animated,
-  Easing,
   StatusBar,
   TextInput,
+  Text,
   Alert,
   Platform,
   UIManager,
   LayoutAnimation,
-  Keyboard,
   Dimensions,
   PanResponder,
 } from 'react-native';
@@ -312,12 +313,13 @@ const WinTypeSelectionStep: React.FC<{
   customWin: string;
   setCustomWin: (text: string) => void;
   dateContext: DateContext;
-}> = ({ selectedWinType, onSelect, onNext, onOtherStateChange, insets, onClose, customWin, setCustomWin, dateContext }) => {
-  const [keyboardVisible, setKeyboardVisible] = useState(false);
+  selectedDate: Date;
+}> = ({ selectedWinType, onSelect, onNext, onOtherStateChange, insets, onClose, customWin, setCustomWin, dateContext, selectedDate }) => {
+  const winVerse = getWinVerse(selectedDate);
   const [isExpanded, setIsExpanded] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('Faith');
   const [isOtherSelected, setIsOtherSelected] = useState(false);
-  const buttonPosition = useRef(new Animated.Value(insets.bottom + 20)).current;
+  const { bottom: buttonPosition, keyboardVisible } = useFloatingKeyboardButton(insets.bottom);
   const buttonScale = useRef(new Animated.Value(0)).current;
   const chooseAgainScale = useRef(new Animated.Value(0)).current;
   const buttonOpacity = useRef(new Animated.Value(1)).current;
@@ -373,31 +375,7 @@ const WinTypeSelectionStep: React.FC<{
     }
   }, [isOtherSelected, chooseAgainScale]);
 
-  useEffect(() => {
-    const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', (e) => {
-      setKeyboardVisible(true);
-      Animated.timing(buttonPosition, {
-        toValue: insets.bottom + ((e.endCoordinates.height || 325) * 0.95),
-        duration: 250,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: false,
-      }).start();
-    });
-    const keyboardDidHideListener = Keyboard.addListener('keyboardDidHide', () => {
-      setKeyboardVisible(false);
-      Animated.timing(buttonPosition, {
-        toValue: insets.bottom + 20,
-        duration: 200,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: false,
-      }).start();
-    });
 
-    return () => {
-      keyboardDidShowListener.remove();
-      keyboardDidHideListener.remove();
-    };
-  }, [insets.bottom, buttonPosition]);
 
   // Dynamic labels based on date context
   const getEyebrowLabel = () => {
@@ -433,7 +411,7 @@ const WinTypeSelectionStep: React.FC<{
       >
         <StepFadeIn delay={0}>
           <View style={styles.focusLabelContainer}>
-            <MaterialIcons name="emoji-events" size={16} color={Colors.alertCoral} style={styles.labelIcon} />
+            <MaterialIcons name="emoji-events" size={16} color={Colors.sage} style={styles.labelIcon} />
             <ThemedText weight="semiBold" style={styles.focusLabel}>{getEyebrowLabel()}</ThemedText>
           </View>
         </StepFadeIn>
@@ -452,7 +430,7 @@ const WinTypeSelectionStep: React.FC<{
               <TextInput
                 style={styles.customInput}
                 placeholder="Type your win"
-                placeholderTextColor="rgba(255, 255, 255, 0.5)"
+                placeholderTextColor={Colors.textGray}
                 value={customWin}
                 onChangeText={setCustomWin}
                 multiline
@@ -595,12 +573,8 @@ const WinTypeSelectionStep: React.FC<{
             <View style={styles.metadataContainer}>
               <View style={styles.verticalLine} />
               <View style={styles.metadataContent}>
-                <ThemedText weight="medium" style={styles.fromText}>
-                  TIP
-                </ThemedText>
-                <ThemedText style={styles.metadataText}>
-                  Choose the one that feels closest, then continue.
-                </ThemedText>
+                <ThemedText weight="medium" style={styles.fromText}>{winVerse.reference}</ThemedText>
+                <Text style={styles.winVerseText}>{winVerse.text}</Text>
               </View>
             </View>
           </StepFadeIn>
@@ -611,7 +585,7 @@ const WinTypeSelectionStep: React.FC<{
 
       {/* Bottom button */}
       {selectedWinType && (!isOtherSelected || customWin.trim() !== '') && (
-        <Animated.View style={[styles.primaryButton, IS_IPAD && styles.primaryButtonPad, { bottom: buttonPosition, transform: [{ scale: buttonScale }] }]}>
+        <Animated.View style={[styles.primaryButton, { bottom: buttonPosition, transform: [{ scale: buttonScale }] }]}>
           <TouchableOpacity
             onPress={() => {
               triggerMediumHaptic();
@@ -636,7 +610,7 @@ const WinTypeSelectionStep: React.FC<{
           activeOpacity={0.7}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          <Ionicons name="close" size={17} color="rgba(255,255,255,0.65)" />
+          <Ionicons name="close" size={17} color={Colors.textGray} />
         </TouchableOpacity>
       </View>
     </View>
@@ -656,8 +630,7 @@ const QuietWinStep: React.FC<{
   dateContext: DateContext;
 }> = ({ quietWin, onChange, onNext, onBack: _onBack, insets, onClose, selectedWinType, customWin, dateContext }) => {
   const verticalLineHeight = useRef(new Animated.Value(0)).current;
-  const [keyboardVisible, setKeyboardVisible] = useState(false);
-  const buttonPosition = useRef(new Animated.Value(insets.bottom + 20)).current;
+  const { bottom: buttonPosition, keyboardVisible } = useFloatingKeyboardButton(insets.bottom);
 
   const getQuietWinTitle = () => {
     switch (dateContext) {
@@ -675,31 +648,7 @@ const QuietWinStep: React.FC<{
     }).start();
   }, [verticalLineHeight]);
 
-  useEffect(() => {
-    const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', (e) => {
-      setKeyboardVisible(true);
-      Animated.timing(buttonPosition, {
-        toValue: insets.bottom + ((e.endCoordinates.height || 325) * 0.95),
-        duration: 250,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: false,
-      }).start();
-    });
-    const keyboardDidHideListener = Keyboard.addListener('keyboardDidHide', () => {
-      setKeyboardVisible(false);
-      Animated.timing(buttonPosition, {
-        toValue: insets.bottom + 20,
-        duration: 200,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: false,
-      }).start();
-    });
 
-    return () => {
-      keyboardDidShowListener.remove();
-      keyboardDidHideListener.remove();
-    };
-  }, [insets.bottom, buttonPosition]);
 
   // Dynamic labels based on date context
   const getEyebrowLabel = () => {
@@ -728,14 +677,14 @@ const QuietWinStep: React.FC<{
       >
         <StepFadeIn delay={0}>
           <View style={styles.focusLabelContainer}>
-            <MaterialIcons name="emoji-events" size={16} color={Colors.alertCoral} style={styles.labelIcon} />
+            <MaterialIcons name="emoji-events" size={16} color={Colors.sage} style={styles.labelIcon} />
             <ThemedText weight="semiBold" style={styles.focusLabel}>{getEyebrowLabel()}</ThemedText>
           </View>
         </StepFadeIn>
 
         <StepFadeIn delay={40}>
-          <View style={styles.titleRowLeft}>
-            <ThemedText weight="semiBold" style={styles.stepTitleLeft}>
+          <View style={styles.titleRow}>
+            <ThemedText weight="semiBold" style={styles.stepTitle}>
               {getQuietWinTitle()}
             </ThemedText>
           </View>
@@ -747,7 +696,7 @@ const QuietWinStep: React.FC<{
             value={quietWin}
             onChangeText={onChange}
             placeholder={getPlaceholder()}
-            placeholderTextColor="rgba(255, 255, 255, 0.4)"
+            placeholderTextColor={Colors.textGray}
             multiline
             textAlignVertical="top"
             autoFocus
@@ -759,7 +708,7 @@ const QuietWinStep: React.FC<{
           <View style={styles.metadataContainer}>
             <Animated.View style={[styles.verticalLine, { height: verticalLineHeight }]} />
             <View style={styles.metadataContent}>
-              <MaterialCommunityIcons name="trophy" size={18} color={Colors.alertCoral} style={styles.metadataIcon} />
+              <MaterialCommunityIcons name="trophy" size={18} color={Colors.sage} style={styles.metadataIcon} />
               <ThemedText weight="medium" style={styles.fromText}>
                 KIND OF WIN
               </ThemedText>
@@ -777,7 +726,7 @@ const QuietWinStep: React.FC<{
         <View style={{ height: 100 }} />
       </GestureScrollView>
 
-      <Animated.View style={[styles.primaryButton, IS_IPAD && styles.primaryButtonPad, { bottom: buttonPosition }]}>
+      <Animated.View style={[styles.primaryButton, { bottom: buttonPosition }]}>
         <TouchableOpacity
           onPress={() => {
             triggerMediumHaptic();
@@ -801,7 +750,7 @@ const QuietWinStep: React.FC<{
           activeOpacity={0.7}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          <Ionicons name="close" size={17} color="rgba(255,255,255,0.65)" />
+          <Ionicons name="close" size={17} color={Colors.textGray} />
         </TouchableOpacity>
       </View>
     </View>
@@ -918,7 +867,7 @@ const CompletionStep: React.FC<{
         showsVerticalScrollIndicator={false}
       >
         <StepFadeIn delay={0} style={styles.stepLabelRow}>
-          <MaterialIcons name="emoji-events" size={18} color={Colors.alertCoral} />
+          <MaterialIcons name="emoji-events" size={18} color={Colors.sage} />
           <ThemedText weight="semiBold" style={styles.stepLabelWhite}>
             {getEyebrowLabel()}
           </ThemedText>
@@ -935,7 +884,7 @@ const CompletionStep: React.FC<{
                 ],
               },
             ]}>
-              <MaterialIcons name="emoji-events" size={24} color={Colors.alertCoral} />
+              <MaterialIcons name="emoji-events" size={24} color={Colors.sage} />
             </Animated.View>
             <View style={styles.completionHeaderContent}>
               <ThemedText weight="semiBold" style={styles.completionTitle}>
@@ -991,7 +940,8 @@ export const TodayWinExperience: React.FC<{
   insets?: { top: number; bottom: number };
   onClose?: () => void;
   onComplete: (record: any) => void | Promise<void>;
-}> = ({ selectedDate, insets: insetsProp, onClose, onComplete }) => {
+  skipCompletionPage?: boolean;
+}> = ({ selectedDate, insets: insetsProp, onClose, onComplete, skipCompletionPage }) => {
   const insets = insetsProp ?? { top: 50, bottom: 34 };
   const screenWidth = Dimensions.get('window').width;
 
@@ -1030,13 +980,19 @@ export const TodayWinExperience: React.FC<{
     return () => { mounted = false; };
   }, [dateStr]);
 
+  const handleDoneRef = useRef<() => Promise<void>>(async () => {});
+
   const handleNext = useCallback(() => {
     if (currentStep === 1) {
       setCurrentStep(2);
     } else if (currentStep === 2) {
-      setCurrentStep(3);
+      if (skipCompletionPage) {
+        handleDoneRef.current();
+      } else {
+        setCurrentStep(3);
+      }
     }
-  }, [currentStep]);
+  }, [currentStep, skipCompletionPage]);
 
   const handleBack = useCallback(() => {
     if (currentStep === 1 && isOtherStateActive) {
@@ -1122,6 +1078,8 @@ export const TodayWinExperience: React.FC<{
     }
   };
 
+  handleDoneRef.current = handleDone;
+
   return (
     <View style={styles.container} {...panResponder.panHandlers}>
       {currentStep === 1 && (
@@ -1135,6 +1093,7 @@ export const TodayWinExperience: React.FC<{
           setCustomWin={setCustomWin}
           onOtherStateChange={setIsOtherStateActive}
           dateContext={dateContext}
+          selectedDate={selectedDate}
         />
       )}
 
@@ -1196,10 +1155,10 @@ const TodaysWinWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
   useFocusEffect(
     React.useCallback(() => {
       StatusBar.setHidden(true, 'slide');
-      StatusBar.setBarStyle('light-content');
+      StatusBar.setBarStyle('dark-content');
       return () => {
         StatusBar.setHidden(false, 'slide');
-        StatusBar.setBarStyle('light-content');
+        StatusBar.setBarStyle('dark-content');
       };
     }, [])
   );
@@ -1215,9 +1174,10 @@ const TodaysWinWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
 };
 
 const styles = StyleSheet.create({
+  winVerseText: { fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif', fontStyle: 'italic', fontSize: 14, lineHeight: 22, color: Colors.text, opacity: 0.6, textAlign: 'left' },
   container: {
     flex: 1,
-    backgroundColor: Colors.sage,
+    backgroundColor: Colors.lightBackground,
   },
   stepContainer: {
     flex: 1,
@@ -1245,7 +1205,7 @@ const styles = StyleSheet.create({
   focusLabel: {
     fontSize: 11,
     letterSpacing: 1,
-    color: Colors.hopeWhite,
+    color: Colors.sageMuted,
   },
   titleRow: {
     flexDirection: 'row',
@@ -1259,18 +1219,18 @@ const styles = StyleSheet.create({
   },
   stepTitle: {
     fontSize: 24,
-    color: Colors.hopeWhite,
+    color: Colors.text,
     lineHeight: 32,
     textAlign: 'center',
   },
   stepTitleLeft: {
     fontSize: 24,
-    color: Colors.hopeWhite,
+    color: Colors.text,
     lineHeight: 32,
   },
   subtitle: {
     fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: Colors.textGray,
     lineHeight: 24,
     marginBottom: 32,
   },
@@ -1282,23 +1242,24 @@ const styles = StyleSheet.create({
     marginTop: 48,
   },
   winTypeCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: 'rgba(82, 106, 91, 0.08)',
     borderRadius: 28,
     paddingVertical: 14,
     paddingHorizontal: 18,
     flexDirection: 'row',
     alignItems: 'center',
     alignSelf: 'flex-start',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    justifyContent: 'center',
+    borderWidth: 0.5,
+    borderColor: 'rgba(82, 106, 91, 0.2)',
   },
   winTypeCardSelected: {
-    backgroundColor: 'rgba(255, 107, 107, 0.15)',
-    borderColor: 'rgba(255, 107, 107, 0.4)',
+    backgroundColor: Colors.sageMuted,
+    borderColor: Colors.sage,
   },
   winTypeName: {
     fontSize: 15,
-    color: 'rgba(255, 255, 255, 0.8)',
+    color: Colors.text,
   },
   winTypeNameSelected: {
     color: Colors.hopeWhite,
@@ -1313,12 +1274,13 @@ const styles = StyleSheet.create({
   },
   stepLabelWhite: {
     fontSize: 14,
-    color: Colors.hopeWhite,
+    color: Colors.sage,
   },
   completionCard: {
     borderRadius: 50,
     padding: 24,
     borderWidth: 1.5,
+    backgroundColor: Colors.hopeWhite,
     borderColor: Colors.inputBorder,
   },
   completionHeader: {
@@ -1330,7 +1292,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: 'rgba(255, 107, 107, 0.15)',
+    backgroundColor: 'rgba(82, 106, 91, 0.15)',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 16,
@@ -1340,12 +1302,12 @@ const styles = StyleSheet.create({
   },
   completionCategory: {
     fontSize: 20,
-    color: Colors.hopeWhite,
+    color: Colors.text,
     marginBottom: 4,
   },
   completionSubtext: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.6)',
+    color: Colors.textGray,
   },
   completionCheckmark: {
     marginLeft: 12,
@@ -1355,7 +1317,7 @@ const styles = StyleSheet.create({
   },
   completionSectionLabel: {
     fontSize: 12,
-    color: Colors.alertCoral,
+    color: Colors.sage,
     letterSpacing: 1.5,
     textTransform: 'uppercase',
     marginBottom: 8,
@@ -1363,18 +1325,18 @@ const styles = StyleSheet.create({
   },
   completionSectionText: {
     fontSize: 16,
-    color: Colors.hopeWhite,
+    color: Colors.text,
     lineHeight: 24,
   },
   completionFooter: {
     marginTop: 24,
     paddingTop: 24,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.1)',
+    borderTopColor: Colors.borderLight,
   },
   completionFooterText: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.6)',
+    color: Colors.textGray,
     textAlign: 'center',
     lineHeight: 20,
   },
@@ -1385,7 +1347,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 16,
     alignItems: 'center',
-    backgroundColor: Colors.sage,
+    backgroundColor: Colors.lightBackground,
     zIndex: 100,
   },
   completionButtonContainerPad: {
@@ -1395,7 +1357,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: Colors.alertCoral,
+    backgroundColor: Colors.sage,
     borderRadius: 50,
     paddingVertical: 15,
     paddingHorizontal: 28,
@@ -1416,7 +1378,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 0,
     paddingVertical: 16,
     fontSize: 18,
-    color: Colors.hopeWhite,
+    color: Colors.text,
     fontFamily: Fonts.regular,
     minHeight: 140,
     textAlignVertical: 'top',
@@ -1428,7 +1390,7 @@ const styles = StyleSheet.create({
   },
   verticalLine: {
     width: 1,
-    backgroundColor: Colors.hopeWhite,
+    backgroundColor: Colors.text,
     opacity: 0.3,
     marginRight: 12,
     borderRadius: 2,
@@ -1442,7 +1404,7 @@ const styles = StyleSheet.create({
   },
   fromText: {
     fontSize: 8,
-    color: Colors.hopeWhite,
+    color: Colors.text,
     opacity: 0.6,
     marginBottom: 4,
     letterSpacing: 2,
@@ -1452,7 +1414,7 @@ const styles = StyleSheet.create({
   },
   metadataText: {
     fontSize: 12,
-    color: Colors.hopeWhite,
+    color: Colors.text,
     opacity: 0.6,
     marginBottom: 4,
     lineHeight: 16,
@@ -1467,30 +1429,28 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     paddingHorizontal: 8,
-    gap: 8,
+    gap: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
   categoryFilterChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: 18,
+    paddingVertical: 14,
+    borderRadius: 28,
+    backgroundColor: 'rgba(82, 106, 91, 0.08)',
+    borderWidth: 0.5,
+    borderColor: 'rgba(82, 106, 91, 0.2)',
   },
   categoryFilterChipSelected: {
-    backgroundColor: Colors.alertCoral,
-    borderColor: Colors.alertCoral,
+    backgroundColor: Colors.sageMuted,
+    borderColor: Colors.sage,
   },
   categoryFilterText: {
-    fontSize: 13,
-    color: Colors.hopeWhite,
-    fontWeight: '500',
+    fontSize: 15,
+    color: Colors.text,
   },
   categoryFilterTextSelected: {
     color: Colors.hopeWhite,
-    fontWeight: '600',
   },
   showMoreButton: {
     flexDirection: 'row',
@@ -1502,11 +1462,11 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderColor: Colors.sage,
   },
   showMoreButtonText: {
     fontSize: 14,
-    color: Colors.hopeWhite,
+    color: Colors.sage,
     fontWeight: '600',
   },
   showMoreButtonIcon: {
@@ -1519,7 +1479,7 @@ const styles = StyleSheet.create({
   customInput: {
     backgroundColor: 'transparent',
     fontSize: 18,
-    color: Colors.hopeWhite,
+    color: Colors.text,
     fontFamily: Fonts.regular,
     minHeight: 80,
     textAlignVertical: 'top',
@@ -1534,19 +1494,19 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: Colors.alertCoral,
+    backgroundColor: Colors.sage,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 24,
   },
   completionTitle: {
     fontSize: 28,
-    color: Colors.hopeWhite,
+    color: Colors.text,
     marginBottom: 8,
   },
   completionSubtitle: {
     fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: Colors.textGray,
     textAlign: 'center',
   },
   summaryContainer: {
@@ -1557,13 +1517,13 @@ const styles = StyleSheet.create({
   },
   summaryLabel: {
     fontSize: 12,
-    color: Colors.alertCoral,
+    color: Colors.sage,
     letterSpacing: 1.5,
     textTransform: 'uppercase',
   },
   summaryText: {
     fontSize: 16,
-    color: Colors.hopeWhite,
+    color: Colors.text,
     lineHeight: 24,
   },
   primaryButton: {
@@ -1573,7 +1533,7 @@ const styles = StyleSheet.create({
     height: 40,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: Colors.alertCoral,
+    backgroundColor: Colors.sage,
     borderRadius: 999,
     elevation: 8,
     zIndex: 100,
@@ -1587,7 +1547,7 @@ const styles = StyleSheet.create({
     right: 20,
     height: 56,
     borderRadius: 28,
-    backgroundColor: Colors.alertCoral,
+    backgroundColor: Colors.sage,
     shadowColor: '#29342E',
     shadowOffset: {
       width: 0,
@@ -1608,7 +1568,7 @@ const styles = StyleSheet.create({
     height: 42,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.09)',
+    backgroundColor: Colors.hopeWhite,
     borderRadius: 999,
     zIndex: 100,
   },

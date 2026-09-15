@@ -1,0 +1,715 @@
+[
+  {
+    "chapter": 1,
+    "insights": [
+      {
+        "id": "1-1",
+        "label": "Honor the LORD",
+        "verses": "Proverbs 1:7",
+        "prompt": "What would it look like to honor the LORD tomorrow?"
+      },
+      {
+        "id": "1-2",
+        "label": "Receive instruction",
+        "verses": "Proverbs 1:8–9",
+        "prompt": "What would it look like to receive instruction tomorrow?"
+      },
+      {
+        "id": "1-3",
+        "label": "Refuse harmful company",
+        "verses": "Proverbs 1:10–19",
+        "prompt": "What would it look like to refuse harmful company tomorrow?"
+      }
+    ]
+  },
+  {
+    "chapter": 2,
+    "insights": [
+      {
+        "id": "2-1",
+        "label": "Seek wisdom diligently",
+        "verses": "Proverbs 2:1–6",
+        "prompt": "What would it look like to seek wisdom diligently tomorrow?"
+      },
+      {
+        "id": "2-2",
+        "label": "Walk with integrity",
+        "verses": "Proverbs 2:7–9",
+        "prompt": "What would it look like to walk with integrity tomorrow?"
+      },
+      {
+        "id": "2-3",
+        "label": "Avoid crooked paths",
+        "verses": "Proverbs 2:12–15",
+        "prompt": "What would it look like to avoid crooked paths tomorrow?"
+      }
+    ]
+  },
+  {
+    "chapter": 3,
+    "insights": [
+      {
+        "id": "3-1",
+        "label": "Trust the LORD",
+        "verses": "Proverbs 3:5–6",
+        "prompt": "What would it look like to trust the LORD tomorrow?"
+      },
+      {
+        "id": "3-2",
+        "label": "Honor God with your resources",
+        "verses": "Proverbs 3:9–10",
+        "prompt": "What would it look like to honor God with your resources tomorrow?"
+      },
+      {
+        "id": "3-3",
+        "label": "Receive the LORD’s discipline",
+        "verses": "Proverbs 3:11–12",
+        "prompt": "What would it look like to receive the LORD’s discipline tomorrow?"
+      }
+    ]
+  },
+  {
+    "chapter": 4,
+    "insights": [
+      {
+        "id": "4-1",
+        "label": "Hold on to instruction",
+        "verses": "Proverbs 4:13",
+        "prompt": "What would it look like to hold on to instruction tomorrow?"
+      },
+      {
+        "id": "4-2",
+        "label": "Guard your heart",
+        "verses": "Proverbs 4:23",
+        "prompt": "What would it look like to guard your heart tomorrow?"
+      },
+      {
+        "id": "4-3",
+        "label": "Keep your steps on a straight path",
+        "verses": "Proverbs 4:25–27",
+        "prompt": "What would it look like to keep your steps on a straight path tomorrow?"
+      }
+    ]
+  },
+  {
+    "chapter": 5,
+    "insights": [
+      {
+        "id": "5-1",
+        "label": "Stay away from adultery",
+        "verses": "Proverbs 5:3–8",
+        "prompt": "What would it look like to stay away from adultery tomorrow?"
+      },
+      {
+        "id": "5-2",
+        "label": "Be faithful to your spouse",
+        "verses": "Proverbs 5:15–20",
+        "prompt": "What would it look like to be faithful to your spouse tomorrow?"
+      },
+      {
+        "id": "5-3",
+        "label": "Remember that the LORD sees your ways",
+        "verses": "Proverbs 5:21",
+        "prompt": "What would it look like to remember that the LORD sees your ways tomorrow?"
+      }
+    ]
+  },
+  {
+    "chapter": 6,
+    "insights": [
+      {
+        "id": "6-1",
+        "label": "Learn diligence from the ant",
+        "verses": "Proverbs 6:6–11",
+        "prompt": "What would it look like to learn diligence from the ant tomorrow?"
+      },
+      {
+        "id": "6-2",
+        "label": "Reject deceit and discord",
+        "verses": "Proverbs 6:16–19",
+        "prompt": "What would it look like to reject deceit and discord tomorrow?"
+      },
+      {
+        "id": "6-3",
+        "label": "Heed instruction",
+        "verses": "Proverbs 6:20–23",
+        "prompt": "What would it look like to heed instruction tomorrow?"
+      }
+    ]
+  },
+  {
+    "chapter": 7,
+    "insights": [
+      {
+        "id": "7-1",
+        "label": "Treasure wise instruction",
+        "verses": "Proverbs 7:1–3",
+        "prompt": "What would it look like to treasure wise instruction tomorrow?"
+      },
+      {
+        "id": "7-2",
+        "label": "Keep wisdom close",
+        "verses": "Proverbs 7:4–5",
+        "prompt": "What would it look like to keep wisdom close tomorrow?"
+      },
+      {
+        "id": "7-3",
+        "label": "Turn away from temptation",
+        "verses": "Proverbs 7:24–27",
+        "prompt": "What would it look like to turn away from temptation tomorrow?"
+      }
+    ]
+  },
+  {
+    "chapter": 8,
+    "insights": [
+      {
+        "id": "8-1",
+        "label": "Choose wisdom over riches",
+        "verses": "Proverbs 8:10–11",
+        "prompt": "What would it look like to choose wisdom over riches tomorrow?"
+      },
+      {
+        "id": "8-2",
+        "label": "Reject pride and evil",
+        "verses": "Proverbs 8:13",
+        "prompt": "What would it look like to reject pride and evil tomorrow?"
+      },
+      {
+        "id": "8-3",
+        "label": "Listen for wisdom",
+        "verses": "Proverbs 8:32–35",
+        "prompt": "What would it look like to listen for wisdom tomorrow?"
+      }
+    ]
+  },
+  {
+    "chapter": 9,
+    "insights": [
+      {
+        "id": "9-1",
+        "label": "Receive correction",
+        "verses": "Proverbs 9:8–9",
+        "prompt": "What would it look like to receive correction tomorrow?"
+      },
+      {
+        "id": "9-2",
+        "label": "Honor the LORD",
+        "verses": "Proverbs 9:10",
+        "prompt": "What would it look like to honor the LORD tomorrow?"
+      },
+      {
+        "id": "9-3",
+        "label": "Leave foolishness behind",
+        "verses": "Proverbs 9:6",
+        "prompt": "What would it look like to leave foolishness behind tomorrow?"
+      }
+    ]
+  },
+  {
+    "chapter": 10,
+    "insights": [
+      {
+        "id": "10-1",
+        "label": "Work diligently",
+        "verses": "Proverbs 10:4–5",
+        "prompt": "What would it look like to work diligently tomorrow?"
+      },
+      {
+        "id": "10-2",
+        "label": "Speak with restraint",
+        "verses": "Proverbs 10:19",
+        "prompt": "What would it look like to speak with restraint tomorrow?"
+      },
+      {
+        "id": "10-3",
+        "label": "Let love cover offenses",
+        "verses": "Proverbs 10:12",
+        "prompt": "What would it look like to let love cover offenses tomorrow?"
+      }
+    ]
+  },
+  {
+    "chapter": 11,
+    "insights": [
+      {
+        "id": "11-1",
+        "label": "Practice honesty",
+        "verses": "Proverbs 11:1",
+        "prompt": "What would it look like to practice honesty tomorrow?"
+      },
+      {
+        "id": "11-2",
+        "label": "Choose humility",
+        "verses": "Proverbs 11:2",
+        "prompt": "What would it look like to choose humility tomorrow?"
+      },
+      {
+        "id": "11-3",
+        "label": "Be generous",
+        "verses": "Proverbs 11:24–25",
+        "prompt": "What would it look like to be generous tomorrow?"
+      }
+    ]
+  },
+  {
+    "chapter": 12,
+    "insights": [
+      {
+        "id": "12-1",
+        "label": "Love correction",
+        "verses": "Proverbs 12:1",
+        "prompt": "What would it look like to love correction tomorrow?"
+      },
+      {
+        "id": "12-2",
+        "label": "Speak truthfully",
+        "verses": "Proverbs 12:17–19",
+        "prompt": "What would it look like to speak truthfully tomorrow?"
+      },
+      {
+        "id": "12-3",
+        "label": "Use words that heal",
+        "verses": "Proverbs 12:18",
+        "prompt": "What would it look like to use words that heal tomorrow?"
+      }
+    ]
+  },
+  {
+    "chapter": 13,
+    "insights": [
+      {
+        "id": "13-1",
+        "label": "Guard your words",
+        "verses": "Proverbs 13:3",
+        "prompt": "What would it look like to guard your words tomorrow?"
+      },
+      {
+        "id": "13-2",
+        "label": "Receive wise instruction",
+        "verses": "Proverbs 13:18",
+        "prompt": "What would it look like to receive wise instruction tomorrow?"
+      },
+      {
+        "id": "13-3",
+        "label": "Walk with wise people",
+        "verses": "Proverbs 13:20",
+        "prompt": "What would it look like to walk with wise people tomorrow?"
+      }
+    ]
+  },
+  {
+    "chapter": 14,
+    "insights": [
+      {
+        "id": "14-1",
+        "label": "Choose patience",
+        "verses": "Proverbs 14:29",
+        "prompt": "What would it look like to choose patience tomorrow?"
+      },
+      {
+        "id": "14-2",
+        "label": "Care for those in need",
+        "verses": "Proverbs 14:31",
+        "prompt": "What would it look like to care for those in need tomorrow?"
+      },
+      {
+        "id": "14-3",
+        "label": "Consider your steps",
+        "verses": "Proverbs 14:15",
+        "prompt": "What would it look like to consider your steps tomorrow?"
+      }
+    ]
+  },
+  {
+    "chapter": 15,
+    "insights": [
+      {
+        "id": "15-1",
+        "label": "Respond gently",
+        "verses": "Proverbs 15:1",
+        "prompt": "What would it look like to respond gently tomorrow?"
+      },
+      {
+        "id": "15-2",
+        "label": "Receive correction",
+        "verses": "Proverbs 15:31–32",
+        "prompt": "What would it look like to receive correction tomorrow?"
+      },
+      {
+        "id": "15-3",
+        "label": "Seek wise counsel",
+        "verses": "Proverbs 15:22",
+        "prompt": "What would it look like to seek wise counsel tomorrow?"
+      }
+    ]
+  },
+  {
+    "chapter": 16,
+    "insights": [
+      {
+        "id": "16-1",
+        "label": "Entrust your work to the LORD",
+        "verses": "Proverbs 16:3",
+        "prompt": "What would it look like to entrust your work to the LORD tomorrow?"
+      },
+      {
+        "id": "16-2",
+        "label": "Choose humility",
+        "verses": "Proverbs 16:18–19",
+        "prompt": "What would it look like to choose humility tomorrow?"
+      },
+      {
+        "id": "16-3",
+        "label": "Practice self-control",
+        "verses": "Proverbs 16:32",
+        "prompt": "What would it look like to practice self-control tomorrow?"
+      }
+    ]
+  },
+  {
+    "chapter": 17,
+    "insights": [
+      {
+        "id": "17-1",
+        "label": "Seek love instead of repeating an offense",
+        "verses": "Proverbs 17:9",
+        "prompt": "What would it look like to seek love instead of repeating an offense tomorrow?"
+      },
+      {
+        "id": "17-2",
+        "label": "Be a faithful friend",
+        "verses": "Proverbs 17:17",
+        "prompt": "What would it look like to be a faithful friend tomorrow?"
+      },
+      {
+        "id": "17-3",
+        "label": "Restrain your words",
+        "verses": "Proverbs 17:27–28",
+        "prompt": "What would it look like to restrain your words tomorrow?"
+      }
+    ]
+  },
+  {
+    "chapter": 18,
+    "insights": [
+      {
+        "id": "18-1",
+        "label": "Listen before answering",
+        "verses": "Proverbs 18:13",
+        "prompt": "What would it look like to listen before answering tomorrow?"
+      },
+      {
+        "id": "18-2",
+        "label": "Hear both sides",
+        "verses": "Proverbs 18:17",
+        "prompt": "What would it look like to hear both sides tomorrow?"
+      },
+      {
+        "id": "18-3",
+        "label": "Remember the power of words",
+        "verses": "Proverbs 18:21",
+        "prompt": "What would it look like to remember the power of words tomorrow?"
+      }
+    ]
+  },
+  {
+    "chapter": 19,
+    "insights": [
+      {
+        "id": "19-1",
+        "label": "Overlook an offense with patience",
+        "verses": "Proverbs 19:11",
+        "prompt": "What would it look like to overlook an offense with patience tomorrow?"
+      },
+      {
+        "id": "19-2",
+        "label": "Be kind to those in need",
+        "verses": "Proverbs 19:17",
+        "prompt": "What would it look like to be kind to those in need tomorrow?"
+      },
+      {
+        "id": "19-3",
+        "label": "Listen to counsel",
+        "verses": "Proverbs 19:20",
+        "prompt": "What would it look like to listen to counsel tomorrow?"
+      }
+    ]
+  },
+  {
+    "chapter": 20,
+    "insights": [
+      {
+        "id": "20-1",
+        "label": "Avoid quarrels",
+        "verses": "Proverbs 20:3",
+        "prompt": "What would it look like to avoid quarrels tomorrow?"
+      },
+      {
+        "id": "20-2",
+        "label": "Practice honest dealings",
+        "verses": "Proverbs 20:10",
+        "prompt": "What would it look like to practice honest dealings tomorrow?"
+      },
+      {
+        "id": "20-3",
+        "label": "Wait for the LORD instead of taking revenge",
+        "verses": "Proverbs 20:22",
+        "prompt": "What would it look like to wait for the LORD instead of taking revenge tomorrow?"
+      }
+    ]
+  },
+  {
+    "chapter": 21,
+    "insights": [
+      {
+        "id": "21-1",
+        "label": "Do what is right and just",
+        "verses": "Proverbs 21:3",
+        "prompt": "What would it look like to do what is right and just tomorrow?"
+      },
+      {
+        "id": "21-2",
+        "label": "Listen to those in need",
+        "verses": "Proverbs 21:13",
+        "prompt": "What would it look like to listen to those in need tomorrow?"
+      },
+      {
+        "id": "21-3",
+        "label": "Guard your speech",
+        "verses": "Proverbs 21:23",
+        "prompt": "What would it look like to guard your speech tomorrow?"
+      }
+    ]
+  },
+  {
+    "chapter": 22,
+    "insights": [
+      {
+        "id": "22-1",
+        "label": "Value a good name over riches",
+        "verses": "Proverbs 22:1",
+        "prompt": "What would it look like to value a good name over riches tomorrow?"
+      },
+      {
+        "id": "22-2",
+        "label": "Recognize danger and take refuge",
+        "verses": "Proverbs 22:3",
+        "prompt": "What would it look like to recognize danger and take refuge tomorrow?"
+      },
+      {
+        "id": "22-3",
+        "label": "Refuse to exploit the poor",
+        "verses": "Proverbs 22:22–23",
+        "prompt": "What would it look like to refuse to exploit the poor tomorrow?"
+      }
+    ]
+  },
+  {
+    "chapter": 23,
+    "insights": [
+      {
+        "id": "23-1",
+        "label": "Do not wear yourself out chasing riches",
+        "verses": "Proverbs 23:4–5",
+        "prompt": "What would it look like to do not wear yourself out chasing riches tomorrow?"
+      },
+      {
+        "id": "23-2",
+        "label": "Apply your heart to instruction",
+        "verses": "Proverbs 23:12",
+        "prompt": "What would it look like to apply your heart to instruction tomorrow?"
+      },
+      {
+        "id": "23-3",
+        "label": "Refuse to envy sinners",
+        "verses": "Proverbs 23:17–18",
+        "prompt": "What would it look like to refuse to envy sinners tomorrow?"
+      }
+    ]
+  },
+  {
+    "chapter": 24,
+    "insights": [
+      {
+        "id": "24-1",
+        "label": "Seek wise counsel",
+        "verses": "Proverbs 24:5–6",
+        "prompt": "What would it look like to seek wise counsel tomorrow?"
+      },
+      {
+        "id": "24-2",
+        "label": "Do not rejoice when an enemy falls",
+        "verses": "Proverbs 24:17–18",
+        "prompt": "What would it look like to do not rejoice when an enemy falls tomorrow?"
+      },
+      {
+        "id": "24-3",
+        "label": "Refuse revenge",
+        "verses": "Proverbs 24:29",
+        "prompt": "What would it look like to refuse revenge tomorrow?"
+      }
+    ]
+  },
+  {
+    "chapter": 25,
+    "insights": [
+      {
+        "id": "25-1",
+        "label": "Keep a neighbor’s confidence",
+        "verses": "Proverbs 25:9–10",
+        "prompt": "What would it look like to keep a neighbor’s confidence tomorrow?"
+      },
+      {
+        "id": "25-2",
+        "label": "Offer timely words",
+        "verses": "Proverbs 25:11",
+        "prompt": "What would it look like to offer timely words tomorrow?"
+      },
+      {
+        "id": "25-3",
+        "label": "Care for an enemy’s needs",
+        "verses": "Proverbs 25:21–22",
+        "prompt": "What would it look like to care for an enemy’s needs tomorrow?"
+      }
+    ]
+  },
+  {
+    "chapter": 26,
+    "insights": [
+      {
+        "id": "26-1",
+        "label": "Stay out of others’ quarrels",
+        "verses": "Proverbs 26:17",
+        "prompt": "What would it look like to stay out of others’ quarrels tomorrow?"
+      },
+      {
+        "id": "26-2",
+        "label": "Do not disguise harm as a joke",
+        "verses": "Proverbs 26:18–19",
+        "prompt": "What would it look like to do not disguise harm as a joke tomorrow?"
+      },
+      {
+        "id": "26-3",
+        "label": "Refuse to fuel gossip",
+        "verses": "Proverbs 26:20",
+        "prompt": "What would it look like to refuse to fuel gossip tomorrow?"
+      }
+    ]
+  },
+  {
+    "chapter": 27,
+    "insights": [
+      {
+        "id": "27-1",
+        "label": "Hold tomorrow with humility",
+        "verses": "Proverbs 27:1",
+        "prompt": "What would it look like to hold tomorrow with humility tomorrow?"
+      },
+      {
+        "id": "27-2",
+        "label": "Receive a friend’s honest correction",
+        "verses": "Proverbs 27:5–6",
+        "prompt": "What would it look like to receive a friend’s honest correction tomorrow?"
+      },
+      {
+        "id": "27-3",
+        "label": "Welcome growth through friendship",
+        "verses": "Proverbs 27:17",
+        "prompt": "What would it look like to welcome growth through friendship tomorrow?"
+      }
+    ]
+  },
+  {
+    "chapter": 28,
+    "insights": [
+      {
+        "id": "28-1",
+        "label": "Confess and turn from sin",
+        "verses": "Proverbs 28:13",
+        "prompt": "What would it look like to confess and turn from sin tomorrow?"
+      },
+      {
+        "id": "28-2",
+        "label": "Reject dishonest gain",
+        "verses": "Proverbs 28:16",
+        "prompt": "What would it look like to reject dishonest gain tomorrow?"
+      },
+      {
+        "id": "28-3",
+        "label": "Care for the poor",
+        "verses": "Proverbs 28:27",
+        "prompt": "What would it look like to care for the poor tomorrow?"
+      }
+    ]
+  },
+  {
+    "chapter": 29,
+    "insights": [
+      {
+        "id": "29-1",
+        "label": "Stay open to correction",
+        "verses": "Proverbs 29:1",
+        "prompt": "What would it look like to stay open to correction tomorrow?"
+      },
+      {
+        "id": "29-2",
+        "label": "Practice restraint in anger",
+        "verses": "Proverbs 29:11",
+        "prompt": "What would it look like to practice restraint in anger tomorrow?"
+      },
+      {
+        "id": "29-3",
+        "label": "Trust the LORD rather than fearing people",
+        "verses": "Proverbs 29:25",
+        "prompt": "What would it look like to trust the LORD rather than fearing people tomorrow?"
+      }
+    ]
+  },
+  {
+    "chapter": 30,
+    "insights": [
+      {
+        "id": "30-1",
+        "label": "Trust God’s words",
+        "verses": "Proverbs 30:5–6",
+        "prompt": "What would it look like to trust God’s words tomorrow?"
+      },
+      {
+        "id": "30-2",
+        "label": "Seek enough rather than excess",
+        "verses": "Proverbs 30:8–9",
+        "prompt": "What would it look like to seek enough rather than excess tomorrow?"
+      },
+      {
+        "id": "30-3",
+        "label": "Do not stir up anger",
+        "verses": "Proverbs 30:33",
+        "prompt": "What would it look like to do not stir up anger tomorrow?"
+      }
+    ]
+  },
+  {
+    "chapter": 31,
+    "insights": [
+      {
+        "id": "31-1",
+        "label": "Speak for those without a voice",
+        "verses": "Proverbs 31:8–9",
+        "prompt": "What would it look like to speak for those without a voice tomorrow?"
+      },
+      {
+        "id": "31-2",
+        "label": "Defend the poor and needy",
+        "verses": "Proverbs 31:9",
+        "prompt": "What would it look like to defend the poor and needy tomorrow?"
+      },
+      {
+        "id": "31-3",
+        "label": "Value reverence for the LORD",
+        "verses": "Proverbs 31:30",
+        "prompt": "What would it look like to value reverence for the LORD tomorrow?"
+      }
+    ]
+  }
+]

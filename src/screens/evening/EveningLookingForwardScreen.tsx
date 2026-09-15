@@ -1,4 +1,6 @@
+import { exitEveningFlow } from '../../navigation/exitEveningFlow';
 import * as React from 'react';
+import { DeviceEventEmitter } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 
@@ -14,8 +16,9 @@ const EveningLookingForwardScreen: React.FC = () => {
   const selectedDateObj = new Date(selectedDate);
   const params = route.params ?? {};
 
+
   const handleClose = () => {
-    navigation.goBack();
+    exitEveningFlow(navigation, 'Today');
   };
 
   const handleComplete = async (record: any) => {
@@ -35,11 +38,14 @@ const EveningLookingForwardScreen: React.FC = () => {
       local_id: record.id,
     });
 
+    DeviceEventEmitter.emit('reflection_saved', { type: 'looking_forward', date: selectedDate });
+
     navigation.navigate('EveningClosing', {
       ...params,
       selectedDate,
       lookingForward,
       lookingForwardContext,
+      lookingForwardIcon: content.emotionIcon,
       lookingForwardId: record.id,
     });
   };
@@ -50,7 +56,7 @@ const EveningLookingForwardScreen: React.FC = () => {
       insets={insets}
       onClose={handleClose}
       onComplete={handleComplete}
-      completionButtonText="Continue"
+      skipCompletionPage
     />
   );
 };

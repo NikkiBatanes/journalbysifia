@@ -10,6 +10,7 @@ import { getWeekStart, getWeekEnd, WeekStartDay } from '../../../utils/weekStart
 import { getAllLocalReflectionsByType } from '../../../storage/reflectionStorage';
 import { getSavedBibleStudyReflections, parseSavedBibleStudy } from '../../../storage/bibleStudyMomentsStorage';
 import { getMorningMoments } from '../../../storage/morningMomentsStorage';
+import { getEveningMoments } from '../../../storage/eveningMomentsStorage';
 import { SavedMorningMoment } from '../../../components/journal/SavedMorningMoment';
 import { MomentsPaletteContext } from '../../../context/MomentsPaletteContext';
 import ThemedText from '../../../components/common/ThemedText';
@@ -662,7 +663,45 @@ const EnhancedMomentsContent: React.FC<EnhancedMomentsRendererProps> = ({
     } catch (error) {
       Logger.error('Error loading local morning Moments', error as Error, { component: 'EnhancedMomentsRenderer' });
     }
-    const localEntries = [...sermonEntries, ...bibleStudyEntries, ...morningEntries];
+
+    let eveningEntries: MomentEntry[] = [];
+    try {
+      eveningEntries = (await getEveningMoments()).map(moment => {
+        const [year, month, day] = moment.date.split('-').map(Number);
+        const date = new Date(year, month - 1, day);
+
+        if (moment.pluginId === 'eveninggratitude') {
+          const gratitudePlugin = plugins.find((p: JournalPlugin) => p.id === 'gratitude') || plugins.find((p: JournalPlugin) => p.title.toLowerCase().includes('gratitude'));
+          if (gratitudePlugin) {
+            return { plugin: gratitudePlugin, date, category: 'Journal', type: 'Gratitude List', _isGratitude: true, _searchText: buildSearchText(moment.title, ...moment.lines) };
+          }
+        }
+
+        if (moment.pluginId === 'eveningwin') {
+          const winPlugin = plugins.find((p: JournalPlugin) => p.id === 'todayswin') || plugins.find((p: JournalPlugin) => p.title.toLowerCase().includes('win'));
+          if (winPlugin) {
+            return { plugin: { ...winPlugin, savedMorningMoment: moment }, date, category: 'Journal', type: "Today's Win", reflectionId: moment.id, _savedAt: new Date(moment.savedAt).getTime(), _searchText: buildSearchText(moment.title, ...moment.lines) };
+          }
+        }
+
+        if (moment.pluginId === 'lookingforward') {
+          const lookingForwardPlugin = plugins.find((p: JournalPlugin) => p.id === 'lookingforward') || plugins.find((p: JournalPlugin) => p.title.toLowerCase().includes('looking'));
+          if (lookingForwardPlugin) {
+            return { plugin: { ...lookingForwardPlugin, savedMorningMoment: moment }, date, category: 'Journal', type: 'Looking Forward To', reflectionId: moment.id, _savedAt: new Date(moment.savedAt).getTime(), _searchText: buildSearchText(moment.title, ...moment.lines) };
+          }
+        }
+
+        const plugin: JournalPlugin = {
+          id: moment.pluginId, title: moment.title, category: 'reflect', priority: 1,
+          viewModes: ['moments'], component: SavedMorningMoment, savedMorningMoment: moment,
+        };
+        return { plugin, date, category: 'Reflection', type: moment.title, reflectionId: moment.id, _savedAt: new Date(moment.savedAt).getTime(), _isPlan: false, _isReflection: true, _searchText: buildSearchText(moment.title, ...moment.lines) };
+      });
+    } catch (error) {
+      Logger.error('Error loading local evening Moments', error as Error, { component: 'EnhancedMomentsRenderer' });
+    }
+
+    const localEntries = [...sermonEntries, ...bibleStudyEntries, ...morningEntries, ...eveningEntries];
     if (generation !== fetchGeneration.current) {return;}
 
     if (!user) {
@@ -674,7 +713,7 @@ const EnhancedMomentsContent: React.FC<EnhancedMomentsRendererProps> = ({
 
     // Publish local saved content immediately; cloud queries must not delay it.
     setRealEntries(previous => [
-      ...previous.filter(entry => !['sermon', 'biblestudy', 'focus', 'todos', 'morningcheckin', 'morningpsalm'].includes(entry.plugin.id)),
+      ...previous.filter(entry => !['sermon', 'biblestudy', 'focus', 'todos', 'morningcheckin', 'morningpsalm', 'gratitude', 'eveninggratitude', 'todayswin', 'lookingforward', 'eveningproverb'].includes(entry.plugin.id)),
       ...localEntries,
     ]);
 
@@ -1335,7 +1374,10 @@ const EnhancedMomentsContent: React.FC<EnhancedMomentsRendererProps> = ({
 
       // Merge local sermon notes with Supabase entries
       // Local canonical content wins over cloud copies for the same type/day.
-      entries = entries.filter(entry => !morningEntries.some(local => local.plugin.id === entry.plugin.id && local.date.getTime() === entry.date.getTime()));
+      entries = entries.filter(entry =>
+        !morningEntries.some(local => local.plugin.id === entry.plugin.id && local.date.getTime() === entry.date.getTime()) &&
+        !eveningEntries.some(local => local.plugin.id === entry.plugin.id && local.date.getTime() === entry.date.getTime())
+      );
       entries.push(...localEntries);
 
       if (generation === fetchGeneration.current) {setRealEntries(entries);}

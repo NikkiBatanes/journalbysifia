@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
 import { Modal, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
+import { format } from 'date-fns';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { Pencil, X } from 'lucide-react-native';
 import { JournalCard } from './JournalCard';
 import ScriptureReaderModal from '../ScriptureReaderModal';
 import ThemedText from '../common/ThemedText';
@@ -11,6 +14,8 @@ import { MorningMoment } from '../../storage/morningMomentsStorage';
 
 export const SavedMorningMoment = ({ moment, viewMode = 'inline' }: { moment: MorningMoment; viewMode?: 'carousel' | 'inline' | 'moments' }) => {
   const [open, setOpen] = useState(false);
+  const [reflectionOpen, setReflectionOpen] = useState(false);
+  const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   if (moment.pluginId === 'morningcheckin') {
     return <JournalCard title="HOW ARE YOU FEELING?" variant="inline" viewMode={viewMode}>
@@ -57,6 +62,58 @@ export const SavedMorningMoment = ({ moment, viewMode = 'inline' }: { moment: Mo
       <ScriptureReaderModal visible={open} passages={[{ reference: moment.title }]} initialIndex={0} onClose={() => setOpen(false)} />
     </>;
   }
+  if (moment.pluginId === 'eveningproverb') {
+    const wisdomSelections = moment.wisdomSelections || [];
+    const wisdomText = (moment.observations || []).join(' · ').trim();
+    const [year, month, day] = moment.date.split('-').map(Number);
+    const proverbDate = format(new Date(year, month - 1, day), 'MMMM d, yyyy');
+    const handleEdit = () => {
+      (navigation as any).navigate('EveningFlow', { screen: 'Proverbs', params: { selectedDate: moment.date } });
+    };
+    return <>
+      <TouchableOpacity style={styles.proverbCard} onPress={() => setReflectionOpen(true)} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel={`View reflection for ${moment.title}`}>
+        <JournalCard title="EVENING PROVERBS" subtitle={proverbDate} variant="inline" viewMode={viewMode} showAddButton onAdd={handleEdit}>
+          <View style={styles.proverbContent}>
+            <TouchableOpacity onPress={() => setOpen(true)} style={[styles.feelingRow, styles.passageRow]} accessibilityRole="button" accessibilityLabel={`Read ${moment.title}`}>
+              <MaterialCommunityIcons name="script-text" size={16} color={Colors.sage} />
+              <ThemedText weight="semiBold" style={styles.passageTitle}>{moment.title}</ThemedText>
+            </TouchableOpacity>
+            <View style={styles.feelingRow}>
+              <Ionicons name={moment.markedRead ? 'checkmark-circle' : 'book-outline'} size={14} color={Colors.sage} />
+              <ThemedText style={styles.readStatus}>{moment.markedRead ? 'Passage read' : 'Not marked read'}</ThemedText>
+            </View>
+            {!!wisdomText && (
+              <>
+                <View style={styles.divider} />
+                <ThemedText style={styles.feelingLabel}>WISDOM YOU NOTICED</ThemedText>
+                {wisdomSelections.length ? wisdomSelections.map(selection => (
+                  <View key={selection.id || selection.label} style={styles.wisdomSelection}>
+                    <ThemedText weight="semiBold" style={[styles.feeling, styles.centered]}>{selection.label}</ThemedText>
+                    {!!selection.verses && <ThemedText style={styles.wisdomVerses}>{selection.verses}</ThemedText>}
+                  </View>
+                )) : <ThemedText weight="semiBold" style={[styles.feeling, styles.centered]}>{wisdomText}</ThemedText>}
+              </>
+            )}
+          </View>
+        </JournalCard>
+      </TouchableOpacity>
+      <ScriptureReaderModal visible={open} passages={[{ reference: moment.title }]} initialIndex={0} onClose={() => setOpen(false)} />
+      <Modal visible={reflectionOpen} animationType="slide" onRequestClose={() => setReflectionOpen(false)}>
+        <View style={[styles.page, { paddingHorizontal: 0 }]}>
+          <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingHorizontal: 24, paddingTop: insets.top + 80, paddingBottom: insets.bottom + 30, flexGrow: 1 }} showsVerticalScrollIndicator={false}>
+            <ThemedText style={styles.proverbDateText}>{proverbDate.toUpperCase()}</ThemedText>
+            <ThemedText weight="semiBold" style={styles.label}>EVENING PROVERBS</ThemedText>
+            <ThemedText weight="semiBold" style={styles.title}>{moment.title}</ThemedText>
+            {!!wisdomText && <><View style={styles.divider} /><ThemedText style={styles.feelingLabel}>WISDOM YOU NOTICED</ThemedText>{wisdomSelections.length ? wisdomSelections.map(selection => <View key={selection.id || selection.label} style={styles.wisdomSelection}><ThemedText weight="semiBold" style={styles.detailWisdomLabel}>{selection.label}</ThemedText>{!!selection.verses && <ThemedText style={styles.wisdomVerses}>{selection.verses}</ThemedText>}{!!selection.prompt && <ThemedText style={styles.wisdomPrompt}>{selection.prompt}</ThemedText>}{!!selection.application && <ThemedText style={styles.answer}>{selection.application}</ThemedText>}</View>) : <ThemedText style={styles.answer}>{wisdomText}</ThemedText>}</>}
+          </ScrollView>
+          <View style={[styles.proverbTopBar, { top: insets.top + 16 }]}>
+            <TouchableOpacity onPress={() => { setReflectionOpen(false); handleEdit(); }} style={styles.proverbTopButton} activeOpacity={0.7} accessibilityLabel="Edit" accessibilityRole="button"><Pencil size={20} color={Colors.sage} /></TouchableOpacity>
+            <TouchableOpacity onPress={() => setReflectionOpen(false)} style={styles.proverbTopButton} activeOpacity={0.7} accessibilityLabel="Close" accessibilityRole="button"><X size={20} color={Colors.sage} /></TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+    </>;
+  }
   return <>
     <TouchableOpacity style={styles.card} onPress={() => setOpen(true)} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel={`View ${moment.title}`}>
       <ThemedText weight="semiBold" style={styles.label}>{moment.title.toUpperCase()}</ThemedText>
@@ -76,13 +133,24 @@ export const SavedMorningMoment = ({ moment, viewMode = 'inline' }: { moment: Mo
 };
 const styles = StyleSheet.create({
   centered: { textAlign: 'center' },
-  passageRow: { marginTop: 16, marginBottom: 8 },
+  proverbCard: {},
+  proverbContent: { borderWidth: 1.5, borderColor: Colors.inputBorder, borderRadius: 24, padding: 20 },
+  proverbTopBar: { position: 'absolute', left: 0, right: 0, zIndex: 10, flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', gap: 10, paddingHorizontal: 20, backgroundColor: 'transparent' },
+  proverbTopButton: { width: 42, height: 42, borderRadius: 21, backgroundColor: Colors.cardBackground, alignItems: 'center', justifyContent: 'center' },
+  proverbDateText: { color: Colors.textGray, fontSize: 11, letterSpacing: 1.5, textAlign: 'center', marginBottom: 16 },
+  passageRow: { marginTop: 0, marginBottom: 8 },
   passageTitle: { color: Colors.sage, fontSize: 14 },
   reflection: { color: Colors.text, fontSize: 16, lineHeight: 24, textAlign: 'center' },
+  viewAllButton: { alignSelf: 'center', paddingHorizontal: 12, paddingTop: 8 },
+  viewAllText: { color: Colors.sage, fontSize: 12 },
   divider: { height: 1, backgroundColor: Colors.cardBorder, marginVertical: 16 },
   feelingLabel: { color: Colors.sage, fontSize: 10, letterSpacing: 1.5, textAlign: 'center', marginBottom: 8 },
   feelingRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
   feeling: { color: Colors.text, fontSize: 20, lineHeight: 26 },
+  wisdomSelection: { alignItems: 'center', marginBottom: 16 },
+  wisdomVerses: { color: Colors.textGray, fontSize: 12, lineHeight: 18, textAlign: 'center', marginTop: 4 },
+  wisdomPrompt: { color: Colors.text, fontSize: 16, lineHeight: 24, textAlign: 'center', marginTop: 12, marginBottom: 8, fontWeight: '600' },
+  detailWisdomLabel: { color: Colors.text, fontSize: 20, lineHeight: 26, textAlign: 'center' },
   readStatus: { color: Colors.sage, fontSize: 12 },
   card: { backgroundColor: Colors.hopeWhite, borderWidth: 1, borderColor: Colors.cardBorder, borderRadius: 24, padding: 20 },
   label: { color: Colors.textGray, fontSize: 12, letterSpacing: 1.5, marginBottom: 16 },

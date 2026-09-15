@@ -5,6 +5,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
 import ThemedText from '../../components/common/ThemedText';
+import StepFadeIn from '../../components/common/StepFadeIn';
 import { Colors } from '../../theme/colors';
 import { getFontFamily } from '../../theme/fonts';
 import { useTheme } from '../../hooks/useTheme';
@@ -101,7 +102,7 @@ const UnderneathItScreen = () => {
     </TouchableOpacity>
   );
 
-  const onBack = () => navigation.goBack();
+  const onBack = () => navigation.navigate('MainTabs', { screen: 'Today' });
 
   const children = (
     <>
@@ -152,18 +153,22 @@ const UnderneathItScreen = () => {
       onBack={onBack}
       backgroundColor={Colors.lightBackground}
     >
-      <TextInput
-        style={[styles.personalInput, { fontFamily: getFontFamily(fontKey, 'regular') }]}
-        value={text}
-        onChangeText={setText}
-        placeholder="Take a moment to notice what’s on your heart."
-        placeholderTextColor={Colors.textGray}
-        multiline
-        textAlignVertical="top"
-        autoFocus
-        keyboardAppearance="light"
-      />
-      {children}
+      <StepFadeIn delay={160}>
+        <TextInput
+          style={[styles.personalInput, { fontFamily: getFontFamily(fontKey, 'regular') }]}
+          value={text}
+          onChangeText={setText}
+          placeholder="Take a moment to notice what’s on your heart."
+          placeholderTextColor={Colors.textGray}
+          multiline
+          textAlignVertical="top"
+          autoFocus
+          keyboardAppearance="light"
+        />
+      </StepFadeIn>
+      <StepFadeIn delay={240}>
+        {children}
+      </StepFadeIn>
     </RoutineStepShell>
   );
 };

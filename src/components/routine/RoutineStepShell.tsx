@@ -2,8 +2,6 @@ import React from 'react';
 import {
   Keyboard,
   Animated,
-  KeyboardAvoidingView,
-  Platform,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -17,6 +15,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 
 import { Colors } from '../../theme/colors';
 import ThemedText from '../common/ThemedText';
+import StepFadeIn from '../common/StepFadeIn';
 import { useFloatingKeyboardButton } from '../../hooks/useFloatingKeyboardButton';
 
 interface RoutineStepShellProps {
@@ -32,6 +31,11 @@ interface RoutineStepShellProps {
   backgroundColor?: string;
   rightControl?: React.ReactNode;
   scrollWithHeader?: boolean;
+  manageStatusBar?: boolean;
+  extraScrollBottomPadding?: number;
+  titleBottomSpacing?: number;
+  scrollViewRef?: React.Ref<ScrollView>;
+  onContentSizeChange?: (width: number, height: number) => void;
 }
 
 const RoutineStepShell: React.FC<RoutineStepShellProps> = ({
@@ -47,6 +51,11 @@ const RoutineStepShell: React.FC<RoutineStepShellProps> = ({
   backgroundColor = Colors.sage,
   rightControl,
   scrollWithHeader = false,
+  manageStatusBar = true,
+  extraScrollBottomPadding = 0,
+  titleBottomSpacing = 32,
+  scrollViewRef,
+  onContentSizeChange,
 }) => {
   const insets = useSafeAreaInsets();
   const { bottom: buttonBottom, keyboardVisible } = useFloatingKeyboardButton(insets.bottom);
@@ -54,6 +63,8 @@ const RoutineStepShell: React.FC<RoutineStepShellProps> = ({
 
   useFocusEffect(
     React.useCallback(() => {
+      if (!manageStatusBar) {return;}
+
       StatusBar.setHidden(true, 'slide');
       StatusBar.setBarStyle(isLight ? 'dark-content' : 'light-content');
 
@@ -61,7 +72,7 @@ const RoutineStepShell: React.FC<RoutineStepShellProps> = ({
         StatusBar.setHidden(false, 'slide');
         StatusBar.setBarStyle('dark-content');
       };
-    }, [isLight])
+    }, [isLight, manageStatusBar])
   );
 
   const dismissKeyboard = () => {
@@ -71,71 +82,70 @@ const RoutineStepShell: React.FC<RoutineStepShellProps> = ({
   };
 
   const textColor = isLight ? Colors.text : Colors.hopeWhite;
-  const mutedColor = isLight ? Colors.sage : Colors.hopeWhite;
+  const mutedColor = isLight ? Colors.sageMuted : Colors.hopeWhite;
 
   const header = (
-      <View style={[styles.topRow, { paddingTop: insets.top + 8 }, scrollWithHeader && { marginHorizontal: -24 }]}>
+    <View style={[styles.topRow, { paddingTop: insets.top + 8 }, { marginHorizontal: -24 }]}>
+      <View style={[styles.backPlaceholder, rightControl ? { width: 92 } : null]} />
+
+      <StepFadeIn delay={0} style={styles.eyebrowRow}>
+        {eyebrowIcon}
+        <ThemedText weight="semiBold" style={[styles.eyebrow, { color: mutedColor }]}>{eyebrow}</ThemedText>
+      </StepFadeIn>
+
+      <View style={styles.headerControls}>
+        {rightControl}
+      {onBack ? (
+        <TouchableOpacity
+          onPress={onBack}
+          style={styles.closeButton}
+          activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel="Close"
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Ionicons name="close" size={17} color={Colors.sage} />
+        </TouchableOpacity>
+      ) : (
         <View style={styles.backPlaceholder} />
-
-        <View style={styles.eyebrowRow}>
-          {eyebrowIcon}
-          <ThemedText weight="semiBold" style={[styles.eyebrow, { color: mutedColor }]}>{eyebrow}</ThemedText>
-        </View>
-
-        {rightControl ? rightControl : onBack ? (
-          <TouchableOpacity
-            onPress={onBack}
-            style={styles.closeButton}
-            activeOpacity={0.7}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          >
-            <Ionicons name="close" size={17} color={Colors.sage} />
-          </TouchableOpacity>
-        ) : (
-          <View style={styles.backPlaceholder} />
-        )}
+      )}
       </View>
+    </View>
   );
 
   return (
     <View style={[styles.container, { backgroundColor }]}>
-      {!scrollWithHeader && header}
-
-      <KeyboardAvoidingView
-        style={styles.keyboardAvoider}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={0}
+      <ScrollView
+        ref={scrollViewRef}
+        onContentSizeChange={onContentSizeChange}
+        style={styles.scroll}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: (keyboardVisible ? 320 : 30) + extraScrollBottomPadding }]}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        onScrollBeginDrag={dismissKeyboard}
       >
-        <ScrollView
-          style={styles.scroll}
-          contentContainerStyle={[styles.scrollContent, { paddingBottom: keyboardVisible ? 100 : 130 }]}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-          onScrollBeginDrag={dismissKeyboard}
-        >
-          {scrollWithHeader && header}
-          {title ? (
-            <View style={styles.titleRow}>
-              <ThemedText weight="semiBold" style={[styles.title, { color: textColor }]}>{title}</ThemedText>
-            </View>
-          ) : null}
-          {children}
-        </ScrollView>
-      </KeyboardAvoidingView>
-        <Animated.View pointerEvents="box-none" style={[styles.footer, { position: 'absolute', bottom: buttonBottom, left: 0, right: 0, paddingBottom: 0, justifyContent: onSkip ? 'space-between' : 'flex-end' }]}>
-          {onSkip && (
-            <TouchableOpacity
-              onPress={onSkip}
-              activeOpacity={0.7}
-              style={styles.skipButton}
-              accessibilityRole="button"
-              accessibilityLabel="Skip this step"
-            >
-              <ThemedText style={[styles.skipText, { color: isLight ? Colors.textGray : Colors.hopeWhite }]}>Skip</ThemedText>
-            </TouchableOpacity>
-          )}
-          {footer}
-        </Animated.View>
+        {header}
+        {title ? (
+          <StepFadeIn delay={80} style={styles.titleRow}>
+            <ThemedText weight="semiBold" style={[styles.title, { color: textColor, marginBottom: titleBottomSpacing }]}>{title}</ThemedText>
+          </StepFadeIn>
+        ) : null}
+        {children}
+      </ScrollView>
+      <Animated.View pointerEvents="box-none" style={[styles.footer, { position: 'absolute', bottom: buttonBottom, left: 0, right: 0, justifyContent: onSkip ? 'space-between' : 'flex-end' }]}>
+        {onSkip && (
+          <TouchableOpacity
+            onPress={onSkip}
+            activeOpacity={0.7}
+            style={styles.skipButton}
+            accessibilityRole="button"
+            accessibilityLabel="Skip this step"
+          >
+            <ThemedText style={[styles.skipText, { color: isLight ? Colors.textGray : Colors.hopeWhite }]}>Skip</ThemedText>
+          </TouchableOpacity>
+        )}
+        {footer}
+      </Animated.View>
     </View>
   );
 };
@@ -160,6 +170,11 @@ const styles = StyleSheet.create({
     marginTop: 32,
     marginBottom: 8,
   },
+  headerControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   closeButton: {
     width: 42,
     height: 42,
@@ -177,9 +192,6 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     color: Colors.hopeWhite,
     textAlign: 'center',
-  },
-  keyboardAvoider: {
-    flex: 1,
   },
   scroll: {
     flex: 1,
@@ -199,9 +211,9 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   footer: {
-    paddingHorizontal: 24,
-    paddingTop: 12,
-    paddingBottom: 16,
+    paddingHorizontal: 20,
+    paddingTop: 0,
+    paddingBottom: 0,
     flexDirection: 'row',
     alignItems: 'flex-end',
   },

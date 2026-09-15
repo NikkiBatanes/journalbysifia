@@ -4,6 +4,7 @@ import { Logger } from '../../utils/ProductionLogger';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { View, TextInput, StyleSheet, TouchableOpacity, Alert, Animated, DeviceEventEmitter } from 'react-native';
+import { useMomentsPalette } from '../../context/MomentsPaletteContext';
 import { JournalCard } from './JournalCard';
 import { Colors } from '../../theme/colors';
 import { useTheme } from '../../hooks/useTheme';
@@ -71,8 +72,10 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
     bold: getFontFamily(fontKey, 'bold'),
   }), [fontKey]);
 
+  const isPalette = useMomentsPalette();
+
   // Memoize styles with fonts
-  const styles = useMemo(() => createStyles(fonts), [fonts]);
+  const styles = useMemo(() => createStyles(fonts, isPalette), [fonts, isPalette]);
 
   const [isAdding, setIsAdding] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -528,7 +531,7 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
             accessibilityRole="button"
             accessibilityLabel={(isYesterday || isEarlier) ? 'Revisit gratitude list' : 'Begin gratitude list'}
           >
-            <Pencil size={16} color={Colors.hopeWhite} style={styles.buttonIcon} />
+            <Pencil size={16} color={isPalette ? Colors.sage : Colors.hopeWhite} style={styles.buttonIcon} />
             <ThemedText style={styles.emptyStateButtonText}>
               {(isYesterday || isEarlier) ? 'Revisit' : 'Begin'}
             </ThemedText>
@@ -745,7 +748,7 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
                     accessibilityLabel="Cancel adding gratitude items"
                     accessibilityHint="Cancels the current gratitude input and closes the form"
                   >
-                    <X size={14} color={Colors.hopeWhite} strokeWidth={3.5} />
+                    <X size={14} color={isPalette ? Colors.text : Colors.hopeWhite} strokeWidth={3.5} />
                   </TouchableOpacity>
                 </Animated.View>
               </Animated.View>
@@ -762,7 +765,7 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
                   accessibilityHint="Adds another input field for gratitude items"
                 >
                   <View style={styles.plusIcon}>
-                    <Ionicons name="add" size={17} color={Colors.alertCoral} />
+                    <Ionicons name="add" size={17} color={isPalette ? Colors.sage : Colors.alertCoral} />
                   </View>
                 </TouchableOpacity>
               </Animated.View>
@@ -793,7 +796,7 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
   );
 };
 
-const createStyles = (fonts: any) => StyleSheet.create({
+const createStyles = (fonts: any, isPalette: boolean) => StyleSheet.create({
   emptyState: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -859,7 +862,7 @@ const createStyles = (fonts: any) => StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: 'rgba(255, 107, 107, 0.2)',
+    backgroundColor: isPalette ? 'rgba(82, 106, 91, 0.2)' : 'rgba(255, 107, 107, 0.2)',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -867,7 +870,7 @@ const createStyles = (fonts: any) => StyleSheet.create({
     marginTop: 2, // Small adjustment to align with first line of text
   },
   itemText: {
-    color: Colors.hopeWhite,
+    color: isPalette ? Colors.text : Colors.hopeWhite,
     fontFamily: fonts.regular,
     fontSize: 16,
     flex: 1,
@@ -875,7 +878,7 @@ const createStyles = (fonts: any) => StyleSheet.create({
     marginRight: 8,
   },
   numberText: {
-    color: Colors.alertCoral,
+    color: isPalette ? Colors.sage : Colors.alertCoral,
     fontFamily: fonts.bold,
     fontSize: 16,
     textAlign: 'center',
@@ -895,9 +898,9 @@ const createStyles = (fonts: any) => StyleSheet.create({
     padding: 12,
     fontFamily: fonts.regular,
     fontSize: 14,
-    color: Colors.hopeWhite,
+    color: isPalette ? Colors.text : Colors.hopeWhite,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderColor: isPalette ? Colors.inputBorder : 'rgba(255, 255, 255, 0.2)',
   },
   inputWithTopMargin: {
     marginTop: 8,
@@ -933,7 +936,7 @@ const createStyles = (fonts: any) => StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderColor: isPalette ? Colors.inputBorder : 'rgba(255, 255, 255, 0.3)',
   },
   plusIcon: {
     width: '100%',
@@ -947,9 +950,9 @@ const createStyles = (fonts: any) => StyleSheet.create({
     gap: 8,
   },
   cancelButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: isPalette ? 'rgba(0, 0, 0, 0.05)' : 'rgba(255, 255, 255, 0.2)',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderColor: isPalette ? Colors.inputBorder : 'rgba(255, 255, 255, 0.3)',
   },
   saveButton: {
     backgroundColor: Colors.alertCoral,
@@ -998,7 +1001,7 @@ const createStyles = (fonts: any) => StyleSheet.create({
   emptyStateTitle: {
     fontFamily: fonts.semiBold,
     fontSize: 18,
-    color: Colors.hopeWhite,
+    color: isPalette ? Colors.text : Colors.hopeWhite,
     textAlign: 'center',
     paddingHorizontal: 4,
   },
@@ -1013,7 +1016,7 @@ const createStyles = (fonts: any) => StyleSheet.create({
   emptyStateButton: {
     backgroundColor: 'transparent',
     borderWidth: 1,
-    borderColor: Colors.hopeWhite,
+    borderColor: isPalette ? Colors.sage : Colors.hopeWhite,
     paddingVertical: 10,
     paddingHorizontal: 24,
     borderRadius: 20,
@@ -1027,7 +1030,7 @@ const createStyles = (fonts: any) => StyleSheet.create({
   },
   emptyStateButtonText: {
     fontSize: 15,
-    color: Colors.hopeWhite,
+    color: isPalette ? Colors.sage : Colors.hopeWhite,
     letterSpacing: 0.5,
   },
 });

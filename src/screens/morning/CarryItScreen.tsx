@@ -4,6 +4,7 @@ import { useNavigation } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
 import ThemedText from '../../components/common/ThemedText';
+import StepFadeIn from '../../components/common/StepFadeIn';
 import { getPsalmReflection } from '../../data/psalmReflections';
 import { Colors } from '../../theme/colors';
 import { getFontFamily } from '../../theme/fonts';
@@ -115,7 +116,7 @@ const CarryItScreen = () => {
     navigation.navigate('MorningClosing');
   }, [canContinue, customValue, markStepCompleted, navigation, psalmNumber, psalmReflectionId, selectedAttributes, dateStr]);
 
-  const onBack = () => navigation.goBack();
+  const onBack = () => navigation.navigate('MainTabs', { screen: 'Today' });
 
   const children = (
     <>
@@ -207,7 +208,9 @@ const CarryItScreen = () => {
       onBack={onBack}
       backgroundColor={Colors.lightBackground}
     >
-      {children}
+      <StepFadeIn delay={160}>
+        {children}
+      </StepFadeIn>
     </RoutineStepShell>
   );
 };

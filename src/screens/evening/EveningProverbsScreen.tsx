@@ -1,7 +1,7 @@
+import { exitEveningFlow } from '../../navigation/exitEveningFlow';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Animated, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import { differenceInCalendarDays } from 'date-fns';
+import { ActivityIndicator, Animated, DeviceEventEmitter, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
@@ -11,7 +11,6 @@ import { Colors } from '../../theme/colors';
 import { Fonts, type FontFamily, getFontFamily } from '../../theme/fonts';
 import { toLocalDateString } from '../../utils/date';
 import { triggerLightHaptic, triggerSuccessHaptic } from '../../utils/haptics';
-import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { useRoutine } from '../../context/RoutineContext';
 import RoutineStepShell from '../../components/routine/RoutineStepShell';
 import { getScripturePassage } from '../../services/scriptureReaderService';
@@ -44,36 +43,35 @@ const INDENT_OPTIONS = [0, 16, 32];
 const LINE_SPACING_OPTIONS = [0, 4, 8, 12];
 const LETTER_SPACING_OPTIONS = [0, 0.5, 1, 2];
 
-const PsalmOfTheDayScreen = () => {
+const EveningProverbsScreen = () => {
   const navigation = useNavigation<any>();
-  const { user } = useAuth();
+  const route = useRoute<any>();
   const { selectedDate, markStepCompleted } = useRoutine();
 
-  const psalmNumber = useMemo(() => {
-    const createdAt = (user as any)?.created_at;
-    const start = createdAt ? new Date(createdAt) : new Date();
-    const dayIndex = Math.max(0, differenceInCalendarDays(new Date(), start));
-    return (dayIndex % 150) + 1;
-  }, [user]);
 
-  const [psalmText, setPsalmText] = useState<string | null>(null);
-  const [psalmVerses, setPsalmVerses] = useState<{ number: string; lines: string[] }[] | null>(null);
-  const [psalmReference, setPsalmReference] = useState<string | null>(null);
-  const [psalmVersion, setPsalmVersion] = useState<string | null>(null);
-  const [psalmLoading, setPsalmLoading] = useState(false);
-  const [psalmError, setPsalmError] = useState<string | null>(null);
+  const proverbNumber = useMemo(() => {
+    const day = parseInt(selectedDate.split('-')[2] || '0', 10);
+    return Math.min(Math.max(day, 1), 31);
+  }, [selectedDate]);
+
+  const [proverbText, setProverbText] = useState<string | null>(null);
+  const [proverbVerses, setProverbVerses] = useState<{ number: string; lines: string[] }[] | null>(null);
+  const [proverbReference, setProverbReference] = useState<string | null>(null);
+  const [proverbVersion, setProverbVersion] = useState<string | null>(null);
+  const [proverbLoading, setProverbLoading] = useState(false);
+  const [proverbError, setProverbError] = useState<string | null>(null);
   const [showAaSettings, setShowAaSettings] = useState(false);
   const [showCopyright, setShowCopyright] = useState(false);
-  const [hasReadPsalm, setHasReadPsalm] = useState(false);
-  const [psalmReflectionId, setPsalmReflectionId] = useState<string | null>(null);
+  const [hasReadProverb, setHasReadProverb] = useState(false);
+  const [proverbReflectionId, setProverbReflectionId] = useState<string | null>(null);
 
-  const [psalmFontSize, setPsalmFontSize] = useState(18);
-  const [psalmFont, setPsalmFont] = useState<FontFamily>('lora');
-  const [psalmBold, setPsalmBold] = useState(false);
-  const [psalmAlign, setPsalmAlign] = useState<TextAlign>('left');
-  const [psalmIndent, setPsalmIndent] = useState(0);
-  const [psalmLineSpacing, setPsalmLineSpacing] = useState(0);
-  const [psalmLetterSpacing, setPsalmLetterSpacing] = useState(0);
+  const [proverbFontSize, setProverbFontSize] = useState(18);
+  const [proverbFont, setProverbFont] = useState<FontFamily>('lora');
+  const [proverbBold, setProverbBold] = useState(false);
+  const [proverbAlign, setProverbAlign] = useState<TextAlign>('left');
+  const [proverbIndent, setProverbIndent] = useState(0);
+  const [proverbLineSpacing, setProverbLineSpacing] = useState(0);
+  const [proverbLetterSpacing, setProverbLetterSpacing] = useState(0);
   const [advancedSettingsOpen, setAdvancedSettingsOpen] = useState(false);
 
   const settingsAnim = useRef(new Animated.Value(0)).current;
@@ -86,71 +84,71 @@ const PsalmOfTheDayScreen = () => {
       const entries = await getLocalReflections('scripture', dateStr);
       if (!mounted) {return;}
       const existing = entries
-        .filter(e => e.source === 'morning_psalm' || e.metadata?.source === 'morning_psalm')
+        .filter(e => e.source === 'evening_proverbs' || e.metadata?.source === 'evening_proverbs')
         .sort((a, b) => b.updated_at.localeCompare(a.updated_at))[0];
       if (existing) {
-        setHasReadPsalm(Boolean(existing.metadata?.psalmRead));
-        setPsalmReflectionId(existing.id);
+        setHasReadProverb(Boolean(existing.metadata?.proverbRead));
+        setProverbReflectionId(existing.id);
       }
     })();
     return () => { mounted = false; };
-  }, [dateStr, psalmNumber]);
+  }, [dateStr, proverbNumber]);
 
-  const psalmLines = useMemo(() => {
-    if (!psalmText) { return []; }
-    if (psalmText.includes('\n')) { return psalmText.split('\n'); }
-    return psalmText.split(/\s+(?=\d+\s)/).map((s) => s.trim()).filter(Boolean);
-  }, [psalmText]);
+  const proverbLines = useMemo(() => {
+    if (!proverbText) { return []; }
+    if (proverbText.includes('\n')) { return proverbText.split('\n'); }
+    return proverbText.split(/\s+(?=\d+\s)/).map((s) => s.trim()).filter(Boolean);
+  }, [proverbText]);
 
   useEffect(() => {
     let cancelled = false;
-    setPsalmLoading(true);
-    setPsalmError(null);
-    getScripturePassage(`Psalm ${psalmNumber}`)
+    setProverbLoading(true);
+    setProverbError(null);
+    getScripturePassage(`Proverbs ${proverbNumber}`)
       .then((result) => {
         if (cancelled) { return; }
-        setPsalmText(result.text);
-        setPsalmVerses(result.verses || null);
-        setPsalmReference(result.reference);
-        setPsalmVersion(result.version);
+        setProverbText(result.text);
+        setProverbVerses(result.verses || null);
+        setProverbReference(result.reference);
+        setProverbVersion(result.version);
       })
       .catch((err) => {
         if (cancelled) { return; }
-        setPsalmError(err?.message || 'Could not load Psalm of the Day.');
+        setProverbError(err?.message || 'Could not load Proverbs of the Day.');
       })
       .finally(() => {
-        if (!cancelled) { setPsalmLoading(false); }
+        if (!cancelled) { setProverbLoading(false); }
       });
     return () => { cancelled = true; };
-  }, [psalmNumber]);
+  }, [proverbNumber]);
 
   const onNext = React.useCallback(async () => {
     triggerLightHaptic();
 
     const metadata = {
-      psalmNumber,
-      psalmRead: hasReadPsalm,
-      source: 'morning_psalm',
+      proverbNumber,
+      proverbRead: hasReadProverb,
+      source: 'evening_proverbs',
     };
 
-    let id = psalmReflectionId;
+    let id = proverbReflectionId;
     try {
       if (id) {
         const existing = await getLocalReflection(id, 'scripture', dateStr);
         if (existing) {
           const updated = await updateLocalReflection({
             ...existing,
-            title: `Psalm ${psalmNumber}`,
+            title: `Proverbs ${proverbNumber}`,
             content: existing.content,
             metadata: { ...existing.metadata, ...metadata },
           });
           id = updated.id;
         } else {
           const created = await createLocalReflection({
-            title: `Psalm ${psalmNumber}`,
+            title: `Proverbs ${proverbNumber}`,
             content: '',
             type: 'scripture',
-            source: 'morning_psalm',
+            source: 'evening_proverbs',
             selected_date: dateStr,
             metadata,
           });
@@ -158,52 +156,61 @@ const PsalmOfTheDayScreen = () => {
         }
       } else {
         const created = await createLocalReflection({
-          title: `Psalm ${psalmNumber}`,
+          title: `Proverbs ${proverbNumber}`,
           content: '',
           type: 'scripture',
-          source: 'morning_psalm',
+          source: 'evening_proverbs',
           selected_date: dateStr,
           metadata,
         });
         id = created.id;
       }
-      setPsalmReflectionId(id);
+      setProverbReflectionId(id);
     } catch (error) {
-      console.error('Error saving morning psalm read state:', error);
+      console.error('Error saving evening proverbs read state:', error);
     }
 
     await markStepCompleted(
-      'psalm',
+      'proverbs',
       {
         domain: 'reflection',
         content_type: 'scripture',
         local_id: id!,
       },
-      'psalm',
+      'proverbs',
     );
 
-    navigation.navigate('CarryIt');
-  }, [hasReadPsalm, markStepCompleted, navigation, psalmNumber, psalmReflectionId, dateStr]);
+    DeviceEventEmitter.emit('reflection_saved', { type: 'evening_proverbs', date: dateStr });
 
-  const togglePsalmRead = React.useCallback(() => {
-    if (hasReadPsalm) {
+    navigation.navigate('CarryWisdom', {
+      ...route.params,
+      selectedDate,
+      proverbVersion: proverbVersion || 'NASB',
+      proverbNumber,
+      proverbReference: proverbReference || `Proverbs ${proverbNumber}`,
+      proverbReflectionId: id,
+    });
+  }, [hasReadProverb, markStepCompleted, navigation, route.params, proverbNumber, proverbReference, proverbVersion, proverbReflectionId, dateStr, selectedDate]);
+
+  const toggleProverbRead = React.useCallback(() => {
+    if (hasReadProverb) {
       triggerLightHaptic();
     } else {
       triggerSuccessHaptic();
     }
-    setHasReadPsalm((current) => !current);
-  }, [hasReadPsalm]);
+    setHasReadProverb((current) => !current);
+  }, [hasReadProverb]);
 
-  const psalmLineStyle = useMemo(() => ({
-    fontSize: psalmFontSize,
-    lineHeight: psalmFontSize * 1.6 + psalmLineSpacing,
-    letterSpacing: psalmLetterSpacing,
-    textAlign: psalmAlign,
-    paddingLeft: psalmIndent,
-    fontFamily: getFontFamily(psalmFont, psalmBold ? 'bold' : 'regular'),
-  }), [psalmAlign, psalmBold, psalmFont, psalmFontSize, psalmIndent, psalmLetterSpacing, psalmLineSpacing]);
+  const proverbLineStyle = useMemo(() => ({
+    fontSize: proverbFontSize,
+    lineHeight: proverbFontSize * 1.6 + proverbLineSpacing,
+    letterSpacing: proverbLetterSpacing,
+    textAlign: proverbAlign,
+    paddingLeft: proverbIndent,
+    fontFamily: getFontFamily(proverbFont, proverbBold ? 'bold' : 'regular'),
+  }), [proverbAlign, proverbBold, proverbFont, proverbFontSize, proverbIndent, proverbLetterSpacing, proverbLineSpacing]);
 
-  const togglePsalmSettings = useCallback(() => {
+  const toggleProverbSettings = useCallback(() => {
     triggerLightHaptic();
     const opening = !showAaSettings;
     setShowAaSettings(opening);
@@ -214,96 +221,96 @@ const PsalmOfTheDayScreen = () => {
     }).start();
   }, [settingsAnim, showAaSettings]);
 
-  const togglePsalmBold = useCallback(() => {
+  const toggleProverbBold = useCallback(() => {
     triggerLightHaptic();
-    setPsalmBold(current => !current);
+    setProverbBold(current => !current);
   }, []);
 
-  const selectPsalmFont = useCallback((font: FontFamily) => {
+  const selectProverbFont = useCallback((font: FontFamily) => {
     triggerLightHaptic();
-    setPsalmFont(font);
+    setProverbFont(font);
   }, []);
 
-  const selectPsalmAlign = useCallback((align: TextAlign) => {
+  const selectProverbAlign = useCallback((align: TextAlign) => {
     triggerLightHaptic();
-    setPsalmAlign(align);
+    setProverbAlign(align);
   }, []);
 
-  const increasePsalmFontSize = useCallback(() => {
+  const increaseProverbFontSize = useCallback(() => {
     triggerLightHaptic();
-    const currentIndex = FONT_SIZES.indexOf(psalmFontSize);
+    const currentIndex = FONT_SIZES.indexOf(proverbFontSize);
     const nextIndex = Math.min(currentIndex + 1, FONT_SIZES.length - 1);
-    setPsalmFontSize(FONT_SIZES[nextIndex]);
-  }, [psalmFontSize]);
+    setProverbFontSize(FONT_SIZES[nextIndex]);
+  }, [proverbFontSize]);
 
-  const decreasePsalmFontSize = useCallback(() => {
+  const decreaseProverbFontSize = useCallback(() => {
     triggerLightHaptic();
-    const currentIndex = FONT_SIZES.indexOf(psalmFontSize);
+    const currentIndex = FONT_SIZES.indexOf(proverbFontSize);
     const prevIndex = Math.max(currentIndex - 1, 0);
-    setPsalmFontSize(FONT_SIZES[prevIndex]);
-  }, [psalmFontSize]);
+    setProverbFontSize(FONT_SIZES[prevIndex]);
+  }, [proverbFontSize]);
 
-  const increasePsalmLineSpacing = useCallback(() => {
+  const increaseProverbLineSpacing = useCallback(() => {
     triggerLightHaptic();
-    const currentIndex = LINE_SPACING_OPTIONS.indexOf(psalmLineSpacing);
+    const currentIndex = LINE_SPACING_OPTIONS.indexOf(proverbLineSpacing);
     const nextIndex = Math.min(currentIndex + 1, LINE_SPACING_OPTIONS.length - 1);
-    setPsalmLineSpacing(LINE_SPACING_OPTIONS[nextIndex]);
-  }, [psalmLineSpacing]);
+    setProverbLineSpacing(LINE_SPACING_OPTIONS[nextIndex]);
+  }, [proverbLineSpacing]);
 
-  const decreasePsalmLineSpacing = useCallback(() => {
+  const decreaseProverbLineSpacing = useCallback(() => {
     triggerLightHaptic();
-    const currentIndex = LINE_SPACING_OPTIONS.indexOf(psalmLineSpacing);
+    const currentIndex = LINE_SPACING_OPTIONS.indexOf(proverbLineSpacing);
     const prevIndex = Math.max(currentIndex - 1, 0);
-    setPsalmLineSpacing(LINE_SPACING_OPTIONS[prevIndex]);
-  }, [psalmLineSpacing]);
+    setProverbLineSpacing(LINE_SPACING_OPTIONS[prevIndex]);
+  }, [proverbLineSpacing]);
 
-  const increasePsalmLetterSpacing = useCallback(() => {
+  const increaseProverbLetterSpacing = useCallback(() => {
     triggerLightHaptic();
-    const currentIndex = LETTER_SPACING_OPTIONS.indexOf(psalmLetterSpacing);
+    const currentIndex = LETTER_SPACING_OPTIONS.indexOf(proverbLetterSpacing);
     const nextIndex = Math.min(currentIndex + 1, LETTER_SPACING_OPTIONS.length - 1);
-    setPsalmLetterSpacing(LETTER_SPACING_OPTIONS[nextIndex]);
-  }, [psalmLetterSpacing]);
+    setProverbLetterSpacing(LETTER_SPACING_OPTIONS[nextIndex]);
+  }, [proverbLetterSpacing]);
 
-  const decreasePsalmLetterSpacing = useCallback(() => {
+  const decreaseProverbLetterSpacing = useCallback(() => {
     triggerLightHaptic();
-    const currentIndex = LETTER_SPACING_OPTIONS.indexOf(psalmLetterSpacing);
+    const currentIndex = LETTER_SPACING_OPTIONS.indexOf(proverbLetterSpacing);
     const prevIndex = Math.max(currentIndex - 1, 0);
-    setPsalmLetterSpacing(LETTER_SPACING_OPTIONS[prevIndex]);
-  }, [psalmLetterSpacing]);
+    setProverbLetterSpacing(LETTER_SPACING_OPTIONS[prevIndex]);
+  }, [proverbLetterSpacing]);
 
-  const increasePsalmIndent = useCallback(() => {
+  const increaseProverbIndent = useCallback(() => {
     triggerLightHaptic();
-    const currentIndex = INDENT_OPTIONS.indexOf(psalmIndent);
+    const currentIndex = INDENT_OPTIONS.indexOf(proverbIndent);
     const nextIndex = Math.min(currentIndex + 1, INDENT_OPTIONS.length - 1);
-    setPsalmIndent(INDENT_OPTIONS[nextIndex]);
-  }, [psalmIndent]);
+    setProverbIndent(INDENT_OPTIONS[nextIndex]);
+  }, [proverbIndent]);
 
-  const decreasePsalmIndent = useCallback(() => {
+  const decreaseProverbIndent = useCallback(() => {
     triggerLightHaptic();
-    const currentIndex = INDENT_OPTIONS.indexOf(psalmIndent);
+    const currentIndex = INDENT_OPTIONS.indexOf(proverbIndent);
     const prevIndex = Math.max(currentIndex - 1, 0);
-    setPsalmIndent(INDENT_OPTIONS[prevIndex]);
-  }, [psalmIndent]);
+    setProverbIndent(INDENT_OPTIONS[prevIndex]);
+  }, [proverbIndent]);
 
-  const resetPsalmPreferences = useCallback(() => {
+  const resetProverbPreferences = useCallback(() => {
     triggerLightHaptic();
-    setPsalmFontSize(18);
-    setPsalmFont('lora');
-    setPsalmBold(false);
-    setPsalmAlign('left');
-    setPsalmIndent(0);
-    setPsalmLineSpacing(0);
-    setPsalmLetterSpacing(0);
+    setProverbFontSize(18);
+    setProverbFont('lora');
+    setProverbBold(false);
+    setProverbAlign('left');
+    setProverbIndent(0);
+    setProverbLineSpacing(0);
+    setProverbLetterSpacing(0);
   }, []);
 
-  const onBack = () => navigation.navigate('MainTabs', { screen: 'Today' });
+  const onBack = () => exitEveningFlow(navigation, 'Today');
 
   const children = (
     <>
-      {psalmReference && psalmVersion && (
-        <View style={styles.psalmReferenceRow}>
-          <ThemedText weight="semiBold" style={styles.psalmReference}>
-            {psalmReference} · {psalmVersion}
+      {proverbReference && proverbVersion && (
+        <View style={styles.proverbReferenceRow}>
+          <ThemedText weight="semiBold" style={styles.proverbReference}>
+            {proverbReference} · {proverbVersion}
           </ThemedText>
           <TouchableOpacity
             onPress={() => {
@@ -325,7 +332,7 @@ const PsalmOfTheDayScreen = () => {
       <Animated.View
         pointerEvents={showAaSettings ? 'auto' : 'none'}
         style={[
-          styles.psalmSettingsPanel,
+          styles.proverbSettingsPanel,
           {
             maxHeight: settingsAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 420] }),
             opacity: settingsAnim,
@@ -333,43 +340,43 @@ const PsalmOfTheDayScreen = () => {
           },
         ]}
       >
-        <View style={styles.psalmAppearanceTopRow}>
-          <View style={styles.psalmQuickControls}>
-            <View style={styles.psalmSizeControls}>
+        <View style={styles.proverbAppearanceTopRow}>
+          <View style={styles.proverbQuickControls}>
+            <View style={styles.proverbSizeControls}>
               <TouchableOpacity
-                style={styles.psalmControlButton}
-                onPress={decreasePsalmFontSize}
+                style={styles.proverbControlButton}
+                onPress={decreaseProverbFontSize}
                 activeOpacity={0.72}
                 accessibilityRole="button"
                 accessibilityLabel="Decrease font size"
               >
-                <ThemedText weight="semiBold" style={styles.psalmDecreaseFontIcon}>A</ThemedText>
+                <ThemedText weight="semiBold" style={styles.proverbDecreaseFontIcon}>A</ThemedText>
               </TouchableOpacity>
-              <ThemedText weight="semiBold" style={styles.psalmFontSizeLabel}>{psalmFontSize}</ThemedText>
+              <ThemedText weight="semiBold" style={styles.proverbFontSizeLabel}>{proverbFontSize}</ThemedText>
               <TouchableOpacity
-                style={styles.psalmControlButton}
-                onPress={increasePsalmFontSize}
+                style={styles.proverbControlButton}
+                onPress={increaseProverbFontSize}
                 activeOpacity={0.72}
                 accessibilityRole="button"
                 accessibilityLabel="Increase font size"
               >
-                <ThemedText weight="semiBold" style={styles.psalmIncreaseFontIcon}>A</ThemedText>
+                <ThemedText weight="semiBold" style={styles.proverbIncreaseFontIcon}>A</ThemedText>
               </TouchableOpacity>
             </View>
             <TouchableOpacity
-              style={[styles.psalmBoldToggle, psalmBold && styles.psalmBoldToggleActive]}
-              onPress={togglePsalmBold}
+              style={[styles.proverbBoldToggle, proverbBold && styles.proverbBoldToggleActive]}
+              onPress={toggleProverbBold}
               activeOpacity={0.72}
               accessibilityRole="button"
               accessibilityLabel="Bold text"
-              accessibilityState={{ selected: psalmBold }}
+              accessibilityState={{ selected: proverbBold }}
             >
-              <ThemedText weight="semiBold" style={[styles.psalmBoldToggleText, psalmBold && styles.psalmBoldToggleTextActive]}>Bold</ThemedText>
+              <ThemedText weight="semiBold" style={[styles.proverbBoldToggleText, proverbBold && styles.proverbBoldToggleTextActive]}>Bold</ThemedText>
             </TouchableOpacity>
           </View>
           <TouchableOpacity
-            style={styles.psalmResetIconButton}
-            onPress={resetPsalmPreferences}
+            style={styles.proverbResetIconButton}
+            onPress={resetProverbPreferences}
             activeOpacity={0.72}
             accessibilityRole="button"
             accessibilityLabel="Reset reader settings"
@@ -378,22 +385,22 @@ const PsalmOfTheDayScreen = () => {
           </TouchableOpacity>
         </View>
 
-        <View style={styles.psalmOptionGroup}>
-          <View style={styles.psalmFontControls}>
+        <View style={styles.proverbOptionGroup}>
+          <View style={styles.proverbFontControls}>
             {FONT_OPTIONS.map(option => {
-              const isActive = option.key === psalmFont;
+              const isActive = option.key === proverbFont;
               return (
                 <TouchableOpacity
                   key={option.key}
-                  style={[styles.psalmFontChip, isActive && styles.psalmFontChipActive]}
-                  onPress={() => selectPsalmFont(option.key)}
+                  style={[styles.proverbFontChip, isActive && styles.proverbFontChipActive]}
+                  onPress={() => selectProverbFont(option.key)}
                   activeOpacity={0.72}
                   accessibilityRole="button"
                   accessibilityLabel={`Set font to ${option.label}`}
                 >
                   <ThemedText
                     weight="semiBold"
-                    style={[styles.psalmFontChipText, isActive && styles.psalmFontChipTextActive]}
+                    style={[styles.proverbFontChipText, isActive && styles.proverbFontChipTextActive]}
                   >
                     {option.label}
                   </ThemedText>
@@ -401,15 +408,15 @@ const PsalmOfTheDayScreen = () => {
               );
             })}
           </View>
-          <View style={styles.psalmOptionDivider} />
-          <View style={styles.psalmAlignControls}>
+          <View style={styles.proverbOptionDivider} />
+          <View style={styles.proverbAlignControls}>
             {ALIGN_OPTIONS.map(option => {
-              const isActive = option.key === psalmAlign;
+              const isActive = option.key === proverbAlign;
               return (
                 <TouchableOpacity
                   key={option.key}
-                  style={[styles.psalmAlignButton, isActive && styles.psalmFontChipActive]}
-                  onPress={() => selectPsalmAlign(option.key)}
+                  style={[styles.proverbAlignButton, isActive && styles.proverbFontChipActive]}
+                  onPress={() => selectProverbAlign(option.key)}
                   activeOpacity={0.72}
                   accessibilityRole="button"
                   accessibilityLabel={`Align ${option.label}`}
@@ -426,7 +433,7 @@ const PsalmOfTheDayScreen = () => {
         </View>
 
         <TouchableOpacity
-          style={styles.psalmAdvancedButton}
+          style={styles.proverbAdvancedButton}
           onPress={() => {
             triggerLightHaptic();
             setAdvancedSettingsOpen(current => !current);
@@ -436,83 +443,83 @@ const PsalmOfTheDayScreen = () => {
           accessibilityLabel="Toggle advanced text settings"
           accessibilityState={{ expanded: advancedSettingsOpen }}
         >
-          <ThemedText style={styles.psalmAdvancedButtonText}>Advanced</ThemedText>
+          <ThemedText style={styles.proverbAdvancedButtonText}>Advanced</ThemedText>
           <Ionicons name={advancedSettingsOpen ? 'chevron-up' : 'chevron-down'} size={14} color={Colors.textGray} />
         </TouchableOpacity>
 
         {advancedSettingsOpen && (
-          <View style={styles.psalmAdvancedSettings}>
-            <View style={styles.psalmSettingsRow}>
-              <ThemedText style={styles.psalmSettingsLabel}>Lines</ThemedText>
-              <View style={styles.psalmSizeControls}>
+          <View style={styles.proverbAdvancedSettings}>
+            <View style={styles.proverbSettingsRow}>
+              <ThemedText style={styles.proverbSettingsLabel}>Lines</ThemedText>
+              <View style={styles.proverbSizeControls}>
                 <TouchableOpacity
-                  style={styles.psalmControlButton}
-                  onPress={decreasePsalmLineSpacing}
+                  style={styles.proverbControlButton}
+                  onPress={decreaseProverbLineSpacing}
                   activeOpacity={0.72}
                   accessibilityRole="button"
                   accessibilityLabel="Decrease line spacing"
                 >
-                  <ThemedText weight="semiBold" style={styles.psalmControlButtonText}>−</ThemedText>
+                  <ThemedText weight="semiBold" style={styles.proverbControlButtonText}>−</ThemedText>
                 </TouchableOpacity>
-                <ThemedText weight="semiBold" style={styles.psalmFontSizeLabel}>{psalmLineSpacing}</ThemedText>
+                <ThemedText weight="semiBold" style={styles.proverbFontSizeLabel}>{proverbLineSpacing}</ThemedText>
                 <TouchableOpacity
-                  style={styles.psalmControlButton}
-                  onPress={increasePsalmLineSpacing}
+                  style={styles.proverbControlButton}
+                  onPress={increaseProverbLineSpacing}
                   activeOpacity={0.72}
                   accessibilityRole="button"
                   accessibilityLabel="Increase line spacing"
                 >
-                  <ThemedText weight="semiBold" style={styles.psalmControlButtonText}>+</ThemedText>
+                  <ThemedText weight="semiBold" style={styles.proverbControlButtonText}>+</ThemedText>
                 </TouchableOpacity>
               </View>
             </View>
 
-            <View style={styles.psalmSettingsRow}>
-              <ThemedText style={styles.psalmSettingsLabel}>Letters</ThemedText>
-              <View style={styles.psalmSizeControls}>
+            <View style={styles.proverbSettingsRow}>
+              <ThemedText style={styles.proverbSettingsLabel}>Letters</ThemedText>
+              <View style={styles.proverbSizeControls}>
                 <TouchableOpacity
-                  style={styles.psalmControlButton}
-                  onPress={decreasePsalmLetterSpacing}
+                  style={styles.proverbControlButton}
+                  onPress={decreaseProverbLetterSpacing}
                   activeOpacity={0.72}
                   accessibilityRole="button"
                   accessibilityLabel="Decrease letter spacing"
                 >
-                  <ThemedText weight="semiBold" style={styles.psalmControlButtonText}>−</ThemedText>
+                  <ThemedText weight="semiBold" style={styles.proverbControlButtonText}>−</ThemedText>
                 </TouchableOpacity>
-                <ThemedText weight="semiBold" style={styles.psalmFontSizeLabel}>{psalmLetterSpacing}</ThemedText>
+                <ThemedText weight="semiBold" style={styles.proverbFontSizeLabel}>{proverbLetterSpacing}</ThemedText>
                 <TouchableOpacity
-                  style={styles.psalmControlButton}
-                  onPress={increasePsalmLetterSpacing}
+                  style={styles.proverbControlButton}
+                  onPress={increaseProverbLetterSpacing}
                   activeOpacity={0.72}
                   accessibilityRole="button"
                   accessibilityLabel="Increase letter spacing"
                 >
-                  <ThemedText weight="semiBold" style={styles.psalmControlButtonText}>+</ThemedText>
+                  <ThemedText weight="semiBold" style={styles.proverbControlButtonText}>+</ThemedText>
                 </TouchableOpacity>
               </View>
             </View>
 
-            <View style={styles.psalmSettingsRow}>
-              <ThemedText style={styles.psalmSettingsLabel}>Indent</ThemedText>
-              <View style={styles.psalmSizeControls}>
+            <View style={styles.proverbSettingsRow}>
+              <ThemedText style={styles.proverbSettingsLabel}>Indent</ThemedText>
+              <View style={styles.proverbSizeControls}>
                 <TouchableOpacity
-                  style={styles.psalmControlButton}
-                  onPress={decreasePsalmIndent}
+                  style={styles.proverbControlButton}
+                  onPress={decreaseProverbIndent}
                   activeOpacity={0.72}
                   accessibilityRole="button"
                   accessibilityLabel="Decrease indent"
                 >
-                  <ThemedText weight="semiBold" style={styles.psalmControlButtonText}>−</ThemedText>
+                  <ThemedText weight="semiBold" style={styles.proverbControlButtonText}>−</ThemedText>
                 </TouchableOpacity>
-                <ThemedText weight="semiBold" style={styles.psalmFontSizeLabel}>{psalmIndent}</ThemedText>
+                <ThemedText weight="semiBold" style={styles.proverbFontSizeLabel}>{proverbIndent}</ThemedText>
                 <TouchableOpacity
-                  style={styles.psalmControlButton}
-                  onPress={increasePsalmIndent}
+                  style={styles.proverbControlButton}
+                  onPress={increaseProverbIndent}
                   activeOpacity={0.72}
                   accessibilityRole="button"
                   accessibilityLabel="Increase indent"
                 >
-                  <ThemedText weight="semiBold" style={styles.psalmControlButtonText}>+</ThemedText>
+                  <ThemedText weight="semiBold" style={styles.proverbControlButtonText}>+</ThemedText>
                 </TouchableOpacity>
               </View>
             </View>
@@ -522,25 +529,25 @@ const PsalmOfTheDayScreen = () => {
 
       <View style={styles.card}>
         <ScrollView
-          style={styles.psalmScroll}
-          contentContainerStyle={styles.psalmContent}
+          style={styles.proverbScroll}
+          contentContainerStyle={styles.proverbContent}
           showsVerticalScrollIndicator={false}
         >
-          {psalmLoading ? (
-            <ActivityIndicator color={Colors.sage} style={styles.psalmLoader} />
-          ) : psalmError ? (
-            <Text style={[styles.psalmLine, psalmLineStyle]}>{psalmError}</Text>
-          ) : psalmVerses && psalmVerses.length > 0 ? (
+          {proverbLoading ? (
+            <ActivityIndicator color={Colors.sage} style={styles.proverbLoader} />
+          ) : proverbError ? (
+            <Text style={[styles.proverbLine, proverbLineStyle]}>{proverbError}</Text>
+          ) : proverbVerses && proverbVerses.length > 0 ? (
             <>
-              {psalmVerses.map((verse, vIndex) => (
-                <View key={`psalm-verse-${vIndex}`} style={styles.verseRow}>
+              {proverbVerses.map((verse, vIndex) => (
+                <View key={`proverb-verse-${vIndex}`} style={styles.verseRow}>
                   <Text
                     style={[
                       styles.verseNumber,
                       {
-                        fontSize: psalmFontSize,
-                        lineHeight: psalmFontSize * 1.6 + psalmLineSpacing,
-                        fontFamily: getFontFamily(psalmFont, 'bold'),
+                        fontSize: proverbFontSize,
+                        lineHeight: proverbFontSize * 1.6 + proverbLineSpacing,
+                        fontFamily: getFontFamily(proverbFont, 'bold'),
                       },
                     ]}>
                     {verse.number}
@@ -548,8 +555,8 @@ const PsalmOfTheDayScreen = () => {
                   <View style={styles.verseLines}>
                     {verse.lines.map((line, lIndex) => (
                       <Text
-                        key={`psalm-line-${vIndex}-${lIndex}`}
-                        style={[styles.verseLine, psalmLineStyle]}>
+                        key={`proverb-line-${vIndex}-${lIndex}`}
+                        style={[styles.verseLine, proverbLineStyle]}>
                         {line}
                       </Text>
                     ))}
@@ -559,13 +566,13 @@ const PsalmOfTheDayScreen = () => {
             </>
           ) : (
             <>
-              {psalmLines.map((line, index) => (
+              {proverbLines.map((line, index) => (
                 line.trim() === '' ? (
-                  <View key={`psalm-space-${index}`} style={styles.psalmStanzaBreak} />
+                  <View key={`proverb-space-${index}`} style={styles.proverbStanzaBreak} />
                 ) : (
                   <Text
-                    key={`psalm-line-${index}`}
-                    style={[styles.psalmLine, psalmLineStyle]}
+                    key={`proverb-line-${index}`}
+                    style={[styles.proverbLine, proverbLineStyle]}
                   >
                     {line.trim()}
                   </Text>
@@ -581,20 +588,20 @@ const PsalmOfTheDayScreen = () => {
   const footer = (
     <View style={styles.footerRow}>
       <TouchableOpacity
-        style={[styles.readButton, hasReadPsalm && styles.readButtonActive]}
-        onPress={togglePsalmRead}
+        style={[styles.readButton, hasReadProverb && styles.readButtonActive]}
+        onPress={toggleProverbRead}
         activeOpacity={0.8}
         accessibilityRole="checkbox"
-        accessibilityState={{ checked: hasReadPsalm }}
-        accessibilityLabel={`I've read Psalm ${psalmNumber}`}
+        accessibilityState={{ checked: hasReadProverb }}
+        accessibilityLabel={`I've read Proverbs ${proverbNumber}`}
       >
-        <Ionicons
-          name={hasReadPsalm ? 'checkmark-circle' : 'book-outline'}
-          size={16}
-          color={hasReadPsalm ? Colors.hopeWhite : Colors.sage}
-        />
-        <ThemedText weight="medium" style={[styles.readButtonText, hasReadPsalm && styles.readButtonTextActive]}>
-          {hasReadPsalm ? `Psalm ${psalmNumber} read` : `I've read Psalm ${psalmNumber}`}
+        {hasReadProverb ? (
+          <Ionicons name="checkmark-circle" size={16} color={Colors.hopeWhite} />
+        ) : (
+          <MaterialCommunityIcons name="script-text" size={16} color={Colors.sage} />
+        )}
+        <ThemedText weight="medium" style={[styles.readButtonText, hasReadProverb && styles.readButtonTextActive]}>
+          {hasReadProverb ? `Proverbs ${proverbNumber} read` : `I've read Proverbs ${proverbNumber}`}
         </ThemedText>
       </TouchableOpacity>
 
@@ -613,7 +620,7 @@ const PsalmOfTheDayScreen = () => {
   const aAButton = (
     <TouchableOpacity
       style={[styles.aaHeaderButton, showAaSettings && styles.aaHeaderButtonActive]}
-      onPress={togglePsalmSettings}
+      onPress={toggleProverbSettings}
       activeOpacity={0.72}
       accessibilityRole="button"
       accessibilityLabel="Text settings"
@@ -626,10 +633,12 @@ const PsalmOfTheDayScreen = () => {
   return (
     <RoutineStepShell
       titleBottomSpacing={16}
-      step={4}
+      extraScrollBottomPadding={140}
+      manageStatusBar={false}
+      step={3}
       totalSteps={6}
-      eyebrow="PSALM OF THE DAY"
-      title={`Psalm ${psalmNumber}`}
+      eyebrow="PROVERB OF THE DAY"
+      title={`Proverbs ${proverbNumber}`}
       footer={footer}
       onBack={onBack}
       backgroundColor={Colors.lightBackground}
@@ -640,14 +649,14 @@ const PsalmOfTheDayScreen = () => {
       <BibleCopyrightModal
         visible={showCopyright}
         onClose={() => setShowCopyright(false)}
-        bibleVersion={psalmVersion || ''}
+        bibleVersion={proverbVersion || ''}
       />
     </RoutineStepShell>
   );
 };
 
 const styles = StyleSheet.create({
-  psalmReferenceRow: {
+  proverbReferenceRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -655,7 +664,7 @@ const styles = StyleSheet.create({
     marginTop: 0,
     marginBottom: 4,
   },
-  psalmReference: {
+  proverbReference: {
     color: Colors.sage,
     fontFamily: Fonts.semiBold,
     fontSize: 13,
@@ -682,7 +691,7 @@ const styles = StyleSheet.create({
   aaHeaderButtonTextActive: {
     color: Colors.sage,
   },
-  psalmSettingsPanel: {
+  proverbSettingsPanel: {
     marginBottom: 16,
     padding: 16,
     borderRadius: 22,
@@ -692,22 +701,22 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     gap: 12,
   },
-  psalmAppearanceTopRow: {
+  proverbAppearanceTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  psalmQuickControls: {
+  proverbQuickControls: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
   },
-  psalmSizeControls: {
+  proverbSizeControls: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
   },
-  psalmControlButton: {
+  proverbControlButton: {
     width: 34,
     height: 34,
     borderRadius: 17,
@@ -715,25 +724,25 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: 'rgba(82, 106, 91, 0.1)',
   },
-  psalmControlButtonText: {
+  proverbControlButtonText: {
     fontSize: 14,
     color: Colors.text,
   },
-  psalmDecreaseFontIcon: {
+  proverbDecreaseFontIcon: {
     fontSize: 12,
     color: Colors.textGray,
   },
-  psalmIncreaseFontIcon: {
+  proverbIncreaseFontIcon: {
     fontSize: 18,
     color: Colors.text,
   },
-  psalmFontSizeLabel: {
+  proverbFontSizeLabel: {
     width: 28,
     textAlign: 'center',
     fontSize: 13,
     color: Colors.sage,
   },
-  psalmBoldToggle: {
+  proverbBoldToggle: {
     height: 34,
     paddingHorizontal: 13,
     borderRadius: 17,
@@ -743,18 +752,18 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(82, 106, 91, 0.2)',
     backgroundColor: 'rgba(82, 106, 91, 0.06)',
   },
-  psalmBoldToggleActive: {
+  proverbBoldToggleActive: {
     borderColor: Colors.sage,
     backgroundColor: Colors.sage,
   },
-  psalmBoldToggleText: {
+  proverbBoldToggleText: {
     fontSize: 12,
     color: Colors.text,
   },
-  psalmBoldToggleTextActive: {
+  proverbBoldToggleTextActive: {
     color: Colors.hopeWhite,
   },
-  psalmResetIconButton: {
+  proverbResetIconButton: {
     width: 34,
     height: 34,
     borderRadius: 17,
@@ -762,17 +771,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: 'rgba(82, 106, 91, 0.06)',
   },
-  psalmOptionGroup: {
+  proverbOptionGroup: {
     padding: 8,
     borderRadius: 14,
     backgroundColor: 'rgba(82, 106, 91, 0.06)',
   },
-  psalmFontControls: {
+  proverbFontControls: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     gap: 6,
   },
-  psalmFontChip: {
+  proverbFontChip: {
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 999,
@@ -780,55 +789,55 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: 'rgba(82, 106, 91, 0.1)',
   },
-  psalmFontChipActive: {
+  proverbFontChipActive: {
     backgroundColor: Colors.sage,
   },
-  psalmFontChipText: {
+  proverbFontChipText: {
     fontSize: 11,
     color: Colors.text,
   },
-  psalmFontChipTextActive: {
+  proverbFontChipTextActive: {
     color: Colors.hopeWhite,
   },
-  psalmOptionDivider: {
+  proverbOptionDivider: {
     height: StyleSheet.hairlineWidth,
     marginVertical: 8,
     backgroundColor: 'rgba(82, 106, 91, 0.15)',
   },
-  psalmAlignControls: {
+  proverbAlignControls: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     gap: 6,
   },
-  psalmAlignButton: {
+  proverbAlignButton: {
     flex: 1,
     height: 30,
     borderRadius: 15,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  psalmAdvancedButton: {
+  proverbAdvancedButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 5,
     paddingVertical: 5,
   },
-  psalmAdvancedButtonText: {
+  proverbAdvancedButtonText: {
     fontSize: 11,
     color: Colors.textGray,
   },
-  psalmAdvancedSettings: {
+  proverbAdvancedSettings: {
     paddingTop: 2,
     gap: 10,
   },
-  psalmSettingsRow: {
+  proverbSettingsRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 12,
   },
-  psalmSettingsLabel: {
+  proverbSettingsLabel: {
     width: 56,
     fontSize: 12,
     color: Colors.textGray,
@@ -842,20 +851,20 @@ const styles = StyleSheet.create({
     paddingTop: 4,
     minHeight: 320,
   },
-  psalmScroll: {
+  proverbScroll: {
     flex: 1,
   },
-  psalmContent: {
+  proverbContent: {
     paddingBottom: 8,
   },
-  psalmLoader: {
+  proverbLoader: {
     marginTop: 20,
   },
-  psalmLine: {
+  proverbLine: {
     color: Colors.text,
     marginBottom: 6,
   },
-  psalmStanzaBreak: {
+  proverbStanzaBreak: {
     height: 16,
   },
   verseRow: {
@@ -888,7 +897,7 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingVertical: 14,
     paddingHorizontal: 18,
-    backgroundColor: 'rgba(82, 106, 91, 0.08)',
+    backgroundColor: '#E9EAE3',
     borderRadius: 28,
     borderWidth: 0.5,
     borderColor: 'rgba(82, 106, 91, 0.2)',
@@ -898,7 +907,7 @@ const styles = StyleSheet.create({
     borderColor: Colors.sage,
   },
   readButtonText: {
-    color: Colors.text,
+    color: Colors.sage,
     fontSize: 15,
   },
   readButtonTextActive: {
@@ -919,4 +928,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default PsalmOfTheDayScreen;
+export default EveningProverbsScreen;

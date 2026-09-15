@@ -21,12 +21,7 @@ const MorningTodosScreen: React.FC = () => {
   }, [markStepCompleted, navigation, selectedDate]);
 
   const handleClose = useCallback(() => {
-    const parent = navigation.getParent();
-    if (parent?.canGoBack()) {
-      parent.goBack();
-    } else {
-      navigation.navigate('MainTabs', { screen: 'Today' });
-    }
+    navigation.navigate('MainTabs', { screen: 'Today' });
   }, [navigation]);
 
   return (

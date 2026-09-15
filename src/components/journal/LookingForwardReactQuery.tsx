@@ -14,6 +14,7 @@ import { useNavigation } from '@react-navigation/native';
 import { useFocusEffect } from '@react-navigation/native';
 
 import { useAuth } from '../../context/IndustryStandardAuthContext';
+import { useMomentsPalette } from '../../context/MomentsPaletteContext';
 import { toLocalDateString } from '../../utils/date';
 import {
   useLookingForwardData,
@@ -36,9 +37,17 @@ interface LookingForwardProps {
   viewMode?: 'carousel' | 'inline' | 'moments';
   expanded?: boolean;
   onExpand?: () => void;
+  moment?: {
+    id: string;
+    lines: string[];
+    emotionName?: string;
+    emotionIcon?: string;
+    lookingForwardText?: string;
+    customEmotion?: string;
+  };
 }
 
-const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, viewMode, expanded, onExpand }) => {
+const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, viewMode, expanded, onExpand, moment }) => {
   // Navigation
   const navigation = useNavigation<any>();
 
@@ -50,6 +59,7 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
   const fontKey = currentFont || 'lexend';
 
   const { user } = useAuth();
+  const isPalette = useMomentsPalette();
   const [entryText, setEntryText] = useState('');
   const [displayEntry, setDisplayEntry] = useState<any>(null);
   const [isAdding, setIsAdding] = useState(false);
@@ -240,37 +250,46 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
     }
   }, [entry]);
 
+  const fallbackLookingForward = React.useMemo(() => moment ? {
+    id: moment.id,
+    text: moment.lookingForwardText || moment.lines[2] || moment.lines[1] || '',
+    emotionId: moment.emotionIcon || '',
+    emotionName: moment.emotionName || moment.lines[0] || '',
+    customEmotion: moment.customEmotion || '',
+  } : null, [moment]);
+  const resolvedLookingForward = lookingForward || fallbackLookingForward;
+
   // Update displayEntry when lookingForward data changes, but only if not currently editing or saving
   React.useEffect(() => {
     if (!isEditing && !isSaving) {
       // Only update if the entry has actually changed
       setDisplayEntry((prevDisplayEntry: any) => {
         // Compare by ID, text, and emotion to avoid unnecessary updates
-        if (!lookingForward && !prevDisplayEntry) {return prevDisplayEntry;}
-        if (!lookingForward || !prevDisplayEntry) {
+        if (!resolvedLookingForward && !prevDisplayEntry) {return prevDisplayEntry;}
+        if (!resolvedLookingForward || !prevDisplayEntry) {
 
-          return lookingForward;
+          return resolvedLookingForward;
         }
 
         // Don't override optimistic updates with the same content (including emotion)
-        if (lookingForward.id === prevDisplayEntry.id &&
-            lookingForward.text === prevDisplayEntry.text &&
-            lookingForward.emotionId === prevDisplayEntry.emotionId &&
-            lookingForward.emotionName === prevDisplayEntry.emotionName) {
+        if (resolvedLookingForward.id === prevDisplayEntry.id &&
+            resolvedLookingForward.text === prevDisplayEntry.text &&
+            resolvedLookingForward.emotionId === prevDisplayEntry.emotionId &&
+            resolvedLookingForward.emotionName === prevDisplayEntry.emotionName) {
           return prevDisplayEntry; // No change, keep previous
         }
 
         // Don't override optimistic updates with older data
         // (optimistic updates have temp IDs or are newer)
-        if (prevDisplayEntry.id.startsWith('temp-') && lookingForward.text === prevDisplayEntry.text) {
+        if (prevDisplayEntry.id.startsWith('temp-') && resolvedLookingForward.text === prevDisplayEntry.text) {
           // Replace temp ID with real ID but keep the optimistic content
-          return { ...prevDisplayEntry, id: lookingForward.id };
+          return { ...prevDisplayEntry, id: resolvedLookingForward.id };
         }
 
-        return lookingForward;
+        return resolvedLookingForward;
       });
     }
-  }, [lookingForward, isEditing, isSaving]);
+  }, [resolvedLookingForward, isEditing, isSaving]);
 
   // Reset state when date changes (prevents stale data)
   React.useEffect(() => {
@@ -312,7 +331,7 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
 
   // Handle loading and error states
   React.useEffect(() => {
-    if (error) {
+    if (error && !fallbackLookingForward) {
       analytics.trackLookingForwardEvent('looking_forward_error', {
         error_type: error.message || 'unknown',
         operation: 'load',
@@ -324,12 +343,12 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
   }, [error, dateStr, user?.id]);
 
   // Handle loading state
-  if (isLoading) {
+  if (isLoading && !fallbackLookingForward) {
     return <LookingForwardSkeleton />;
   }
 
   // Handle error state
-  if (error) {
+  if (error && !fallbackLookingForward) {
     return (
       <JournalCard
         title="LOOKING FORWARD TO"
@@ -498,10 +517,10 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
   };
 
   // Determine if there's content
-  const hasContent = lookingForward && (lookingForward.text.trim() || lookingForward.emotionName);
+  const hasContent = resolvedLookingForward && (resolvedLookingForward.text.trim() || resolvedLookingForward.emotionName);
 
   // Hide empty component in inline and moments view
-  if ((viewMode === 'inline' || viewMode === 'moments') && !isLoading && !error && (!lookingForward || (!lookingForward.text.trim() && !lookingForward.emotionName))) {
+  if ((viewMode === 'inline' || viewMode === 'moments') && (!resolvedLookingForward || (!resolvedLookingForward.text.trim() && !resolvedLookingForward.emotionName))) {
     return null;
   }
 
@@ -527,14 +546,14 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
         <View style={styles.completionCard}>
           {displayEntry.text.trim() && (
             <View style={styles.completionSection}>
-              <ThemedText style={styles.completionSectionText}>{displayEntry.text}</ThemedText>
+              <ThemedText style={[styles.completionSectionText, { color: isPalette ? Colors.text : Colors.hopeWhite }]}>{displayEntry.text}</ThemedText>
             </View>
           )}
 
-          <View style={styles.completionDivider} />
+          <View style={[styles.completionDivider, { backgroundColor: isPalette ? Colors.borderLight : 'rgba(255, 255, 255, 0.1)' }]} />
 
           <View style={styles.completionSection}>
-            <ThemedText weight="medium" style={styles.completionSectionLabel}>{getSectionLabel()}</ThemedText>
+            <ThemedText weight="medium" style={[styles.completionSectionLabel, { color: isPalette ? Colors.sage : Colors.alertCoral }]}>{getSectionLabel()}</ThemedText>
             <View style={styles.completionHeader}>
               <View style={styles.completionHeaderContent}>
                 <View style={styles.emotionRow}>
@@ -542,11 +561,11 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
                     <MaterialCommunityIcons
                       name={getEmotionIcon(displayEntry.emotionId)}
                       size={16}
-                      color={Colors.alertCoral}
+                      color={isPalette ? Colors.sage : Colors.alertCoral}
                       style={styles.emotionIconSmall}
                     />
                   )}
-                  <ThemedText weight="semiBold" style={styles.completionCategory}>
+                  <ThemedText weight="semiBold" style={[styles.completionCategory, { color: isPalette ? Colors.text : Colors.hopeWhite }]}>
                     {displayEntry.emotionName || 'Looking Forward'}
                   </ThemedText>
                 </View>

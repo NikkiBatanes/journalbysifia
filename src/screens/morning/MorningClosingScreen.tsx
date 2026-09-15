@@ -127,12 +127,7 @@ const MorningClosingScreen = () => {
     triggerLightHaptic();
     await completeRoutine();
 
-    const parent = navigation.getParent();
-    if (parent?.canGoBack()) {
-      parent.goBack();
-    } else {
-      navigation.navigate('MainTabs', { screen: 'Today' });
-    }
+    navigation.navigate('MainTabs', { screen: 'Today' });
   };
 
   return (
@@ -206,10 +201,10 @@ const MorningClosingScreen = () => {
 
           <View style={styles.readStatus}>
             <View style={[styles.readStatusIcon, !summary.psalmRead && styles.readStatusIconInactive]}>
-              <Ionicons name={summary.psalmRead ? 'checkmark' : 'book-outline'} size={14} color={summary.psalmRead ? Colors.hopeWhite : Colors.sage} />
+              {summary.psalmRead ? <Ionicons name="checkmark" size={14} color={Colors.hopeWhite} /> : <MaterialCommunityIcons name="script-text-outline" size={14} color={Colors.sage} />}
             </View>
             <ThemedText weight="semiBold" style={styles.readStatusText}>
-              {summary.psalmRead ? 'Full chapter read' : 'Chapter not marked read'}
+              {summary.psalmRead ? 'Full chapter read' : 'Reading in progress'}
             </ThemedText>
           </View>
 
