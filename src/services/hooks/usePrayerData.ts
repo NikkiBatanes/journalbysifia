@@ -259,13 +259,13 @@ export const useCreatePrayer = () => {
       // Cache is automatically handled by React Query
 
       // Update prayer streak
-      if (variables.user_id ?? 'local') {
+      if (variables.user_id && variables.user_id !== 'local') {
         try {
-          await streakTrackingService.updateStreak(variables.user_id ?? 'local', 'prayer');
+          await streakTrackingService.updateStreak(variables.user_id, 'prayer');
 
           // Invalidate streak tracker to refresh UI
           queryClient.invalidateQueries({
-            queryKey: queryKeys.dashboard.streaks(variables.user_id ?? 'local'),
+            queryKey: queryKeys.dashboard.streaks(variables.user_id),
           });
         } catch (error) {
           Logger.warn('Failed to update prayer streak', {
@@ -989,7 +989,7 @@ export const useCreateGuidedPrayer = () => {
       // Cache is automatically handled by React Query optimistic updates
 
       // Update prayer streak
-      if (variables.userId) {
+      if (variables.userId && variables.userId !== 'local') {
         try {
           await streakTrackingService.updateStreak(variables.userId, 'prayer');
 

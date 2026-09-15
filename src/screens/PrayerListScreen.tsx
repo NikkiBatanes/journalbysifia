@@ -34,11 +34,12 @@ import PrayerTrackingModal from '../components/prayer/PrayerTrackingModal';
 import { isTrackedPrayer, trackingStatus, prayerNeeds, answerPrayer, type PrayerUpdate } from '../utils/prayerTracking';
 import { getLatestPrayerDraft, PrayerDraft } from '../storage/prayerDraftStorage';
 
-type PrayerTab = 'active' | 'requests' | 'answered' | 'all';
+type PrayerTab = 'active' | 'needs' | 'requests' | 'answered' | 'all';
 
 const TABS: { key: PrayerTab; label: string }[] = [
   { key: 'all', label: 'All' },
   { key: 'active', label: 'Still praying' },
+  { key: 'needs', label: 'Needs' },
   { key: 'requests', label: 'Requests' },
   { key: 'answered', label: 'Answered' },
 ];
@@ -117,7 +118,8 @@ const groupPrayerEntries = (prayers: PrayerApiEntry[]): PrayerHomeEntry[] => {
 const formatStarted = (dateString?: string | null) => {
   if (!dateString) { return ''; }
   try {
-    return format(new Date(dateString), 'MMM d').toUpperCase();
+    const date = new Date(dateString.length === 10 ? `${dateString}T12:00:00` : dateString);
+    return format(date, date.getFullYear() === new Date().getFullYear() ? 'MMM d' : 'MMM d, yyyy').toUpperCase();
   } catch {
     return '';
   }
@@ -155,11 +157,17 @@ const PrayerCard = ({
       : isPrayerRequest
         ? 'PRAYER REQUEST'
         : 'PRAYED FOR';
-  const title = prayer.metadata?.prayer_need ? prayer.person_name || 'My prayer need' : isCast ? 'CAST Prayer' : isOpen ? 'Open Prayer' : prayer.person_name || 'Prayer';
+  const title = prayer.metadata?.prayer_need
+    ? prayer.person_name || prayer.content?.split('\n')[0] || 'My prayer need'
+    : isCast ? 'CAST Prayer' : isOpen ? 'Open Prayer' : prayer.person_name || 'Prayer';
   const [showHistory, setShowHistory] = useState(false);
   const history: PrayerUpdate[] = Array.isArray(prayer.metadata?.prayer_updates) ? [...(prayer.metadata?.prayer_updates || [])].reverse() : [];
   const latestUpdate = history.find(update => !update.status);
-  const body = prayer.content || prayer.notes || '';
+  const body = prayer.content || '';
+  const notes = prayer.notes?.trim() || '';
+  const needs = prayerNeeds(prayer);
+  const savedTopics = prayer.metadata?.topics;
+  const topics = Array.isArray(savedTopics) ? savedTopics.filter(Boolean) : [...new Set(needs.map(need => need.topic).filter(Boolean))];
   const seenCastSections = new Set<string>();
   const castSections = isCast ? (prayer.groupedEntries || [prayer]).map(entry => {
     const category = entry.journal_category || '';
@@ -193,10 +201,14 @@ const PrayerCard = ({
           <ThemedText style={styles.cardDate}>{formatStarted(prayer.created_at)}</ThemedText>
         </View>
         <ThemedText weight="bold" style={styles.cardTitle}>{title}</ThemedText>
+        {prayer.metadata?.prayer_need && topics.length > 0 && <ThemedText weight="semiBold" style={styles.needTopics}>{topics.join(' · ').toUpperCase()}</ThemedText>}
         {isCast ? castSections.map(section => <View key={section.id} style={styles.castSection}>
           {!!section.label && <ThemedText weight="semiBold" style={styles.castLabel}>{section.label}</ThemedText>}
           <ThemedText style={[styles.cardBody, styles.castBody]} numberOfLines={2}>{section.content}</ThemedText>
-        </View>) : !!body && !(prayer.metadata?.prayer_need && prayerNeeds(prayer).length > 0) && <ThemedText style={styles.cardBody} numberOfLines={3}>{body}</ThemedText>}
+        </View>) : prayer.metadata?.prayer_need
+          ? !!notes && <ThemedText style={styles.cardBody} numberOfLines={4}>{notes}</ThemedText>
+          : !!body && !body.startsWith(title) && <ThemedText style={styles.cardBody} numberOfLines={3}>{body}</ThemedText>}
+        {prayer.metadata?.prayer_need && <ThemedText style={styles.needDates}>Praying since {formatStarted(prayer.metadata?.praying_since || prayer.selected_date)}{needs.length === 1 && needs[0].expectedDate ? ` · On or before ${formatStarted(needs[0].expectedDate)}` : ''}</ThemedText>}
         {!!requestContext && (
           <View style={styles.requestContext}>
             <Ionicons name="mail-unread-outline" size={13} color={Colors.sage} />
@@ -216,7 +228,7 @@ const PrayerCard = ({
         <ThemedText weight="semiBold" style={styles.actionButtonText}>{showHistory ? 'Hide history' : `View history (${history.length})`}</ThemedText>
         <Ionicons name={showHistory ? 'chevron-up' : 'chevron-down'} size={13} color={Colors.sage} />
       </TouchableOpacity>}
-      {tracked && prayerNeeds(prayer).map(need => <View key={need.id} style={styles.castSection}><ThemedText style={styles.cardBody}>{need.text}</ThemedText>{prayerNeeds(prayer).length > 1 && <ThemedText style={styles.cardMeta}>{need.status === 'pending' ? 'Still praying' : need.status === 'answered' ? 'Answered' : 'Closed'}</ThemedText>}{prayerNeeds(prayer).length > 1 && <TouchableOpacity disabled={answering} style={[styles.actionButton, { alignSelf: 'flex-start', marginVertical: 8 }]} onPress={() => onAnswered(prayer, need.id)}><Ionicons name="checkmark-circle-outline" size={14} color={Colors.sage} /><ThemedText weight="semiBold" style={styles.actionButtonText}>{need.status === 'answered' ? 'Answered' : 'Mark answered'}</ThemedText></TouchableOpacity>}</View>)}
+      {tracked && needs.length > 1 && needs.map(need => <View key={need.id} style={styles.castSection}><ThemedText style={styles.cardBody}>{need.text}</ThemedText><ThemedText style={styles.cardMeta}>{need.status === 'pending' ? 'Still praying' : need.status === 'answered' ? 'Answered' : 'Closed'}</ThemedText><TouchableOpacity disabled={answering} style={[styles.actionButton, { alignSelf: 'flex-start', marginVertical: 8 }]} onPress={() => onAnswered(prayer, need.id)}><Ionicons name="checkmark-circle-outline" size={14} color={Colors.sage} /><ThemedText weight="semiBold" style={styles.actionButtonText}>{need.status === 'answered' ? 'Answered' : 'Mark answered'}</ThemedText></TouchableOpacity></View>)}
       {needsPrayer ? (
         <View style={styles.requestActionContainer}>
           <TouchableOpacity style={styles.requestPrayButton} onPress={() => onAddPrayer(prayer)} activeOpacity={0.7}>
@@ -228,15 +240,15 @@ const PrayerCard = ({
         <View style={styles.cardActions}>
           {!isAnswered && <TouchableOpacity style={[styles.actionButton, styles.cardActionButton]} onPress={() => onPrayAgain(prayer)} activeOpacity={0.7}>
             <Ionicons name="heart-outline" size={14} color={Colors.sage} />
-            <ThemedText weight="semiBold" style={[styles.actionButtonText, styles.cardActionText]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>Pray again</ThemedText>
+            <ThemedText weight="semiBold" style={[styles.actionButtonText, styles.cardActionText]} numberOfLines={1}>Pray again</ThemedText>
           </TouchableOpacity>}
           <TouchableOpacity style={[styles.actionButton, styles.cardActionButton]} onPress={() => onManage(prayer)} activeOpacity={0.7}>
             <Ionicons name="chatbox-ellipses-outline" size={14} color={Colors.sage} />
-            <ThemedText weight="semiBold" style={[styles.actionButtonText, styles.cardActionText]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>{tracked ? 'Add update' : 'Keep praying'}</ThemedText>
+            <ThemedText weight="semiBold" style={[styles.actionButtonText, styles.cardActionText]} numberOfLines={1}>{tracked ? 'Add update' : 'Keep praying'}</ThemedText>
           </TouchableOpacity>
           {tracked && !needsPrayer &&  <TouchableOpacity disabled={answering} style={[styles.actionButton, styles.cardActionButton, { flexGrow: 1.35 }, isAnswered && styles.actionButtonActive]} onPress={() => prayerNeeds(prayer).length > 1 ? onManageAnswers(prayer) : onAnswered(prayer, prayerNeeds(prayer)[0]?.id)} activeOpacity={0.7}>
             <Ionicons name={isAnswered ? 'sparkles-outline' : 'checkmark-circle-outline'} size={14} color={isAnswered ? Colors.hopeWhite : Colors.sage} />
-            <ThemedText weight="semiBold" style={[styles.actionButtonText, styles.cardActionText, isAnswered && styles.actionButtonTextActive]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>{prayerNeeds(prayer).length > 1 ? 'Manage answers' : isAnswered ? 'Answered' : 'Mark answered'}</ThemedText>
+            <ThemedText weight="semiBold" style={[styles.actionButtonText, styles.cardActionText, isAnswered && styles.actionButtonTextActive]} numberOfLines={1}>{needs.length > 1 ? 'Manage answers' : isAnswered ? 'Answered' : 'Mark answered'}</ThemedText>
           </TouchableOpacity>}
         </View>
       )}
@@ -293,11 +305,14 @@ const PrayerListScreen = () => {
   const groupedPrayers = useMemo(() => groupPrayerEntries(prayers), [prayers]);
 
   const pendingRequests = useMemo(() => groupedPrayers.filter(p => p.is_prayer_request === true && p.prayed !== true && trackingStatus(p) === 'pending'), [groupedPrayers]);
+  const prayerNeedEntries = useMemo(() => groupedPrayers.filter(p => p.metadata?.prayer_need === true), [groupedPrayers]);
 
   const filteredPrayers = useMemo(() => {
     switch (activeTab) {
       case 'active':
         return groupedPrayers.filter(p => isTrackedPrayer(p) && trackingStatus(p) === 'pending' && !(p.is_prayer_request && !p.prayed));
+      case 'needs':
+        return prayerNeedEntries;
       case 'requests':
         return pendingRequests;
       case 'answered':
@@ -306,7 +321,7 @@ const PrayerListScreen = () => {
       default:
         return groupedPrayers;
     }
-  }, [activeTab, groupedPrayers, pendingRequests]);
+  }, [activeTab, groupedPrayers, pendingRequests, prayerNeedEntries]);
 
   const handlePrayAgain = async (prayer: PrayerHomeEntry) => {
     try {
@@ -519,7 +534,7 @@ const PrayerListScreen = () => {
           </TouchableOpacity>
         </View>
       </View>
-      <ScrollView horizontal style={{ flexGrow: 0 }} showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabs}>
+      <View style={styles.tabs}>
         {TABS.map((tab) => {
           const isActive = activeTab === tab.key;
           return (
@@ -532,13 +547,13 @@ const PrayerListScreen = () => {
               }}
               activeOpacity={0.7}
             >
-              <ThemedText weight="semiBold" style={[styles.tabText, isActive && styles.tabTextActive]}>
-                {tab.label}{tab.key === 'requests' && pendingRequests.length > 0 ? ` · ${pendingRequests.length}` : ''}
+              <ThemedText weight="semiBold" numberOfLines={1} allowFontScaling={false} style={[styles.tabText, isActive && styles.tabTextActive]}>
+                {tab.label}{tab.key === 'needs' && prayerNeedEntries.length > 0 ? ` · ${prayerNeedEntries.length}` : tab.key === 'requests' && pendingRequests.length > 0 ? ` · ${pendingRequests.length}` : ''}
               </ThemedText>
             </TouchableOpacity>
           );
         })}
-      </ScrollView>
+      </View>
 
       {isLoading ? (
         <View style={styles.loader}>
@@ -548,8 +563,8 @@ const PrayerListScreen = () => {
         <View>
           {filteredPrayers.length === 0 ? (
             <View style={styles.empty}>
-              <ThemedText weight="bold" style={styles.emptyTitle}>{activeTab === 'requests' ? 'No requests waiting.' : activeTab === 'answered' ? 'No answered prayers yet.' : 'No prayers yet.'}</ThemedText>
-              <ThemedText style={styles.emptySubtitle}>{activeTab === 'requests' ? 'New requests will appear here until you pray for them.' : 'Choose a prayer above to begin.'}</ThemedText>
+              <ThemedText weight="bold" style={styles.emptyTitle}>{activeTab === 'needs' ? 'No prayer needs yet.' : activeTab === 'requests' ? 'No requests waiting.' : activeTab === 'answered' ? 'No answered prayers yet.' : 'No prayers yet.'}</ThemedText>
+              <ThemedText style={styles.emptySubtitle}>{activeTab === 'needs' ? 'Your personal prayer needs will appear here.' : activeTab === 'requests' ? 'New requests will appear here until you pray for them.' : 'Choose a prayer above to begin.'}</ThemedText>
             </View>
           ) : (
             filteredPrayers.map((prayer) => (
@@ -697,13 +712,17 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.semiBold,
   },
   tabs: {
+    width: '100%',
     flexDirection: 'row',
-    gap: 8,
+    gap: 4,
     marginBottom: 20,
   },
   tab: {
+    flex: 1,
+    minWidth: 0,
+    alignItems: 'center',
     paddingVertical: 9,
-    paddingHorizontal: 14,
+    paddingHorizontal: 2,
     borderRadius: 20,
     backgroundColor: 'transparent',
     borderWidth: 1,
@@ -714,9 +733,11 @@ const styles = StyleSheet.create({
     borderColor: Colors.sage,
   },
   tabText: {
+    maxWidth: '100%',
     color: Colors.sage,
-    fontSize: 12,
-    lineHeight: 16,
+    fontSize: 9,
+    lineHeight: 13,
+    textAlign: 'center',
     fontFamily: Fonts.semiBold,
   },
   tabTextActive: {
@@ -793,6 +814,8 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     fontFamily: Fonts.regular,
   },
+  needTopics: { color: Colors.sageMuted, fontSize: 9, lineHeight: 14, letterSpacing: 1.2, marginBottom: 8 },
+  needDates: { color: Colors.textGray, fontSize: 11, lineHeight: 17, marginBottom: 12 },
   prayedMeta: {
     color: Colors.textGray,
     fontSize: 12,

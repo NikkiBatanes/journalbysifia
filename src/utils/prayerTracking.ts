@@ -1,6 +1,6 @@
 import type { PrayerApiEntry } from '../services/api/prayerApi';
 
-export type PrayerNeed = { id: string; text: string; status: 'pending' | 'answered' | 'closed'; answeredDate?: string };
+export type PrayerNeed = { id: string; text: string; status: 'pending' | 'answered' | 'closed'; answeredDate?: string; expectedDate?: string; topic?: string };
 export type PrayerUpdateKind = 'still-praying' | 'answered' | 'situation-changed';
 export type PrayerUpdate = { id: string; text: string; date: string; needId?: string; kind?: PrayerUpdateKind; status?: PrayerNeed['status'] };
 export const isTrackedPrayer = (p: PrayerApiEntry) => p.metadata?.track_answered !== false && (p.is_prayer_request === true || p.prayer_type === 'people' || p.journal_category === 'supplication' || p.journal_category === 'personal_prayer' || p.metadata?.prayer_style === 'open' || p.metadata?.prayer_need === true);

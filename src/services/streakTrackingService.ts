@@ -18,6 +18,8 @@ export interface UserStreaks {
 
 export type StreakType = 'prayer' | 'journal';
 
+const isCloudUserId = (userId: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(userId);
+
 /**
  * Streak Tracking Service
  * Manages user activity streaks and triggers streak alert notifications
@@ -27,6 +29,7 @@ class StreakTrackingService {
    * Get user's current streaks
    */
   async getUserStreaks(userId: string): Promise<UserStreaks | null> {
+    if (!isCloudUserId(userId)) {return null;}
     try {
       const { data, error } = await supabase
         .from('user_streaks')
@@ -97,6 +100,7 @@ class StreakTrackingService {
    * Update streak when user completes an activity
    */
   async updateStreak(userId: string, streakType: StreakType): Promise<boolean> {
+    if (!isCloudUserId(userId)) {return false;}
     try {
       // Use database function for atomic streak update
       const { error } = await supabase.rpc('update_user_streak', {

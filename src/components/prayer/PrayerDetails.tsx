@@ -12,9 +12,9 @@ import { Colors } from '../../theme/colors';
 import type { PrayerApiEntry } from '../../services/api/prayerApi';
 import { answerPrayer, isTrackedPrayer, prayerNeeds, trackingStatus, type PrayerNeed, type PrayerUpdate } from '../../utils/prayerTracking';
 
-export type PrayerChanges = { content: string; person_name?: string; status: 'pending' | 'answered'; answered_date: string | null; metadata: Record<string, any>; prayed?: boolean; prayer_count?: number; last_prayed_at?: string };
+export type PrayerChanges = { content: string; person_name?: string; notes?: string; status: 'pending' | 'answered'; answered_date: string | null; metadata: Record<string, any>; prayed?: boolean; prayer_count?: number; last_prayed_at?: string };
 type Props = { prayer: PrayerApiEntry; onClose: () => void; onSave: (data: PrayerChanges) => Promise<void>; onDelete?: () => Promise<void>; renderUpdate: (prayer: PrayerApiEntry, save: (data: PrayerChanges) => Promise<void>, close: () => void) => React.ReactNode };
-const dateLabel = (date?: string | null) => { try { return date ? format(new Date(date), 'MMM d, yyyy') : ''; } catch { return ''; } };
+const dateLabel = (date?: string | null) => { try { if (!date) return ''; const value = new Date(date.length === 10 ? `${date}T12:00:00` : date); return format(value, value.getFullYear() === new Date().getFullYear() ? 'MMM d' : 'MMM d, yyyy'); } catch { return ''; } };
 export default function PrayerDetails({ prayer, onClose, onSave, onDelete, renderUpdate }: Props) {
   const insets = useSafeAreaInsets();
   const [current, setCurrent] = useState(prayer);
@@ -65,6 +65,8 @@ export default function PrayerDetails({ prayer, onClose, onSave, onDelete, rende
           <View style={styles.row}>{label('YOUR PRAYER')}{action('Edit', 'pencil-outline', () => { setDraft(current.content); setEditor('prayer'); })}</View>
           <ThemedText style={styles.prayerText}>{current.content}</ThemedText>
           {!!current.metadata?.prayer_request_display && <View style={styles.request}><ThemedText style={styles.hint}>Prayer request: {current.metadata.prayer_request_display}</ThemedText></View>}
+          {!!current.notes && <View style={styles.row}>{label('NOTES')}</View>}
+          {!!current.notes && <ThemedText style={styles.prayerText}>{current.notes}</ThemedText>}
           <View style={styles.divider} />{label('TOPICS')}
           <View style={styles.topics}>{['Provision', 'Health', 'Guidance', 'Relationships', 'Work', 'Other'].map(topic => <TouchableOpacity key={topic} disabled={saving} onPress={() => { triggerLightHaptic(); return (() => { void run({ ...base(), metadata: { ...current.metadata, topic: current.metadata?.topic === topic ? '' : topic } }); })(); }} style={[styles.topic, current.metadata?.topic === topic && styles.topicActive]}><ThemedText weight="medium" style={styles.topicText}>{topic}</ThemedText></TouchableOpacity>)}</View>
         </View>
