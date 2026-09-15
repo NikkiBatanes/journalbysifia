@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { DeviceEventEmitter, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -12,7 +12,7 @@ import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
 import { triggerLightHaptic } from '../../utils/haptics';
 import { toLocalDateString } from '../../utils/date';
-import { useMorningStatusBar } from '../../hooks/useMorningStatusBar';
+import { exitEveningFlow } from '../../navigation/exitEveningFlow';
 import { useRoutine } from '../../context/RoutineContext';
 import { getLocalJournalSingleton, getLocalJournalEntries } from '../../storage/journalStorage';
 import { getLocalReflection } from '../../storage/reflectionStorage';
@@ -32,7 +32,6 @@ const MorningClosingScreen = () => {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
-  useMorningStatusBar();
   const { completeRoutine, selectedDate, contentRefs } = useRoutine();
   const params = route.params ?? {};
   const [shareDropdownOpen, setShareDropdownOpen] = useState(false);
@@ -125,9 +124,16 @@ const MorningClosingScreen = () => {
 
   const onDone = async () => {
     triggerLightHaptic();
-    await completeRoutine();
 
-    navigation.navigate('MainTabs', { screen: 'Today' });
+    try {
+      await completeRoutine();
+    } catch (error) {
+      console.error('Error saving morning routine state:', error);
+      return;
+    }
+
+    DeviceEventEmitter.emit('reflection_saved', { type: 'morning_complete', date: dateStr });
+    exitEveningFlow(navigation, 'Moments');
   };
 
   return (

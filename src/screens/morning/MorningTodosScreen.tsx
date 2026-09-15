@@ -2,13 +2,12 @@ import React, { useCallback } from 'react';
 import { useNavigation } from '@react-navigation/native';
 
 import { useRoutine } from '../../context/RoutineContext';
+import { exitMorningFlow } from '../../navigation/exitEveningFlow';
 import TodosExperience from '../../components/journal/TodosExperience';
-import { useMorningStatusBar } from '../../hooks/useMorningStatusBar';
 
 const MorningTodosScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const { selectedDate, markStepCompleted } = useRoutine();
-  useMorningStatusBar();
 
   const handleComplete = useCallback(async (result: { record: any; items: any[] }) => {
     const todoRefs = result.items.map(item => ({
@@ -21,7 +20,7 @@ const MorningTodosScreen: React.FC = () => {
   }, [markStepCompleted, navigation, selectedDate]);
 
   const handleClose = useCallback(() => {
-    navigation.navigate('MainTabs', { screen: 'Today' });
+    exitMorningFlow(navigation, 'Today');
   }, [navigation]);
 
   return (

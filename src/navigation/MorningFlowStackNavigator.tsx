@@ -3,6 +3,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 import { Colors } from '../theme/colors';
 import { RoutineProvider } from '../context/RoutineContext';
+import { useMorningStatusBar } from '../hooks/useMorningStatusBar';
 
 import EmotionCheckInScreen from '../screens/morning/EmotionCheckInScreen';
 import UnderneathItScreen from '../screens/morning/UnderneathItScreen';
@@ -58,7 +59,10 @@ export type MorningFlowParamList = {
 
 const Stack = createNativeStackNavigator<MorningFlowParamList>();
 
-const MorningFlowStackNavigator = () => (
+const MorningFlowStackNavigator = () => {
+  useMorningStatusBar();
+
+  return (
   <RoutineProvider>
     <Stack.Navigator
       initialRouteName="EmotionCheckIn"
@@ -71,6 +75,7 @@ const MorningFlowStackNavigator = () => (
         gestureEnabled: true,
         fullScreenGestureEnabled: true,
         animationMatchesGesture: true,
+        statusBarHidden: true,
         contentStyle: { backgroundColor: Colors.lightBackground },
       }}
     >
@@ -80,9 +85,14 @@ const MorningFlowStackNavigator = () => (
       <Stack.Screen name="Todos" component={MorningTodosScreen} />
       <Stack.Screen name="PsalmOfTheDay" component={PsalmOfTheDayScreen} />
       <Stack.Screen name="CarryIt" component={CarryItScreen} />
-      <Stack.Screen name="MorningClosing" component={MorningClosingScreen} />
+      <Stack.Screen
+        name="MorningClosing"
+        component={MorningClosingScreen}
+        options={{ gestureEnabled: false, fullScreenGestureEnabled: false }}
+      />
     </Stack.Navigator>
   </RoutineProvider>
-);
+  );
+};
 
 export default MorningFlowStackNavigator;

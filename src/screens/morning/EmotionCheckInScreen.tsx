@@ -12,6 +12,7 @@ import { getFontFamily } from '../../theme/fonts';
 import { Colors } from '../../theme/colors';
 import { triggerLightHaptic, triggerMediumHaptic } from '../../utils/haptics';
 import { useRoutine } from '../../context/RoutineContext';
+import { exitMorningFlow } from '../../navigation/exitEveningFlow';
 import RoutineStepShell from '../../components/routine/RoutineStepShell';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { preloadScripturePassages } from '../../services/scriptureReaderService';
@@ -159,7 +160,7 @@ const EmotionCheckInScreen = () => {
     </Animated.View>
   ) : null;
 
-  const onBack = () => navigation.navigate('MainTabs', { screen: 'Today' });
+  const onBack = () => exitMorningFlow(navigation, 'Today');
 
   return (
     <RoutineStepShell
@@ -172,6 +173,7 @@ const EmotionCheckInScreen = () => {
       onBack={onBack}
       backgroundColor={Colors.lightBackground}
       scrollWithHeader
+      manageStatusBar={false}
     >
       {isOtherSelected ? (
         <StepFadeIn delay={160}>

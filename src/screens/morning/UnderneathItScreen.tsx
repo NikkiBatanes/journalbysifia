@@ -11,6 +11,7 @@ import { getFontFamily } from '../../theme/fonts';
 import { useTheme } from '../../hooks/useTheme';
 import { triggerLightHaptic, triggerMediumHaptic } from '../../utils/haptics';
 import { useRoutine } from '../../context/RoutineContext';
+import { exitMorningFlow } from '../../navigation/exitEveningFlow';
 import RoutineStepShell from '../../components/routine/RoutineStepShell';
 import {
   getLocalJournalSingleton,
@@ -102,7 +103,7 @@ const UnderneathItScreen = () => {
     </TouchableOpacity>
   );
 
-  const onBack = () => navigation.navigate('MainTabs', { screen: 'Today' });
+  const onBack = () => exitMorningFlow(navigation, 'Today');
 
   const children = (
     <>
@@ -152,6 +153,7 @@ const UnderneathItScreen = () => {
       footer={footer}
       onBack={onBack}
       backgroundColor={Colors.lightBackground}
+      manageStatusBar={false}
     >
       <StepFadeIn delay={160}>
         <TextInput

@@ -12,6 +12,7 @@ import { useTheme } from '../../hooks/useTheme';
 import { toLocalDateString } from '../../utils/date';
 import { triggerLightHaptic, triggerMediumHaptic } from '../../utils/haptics';
 import { useRoutine } from '../../context/RoutineContext';
+import { exitMorningFlow } from '../../navigation/exitEveningFlow';
 import RoutineStepShell from '../../components/routine/RoutineStepShell';
 import {
   createLocalReflection,
@@ -116,7 +117,7 @@ const CarryItScreen = () => {
     navigation.navigate('MorningClosing');
   }, [canContinue, customValue, markStepCompleted, navigation, psalmNumber, psalmReflectionId, selectedAttributes, dateStr]);
 
-  const onBack = () => navigation.navigate('MainTabs', { screen: 'Today' });
+  const onBack = () => exitMorningFlow(navigation, 'Today');
 
   const children = (
     <>
@@ -207,6 +208,7 @@ const CarryItScreen = () => {
       footer={footer}
       onBack={onBack}
       backgroundColor={Colors.lightBackground}
+      manageStatusBar={false}
     >
       <StepFadeIn delay={160}>
         {children}

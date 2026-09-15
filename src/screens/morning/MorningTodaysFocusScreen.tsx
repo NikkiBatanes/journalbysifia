@@ -2,13 +2,12 @@ import React, { useCallback } from 'react';
 import { useNavigation } from '@react-navigation/native';
 
 import { useRoutine } from '../../context/RoutineContext';
+import { exitMorningFlow } from '../../navigation/exitEveningFlow';
 import TodaysFocusExperience from '../../components/journal/TodaysFocusExperience';
-import { useMorningStatusBar } from '../../hooks/useMorningStatusBar';
 
 const MorningTodaysFocusScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const { selectedDate, markStepCompleted } = useRoutine();
-  useMorningStatusBar();
 
   const handleComplete = useCallback(async (record: any) => {
     await markStepCompleted(
@@ -24,7 +23,7 @@ const MorningTodaysFocusScreen: React.FC = () => {
   }, [markStepCompleted, navigation]);
 
   const handleClose = useCallback(() => {
-    navigation.navigate('MainTabs', { screen: 'Today' });
+    exitMorningFlow(navigation, 'Today');
   }, [navigation]);
 
   return (

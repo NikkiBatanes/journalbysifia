@@ -13,6 +13,7 @@ import { toLocalDateString } from '../../utils/date';
 import { triggerLightHaptic, triggerSuccessHaptic } from '../../utils/haptics';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { useRoutine } from '../../context/RoutineContext';
+import { exitMorningFlow } from '../../navigation/exitEveningFlow';
 import RoutineStepShell from '../../components/routine/RoutineStepShell';
 import { getScripturePassage } from '../../services/scriptureReaderService';
 import {
@@ -296,7 +297,7 @@ const PsalmOfTheDayScreen = () => {
     setPsalmLetterSpacing(0);
   }, []);
 
-  const onBack = () => navigation.navigate('MainTabs', { screen: 'Today' });
+  const onBack = () => exitMorningFlow(navigation, 'Today');
 
   const children = (
     <>
@@ -634,6 +635,7 @@ const PsalmOfTheDayScreen = () => {
       onBack={onBack}
       backgroundColor={Colors.lightBackground}
       rightControl={aAButton}
+      manageStatusBar={false}
     >
       {children}
 
