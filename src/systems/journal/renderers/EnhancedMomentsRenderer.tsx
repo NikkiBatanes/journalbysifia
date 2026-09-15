@@ -69,6 +69,7 @@ interface EnhancedMomentsRendererProps {
   // Optional handler for empty-state CTA button
   onAddPress?: () => void;
   navigation?: any;
+  onScroll?: (event: any) => void;
 }
 
 interface MomentEntry {
@@ -483,6 +484,7 @@ const EnhancedMomentsContent: React.FC<EnhancedMomentsRendererProps> = ({
   filterKeys = [],
   onAddPress,
   navigation,
+  onScroll,
 }) => {
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';
@@ -2669,6 +2671,8 @@ const EnhancedMomentsContent: React.FC<EnhancedMomentsRendererProps> = ({
           return `carousel-${index}-${arr.length > 0 ? arr[0].plugin.id : 'empty'}`;
         }}
         showsVerticalScrollIndicator={false}
+        onScroll={onScroll}
+        scrollEventThrottle={16}
         stickySectionHeadersEnabled={true}
         ListHeaderComponent={
           headerComponents.length > 0 ? (

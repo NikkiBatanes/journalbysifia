@@ -85,7 +85,9 @@ const PsalmOfTheDayScreen = () => {
     (async () => {
       const entries = await getLocalReflections('scripture', dateStr);
       if (!mounted) {return;}
-      const existing = entries.find(e => e.source === 'morning_psalm' || e.metadata?.source === 'morning_psalm');
+      const existing = entries
+        .filter(e => e.source === 'morning_psalm' || e.metadata?.source === 'morning_psalm')
+        .sort((a, b) => b.updated_at.localeCompare(a.updated_at))[0];
       if (existing) {
         setHasReadPsalm(Boolean(existing.metadata?.psalmRead));
         setPsalmReflectionId(existing.id);

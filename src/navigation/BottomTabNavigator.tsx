@@ -58,7 +58,7 @@ const CustomTabBarComponent = ({
   descriptors: _descriptors,
   navigation,
 }: CustomTabBarProps) => {
-  const { showTabBar, suppressTabBar } = useScroll();
+  const { showTabBar, setShowTabBar, suppressTabBar } = useScroll();
   const theme = useTheme();
   const currentFont = theme.currentFont || 'lexend';
   const fontRegular = getFontFamily(currentFont, 'regular');
@@ -238,6 +238,20 @@ const CustomTabBarComponent = ({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.index, updateSelectorPosition]);
 
+  const previousShowTabBarRef = React.useRef(showTabBar);
+  useEffect(() => {
+    if (previousShowTabBarRef.current === showTabBar) {return;}
+    previousShowTabBarRef.current = showTabBar;
+    if (isReflect) {return;}
+
+    Animated.spring(collapseAnim, {
+      toValue: showTabBar ? 0 : 1,
+      tension: 75,
+      friction: 12,
+      useNativeDriver: true,
+    }).start();
+  }, [collapseAnim, isReflect, showTabBar]);
+
   const { onTabPress } = React.useContext(TabPressContext);
 
   if (suppressTabBar || isSermonNotes || isBibleStudy || isReview || isDevReview) {
@@ -327,7 +341,7 @@ const CustomTabBarComponent = ({
             ],
           },
         ]}
-        pointerEvents="box-none"
+        pointerEvents={showTabBar ? 'box-none' : 'none'}
       >
         {/* pillInner: shared coordinate system for selector + tabs.
             Selector is absolute here; tabs fill the same space via absoluteFillObject.
@@ -470,7 +484,10 @@ const CustomTabBarComponent = ({
         <TouchableOpacity
           style={styles.collapsedCircleTouchable}
           activeOpacity={0.8}
-          onPress={() => { try { triggerLightHaptic(); } catch {} }}
+          onPress={() => {
+            try { triggerLightHaptic(); } catch {}
+            setShowTabBar(true);
+          }}
         >
           {circleIcon}
         </TouchableOpacity>

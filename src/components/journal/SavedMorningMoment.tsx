@@ -26,14 +26,11 @@ export const SavedMorningMoment = ({ moment, viewMode = 'inline' }: { moment: Mo
     </JournalCard>;
   }
   if (moment.pluginId === 'morningpsalm') {
+    const reflectionText = (moment.reflection || '').trim();
+    const observationText = (moment.observations || []).join(' · ').trim();
+    const showReflection = reflectionText.length > 0 && reflectionText.toLowerCase() !== observationText.toLowerCase();
     return <>
-      <JournalCard title="PSALM & REFLECTION" variant="inline" viewMode={viewMode}>
-        {!!moment.reflection?.trim() && <ThemedText style={styles.reflection}>{moment.reflection}</ThemedText>}
-        {!!moment.reflection?.trim() && <View style={styles.divider} />}
-        {!!moment.observations?.length && <>
-          <ThemedText style={styles.feelingLabel}>WHAT YOU SAW ABOUT GOD</ThemedText>
-          <ThemedText weight="semiBold" style={[styles.feeling, styles.centered]}>{moment.observations.join(' · ')}</ThemedText>
-        </>}
+      <JournalCard title="DAILY PSALMS" variant="inline" viewMode={viewMode}>
         <TouchableOpacity onPress={() => setOpen(true)} style={[styles.feelingRow, styles.passageRow]} accessibilityRole="button" accessibilityLabel={`Read ${moment.title}`}>
           <MaterialCommunityIcons name="script-text" size={16} color={Colors.sage} />
           <ThemedText weight="semiBold" style={styles.passageTitle}>{moment.title}</ThemedText>
@@ -42,6 +39,20 @@ export const SavedMorningMoment = ({ moment, viewMode = 'inline' }: { moment: Mo
           <Ionicons name={moment.markedRead ? 'checkmark-circle' : 'book-outline'} size={14} color={Colors.sage} />
           <ThemedText style={styles.readStatus}>{moment.markedRead ? 'Passage read' : 'Not marked read'}</ThemedText>
         </View>
+        {!!observationText && (
+          <>
+            <View style={styles.divider} />
+            <ThemedText style={styles.feelingLabel}>WHAT YOU SAW ABOUT GOD</ThemedText>
+            <ThemedText weight="semiBold" style={[styles.feeling, styles.centered]}>{observationText}</ThemedText>
+          </>
+        )}
+        {showReflection && (
+          <>
+            <View style={styles.divider} />
+            <ThemedText style={styles.feelingLabel}>REFLECTION</ThemedText>
+            <ThemedText numberOfLines={3} style={styles.reflection}>{reflectionText}</ThemedText>
+          </>
+        )}
       </JournalCard>
       <ScriptureReaderModal visible={open} passages={[{ reference: moment.title }]} initialIndex={0} onClose={() => setOpen(false)} />
     </>;

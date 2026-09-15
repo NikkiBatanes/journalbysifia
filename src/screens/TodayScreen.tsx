@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ScrollView, StatusBar, StyleSheet, TouchableOpacity, View } from 'react-native';
 import Animated, { FadeInUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -10,6 +10,7 @@ import { differenceInCalendarDays, endOfWeek, format, startOfWeek, subYears } fr
 
 import ThemedText from '../components/common/ThemedText';
 import { useAuth } from '../context/IndustryStandardAuthContext';
+import { useScroll } from '../context/ScrollContext';
 import { Colors } from '../theme/colors';
 import { Fonts } from '../theme/fonts';
 import { triggerLightHaptic } from '../utils/haptics';
@@ -51,6 +52,9 @@ const TodayScreen = () => {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const { user } = useAuth();
+  const { showTabBar, setShowTabBar } = useScroll();
+  const lastScrollYRef = useRef(0);
+  const tabBarCollapsedRef = useRef(false);
   const now = useMemo(() => new Date(), []);
   const weekLabel = useMemo(() => {
     const start = startOfWeek(now);
@@ -90,8 +94,36 @@ const TodayScreen = () => {
   useFocusEffect(
     useCallback(() => {
       setTick((t) => t + 1);
-    }, [])
+      lastScrollYRef.current = 0;
+      tabBarCollapsedRef.current = false;
+      setShowTabBar(true);
+
+      return () => {
+        tabBarCollapsedRef.current = false;
+        setShowTabBar(true);
+      };
+    }, [setShowTabBar])
   );
+
+  useEffect(() => {
+    if (showTabBar && lastScrollYRef.current > 60) {
+      tabBarCollapsedRef.current = false;
+    }
+  }, [showTabBar]);
+
+  const handleScroll = useCallback((event: any) => {
+    const y = Math.max(0, event.nativeEvent.contentOffset.y);
+    const isScrollingUp = y < lastScrollYRef.current;
+    lastScrollYRef.current = y;
+
+    if (y > 60 && !tabBarCollapsedRef.current) {
+      tabBarCollapsedRef.current = true;
+      setShowTabBar(false);
+    } else if (isScrollingUp && y <= 0 && tabBarCollapsedRef.current) {
+      tabBarCollapsedRef.current = false;
+      setShowTabBar(true);
+    }
+  }, [setShowTabBar]);
 
   const reviewCard = useMemo(() => {
     if (!eligibility?.main) {return null;}
@@ -139,6 +171,8 @@ const TodayScreen = () => {
         style={styles.scroll}
         contentContainerStyle={[styles.content, { paddingTop: insets.top, paddingBottom: insets.bottom + 80 }]}
         showsVerticalScrollIndicator={false}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
       >
         <Stagger key={tick}>
           <ThemedText style={styles.date}>{format(now, 'EEE, MMM d').toUpperCase()}</ThemedText>

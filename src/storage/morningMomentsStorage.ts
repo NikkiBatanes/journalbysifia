@@ -52,7 +52,14 @@ export const getMorningMoments = async (): Promise<MorningMoment[]> => {
     }) });
   }
   const psalms = (await getAllLocalReflectionsByType('scripture')).filter(entry => !entry.deleted && (entry.source === 'morning_psalm' || entry.metadata?.source === 'morning_psalm'));
+  const psalmByDate = new Map<string, typeof psalms[0]>();
   for (const entry of psalms) {
+    const current = psalmByDate.get(entry.selected_date);
+    if (!current || entry.updated_at.localeCompare(current.updated_at) > 0) {
+      psalmByDate.set(entry.selected_date, entry);
+    }
+  }
+  for (const entry of psalmByDate.values()) {
     const metadata = entry.metadata || {};
     moments.push({ id: entry.id, pluginId: 'morningpsalm', title: entry.title || `Psalm ${metadata.psalmNumber}`, date: entry.selected_date, savedAt: entry.updated_at, markedRead: metadata.psalmRead === true,
       reflection: entry.content || metadata.carry || '',

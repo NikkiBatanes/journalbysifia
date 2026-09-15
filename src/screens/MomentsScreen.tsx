@@ -20,6 +20,7 @@ import { triggerLightHaptic } from '../utils/haptics';
 import { getAllBibleStudySessions } from '../storage/bibleStudyStorage';
 import { getAllLocalReflectionsByType } from '../storage/reflectionStorage';
 import { getSavedBibleStudyReflections, parseSavedBibleStudy } from '../storage/bibleStudyMomentsStorage';
+import { useScroll } from '../context/ScrollContext';
 
 // Enable LayoutAnimation on Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -35,6 +36,9 @@ export const MomentsScreen: React.FC = () => {
   const fontKey = currentFont || 'lexend';
   const fontBold = getFontFamily(fontKey, 'bold');
   const fontRegular = getFontFamily(fontKey, 'regular');
+  const { showTabBar, setShowTabBar } = useScroll();
+  const lastScrollYRef = useRef(0);
+  const tabBarCollapsedRef = useRef(false);
   // Date filtering state - Default to show all dates up to today (exclude future dates)
   const [selectedDate] = useState(new Date());
   const [selectedRange] = useState<DateRange>({
@@ -63,7 +67,35 @@ export const MomentsScreen: React.FC = () => {
   // Returning to Moments must rediscover persisted content independently.
   useFocusEffect(React.useCallback(() => {
     setRefreshKey(previous => previous + 1);
-  }, []));
+    lastScrollYRef.current = 0;
+    tabBarCollapsedRef.current = false;
+    setShowTabBar(true);
+
+    return () => {
+      tabBarCollapsedRef.current = false;
+      setShowTabBar(true);
+    };
+  }, [setShowTabBar]));
+
+  useEffect(() => {
+    if (showTabBar && lastScrollYRef.current > 60) {
+      tabBarCollapsedRef.current = false;
+    }
+  }, [showTabBar]);
+
+  const handleMomentsScroll = React.useCallback((event: any) => {
+    const y = Math.max(0, event.nativeEvent.contentOffset.y);
+    const isScrollingUp = y < lastScrollYRef.current;
+    lastScrollYRef.current = y;
+
+    if (y > 60 && !tabBarCollapsedRef.current) {
+      tabBarCollapsedRef.current = true;
+      setShowTabBar(false);
+    } else if (isScrollingUp && y <= 0 && tabBarCollapsedRef.current) {
+      tabBarCollapsedRef.current = false;
+      setShowTabBar(true);
+    }
+  }, [setShowTabBar]);
 
   // Search and filter modal visibility
   const [showSearch, setShowSearch] = useState(false);
@@ -302,6 +334,7 @@ export const MomentsScreen: React.FC = () => {
         filterKeys={activeFilters}
         refreshKey={refreshKey}
         style={styles.momentsRenderer}
+        onScroll={handleMomentsScroll}
         headerComponents={[]}
         refreshControl={
           <RefreshControl

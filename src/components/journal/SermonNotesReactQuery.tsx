@@ -10,13 +10,14 @@ import { getLocalReflections } from '../../storage/reflectionStorage';
 import { toLocalDateString } from '../../utils/date';
 import { safeJsonParse } from '../../utils/safeJsonParse';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
+import { useMomentsPalette } from '../../context/MomentsPaletteContext';
 import { preloadScripturePassages } from '../../services/scriptureReaderService';
+import { ViewMode } from '../../systems/journal/types';
 
 interface SermonNotesProps {
   selectedDate: Date;
   refreshKey?: number;
-  viewMode?: 'carousel' | 'inline' | 'moments';
-  navigation?: any;
+  viewMode?: ViewMode;
 }
 
 interface SermonBlock {
@@ -30,12 +31,39 @@ interface SermonBlock {
 export const SermonNotesReactQuery: React.FC<SermonNotesProps> = ({
   selectedDate,
   refreshKey,
+  viewMode,
 }) => {
   const navigation = useNavigation();
   const { user } = useAuth();
+  const isPalette = useMomentsPalette();
   const bibleVersion = (user as any)?.user_metadata?.preferences?.content?.bibleVersion || 'NASB';
   const [entries, setEntries] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const isInline = viewMode === 'inline';
+
+  const inlineColors = isPalette
+    ? {
+        background: 'transparent',
+        border: Colors.cardBorder,
+        cardTitle: Colors.sage,
+        title: Colors.text,
+        meta: Colors.textGray,
+        quote: Colors.text,
+        quoteBorder: 'rgba(82, 106, 91, 0.3)',
+        divider: Colors.borderLight,
+        quoteOpacity: 1,
+      }
+    : {
+        background: 'rgba(255, 255, 255, 0.05)',
+        border: 'rgba(255, 255, 255, 0.1)',
+        cardTitle: Colors.hopeWhite,
+        title: Colors.hopeWhite,
+        meta: Colors.textGray,
+        quote: Colors.hopeWhite,
+        quoteBorder: 'rgba(255, 255, 255, 0.25)',
+        divider: 'rgba(255, 255, 255, 0.1)',
+        quoteOpacity: 0.9,
+      };
 
   useEffect(() => {
     let mounted = true;
@@ -91,6 +119,15 @@ export const SermonNotesReactQuery: React.FC<SermonNotesProps> = ({
     if (remember) {return remember.text?.trim() || '';}
     const prayer = blocks.find(b => b.kind === 'prayer' && b.text?.trim());
     if (prayer) {return prayer.text?.trim() || '';}
+    const firstNote = blocks.find(b =>
+      b.text?.trim() ||
+      b.note?.trim() ||
+      b.secondary?.trim() ||
+      b.points?.some(p => p.trim())
+    );
+    if (firstNote) {
+      return firstNote.text?.trim() || firstNote.note?.trim() || firstNote.secondary?.trim() || firstNote.points?.find(p => p.trim())?.trim() || '';
+    }
     return '';
   };
 
@@ -131,35 +168,111 @@ export const SermonNotesReactQuery: React.FC<SermonNotesProps> = ({
     const hasPrayer = Boolean(metadata.prayer?.trim() || blocks.some(b => b.kind === 'prayer' && b.text?.trim()));
 
     return (
-      <TouchableOpacity key={entry.id} style={styles.card} activeOpacity={0.8} onPress={() => handleOpenSermon(entry)}>
-        <View style={styles.header}>
-          <View style={styles.headerLeft}>
-            <ThemedText weight="bold" style={styles.headerTitle}>SERMON NOTES</ThemedText>
-          </View>
-          {!!time && <ThemedText style={styles.time}>{time}</ThemedText>}
-        </View>
-
-        <View>
-          <ThemedText weight="bold" style={styles.title}>{title}</ThemedText>
-          {!!seriesLine && <ThemedText style={styles.series}>{seriesLine}</ThemedText>}
-          {!!detailLine && <ThemedText style={styles.detail}>{detailLine}</ThemedText>}
-
-          {!!quote && (
-            <View style={styles.quoteBox}>
-              <ThemedText style={styles.quote}>“{quote}”</ThemedText>
+      <TouchableOpacity
+        key={entry.id}
+        style={[
+          isInline ? styles.inlineCard : styles.card,
+          isInline && { backgroundColor: inlineColors.background, borderColor: inlineColors.border },
+        ]}
+        activeOpacity={0.8}
+        onPress={() => handleOpenSermon(entry)}
+      >
+        {isInline ? (
+          <>
+            <View style={styles.inlineHeader}>
+              <ThemedText
+                weight="semiBold"
+                style={[styles.inlineCardTitle, { color: inlineColors.cardTitle }]}
+              >
+                SERMON NOTES
+              </ThemedText>
+              {!!time && (
+                <View
+                  style={[
+                    styles.inlineTimePill,
+                    { backgroundColor: isPalette ? Colors.anchorBlueLight : 'rgba(255, 255, 255, 0.12)' },
+                  ]}
+                >
+                  <ThemedText style={[styles.inlineTime, { color: inlineColors.meta }]}>
+                    {time}
+                  </ThemedText>
+                </View>
+              )}
             </View>
-          )}
-        </View>
 
-        <View style={styles.divider} />
+            <ThemedText
+              weight="semiBold"
+              style={[styles.inlineTitle, { color: inlineColors.title }]}
+            >
+              {title}
+            </ThemedText>
+            {!!seriesLine && (
+              <ThemedText style={[styles.inlineMeta, { color: inlineColors.meta }]}>
+                {seriesLine}
+              </ThemedText>
+            )}
+            {!!detailLine && (
+              <ThemedText style={[styles.inlineMeta, { color: inlineColors.meta }]}>
+                {detailLine}
+              </ThemedText>
+            )}
 
-        <View style={styles.footer}>
-          <View style={styles.footerLeft}>
-            {renderFooterItem(<FileText size={14} color={Colors.textGray} />, 'Notes', noteBlocks.length)}
-            {renderFooterItem(<Sparkles size={14} color={Colors.textGray} />, 'Reflections', reflectiveCount)}
-            {renderFooterItem(<Leaf size={14} color={Colors.textGray} />, 'Prayer', hasPrayer ? 1 : 0)}
-          </View>
-        </View>
+            {!!quote && (
+              <View style={[styles.inlineQuoteBox, { borderLeftColor: inlineColors.quoteBorder }]}>
+                <ThemedText
+                  numberOfLines={3}
+                  style={[
+                    styles.inlineQuote,
+                    { color: inlineColors.quote, opacity: inlineColors.quoteOpacity },
+                  ]}
+                >
+                  {quote}
+                </ThemedText>
+              </View>
+            )}
+
+            <View style={[styles.inlineDivider, { backgroundColor: inlineColors.divider }]} />
+
+            <View style={styles.footer}>
+              <View style={styles.footerLeft}>
+                {renderFooterItem(<FileText size={14} color={inlineColors.meta} />, 'Notes', noteBlocks.length)}
+                {renderFooterItem(<Sparkles size={14} color={inlineColors.meta} />, 'Reflections', reflectiveCount)}
+                {renderFooterItem(<Leaf size={14} color={inlineColors.meta} />, 'Prayer', hasPrayer ? 1 : 0)}
+              </View>
+            </View>
+          </>
+        ) : (
+          <>
+            <View style={styles.header}>
+              <View style={styles.headerLeft}>
+                <ThemedText weight="bold" style={styles.headerTitle}>SERMON NOTES</ThemedText>
+              </View>
+              {!!time && <ThemedText style={styles.time}>{time}</ThemedText>}
+            </View>
+
+            <View>
+              <ThemedText weight="bold" style={styles.title}>{title}</ThemedText>
+              {!!seriesLine && <ThemedText style={styles.series}>{seriesLine}</ThemedText>}
+              {!!detailLine && <ThemedText style={styles.detail}>{detailLine}</ThemedText>}
+
+              {!!quote && (
+                <View style={styles.quoteBox}>
+                  <ThemedText style={styles.quote}>“{quote}”</ThemedText>
+                </View>
+              )}
+            </View>
+
+            <View style={styles.divider} />
+
+            <View style={styles.footer}>
+              <View style={styles.footerLeft}>
+                {renderFooterItem(<FileText size={14} color={Colors.textGray} />, 'Notes', noteBlocks.length)}
+                {renderFooterItem(<Sparkles size={14} color={Colors.textGray} />, 'Reflections', reflectiveCount)}
+                {renderFooterItem(<Leaf size={14} color={Colors.textGray} />, 'Prayer', hasPrayer ? 1 : 0)}
+              </View>
+            </View>
+          </>
+        )}
       </TouchableOpacity>
     );
   };
@@ -186,6 +299,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.04,
     shadowRadius: 12,
     elevation: 2,
+  },
+  inlineCard: {
+    borderRadius: 24,
+    borderWidth: 1,
+    padding: 20,
   },
   header: {
     flexDirection: 'row',
@@ -243,6 +361,56 @@ const styles = StyleSheet.create({
     marginTop: 16,
     marginBottom: 12,
   },
+  inlineHeader: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  inlineCardTitle: {
+    fontSize: 10,
+    letterSpacing: 1.2,
+    textAlign: 'center',
+    textTransform: 'uppercase',
+  },
+  inlineTimePill: {
+    borderRadius: 999,
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    marginTop: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  inlineTime: {
+    fontSize: 12,
+  },
+  inlineTitle: {
+    fontSize: 20,
+    lineHeight: 26,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  inlineMeta: {
+    fontSize: 14,
+    lineHeight: 20,
+    marginBottom: 4,
+    textAlign: 'center',
+  },
+  inlineQuoteBox: {
+    alignItems: 'center',
+    marginTop: 12,
+    marginBottom: 4,
+    paddingHorizontal: 8,
+  },
+  inlineQuote: {
+    fontSize: 16,
+    lineHeight: 24,
+    textAlign: 'center',
+  },
+  inlineDivider: {
+    height: 1,
+    marginTop: 16,
+    marginBottom: 12,
+  },
   footer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -262,5 +430,4 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: Colors.textGray,
   },
-
 });
