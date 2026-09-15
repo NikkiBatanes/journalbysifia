@@ -16,6 +16,8 @@ import { exitMorningFlow } from '../../navigation/exitEveningFlow';
 import RoutineStepShell from '../../components/routine/RoutineStepShell';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { preloadScripturePassages } from '../../services/scriptureReaderService';
+import { getMorningCheckInScripturePool, getMorningCheckInPoolKey } from '../../data/morningCheckInScriptures';
+import { safeJsonParse } from '../../utils/safeJsonParse';
 import {
   getLocalJournalSingleton,
   saveLocalJournalSingleton,
@@ -84,6 +86,13 @@ const EmotionCheckInScreen = () => {
     preloadScripturePassages([`Psalm ${psalmNumber}`]);
   }, [user]);
 
+  useEffect(() => {
+    if (!selected) { return; }
+    const pool = getMorningCheckInScripturePool(selected.id);
+    if (!pool.length) { return; }
+    preloadScripturePassages(pool.map(scripture => scripture.displayReference));
+  }, [selected]);
+
   const allFeelings = useMemo(() => [...INITIAL_FEELINGS, ...MORE_FEELINGS], []);
 
   useEffect(() => {
@@ -124,11 +133,31 @@ const EmotionCheckInScreen = () => {
 
     let record: LocalJournalEntry | null = null;
     try {
+      const existing = await getLocalJournalSingleton('morning_check_in', dateStr);
+      const existingContent = existing
+        ? safeJsonParse<Record<string, any>>(existing.content, { fallback: {} }) || {}
+        : {};
+
+      const newPoolKey = getMorningCheckInPoolKey(selected.id);
+      const existingPoolKey = existingContent.scripture?.poolKey
+        ? existingContent.scripture.poolKey
+        : getMorningCheckInPoolKey(existingContent.feeling);
+      const samePool = existingPoolKey && newPoolKey === existingPoolKey;
+
+      const nextUnderneathIt = samePool && existingContent.underneathIt !== undefined
+        ? existingContent.underneathIt
+        : '';
+
+      const nextScripture = samePool && existingContent.scripture?.reference
+        ? { ...existingContent.scripture, poolKey: existingContent.scripture.poolKey || newPoolKey }
+        : undefined;
+
       const content = JSON.stringify({
         feeling: feelingName,
         feelingIcon: selected.icon,
         feelingIconType: selected.iconType,
-        underneathIt: '',
+        underneathIt: nextUnderneathIt,
+        ...(nextScripture ? { scripture: nextScripture } : {}),
       });
       record = await saveLocalJournalSingleton('morning_check_in', dateStr, content);
       DeviceEventEmitter.emit('reflection_saved', { type: 'morning_check_in', date: dateStr });
@@ -143,6 +172,7 @@ const EmotionCheckInScreen = () => {
     );
     navigation.navigate('UnderneathIt', {
       feeling: feelingName,
+      feelingId: selected.id,
       feelingIcon: selected.icon,
       feelingIconType: selected.iconType,
     });

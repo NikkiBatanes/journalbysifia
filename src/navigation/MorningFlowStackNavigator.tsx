@@ -17,6 +17,7 @@ export type MorningFlowParamList = {
   EmotionCheckIn: { morningFlow?: boolean } | undefined;
   UnderneathIt: {
     feeling?: string | null;
+    feelingId?: string;
     feelingIcon?: string;
     feelingIconType?: 'ionicons' | 'material';
     morningFlow?: boolean;

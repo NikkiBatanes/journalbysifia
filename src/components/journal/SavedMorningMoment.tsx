@@ -18,17 +18,38 @@ export const SavedMorningMoment = ({ moment, viewMode = 'inline' }: { moment: Mo
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   if (moment.pluginId === 'morningcheckin') {
-    return <JournalCard title="HOW ARE YOU FEELING?" variant="inline" viewMode={viewMode}>
-      {!!moment.underneathIt?.trim() && <ThemedText style={styles.reflection}>{moment.underneathIt}</ThemedText>}
-      {!!moment.underneathIt?.trim() && <View style={styles.divider} />}
-      <ThemedText style={styles.feelingLabel}>HOW YOU FELT</ThemedText>
-      <View style={styles.feelingRow}>
-        {moment.feelingIconType === 'material'
-          ? <MaterialCommunityIcons name={moment.feelingIcon || 'heart-outline'} size={16} color={Colors.sage} />
-          : <Ionicons name={moment.feelingIcon || 'heart-outline'} size={16} color={Colors.sage} />}
-        <ThemedText weight="semiBold" style={styles.feeling}>{moment.feeling || moment.lines[0]}</ThemedText>
-      </View>
-    </JournalCard>;
+    const [scriptureOpen, setScriptureOpen] = useState(false);
+    return <>
+      <JournalCard title="MORNING CHECK-IN" variant="inline" viewMode={viewMode}>
+        <ThemedText style={styles.feelingLabel}>HOW YOU FELT</ThemedText>
+        <View style={styles.feelingRow}>
+          {moment.feelingIconType === 'material'
+            ? <MaterialCommunityIcons name={moment.feelingIcon || 'heart-outline'} size={16} color={Colors.sage} />
+            : <Ionicons name={moment.feelingIcon || 'heart-outline'} size={16} color={Colors.sage} />}
+          <ThemedText weight="semiBold" style={styles.feeling}>{moment.feeling || moment.lines[0]}</ThemedText>
+        </View>
+        {!!moment.scripture?.reference && (
+          <>
+            <View style={styles.divider} />
+            <ThemedText style={styles.feelingLabel}>SCRIPTURE</ThemedText>
+            <TouchableOpacity onPress={() => setScriptureOpen(true)} style={[styles.feelingRow, styles.passageRow]} activeOpacity={0.7} accessibilityRole="button" accessibilityLabel={`Read ${moment.scripture.reference}`}>
+              <MaterialCommunityIcons name="script-text" size={16} color={Colors.sage} />
+              <ThemedText weight="semiBold" style={styles.passageTitle}>{moment.scripture.reference}</ThemedText>
+            </TouchableOpacity>
+          </>
+        )}
+        {!!moment.underneathIt?.trim() && (
+          <>
+            <View style={styles.divider} />
+            <ThemedText style={styles.feelingLabel}>WHAT WAS UNDERNEATH IT</ThemedText>
+            <ThemedText style={styles.reflection}>{moment.underneathIt}</ThemedText>
+          </>
+        )}
+      </JournalCard>
+      {!!moment.scripture?.reference && (
+        <ScriptureReaderModal visible={scriptureOpen} passages={[{ reference: moment.scripture.passageReference || moment.scripture.reference }]} initialIndex={0} onClose={() => setScriptureOpen(false)} version={moment.scripture.translation || 'NASB'} />
+      )}
+    </>;
   }
   if (moment.pluginId === 'morningpsalm') {
     const reflectionText = (moment.reflection || '').trim();

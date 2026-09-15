@@ -266,6 +266,24 @@ export const getLocalJournalSingleton = async (
   return parsed;
 };
 
+export const getAllLocalJournalSingletons = async (
+  contentType: string
+): Promise<LocalJournalEntry[]> => {
+  const allKeys = await AsyncStorage.getAllKeys();
+  const prefix = getSingletonKey(contentType, '');
+  const keys = allKeys.filter(key => key.startsWith(prefix));
+  if (!keys.length) {return [];}
+  const keyValues = await AsyncStorage.multiGet(keys);
+  const entries: LocalJournalEntry[] = [];
+  for (const [, raw] of keyValues) {
+    const parsed = safeJsonParse<LocalJournalEntry>(raw || '', { fallback: null });
+    if (parsed && !parsed.deleted) {
+      entries.push(parsed);
+    }
+  }
+  return entries;
+};
+
 export const deleteLocalJournalSingleton = async (
   contentType: string,
   date: string | Date

@@ -30,6 +30,12 @@ export interface MorningMoment {
   emotionIcon?: string;
   lookingForwardText?: string;
   customEmotion?: string;
+  scripture?: {
+    reference: string;
+    passageReference?: string;
+    translation?: string;
+    poolKey?: string;
+  };
 }
 
 export const getMorningMoments = async (): Promise<MorningMoment[]> => {
@@ -56,7 +62,7 @@ export const getMorningMoments = async (): Promise<MorningMoment[]> => {
       ...(Array.isArray(content.priorities) ? content.priorities.map(priority => typeof priority === 'string' ? priority : priority?.text) : []),
     ];
     if (moments.some(moment => moment.id === entry.id)) {continue;}
-    moments.push({ id: entry.id, pluginId: checkIn ? 'morningcheckin' : 'focus', title: checkIn ? 'How are you feeling?' : "Today's Focus", date: entry.selected_date, savedAt: entry.updated_at, lines: lines.filter(value => typeof value === 'string' && value.trim()), ...(checkIn && { feeling: content.feeling, feelingIcon: content.feelingIcon, feelingIconType: content.feelingIconType, underneathIt: content.underneathIt }) });
+    moments.push({ id: entry.id, pluginId: checkIn ? 'morningcheckin' : 'focus', title: checkIn ? 'How are you feeling?' : "Today's Focus", date: entry.selected_date, savedAt: entry.updated_at, lines: lines.filter(value => typeof value === 'string' && value.trim()), ...(checkIn && { feeling: content.feeling, feelingIcon: content.feelingIcon, feelingIconType: content.feelingIconType, underneathIt: content.underneathIt, scripture: content.scripture }) });
   }
   for (const [date, items] of todos) {
     moments.push({ id: `todos:${date}`, pluginId: 'todos', title: 'Todos', date, savedAt: items.map(item => item.updated_at).sort().reverse()[0], lines: items.map(item => {

@@ -200,7 +200,7 @@ export class PrayerApi {
     if (!existing) {
       throw new Error('Prayer not found');
     }
-    const localUpdates = toLocalFormat({ ...updates, id } as any);
+    const localUpdates = toLocalFormat({ ...updates, ...(updates.metadata ? { metadata: { ...existing.metadata, ...updates.metadata } } : {}), id } as any);
     const updated = await updateLocalPrayer({ ...existing, ...localUpdates });
     return toApiFormat(updated);
   }

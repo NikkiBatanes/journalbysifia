@@ -9,6 +9,7 @@ import StepContextCard from './StepContextCard';
 import { Colors } from '../../theme/colors';
 
 interface PlaybookMetaSectionProps {
+  light?: boolean;
   playbookTitle?: string;
   /** Full label string e.g. "Action 2: Identify the Pattern". Pass undefined to hide. */
   actionLabel?: string;
@@ -17,6 +18,7 @@ interface PlaybookMetaSectionProps {
 }
 
 const PlaybookMetaSection: React.FC<PlaybookMetaSectionProps> = ({
+  light = false,
   playbookTitle,
   actionLabel,
   stepBody,
@@ -78,6 +80,7 @@ const PlaybookMetaSection: React.FC<PlaybookMetaSectionProps> = ({
         style={[
           styles.verticalLine,
           {
+            backgroundColor: light ? Colors.sage : styles.verticalLine.backgroundColor,
             opacity: lineOpacity,
             transform: [{ translateY: lineTranslateY }, { scaleY: lineScale }],
           },
@@ -88,25 +91,25 @@ const PlaybookMetaSection: React.FC<PlaybookMetaSectionProps> = ({
       {/* Content column — the bar stretches to match this column's height */}
       <View style={styles.content}>
         <Animated.View style={{ opacity: fromOpacity, transform: [{ translateY: fromY }] }}>
-          <ThemedText weight="medium" style={styles.fromText}>
+          <ThemedText weight="medium" style={[styles.fromText, light && { color: Colors.textGray, opacity: 1 }]}>
             FROM PLAYBOOK
           </ThemedText>
         </Animated.View>
 
         {playbookTitle ? (
           <Animated.View style={{ opacity: titleOpacity, transform: [{ translateY: titleY }] }}>
-            <ThemedText style={styles.metadataText}>{playbookTitle}</ThemedText>
+            <ThemedText style={[styles.metadataText, light && { color: Colors.textGray, opacity: 1 }]}>{playbookTitle}</ThemedText>
           </Animated.View>
         ) : null}
 
         {actionLabel ? (
           <Animated.View style={{ opacity: actionOpacity, transform: [{ translateY: actionY }] }}>
-            <ThemedText style={styles.metadataText}>{actionLabel}</ThemedText>
+            <ThemedText style={[styles.metadataText, light && { color: Colors.textGray, opacity: 1 }]}>{actionLabel}</ThemedText>
           </Animated.View>
         ) : null}
 
         {stepBody ? (
-          <StepContextCard body={stepBody} example={stepExample} />
+          <StepContextCard light={light} body={stepBody} example={stepExample} />
         ) : null}
       </View>
     </View>

@@ -167,7 +167,7 @@ const PrayerPathSelectionStep: React.FC<{
       >
         <StepFadeIn delay={0}>
           <View style={styles.focusLabelContainer}>
-            <MaterialCommunityIcons name="hands-pray" size={16} color={Colors.alertCoral} style={styles.labelIcon} />
+            <MaterialCommunityIcons name="hands-pray" size={16} color={Colors.sage} style={styles.labelIcon} />
             <ThemedText weight="semiBold" style={styles.focusLabel}>PRAYER JOURNAL</ThemedText>
           </View>
         </StepFadeIn>
@@ -201,7 +201,7 @@ const PrayerPathSelectionStep: React.FC<{
                     <Ionicons
                       name={path.icon as any}
                       size={18}
-                      color={isSelected ? Colors.hopeWhite : Colors.alertCoral}
+                      color={isSelected ? Colors.hopeWhite : Colors.sage}
                     />
                   </View>
                 </View>
@@ -254,7 +254,7 @@ const PrayerPathSelectionStep: React.FC<{
           activeOpacity={0.7}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          <Ionicons name="close" size={17} color="rgba(255,255,255,0.65)" />
+          <Ionicons name="close" size={17} color={Colors.sage} />
         </TouchableOpacity>
       </View>
     </View>
@@ -321,7 +321,7 @@ const CASTDescriptionStep: React.FC<{
       >
         <StepFadeIn delay={0}>
           <View style={styles.focusLabelContainer}>
-            <MaterialCommunityIcons name="hands-pray" size={16} color={Colors.alertCoral} style={styles.labelIcon} />
+            <MaterialCommunityIcons name="hands-pray" size={16} color={Colors.sage} style={styles.labelIcon} />
             <ThemedText weight="semiBold" style={styles.focusLabel}>CAST PRAYER</ThemedText>
           </View>
         </StepFadeIn>
@@ -342,7 +342,7 @@ const CASTDescriptionStep: React.FC<{
 
         <StepFadeIn delay={160}>
           <View style={[styles.focusLabelContainer, { justifyContent: 'flex-start', marginLeft: 24 }]}>
-            <ThemedText weight="semiBold" style={[styles.focusLabel, { color: Colors.alertCoral }]}>PRAYER FLOW</ThemedText>
+            <ThemedText weight="semiBold" style={[styles.focusLabel, { color: Colors.sage }]}>PRAYER FLOW</ThemedText>
           </View>
         </StepFadeIn>
 
@@ -422,7 +422,7 @@ const CASTDescriptionStep: React.FC<{
           activeOpacity={0.7}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          <Ionicons name="close" size={17} color="rgba(255,255,255,0.65)" />
+          <Ionicons name="close" size={17} color={Colors.sage} />
         </TouchableOpacity>
       </View>
     </View>
@@ -485,7 +485,7 @@ const OpenPrayerDescriptionStep: React.FC<{
       >
         <StepFadeIn delay={0}>
           <View style={styles.focusLabelContainer}>
-            <MaterialCommunityIcons name="hands-pray" size={16} color={Colors.alertCoral} style={styles.labelIcon} />
+            <MaterialCommunityIcons name="hands-pray" size={16} color={Colors.sage} style={styles.labelIcon} />
             <ThemedText weight="semiBold" style={styles.focusLabel}>OPEN PRAYER</ThemedText>
           </View>
         </StepFadeIn>
@@ -506,7 +506,7 @@ const OpenPrayerDescriptionStep: React.FC<{
 
         <StepFadeIn delay={160}>
           <View style={[styles.focusLabelContainer, { justifyContent: 'flex-start', marginLeft: 24 }]}>
-            <ThemedText weight="semiBold" style={[styles.focusLabel, { color: Colors.alertCoral }]}>PRAYER FLOW</ThemedText>
+            <ThemedText weight="semiBold" style={[styles.focusLabel, { color: Colors.sage }]}>PRAYER FLOW</ThemedText>
           </View>
         </StepFadeIn>
 
@@ -576,7 +576,7 @@ const OpenPrayerDescriptionStep: React.FC<{
           activeOpacity={0.7}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          <Ionicons name="close" size={17} color="rgba(255,255,255,0.65)" />
+          <Ionicons name="close" size={17} color={Colors.sage} />
         </TouchableOpacity>
       </View>
     </View>
@@ -733,7 +733,7 @@ const ACTSPrayerSlidesStep: React.FC<{
         keyboardShouldPersistTaps="handled"
       >
         <StepFadeIn delay={0} style={styles.stepLabelRow}>
-          <MaterialCommunityIcons name="hands-pray" size={16} color={Colors.alertCoral} />
+          <MaterialCommunityIcons name="hands-pray" size={16} color={Colors.sage} />
           <ThemedText weight="semiBold" style={styles.stepLabelWhite}>
             CAST PRAYER
           </ThemedText>
@@ -776,7 +776,7 @@ const ACTSPrayerSlidesStep: React.FC<{
                 value={prayerTexts[currentStep.key] || ''}
                 onChangeText={(text) => onChange(currentStep.key, text)}
                 placeholder={currentStep.placeholder || 'Begin your prayer here...'}
-                placeholderTextColor="rgba(255, 255, 255, 0.4)"
+                placeholderTextColor={Colors.placeholderText}
                 multiline
                 textAlignVertical="top"
                 autoFocus={!readOnly}
@@ -787,6 +787,7 @@ const ACTSPrayerSlidesStep: React.FC<{
               {/* Display metadata below input field for all ACTS steps */}
               {playbookTitle && (
                 <PlaybookMetaSection
+                  light
                   playbookTitle={playbookTitle}
                   actionLabel={actionStepNumber && actionStepTitle
                     ? `Action ${actionStepNumber}: ${actionStepTitle}`
@@ -817,7 +818,7 @@ const ACTSPrayerSlidesStep: React.FC<{
             { opacity: prayerTexts[currentStep.key]?.trim() ? 1 : 0 },
           ]}>
             <TouchableOpacity
-              onPress={handleNext}
+              onPress={() => { triggerLightHaptic(); return (handleNext)(); }}
               activeOpacity={0.7}
               style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}
             >
@@ -837,7 +838,7 @@ const ACTSPrayerSlidesStep: React.FC<{
             { opacity: prayerTexts[currentStep.key]?.trim() ? 1 : 0 },
           ]}>
             <TouchableOpacity
-              onPress={handleNext}
+              onPress={() => { triggerLightHaptic(); return (handleNext)(); }}
               activeOpacity={0.7}
               style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}
             >
@@ -857,7 +858,7 @@ const ACTSPrayerSlidesStep: React.FC<{
           activeOpacity={0.7}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          <Ionicons name="close" size={17} color="rgba(255,255,255,0.65)" />
+          <Ionicons name="close" size={17} color={Colors.sage} />
         </TouchableOpacity>
       </View>
     </View>
@@ -917,7 +918,7 @@ const OpenPrayerStep: React.FC<{
         keyboardShouldPersistTaps="handled"
       >
         <StepFadeIn delay={0} style={[styles.stepLabelRow, { justifyContent: 'flex-start', paddingHorizontal: 24 }]}>
-          <MaterialCommunityIcons name="hands-pray" size={16} color={Colors.alertCoral} />
+          <MaterialCommunityIcons name="hands-pray" size={16} color={Colors.sage} />
           <ThemedText weight="semiBold" style={styles.stepLabelWhite}>
             OPEN PRAYER
           </ThemedText>
@@ -930,7 +931,7 @@ const OpenPrayerStep: React.FC<{
               value={prayerText || ''}
               onChangeText={onChange}
               placeholder="Begin your prayer here..."
-              placeholderTextColor="rgba(255, 255, 255, 0.4)"
+              placeholderTextColor={Colors.placeholderText}
               multiline
               textAlignVertical="top"
               autoFocus={!readOnly}
@@ -941,6 +942,7 @@ const OpenPrayerStep: React.FC<{
             {/* Display metadata below input field */}
             {playbookTitle && (
               <PlaybookMetaSection
+                  light
                 playbookTitle={playbookTitle}
                 actionLabel={actionStepNumber && actionStepTitle
                   ? `Action ${actionStepNumber}: ${actionStepTitle}`
@@ -1007,7 +1009,7 @@ const OpenPrayerStep: React.FC<{
           activeOpacity={0.7}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          <Ionicons name="close" size={17} color="rgba(255,255,255,0.65)" />
+          <Ionicons name="close" size={17} color={Colors.sage} />
         </TouchableOpacity>
       </View>
     </View>
@@ -1021,6 +1023,8 @@ const CompletionStep: React.FC<{
   openPrayerText: string;
   onDone: () => void;
   insets: { top: number; bottom: number };
+  onSupplicationTrackingChange: (value: boolean) => void;
+  onOpenTrackingChange: (value: boolean) => void;
   supplicationTrackAnswered: boolean;
   openPrayerTrackAnswered: boolean;
   isEditing?: boolean;
@@ -1028,7 +1032,7 @@ const CompletionStep: React.FC<{
   castClosing: string;
   onCastOpeningChange: (value: string) => void;
   onCastClosingChange: (value: string) => void;
-}> = ({ prayerPath, prayerTexts, openPrayerText, onDone, insets, supplicationTrackAnswered, openPrayerTrackAnswered, isEditing = false, castOpening, castClosing, onCastOpeningChange, onCastClosingChange }) => {
+}> = ({ prayerPath, prayerTexts, openPrayerText, onDone, insets, supplicationTrackAnswered, openPrayerTrackAnswered, onSupplicationTrackingChange, onOpenTrackingChange, isEditing = false, castOpening, castClosing, onCastOpeningChange, onCastClosingChange }) => {
   const theme = useTheme();
   const checkmarkScale = React.useRef(new Animated.Value(0)).current;
   const iconScale = React.useRef(new Animated.Value(0)).current;
@@ -1086,7 +1090,7 @@ const CompletionStep: React.FC<{
             value={castOpening}
             onChangeText={onCastOpeningChange}
             placeholder="e.g., Heavenly Father,"
-            placeholderTextColor="rgba(255, 255, 255, 0.4)"
+            placeholderTextColor={Colors.placeholderText}
             keyboardAppearance="light"
           />
         </View>
@@ -1099,12 +1103,13 @@ const CompletionStep: React.FC<{
             <View key={step.key} style={[styles.completionSection, isLast && { borderBottomWidth: 0 }]}>
               <ThemedText weight="medium" style={styles.completionSectionLabel}>{step.label}</ThemedText>
               <ThemedText style={styles.completionSectionText}>{text}</ThemedText>
+              {step.key === 'supplication' && <TouchableOpacity style={[styles.trackingBadgeContainer, { marginTop: 12 }]} onPress={() => onSupplicationTrackingChange(!supplicationTrackAnswered)}><Ionicons name={supplicationTrackAnswered ? 'checkbox-outline' : 'square-outline'} size={18} color={Colors.sage} /><ThemedText style={styles.trackingBadgeText}>{supplicationTrackAnswered ? 'Keep praying about this' : 'Just save this prayer'}</ThemedText></TouchableOpacity>}
               {step.key === 'supplication' && supplicationTrackAnswered && (
                 <View style={[styles.completionSection, styles.completionSectionSmall]}>
                   <View style={styles.trackingRow}>
                     <ThemedText weight="medium" style={styles.completionSectionLabel}>TRACKING</ThemedText>
                     <View style={styles.trackingBadgeContainer}>
-                      <Ionicons name="notifications-outline" size={16} color={Colors.alertCoral} />
+                      <Ionicons name="notifications-outline" size={16} color={Colors.sage} />
                       <ThemedText style={styles.trackingBadgeText}>Enabled</ThemedText>
                     </View>
                   </View>
@@ -1121,7 +1126,7 @@ const CompletionStep: React.FC<{
             value={castClosing}
             onChangeText={onCastClosingChange}
             placeholder="e.g., In Jesus' Name,\nAmen"
-            placeholderTextColor="rgba(255, 255, 255, 0.4)"
+            placeholderTextColor={Colors.placeholderText}
             keyboardAppearance="light"
             multiline
           />
@@ -1137,12 +1142,13 @@ const CompletionStep: React.FC<{
       <View style={[styles.completionSection, { borderBottomWidth: 0 }]}>
         <ThemedText weight="medium" style={styles.completionSectionLabel}>PRAYER</ThemedText>
         <ThemedText style={styles.completionSectionText}>{openPrayerText}</ThemedText>
+        <TouchableOpacity style={[styles.trackingBadgeContainer, { marginTop: 12 }]} onPress={() => onOpenTrackingChange(!openPrayerTrackAnswered)}><Ionicons name={openPrayerTrackAnswered ? 'checkbox-outline' : 'square-outline'} size={18} color={Colors.sage} /><ThemedText style={styles.trackingBadgeText}>{openPrayerTrackAnswered ? 'Keep praying about this' : 'Just save this prayer'}</ThemedText></TouchableOpacity>
         {openPrayerTrackAnswered && (
           <View style={[styles.completionSection, styles.completionSectionSmall]}>
             <View style={styles.trackingRow}>
               <ThemedText weight="medium" style={styles.completionSectionLabel}>TRACKING</ThemedText>
               <View style={styles.trackingBadgeContainer}>
-                <Ionicons name="notifications-outline" size={16} color={Colors.alertCoral} />
+                <Ionicons name="notifications-outline" size={16} color={Colors.sage} />
                 <ThemedText style={styles.trackingBadgeText}>Enabled</ThemedText>
               </View>
             </View>
@@ -1160,7 +1166,7 @@ const CompletionStep: React.FC<{
         showsVerticalScrollIndicator={false}
       >
         <StepFadeIn delay={0} style={styles.stepLabelRow}>
-          <MaterialCommunityIcons name="hands-pray" size={18} color={Colors.alertCoral} />
+          <MaterialCommunityIcons name="hands-pray" size={18} color={Colors.sage} />
           <ThemedText weight="semiBold" style={styles.stepLabelWhite}>
             PRAYER JOURNAL
           </ThemedText>
@@ -1177,7 +1183,7 @@ const CompletionStep: React.FC<{
                 ],
               },
             ]}>
-              <MaterialCommunityIcons name="hands-pray" size={24} color={Colors.alertCoral} />
+              <MaterialCommunityIcons name="hands-pray" size={24} color={Colors.sage} />
             </Animated.View>
             <View style={styles.completionHeaderContent}>
               <ThemedText weight="semiBold" style={styles.completionCategory}>{isEditing ? 'Updated Prayer' : 'Saved Prayer'}</ThemedText>
@@ -1240,6 +1246,10 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
   const [castOpening, setCastOpening] = useState('Heavenly Father,');
   const [castClosing, setCastClosing] = useState('In Jesus\' Name,\nAmen');
   const [existingPrayerIds, setExistingPrayerIds] = useState<{ [key: string]: string }>({});
+  const editLoaded = useRef(false);
+  const saveInFlight = useRef(false);
+  const saveCompleted = useRef(false);
+  const savedPrayerIds = useRef<Record<string, string>>({});
   const prayerSessionId = useRef(`prayer-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`);
   const hasAppliedInitialPrayerType = useRef(false);
 
@@ -1261,9 +1271,11 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
     getPrayerDraft(draftKey).then((draft) => {
       if (draft?.type === 'acts') {
         setPrayerTexts(draft.data.prayerTexts || {});
+        setSupplicationTrackAnswered(draft.data.supplicationTrackAnswered !== false);
         setCurrentStep(draft.data.currentStep || 2);
       } else if (draft?.type === 'open') {
         setOpenPrayerText(draft.data.openPrayerText || '');
+        setOpenPrayerTrackAnswered(draft.data.openPrayerTrackAnswered !== false);
         setCurrentStep(draft.data.currentStep || 2);
       }
       setDraftReady(true);
@@ -1281,11 +1293,11 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
         key: draftKey,
         type: draftType,
         selectedDate: dateStr,
-        data: { currentStep, prayerTexts, openPrayerText },
+        data: { currentStep, prayerTexts, openPrayerText, openPrayerTrackAnswered, supplicationTrackAnswered },
       });
     }, 800);
     return () => clearTimeout(timeout);
-  }, [currentStep, dateStr, draftKey, draftReady, draftType, editingPrayerId, fromNotificationAnsweredCheck, openPrayerText, prayerTexts]);
+  }, [currentStep, dateStr, draftKey, draftReady, draftType, editingPrayerId, fromNotificationAnsweredCheck, openPrayerText, prayerTexts, openPrayerTrackAnswered, supplicationTrackAnswered]);
 
   const successModal = useSuccessModal(
     () => {
@@ -1341,7 +1353,7 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
         }
 
         // Load existing prayer data if editingPrayerId is provided
-        if (editingPrayerId && prayerEntries) {
+        if (editingPrayerId && prayerEntries && !editLoaded.current) {
           const prayerData = prayerEntries as any;
 
           if (initialPrayerType === 'acts') {
@@ -1362,23 +1374,29 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
               const texts: { [key: string]: string } = {};
               const ids: { [key: string]: string } = {};
               prayerSessionId.current = existingSessionId || prayerSessionId.current;
-              sessionPrayers.forEach((p: any) => {
+              sessionPrayers.sort((a: any, b: any) =>
+                (a.updated_at || a.created_at).localeCompare(b.updated_at || b.created_at)
+                || a.created_at.localeCompare(b.created_at)
+              ).forEach((p: any) => {
                 texts[p.journal_category] = p.content;
                 ids[p.journal_category] = p.id;
               });
+              savedPrayerIds.current = { ...ids };
+              editLoaded.current = true;
               setPrayerTexts(texts);
               setExistingPrayerIds(ids);
+              setSupplicationTrackAnswered(sessionPrayers.find((p: any) => p.id === ids.supplication)?.metadata?.track_answered !== false);
             }
           } else if (initialPrayerType === 'open') {
             // Load open prayer data
             const openPrayers = prayerData.freeform || [];
             const editingPrayer = openPrayers.find((p: any) => p.id === editingPrayerId);
             if (editingPrayer) {
+              savedPrayerIds.current = { freeform: editingPrayer.id };
+              editLoaded.current = true;
               setOpenPrayerText(editingPrayer.content);
               setExistingPrayerIds({ freeform: editingPrayer.id });
-              if (editingPrayer.metadata?.track_answered) {
-                setOpenPrayerTrackAnswered(true);
-              }
+              setOpenPrayerTrackAnswered(editingPrayer.metadata?.track_answered !== false);
             }
           }
         }
@@ -1390,15 +1408,21 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
   useFocusEffect(
     useCallback(() => {
       StatusBar.setHidden(true, 'slide');
-      StatusBar.setBarStyle('light-content');
+      StatusBar.setBarStyle('dark-content');
       return () => {
         StatusBar.setHidden(false, 'slide');
-        StatusBar.setBarStyle('light-content');
+        StatusBar.setBarStyle('dark-content');
       };
     }, [])
   );
 
   const handleSave = async () => {
+    if (saveInFlight.current || saveCompleted.current) return;
+    if (editingPrayerId && !editLoaded.current) {
+      Alert.alert('Prayer is still loading', 'Please wait for your saved prayer before saving changes.');
+      return;
+    }
+    saveInFlight.current = true;
     try {
       const isEditing = !!editingPrayerId;
 
@@ -1406,24 +1430,24 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
         // Save each ACTS prayer as separate entries
         for (const step of ACTS_STEPS) {
           const text = prayerTexts[step.key];
-          const existingId = existingPrayerIds[step.key];
+          const existingId = savedPrayerIds.current[step.key] || existingPrayerIds[step.key];
 
           if (text && text.trim()) {
-            if (isEditing && existingId) {
+            if (existingId) {
               // Update existing prayer
               await updateMutation.mutateAsync({
                 id: existingId,
                 updates: {
                   content: text.trim(),
-                  status: step.key === 'supplication' ? 'pending' : undefined,
-                  metadata: { prayer_style: 'cast', prayer_session_id: prayerSessionId.current },
+                  status: step.key === 'supplication' ? Object.values(prayerEntries).flat().find(p => p.id === existingId)?.status || 'pending' : undefined,
+                  metadata: { ...Object.values(prayerEntries).flat().find(p => p.id === existingId)?.metadata, prayer_style: 'cast', prayer_session_id: prayerSessionId.current, track_answered: step.key === 'supplication' ? supplicationTrackAnswered : false },
                 },
                 _userId: user?.id ?? 'local',
                 _dateStr: dateStr,
               });
             } else {
-              // Create new prayer
-              await createMutation.mutateAsync({
+              // Remember successful sections so a retry updates them instead of creating duplicates.
+              const created = await createMutation.mutateAsync({
                 user_id: user?.id ?? 'local',
                 selected_date: dateStr,
                 prayer_type: 'journal',
@@ -1433,10 +1457,11 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
                 prayer_count: 1,
                 last_prayed_at: new Date().toISOString(),
                 status: step.key === 'supplication' ? 'pending' : undefined,
-                metadata: { prayer_style: 'cast', prayer_session_id: prayerSessionId.current },
+                metadata: { ...Object.values(prayerEntries).flat().find(p => p.id === existingId)?.metadata, prayer_style: 'cast', prayer_session_id: prayerSessionId.current, track_answered: step.key === 'supplication' ? supplicationTrackAnswered : false },
               });
+              savedPrayerIds.current[step.key] = created.id;
             }
-          } else if (isEditing && existingId) {
+          } else if (existingId) {
             // Delete empty prayer if editing
             await deletePrayerMutation.mutateAsync({
               id: existingId,
@@ -1446,23 +1471,23 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
           }
         }
       } else if (selectedPath?.id === 'open' && openPrayerText.trim()) {
-        const existingId = existingPrayerIds.freeform;
+        const existingId = savedPrayerIds.current.freeform || existingPrayerIds.freeform;
 
-        if (isEditing && existingId) {
+        if (existingId) {
           // Update existing open prayer
           await updateMutation.mutateAsync({
             id: existingId,
             updates: {
               content: openPrayerText.trim(),
-              status: 'pending',
-              metadata: { prayer_style: 'open' },
+              status: Object.values(prayerEntries).flat().find(p => p.id === existingId)?.status || 'pending',
+              metadata: { ...Object.values(prayerEntries).flat().find(p => p.id === existingId)?.metadata, prayer_style: 'open', track_answered: openPrayerTrackAnswered },
             },
             _userId: user?.id ?? 'local',
             _dateStr: dateStr,
           });
         } else {
           // Create new open prayer
-          await createMutation.mutateAsync({
+          const created = await createMutation.mutateAsync({
             user_id: user?.id ?? 'local',
             selected_date: dateStr,
             prayer_type: 'journal',
@@ -1472,8 +1497,9 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
             prayer_count: 1,
             last_prayed_at: new Date().toISOString(),
             status: 'pending',
-            metadata: { prayer_style: 'open' },
+            metadata: { ...Object.values(prayerEntries).flat().find(p => p.id === existingId)?.metadata, prayer_style: 'open', track_answered: openPrayerTrackAnswered },
           });
+          savedPrayerIds.current.freeform = created.id;
         }
       }
 
@@ -1532,8 +1558,11 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
         DeviceEventEmitter.emit('prayerSaved');
         exitPrayerFlow(navigation as any);
       }
+      saveCompleted.current = true;
     } catch (error) {
       Alert.alert('Error', 'Failed to save prayer. Please try again.');
+    } finally {
+      saveInFlight.current = false;
     }
   };
 
@@ -1728,6 +1757,8 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
             openPrayerText={openPrayerText}
             onDone={handleSave}
             insets={insets}
+            onSupplicationTrackingChange={setSupplicationTrackAnswered}
+            onOpenTrackingChange={setOpenPrayerTrackAnswered}
             supplicationTrackAnswered={supplicationTrackAnswered}
             openPrayerTrackAnswered={openPrayerTrackAnswered}
             isEditing={!!editingPrayerId}
@@ -1751,7 +1782,7 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.sage,
+    backgroundColor: Colors.lightBackground,
   },
   stepContainer: {
     flex: 1,
@@ -1767,21 +1798,21 @@ const styles = StyleSheet.create({
   },
   stepTitle: {
     fontSize: 24,
-    color: Colors.hopeWhite,
+    color: Colors.text,
     lineHeight: 30,
     marginBottom: 32,
     textAlign: 'center',
   },
   stepTitleLeft: {
     fontSize: 24,
-    color: Colors.hopeWhite,
+    color: Colors.text,
     lineHeight: 30,
     marginBottom: 16,
     textAlign: 'left',
   },
   stepDescription: {
     fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.8)',
+    color: Colors.text,
     lineHeight: 24,
     marginBottom: 12,
   },
@@ -1808,7 +1839,7 @@ const styles = StyleSheet.create({
   focusLabel: {
     fontSize: 11,
     letterSpacing: 1,
-    color: Colors.hopeWhite,
+    color: Colors.text,
   },
   labelIcon: {
     marginTop: 1,
@@ -1827,7 +1858,7 @@ const styles = StyleSheet.create({
   verticalLine: {
     width: 2,
     height: 40,
-    backgroundColor: Colors.alertCoral,
+    backgroundColor: Colors.sage,
     borderRadius: 1,
   },
   metadataContent: {
@@ -1837,24 +1868,24 @@ const styles = StyleSheet.create({
   metadataLabel: {
     fontSize: 10,
     letterSpacing: 2,
-    color: Colors.alertCoral,
+    color: Colors.sage,
     textTransform: 'uppercase',
   },
   metadataText: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: Colors.textGray,
     lineHeight: 20,
     textAlign: 'left',
   },
   metadataTitle: {
     fontSize: 15,
-    color: Colors.hopeWhite,
+    color: Colors.text,
     lineHeight: 20,
     marginBottom: 2,
   },
   metadataDescription: {
     fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.6)',
+    color: Colors.textGray,
     lineHeight: 18,
     marginTop: 2,
   },
@@ -1863,20 +1894,20 @@ const styles = StyleSheet.create({
   },
   categoryCard: {
     width: '100%',
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: Colors.cardBackground,
     borderRadius: 20,
     padding: 16,
     marginBottom: 12,
     minHeight: 80,
     borderWidth: 0.5,
-    borderColor: 'rgba(255, 255, 255, 0.22)',
+    borderColor: Colors.cardBorder,
     alignItems: 'center',
     justifyContent: 'center',
     alignSelf: 'center',
   },
   categoryCardSelected: {
-    backgroundColor: 'rgba(255, 107, 107, 0.18)',
-    borderColor: Colors.alertCoral,
+    backgroundColor: Colors.actionBackground,
+    borderColor: Colors.sage,
   },
   categoryIconContainer: {
     marginBottom: 8,
@@ -1885,30 +1916,30 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: Colors.sage,
+    backgroundColor: Colors.actionBackground,
     alignItems: 'center',
     justifyContent: 'center',
   },
   categoryIconCircleSelected: {
-    backgroundColor: Colors.alertCoral,
+    backgroundColor: Colors.sage,
   },
   categoryName: {
     fontSize: 18,
-    color: Colors.hopeWhite,
+    color: Colors.text,
     marginBottom: 6,
     textAlign: 'center',
   },
   categoryNameSelected: {
-    color: Colors.hopeWhite,
+    color: Colors.text,
   },
   categoryDescription: {
     fontSize: 15,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: Colors.textGray,
     lineHeight: 20,
     textAlign: 'center',
   },
   categoryDescriptionSelected: {
-    color: 'rgba(255, 255, 255, 0.9)',
+    color: Colors.text,
   },
   categoriesGrid: {
     gap: 12,
@@ -1923,15 +1954,15 @@ const styles = StyleSheet.create({
   actsStepLabel: {
     fontSize: 12,
     letterSpacing: 2,
-    color: Colors.alertCoral,
+    color: Colors.sage,
   },
   actsStepNumber: {
     fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.6)',
+    color: Colors.textGray,
   },
   personalInput: {
     fontFamily: Fonts.regular,
-    color: Colors.hopeWhite,
+    color: Colors.text,
     fontSize: 18,
     paddingTop: 16,
     paddingBottom: 16,
@@ -1946,7 +1977,7 @@ const styles = StyleSheet.create({
     height: 42,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.09)',
+    backgroundColor: Colors.cardBackground,
     borderRadius: 999,
     zIndex: 100,
   },
@@ -1962,7 +1993,7 @@ const styles = StyleSheet.create({
     height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: Colors.alertCoral,
+    backgroundColor: Colors.sage,
     borderRadius: 20,
     shadowColor: '#29342E',
     shadowOffset: { width: 0, height: 4 },
@@ -1978,7 +2009,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: Colors.alertCoral,
+    backgroundColor: Colors.sage,
     borderRadius: 50,
     paddingVertical: 15,
     paddingHorizontal: 28,
@@ -1996,7 +2027,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 16,
     alignItems: 'center',
-    backgroundColor: Colors.sage,
+    backgroundColor: Colors.lightBackground,
     zIndex: 100,
   },
   completionButtonContainerPad: {
@@ -2006,7 +2037,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: Colors.alertCoral,
+    backgroundColor: Colors.sage,
     borderRadius: 50,
     paddingVertical: 15,
     paddingHorizontal: 28,
@@ -2034,11 +2065,11 @@ const styles = StyleSheet.create({
   stepLabelWhite: {
     fontSize: 11,
     letterSpacing: 1,
-    color: Colors.hopeWhite,
+    color: Colors.text,
   },
   actionCounter: {
     fontSize: 13,
-    color: 'rgba(255,255,255,0.45)',
+    color: Colors.textGray,
     marginTop: 16,
     marginBottom: 8,
     letterSpacing: 0.5,
@@ -2047,7 +2078,7 @@ const styles = StyleSheet.create({
   actionProgressBar: {
     height: 6,
     width: 120,
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: Colors.cardBackground,
     borderRadius: 3,
     marginBottom: 24,
     overflow: 'hidden' as const,
@@ -2072,7 +2103,7 @@ const styles = StyleSheet.create({
   },
   actsCardTitle: {
     fontSize: 17,
-    color: Colors.hopeWhite,
+    color: Colors.text,
     marginBottom: 4,
     letterSpacing: 0.3,
   },
@@ -2082,12 +2113,12 @@ const styles = StyleSheet.create({
   },
   suggestedText: {
     fontSize: 15,
-    color: 'rgba(255, 255, 255, 0.6)',
+    color: Colors.textGray,
     fontStyle: 'italic',
   },
   actsCardDescription: {
     fontSize: 14,
-    color: 'rgba(255,255,255,0.7)',
+    color: Colors.textGray,
     lineHeight: 20,
   },
   prayerStepsContainer: {
@@ -2097,17 +2128,17 @@ const styles = StyleSheet.create({
   prayerStepItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: Colors.cardBackground,
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: Colors.cardBorder,
   },
   prayerStepIcon: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(255, 107, 107, 0.15)',
+    backgroundColor: Colors.actionBackground,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 16,
@@ -2117,12 +2148,12 @@ const styles = StyleSheet.create({
   },
   prayerStepLabel: {
     fontSize: 16,
-    color: Colors.hopeWhite,
+    color: Colors.text,
     marginBottom: 4,
   },
   prayerStepDescription: {
     fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.6)',
+    color: Colors.textGray,
     lineHeight: 18,
   },
   timelineContainer: {
@@ -2136,7 +2167,7 @@ const styles = StyleSheet.create({
     top: 0,
     bottom: 0,
     width: 2,
-    backgroundColor: 'rgba(255, 107, 107, 0.3)',
+    backgroundColor: Colors.actionBackground,
     borderRadius: 1,
   },
   timelineThickBar: {
@@ -2144,7 +2175,7 @@ const styles = StyleSheet.create({
     left: 32,
     top: 0,
     width: 5,
-    backgroundColor: Colors.alertCoral,
+    backgroundColor: Colors.sage,
     borderRadius: 2.5,
   },
   timelineThickBarPad: {
@@ -2160,9 +2191,9 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: Colors.alertCoral,
+    backgroundColor: Colors.sage,
     borderWidth: 2,
-    borderColor: Colors.alertCoral,
+    borderColor: Colors.sage,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 20,
@@ -2178,21 +2209,21 @@ const styles = StyleSheet.create({
   },
   timelineContentContainer: {
     flex: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: Colors.cardBackground,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: Colors.cardBorder,
     padding: 12,
     marginLeft: 0,
   },
   timelineLabel: {
     fontSize: 18,
-    color: Colors.hopeWhite,
+    color: Colors.text,
     marginBottom: 6,
   },
   timelineDescription: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.65)',
+    color: Colors.textGray,
     lineHeight: 20,
   },
   completionCard: {
@@ -2213,7 +2244,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: 'rgba(255, 107, 107, 0.15)',
+    backgroundColor: Colors.actionBackground,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -2223,13 +2254,13 @@ const styles = StyleSheet.create({
   },
   completionCategory: {
     fontSize: 16,
-    color: Colors.hopeWhite,
+    color: Colors.text,
     fontWeight: '600',
     textTransform: 'uppercase',
   },
   completionSubtext: {
     fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: Colors.textGray,
     marginTop: 2,
   },
   completionCheckmark: {
@@ -2238,11 +2269,11 @@ const styles = StyleSheet.create({
   completionSection: {
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+    borderBottomColor: Colors.cardBorder,
   },
   completionSectionLabel: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.6)',
+    color: Colors.textGray,
     fontWeight: '600',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
@@ -2250,12 +2281,12 @@ const styles = StyleSheet.create({
   },
   completionSectionText: {
     fontSize: 16,
-    color: Colors.hopeWhite,
+    color: Colors.text,
     lineHeight: 24,
   },
   completionInput: {
-    color: 'rgba(255, 255, 255, 0.9)',
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    color: Colors.text,
+    backgroundColor: Colors.cardBackground,
     borderRadius: 16,
     padding: 12,
     marginTop: 8,
@@ -2278,12 +2309,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 12,
-    backgroundColor: 'rgba(255, 107, 107, 0.15)',
+    backgroundColor: Colors.actionBackground,
     alignSelf: 'flex-start',
   },
   trackingBadgeText: {
     fontSize: 14,
-    color: Colors.alertCoral,
+    color: Colors.sage,
     fontWeight: '600',
   },
   trackingFloatingButton: {
@@ -2295,9 +2326,9 @@ const styles = StyleSheet.create({
   },
   trackingFloatingButtonInner: {
     borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    backgroundColor: Colors.cardBackground,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderColor: Colors.cardBorder,
   },
   markAnsweredButton: {
     marginTop: 12,
@@ -2325,18 +2356,18 @@ const styles = StyleSheet.create({
     height: 22,
     borderRadius: 11,
     borderWidth: 2,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderColor: Colors.cardBorder,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
   },
   trackAnsweredCheckboxChecked: {
-    backgroundColor: Colors.alertCoral,
-    borderColor: Colors.alertCoral,
+    backgroundColor: Colors.sage,
+    borderColor: Colors.sage,
   },
   trackAnsweredText: {
     fontSize: 15,
-    color: 'rgba(255, 255, 255, 0.8)',
+    color: Colors.text,
   },
 });
 

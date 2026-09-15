@@ -286,6 +286,38 @@ export default function RootStackNavigator({
         }}
       />
 
+      {/* Prayer is available from MainTabs, including local use before authentication. */}
+      <Stack.Screen
+            name="PrayerJournalWalkthrough"
+            component={PrayerJournalWalkthroughScreen as React.ComponentType}
+            options={{
+              headerShown: false,
+              contentStyle: { backgroundColor: Colors.lightBackground },
+              presentation: 'fullScreenModal',
+              animation: 'none',
+            }}
+          />
+      <Stack.Screen
+            name="PrayersForPeopleWalkthrough"
+            component={PrayersForPeopleWalkthroughScreen as React.ComponentType}
+            options={{
+              headerShown: false,
+              contentStyle: { backgroundColor: Colors.lightBackground },
+              presentation: 'fullScreenModal',
+              animation: 'none',
+            }}
+          />
+      <Stack.Screen
+            name="PrayerEditor"
+            component={PrayerEditorScreen as React.ComponentType}
+            options={{
+              headerShown: false,
+              contentStyle: { backgroundColor: 'transparent' },
+              presentation: 'transparentModal',
+              animation: 'none',
+            }}
+          />
+
       {/* Pre-auth screens */}
       {!isAuthenticated ? (
         <>
@@ -480,15 +512,7 @@ export default function RootStackNavigator({
               animation: 'none',
             }}
           />
-          <Stack.Screen
-            name="PrayerJournalWalkthrough"
-            component={PrayerJournalWalkthroughScreen as React.ComponentType}
-            options={{
-              headerShown: false,
-              presentation: 'fullScreenModal',
-              animation: 'none',
-            }}
-          />
+
 
           {/* Unified Prayer Selection Screen */}
           <Stack.Screen
@@ -502,26 +526,10 @@ export default function RootStackNavigator({
           />
 
           {/* Prayers for People Walkthrough */}
-          <Stack.Screen
-            name="PrayersForPeopleWalkthrough"
-            component={PrayersForPeopleWalkthroughScreen as React.ComponentType}
-            options={{
-              headerShown: false,
-              presentation: 'fullScreenModal',
-              animation: 'none',
-            }}
-          />
+
 
           {/* Prayer Editor Screen */}
-          <Stack.Screen
-            name="PrayerEditor"
-            component={PrayerEditorScreen as React.ComponentType}
-            options={{
-              headerShown: false,
-              presentation: 'fullScreenModal',
-              animation: 'slide_from_bottom',
-            }}
-          />
+
 
           {/* Todos Walkthrough */}
           <Stack.Screen

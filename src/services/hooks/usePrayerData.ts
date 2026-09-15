@@ -339,6 +339,9 @@ export const useUpdatePrayer = () => {
         queryKey: queryKeys.prayers.acts(_userId, _dateStr),
       });
 
+      await queryClient.cancelQueries({ queryKey: queryKeys.prayers.allEntries(_userId) });
+      const previousAllPrayers = queryClient.getQueryData<PrayerApiEntry[]>(queryKeys.prayers.allEntries(_userId));
+
       // Snapshot previous values for rollback
       const previousPrayers = queryClient.getQueryData<PrayerApiEntry[]>(
         queryKeys.prayers.entries(_userId, _dateStr)
@@ -352,8 +355,10 @@ export const useUpdatePrayer = () => {
 
       const applyUpdate = (prayer: PrayerApiEntry) =>
         prayer.id === id
-          ? { ...prayer, ...updates, updated_at: new Date().toISOString() }
+          ? { ...prayer, ...updates, ...(updates.metadata ? { metadata: { ...prayer.metadata, ...updates.metadata } } : {}), ...(updates.status ? { is_answered: updates.status === 'answered' } : {}), updated_at: new Date().toISOString() }
           : prayer;
+
+      queryClient.setQueryData<PrayerApiEntry[]>(queryKeys.prayers.allEntries(_userId), old => old?.map(applyUpdate));
 
       // Optimistically update entries cache
       queryClient.setQueryData(
@@ -390,12 +395,13 @@ export const useUpdatePrayer = () => {
         }
       );
 
-      return { previousPrayers, previousPeoplePrayers, previousActsPrayers };
+      return { previousAllPrayers, previousPrayers, previousPeoplePrayers, previousActsPrayers };
     },
     onError: (err: Error, { _userId, _dateStr }, context) => {
       Logger.error('Error updating prayer', err as Error, {
       component: 'usePrayerData',
     });
+      if (context?.previousAllPrayers) queryClient.setQueryData(queryKeys.prayers.allEntries(_userId), context.previousAllPrayers);
       // Roll back all caches on failure
       if (context?.previousPrayers) {
         queryClient.setQueryData(
@@ -415,6 +421,9 @@ export const useUpdatePrayer = () => {
           context.previousActsPrayers
         );
       }
+    },
+    onSuccess: (data, { _userId }) => {
+      queryClient.setQueryData<PrayerApiEntry[]>(queryKeys.prayers.allEntries(_userId), old => old?.map(prayer => prayer.id === data.id ? data : prayer));
     },
     onSettled: (data, error, { _userId, _dateStr }) => {
       // Always refetch after error or success

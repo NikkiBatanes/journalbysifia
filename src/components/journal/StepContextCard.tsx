@@ -14,13 +14,14 @@ import { Colors } from '../../theme/colors';
 import { triggerLightHaptic } from '../../utils/haptics';
 
 interface StepContextCardProps {
+  light?: boolean;
   body: string;
   example?: string | null;
   /** ms before the card fades in — lets the modal animation settle first */
   delay?: number;
 }
 
-const StepContextCard: React.FC<StepContextCardProps> = ({ body, example, delay = 700 }) => {
+const StepContextCard: React.FC<StepContextCardProps> = ({ body, example, delay = 700, light = false }) => {
   const [expanded, setExpanded] = useState(true); // starts open
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
@@ -51,17 +52,17 @@ const StepContextCard: React.FC<StepContextCardProps> = ({ body, example, delay 
         hitSlop={{ top: 6, bottom: 6, left: 0, right: 16 }}
         style={styles.toggleRow}
       >
-        <ThemedText style={styles.toggleLabel}>Action</ThemedText>
+        <ThemedText style={[styles.toggleLabel, light && { color: Colors.textGray, opacity: 1 }]}>Action</ThemedText>
         <Ionicons
           name={expanded ? 'chevron-up' : 'chevron-down'}
           size={10}
-          color="rgba(255,255,255,0.35)"
+          color={light ? Colors.sageMuted : "rgba(255,255,255,0.35)"}
         />
       </TouchableOpacity>
 
       {expanded && (
         <View style={styles.bodyBlock}>
-          <ThemedText style={styles.bodyText}>{body}</ThemedText>
+          <ThemedText style={[styles.bodyText, light && { color: Colors.textGray, opacity: 1 }]}>{body}</ThemedText>
 
           {/* Example — icon-only header, no separate collapse */}
           {example ? (
@@ -69,10 +70,10 @@ const StepContextCard: React.FC<StepContextCardProps> = ({ body, example, delay 
               <Ionicons
                 name="chatbubble-ellipses-outline"
                 size={12}
-                color="rgba(255,255,255,0.35)"
+                color={light ? Colors.sageMuted : "rgba(255,255,255,0.35)"}
                 style={styles.exampleIcon}
               />
-              <ThemedText style={styles.exampleText}>{example}</ThemedText>
+              <ThemedText style={[styles.exampleText, light && { color: Colors.textGray, opacity: 1 }]}>{example}</ThemedText>
             </View>
           ) : null}
         </View>
