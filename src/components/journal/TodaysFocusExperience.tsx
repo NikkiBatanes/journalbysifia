@@ -42,7 +42,7 @@ interface FocusCategory {
   iconType: 'ionicons' | 'material' | 'fontawesome';
 }
 
-const FOCUS_CATEGORIES: FocusCategory[] = [
+export const FOCUS_CATEGORIES: FocusCategory[] = [
   { id: 'prayer', name: 'Prayer', description: 'Returning to God with honesty and stillness.', icon: 'hands-pray', iconType: 'material' },
   { id: 'bible-reading', name: 'Bible Reading', description: 'Making space to read, listen, and stay rooted in Scripture.', icon: 'script-text', iconType: 'material' },
   { id: 'church', name: 'Church', description: 'Serving, worship, fellowship, and church activities.', icon: 'church', iconType: 'material' },
@@ -954,6 +954,8 @@ const TodaysFocusExperience: React.FC<TodaysFocusExperienceProps> = ({
 
     const focusToSave = selectedCategory.id === 'other' ? customFocus.trim() : selectedCategory.name;
     const focusCategoryToSave = selectedCategory.id;
+    const focusIconToSave = selectedCategory.icon;
+    const focusIconTypeToSave = selectedCategory.iconType;
     const customFocusToSave = selectedCategory.id === 'other' ? customFocus.trim() : '';
     const personalTextToSave = personalText.trim();
 
@@ -968,6 +970,8 @@ const TodaysFocusExperience: React.FC<TodaysFocusExperienceProps> = ({
     const contentToSave = JSON.stringify({
       focus: focusToSave,
       focusCategory: focusCategoryToSave,
+      focusIcon: focusIconToSave,
+      focusIconType: focusIconTypeToSave,
       customFocus: customFocusToSave,
       personalText: personalTextToSave,
       priorities: prioritiesToSave,

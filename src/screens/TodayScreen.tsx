@@ -71,10 +71,16 @@ const TodayScreen = () => {
   const [previewEvening, setPreviewEvening] = useState<boolean | null>(null);
   const isEvening = (__DEV__ ? previewEvening : null) ?? displayDate.getHours() >= 17;
   const hour = displayDate.getHours();
-  const greetingText = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+  const isToday = isSameDay(displayDate, now);
+  const greetingText = isToday
+    ? (hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening')
+    : 'Hi';
   const eveningDone = eveningState?.selected_date === format(displayDate, 'yyyy-MM-dd') && eveningState.completed;
   const morningDone = morningState?.selected_date === format(displayDate, 'yyyy-MM-dd') && morningState.completed;
   const routineDone = isEvening ? eveningDone : morningDone;
+  const routineStarted = isEvening
+    ? !!eveningState?.started_at && !eveningState?.completed
+    : !!morningState?.started_at && !morningState?.completed;
   const dayOffset = differenceInCalendarDays(displayDate, now);
   const rhythmTitle =
     dayOffset === 0 ? 'TODAY' :
@@ -379,7 +385,7 @@ const TodayScreen = () => {
             </View>
             <View style={styles.routineBegin}>
               {!routineDone && <Pencil size={14} color={Colors.hopeWhite} />}
-              <ThemedText style={styles.beginButtonText}>{routineDone ? 'View' : 'Begin'}</ThemedText>
+              <ThemedText style={styles.beginButtonText}>{routineDone ? 'View' : (routineStarted ? 'Continue' : 'Begin')}</ThemedText>
             </View>
           </View>
           <View style={styles.morningSteps}>

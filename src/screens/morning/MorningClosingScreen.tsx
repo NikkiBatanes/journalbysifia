@@ -8,6 +8,7 @@ import FontAwesome6 from 'react-native-vector-icons/FontAwesome6';
 
 import ThemedText from '../../components/common/ThemedText';
 import ShareDropdownModal from '../../components/ShareDropdownModal';
+import { FOCUS_CATEGORIES } from '../../components/journal/TodaysFocusExperience';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
 import { triggerLightHaptic } from '../../utils/haptics';
@@ -86,6 +87,17 @@ const MorningClosingScreen = () => {
           next.focus = parsed.focus || parsed.focusCategory;
           next.personalText = parsed.personalText;
           next.priorities = (parsed.priorities || []).map((p: any) => p.text || '');
+
+          if (parsed.focusIcon && parsed.focusIconType) {
+            next.focusIcon = parsed.focusIcon;
+            next.focusIconType = parsed.focusIconType;
+          } else if (parsed.focusCategory) {
+            const category = FOCUS_CATEGORIES.find(c => c.id === parsed.focusCategory);
+            if (category) {
+              next.focusIcon = category.icon;
+              next.focusIconType = category.iconType;
+            }
+          }
         }
       }
 
