@@ -76,8 +76,16 @@ const TodayScreen = () => {
   const morningDone = morningState?.selected_date === format(displayDate, 'yyyy-MM-dd') && morningState.completed;
   const routineDone = isEvening ? eveningDone : morningDone;
   const dayOffset = differenceInCalendarDays(displayDate, now);
-  const rhythmTitle = dayOffset === 0 ? 'TODAY' : dayOffset === 1 ? 'TOMORROW' : dayOffset === -1 ? 'YESTERDAY' : format(displayDate, 'EEE, MMM d').toUpperCase();
-  const rhythmDetail = dayOffset === 0 ? 'your daily rhythm' : format(displayDate, 'MMM d, yyyy');
+  const rhythmTitle =
+    dayOffset === 0 ? 'TODAY' :
+    dayOffset === 1 ? 'TOMORROW' :
+    dayOffset === -1 ? 'YESTERDAY' :
+    dayOffset > 0 ? 'UPCOMING' : 'PAST';
+  const rhythmDetail =
+    dayOffset === 0 ? 'your daily rhythm' :
+    dayOffset === 1 ? 'your tomorrow daily rhythm' :
+    dayOffset === -1 ? 'your yesterday daily rhythm' :
+    dayOffset > 0 ? 'your upcoming daily rhythm' : 'your past daily rhythm';
 
   const dateContext = (() => {
     const today = startOfDay(now);
@@ -203,6 +211,8 @@ const TodayScreen = () => {
     const isScrollingUp = y < lastScrollYRef.current;
     lastScrollYRef.current = y;
 
+    if (calendarVisible) { setCalendarVisible(false); }
+
     if (y > 60 && !tabBarCollapsedRef.current) {
       tabBarCollapsedRef.current = true;
       setShowTabBar(false);
@@ -210,7 +220,7 @@ const TodayScreen = () => {
       tabBarCollapsedRef.current = false;
       setShowTabBar(true);
     }
-  }, [setShowTabBar]);
+  }, [setShowTabBar, calendarVisible]);
 
   const reviewCard = useMemo(() => {
     if (!eligibility?.main) {return null;}

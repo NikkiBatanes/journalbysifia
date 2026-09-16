@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { addDays, addWeeks, format, isSameDay, isToday, startOfWeek } from 'date-fns';
+
+import { adjustDayIndexForWeekStart } from '../../utils/weekStartUtils';
 import type { Day } from 'date-fns';
 
 import ThemedText from '../common/ThemedText';
@@ -44,11 +46,16 @@ const JournalCalendarStrip: React.FC<JournalCalendarStripProps> = ({
     return weeks.findIndex(week => week.some(day => isSameDay(day, currentDate)));
   }, [weeks, currentDate]);
 
+  const selectedDayOfWeek = useMemo(
+    () => adjustDayIndexForWeekStart(currentDate.getDay(), weekStartsOn),
+    [currentDate, weekStartsOn],
+  );
+
   useEffect(() => {
     if (scrollViewRef.current && headerWidth > 0 && currentWeekIndex >= 0) {
       const scrollTo = currentWeekIndex * headerWidth;
       if (Math.abs(scrollX.current - scrollTo) > 1) {
-        scrollViewRef.current.scrollTo({ x: scrollTo, animated: true });
+        scrollViewRef.current.scrollTo({ x: scrollTo, animated: false });
         scrollX.current = scrollTo;
       }
     }
@@ -57,6 +64,19 @@ const JournalCalendarStrip: React.FC<JournalCalendarStripProps> = ({
   const handleScroll = (event: any) => {
     const offsetX = event?.nativeEvent?.contentOffset?.x ?? 0;
     scrollX.current = offsetX;
+  };
+
+  const handleMomentumScrollEnd = (event: any) => {
+    const offsetX = event?.nativeEvent?.contentOffset?.x ?? 0;
+    scrollX.current = offsetX;
+    if (headerWidth === 0) { return; }
+    const weekIndex = Math.round(offsetX / headerWidth);
+    if (weekIndex >= 0 && weekIndex < weeks.length) {
+      const targetDay = weeks[weekIndex][selectedDayOfWeek];
+      if (targetDay && !isSameDay(targetDay, currentDate)) {
+        onSelectDate(targetDay);
+      }
+    }
   };
 
   const renderWeek = (week: Date[], weekIndex: number) => {
@@ -132,6 +152,7 @@ const JournalCalendarStrip: React.FC<JournalCalendarStripProps> = ({
           decelerationRate="fast"
           pagingEnabled
           onScroll={handleScroll}
+          onMomentumScrollEnd={handleMomentumScrollEnd}
           scrollEventThrottle={16}
         >
           {weeks.map((week, index) => renderWeek(week, index))}
