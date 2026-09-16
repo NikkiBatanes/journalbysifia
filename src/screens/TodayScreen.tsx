@@ -5,12 +5,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { BookOpen, Heart, Leaf, List, Moon, Pencil, Sparkles, Sun, Target } from 'lucide-react-native';
-import { differenceInCalendarDays, endOfWeek, format, startOfWeek, subYears } from 'date-fns';
+import { BookOpen, CalendarDays, Heart, Leaf, List, Moon, Pencil, Sparkles, Sun, Target } from 'lucide-react-native';
+import { differenceInCalendarDays, endOfWeek, format, isAfter, isSameDay, isYesterday, startOfDay, startOfWeek, subYears } from 'date-fns';
 
 import WeeklyQuickLook from '../components/dashboard/WeeklyQuickLook';
 import WeeklyReviewCard from '../components/dashboard/WeeklyReviewCard';
 import PrayerToRevisit from '../components/dashboard/PrayerToRevisit';
+import JournalCalendarStrip from '../components/dashboard/JournalCalendarStrip';
 import DashboardHeaderScripture from '../components/dashboard/DashboardHeaderScripture';
 import ThemedText from '../components/common/ThemedText';
 import { useAuth } from '../context/IndustryStandardAuthContext';
@@ -62,21 +63,53 @@ const TodayScreen = () => {
   const lastScrollYRef = useRef(0);
   const tabBarCollapsedRef = useRef(false);
   const [now, setNow] = useState(() => new Date());
+  const [displayDate, setDisplayDate] = useState(() => now);
+  const [manualDate, setManualDate] = useState(false);
+  const [calendarVisible, setCalendarVisible] = useState(false);
   const [morningState, setMorningState] = useState<RoutineState | null>(null);
   const [eveningState, setEveningState] = useState<RoutineState | null>(null);
   const [previewEvening, setPreviewEvening] = useState<boolean | null>(null);
-  const isEvening = (__DEV__ ? previewEvening : null) ?? now.getHours() >= 17;
-  const hour = now.getHours();
+  const isEvening = (__DEV__ ? previewEvening : null) ?? displayDate.getHours() >= 17;
+  const hour = displayDate.getHours();
   const greetingText = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
-  const eveningDone = eveningState?.selected_date === format(now, 'yyyy-MM-dd') && eveningState.completed;
-  const morningDone = morningState?.selected_date === format(now, 'yyyy-MM-dd') && morningState.completed;
+  const eveningDone = eveningState?.selected_date === format(displayDate, 'yyyy-MM-dd') && eveningState.completed;
+  const morningDone = morningState?.selected_date === format(displayDate, 'yyyy-MM-dd') && morningState.completed;
   const routineDone = isEvening ? eveningDone : morningDone;
+  const dayOffset = differenceInCalendarDays(displayDate, now);
+  const rhythmTitle = dayOffset === 0 ? 'TODAY' : dayOffset === 1 ? 'TOMORROW' : dayOffset === -1 ? 'YESTERDAY' : format(displayDate, 'EEE, MMM d').toUpperCase();
+  const rhythmDetail = dayOffset === 0 ? 'your daily rhythm' : format(displayDate, 'MMM d, yyyy');
+
+  const dateContext = (() => {
+    const today = startOfDay(now);
+    const day = startOfDay(displayDate);
+    if (isSameDay(day, today)) { return 'today'; }
+    if (isYesterday(day)) { return 'yesterday'; }
+    if (isAfter(day, today)) { return 'upcoming'; }
+    return 'earlier';
+  })();
+
+  const routineTitle = isEvening
+    ? (routineDone
+        ? (dateContext === 'yesterday' || dateContext === 'earlier' ? 'Your evening was saved.' : 'Your evening is saved.')
+        : (dateContext === 'upcoming'
+            ? 'Plan your evening.'
+            : dateContext === 'today'
+              ? 'Close your day.'
+              : 'Close this evening.'))
+    : (routineDone
+        ? (dateContext === 'yesterday' || dateContext === 'earlier' ? 'Your morning was saved.' : 'Your morning is saved.')
+        : (dateContext === 'upcoming'
+            ? 'Plan your day.'
+            : dateContext === 'today'
+              ? 'Begin your day.'
+              : 'Begin this morning.'));
+
   const weekStartsOn = Math.max(0, ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'].indexOf(appPreferences?.weekStart || 'monday')) as 0 | 1 | 2 | 3 | 4 | 5 | 6;
   const weekLabel = useMemo(() => {
-    const start = startOfWeek(now, { weekStartsOn });
-    const end = endOfWeek(now, { weekStartsOn });
+    const start = startOfWeek(displayDate, { weekStartsOn });
+    const end = endOfWeek(displayDate, { weekStartsOn });
     return `${format(start, 'MMM d')}–${format(end, start.getMonth() === end.getMonth() ? 'd' : 'MMM d')}`.toUpperCase();
-  }, [now, weekStartsOn]);
+  }, [displayDate, weekStartsOn]);
   const firstName = useMemo(() => {
     const metadata = profile;
     const value = metadata?.first_name || metadata?.full_name || user?.email?.split('@')[0] || 'Friend';
@@ -86,13 +119,19 @@ const TodayScreen = () => {
 
   useEffect(() => {
     const createdAt = (user as any)?.created_at;
-    const start = createdAt ? new Date(createdAt) : now;
-    const psalmNumber = (Math.max(0, differenceInCalendarDays(now, start)) % 150) + 1;
+    const start = createdAt ? new Date(createdAt) : displayDate;
+    const psalmNumber = (Math.max(0, differenceInCalendarDays(displayDate, start)) % 150) + 1;
     preloadScripturePassages([
       `Psalm ${psalmNumber}`,
-      `Proverbs ${now.getDate()}`,
+      `Proverbs ${displayDate.getDate()}`,
     ]);
-  }, [now, user]);
+  }, [displayDate, user]);
+
+  useEffect(() => {
+    if (!manualDate && !isSameDay(displayDate, now)) {
+      setDisplayDate(now);
+    }
+  }, [now, manualDate, displayDate]);
 
   const [eligibility, setEligibility] = useState<ReviewEligibilityResult | null>(null);
   const [weeklyReview, setWeeklyReview] = useState<LocalReviewEntry | null>(null);
@@ -119,12 +158,11 @@ const TodayScreen = () => {
       let loadVersion = 0;
       const refreshMorning = async () => {
         const version = ++loadVersion;
-        const currentDate = new Date();
-        setNow(currentDate);
+        setNow(new Date());
         try {
           const [morning, evening] = await Promise.all([
-            getRoutineState('morning', currentDate),
-            getRoutineState('evening', currentDate),
+            getRoutineState('morning', displayDate),
+            getRoutineState('evening', displayDate),
           ]);
           if (focused && version === loadVersion) {
             setMorningState(morning);
@@ -151,7 +189,7 @@ const TodayScreen = () => {
         tabBarCollapsedRef.current = false;
         setShowTabBar(true);
       };
-    }, [setShowTabBar])
+    }, [setShowTabBar, displayDate])
   );
 
   useEffect(() => {
@@ -238,17 +276,47 @@ const TodayScreen = () => {
         scrollEventThrottle={16}
       >
         <View style={styles.headerColumn}>
-          <TouchableOpacity
-            style={styles.notificationsButton}
-            activeOpacity={0.7}
-            onPress={() => { triggerLightHaptic(); }}
-            accessibilityRole="button"
-            accessibilityLabel="Open notifications"
-          >
-            <Ionicons name="notifications-outline" size={26} color={Colors.text} />
-          </TouchableOpacity>
+          {calendarVisible && (
+            <View style={styles.calendarSheet}>
+              <JournalCalendarStrip
+                currentDate={displayDate}
+                onSelectDate={(date) => {
+                  triggerLightHaptic();
+                  setManualDate(true);
+                  const picked = new Date(date);
+                  if (isSameDay(picked, now)) {
+                    picked.setHours(now.getHours(), now.getMinutes(), now.getSeconds(), now.getMilliseconds());
+                  } else {
+                    picked.setHours(0, 0, 0, 0);
+                  }
+                  setDisplayDate(picked);
+                }}
+                weekStartsOn={weekStartsOn}
+              />
+            </View>
+          )}
+          <View style={styles.headerIconsRow}>
+            <TouchableOpacity
+              style={styles.calendarButton}
+              activeOpacity={0.7}
+              onPress={() => { triggerLightHaptic(); setCalendarVisible(v => !v); }}
+              accessibilityRole="button"
+              accessibilityLabel="Open calendar"
+            >
+              <CalendarDays size={24} color={Colors.text} strokeWidth={1.6} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.notificationsButton}
+              activeOpacity={0.7}
+              onPress={() => { triggerLightHaptic(); }}
+              accessibilityRole="button"
+              accessibilityLabel="Open notifications"
+            >
+              <Ionicons name="notifications-outline" size={26} color={Colors.text} />
+            </TouchableOpacity>
+          </View>
           <View style={styles.headerGreeting}>
-            <ThemedText style={styles.date}>{format(now, 'EEE, MMM d').toUpperCase()}</ThemedText>
+            <ThemedText style={styles.date}>{format(displayDate, 'EEE, MMM d').toUpperCase()}</ThemedText>
             <ThemedText style={styles.greeting}>{greetingText},</ThemedText>
             <View style={styles.nameRow}>
               <ThemedText style={styles.name}>{firstName}.</ThemedText>
@@ -261,6 +329,7 @@ const TodayScreen = () => {
             <ThemedText style={styles.subtitle}>Begin where you are.</ThemedText>
           </View>
           <DashboardHeaderScripture
+            date={displayDate}
             bibleVersion={appPreferences?.content?.bibleVersion || 'NASB'}
             centered
           />
@@ -269,22 +338,22 @@ const TodayScreen = () => {
         <Stagger key={tick}>
         {reviewCard}
 
-        <SectionHeading title="TODAY" detail="your daily rhythm" />
+        <SectionHeading title={rhythmTitle} detail={rhythmDetail} />
         <TouchableOpacity
           style={[styles.card, styles.morningCard]}
           activeOpacity={0.85}
           accessibilityRole="button"
-          accessibilityLabel={isEvening ? (routineDone ? "View your saved evening" : "Begin your evening reflection") : (routineDone ? "View your saved morning" : "Begin your morning check-in")}
+          accessibilityLabel={isEvening ? (routineDone ? "View your saved evening" : (dateContext === 'upcoming' ? "Plan your evening reflection" : "Begin your evening reflection")) : (routineDone ? "View your saved morning" : (dateContext === 'upcoming' ? "Plan your morning check-in" : "Begin your morning check-in"))}
           onPress={() => {
             triggerLightHaptic();
             if (isEvening) {
               (navigation as any).navigate('EveningFlow', {
                 screen: routineDone ? 'EveningClosing' : 'Gratitude',
-                params: { selectedDate: new Date().toISOString(), routine: 'evening' },
+                params: { selectedDate: displayDate.toISOString(), routine: 'evening' },
               });
             } else {
               (navigation as any).navigate('MorningFlow', {
-                selectedDate: new Date().toISOString(),
+                selectedDate: displayDate.toISOString(),
                 screen: routineDone ? 'MorningClosing' : 'EmotionCheckIn',
               });
             }
@@ -295,7 +364,7 @@ const TodayScreen = () => {
               <Ionicons name={isEvening ? 'moon-outline' : 'sunny-outline'} size={24} color={Colors.sage} />
             </View>
             <View style={styles.morningCopy}>
-              <Text numberOfLines={2} maxFontSizeMultiplier={1.2} style={styles.morningTitle}>{isEvening ? (routineDone ? 'Your evening is saved.' : 'Close your day.') : (routineDone ? 'Your morning is saved.' : 'Begin your day.')}</Text>
+              <Text numberOfLines={2} maxFontSizeMultiplier={1.2} style={styles.morningTitle}>{routineTitle}</Text>
               <ThemedText style={styles.morningDescription}>{isEvening ? (routineDone ? 'You’ve given thanks and closed your day with God.' : 'Give thanks, reflect, and rest your heart in God.') : (routineDone ? 'You’ve paused, reflected, and set your heart on what matters.' : 'Pause, reflect, and set your heart on what matters.')}</ThemedText>
             </View>
             <View style={styles.routineBegin}>
@@ -338,7 +407,7 @@ const TodayScreen = () => {
         )}
 
         <SectionHeading title="A QUICK LOOK" detail={weekLabel} />
-        <WeeklyQuickLook start={format(startOfWeek(now, { weekStartsOn }), 'yyyy-MM-dd')} end={format(endOfWeek(now, { weekStartsOn }), 'yyyy-MM-dd')} />
+        <WeeklyQuickLook start={format(startOfWeek(displayDate, { weekStartsOn }), 'yyyy-MM-dd')} end={format(endOfWeek(displayDate, { weekStartsOn }), 'yyyy-MM-dd')} />
 
         <SectionHeading title="YOUR RHYTHM" detail="for this season" />
         {weeklyReview ? (
@@ -498,9 +567,12 @@ const styles = StyleSheet.create({
   name: { color: Colors.text, fontFamily: Fonts.bold, fontWeight: '900', fontSize: 31, lineHeight: 39, letterSpacing: -0.5 },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   subtitle: { color: Colors.textGray, fontFamily: Fonts.regular, fontSize: 15, lineHeight: 22, marginTop: 2, marginBottom: 4 },
-  headerColumn: { width: '100%', alignItems: 'center', position: 'relative', marginBottom: 24 },
-  notificationsButton: { position: 'absolute', top: 0, right: 0, padding: 2 },
+  headerColumn: { width: '100%', alignItems: 'center', marginBottom: 24 },
+  headerIconsRow: { flexDirection: 'row', justifyContent: 'flex-end', width: '100%', padding: 4, gap: 4 },
+  notificationsButton: { padding: 4 },
+  calendarButton: { padding: 4 },
   headerGreeting: { width: '100%', alignItems: 'flex-start' },
+  calendarSheet: { width: '100%', backgroundColor: Colors.hopeWhite, borderRadius: 22, overflow: 'hidden' },
   sectionHeading: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, marginTop: 24, marginBottom: 10, paddingHorizontal: 2 },
   eyebrow: { color: Colors.text, fontFamily: Fonts.bold, fontSize: 12, lineHeight: 16, letterSpacing: 2 },
   sectionDetail: { color: Colors.textGray, fontFamily: Fonts.regular, fontSize: 12, lineHeight: 17, textAlign: 'right' },

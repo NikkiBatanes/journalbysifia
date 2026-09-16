@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { AppState, AppStateStatus, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import ScriptureReaderModal from '../ScriptureReaderModal';
 import ThemedText from '../common/ThemedText';
@@ -9,29 +9,17 @@ import { getScripturePassage } from '../../services/scriptureReaderService';
 import { getDashboardHeaderScripture } from '../../data/dashboardHeaderScriptures';
 
 interface DashboardHeaderScriptureProps {
+  date?: Date;
   bibleVersion: string;
   previewOffset?: number;
   centered?: boolean;
 }
 
-function getNextBoundary(from: Date): Date {
-  const next = new Date(from);
-  next.setMilliseconds(0);
-  next.setSeconds(0);
-  if (from.getHours() < 17) {
-    next.setHours(17, 0, 0);
-    return next;
-  }
-  next.setHours(24, 0, 0);
-  return next;
-}
-
-const DashboardHeaderScripture: React.FC<DashboardHeaderScriptureProps> = ({ bibleVersion, previewOffset = 0, centered = false }) => {
-  const [now, setNow] = useState(() => new Date());
+const DashboardHeaderScripture: React.FC<DashboardHeaderScriptureProps> = ({ date, bibleVersion, previewOffset = 0, centered = false }) => {
+  const now = date ?? new Date();
   const [text, setText] = useState<string | null>(null);
   const [error, setError] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
-  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const isEvening = now.getHours() >= 17;
   const scripture = useMemo(
@@ -52,25 +40,6 @@ const DashboardHeaderScripture: React.FC<DashboardHeaderScriptureProps> = ({ bib
       });
     return () => { mounted = false; };
   }, [scripture.passageReference, bibleVersion]);
-
-  useEffect(() => {
-    if (timeoutRef.current) { clearTimeout(timeoutRef.current); }
-    const delay = Math.max(0, getNextBoundary(now).getTime() - Date.now());
-    timeoutRef.current = setTimeout(() => { setNow(new Date()); }, delay);
-    return () => {
-      if (timeoutRef.current) { clearTimeout(timeoutRef.current); }
-    };
-  }, [now]);
-
-  useEffect(() => {
-    const handleAppState = (nextAppState: AppStateStatus) => {
-      if (nextAppState === 'active') {
-        setNow(new Date());
-      }
-    };
-    const subscription = AppState.addEventListener('change', handleAppState);
-    return () => { subscription.remove(); };
-  }, []);
 
   if (!text || error) {
     return <View style={styles.placeholder} />;
