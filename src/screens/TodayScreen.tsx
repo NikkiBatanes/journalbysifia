@@ -5,12 +5,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { BookOpen, Heart, Leaf, List, Moon, Pencil, Sparkles, Target } from 'lucide-react-native';
+import { BookOpen, Heart, Leaf, List, Moon, Pencil, Sparkles, Sun, Target } from 'lucide-react-native';
 import { differenceInCalendarDays, endOfWeek, format, startOfWeek, subYears } from 'date-fns';
 
 import WeeklyQuickLook from '../components/dashboard/WeeklyQuickLook';
 import WeeklyReviewCard from '../components/dashboard/WeeklyReviewCard';
 import PrayerToRevisit from '../components/dashboard/PrayerToRevisit';
+import DashboardHeaderScripture from '../components/dashboard/DashboardHeaderScripture';
 import ThemedText from '../components/common/ThemedText';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { useScroll } from '../context/ScrollContext';
@@ -65,6 +66,8 @@ const TodayScreen = () => {
   const [eveningState, setEveningState] = useState<RoutineState | null>(null);
   const [previewEvening, setPreviewEvening] = useState<boolean | null>(null);
   const isEvening = (__DEV__ ? previewEvening : null) ?? now.getHours() >= 17;
+  const hour = now.getHours();
+  const greetingText = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
   const eveningDone = eveningState?.selected_date === format(now, 'yyyy-MM-dd') && eveningState.completed;
   const morningDone = morningState?.selected_date === format(now, 'yyyy-MM-dd') && morningState.completed;
   const routineDone = isEvening ? eveningDone : morningDone;
@@ -77,7 +80,8 @@ const TodayScreen = () => {
   const firstName = useMemo(() => {
     const metadata = profile;
     const value = metadata?.first_name || metadata?.full_name || user?.email?.split('@')[0] || 'Friend';
-    return String(value).trim().split(/\s+/)[0];
+    const parts = String(value).trim().split(/\s+/).filter(Boolean);
+    return parts.slice(0, 2).join(' ') || 'Friend';
   }, [user, profile]);
 
   useEffect(() => {
@@ -233,11 +237,36 @@ const TodayScreen = () => {
         onScroll={handleScroll}
         scrollEventThrottle={16}
       >
-        <Stagger key={tick}>
-          <ThemedText style={styles.date}>{format(now, 'EEE, MMM d').toUpperCase()}</ThemedText>
-        <ThemedText style={styles.greeting}>Hi, {firstName}.</ThemedText>
-        <ThemedText style={styles.subtitle}>Begin where you are.</ThemedText>
+        <View style={styles.headerColumn}>
+          <TouchableOpacity
+            style={styles.notificationsButton}
+            activeOpacity={0.7}
+            onPress={() => { triggerLightHaptic(); }}
+            accessibilityRole="button"
+            accessibilityLabel="Open notifications"
+          >
+            <Ionicons name="notifications-outline" size={26} color={Colors.text} />
+          </TouchableOpacity>
+          <View style={styles.headerGreeting}>
+            <ThemedText style={styles.date}>{format(now, 'EEE, MMM d').toUpperCase()}</ThemedText>
+            <ThemedText style={styles.greeting}>{greetingText},</ThemedText>
+            <View style={styles.nameRow}>
+              <ThemedText style={styles.name}>{firstName}.</ThemedText>
+              {isEvening ? (
+                <Moon size={24} color={Colors.sage} strokeWidth={1.6} />
+              ) : (
+                <Sun size={24} color={Colors.sage} strokeWidth={1.6} />
+              )}
+            </View>
+            <ThemedText style={styles.subtitle}>Begin where you are.</ThemedText>
+          </View>
+          <DashboardHeaderScripture
+            bibleVersion={appPreferences?.content?.bibleVersion || 'NASB'}
+            centered
+          />
+        </View>
 
+        <Stagger key={tick}>
         {reviewCard}
 
         <SectionHeading title="TODAY" detail="your daily rhythm" />
@@ -466,7 +495,12 @@ const styles = StyleSheet.create({
   content: { paddingHorizontal: 18, maxWidth: 760, width: '100%', alignSelf: 'center' },
   date: { color: Colors.sageMuted, fontFamily: Fonts.semiBold, fontSize: 12, lineHeight: 16, letterSpacing: 1.8 },
   greeting: { color: Colors.text, fontFamily: Fonts.bold, fontWeight: '900', fontSize: 31, lineHeight: 39, marginTop: 8, letterSpacing: -0.5 },
-  subtitle: { color: Colors.textGray, fontFamily: Fonts.regular, fontSize: 15, lineHeight: 22, marginTop: 2, marginBottom: 20 },
+  name: { color: Colors.text, fontFamily: Fonts.bold, fontWeight: '900', fontSize: 31, lineHeight: 39, letterSpacing: -0.5 },
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  subtitle: { color: Colors.textGray, fontFamily: Fonts.regular, fontSize: 15, lineHeight: 22, marginTop: 2, marginBottom: 4 },
+  headerColumn: { width: '100%', alignItems: 'center', position: 'relative', marginBottom: 24 },
+  notificationsButton: { position: 'absolute', top: 0, right: 0, padding: 2 },
+  headerGreeting: { width: '100%', alignItems: 'flex-start' },
   sectionHeading: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, marginTop: 24, marginBottom: 10, paddingHorizontal: 2 },
   eyebrow: { color: Colors.text, fontFamily: Fonts.bold, fontSize: 12, lineHeight: 16, letterSpacing: 2 },
   sectionDetail: { color: Colors.textGray, fontFamily: Fonts.regular, fontSize: 12, lineHeight: 17, textAlign: 'right' },
