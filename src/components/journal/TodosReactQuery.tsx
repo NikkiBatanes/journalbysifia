@@ -160,7 +160,7 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
       friday: 5,
       saturday: 6,
     };
-    return key ? map[key] ?? 0 : 0;
+    return key ? map[key] ?? 1 : 1;
   }, [appPreferences?.weekStart]);
   const dateStr = toLocalDateString(selectedDate); // 'YYYY-MM-DD'
   const { scrollToTop, scrollTo } = useScroll();

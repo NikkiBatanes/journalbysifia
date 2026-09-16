@@ -94,7 +94,7 @@ export const DateFilterBar: React.FC<DateFilterBarProps> = ({
       friday: 5,
       saturday: 6,
     };
-    return key ? map[key] ?? 0 : 0;
+    return key ? map[key] ?? 1 : 1;
   }, [weekStartPreference]);
   const [showCalendar, setShowCalendar] = useState(false);
   const [showPresets, setShowPresets] = useState(false);

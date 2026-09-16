@@ -880,8 +880,8 @@ function TimeBlockLogEditorInner(
         return map[val];
       }
     }
-    return 0; // Default to Sunday
-  }, [user]);
+    return 1; // Default to Monday
+  }, [user, appPreferences]);
 
   // Reorder day labels based on week start preference
   const dayLabels = useMemo(() => {

@@ -643,7 +643,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
   const [isSavingCalendarAutoSync, setIsSavingCalendarAutoSync] = useState(false);
   const [settingsModal, setSettingsModal] = useState(false);
   const [weekStartModal, setWeekStartModal] = useState(false);
-  const [weekStartDraft, setWeekStartDraft] = useState<UserPreferences['weekStart']>('sunday');
+  const [weekStartDraft, setWeekStartDraft] = useState<UserPreferences['weekStart']>('monday');
   // Bible Version modal and draft
 
   const [bibleVersionModal, setBibleVersionModal] = useState(false);
@@ -679,7 +679,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
     font: 'lexend',
     fontSize: 'medium',
     colorScheme: 'default',
-    weekStart: 'sunday',
+    weekStart: 'monday',
     calendar: {
       autoSync: false,
     },
@@ -1490,57 +1490,57 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
 
         <TouchableOpacity
           style={styles.menuItem}
-          onPress={() => { try { triggerLightHaptic(); } catch {} Linking.openURL('https://instagram.com/sifia.app'); }}
+          onPress={() => { try { triggerLightHaptic(); } catch {} Linking.openURL('https://instagram.com/journalbysifia'); }}
           accessibilityRole="button"
-          accessibilityLabel="Open Instagram @sifia.app"
+          accessibilityLabel="Open Instagram @journalbysifia"
         >
           <View style={styles.menuIconBox}>
             <Ionicons name="logo-instagram" size={18} color={Colors.sage} />
           </View>
           <Text style={[styles.menuText, font]}>Instagram</Text>
-          <Text style={[styles.menuValueText, font]}>@sifia.app</Text>
+          <Text style={[styles.menuValueText, font]}>@journalbysifia</Text>
           <Ionicons name="chevron-forward" size={20} color={theme.colors.chevronColor} />
         </TouchableOpacity>
 
         <TouchableOpacity
           style={styles.menuItem}
-          onPress={() => { try { triggerLightHaptic(); } catch {} Linking.openURL('https://www.facebook.com/siFiaapp'); }}
+          onPress={() => { try { triggerLightHaptic(); } catch {} Linking.openURL('https://www.facebook.com/journalbysifia'); }}
           accessibilityRole="button"
-          accessibilityLabel="Open Facebook page siFiaapp"
+          accessibilityLabel="Open Facebook page journalbysifia"
         >
           <View style={styles.menuIconBox}>
             <Ionicons name="logo-facebook" size={18} color={Colors.sage} />
           </View>
           <Text style={[styles.menuText, font]}>Facebook</Text>
-          <Text style={[styles.menuValueText, font]}>/siFiaapp</Text>
+          <Text style={[styles.menuValueText, font]}>@journalbysifia</Text>
           <Ionicons name="chevron-forward" size={20} color={theme.colors.chevronColor} />
         </TouchableOpacity>
 
         <TouchableOpacity
           style={styles.menuItem}
-          onPress={() => { try { triggerLightHaptic(); } catch {} Linking.openURL('https://x.com/sifiaapp'); }}
+          onPress={() => { try { triggerLightHaptic(); } catch {} Linking.openURL('https://threads.net/@journalbysifia'); }}
           accessibilityRole="button"
-          accessibilityLabel="Open X (Twitter) @sifiaapp"
+          accessibilityLabel="Open Threads @journalbysifia"
         >
           <View style={styles.menuIconBox}>
-            <Text style={styles.twitterIconText}>X</Text>
+            <Text style={styles.twitterIconText}>@</Text>
           </View>
-          <Text style={[styles.menuText, font]}>X</Text>
-          <Text style={[styles.menuValueText, font]}>@sifiaapp</Text>
+          <Text style={[styles.menuText, font]}>Threads</Text>
+          <Text style={[styles.menuValueText, font]}>@journalbysifia</Text>
           <Ionicons name="chevron-forward" size={20} color={theme.colors.chevronColor} />
         </TouchableOpacity>
 
         <TouchableOpacity
           style={styles.menuItem}
-          onPress={() => { try { triggerLightHaptic(); } catch {} Linking.openURL('https://www.youtube.com/@sifiaapp'); }}
+          onPress={() => { try { triggerLightHaptic(); } catch {} Linking.openURL('https://www.youtube.com/@journalbysifia'); }}
           accessibilityRole="button"
-          accessibilityLabel="Open YouTube channel @sifiaapp"
+          accessibilityLabel="Open YouTube channel @journalbysifia"
         >
           <View style={styles.menuIconBox}>
             <Ionicons name="logo-youtube" size={18} color={Colors.sage} />
           </View>
           <Text style={[styles.menuText, font]}>YouTube</Text>
-          <Text style={[styles.menuValueText, font]}>@sifiaapp</Text>
+          <Text style={[styles.menuValueText, font]}>@journalbysifia</Text>
           <Ionicons name="chevron-forward" size={20} color={theme.colors.chevronColor} />
         </TouchableOpacity>
       </View>
@@ -2262,16 +2262,8 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
         </View>
 
         <ScrollView style={styles.modalContent} showsVerticalScrollIndicator={false}>
-          <View style={styles.bibleVersionNoteContainer}>
-            <Ionicons name="information-circle" size={18} color={Colors.faithGold} style={styles.bibleVersionNoteIcon} />
-            <Text style={[styles.bibleVersionNote, font]}>
-              Changing your Bible version only applies to content you generate from now on.
-              Existing playbooks will keep the version they were created with.
-            </Text>
-          </View>
-          <View style={styles.spacer} />
           <Text style={[styles.settingDescription, font]}>
-            Choose your preferred Bible translation. This will be used across new playbooks.
+            Choose your preferred Bible translation.
           </Text>
 
           <View style={styles.weekStartOptions}>
@@ -2308,7 +2300,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
                       )}
                     </View>
                     {isSelected && (
-                      <Ionicons name="checkmark" size={20} color={Colors.alertCoral} />
+                      <Ionicons name="checkmark" size={20} color={Colors.sage} />
                     )}
                   </TouchableOpacity>
                 );
@@ -2785,17 +2777,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 50,
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    backgroundColor: Colors.hopeWhite,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.15)',
+    borderColor: Colors.cardBorder,
     height: 36,
   },
   chipActive: {
-    backgroundColor: Colors.alertCoral,
-    borderColor: Colors.alertCoral,
+    backgroundColor: Colors.sage,
+    borderColor: Colors.sage,
   },
   chipText: {
-    color: 'rgba(255,255,255,0.92)',
+    color: Colors.text,
     fontWeight: '600',
     fontSize: 13,
   },
@@ -3462,7 +3454,7 @@ const styles = StyleSheet.create({
   // Week Start Modal Styles
   settingDescription: {
     fontSize: 14,
-    color: 'rgba(255,255,255,0.8)',
+    color: Colors.textGray,
     marginBottom: 24,
     lineHeight: 20,
   },
@@ -3473,32 +3465,32 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    paddingVertical: 14,
+    paddingHorizontal: 18,
+    backgroundColor: Colors.hopeWhite,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderColor: Colors.cardBorder,
   },
   weekStartOptionSelected: {
-    backgroundColor: 'rgba(255,107,107,0.15)',
-    borderColor: Colors.alertCoral,
+    backgroundColor: Colors.actionBackground,
+    borderColor: Colors.sageMuted,
   },
   weekStartOptionContent: {
     flex: 1,
   },
   weekStartOptionLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: Colors.hopeWhite,
+    fontSize: 15,
+    fontWeight: '500',
+    color: Colors.text,
     marginBottom: 2,
   },
   weekStartOptionLabelSelected: {
-    color: Colors.alertCoral,
+    color: Colors.sage,
   },
   weekStartOptionDescription: {
     fontSize: 13,
-    color: 'rgba(255,255,255,0.6)',
+    color: Colors.textGray,
   },
   yearSelector: {
     flexDirection: 'row',
@@ -3737,9 +3729,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: Colors.actionBackground,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: Colors.cardBorder,
   },
   bibleVersionNoteIcon: {
     marginRight: 12,
@@ -3748,7 +3740,7 @@ const styles = StyleSheet.create({
   bibleVersionNote: {
     fontSize: 14,
     lineHeight: 20,
-    color: 'rgba(255, 255, 255, 0.85)',
+    color: Colors.text,
     flex: 1,
   },
   settingGroup: {

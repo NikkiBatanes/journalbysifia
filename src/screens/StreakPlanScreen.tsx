@@ -43,7 +43,7 @@ const StreakPlanScreen: React.FC = () => {
     : null;
 
   const [streakCount, setStreakCount] = useState(1);
-  const [weekStart, setWeekStart] = useState<'Sunday' | 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday' | 'Saturday'>('Sunday');
+  const [weekStart, setWeekStart] = useState<'Sunday' | 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday' | 'Saturday'>('Monday');
   const [dayStates, setDayStates] = useState<DayState[]>([]);
   const [showShareDropdown, setShowShareDropdown] = useState(false);
 
@@ -128,14 +128,14 @@ const StreakPlanScreen: React.FC = () => {
     // Fetch data first, then animate content in — prevents snapping/popping
     const initialize = async () => {
       if (!user?.id) {
-        const raw = String(appPreferences?.weekStart || 'sunday');
+        const raw = String(appPreferences?.weekStart || 'monday');
         setWeekStart((raw.charAt(0).toUpperCase() + raw.slice(1)) as typeof weekStart);
         startEntranceAnimation();
         return;
       }
       try {
         const metadata = (user as any)?.user_metadata;
-        const userWeekStartRaw = appPreferences?.weekStart || 'sunday';
+        const userWeekStartRaw = appPreferences?.weekStart || 'monday';
         const userWeekStart = (userWeekStartRaw.charAt(0).toUpperCase() + userWeekStartRaw.slice(1)) as 'Sunday' | 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday' | 'Saturday';
         setWeekStart(userWeekStart);
 
@@ -193,7 +193,7 @@ const StreakPlanScreen: React.FC = () => {
 
     // Get week start from user preferences
     const metadata = (user as any)?.user_metadata;
-    const userWeekStartRaw = appPreferences?.weekStart || 'sunday';
+    const userWeekStartRaw = appPreferences?.weekStart || 'monday';
     const userWeekStart = (userWeekStartRaw.charAt(0).toUpperCase() + userWeekStartRaw.slice(1)) as
       'Sunday' | 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday' | 'Saturday';
 

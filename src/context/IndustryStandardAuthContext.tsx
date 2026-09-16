@@ -1877,7 +1877,7 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
   const value: AuthContextType = useMemo(() => ({
     user: authState.user,
     profile: authState.user?.user_metadata || localProfile,
-    preferences: authState.user?.user_metadata?.preferences || localPreferences,
+    preferences: { weekStart: 'monday', ...(authState.user?.user_metadata?.preferences || localPreferences) },
     session: authState.session,
     loading: authState.loading,
     bootstrapping: authState.bootstrapping,

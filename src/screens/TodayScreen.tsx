@@ -1,11 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ScrollView, StatusBar, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { DeviceEventEmitter, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Animated, { FadeInUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { Pencil } from 'lucide-react-native';
+import { BookOpen, Heart, Leaf, List, Moon, Pencil, Sparkles, Target } from 'lucide-react-native';
 import { differenceInCalendarDays, endOfWeek, format, startOfWeek, subYears } from 'date-fns';
 
 import PrayerToRevisit from '../components/dashboard/PrayerToRevisit';
@@ -17,6 +17,7 @@ import { Fonts } from '../theme/fonts';
 import { triggerLightHaptic } from '../utils/haptics';
 import { getReviewEligibility, type ReviewEligibilityResult } from '../services/reviewEligibilityService';
 import { getLocalReviewsByType, type LocalReviewEntry } from '../storage/reviewStorage';
+import { getRoutineState, type RoutineState } from '../storage/routineStateStorage';
 import { preloadScripturePassages } from '../services/scriptureReaderService';
 
 const SectionHeading = ({ title, detail }: { title: string; detail: string }) => (
@@ -54,10 +55,18 @@ const TodayScreen = () => {
   const navigation = useNavigation();
   const { user, preferences: appPreferences, profile } = useAuth();
   const { showTabBar, setShowTabBar } = useScroll();
+  const scrollRef = useRef<ScrollView>(null);
   const lastScrollYRef = useRef(0);
   const tabBarCollapsedRef = useRef(false);
-  const now = useMemo(() => new Date(), []);
-  const weekStartsOn = Math.max(0, ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'].indexOf(appPreferences?.weekStart || 'sunday')) as 0 | 1 | 2 | 3 | 4 | 5 | 6;
+  const [now, setNow] = useState(() => new Date());
+  const [morningState, setMorningState] = useState<RoutineState | null>(null);
+  const [eveningState, setEveningState] = useState<RoutineState | null>(null);
+  const [previewEvening, setPreviewEvening] = useState<boolean | null>(null);
+  const isEvening = (__DEV__ ? previewEvening : null) ?? now.getHours() >= 17;
+  const eveningDone = eveningState?.selected_date === format(now, 'yyyy-MM-dd') && eveningState.completed;
+  const morningDone = morningState?.selected_date === format(now, 'yyyy-MM-dd') && morningState.completed;
+  const routineDone = isEvening ? eveningDone : morningDone;
+  const weekStartsOn = Math.max(0, ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'].indexOf(appPreferences?.weekStart || 'monday')) as 0 | 1 | 2 | 3 | 4 | 5 | 6;
   const weekLabel = useMemo(() => {
     const start = startOfWeek(now, { weekStartsOn });
     const end = endOfWeek(now, { weekStartsOn });
@@ -96,11 +105,39 @@ const TodayScreen = () => {
   useFocusEffect(
     useCallback(() => {
       setTick((t) => t + 1);
+      let focused = true;
+      let loadVersion = 0;
+      const refreshMorning = async () => {
+        const version = ++loadVersion;
+        const currentDate = new Date();
+        setNow(currentDate);
+        try {
+          const [morning, evening] = await Promise.all([
+            getRoutineState('morning', currentDate),
+            getRoutineState('evening', currentDate),
+          ]);
+          if (focused && version === loadVersion) {
+            setMorningState(morning);
+            setEveningState(evening);
+          }
+        } catch {
+          if (focused && version === loadVersion) { setMorningState(null); setEveningState(null); }
+        }
+      };
+      void refreshMorning();
+      const saved = DeviceEventEmitter.addListener('reflection_saved', () => { void refreshMorning(); });
+      const timer = setInterval(() => { void refreshMorning(); }, 60000);
+      scrollRef.current?.scrollTo({ y: 0, animated: false });
+      const frame = requestAnimationFrame(() => scrollRef.current?.scrollTo({ y: 0, animated: false }));
       lastScrollYRef.current = 0;
       tabBarCollapsedRef.current = false;
       setShowTabBar(true);
 
       return () => {
+        focused = false;
+        saved.remove();
+        clearInterval(timer);
+        cancelAnimationFrame(frame);
         tabBarCollapsedRef.current = false;
         setShowTabBar(true);
       };
@@ -170,6 +207,7 @@ const TodayScreen = () => {
     <View style={styles.safeArea}>
       <StatusBar barStyle="dark-content" translucent backgroundColor="transparent" />
       <ScrollView
+        ref={scrollRef}
         style={styles.scroll}
         contentContainerStyle={[styles.content, { paddingTop: insets.top, paddingBottom: insets.bottom + 80 }]}
         showsVerticalScrollIndicator={false}
@@ -183,33 +221,76 @@ const TodayScreen = () => {
 
         {reviewCard}
 
-        <SectionHeading title="MORNING" detail="your daily rhythm" />
-        <View style={[styles.card, styles.heroCard]}>
-          <View style={styles.sunCircle}>
-            <Ionicons name="sunny-outline" size={29} color={Colors.hopeWhite} />
+        <TouchableOpacity
+          style={[styles.card, styles.morningCard]}
+          activeOpacity={0.85}
+          accessibilityRole="button"
+          accessibilityLabel={isEvening ? (routineDone ? "View your saved evening" : "Begin your evening reflection") : (routineDone ? "View your saved morning" : "Begin your morning check-in")}
+          onPress={() => {
+            triggerLightHaptic();
+            if (isEvening) {
+              (navigation as any).navigate('EveningFlow', {
+                screen: routineDone ? 'EveningClosing' : 'Gratitude',
+                params: { selectedDate: new Date().toISOString(), routine: 'evening' },
+              });
+            } else {
+              (navigation as any).navigate('MorningFlow', {
+                selectedDate: new Date().toISOString(),
+                screen: routineDone ? 'MorningClosing' : 'EmotionCheckIn',
+              });
+            }
+          }}
+        >
+          <View style={styles.morningTop}>
+            <View style={styles.morningCopy}>
+              <View style={styles.routineEyebrowRow}>
+                {isEvening && <Moon size={13} color={Colors.sage} />}
+                <ThemedText style={styles.morningEyebrow}>{isEvening ? 'EVENING REFLECTION' : 'MORNING CHECK-IN'}</ThemedText>
+              </View>
+              <Text numberOfLines={routineDone ? 2 : 1} adjustsFontSizeToFit minimumFontScale={0.75} maxFontSizeMultiplier={1.2} style={styles.morningTitle}>{isEvening ? (routineDone ? 'Your evening is saved.' : 'Close your day.') : (routineDone ? 'Your morning is saved.' : 'Begin your day.')}</Text>
+            </View>
           </View>
-          <ThemedText style={styles.cardTitle}>Begin your day.</ThemedText>
-          <ThemedText style={styles.body}>A gentle morning rhythm for your heart and your day. Check in, begin with a Psalm, choose what matters, and set your priorities.</ThemedText>
-          <View style={styles.cardFooter}>
-            <ThemedText style={styles.meta}>Check in · Psalm · Focus · Priorities</ThemedText>
-            <TouchableOpacity
-              style={styles.beginButton}
-              activeOpacity={0.8}
-              accessibilityRole="button"
-              accessibilityLabel="Begin your day"
-              onPress={() => {
-                triggerLightHaptic();
-                (navigation as any).navigate('MorningFlow', {
-                  selectedDate: new Date().toISOString(),
-                  screen: 'EmotionCheckIn',
-                });
-              }}
-            >
-              <Pencil size={16} color={Colors.hopeWhite} style={styles.beginButtonIcon} />
-              <ThemedText weight="medium" style={styles.beginButtonText}>Begin</ThemedText>
-            </TouchableOpacity>
+          <ThemedText style={styles.morningDescription}>{isEvening ? (routineDone ? 'You’ve given thanks, reflected, and closed your day with God.' : 'Give thanks, reflect, and rest your heart in God.') : (routineDone ? 'You’ve paused, reflected, and set your heart on what matters.' : 'Pause, reflect, and set your heart on what matters.')}</ThemedText>
+          {routineDone && <ThemedText style={styles.morningDoneLabel}>{isEvening ? 'DONE FOR TONIGHT' : 'DONE FOR TODAY'}</ThemedText>}
+          <View style={[styles.beginButton, styles.leftButton]}>
+            {routineDone
+              ? <Ionicons name="checkmark" size={16} color={Colors.hopeWhite} style={styles.beginButtonIcon} />
+              : <Pencil size={16} color={Colors.hopeWhite} style={styles.beginButtonIcon} />}
+            <ThemedText style={styles.beginButtonText}>{routineDone ? 'View' : 'Begin'}</ThemedText>
           </View>
-        </View>
+          <View style={styles.morningSteps}>
+            {(isEvening ? [
+              { label: 'Gratitude', Icon: Heart },
+              { label: 'Win', Icon: Sparkles },
+              { label: 'Proverbs', Icon: BookOpen },
+              { label: 'Reflection', Icon: Leaf },
+            ] : [
+              { label: 'Check in', Icon: Leaf },
+              { label: 'Psalm', Icon: BookOpen },
+              { label: 'Set Focus', Icon: Target },
+              { label: 'Priorities', Icon: List },
+            ]).map(({ label, Icon }, index) => (
+              <React.Fragment key={label}>
+                {index > 0 && <View style={styles.morningStepDivider} />}
+                <View style={styles.morningStep}>
+                  <Icon size={26} strokeWidth={1.6} color={Colors.sage} />
+                  <ThemedText numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={styles.morningStepLabel}>{label}</ThemedText>
+                </View>
+              </React.Fragment>
+            ))}
+          </View>
+        </TouchableOpacity>
+
+        {__DEV__ && (
+          <TouchableOpacity
+            style={styles.routinePreviewButton}
+            accessibilityRole="button"
+            accessibilityLabel={isEvening ? 'Preview morning check-in' : 'Preview evening reflection at 5 PM'}
+            onPress={() => { triggerLightHaptic(); setPreviewEvening(!isEvening); }}
+          >
+            <ThemedText style={styles.routinePreviewText}>{isEvening ? 'Preview morning' : 'Preview 5 PM'}</ThemedText>
+          </TouchableOpacity>
+        )}
 
         <SectionHeading title="YOUR RHYTHM" detail="for this season" />
         {weeklyReview ? (
@@ -310,31 +391,6 @@ const TodayScreen = () => {
           </TouchableOpacity>
         </View>
 
-        <SectionHeading title="EVENING" detail="close the day gently" />
-        <View style={[styles.card, styles.heroCard]}>
-          <View style={[styles.sunCircle, styles.moonCircle]}>
-            <Ionicons name="moon" size={26} color={Colors.sage} />
-          </View>
-          <ThemedText style={styles.cardTitle}>Reflect on your day.</ThemedText>
-          <ThemedText style={styles.body}>Give thanks, remember what mattered, and close with wisdom.</ThemedText>
-          <TouchableOpacity
-            style={[styles.beginButton, styles.leftButton]}
-            activeOpacity={0.8}
-            accessibilityRole="button"
-            accessibilityLabel="Reflect on your day"
-            onPress={() => {
-              triggerLightHaptic();
-              (navigation as any).navigate('EveningFlow', {
-                screen: 'Gratitude',
-                params: { selectedDate: new Date().toISOString(), routine: 'evening' },
-              });
-            }}
-          >
-            <Pencil size={16} color={Colors.hopeWhite} style={styles.beginButtonIcon} />
-            <ThemedText weight="medium" style={styles.beginButtonText}>Begin</ThemedText>
-          </TouchableOpacity>
-        </View>
-
         <SectionHeading title="PRAYER" detail="bring it before God" />
         <View style={[styles.card, styles.rowCard]}>
           <IconTile icon="clover" family="material" />
@@ -396,6 +452,20 @@ const styles = StyleSheet.create({
   eyebrow: { color: Colors.text, fontFamily: Fonts.bold, fontSize: 12, lineHeight: 16, letterSpacing: 2 },
   sectionDetail: { color: Colors.textGray, fontFamily: Fonts.regular, fontSize: 12, lineHeight: 17, textAlign: 'right' },
   card: { backgroundColor: Colors.cardBackground, borderColor: Colors.cardBorder, borderWidth: 1, borderRadius: 22, padding: 18, shadowColor: Colors.darkBackground, shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.04, shadowRadius: 12, elevation: 2 },
+  morningCard: { width: '100%', minHeight: 205,  paddingHorizontal: 22, paddingTop: 20, paddingBottom: 18, overflow: 'hidden' },
+  routineEyebrowRow: { flexDirection: 'row', alignItems: 'center', gap: 7, marginBottom: 5 },
+  routinePreviewButton: { alignSelf: 'center', paddingHorizontal: 16, paddingVertical: 9, borderRadius: 18, borderWidth: 1, borderColor: Colors.inputBorder, marginTop: 10 },
+  routinePreviewText: { color: Colors.sage, fontSize: 12 },
+  morningCopy: { flex: 1, minWidth: 0 },
+  morningTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  morningEyebrow: { color: Colors.sage, fontSize: 10, lineHeight: 15, letterSpacing: 2.5 },
+  morningTitle: { color: Colors.text, fontFamily: Fonts.semiBold, fontSize: 28, lineHeight: 36 },
+  morningDoneLabel: { color: Colors.sage, fontSize: 10, letterSpacing: 1.5, marginTop: 12 },
+  morningDescription: { color: Colors.textGray, fontSize: 12, lineHeight: 19, marginTop: 6 },
+  morningSteps: { flexDirection: 'row', alignItems: 'center', marginTop: 25 },
+  morningStep: { flex: 1, minWidth: 0, minHeight: 54, alignItems: 'center', gap: 8 },
+  morningStepLabel: { color: Colors.text, fontSize: 11, lineHeight: 16, textAlign: 'center' },
+  morningStepDivider: { width: 1, height: 32, backgroundColor: Colors.cardBorder },
   heroCard: { padding: 20 },
   sunCircle: { width: 50, height: 50, borderRadius: 25, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.sage, marginBottom: 16 },
   moonCircle: { backgroundColor: Colors.anchorBlueLight },

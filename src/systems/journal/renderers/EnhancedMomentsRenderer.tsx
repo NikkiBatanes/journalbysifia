@@ -543,7 +543,7 @@ const EnhancedMomentsContent: React.FC<EnhancedMomentsRendererProps> = ({
     return undefined;
   }, [filterKeys, prayerAnswerFilter]);
 
-  // Determine user's week start preference from auth user metadata if available; default to Sunday (0)
+  // Determine user's week start preference from auth user metadata if available; default to Monday (1)
   const weekStartsOnPref = appPreferences?.weekStartsOn
     ?? (user as any)?.user_metadata?.weekStartsOn
     ?? (user as any)?.user_metadata?.preferences?.week_start
@@ -579,7 +579,7 @@ const EnhancedMomentsContent: React.FC<EnhancedMomentsRendererProps> = ({
       // ignore and use default
     }
 
-    return 0;
+    return 1;
   }, [weekStartsOnPref]);
 
   // Fetch real journal entries from user interactions - NOT generated content

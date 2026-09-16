@@ -181,7 +181,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
       friday: 5,
       saturday: 6,
     };
-    return key ? map[key] ?? 0 : 0;
+    return key ? map[key] ?? 1 : 1;
   }, [appPreferences?.weekStart]);
   const dateStr = toLocalDateString(selectedDate);
   const { scrollToTop } = useScroll();

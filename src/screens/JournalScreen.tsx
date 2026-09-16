@@ -71,7 +71,7 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation, rou
       friday: 5,
       saturday: 6,
     };
-    return key ? (map[key] ?? 0) : 0; // default Sunday
+    return key ? (map[key] ?? 1) : 1; // default Monday
   }, [weekStartPreference]);
   const [isHeaderCollapsed, setIsHeaderCollapsed] = useState(false);
   const { setShowTabBar, setContentScrollRef } = useScroll();
