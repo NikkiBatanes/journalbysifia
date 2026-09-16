@@ -9,6 +9,7 @@ export interface RoutineContextValue {
   startedAt?: string;
   completedSteps: string[];
   contentRefs: Record<string, ContentRef | ContentRef[]>;
+  completed: boolean;
   markStepCompleted: (step: string, ref?: ContentRef | ContentRef[], refKey?: string) => Promise<void>;
   completeRoutine: () => Promise<void>;
   getContentRef: (step: string) => ContentRef | ContentRef[] | undefined;
@@ -137,6 +138,7 @@ export const RoutineProvider: React.FC<{ children: React.ReactNode }> = ({ child
     startedAt: state.startedAt,
     completedSteps: state.completedSteps,
     contentRefs: state.contentRefs,
+    completed: state.completed,
     markStepCompleted,
     completeRoutine,
     getContentRef,

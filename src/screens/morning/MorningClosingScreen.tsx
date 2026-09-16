@@ -33,7 +33,7 @@ const MorningClosingScreen = () => {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
-  const { completeRoutine, selectedDate, contentRefs } = useRoutine();
+  const { completeRoutine, selectedDate, contentRefs, completed } = useRoutine();
   const params = route.params ?? {};
   const [shareDropdownOpen, setShareDropdownOpen] = useState(false);
 
@@ -137,6 +137,11 @@ const MorningClosingScreen = () => {
   const onDone = async () => {
     triggerLightHaptic();
 
+    if (completed) {
+      exitEveningFlow(navigation, 'Today');
+      return;
+    }
+
     try {
       await completeRoutine();
     } catch (error) {
@@ -176,7 +181,7 @@ const MorningClosingScreen = () => {
           </View>
           <View style={styles.completionHeaderText}>
             <ThemedText style={styles.title}>You’re ready for today.</ThemedText>
-            <ThemedText style={styles.subtitle}>You’ve begun your day with God.</ThemedText>
+            <ThemedText style={styles.subtitle}>Your morning is set.</ThemedText>
           </View>
         </View>
 
@@ -249,7 +254,7 @@ const MorningClosingScreen = () => {
           accessibilityLabel="Save and finish"
           onPress={onDone}
         >
-          <ThemedText weight="semiBold" style={styles.doneButtonText}>Save & Finish</ThemedText>
+          <ThemedText weight="semiBold" style={styles.doneButtonText}>{completed ? 'Done' : 'Save & Finish'}</ThemedText>
         </TouchableOpacity>
       </View>
 
