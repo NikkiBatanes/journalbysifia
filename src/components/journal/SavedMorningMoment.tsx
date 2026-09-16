@@ -23,31 +23,33 @@ export const SavedMorningMoment = ({ moment, viewMode = 'inline' }: { moment: Mo
   if (moment.pluginId === 'morningcheckin') {
     const [scriptureOpen, setScriptureOpen] = useState(false);
     return <>
-      <JournalCard title="MORNING CHECK-IN" variant="inline" viewMode={viewMode} cardStyle={viewMode === 'moments' ? styles.checkinCardMoments : undefined}>
-        <ThemedText style={styles.feelingLabel}>HOW YOU FELT</ThemedText>
-        <View style={styles.feelingRow}>
-          {moment.feelingIconType === 'material'
-            ? <MaterialCommunityIcons name={moment.feelingIcon || 'heart-outline'} size={16} color={Colors.sage} />
-            : <Ionicons name={moment.feelingIcon || 'heart-outline'} size={16} color={Colors.sage} />}
-          <ThemedText weight="semiBold" style={styles.feeling}>{moment.feeling || moment.lines[0]}</ThemedText>
+      <JournalCard title="MORNING CHECK-IN" variant="inline" viewMode={viewMode}>
+        <View style={styles.proverbContent}>
+          <ThemedText style={styles.feelingLabel}>HOW YOU FELT</ThemedText>
+          <View style={styles.feelingRow}>
+            {moment.feelingIconType === 'material'
+              ? <MaterialCommunityIcons name={moment.feelingIcon || 'heart-outline'} size={16} color={Colors.sage} />
+              : <Ionicons name={moment.feelingIcon || 'heart-outline'} size={16} color={Colors.sage} />}
+            <ThemedText weight="semiBold" style={styles.feeling}>{moment.feeling || moment.lines[0]}</ThemedText>
+          </View>
+          {!!moment.scripture?.reference && (
+            <>
+              <View style={{ height: 16 }} />
+              <ThemedText style={styles.feelingLabel}>SCRIPTURE</ThemedText>
+              <TouchableOpacity onPress={() => setScriptureOpen(true)} style={[styles.feelingRow, styles.passageRow]} activeOpacity={0.7} accessibilityRole="button" accessibilityLabel={`Read ${moment.scripture.reference}`}>
+                <ThemedText weight="regular" style={styles.checkinScripture}>{moment.scripture.reference}</ThemedText>
+                <MaterialCommunityIcons name="script-text" size={12} color={Colors.sage} />
+              </TouchableOpacity>
+            </>
+          )}
+          {!!moment.underneathIt?.trim() && (
+            <>
+              <View style={styles.divider} />
+              <ThemedText style={styles.feelingLabel}>WHAT WAS UNDERNEATH IT</ThemedText>
+              <ThemedText style={styles.reflection}>{moment.underneathIt}</ThemedText>
+            </>
+          )}
         </View>
-        {!!moment.scripture?.reference && (
-          <>
-            <View style={{ height: 16 }} />
-            <ThemedText style={styles.feelingLabel}>SCRIPTURE</ThemedText>
-            <TouchableOpacity onPress={() => setScriptureOpen(true)} style={[styles.feelingRow, styles.passageRow]} activeOpacity={0.7} accessibilityRole="button" accessibilityLabel={`Read ${moment.scripture.reference}`}>
-              <ThemedText weight="regular" style={styles.checkinScripture}>{moment.scripture.reference}</ThemedText>
-              <MaterialCommunityIcons name="script-text" size={12} color={Colors.sage} />
-            </TouchableOpacity>
-          </>
-        )}
-        {!!moment.underneathIt?.trim() && (
-          <>
-            <View style={styles.divider} />
-            <ThemedText style={styles.feelingLabel}>WHAT WAS UNDERNEATH IT</ThemedText>
-            <ThemedText style={styles.reflection}>{moment.underneathIt}</ThemedText>
-          </>
-        )}
       </JournalCard>
       {!!moment.scripture?.reference && (
         <ScriptureReaderModal visible={scriptureOpen} passages={[{ reference: moment.scripture.passageReference || moment.scripture.reference }]} initialIndex={0} onClose={() => setScriptureOpen(false)} version={moment.scripture.translation || 'NASB'} />
@@ -172,7 +174,6 @@ const styles = StyleSheet.create({
   wisdomPrompt: { color: Colors.text, fontSize: 16, lineHeight: 24, textAlign: 'center', marginTop: 12, marginBottom: 8, fontWeight: '600' },
   detailWisdomLabel: { color: Colors.text, fontSize: 20, lineHeight: 26, textAlign: 'center' },
   readStatus: { color: Colors.sage, fontSize: 12 },
-  checkinCardMoments: { backgroundColor: Colors.hopeWhite, borderWidth: 1.5, borderColor: Colors.cardBorder, borderRadius: 24, padding: 16, overflow: 'hidden' },
   card: { backgroundColor: Colors.hopeWhite, borderWidth: 1, borderColor: Colors.cardBorder, borderRadius: 24, padding: 20 },
   label: { color: Colors.textGray, fontSize: 12, letterSpacing: 1.5, marginBottom: 16 },
   title: { color: Colors.text, fontSize: 24, lineHeight: 32, marginBottom: 12 },
