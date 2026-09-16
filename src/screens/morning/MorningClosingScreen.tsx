@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import FontAwesome6 from 'react-native-vector-icons/FontAwesome6';
+import { Pencil } from 'lucide-react-native';
 
 import ThemedText from '../../components/common/ThemedText';
 import ShareDropdownModal from '../../components/ShareDropdownModal';
@@ -33,7 +34,7 @@ const MorningClosingScreen = () => {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
-  const { completeRoutine, selectedDate, contentRefs, completed } = useRoutine();
+  const { completeRoutine, selectedDate, contentRefs, completed, routine } = useRoutine();
   const params = route.params ?? {};
   const [shareDropdownOpen, setShareDropdownOpen] = useState(false);
 
@@ -168,6 +169,20 @@ const MorningClosingScreen = () => {
       >
         <Ionicons name="paper-plane-outline" size={17} color={Colors.text} />
       </TouchableOpacity>
+      <TouchableOpacity
+        style={[styles.editButton, { top: insets.top + 8 }]}
+        onPress={() => {
+          triggerLightHaptic();
+          const firstStep = routine === 'evening' ? 'Gratitude' : 'EmotionCheckIn';
+          navigation.navigate(firstStep);
+        }}
+        activeOpacity={0.7}
+        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        accessibilityRole="button"
+        accessibilityLabel="Edit morning routine"
+      >
+        <Pencil size={17} color={Colors.text} strokeWidth={1.8} />
+      </TouchableOpacity>
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -218,7 +233,7 @@ const MorningClosingScreen = () => {
           <View style={styles.psalmHeader}>
             <ThemedText weight="semiBold" style={styles.sectionEyebrow}>MORNING PSALM</ThemedText>
             <ThemedText weight="bold" style={styles.psalmTitle}>
-              {summary.psalmNumber ? `Psalm ${summary.psalmNumber}` : 'Psalm'}
+              {summary.psalmNumber ? `Psalm ${summary.psalmNumber} · pause and praise` : 'Psalm'}
             </ThemedText>
           </View>
 
@@ -301,6 +316,17 @@ const styles = StyleSheet.create({
   shareButton: {
     position: 'absolute',
     right: 18,
+    zIndex: 21,
+    width: 42,
+    height: 42,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: Colors.cardBackground,
+    borderRadius: 999,
+  },
+  editButton: {
+    position: 'absolute',
+    right: 70,
     zIndex: 21,
     width: 42,
     height: 42,

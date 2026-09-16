@@ -583,6 +583,7 @@ export const EveningClosingScreen: React.FC = () => {
   const route = useRoute<any>();
   const { completeRoutine, selectedDate, contentRefs } = useRoutine();
   const params = route.params ?? {};
+  const [showAllGratitude, setShowAllGratitude] = useState(false);
   const [showAllWisdom, setShowAllWisdom] = useState(false);
   const [shareDropdownOpen, setShareDropdownOpen] = useState(false);
   const moonMotion = React.useRef(new Animated.Value(0)).current;
@@ -610,6 +611,8 @@ export const EveningClosingScreen: React.FC = () => {
     lookingForwardContext: params.lookingForwardContext || '',
     lookingForwardIcon: params.lookingForwardIcon || '',
   });
+  const gratitudeItems = summary.gratitude.split('\n').filter((item: string) => item.trim());
+  const visibleGratitude = showAllGratitude ? gratitudeItems : gratitudeItems.slice(0, 3);
   const wisdomItems = [
     ...summary.wisdomChoices,
     ...(summary.customWisdom ? [{ id: 'custom', label: summary.customWisdom, verses: '', note: summary.wisdomApplication }] : []),
@@ -722,12 +725,27 @@ export const EveningClosingScreen: React.FC = () => {
           <View style={styles.closingGlanceGrid}>
             <View style={[styles.closingGlanceColumn, styles.closingGlanceColumnBorder]}>
               <ThemedText style={styles.closingGlanceLabel}>Gratitude</ThemedText>
-              {summary.gratitude ? summary.gratitude.split('\n').filter((item: string) => item.trim()).map((item: string, index: number) => (
+              {gratitudeItems.length > 0 ? visibleGratitude.map((item: string, index: number) => (
                 <View key={index} style={styles.closingGratitudeItem}>
-                  <Ionicons name="heart-outline" size={14} color={Colors.sage} style={{ marginTop: 3 }} />
+                  <Ionicons name="heart" size={14} color={Colors.sage} style={{ marginTop: 3 }} />
                   <ThemedText style={styles.closingGratitudeText}>{item}</ThemedText>
                 </View>
               )) : <ThemedText style={styles.closingGratitudeText}>—</ThemedText>}
+              {gratitudeItems.length > 3 ? (
+                <TouchableOpacity
+                  onPress={() => {
+                    triggerLightHaptic();
+                    setShowAllGratitude(value => !value);
+                  }}
+                  activeOpacity={0.7}
+                  accessibilityRole="button"
+                  accessibilityLabel={showAllGratitude ? 'Show fewer gratitude entries' : `Show ${gratitudeItems.length - 3} more gratitude entries`}
+                >
+                  <ThemedText weight="semiBold" style={styles.closingGratitudeToggle}>
+                    {showAllGratitude ? 'Show less' : `Show ${gratitudeItems.length - 3} more`}
+                  </ThemedText>
+                </TouchableOpacity>
+              ) : null}
             </View>
             <View style={styles.closingGlanceColumn}>
               <ThemedText style={styles.closingGlanceLabel}>Win</ThemedText>
@@ -1198,6 +1216,7 @@ const styles = StyleSheet.create({
   },
   closingGratitudeItem: { flexDirection: 'row', alignItems: 'flex-start', gap: 7, marginBottom: 8 },
   closingGratitudeText: { color: Colors.text, fontSize: 13, lineHeight: 18, flexShrink: 1 },
+  closingGratitudeToggle: { color: Colors.sage, fontSize: 12, lineHeight: 17, marginTop: 2 },
   closingValueWithIcon: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -28,6 +28,7 @@ interface JournalCardProps {
   viewMode?: ViewMode;
   expanded?: boolean;
   onExpand?: () => void;
+  cardStyle?: any;
 }
 
 export const JournalCard: React.FC<JournalCardProps> = ({
@@ -44,6 +45,7 @@ export const JournalCard: React.FC<JournalCardProps> = ({
   expanded = false,
   onExpand: _onExpand,
   componentType,
+  cardStyle,
 }) => {
   const momentsPalette = useMomentsPalette();
   const styles = React.useMemo(() => momentsPalette ? {
@@ -222,7 +224,7 @@ export const JournalCard: React.FC<JournalCardProps> = ({
 
   // Render normal card with content
   const getCardStyle = () => {
-    const baseStyle = [styles.card, variant === 'inline' && styles.cardInline, cardStyleOverrides];
+    const baseStyle = [styles.card, variant === 'inline' && styles.cardInline, cardStyleOverrides, cardStyle];
 
     // Only apply height restrictions for carousel view when not in inline/moments view
     // and when not in loading state (to prevent card cutting during loading)
