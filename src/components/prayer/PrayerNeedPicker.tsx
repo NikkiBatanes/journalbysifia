@@ -59,12 +59,11 @@ export default function PrayerNeedPicker({ prayer, onClose, onSave, onDelete, re
   const topicCustomChoices = Object.entries(topicCustom).filter(([, text]) => text.trim()).map(([topic, text]) => ({ topic, text: text.trim() }));
   const choices = [...selected, ...topicCustomChoices, ...(custom.trim() ? [{ topic: 'Other', text: custom.trim() }] : [])];
   const ready = choices.length > 0;
-  const creating = !current;
-  const showChoices = editing && (!creating || step === 0);
-  const showDetails = editing && (!creating || step === 1);
-  const showReview = editing && creating && step === 2;
-  const title = creating ? step === 0 ? 'What are you waiting on God for?' : step === 1 ? 'Add the details you want to remember' : 'Your prayer need' : 'What are you waiting on God for?';
-  const hint = creating ? step === 0 ? 'Choose the needs on your heart. You can choose more than one.' : step === 1 ? 'Add dates, a prayer, or anything that will help you remember.' : 'Take a moment to review before saving.' : editing ? 'Choose a topic, then tap the needs on your heart. You can choose more than one.' : 'The needs you’re bringing to God, one prayer at a time.';
+  const showChoices = editing && step === 0;
+  const showDetails = editing && step === 1;
+  const showReview = editing && step === 2;
+  const title = editing ? step === 0 ? 'What are you waiting on God for?' : step === 1 ? 'Add the details you want to remember' : 'Your prayer need' : 'What are you waiting on God for?';
+  const hint = editing ? step === 0 ? 'Choose the needs on your heart. You can choose more than one.' : step === 1 ? 'Add dates, a prayer, or anything that will help you remember.' : 'Take a moment to review before saving.' : 'The needs you’re bringing to God, one prayer at a time.';
   const toggle = (topic: string, text: string) => {
     if (!editing) return;
     triggerLightHaptic();
@@ -86,6 +85,7 @@ export default function PrayerNeedPicker({ prayer, onClose, onSave, onDelete, re
     setNotes(current.notes || '');
     setPrayingSince(current.metadata?.praying_since || format(new Date(), 'yyyy-MM-dd'));
     setExpectedDates(Object.fromEntries(saved.map((choice, index) => [choiceKey(choice), prayerNeeds(current)[index]?.expectedDate || ''])));
+    setStep(0);
     setEditing(false);
   };
   const save = async () => {
@@ -111,6 +111,7 @@ export default function PrayerNeedPicker({ prayer, onClose, onSave, onDelete, re
       if (current) {
         setCurrent({ ...current, ...data });
         setSelected(choices.filter(isPresetChoice));
+        setStep(0);
         setEditing(false);
       } else {
         completed.current = true;
@@ -135,7 +136,7 @@ export default function PrayerNeedPicker({ prayer, onClose, onSave, onDelete, re
   return <><Modal visible animationType="slide" onRequestClose={() => !saving && onClose()}>
     <KeyboardAvoidingView style={styles.page} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView ref={scrollRef} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={[styles.content, { paddingTop: insets.top + 8, paddingBottom: insets.bottom + 100 }]}>
-        <View style={styles.focusLabelContainer}><Ionicons name="leaf-outline" size={16} color={Colors.sage} /><ThemedText weight="semiBold" style={styles.focusLabel}>PRAYER NEED · FOR ME</ThemedText></View>
+        <View style={styles.focusLabelContainer}><Ionicons name="leaf-outline" size={16} color={Colors.sage} /><ThemedText weight="semiBold" style={styles.focusLabel}>MY PRAYER NEED</ThemedText></View>
         {current && editing && <TouchableOpacity disabled={saving} style={styles.edit} onPress={() => { triggerLightHaptic(); cancelEditing(); }}><ThemedText style={styles.pillText}>Cancel edit</ThemedText></TouchableOpacity>}
         <ThemedText weight="bold" style={styles.title}>{title}</ThemedText>
         <ThemedText style={styles.hint}>{hint}</ThemedText>
@@ -184,15 +185,16 @@ export default function PrayerNeedPicker({ prayer, onClose, onSave, onDelete, re
           {prayerNeeds(current).map(need => <View key={need.id} style={styles.trackingRow}><View style={{ flex: 1 }}>{!!need.topic && <ThemedText weight="semiBold" style={styles.choiceTopic}>{need.topic === 'Other' ? 'SOMETHING ELSE' : need.topic.toUpperCase()}</ThemedText>}<ThemedText style={styles.topicText}>{need.text}</ThemedText><ThemedText style={styles.waiting}>{need.status === 'answered' ? 'Answered' : need.status === 'closed' ? 'Closed' : 'Still praying'}{need.expectedDate ? ` · On or before ${formatDisplayDate(need.expectedDate)}` : ''}</ThemedText></View><TouchableOpacity disabled={saving} style={styles.pill} onPress={() => { void markAnswered(need.id); }}><Ionicons name={need.status === 'answered' ? 'checkmark-circle' : 'checkmark-circle-outline'} size={16} color={Colors.sage} /><ThemedText style={styles.pillText}>{need.status === 'answered' ? 'Answered' : 'Mark answered'}</ThemedText></TouchableOpacity></View>)}
           <View style={[styles.header, { marginTop: 24, marginBottom: 12 }]}><ThemedText weight="semiBold" style={styles.eyebrow}>UPDATES</ThemedText><TouchableOpacity disabled={saving} style={styles.pill} onPress={() => { triggerLightHaptic(); setShowUpdate(true); }}><Ionicons name="add" size={16} color={Colors.sage} /><ThemedText style={styles.pillText}>Add update</ThemedText></TouchableOpacity></View>
           {history.length ? history.map(update => <View key={update.id} style={styles.history}><ThemedText style={styles.eyebrow}>{formatDisplayDate(update.date)}{update.needId ? ' · ' + (prayerNeeds(current).find(n => n.id === update.needId)?.text || 'Prayer need') : ''}</ThemedText><ThemedText style={[styles.pillText, { marginTop: 6 }]}>{update.text}</ThemedText></View>) : <ThemedText style={styles.waiting}>Updates you add will appear here.</ThemedText>}
-          {onDelete && <TouchableOpacity disabled={saving} style={styles.delete} onPress={removePrayer}><Ionicons name="trash-outline" size={19} color={Colors.error} /><ThemedText weight="semiBold" style={styles.deleteText}>Delete this prayer</ThemedText></TouchableOpacity>}
+          {onDelete && <TouchableOpacity disabled={saving} style={styles.delete} onPress={removePrayer}><Ionicons name="trash-outline" size={22} color={Colors.error} /><ThemedText weight="semiBold" style={styles.deleteText}>Delete this prayer</ThemedText></TouchableOpacity>}
         </>}
+        {current && editing && onDelete && <TouchableOpacity disabled={saving} style={styles.delete} onPress={removePrayer}><Ionicons name="trash-outline" size={22} color={Colors.error} /><ThemedText weight="semiBold" style={styles.deleteText}>Delete this prayer</ThemedText></TouchableOpacity>}
         {!current && <ThemedText style={styles.waiting}>Kept in Still praying, until you mark it answered.</ThemedText>}
       </ScrollView>
-      {creating && step > 0 && <View style={[styles.topBack, { top: insets.top + 8 }]}><TouchableOpacity disabled={saving} accessibilityLabel="Previous step" hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} activeOpacity={0.7} style={styles.closeTouch} onPress={() => { triggerLightHaptic(); setStep(previous => previous - 1); }}><Ionicons name="chevron-back" size={20} color={Colors.sage} /></TouchableOpacity></View>}
+      {editing && step > 0 && <View style={[styles.topBack, { top: insets.top + 8 }]}><TouchableOpacity disabled={saving} accessibilityLabel="Previous step" hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} activeOpacity={0.7} style={styles.closeTouch} onPress={() => { triggerLightHaptic(); setStep(previous => previous - 1); }}><Ionicons name="chevron-back" size={20} color={Colors.sage} /></TouchableOpacity></View>}
       {current && !editing && <View style={[styles.topEdit, { top: insets.top + 8 }]}><TouchableOpacity disabled={saving} accessibilityLabel="Edit prayer needs" hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} activeOpacity={0.7} style={styles.closeTouch} onPress={() => { triggerLightHaptic(); setEditing(true); }}><Pencil size={16} color={Colors.sage} /></TouchableOpacity></View>}
       <View style={[styles.close, { top: insets.top + 8 }]}><TouchableOpacity disabled={saving} accessibilityLabel="Close" hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} activeOpacity={0.7} style={styles.closeTouch} onPress={() => { triggerLightHaptic(); onClose(); }}><Ionicons name="close" size={17} color={Colors.sage} /></TouchableOpacity></View>
     </KeyboardAvoidingView>
-    {editing && ready && <Animated.View style={[styles.floating, { bottom }]}><TouchableOpacity disabled={saving} accessibilityLabel={creating && step < 2 ? 'Next step' : 'Save prayer needs'} style={styles.save} onPress={() => { if (creating && step < 2) { triggerLightHaptic(); setStep(previous => previous + 1); scrollRef.current?.scrollTo({ y: 0, animated: true }); } else { void save(); } }}><Ionicons name={creating && step < 2 ? 'chevron-forward' : 'checkmark'} size={22} color={Colors.hopeWhite} /></TouchableOpacity></Animated.View>}
+    {editing && ready && <Animated.View style={[styles.floating, { bottom }]}><TouchableOpacity disabled={saving} accessibilityLabel={step < 2 ? 'Next step' : 'Save prayer needs'} style={styles.save} onPress={() => { if (step < 2) { triggerLightHaptic(); setStep(previous => previous + 1); scrollRef.current?.scrollTo({ y: 0, animated: true }); } else { void save(); } }}><Ionicons name={step < 2 ? 'chevron-forward' : 'checkmark'} size={22} color={Colors.hopeWhite} /></TouchableOpacity></Animated.View>}
     {dateTarget && <View style={styles.dateOverlay}><View style={styles.dateModal}><ThemedText weight="semiBold" style={styles.dateTitle}>{dateTarget.type === 'since' ? 'When did you start praying?' : `${dateTarget.label} · On or before`}</ThemedText><DateTimePicker value={parseDate(dateTarget.type === 'since' ? prayingSince : expectedDates[dateTarget.key])} mode="date" display="spinner" maximumDate={dateTarget.type === 'since' ? new Date() : undefined} onChange={(_, date) => { if (!date) return; const value = format(date, 'yyyy-MM-dd'); if (dateTarget.type === 'since') setPrayingSince(value); else setExpectedDates(prev => ({ ...prev, [dateTarget.key]: value })); }} />{dateTarget.type === 'expected' && <TouchableOpacity style={styles.clearDate} onPress={() => { setExpectedDates(prev => ({ ...prev, [dateTarget.key]: '' })); setDateTarget(null); }}><ThemedText style={styles.clearDateText}>No expected date</ThemedText></TouchableOpacity>}<TouchableOpacity style={styles.dateDone} onPress={() => { triggerLightHaptic(); setDateTarget(null); }}><ThemedText weight="semiBold" style={styles.dateDoneText}>Done</ThemedText></TouchableOpacity></View></View>}
   </Modal>
   {showUpdate && current && renderUpdate?.(current, persist, () => setShowUpdate(false))}</>;
@@ -222,6 +224,6 @@ const styles = StyleSheet.create({
   dateSection: { marginTop: 20, marginBottom: 10 }, dateRow: { flexDirection: 'row', alignItems: 'center', gap: 10, borderBottomWidth: 1, borderBottomColor: Colors.cardBorder, paddingVertical: 12 }, dateText: { flex: 1 },
   dateOverlay: { ...StyleSheet.absoluteFillObject, justifyContent: 'center', paddingHorizontal: 24, backgroundColor: 'rgba(0,0,0,0.25)', zIndex: 300 }, dateModal: { backgroundColor: Colors.lightBackground, borderRadius: 24, padding: 20 }, dateTitle: { color: Colors.text, fontSize: 16, lineHeight: 23, textAlign: 'center', marginBottom: 8 }, dateDone: { alignItems: 'center', backgroundColor: Colors.sage, borderRadius: 20, paddingVertical: 12, marginTop: 8 }, dateDoneText: { color: Colors.hopeWhite, fontSize: 13 }, clearDate: { alignItems: 'center', paddingVertical: 8 }, clearDateText: { color: Colors.textGray, fontSize: 12 },
   waiting: { fontSize: 11, lineHeight: 18, color: Colors.textGray, marginTop: 8 },
-  delete: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 30, paddingVertical: 14 }, deleteText: { color: Colors.error, fontSize: 14 },
+  delete: { width: '100%', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, marginTop: 30, paddingVertical: 17, backgroundColor: 'rgba(217, 120, 114, 0.1)', borderRadius: 999 }, deleteText: { color: Colors.error, fontSize: 16 },
   floating: { position: 'absolute', right: 20 }, save: { width: 40, height: 40, borderRadius: 20, backgroundColor: Colors.sage, alignItems: 'center', justifyContent: 'center' },
 });

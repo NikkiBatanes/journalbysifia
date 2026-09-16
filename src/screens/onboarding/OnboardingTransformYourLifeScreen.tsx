@@ -217,7 +217,7 @@ const OnboardingTransformYourLifeScreen: React.FC = () => {
         {/* Logo Section */}
         <View style={dynamicStyles.logoSection}>
           <Image
-            source={require('../../../assets/icons/siFia-logo-white.png')}
+            source={require('../../../assets/images/journalbysifia.png')}
             style={[styles.logoImage, { width: logoSize, height: logoSize }]}
             resizeMode="contain"
           />

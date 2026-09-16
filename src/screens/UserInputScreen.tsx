@@ -1504,7 +1504,7 @@ const UserInputScreen: React.FC = () => {
           <Animated.View style={[styles.header, { transform: [{ translateY: headerTranslateY }] }]}>
             {!isGenerating && (
               <Animated.Image
-                source={require('../../assets/icons/siFia-logo-white.png')}
+                source={require('../../assets/images/journalbysifia.png')}
                 style={[
                   styles.logo,
                   {
@@ -1525,7 +1525,7 @@ const UserInputScreen: React.FC = () => {
           {/* Logo in generating state — slides in from the left */}
           {isGenerating && (
             <Animated.Image
-              source={require('../../assets/icons/siFia-logo-white.png')}
+              source={require('../../assets/images/journalbysifia.png')}
               style={[
                 styles.generatingLogo,
                 {

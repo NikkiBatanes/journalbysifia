@@ -258,7 +258,7 @@ const EmailRegisterScreen: React.FC<Props> = ({ navigation }) => {
         {/* Header */}
         <View style={styles.header}>
           <Image
-            source={require('../../assets/icons/siFia-logo-white.png')}
+            source={require('../../assets/images/journalbysifia.png')}
             style={[styles.logo, { width: logoSize, height: logoSize }]}
             resizeMode="contain"
           />

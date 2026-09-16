@@ -228,7 +228,7 @@ const OnboardingAccountCreationScreen: React.FC = () => {
         <View style={OnboardingStyles.innerContainer}>
           <View style={[styles.logoSection, { width: contentWidth }]}>
             <Image
-              source={require('../../../assets/icons/siFia-logo-white.png')}
+              source={require('../../../assets/images/journalbysifia.png')}
               style={[styles.logoImage, { width: logoSize, height: logoSize }]}
               resizeMode="contain"
             />

@@ -493,7 +493,7 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
           <View style={styles.watermarkRow}>
             <>
               <Image
-                source={require('../../assets/icons/siFia-logo-white.png')}
+                source={require('../../assets/images/journalbysifia.png')}
                 resizeMode="contain"
                 style={styles.watermarkLogo}
               />

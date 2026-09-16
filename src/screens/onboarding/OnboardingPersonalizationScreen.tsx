@@ -2007,7 +2007,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
         <TouchableOpacity activeOpacity={1} onPress={() => Keyboard.dismiss()} style={{ alignSelf: 'center', width: '100%' }}>
         <Animated.View style={[styles.header, { transform: [{ translateY: isWhatHappenedStep ? detailsOnlyHeaderY : combinedHeaderY }] }]}>
           <Animated.Image
-            source={require('../../../assets/icons/siFia-logo-white.png')}
+            source={require('../../../assets/images/journalbysifia.png')}
             style={[
               styles.logo,
               {
@@ -2073,7 +2073,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
         ]}>
           {/* Logo in generating state */}
           <Animated.Image
-            source={require('../../../assets/icons/siFia-logo-white.png')}
+            source={require('../../../assets/images/journalbysifia.png')}
             style={[
               styles.generatingLogo,
               {

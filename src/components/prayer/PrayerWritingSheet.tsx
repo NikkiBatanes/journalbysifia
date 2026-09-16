@@ -9,8 +9,8 @@ import { getFontFamily } from '../../theme/fonts';
 import { useTheme } from '../../hooks/useTheme';
 import { useFloatingKeyboardButton } from '../../hooks/useFloatingKeyboardButton';
 
-type Props = { keepAfterInputVisible?: boolean; beforeInput?: React.ReactNode; afterInput?: React.ReactNode; maxLength?: number; saveEnabled?: boolean; title: string; eyebrow: string; context: string; contextLabel: string; placeholder: string; value: string; onChangeText: (text: string) => void; onClose: () => void; onSave: () => void; saving: boolean; ready?: boolean; editable?: boolean; saveLabel: string; onShowDetails?: () => void };
-export default function PrayerWritingSheet({ title, eyebrow, context, contextLabel, placeholder, value, onChangeText, onClose, onSave, saving, ready = true, editable = true, saveLabel, onShowDetails, beforeInput, afterInput, maxLength, saveEnabled = true, keepAfterInputVisible = false }: Props) {
+type Props = { keepAfterInputVisible?: boolean; beforeInput?: React.ReactNode; afterInput?: React.ReactNode; maxLength?: number; saveEnabled?: boolean; title: string; eyebrow: string; context: string; contextLabel: string; placeholder: string; value: string; onChangeText: (text: string) => void; onClose: () => void; onSave: () => void; onDelete?: () => void; saving: boolean; ready?: boolean; editable?: boolean; saveLabel: string; onShowDetails?: () => void };
+export default function PrayerWritingSheet({ title, eyebrow, context, contextLabel, placeholder, value, onChangeText, onClose, onSave, onDelete, saving, ready = true, editable = true, saveLabel, onShowDetails, beforeInput, afterInput, maxLength, saveEnabled = true, keepAfterInputVisible = false }: Props) {
   const insets = useSafeAreaInsets();
   const { height: screenHeight } = useWindowDimensions();
   const sheetEntrance = useRef(new Animated.Value(0)).current;
@@ -84,6 +84,7 @@ export default function PrayerWritingSheet({ title, eyebrow, context, contextLab
           bounces={false}
           overScrollMode="never"
         >{afterInput}</Animated.ScrollView>}
+        {onDelete && <TouchableOpacity disabled={saving} style={styles.delete} onPress={() => { triggerLightHaptic(); onDelete(); }}><Ionicons name="trash-outline" size={22} color={Colors.error} /><ThemedText weight="semiBold" style={styles.deleteText}>Delete this prayer</ThemedText></TouchableOpacity>}
         </View>
       </KeyboardAvoidingView>
       </Animated.View>
@@ -111,6 +112,8 @@ const styles = StyleSheet.create({
   requestLabel: { color: Colors.sageMuted, fontSize: 9, lineHeight: 13, letterSpacing: 1.5, marginBottom: 5 },
   request: { color: Colors.textGray, fontSize: 13, lineHeight: 20 },
   input: { textAlignVertical: 'top', paddingHorizontal: 0, paddingVertical: 8, color: Colors.text, fontSize: 16, lineHeight: 25 },
+  delete: { width: '100%', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, marginTop: 24, paddingVertical: 17, backgroundColor: 'rgba(217, 120, 114, 0.1)', borderRadius: 999 },
+  deleteText: { color: Colors.error, fontSize: 16 },
   floatingSave: { position: 'absolute', right: 20, width: 40, height: 40 },
   save: { width: 40, height: 40, backgroundColor: Colors.sage, borderRadius: 20, alignItems: 'center', justifyContent: 'center', shadowColor: Colors.darkBackground, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 8 },
 });
