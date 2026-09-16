@@ -1,3 +1,4 @@
+import { useAuth } from '../context/IndustryStandardAuthContext';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   ScrollView,
@@ -47,13 +48,15 @@ const isValidTime = (value: string): boolean => {
 };
 
 const ReviewSettingsScreen: React.FC = () => {
+  const { preferences } = useAuth();
+  const weekStart = preferences?.weekStart || 'monday';
   const navigation = useNavigation<any>();
   const insets = useSafeAreaInsets();
   const [settings, setLocalSettings] = useState<ReviewSettings | null>(null);
 
   useEffect(() => {
-    getReviewSettings().then(setLocalSettings);
-  }, []);
+    getReviewSettings(weekStart).then(setLocalSettings);
+  }, [weekStart]);
 
   const update = useCallback((patch: Partial<ReviewSettings>) => {
     setLocalSettings(prev => (prev ? { ...prev, ...patch } : prev));
@@ -122,32 +125,10 @@ const ReviewSettingsScreen: React.FC = () => {
           paddingHorizontal: 24,
         }}
         showsVerticalScrollIndicator={false}>
-        <ThemedText weight="semiBold" style={styles.sectionTitle}>
-          My week ends on
+        <ThemedText weight="semiBold" style={styles.sectionTitle}>Review week</ThemedText>
+        <ThemedText style={styles.toggleLabel}>
+          {DAY_NAMES[(settings.weekEndsOn + 1) % 7]}–{DAY_NAMES[settings.weekEndsOn]} · follows Week Start in Profile
         </ThemedText>
-        <View style={styles.dayRow}>
-          {DAY_NAMES.map((day, index) => {
-            const selected = settings.weekEndsOn === index;
-            return (
-              <TouchableOpacity
-                key={day}
-                style={[
-                  styles.dayButton,
-                  selected && styles.dayButtonActive,
-                ]}
-                onPress={() => update({ weekEndsOn: index })}
-                activeOpacity={0.7}>
-                <ThemedText
-                  style={[
-                    styles.dayText,
-                    selected && styles.dayTextActive,
-                  ]}>
-                  {day}
-                </ThemedText>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
 
         <ThemedText weight="semiBold" style={styles.sectionTitle}>
           Reminder time

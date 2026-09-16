@@ -1,3 +1,4 @@
+import { useAuth } from '../context/IndustryStandardAuthContext';
 import React, {
   useCallback,
   useEffect,
@@ -63,6 +64,8 @@ const CATEGORY_LABELS: Record<ReviewCaptureKind, string> = {
 };
 
 const ReviewScreen: React.FC = () => {
+  const { preferences } = useAuth();
+  const weekStart = preferences?.weekStart || 'monday';
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const insets = useSafeAreaInsets();
@@ -87,7 +90,7 @@ const ReviewScreen: React.FC = () => {
 
   const loadReview = useCallback(async () => {
     const anchor = toLocalDateString(new Date());
-    const settings = await getReviewSettings();
+    const settings = await getReviewSettings(weekStart);
     let type: ReviewType = typeFromRoute ?? 'weekly';
     let start = '';
     let end = '';
@@ -140,7 +143,7 @@ const ReviewScreen: React.FC = () => {
     setAnswers(existing.answers);
     setMemorableItems(existing.memorableItems);
     setCapture(captured);
-  }, [typeFromRoute, startFromRoute, endFromRoute]);
+  }, [typeFromRoute, startFromRoute, endFromRoute, weekStart]);
 
   useEffect(() => {
     loadReview();

@@ -43,9 +43,10 @@ const isInActiveWindow = (period: ReviewPeriod, anchor: string): boolean => {
 
 export const getReviewEligibility = async (
   anchor: string | Date = toLocalDateString(new Date()),
+  weekStart?: string,
 ): Promise<ReviewEligibilityResult> => {
   const anchorYMD = typeof anchor === 'string' ? anchor : toLocalDateString(anchor);
-  const settings = await getReviewSettings();
+  const settings = await getReviewSettings(weekStart);
 
   const activePeriods: ReviewPeriod[] = [];
 

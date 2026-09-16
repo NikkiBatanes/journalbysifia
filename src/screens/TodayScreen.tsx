@@ -8,6 +8,8 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import { BookOpen, Heart, Leaf, List, Moon, Pencil, Sparkles, Target } from 'lucide-react-native';
 import { differenceInCalendarDays, endOfWeek, format, startOfWeek, subYears } from 'date-fns';
 
+import WeeklyQuickLook from '../components/dashboard/WeeklyQuickLook';
+import WeeklyReviewCard from '../components/dashboard/WeeklyReviewCard';
 import PrayerToRevisit from '../components/dashboard/PrayerToRevisit';
 import ThemedText from '../components/common/ThemedText';
 import { useAuth } from '../context/IndustryStandardAuthContext';
@@ -93,14 +95,18 @@ const TodayScreen = () => {
   const [tick, setTick] = useState(0);
 
   useEffect(() => {
-    getReviewEligibility().then(setEligibility);
+    let active = true;
+    void getReviewEligibility(now, appPreferences?.weekStart || 'monday').then(result => {
+      if (active) setEligibility(result);
+    });
     getLocalReviewsByType('weekly').then(reviews => {
       const sorted = [...reviews].sort((a, b) =>
         b.periodEnd.localeCompare(a.periodEnd),
       );
       setWeeklyReview(sorted[0] ?? null);
     });
-  }, []);
+    return () => { active = false; };
+  }, [tick, appPreferences?.weekStart, format(now, 'yyyy-MM-dd')]);
 
   useFocusEffect(
     useCallback(() => {
@@ -169,6 +175,19 @@ const TodayScreen = () => {
     const main = eligibility.main;
     if (main.review.status === 'completed') {return null;}
 
+    if (main.type === 'weekly') {
+      return <WeeklyReviewCard
+        key={`${main.period.periodStart}:${main.period.periodEnd}`}
+        periodStart={main.period.periodStart}
+        periodEnd={main.period.periodEnd}
+        alsoReady={eligibility.alsoReady.map(item => item.type.replace('_', ' ')).join(', ')}
+        onBegin={() => (navigation as any).navigate('Journal', {
+          screen: 'Review',
+          params: { type: 'weekly', periodStart: main.period.periodStart, periodEnd: main.period.periodEnd },
+        })}
+      />;
+    }
+
     const typeLabel = main.type.replace('_', ' ');
     const periodStart = new Date(main.period.periodStart);
     const periodEnd = new Date(main.period.periodEnd);
@@ -221,6 +240,7 @@ const TodayScreen = () => {
 
         {reviewCard}
 
+        <SectionHeading title="TODAY" detail="your daily rhythm" />
         <TouchableOpacity
           style={[styles.card, styles.morningCard]}
           activeOpacity={0.85}
@@ -242,21 +262,17 @@ const TodayScreen = () => {
           }}
         >
           <View style={styles.morningTop}>
-            <View style={styles.morningCopy}>
-              <View style={styles.routineEyebrowRow}>
-                {isEvening && <Moon size={13} color={Colors.sage} />}
-                <ThemedText style={styles.morningEyebrow}>{isEvening ? 'EVENING REFLECTION' : 'MORNING CHECK-IN'}</ThemedText>
-              </View>
-              <Text numberOfLines={routineDone ? 2 : 1} adjustsFontSizeToFit minimumFontScale={0.75} maxFontSizeMultiplier={1.2} style={styles.morningTitle}>{isEvening ? (routineDone ? 'Your evening is saved.' : 'Close your day.') : (routineDone ? 'Your morning is saved.' : 'Begin your day.')}</Text>
+            <View style={styles.routineIcon}>
+              <Ionicons name={isEvening ? 'moon-outline' : 'sunny-outline'} size={24} color={Colors.sage} />
             </View>
-          </View>
-          <ThemedText style={styles.morningDescription}>{isEvening ? (routineDone ? 'You’ve given thanks, reflected, and closed your day with God.' : 'Give thanks, reflect, and rest your heart in God.') : (routineDone ? 'You’ve paused, reflected, and set your heart on what matters.' : 'Pause, reflect, and set your heart on what matters.')}</ThemedText>
-          {routineDone && <ThemedText style={styles.morningDoneLabel}>{isEvening ? 'DONE FOR TONIGHT' : 'DONE FOR TODAY'}</ThemedText>}
-          <View style={[styles.beginButton, styles.leftButton]}>
-            {routineDone
-              ? <Ionicons name="checkmark" size={16} color={Colors.hopeWhite} style={styles.beginButtonIcon} />
-              : <Pencil size={16} color={Colors.hopeWhite} style={styles.beginButtonIcon} />}
-            <ThemedText style={styles.beginButtonText}>{routineDone ? 'View' : 'Begin'}</ThemedText>
+            <View style={styles.morningCopy}>
+              <Text numberOfLines={2} maxFontSizeMultiplier={1.2} style={styles.morningTitle}>{isEvening ? (routineDone ? 'Your evening is saved.' : 'Close your day.') : (routineDone ? 'Your morning is saved.' : 'Begin your day.')}</Text>
+              <ThemedText style={styles.morningDescription}>{isEvening ? (routineDone ? 'You’ve given thanks and closed your day with God.' : 'Give thanks, reflect, and rest your heart in God.') : (routineDone ? 'You’ve paused, reflected, and set your heart on what matters.' : 'Pause, reflect, and set your heart on what matters.')}</ThemedText>
+            </View>
+            <View style={styles.routineBegin}>
+              {!routineDone && <Pencil size={14} color={Colors.hopeWhite} />}
+              <ThemedText style={styles.beginButtonText}>{routineDone ? 'View' : 'Begin'}</ThemedText>
+            </View>
           </View>
           <View style={styles.morningSteps}>
             {(isEvening ? [
@@ -273,7 +289,7 @@ const TodayScreen = () => {
               <React.Fragment key={label}>
                 {index > 0 && <View style={styles.morningStepDivider} />}
                 <View style={styles.morningStep}>
-                  <Icon size={26} strokeWidth={1.6} color={Colors.sage} />
+                  <View style={styles.routineStepIcon}><Icon size={18} strokeWidth={1.6} color={Colors.sage} /></View>
                   <ThemedText numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={styles.morningStepLabel}>{label}</ThemedText>
                 </View>
               </React.Fragment>
@@ -291,6 +307,9 @@ const TodayScreen = () => {
             <ThemedText style={styles.routinePreviewText}>{isEvening ? 'Preview morning' : 'Preview 5 PM'}</ThemedText>
           </TouchableOpacity>
         )}
+
+        <SectionHeading title="A QUICK LOOK" detail={weekLabel} />
+        <WeeklyQuickLook start={format(startOfWeek(now, { weekStartsOn }), 'yyyy-MM-dd')} end={format(endOfWeek(now, { weekStartsOn }), 'yyyy-MM-dd')} />
 
         <SectionHeading title="YOUR RHYTHM" detail="for this season" />
         {weeklyReview ? (
@@ -329,8 +348,8 @@ const TodayScreen = () => {
         ) : (
           <View style={styles.card}>
             <ThemedText style={styles.cardLabel}>THIS WEEK · {weekLabel}</ThemedText>
-            <ThemedText style={styles.compactTitle}>Take a moment to look back.</ThemedText>
-            <ThemedText style={styles.body}>Your weekly review is ready whenever you are. Notice what happened before you move into another week.</ThemedText>
+            <ThemedText style={styles.compactTitle}>Look back. Look ahead.</ThemedText>
+            <ThemedText style={styles.body}>One weekly review to reflect on the past week and prepare for the week ahead.</ThemedText>
             <View style={[styles.button, styles.leftButton]}><ThemedText style={styles.buttonText}>Weekly Review  →</ThemedText></View>
           </View>
         )}
@@ -456,13 +475,16 @@ const styles = StyleSheet.create({
   routineEyebrowRow: { flexDirection: 'row', alignItems: 'center', gap: 7, marginBottom: 5 },
   routinePreviewButton: { alignSelf: 'center', paddingHorizontal: 16, paddingVertical: 9, borderRadius: 18, borderWidth: 1, borderColor: Colors.inputBorder, marginTop: 10 },
   routinePreviewText: { color: Colors.sage, fontSize: 12 },
+  routineIcon: { width: 42, height: 42, borderRadius: 21, backgroundColor: Colors.anchorBlueLight, alignItems: 'center', justifyContent: 'center' },
+  routineBegin: { borderRadius: 22, backgroundColor: Colors.sage, paddingHorizontal: 14, paddingVertical: 10, flexDirection: 'row', alignItems: 'center', gap: 6 },
+  routineStepIcon: { width: 34, height: 34, borderRadius: 17, backgroundColor: Colors.anchorBlueLight, alignItems: 'center', justifyContent: 'center' },
   morningCopy: { flex: 1, minWidth: 0 },
   morningTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
   morningEyebrow: { color: Colors.sage, fontSize: 10, lineHeight: 15, letterSpacing: 2.5 },
-  morningTitle: { color: Colors.text, fontFamily: Fonts.semiBold, fontSize: 28, lineHeight: 36 },
+  morningTitle: { color: Colors.text, fontFamily: Fonts.semiBold, fontSize: 21, lineHeight: 28 },
   morningDoneLabel: { color: Colors.sage, fontSize: 10, letterSpacing: 1.5, marginTop: 12 },
   morningDescription: { color: Colors.textGray, fontSize: 12, lineHeight: 19, marginTop: 6 },
-  morningSteps: { flexDirection: 'row', alignItems: 'center', marginTop: 25 },
+  morningSteps: { flexDirection: 'row', alignItems: 'center', marginTop: 20, paddingTop: 16, borderTopWidth: 1, borderTopColor: Colors.cardBorder },
   morningStep: { flex: 1, minWidth: 0, minHeight: 54, alignItems: 'center', gap: 8 },
   morningStepLabel: { color: Colors.text, fontSize: 11, lineHeight: 16, textAlign: 'center' },
   morningStepDivider: { width: 1, height: 32, backgroundColor: Colors.cardBorder },

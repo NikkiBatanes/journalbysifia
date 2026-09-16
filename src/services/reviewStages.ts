@@ -40,7 +40,7 @@ const weeklyStages = (): ReviewStageConfig[] => [
     key: 'cover',
     kind: 'cover',
     subtitle:
-      'Take a little time to notice what happened, what mattered, and what you want to carry forward.',
+      'Begin by reflecting on the past week with God. Then, in this same review, prepare your heart for the week ahead.',
   },
   sharedCaptured,
   sharedRemembered,
@@ -90,14 +90,14 @@ const weeklyStages = (): ReviewStageConfig[] => [
     icon: 'arrow-forward',
     label: 'LOOKING AHEAD',
     title: 'You don’t need to plan everything.',
-    subtitle: 'Notice what deserves your attention in the week ahead.',
+    subtitle: 'Continue your review by carrying what you noticed into the week ahead.',
   },
   {
     key: 'priority',
     kind: 'priorities',
     icon: 'star',
     label: 'PRIORITY',
-    question: 'What matters most this week?',
+    question: 'What matters most in the week ahead?',
     subtitle: 'Add up to three.',
     answerKeys: ['priority_1', 'priority_2', 'priority_3'],
   },
@@ -106,7 +106,7 @@ const weeklyStages = (): ReviewStageConfig[] => [
     kind: 'question',
     icon: 'list',
     label: 'DON’T FORGET',
-    question: 'What needs your attention this week?',
+    question: 'What needs your attention in the week ahead?',
     answerKey: 'dont_forget',
   },
   {
@@ -114,7 +114,7 @@ const weeklyStages = (): ReviewStageConfig[] => [
     kind: 'question',
     icon: 'people',
     label: 'PEOPLE',
-    question: 'Who do you want to make room for this week?',
+    question: 'Who do you want to make room for in the week ahead?',
     answerKey: 'people',
   },
   {
@@ -122,7 +122,7 @@ const weeklyStages = (): ReviewStageConfig[] => [
     kind: 'question',
     icon: 'chatbubble',
     label: 'PRAYER',
-    question: 'What do you want to keep bringing to God this week?',
+    question: 'What do you want to keep bringing to God in the week ahead?',
     answerKey: 'prayer_ahead',
   },
   {
@@ -138,7 +138,7 @@ const weeklyStages = (): ReviewStageConfig[] => [
     kind: 'question',
     icon: 'eye',
     label: 'WATCH FOR',
-    question: 'Is there anything you need to be mindful of this week?',
+    question: 'Is there anything you need to be mindful of in the week ahead?',
     answerKey: 'watch_for',
   },
   {
@@ -146,7 +146,7 @@ const weeklyStages = (): ReviewStageConfig[] => [
     kind: 'question',
     icon: 'walk',
     label: 'FAITHFUL STEP',
-    question: 'What is one faithful step you want to take this week?',
+    question: 'What is one faithful step you want to take in the week ahead?',
     answerKey: 'faithful_step',
   },
   {

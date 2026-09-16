@@ -22,18 +22,26 @@ export const DEFAULT_REVIEW_SETTINGS: ReviewSettings = {
   },
 };
 
-export const getReviewSettings = async (): Promise<ReviewSettings> => {
+export const weekEndFromWeekStart = (weekStart: string = 'monday'): number => {
+  const index = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'].indexOf(weekStart);
+  return ((index < 0 ? 1 : index) + 6) % 7;
+};
+
+export const getReviewSettings = async (weekStart?: string): Promise<ReviewSettings> => {
+  const effectiveWeekStart = weekStart ?? await AsyncStorage.getItem('journal:review-week-start') ?? 'monday';
+  const weekEndsOn = weekEndFromWeekStart(effectiveWeekStart);
   const raw = await AsyncStorage.getItem(REVIEW_SETTINGS_KEY);
   if (!raw) {
-    return DEFAULT_REVIEW_SETTINGS;
+    return { ...DEFAULT_REVIEW_SETTINGS, weekEndsOn };
   }
   const parsed = safeJsonParse<Partial<ReviewSettings>>(raw, {fallback: {}});
   if (!parsed) {
-    return DEFAULT_REVIEW_SETTINGS;
+    return { ...DEFAULT_REVIEW_SETTINGS, weekEndsOn };
   }
   return {
     ...DEFAULT_REVIEW_SETTINGS,
     ...parsed,
+    weekEndsOn,
     enabledCadences: {
       ...DEFAULT_REVIEW_SETTINGS.enabledCadences,
       ...parsed?.enabledCadences,

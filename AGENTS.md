@@ -20,7 +20,7 @@
 
 | Review | Default trigger | Period reviewed | Ends with | Dashboard lifespan |
 |---|---|---|---|---|
-| Weekly | User’s chosen review day, default Sunday, 7 PM | Previous 7 days based on `weekEndsOn` | Step into next week | Until next weekly period becomes available |
+| Weekly | User’s chosen review day, default Sunday, 7 PM | Previous 7 days based on Profile `weekStart` | Step into next week | Until next weekly period becomes available |
 | Monthly | Last 3 days of month | Current calendar month | Step into next month | Until next monthly period becomes available |
 | Quarterly | Last 7 days of Mar/Jun/Sep/Dec | Current quarter | Step into next season | Until next quarterly period becomes available |
 | Year End | December 15 | Jan 1 → Dec 31 | Close the year | Dec 15 through Dec 31 |
@@ -35,7 +35,7 @@
 
 ### User settings
 
-- `weekEndsOn` (0 = Sunday … 6 = Saturday), default Sunday
+- Weekly boundaries follow Profile `weekStart` (default Monday). `getReviewSettings(weekStart?)` derives `weekEndsOn` as the preceding day; the legacy stored review day is ignored. AuthContext mirrors the effective preference in `journal:review-week-start` for services outside React. Explicit saved review period dates remain unchanged.
 - `reminderTime` (HH:MM)
 - `enabledCadences` per review type
 

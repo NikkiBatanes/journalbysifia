@@ -123,6 +123,13 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
   }, []);
 
 
+  const reviewWeekStart = (authState.user?.user_metadata?.preferences || localPreferences).weekStart || 'monday';
+  useEffect(() => {
+    // Make the Profile preference available to review services outside React.
+    void AsyncStorage.setItem('journal:review-week-start', reviewWeekStart)
+      .catch(error => Logger.warn('Could not sync review week start', { reason: String(error) }));
+  }, [reviewWeekStart]);
+
   // Configure Google Sign-In
   useEffect(() => {
     const rawWebClientId = Config.GOOGLE_WEB_CLIENT_ID;
