@@ -7,7 +7,7 @@ import PrayerTrackingModal from '../prayer/PrayerTrackingModal';
 import PrayerResponseSheet from '../prayer/PrayerResponseSheet';
 import type { PrayerChanges } from '../prayer/PrayerDetails';
 import { PrayerApi } from '../../services/api/prayerApi';
-import { answerPrayer } from '../../utils/prayerTracking';
+import { answerPrayer, releasePrayer } from '../../utils/prayerTracking';
 import { triggerLightHaptic, triggerSuccessHaptic } from '../../utils/haptics';
 import { openPrayerFlow } from '../../navigation/openPrayerFlow';
 import { Colors } from '../../theme/colors';
@@ -72,10 +72,17 @@ export default function PrayerMomentsCarousel({ prayers, navigation }: { prayers
     catch { Alert.alert('Could not update prayer', 'Please try again.'); }
     finally { inFlight.current = false; setBusy(false); }
   };
+  const release = async (p: PrayerHomeEntry) => {
+    if (inFlight.current) return;
+    inFlight.current = true; setBusy(true); triggerLightHaptic();
+    try { await persistPrayer(p, { content: target(p).content, ...releasePrayer(target(p)) }); }
+    catch { Alert.alert('Could not update prayer', 'Please try again.'); }
+    finally { inFlight.current = false; setBusy(false); }
+  };
   return <View onLayout={event => setWidth(event.nativeEvent.layout.width)}>
     <View style={{ alignItems: 'center', marginBottom: 12 }}><ThemedText weight="semiBold" style={{ fontSize: 11, letterSpacing: 1.5, color: Colors.sage, textAlign: 'center' }}>{prayerMomentType(prayers[0]).toUpperCase()}</ThemedText></View>
     {width > 0 && <ScrollView style={{ marginHorizontal: -16, width: viewportWidth }} horizontal snapToOffsets={prayers.map((_, i) => i * slideWidth)} decelerationRate="fast" disableIntervalMomentum contentContainerStyle={{ paddingHorizontal: sideInset }} showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled" bounces={false}>
-      {prayers.map((p, i) => <View key={p.id} style={{ width: cardWidth, marginRight: i < prayers.length - 1 ? slideSpacing : 0 }}><PrayerCard prayer={p} answering={busy} onEdit={edit} onManage={p => manage(p, 'update')} onManageAnswers={p => manage(p, 'details')} onAnswered={(p, id) => { void answer(p, id); }} onAddPrayer={p => { triggerLightHaptic(); setResponding(p); }} onPrayAgain={p => { void prayAgain(p); }} /></View>)}
+      {prayers.map((p, i) => <View key={p.id} style={{ width: cardWidth, marginRight: i < prayers.length - 1 ? slideSpacing : 0 }}><PrayerCard prayer={p} answering={busy} onEdit={edit} onManage={p => manage(p, 'update')} onManageAnswers={p => manage(p, 'details')} onAnswered={(p, id) => { void answer(p, id); }} onRelease={p => { void release(p); }} onAddPrayer={p => { triggerLightHaptic(); setResponding(p); }} onPrayAgain={p => { void prayAgain(p); }} /></View>)}
     </ScrollView>}
     {selected && <PrayerTrackingModal prayer={target(selected)} mode={mode} onShowDetails={() => setMode('details')} onSave={save} onClose={() => setSelected(null)} />}
     {responding && <PrayerResponseSheet request={responding} onClose={() => setResponding(null)} onSaved={async () => { setResponding(null); await refresh(); }} />}

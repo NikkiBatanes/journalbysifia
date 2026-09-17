@@ -13,6 +13,7 @@ import BibleStudyScreen from '../screens/BibleStudyScreen';
 import ReviewScreen from '../screens/ReviewScreen';
 import PastReviewsScreen from '../screens/PastReviewsScreen';
 import ReviewSettingsScreen from '../screens/ReviewSettingsScreen';
+import ReviewReaderScreen from '../screens/ReviewReaderScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -26,7 +27,7 @@ const JournalStackNavigator: React.FC = () => {
         options={{
           headerShown: false,
           presentation: 'card',
-          animation: 'slide_from_bottom',
+          animation: 'none',
           gestureEnabled: false,
         }}
       />
@@ -107,6 +108,17 @@ const JournalStackNavigator: React.FC = () => {
           headerShown: false,
           presentation: 'fullScreenModal',
           animation: 'slide_from_bottom',
+          gestureEnabled: true,
+          contentStyle: { backgroundColor: '#F6F5EF' },
+        }}
+      />
+      <Stack.Screen
+        name="ReviewReader"
+        component={ReviewReaderScreen as React.ComponentType}
+        options={{
+          headerShown: false,
+          presentation: 'card',
+          animation: 'slide_from_right',
           gestureEnabled: true,
           contentStyle: { backgroundColor: '#F6F5EF' },
         }}

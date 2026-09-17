@@ -1,5 +1,5 @@
 import React, { useMemo, useRef, useEffect, useState, useLayoutEffect } from 'react';
-import { View, StyleSheet, StatusBar, Alert, DeviceEventEmitter } from 'react-native';
+import { View, StyleSheet, StatusBar, Alert } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import TimeBlockLogEditor, { TimeBlockLogEditorRef } from '../components/journal/TimeBlockLogEditor';
 import { useRoute, useNavigation } from '@react-navigation/native';
@@ -8,10 +8,7 @@ import { useAuth } from '../context/IndustryStandardAuthContext';
 import { useCreateTimeBlock, useUpdateTimeBlock } from '../services/hooks/useTimeBlockData';
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '../services/queryKeys';
-import { usePlanningGating } from '../hooks/usePlanningGating';
 import { Logger } from '../utils/ProductionLogger';
-import { useCalendarGating } from '../hooks/useCalendarGating';
-import { isFuturePlanningDate, isRecurringPlanningFrequency } from '../utils/tierLockingRules';
 
 interface RouteParams {
   selectedDate?: string;
@@ -30,9 +27,7 @@ const TimeBlockEditorScreen: React.FC = () => {
   const selectedDate = params?.selectedDate || toLocalDateString(new Date());
   const existingTimeBlock = params?.existingTimeBlock;
   const autoFocus = params?.autoFocus || false;
-  const selectedDateForGate = useMemo(() => new Date(`${selectedDate}T00:00:00`), [selectedDate]);
-  const planningGating = usePlanningGating(selectedDateForGate, 'inApp');
-  const calendarGating = useCalendarGating();
+  const selectedDateForSave = useMemo(() => new Date(`${selectedDate}T00:00:00`), [selectedDate]);
   const [hasFocused, setHasFocused] = useState(false);
 
   useEffect(() => {
@@ -77,59 +72,8 @@ const TimeBlockEditorScreen: React.FC = () => {
     try {
       const saveDate = data.date instanceof Date && !Number.isNaN(data.date.getTime())
         ? data.date
-        : selectedDateForGate;
+        : selectedDateForSave;
       const saveDateString = toLocalDateString(saveDate);
-      const lockedTier = planningGating.accessCheck.isLocked;
-      const lockedByRepeat = !calendarGating.canUseRepeat && isRecurringPlanningFrequency(data.repeatFrequency);
-      const lockedByFutureDate = lockedTier && isFuturePlanningDate(saveDate);
-
-      if (lockedByRepeat || lockedByFutureDate) {
-        // We can't navigate to OnboardingSalesOffer directly from here while this
-        // fullScreenModal is still natively presented — the nested-stack native modal
-        // sits above any root-stack screen, so the sales offer would be invisible.
-        // Solution: emit an event for JournalScreen to handle AFTER this screen is
-        // dismissed (JournalScreen regains focus with no competing native modal).
-        // returnParams lets OnboardingSalesOfferScreen re-open this editor on close.
-        DeviceEventEmitter.emit('open_sales_offer_after_dismiss', {
-          source: lockedByRepeat ? 'repeat_options' : 'planning_lock',
-          feature: lockedByRepeat ? 'repeat_options' : 'future_planning',
-          context: 'timeblock',
-          skipNotificationPreference: true,
-          returnParams: {
-            selectedDate: saveDateString,
-            // Preserve form state so the editor reopens pre-populated.
-            // Use the saved block if editing one, otherwise build a fake
-            // existingTimeBlock from the current form data. No `id` means
-            // TimeBlockEditorScreen will CREATE a new block on save.
-            existingTimeBlock: existingTimeBlock || {
-              selected_date: saveDateString,
-              title: data.title,
-              start_time: data.startTime instanceof Date ? data.startTime.toISOString() : data.startTime,
-              end_time: data.endTime instanceof Date ? data.endTime.toISOString() : data.endTime,
-              category: data.category,
-              description: data.notes || '',
-              location: data.location || '',
-              all_day: data.isAllDay,
-              alert: data.alert || 'none',
-              repeat_frequency: data.repeatFrequency,
-              repeat_rule: {
-                frequency: data.repeatFrequency,
-                customDays: data.repeatCustomDays,
-                customFrequency: data.repeatCustomFrequency ?? null,
-              },
-              repeat_until: data.repeatEndDate instanceof Date
-                ? data.repeatEndDate.toISOString().split('T')[0]
-                : undefined,
-              repeat_end_date: data.repeatEndDate instanceof Date
-                ? data.repeatEndDate.toISOString()
-                : undefined,
-            },
-          },
-        });
-        navigation.goBack();
-        return;
-      }
-
       // Create full datetime objects for the selected date
       let startDateTime: Date;
       let endDateTime: Date;

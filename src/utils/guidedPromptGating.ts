@@ -1,5 +1,4 @@
-// Guided Prompt Feature Gating System
-// Tier-based access control for guided prompts with 2 random free prompts for seekers
+// Compatibility helpers for guided prompts. Guided reflection is included with Journal.
 
 import type { SubscriptionTier } from '../types/subscription';
 
@@ -23,10 +22,10 @@ export interface GuidedPromptAccessCheck {
 // Guided prompt access rules per tier
 export const GUIDED_PROMPT_ACCESS_RULES: Record<SubscriptionTier, GuidedPromptAccessRules> = {
   seeker: {
-    allowedPrompts: 2, // 2 random free prompts
-    isLocked: true,
-    usageMessage: '2 Free Guided Prompts',
-    upgradeMessage: 'Unlock unlimited guided prompts with Spark',
+    allowedPrompts: -1,
+    isLocked: false,
+    usageMessage: 'Guided Prompts',
+    upgradeMessage: '',
   },
   free_trial: {
     allowedPrompts: -1, // Unlimited
@@ -58,7 +57,7 @@ export const GUIDED_PROMPT_ACCESS_RULES: Record<SubscriptionTier, GuidedPromptAc
 // Dynamic upgrade messages by context
 export const GUIDED_PROMPT_UPGRADE_MESSAGES = {
   onboarding: {
-    seeker: 'Start your spiritual journey with unlimited guided prompts',
+    seeker: '',
     free_trial: '',
     spark: '',
     spark_annual: '',
@@ -69,7 +68,7 @@ export const GUIDED_PROMPT_UPGRADE_MESSAGES = {
     // POST-LAUNCH: family: '',
   },
   inApp: {
-    seeker: 'Unlock unlimited guided prompts to deepen your reflection practice',
+    seeker: '',
     free_trial: '',
     spark: '',
     spark_annual: '',

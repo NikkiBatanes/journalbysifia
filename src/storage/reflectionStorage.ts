@@ -71,6 +71,17 @@ const writeReflectionIndex = async (type: string, date: string, ids: string[]): 
   await AsyncStorage.setItem(getReflectionIndexKey(type, date), JSON.stringify(ids));
 };
 
+const withoutGuidedClassification = (
+  type: string,
+  metadata?: Record<string, any>,
+): Record<string, any> | undefined => {
+  if (type !== 'guided' || !metadata || !Object.prototype.hasOwnProperty.call(metadata, 'journalClassification')) {
+    return metadata;
+  }
+  const { journalClassification: _classification, ...guidedMetadata } = metadata;
+  return guidedMetadata;
+};
+
 export const createLocalReflection = async (
   data: Omit<LocalReflectionEntry, 'id' | 'created_at' | 'updated_at' | 'version' | 'sync_status'>
 ): Promise<LocalReflectionEntry> => {
@@ -79,6 +90,7 @@ export const createLocalReflection = async (
   const id = generateLocalUUID();
   const entry: LocalReflectionEntry = {
     ...data,
+    metadata: withoutGuidedClassification(data.type, data.metadata),
     id,
     selected_date: selectedDate,
     server_id: data.server_id ?? null,
@@ -139,6 +151,7 @@ export const updateLocalReflection = async (
   const selectedDate = formatLocalDate(entry.selected_date);
   const updated: LocalReflectionEntry = {
     ...entry,
+    metadata: withoutGuidedClassification(entry.type, entry.metadata),
     selected_date: selectedDate,
     updated_at: now,
     version: (entry.version || 1) + 1,
@@ -189,6 +202,18 @@ export const getAllLocalReflectionsByType = async (
     }
   }
   return entries.sort((a, b) => a.created_at.localeCompare(b.created_at));
+};
+
+/** Locate a canonical reflection by its persistent local ID without requiring an account. */
+export const findLocalReflection = async (id: string): Promise<LocalReflectionEntry | null> => {
+  const keys = (await AsyncStorage.getAllKeys()).filter(key => key.startsWith(`${LOCAL_REFLECTION_PREFIX}:`));
+  if (!keys.length) {return null;}
+  const entries = await AsyncStorage.multiGet(keys);
+  for (const [, raw] of entries) {
+    const entry = safeJsonParse<LocalReflectionEntry>(raw || '', { fallback: null });
+    if (entry?.id === id && !entry.deleted) {return entry;}
+  }
+  return null;
 };
 
 // --- Types ---

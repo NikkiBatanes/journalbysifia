@@ -2,6 +2,7 @@ import React, { useCallback } from 'react';
 import { useNavigation } from '@react-navigation/native';
 
 import { useRoutine } from '../../context/RoutineContext';
+import { fromLocalDateString } from '../../utils/date';
 import { exitMorningFlow } from '../../navigation/exitEveningFlow';
 import TodosExperience from '../../components/journal/TodosExperience';
 
@@ -25,9 +26,11 @@ const MorningTodosScreen: React.FC = () => {
 
   return (
     <TodosExperience
-      selectedDate={new Date(selectedDate)}
+      selectedDate={fromLocalDateString(selectedDate)}
       onClose={handleClose}
       onComplete={handleComplete}
+      routineDraft={{ routine: 'morning', selectedDate, step: 'todos' }}
+      skipCompletionPage
     />
   );
 };

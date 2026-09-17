@@ -7,13 +7,14 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { withErrorBoundary } from '../../components/ErrorBoundary/withErrorBoundary';
 import { LookingForwardExperience } from '../../components/journal/LookingForwardExperience';
 import { useRoutine } from '../../context/RoutineContext';
+import { fromLocalDateString } from '../../utils/date';
 
 const EveningLookingForwardScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const insets = useSafeAreaInsets();
   const route = useRoute<any>();
   const { selectedDate, markStepCompleted } = useRoutine();
-  const selectedDateObj = new Date(selectedDate);
+  const selectedDateObj = fromLocalDateString(selectedDate);
   const params = route.params ?? {};
 
 
@@ -57,6 +58,7 @@ const EveningLookingForwardScreen: React.FC = () => {
       onClose={handleClose}
       onComplete={handleComplete}
       skipCompletionPage
+      routineDraft={{ routine: 'evening', selectedDate, step: 'looking_forward' }}
     />
   );
 };

@@ -543,7 +543,7 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
       onExpand={onExpand}
     >
       {displayEntry && !shouldShowAddingMode && !editingItemId ? (
-        <View style={styles.completionCard}>
+        <View style={[styles.completionCard, isPalette && { backgroundColor: Colors.cardBackground }]}>
           {displayEntry.text.trim() && (
             <View style={styles.completionSection}>
               <ThemedText style={[styles.completionSectionText, { color: isPalette ? Colors.text : Colors.hopeWhite }]}>{displayEntry.text}</ThemedText>

@@ -96,7 +96,13 @@ it('uses linked sessions only for legacy completion eligibility and preserves re
     ? { completed: true, completed_at: '2026-09-15T02:00:00Z' }
     : id === 'draft-session' ? { completed: false } : null);
   const saved = await getSavedBibleStudyReflections();
-  expect(saved.map(reflection => reflection.id)).toEqual(['saved']);
+  expect(saved.map(reflection => reflection.id)).toEqual(['saved', 'missing']);
   expect(saved[0].metadata?.bibleStudyCompletedAt).toBe('2026-09-15T02:00:00Z');
   expect(parseSavedBibleStudy(saved[0])?.observation.text).toBe('My observation');
+});
+
+it('keeps a valid oldest-format canonical study with no session reference', async () => {
+  loadReflections.mockResolvedValue([entry('oldest')]);
+  expect((await getSavedBibleStudyReflections()).map(reflection => reflection.id)).toEqual(['oldest']);
+  expect(loadSession).not.toHaveBeenCalled();
 });

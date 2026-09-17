@@ -158,6 +158,50 @@ export const getLocalJournalEntries = async (
   return entries.sort((a, b) => a.created_at.localeCompare(b.created_at));
 };
 
+/** Canonical Todo reader shared by future planning and the Morning flow. */
+export const getLocalTodosForDate = async (date: string | Date): Promise<LocalJournalEntry[]> =>
+  getLocalJournalEntries('todo', date);
+
+/**
+ * Copy incomplete canonical Todo records to another local calendar date.
+ * Destination records intentionally receive new IDs; the source remains intact.
+ */
+export const copyLocalIncompleteTodos = async (
+  sourceDate: string | Date,
+  destinationDate: string | Date,
+): Promise<LocalJournalEntry[]> => {
+  const source = await getLocalTodosForDate(sourceDate);
+  const targetDate = formatLocalDate(destinationDate);
+  const copied: LocalJournalEntry[] = [];
+  for (const entry of source) {
+    const content = safeJsonParse<Record<string, any>>(entry.content, { fallback: {} }) || {};
+    const text = typeof content.text === 'string' ? content.text.trim() : '';
+    const completed = content.completed ?? entry.completed ?? false;
+    if (!text || completed) {continue;}
+    copied.push(await createLocalJournalEntry({
+      server_id: null,
+      content_type: 'todo',
+      selected_date: targetDate,
+      content: JSON.stringify({ text, completed: false, priority: content.priority === true }),
+      completed: false,
+    }));
+  }
+  return copied;
+};
+
+/** Read-only discovery for canonical local Moments and other history surfaces. */
+export const getAllLocalJournalEntries = async (): Promise<LocalJournalEntry[]> => {
+  const keys = (await AsyncStorage.getAllKeys()).filter(key =>
+    key.startsWith(`${LOCAL_JOURNAL_PREFIX}:`) || key.startsWith(`${LOCAL_JOURNAL_SINGLETON_PREFIX}:`),
+  );
+  if (!keys.length) {return [];}
+  const entries = (await AsyncStorage.multiGet(keys))
+    .map(([, raw]) => safeJsonParse<LocalJournalEntry>(raw || '', { fallback: null }))
+    .filter((entry): entry is LocalJournalEntry => !!entry && !entry.deleted);
+  return [...new Map(entries.map(entry => [entry.id, entry])).values()]
+    .sort((a, b) => a.created_at.localeCompare(b.created_at));
+};
+
 export const updateLocalJournalEntry = async (
   entry: LocalJournalEntry
 ): Promise<LocalJournalEntry> => {

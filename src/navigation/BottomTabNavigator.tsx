@@ -2,9 +2,10 @@
 import React, { useEffect } from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { Feather } from 'lucide-react-native';
+import { Feather, Heart, ListTodo, NotebookPen } from 'lucide-react-native';
+import { BlurView } from '@react-native-community/blur';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { StyleSheet, Pressable, TouchableOpacity, Animated, NativeModules, View, Text, Dimensions } from 'react-native';
+import { StyleSheet, Pressable, TouchableOpacity, Animated, Easing, NativeModules, View, Text, Dimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useScroll } from '../context/ScrollContext';
 import { getFocusedRouteNameFromRoute, ParamListBase, TabNavigationState } from '@react-navigation/native';
@@ -24,9 +25,10 @@ import JournalStackNavigator from './JournalStackNavigator';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { experiencePreferences } from '../services/experiencePreferences';
 import { triggerLightHaptic } from '../utils/haptics';
+import { openPrayerFlow } from './openPrayerFlow';
+import PrayerHandsIcon from '../components/common/PrayerHandsIcon';
 
 const Tab = createBottomTabNavigator();
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 // Define the props for our custom tab bar
 type CustomTabBarProps = {
@@ -47,9 +49,74 @@ const CIRCLE_SIZE = 48;
 
 const LABELS: Record<string, string> = {
   Today: 'Today',
-  Prayer: 'Prayer',
+  Prayer: 'Prayers',
   Journal: 'Moments',
   More: 'More',
+};
+
+// ── Add menu items ─────────────────────────────────────────────────────────
+// Icons match the ones used by the Moments section cards and editors.
+type AddMenuIcon =
+  | { family: 'ionicons'; name: string; rotate?: string }
+  | { family: 'material'; name: string; rotate?: string }
+  | { family: 'lucide'; component: React.ComponentType<{ size?: number; color?: string; strokeWidth?: number; style?: any }>; rotate?: string };
+
+type PrayerKey = 'acts' | 'open' | 'pray-for-someone' | 'prayer-request' | 'need';
+
+type AddMenuItem = {
+  icon: AddMenuIcon;
+  title: string;
+  target?: string;
+  params?: { screen: string; params?: Record<string, any> };
+  opensPrayerMenu?: boolean;
+  opensSessionMenu?: boolean;
+  prayerKey?: PrayerKey;
+};
+
+const ADD_MENU_ITEMS: AddMenuItem[] = [
+  { icon: { family: 'material', name: 'book-outline' }, title: 'Bible Study', target: 'Journal', params: { screen: 'BibleStudy' } },
+  { icon: { family: 'ionicons', name: 'reader-outline' }, title: 'Session Notes', opensSessionMenu: true },
+  { icon: { family: 'lucide', component: NotebookPen }, title: 'Heart Journal', target: 'Journal', params: { screen: 'ReflectionEditor', params: { initialMode: 'free-form', source: 'freeform', openHeart: true } } },
+  { icon: { family: 'lucide', component: ListTodo }, title: 'To-dos', target: 'TodosWalkthrough' },
+  { icon: { family: 'lucide', component: Heart }, title: 'Gratitude', target: 'Journal', params: { screen: 'JournalMoments' } },
+  { icon: { family: 'material', name: 'script-text-outline' }, title: 'Scripture Note', target: 'Journal', params: { screen: 'ScriptureNoteEditor' } },
+  { icon: { family: 'ionicons', name: 'hand-left-outline' }, title: 'Prayer', opensPrayerMenu: true },
+];
+
+// Second-level menu shown when the Prayer chip is tapped — mirrors the
+// "MAKE ROOM FOR PRAYER" actions on the Prayer screen.
+const PRAYER_MENU_ITEMS: AddMenuItem[] = [
+  { icon: { family: 'ionicons', name: 'layers-outline' }, title: 'CAST', prayerKey: 'acts' },
+  { icon: { family: 'ionicons', name: 'chatbubble-outline' }, title: 'Open', prayerKey: 'open' },
+  { icon: { family: 'ionicons', name: 'heart-outline' }, title: 'For Someone', prayerKey: 'pray-for-someone' },
+  { icon: { family: 'ionicons', name: 'chatbubble-ellipses-outline' }, title: 'Prayer Request', prayerKey: 'prayer-request' },
+  { icon: { family: 'ionicons', name: 'add-circle-outline' }, title: 'Prayer Need', prayerKey: 'need' },
+];
+
+// Second-level menu shown when the Session Notes chip is tapped — every option
+// opens the same structured note editor with a different document type.
+const SESSION_MENU_ITEMS: AddMenuItem[] = [
+  { icon: { family: 'ionicons', name: 'reader-outline' }, title: 'Sermon', target: 'Journal', params: { screen: 'SermonNotes', params: { sessionNoteType: 'sermon' } } },
+  { icon: { family: 'ionicons', name: 'megaphone-outline' }, title: 'Conference', target: 'Journal', params: { screen: 'SermonNotes', params: { sessionNoteType: 'conference' } } },
+  { icon: { family: 'ionicons', name: 'mic-outline' }, title: 'Speaking', target: 'Journal', params: { screen: 'SermonNotes', params: { sessionNoteType: 'speaking' } } },
+  { icon: { family: 'ionicons', name: 'people-outline' }, title: 'Meeting', target: 'Journal', params: { screen: 'SermonNotes', params: { sessionNoteType: 'meeting' } } },
+  { icon: { family: 'ionicons', name: 'construct-outline' }, title: 'Workshop', target: 'Journal', params: { screen: 'SermonNotes', params: { sessionNoteType: 'workshop' } } },
+  { icon: { family: 'ionicons', name: 'document-text-outline' }, title: 'Other', target: 'Journal', params: { screen: 'SermonNotes', params: { sessionNoteType: 'other' } } },
+];
+
+const AddMenuItemIcon = ({ icon }: { icon: AddMenuIcon }) => {
+  if (icon.family === 'ionicons' && icon.name === 'hand-left-outline') {
+    return <PrayerHandsIcon size={15} color={Colors.hopeWhite} />;
+  }
+  const rotateStyle = icon.rotate ? { transform: [{ rotate: icon.rotate }] } : undefined;
+  if (icon.family === 'lucide') {
+    const LucideComponent = icon.component;
+    return <LucideComponent size={15} color={Colors.hopeWhite} strokeWidth={2.5} style={rotateStyle} />;
+  }
+  if (icon.family === 'material') {
+    return <MaterialCommunityIcons name={icon.name as any} size={15} color={Colors.hopeWhite} style={rotateStyle} />;
+  }
+  return <Ionicons name={icon.name as any} size={15} color={Colors.hopeWhite} style={rotateStyle} />;
 };
 
 // Custom tab bar — floating pill with smooth entrance/exit and per-tab bounce
@@ -66,79 +133,19 @@ const CustomTabBarComponent = ({
   const screenHeight = Dimensions.get('window').height;
   const [showLabels, setShowLabels] = React.useState(experiencePreferences.showTabLabelsEnabled);
   const [showAddMenu, setShowAddMenu] = React.useState(false);
+  const [addFlowActive, setAddFlowActive] = React.useState(false);
+  const [menuMode, setMenuMode] = React.useState<'main' | 'prayer' | 'session'>('main');
+  const [menuModeTransitioning, setMenuModeTransitioning] = React.useState(false);
   const menuAnim = React.useRef(new Animated.Value(0)).current;
+  const menuTitleAnim = React.useRef(new Animated.Value(0)).current;
+  const menuItemAnims = React.useRef(ADD_MENU_ITEMS.map(() => new Animated.Value(0))).current;
+  const addIconRotation = React.useRef(new Animated.Value(0)).current;
+  const addIconScale = React.useRef(new Animated.Value(1)).current;
   const addButtonLayout = React.useRef({ x: 0, width: 0 });
+  const pendingAddNavigationRef = React.useRef(false);
+  const activeAddRouteIdentityRef = React.useRef<string | null>(null);
 
-  React.useEffect(() => {
-    Animated.spring(menuAnim, {
-      toValue: showAddMenu ? 1 : 0,
-      tension: 80,
-      friction: 12,
-      useNativeDriver: true,
-    }).start();
-  }, [showAddMenu, menuAnim]);
-
-  const addMenuItems = React.useMemo(
-    () => [
-      { icon: '▤', title: 'Bible Study', subtitle: 'Read, notice, and go deeper', target: 'Journal', params: { screen: 'BibleStudy' } },
-      { icon: '▧', title: 'Sermon Notes', subtitle: 'Message, Scripture & reflection', target: 'Journal', params: { screen: 'SermonNotes' } },
-      { icon: '✎', title: 'Heart Journal', subtitle: 'Write freely', target: 'Journal', params: { screen: 'ReflectionEditor' } },
-      { icon: '◌', title: 'Emotional Check-In', subtitle: 'Notice and name how you feel', target: 'MorningFlow', params: { screen: 'EmotionCheckIn' } },
-      { icon: '♡', title: 'Gratitude', subtitle: 'Remember what you\'re thankful for', target: 'Journal', params: { screen: 'JournalMoments' } },
-      { icon: '☼', title: 'Reflection', subtitle: 'Choose a prompt', target: 'Journal', params: { screen: 'ReflectionEditor' } },
-      { icon: '▱', title: 'Scripture Note', subtitle: 'Write about a passage', target: 'Journal', params: { screen: 'ScriptureNoteEditor' } },
-      { icon: '♧', title: 'Prayer', subtitle: 'Open · CAST · Someone', target: 'Prayer' },
-    ],
-    []
-  );
-
-  const handleAddItem = (item: typeof addMenuItems[0]) => {
-    triggerLightHaptic();
-    setShowAddMenu(false);
-    if (item.params?.screen === 'BibleStudy') {
-      navigation.navigate('Journal' as any, {
-        screen: 'BibleStudy',
-        params: { openMode: 'create', openRequestId: `${Date.now()}-${Math.random()}`, sessionId: null, reflectionId: null, selectedDate: null },
-      } as any);
-      return;
-    }
-    if (item.params) {
-      navigation.navigate(item.target as any, item.params as any);
-    } else {
-      navigation.navigate(item.target as any);
-    }
-  };
-
-  // Move the shared sliding selector under the add button when the menu is open
-  React.useEffect(() => {
-    if (showAddMenu) {
-      updateSelectorPosition(addButtonLayout.current.x);
-    } else {
-      updateSelectorPosition(tabLayouts[state.index]?.x ?? 0);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showAddMenu]);
-
-  const currentRouteName = state.routes[state.index].name;
-  const isReflect = currentRouteName === 'Reflect';
-  const activeTabRoute = state.routes[state.index] as any;
-  const activeNestedRouteName = getFocusedRouteNameFromRoute(activeTabRoute);
-  const isSermonNotes =
-    activeNestedRouteName === 'SermonNotes' ||
-    activeNestedRouteName === 'SermonNotesDetail';
-  const isBibleStudy = activeNestedRouteName === 'BibleStudy';
-  const isReview = activeNestedRouteName === 'Review';
-  const isDevReview = activeNestedRouteName === 'DevReviewTriggers';
-
-  // ── Pill visibility: opacity + translateY ────────────────────────────────
-  // 0 = hidden below screen, 1 = visible in place
-  const pillAnim = React.useRef(new Animated.Value(isReflect ? 0 : 1)).current;
-
-  // ── Collapse-to-circle: 0 = full pill, 1 = collapsed circle ──────────────
-  // Starts collapsed if already on Reflect
-  const collapseAnim = React.useRef(new Animated.Value(isReflect ? 1 : 0)).current;
-
-  // ── Sliding selector position ───────────────────────────────────────────────
+  // Shared selector geometry lives above the menu handlers/effects that use it.
   const selectorPosition = React.useRef(new Animated.Value(0)).current;
   const selectorScaleX = React.useRef(new Animated.Value(1)).current;
   const selectorScaleY = React.useRef(new Animated.Value(1)).current;
@@ -160,12 +167,238 @@ const CustomTabBarComponent = ({
         ]),
         Animated.delay(100),
         Animated.parallel([
-          Animated.spring(selectorScaleX, { toValue: 1,    tension: 180, friction: 10, useNativeDriver: true }),
-          Animated.spring(selectorScaleY, { toValue: 1,    tension: 200, friction: 12, useNativeDriver: true }),
+          Animated.spring(selectorScaleX, { toValue: 1, tension: 180, friction: 10, useNativeDriver: true }),
+          Animated.spring(selectorScaleY, { toValue: 1, tension: 200, friction: 12, useNativeDriver: true }),
         ]),
       ]),
     ]).start();
   }, [selectorPosition, selectorScaleX, selectorScaleY]);
+
+  const addIconRotate = addIconRotation.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '45deg'],
+  });
+
+  React.useEffect(() => {
+    if (showAddMenu) {
+      menuTitleAnim.stopAnimation();
+      menuTitleAnim.setValue(0);
+      menuItemAnims.forEach(anim => {
+        anim.stopAnimation();
+        anim.setValue(0);
+      });
+    }
+    Animated.parallel([
+      Animated.spring(menuAnim, {
+        toValue: showAddMenu ? 1 : 0,
+        tension: 80,
+        friction: 12,
+        useNativeDriver: true,
+      }),
+      // Same rotate-to-open as the playbook walkthrough journal trigger
+      Animated.timing(addIconRotation, {
+        toValue: showAddMenu ? 1 : 0,
+        duration: 220,
+        useNativeDriver: true,
+      }),
+      Animated.spring(addIconScale, {
+        toValue: showAddMenu ? 1.15 : 1,
+        useNativeDriver: true,
+        tension: 200,
+        friction: 7,
+      }),
+      // Staggered pill reveal — same pattern as the sermon notes capture picker
+      showAddMenu
+        ? Animated.stagger(
+            38,
+            [...[...menuItemAnims].reverse(), menuTitleAnim].map(anim =>
+              Animated.spring(anim, {
+                toValue: 1,
+                tension: 90,
+                friction: 12,
+                useNativeDriver: true,
+              }),
+            ),
+          )
+        : Animated.stagger(
+            28,
+            [...menuItemAnims, menuTitleAnim].map(anim =>
+              Animated.timing(anim, {
+                toValue: 0,
+                duration: 130,
+                useNativeDriver: true,
+              }),
+            ),
+          ),
+    ]).start();
+  }, [showAddMenu, menuAnim, menuTitleAnim, menuItemAnims, addIconRotation, addIconScale]);
+
+  // Replay the same staggered chip reveal when the menu switches into a
+  // second-level mode (prayer or session notes)
+  React.useLayoutEffect(() => {
+    if (!showAddMenu || menuMode === 'main') { return; }
+    const anims = menuItemAnims.slice(0, menuMode === 'prayer' ? PRAYER_MENU_ITEMS.length : SESSION_MENU_ITEMS.length);
+    menuTitleAnim.stopAnimation();
+    menuTitleAnim.setValue(0);
+    anims.forEach(anim => {
+      anim.stopAnimation();
+      anim.setValue(0);
+    });
+    Animated.stagger(
+      38,
+      [...[...anims].reverse(), menuTitleAnim].map(anim =>
+        Animated.spring(anim, {
+          toValue: 1,
+          tension: 90,
+          friction: 12,
+          useNativeDriver: true,
+        }),
+      ),
+    ).start();
+  }, [menuMode, showAddMenu, menuTitleAnim, menuItemAnims]);
+
+  const transitionMenuMode = React.useCallback((nextMode: 'prayer' | 'session') => {
+    if (menuModeTransitioning || menuMode === nextMode) {return;}
+    setMenuModeTransitioning(true);
+    const currentCount = menuMode === 'main'
+      ? ADD_MENU_ITEMS.length
+      : menuMode === 'prayer'
+        ? PRAYER_MENU_ITEMS.length
+        : SESSION_MENU_ITEMS.length;
+    const outgoing = menuItemAnims.slice(0, currentCount);
+    menuTitleAnim.stopAnimation();
+    outgoing.forEach(animation => animation.stopAnimation());
+    Animated.stagger(
+      22,
+      [menuTitleAnim, ...outgoing].map(animation =>
+        Animated.timing(animation, {
+          toValue: 0,
+          duration: 120,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+      ),
+    ).start(() => {
+      setMenuMode(nextMode);
+      setMenuModeTransitioning(false);
+    });
+  }, [menuItemAnims, menuMode, menuModeTransitioning, menuTitleAnim]);
+
+  const handleAddItem = (item: AddMenuItem) => {
+    triggerLightHaptic();
+    if (item.opensPrayerMenu) {
+      transitionMenuMode('prayer');
+      return;
+    }
+    if (item.opensSessionMenu) {
+      transitionMenuMode('session');
+      return;
+    }
+    setShowAddMenu(false);
+    setAddFlowActive(true);
+    setMenuMode('main');
+    pendingAddNavigationRef.current = true;
+    if (item.params?.screen === 'BibleStudy') {
+      navigation.navigate('Journal' as any, {
+        screen: 'BibleStudy',
+        params: { openMode: 'create', openRequestId: `${Date.now()}-${Math.random()}`, sessionId: null, reflectionId: null, selectedDate: null },
+      } as any);
+      return;
+    }
+    if (item.params) {
+      navigation.navigate(item.target as any, item.params as any);
+    } else {
+      navigation.navigate(item.target as any);
+    }
+  };
+
+  const handlePrayerItem = (item: AddMenuItem) => {
+    triggerLightHaptic();
+    setShowAddMenu(false);
+    setAddFlowActive(true);
+    setMenuMode('main');
+    pendingAddNavigationRef.current = true;
+    if (item.prayerKey === 'need') {
+      navigation.navigate('Prayer' as any, { openNeedModal: true } as any);
+      return;
+    }
+    const selectedDate = new Date().toISOString();
+    if (item.prayerKey === 'acts' || item.prayerKey === 'open') {
+      openPrayerFlow(navigation, 'PrayerJournalWalkthrough', {
+        selectedDate,
+        initialPrayerType: item.prayerKey,
+        showDescription: true,
+      });
+      return;
+    }
+    openPrayerFlow(navigation, 'PrayersForPeopleWalkthrough', {
+      selectedDate,
+      initialPrayerType: item.prayerKey,
+    });
+  };
+
+  // Move the shared sliding selector under the add button when the menu is open
+  React.useEffect(() => {
+    if (showAddMenu || addFlowActive) {
+      updateSelectorPosition(addButtonLayout.current.x);
+    } else {
+      updateSelectorPosition(tabLayouts[state.index]?.x ?? 0);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showAddMenu, addFlowActive, state.index]);
+
+  const currentRouteName = state.routes[state.index].name;
+  const isReflect = currentRouteName === 'Reflect';
+  const activeTabRoute = state.routes[state.index] as any;
+  const activeNestedRouteName = getFocusedRouteNameFromRoute(activeTabRoute);
+  const isSermonNotes =
+    activeNestedRouteName === 'SermonNotes' ||
+    activeNestedRouteName === 'SermonNotesDetail';
+  const isReflectionEditor = activeNestedRouteName === 'ReflectionEditor';
+  const isBibleStudy = activeNestedRouteName === 'BibleStudy';
+  const isReview = activeNestedRouteName === 'Review';
+
+  // Record the route opened from the pencil. Keep the pencil selected while
+  // that destination is active, then restore the real tab when the user backs
+  // out or another navigation action changes the route.
+  React.useEffect(() => {
+    const routeIdentity = `${currentRouteName}:${activeNestedRouteName || ''}`;
+
+    if (showAddMenu) {
+      setShowAddMenu(false);
+      setAddFlowActive(false);
+      setMenuMode('main');
+      pendingAddNavigationRef.current = false;
+      activeAddRouteIdentityRef.current = null;
+      return;
+    }
+
+    if (!addFlowActive) {return;}
+
+    if (pendingAddNavigationRef.current) {
+      pendingAddNavigationRef.current = false;
+      activeAddRouteIdentityRef.current = routeIdentity;
+      return;
+    }
+
+    if (
+      activeAddRouteIdentityRef.current &&
+      activeAddRouteIdentityRef.current !== routeIdentity
+    ) {
+      activeAddRouteIdentityRef.current = null;
+      setAddFlowActive(false);
+    }
+  // Deliberately react only to route identity changes, not menu opening.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentRouteName, activeNestedRouteName]);
+
+  // ── Pill visibility: opacity + translateY ────────────────────────────────
+  // 0 = hidden below screen, 1 = visible in place
+  const pillAnim = React.useRef(new Animated.Value(isReflect ? 0 : 1)).current;
+
+  // ── Collapse-to-circle: 0 = full pill, 1 = collapsed circle ──────────────
+  // Starts collapsed if already on Reflect
+  const collapseAnim = React.useRef(new Animated.Value(isReflect ? 1 : 0)).current;
 
   const handleTabLayout = React.useCallback((index: number) => (event: any) => {
     const { x } = event.nativeEvent.layout;
@@ -261,7 +494,7 @@ const CustomTabBarComponent = ({
 
   const { onTabPress } = React.useContext(TabPressContext);
 
-  if (isSermonNotes || isBibleStudy || isReview || isDevReview) {
+  if (isSermonNotes || isReflectionEditor || isBibleStudy || isReview) {
     return null;
   }
 
@@ -308,7 +541,7 @@ const CustomTabBarComponent = ({
   const circleIcon = (() => {
     const name = state.routes[state.index].name;
     if (name === 'Today')       { return <Ionicons name="sunny-outline" size={22} color={INACTIVE_CIRCLE_COLOR} />; }
-    if (name === 'Prayer')      { return <Ionicons name="hand-left-outline" size={22} color={INACTIVE_CIRCLE_COLOR} style={{ transform: [{ rotate: '-18deg' }] }} />; }
+    if (name === 'Prayer')      { return <PrayerHandsIcon size={22} color={INACTIVE_CIRCLE_COLOR} />; }
     if (name === 'Journal')     { return <Feather size={22} color={INACTIVE_CIRCLE_COLOR} />; }
     if (name === 'More')        { return <Ionicons name="ellipsis-horizontal" size={22} color={INACTIVE_CIRCLE_COLOR} />; }
     return <Ionicons name="apps-outline" size={22} color={INACTIVE_CIRCLE_COLOR} />;
@@ -326,14 +559,33 @@ const CustomTabBarComponent = ({
       ]}
       pointerEvents={isReflect ? 'none' : 'box-none'}
     >
-      {/* ── Add menu dim — behind the pill and menu ───────── */}
-      <AnimatedPressable
+      {/* ── Add menu blur — behind the pill and menu ──────── */}
+      <Animated.View
         style={[
-          styles.addMenuDim,
+          styles.addMenuBlur,
           { left: -16, right: -16, top: -(screenHeight - insets.bottom - PILL_HEIGHT), bottom: -insets.bottom, opacity: menuAnim },
         ]}
+        pointerEvents="none">
+        <BlurView
+          style={StyleSheet.absoluteFill}
+          blurType="light"
+          blurAmount={7}
+          reducedTransparencyFallbackColor={Colors.lightBackground}
+        />
+      </Animated.View>
+      <Pressable
+        style={[
+          styles.addMenuDismissLayer,
+          { left: -16, right: -16, top: -(screenHeight - insets.bottom - PILL_HEIGHT), bottom: -insets.bottom },
+        ]}
         pointerEvents={showAddMenu ? 'auto' : 'none'}
-        onPress={() => setShowAddMenu(false)}
+        onPress={() => {
+          setShowAddMenu(false);
+          setAddFlowActive(false);
+          setMenuMode('main');
+          pendingAddNavigationRef.current = false;
+          activeAddRouteIdentityRef.current = null;
+        }}
       />
 
       {/* ── Full pill: shape scales left→right, content fades separately ─── */}
@@ -376,6 +628,10 @@ const CustomTabBarComponent = ({
 
             const onPress = () => {
               setShowAddMenu(false);
+              setAddFlowActive(false);
+              setMenuMode('main');
+              pendingAddNavigationRef.current = false;
+              activeAddRouteIdentityRef.current = null;
               const event = navigation.emit({
                 type: 'tabPress',
                 target: route.key,
@@ -394,7 +650,7 @@ const CustomTabBarComponent = ({
 
             const icon = (() => {
               if (route.name === 'Today')       { return <Ionicons name={isFocused ? 'sunny' : 'sunny-outline'} size={20} color={iconColor} />; }
-              if (route.name === 'Prayer')      { return <Ionicons name={isFocused ? 'hand-left' : 'hand-left-outline'} size={20} color={iconColor} style={{ transform: [{ rotate: '-18deg' }] }} />; }
+              if (route.name === 'Prayer')      { return <PrayerHandsIcon size={20} color={iconColor} />; }
               if (route.name === 'Journal')     { return <Feather size={20} color={iconColor} />; }
               if (route.name === 'More')        { return <Ionicons name={isFocused ? 'ellipsis-horizontal' : 'ellipsis-horizontal-outline'} size={20} color={iconColor} />; }
               const iconName = isFocused
@@ -434,12 +690,19 @@ const CustomTabBarComponent = ({
                   <TouchableOpacity
                     onPress={() => {
                       triggerLightHaptic();
-                      setShowAddMenu(!showAddMenu);
+                      const opening = !showAddMenu;
+                      if (opening) { setMenuMode('main'); }
+                      pendingAddNavigationRef.current = false;
+                      activeAddRouteIdentityRef.current = null;
+                      setAddFlowActive(opening);
+                      setShowAddMenu(opening);
                     }}
                     activeOpacity={0.8}
                     style={styles.pillTabTouchable}
                   >
-                    <MaterialCommunityIcons name="pencil-plus-outline" size={24} color={Colors.hopeWhite} />
+                    <Animated.View style={{ transform: [{ rotate: addIconRotate }, { scale: addIconScale }] }}>
+                      <MaterialCommunityIcons name="pencil-plus-outline" size={24} color={Colors.hopeWhite} />
+                    </Animated.View>
                   </TouchableOpacity>
                 </View>
               ),
@@ -449,39 +712,55 @@ const CustomTabBarComponent = ({
         </View>
       </Animated.View>
 
-      {/* ── Add menu — appears above the tab bar ─────────── */}
-      <Animated.View
-        style={[
-          styles.addMenu,
-          {
-            opacity: menuAnim,
-            transform: [
-              { translateY: menuAnim.interpolate({ inputRange: [0, 1], outputRange: [24, 0] }) },
-            ],
-          },
-        ]}
-        pointerEvents={showAddMenu ? 'auto' : 'none'}
+      {/* ── Add menu — staggered chip reveal above the tab bar ─────────── */}
+      <View
+        style={styles.addMenu}
+        pointerEvents={showAddMenu ? 'box-none' : 'none'}
       >
-        <ThemedText weight="bold" style={styles.addMenuTitle}>
-          What would you like to write?
-        </ThemedText>
-
-        {addMenuItems.map((item) => (
-          <TouchableOpacity
-            key={item.title}
-            style={styles.addMenuItem}
-            onPress={() => handleAddItem(item)}
-            activeOpacity={0.7}
-          >
-            <ThemedText style={styles.addMenuIcon}>{item.icon}</ThemedText>
-            <View style={styles.addMenuItemText}>
-              <ThemedText weight="semiBold" style={styles.addMenuItemTitle}>{item.title}</ThemedText>
-              <ThemedText style={styles.addMenuItemSubtitle}>{item.subtitle}</ThemedText>
-            </View>
-            <Ionicons name="chevron-forward" size={16} color={Colors.hopeWhite} />
-          </TouchableOpacity>
-        ))}
-      </Animated.View>
+        <Animated.View
+          style={{
+            opacity: menuTitleAnim,
+            transform: [
+              { translateY: menuTitleAnim.interpolate({ inputRange: [0, 1], outputRange: [12, 0] }) },
+              { scale: menuTitleAnim.interpolate({ inputRange: [0, 1], outputRange: [0.96, 1] }) },
+            ],
+          }}
+        >
+          <View style={styles.addMenuTitlePill}>
+            <ThemedText weight="semiBold" style={styles.addMenuTitle}>
+              {menuMode === 'prayer' ? 'How would you like to pray?' : menuMode === 'session' ? 'What are you taking notes for?' : 'What would you like to write?'}
+            </ThemedText>
+          </View>
+        </Animated.View>
+        <View style={styles.addMenuGrid}>
+          {(menuMode === 'prayer' ? PRAYER_MENU_ITEMS : menuMode === 'session' ? SESSION_MENU_ITEMS : ADD_MENU_ITEMS).map((item, index) => (
+            <Animated.View
+              key={item.title}
+              style={{
+                opacity: menuItemAnims[index],
+                transform: [
+                  { translateY: menuItemAnims[index].interpolate({ inputRange: [0, 1], outputRange: [12, 0] }) },
+                  { scale: menuItemAnims[index].interpolate({ inputRange: [0, 1], outputRange: [0.94, 1] }) },
+                ],
+              }}
+            >
+              <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityLabel={item.title}
+                disabled={menuModeTransitioning}
+                style={styles.addMenuItem}
+                onPress={() => (item.prayerKey ? handlePrayerItem(item) : handleAddItem(item))}
+                activeOpacity={0.7}
+              >
+                <View style={styles.addMenuIconCircle}>
+                  <AddMenuItemIcon icon={item.icon} />
+                </View>
+                <ThemedText style={styles.addMenuItemText}>{item.title}</ThemedText>
+              </TouchableOpacity>
+            </Animated.View>
+          ))}
+        </View>
+      </View>
 
       {/* ── Collapsed circle (fades in from left as pill collapses) ─────── */}
       <Animated.View
@@ -680,68 +959,83 @@ const styles = StyleSheet.create({
     letterSpacing: 0.1,
   },
   // Add menu — appears above the tab bar
-  addMenuDim: {
+  addMenuBlur: {
     position: 'absolute',
     left: 0,
     right: 0,
     top: -500,
-    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+    overflow: 'hidden',
   },
+  addMenuDismissLayer: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: -500,
+    backgroundColor: 'transparent',
+  },
+  // Centered wrap grid of chips — same layout as the Today's Win picker
+  // (winTypesGrid), colored like the nav pill: sage surface, ivory content.
   addMenu: {
     position: 'absolute',
     left: 0,
     right: 0,
     bottom: 76,
+  },
+  addMenuTitlePill: {
+    alignSelf: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    marginBottom: 10,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: Colors.sageMuted,
     backgroundColor: PILL_BG,
-    borderRadius: 22,
-    padding: 16,
     shadowColor: Colors.darkBackground,
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 12,
-    elevation: 8,
-    gap: 12,
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 4,
   },
   addMenuTitle: {
     color: Colors.hopeWhite,
-    fontSize: 18,
-    lineHeight: 24,
-    textAlign: 'center',
-  },
-  addMenuSubtitle: {
-    color: 'rgba(255, 255, 255, 0.7)',
     fontSize: 13,
     lineHeight: 18,
     textAlign: 'center',
-    marginBottom: 4,
+  },
+  addMenuGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 8,
   },
   addMenuItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.2)',
+    gap: 8,
+    paddingVertical: 9,
+    paddingLeft: 9,
+    paddingRight: 15,
+    borderWidth: 1,
+    borderColor: Colors.sageMuted,
+    borderRadius: 28,
+    backgroundColor: PILL_BG,
+    shadowColor: Colors.darkBackground,
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 4,
   },
-  addMenuIcon: {
-    width: 28,
-    textAlign: 'center',
-    fontSize: 20,
-    color: Colors.hopeWhite,
+  addMenuIconCircle: {
+    width: 26,
+    height: 26,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 13,
+    backgroundColor: Colors.sageMuted,
   },
   addMenuItemText: {
-    flex: 1,
-  },
-  addMenuItemTitle: {
-    color: Colors.hopeWhite,
     fontSize: 15,
-    lineHeight: 20,
-  },
-  addMenuItemSubtitle: {
-    color: 'rgba(255, 255, 255, 0.7)',
-    fontSize: 12,
-    lineHeight: 16,
-    marginTop: 2,
+    color: Colors.hopeWhite,
   },
   // Collapsed circle — sits at left edge of pillWrapper
   collapsedCircle: {

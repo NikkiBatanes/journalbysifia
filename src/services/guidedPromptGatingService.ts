@@ -35,24 +35,12 @@ export class GuidedPromptGatingService {
    * Get daily prompt allocation for a user based on their tier
    * Uses consistent deterministic randomization
    */
-  public getDailyPrompts(userId: string, tier: SubscriptionTier): DailyPromptAllocation {
-    // Paid tiers get all prompts unlocked
-    if (tier !== 'seeker') {
-      return {
-        freePrompts: GUIDED_PROMPTS.slice(), // All prompts are free
-        lockedPrompts: [],
-        allPrompts: GUIDED_PROMPTS.slice(),
-      };
-    }
-
-    // Seeker tier: Show ALL prompts - guaranteed minimum 1 free prompt + rest locked
-    const freePrompts = this.generateConsistentFreePrompts(userId, 2);
-    const remainingPrompts = GUIDED_PROMPTS.filter(p => !freePrompts.includes(p));
-
+  public getDailyPrompts(_userId: string, _tier: SubscriptionTier): DailyPromptAllocation {
+    // Guided reflection is core Journal functionality, included with the app.
     return {
-      freePrompts,
-      lockedPrompts: remainingPrompts, // Show ALL remaining prompts as locked
-      allPrompts: GUIDED_PROMPTS.slice(), // Show ALL prompts
+      freePrompts: GUIDED_PROMPTS.slice(),
+      lockedPrompts: [],
+      allPrompts: GUIDED_PROMPTS.slice(),
     };
   }
 
@@ -64,29 +52,13 @@ export class GuidedPromptGatingService {
     tier: SubscriptionTier,
     prompt: string
   ): Promise<PromptUsageCheck> {
-    // Paid tiers can use any prompt
-    if (tier !== 'seeker') {
-      return {
-        canUse: true,
-        isCompleted: false,
-        requiresUpgrade: false,
-      };
-    }
-
-    // Check if prompt is completed
+    // Completion remains useful tracking metadata, but never restricts access.
     const completedPrompts = await this.getCompletedPrompts();
     const isCompleted = completedPrompts.includes(prompt);
-
-    // Get daily allocation to check if prompt is free
-    const allocation = this.getDailyPrompts(userId, tier);
-    const isFreePrompt = allocation.freePrompts.includes(prompt);
-
-    // Free prompts can always be used (even if completed before)
-    // Locked prompts cannot be used and require upgrade
     return {
-      canUse: isFreePrompt, // Free prompts are always usable
+      canUse: true,
       isCompleted,
-      requiresUpgrade: !isFreePrompt,
+      requiresUpgrade: false,
     };
   }
 

@@ -20,7 +20,6 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
 import { getLocalPrayer } from '../storage/prayerStorage';
 import { Colors } from '../theme/colors';
@@ -139,7 +138,7 @@ const PrayerTypeSelectionStep: React.FC<{
       >
         <StepFadeIn delay={0}>
           <View style={styles.focusLabelContainer}>
-            <MaterialCommunityIcons name="hands-pray" size={16} color={Colors.sage} style={styles.labelIcon} />
+            <Ionicons name="hand-left-outline" size={16} color={Colors.sage} style={[styles.labelIcon, { transform: [{ rotate: '-28deg' }] }]} />
             <ThemedText weight="semiBold" style={styles.focusLabel}>PRAYERS FOR PEOPLE</ThemedText>
           </View>
         </StepFadeIn>
@@ -297,7 +296,7 @@ const PrayerRequestNameStep: React.FC<{
       >
         <StepFadeIn delay={0}>
           <View style={styles.focusLabelContainer}>
-            <MaterialCommunityIcons name="hands-pray" size={16} color={Colors.sage} style={styles.labelIcon} />
+            <Ionicons name="hand-left-outline" size={16} color={Colors.sage} style={[styles.labelIcon, { transform: [{ rotate: '-28deg' }] }]} />
             <ThemedText weight="semiBold" style={styles.focusLabel}>PRAYER REQUEST</ThemedText>
           </View>
         </StepFadeIn>
@@ -424,7 +423,7 @@ const PrayerRequestPrayerFocusStep: React.FC<{
       >
         <StepFadeIn delay={0}>
           <View style={styles.focusLabelContainer}>
-            <MaterialCommunityIcons name="hands-pray" size={16} color={Colors.sage} style={styles.labelIcon} />
+            <Ionicons name="hand-left-outline" size={16} color={Colors.sage} style={[styles.labelIcon, { transform: [{ rotate: '-28deg' }] }]} />
             <ThemedText weight="semiBold" style={styles.focusLabel}>PRAYER REQUEST</ThemedText>
           </View>
         </StepFadeIn>
@@ -504,7 +503,7 @@ const PrayerRequestActionStep: React.FC<{
     >
       <StepFadeIn delay={0}>
         <View style={styles.focusLabelContainer}>
-          <MaterialCommunityIcons name="hands-pray" size={16} color={Colors.sage} style={styles.labelIcon} />
+          <Ionicons name="hand-left-outline" size={16} color={Colors.sage} style={[styles.labelIcon, { transform: [{ rotate: '-28deg' }] }]} />
           <ThemedText weight="semiBold" style={styles.focusLabel}>PRAYER REQUEST</ThemedText>
         </View>
       </StepFadeIn>
@@ -517,7 +516,7 @@ const PrayerRequestActionStep: React.FC<{
       </StepFadeIn>
       <StepFadeIn delay={100} style={styles.requestActions}>
         <TouchableOpacity style={styles.requestPrimaryAction} onPress={onPrayNow} activeOpacity={0.8}>
-          <MaterialCommunityIcons name="hands-pray" size={20} color={Colors.hopeWhite} />
+          <Ionicons name="hand-left-outline" size={20} color={Colors.hopeWhite} style={{ transform: [{ rotate: '-28deg' }] }} />
           <ThemedText weight="semiBold" style={styles.requestPrimaryActionText}>Pray now</ThemedText>
         </TouchableOpacity>
         <TouchableOpacity style={styles.requestSecondaryAction} onPress={onSaveRequest} activeOpacity={0.8}>
@@ -601,7 +600,7 @@ const PrayForSomeoneNameStep: React.FC<{
       >
         <StepFadeIn delay={0}>
           <View style={styles.focusLabelContainer}>
-            <MaterialCommunityIcons name="hands-pray" size={16} color={Colors.sage} style={styles.labelIcon} />
+            <Ionicons name="hand-left-outline" size={16} color={Colors.sage} style={[styles.labelIcon, { transform: [{ rotate: '-28deg' }] }]} />
             <ThemedText weight="semiBold" style={styles.focusLabel}>PRAY FOR SOMEONE</ThemedText>
           </View>
         </StepFadeIn>
@@ -730,7 +729,7 @@ const PrayForSomeonePrayerFocusStep: React.FC<{
       >
         <StepFadeIn delay={0}>
           <View style={styles.focusLabelContainer}>
-            <MaterialCommunityIcons name="hands-pray" size={16} color={Colors.sage} style={styles.labelIcon} />
+            <Ionicons name="hand-left-outline" size={16} color={Colors.sage} style={[styles.labelIcon, { transform: [{ rotate: '-28deg' }] }]} />
             <ThemedText weight="semiBold" style={styles.focusLabel}>PRAY FOR SOMEONE</ThemedText>
           </View>
         </StepFadeIn>
@@ -844,7 +843,7 @@ const PrayForSomeoneTrackOptionStep: React.FC<{
       >
         <StepFadeIn delay={0}>
           <View style={styles.focusLabelContainer}>
-            <MaterialCommunityIcons name="hands-pray" size={16} color={Colors.sage} style={styles.labelIcon} />
+            <Ionicons name="hand-left-outline" size={16} color={Colors.sage} style={[styles.labelIcon, { transform: [{ rotate: '-28deg' }] }]} />
             <ThemedText weight="semiBold" style={styles.focusLabel}>PRAY FOR SOMEONE</ThemedText>
           </View>
         </StepFadeIn>
@@ -991,7 +990,7 @@ const CompletionStep: React.FC<{
         showsVerticalScrollIndicator={false}
       >
         <StepFadeIn delay={0} style={styles.stepLabelRow}>
-          <MaterialCommunityIcons name="hands-pray" size={18} color={Colors.sage} />
+          <Ionicons name="hand-left-outline" size={18} color={Colors.sage} style={{ transform: [{ rotate: '-28deg' }] }} />
           <ThemedText weight="semiBold" style={styles.stepLabelWhite}>
             PRAYERS FOR PEOPLE
           </ThemedText>
@@ -1008,7 +1007,7 @@ const CompletionStep: React.FC<{
                 ],
               },
             ]}>
-              <MaterialCommunityIcons name="hands-pray" size={24} color={Colors.sage} />
+              <Ionicons name="hand-left-outline" size={24} color={Colors.sage} style={{ transform: [{ rotate: '-28deg' }] }} />
             </Animated.View>
             <View style={styles.completionHeaderContent}>
               <ThemedText weight="semiBold" style={styles.completionCategory}>
@@ -1667,7 +1666,7 @@ const PrayersForPeopleWalkthroughScreen: React.FC<Props> = ({ navigation, route 
 
               <View style={[styles.prayerModalHeader, IS_IPAD && styles.prayerModalContentWidth]}>
                 <View style={styles.prayerModalHeaderLeft}>
-                  <MaterialCommunityIcons name="hands-pray" size={20} color={Colors.sage} />
+                  <Ionicons name="hand-left-outline" size={20} color={Colors.sage} style={{ transform: [{ rotate: '-28deg' }] }} />
                   <ThemedText weight="bold" style={styles.prayerModalTitle}>PRAY FOR {modalPrayerName || 'Someone'}</ThemedText>
                 </View>
               </View>

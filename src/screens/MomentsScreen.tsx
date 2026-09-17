@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { View, StyleSheet, RefreshControl, StatusBar, DeviceEventEmitter, TextInput, TouchableOpacity, LayoutAnimation, Platform, UIManager, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Animated, { useAnimatedStyle, useSharedValue, withDelay, withSpring } from 'react-native-reanimated';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { Feather, ChevronDown } from 'lucide-react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -39,6 +40,18 @@ export const MomentsScreen: React.FC = () => {
   const { showTabBar, setShowTabBar } = useScroll();
   const lastScrollYRef = useRef(0);
   const tabBarCollapsedRef = useRef(false);
+  // Focus entrance — same spring feel as Today's staggered FadeInUp, driven by
+  // shared values so the moments list is not remounted on every tab switch.
+  const headerEntrance = useSharedValue(0);
+  const bodyEntrance = useSharedValue(0);
+  const headerEntranceStyle = useAnimatedStyle(() => ({
+    opacity: headerEntrance.value,
+    transform: [{ translateY: (1 - headerEntrance.value) * 14 }],
+  }));
+  const bodyEntranceStyle = useAnimatedStyle(() => ({
+    opacity: bodyEntrance.value,
+    transform: [{ translateY: (1 - bodyEntrance.value) * 20 }],
+  }));
   // Date filtering state - Default to show all dates up to today (exclude future dates)
   const [selectedDate] = useState(new Date());
   const [selectedRange] = useState<DateRange>({
@@ -70,12 +83,16 @@ export const MomentsScreen: React.FC = () => {
     lastScrollYRef.current = 0;
     tabBarCollapsedRef.current = false;
     setShowTabBar(true);
+    headerEntrance.value = 0;
+    bodyEntrance.value = 0;
+    headerEntrance.value = withSpring(1, { damping: 14, stiffness: 180 });
+    bodyEntrance.value = withDelay(80, withSpring(1, { damping: 14, stiffness: 180 }));
 
     return () => {
       tabBarCollapsedRef.current = false;
       setShowTabBar(true);
     };
-  }, [setShowTabBar]));
+  }, [setShowTabBar, headerEntrance, bodyEntrance]));
 
   useEffect(() => {
     if (showTabBar && lastScrollYRef.current > 60) {
@@ -196,7 +213,9 @@ export const MomentsScreen: React.FC = () => {
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
-    // Add refresh logic here if needed
+    // Pull-to-refresh is a structural rediscovery request. Keep ordinary
+    // content mutations on their event path so they retain the viewport.
+    setRefreshKey(previous => previous + 1);
     setTimeout(() => {
       setIsRefreshing(false);
     }, 1000);
@@ -222,7 +241,7 @@ export const MomentsScreen: React.FC = () => {
         translucent={false}
       />
 
-      <View style={[styles.headerBar, IS_IPAD && styles.headerBarPad, { backgroundColor: Colors.lightBackground }]}>
+      <Animated.View style={[styles.headerBar, IS_IPAD && styles.headerBarPad, { backgroundColor: Colors.lightBackground }, headerEntranceStyle]}>
         <View style={[styles.pageInner, IS_IPAD && styles.pageInnerPad]}>
           {/* Row 1: Title with icon left, actions right */}
           <View style={styles.headerTopRow}>
@@ -296,7 +315,7 @@ export const MomentsScreen: React.FC = () => {
           )}
           {!showSearch && <View style={styles.searchBarCollapsedSpacer} />}
         </View>
-      </View>
+      </Animated.View>
 
       {/* GroupingSelect and FilterSelect - rendered off-screen for ref functionality */}
       <View style={{ position: 'absolute', left: -9999, top: -9999 }}>
@@ -317,28 +336,30 @@ export const MomentsScreen: React.FC = () => {
       </View>
 
       {/* Enhanced Moments Renderer - now handles its own scrolling */}
-      <EnhancedMomentsRenderer
-        plugins={plugins}
-        navigation={navigation}
-        dateRange={momentsDateRange}
-        groupBy={groupBy}
-        sortBy={sortBy}
-        searchQuery={searchQuery}
-        prayerAnswerFilter={prayerAnswerFilter}
-        filterKeys={activeFilters}
-        refreshKey={refreshKey}
-        style={styles.momentsRenderer}
-        onScroll={handleMomentsScroll}
-        headerComponents={[]}
-        refreshControl={
-          <RefreshControl
-            refreshing={isRefreshing}
-            onRefresh={handleRefresh}
-            tintColor={Colors.alertCoral}
-            colors={[Colors.alertCoral]}
-          />
-        }
-      />
+      <Animated.View style={[{flex: 1}, bodyEntranceStyle]}>
+        <EnhancedMomentsRenderer
+          plugins={plugins}
+          navigation={navigation}
+          dateRange={momentsDateRange}
+          groupBy={groupBy}
+          sortBy={sortBy}
+          searchQuery={searchQuery}
+          prayerAnswerFilter={prayerAnswerFilter}
+          filterKeys={activeFilters}
+          refreshKey={refreshKey}
+          style={styles.momentsRenderer}
+          onScroll={handleMomentsScroll}
+          headerComponents={[]}
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefreshing}
+              onRefresh={handleRefresh}
+              tintColor={Colors.sage}
+              colors={[Colors.sage]}
+            />
+          }
+        />
+      </Animated.View>
     </>
   );
 
@@ -358,23 +379,23 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'flex-start',
-    paddingHorizontal: 16,
+    paddingHorizontal: 0,
     paddingTop: 0,
     paddingBottom: 0,
     backgroundColor: Colors.lightBackground,
   },
   headerBarPad: {
-    paddingHorizontal: 48,
+    paddingHorizontal: 0,
   },
   pageInner: {
     width: '100%',
-    maxWidth: 720,
+    maxWidth: 760,
     alignSelf: 'center',
-    paddingHorizontal: 16,
+    paddingHorizontal: 18,
   },
   pageInnerPad: {
-    maxWidth: '100%',
-    paddingHorizontal: 0,
+    maxWidth: 760,
+    paddingHorizontal: 18,
   },
   headerTopRow: {
     flexDirection: 'row',
@@ -403,9 +424,9 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
     paddingHorizontal: 12,
     borderRadius: 999,
-    backgroundColor: Colors.anchorBlueLight,
-    borderWidth: 1,
-    borderColor: Colors.borderLight,
+    backgroundColor: 'rgba(82, 106, 91, 0.08)',
+    borderWidth: 0.5,
+    borderColor: 'rgba(82, 106, 91, 0.2)',
   },
   statusDropdownBtnText: {
     fontSize: 13,
@@ -416,9 +437,9 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: Colors.anchorBlueLight,
-    borderWidth: 1,
-    borderColor: Colors.borderLight,
+    backgroundColor: 'rgba(82, 106, 91, 0.08)',
+    borderWidth: 0.5,
+    borderColor: 'rgba(82, 106, 91, 0.2)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -426,9 +447,9 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: Colors.anchorBlueLight,
-    borderWidth: 1,
-    borderColor: Colors.borderLight,
+    backgroundColor: 'rgba(82, 106, 91, 0.08)',
+    borderWidth: 0.5,
+    borderColor: 'rgba(82, 106, 91, 0.2)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -560,7 +581,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   filterToggleButtonActive: {
-    backgroundColor: Colors.alertCoral,
+    backgroundColor: Colors.sage,
   },
   filterTabs: {
     flexDirection: 'row',

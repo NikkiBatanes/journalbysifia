@@ -8,6 +8,7 @@ import { withErrorBoundary } from '../../components/ErrorBoundary/withErrorBound
 import { Colors } from '../../theme/colors';
 import { toLocalDateString } from '../../utils/date';
 import { useRoutine } from '../../context/RoutineContext';
+import { fromLocalDateString } from '../../utils/date';
 import { preloadScripturePassages } from '../../services/scriptureReaderService';
 import {
   createLocalJournalEntry,
@@ -19,7 +20,7 @@ import {
 const EveningGratitudeScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const { selectedDate, markStepCompleted } = useRoutine();
-  const selectedDateObj = new Date(selectedDate);
+  const selectedDateObj = fromLocalDateString(selectedDate);
   const dateStr = toLocalDateString(selectedDateObj);
 
   const [gratitudeId, setGratitudeId] = React.useState<string | null>(null);
@@ -93,7 +94,7 @@ const EveningGratitudeScreen: React.FC = () => {
       setGratitudeId(id);
     } catch (error) {
       console.error('Error saving evening gratitude:', error);
-      return;
+      throw error;
     }
 
     await markStepCompleted('gratitude', {
@@ -129,6 +130,7 @@ const EveningGratitudeScreen: React.FC = () => {
       onCancel={handleCancel}
       selectedDate={selectedDateObj}
       initialItems={initialItems}
+      routineDraft={{ routine: 'evening', selectedDate, step: 'gratitude' }}
     />
   );
 };

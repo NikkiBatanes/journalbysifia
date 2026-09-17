@@ -1,4 +1,5 @@
 import React from 'react';
+import { View } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 import { Colors } from '../theme/colors';
@@ -12,8 +13,12 @@ import CarryItScreen from '../screens/morning/CarryItScreen';
 import MorningClosingScreen from '../screens/morning/MorningClosingScreen';
 import MorningTodaysFocusScreen from '../screens/morning/MorningTodaysFocusScreen';
 import MorningTodosScreen from '../screens/morning/MorningTodosScreen';
+import RoutineResumeScreen from '../screens/routine/RoutineResumeScreen';
+import { toLocalDateString } from '../utils/date';
+import { canOpenRoutineForDate } from '../services/routineDatePolicy';
 
 export type MorningFlowParamList = {
+  RoutineEntry: undefined;
   EmotionCheckIn: { morningFlow?: boolean } | undefined;
   UnderneathIt: {
     feeling?: string | null;
@@ -60,13 +65,23 @@ export type MorningFlowParamList = {
 
 const Stack = createNativeStackNavigator<MorningFlowParamList>();
 
-const MorningFlowStackNavigator = () => {
+const MorningFlowStackNavigator = ({ route, navigation }: { route: { params?: { selectedDate?: string } }; navigation: any }) => {
   useMorningStatusBar();
+  const selectedDate = route.params?.selectedDate ?? toLocalDateString(new Date());
+  const futureDate = !canOpenRoutineForDate(selectedDate);
+
+  React.useEffect(() => {
+    if (futureDate) {navigation.goBack();}
+  }, [futureDate, navigation]);
+
+  if (futureDate) {
+    return <View style={{ flex: 1, backgroundColor: Colors.lightBackground }} />;
+  }
 
   return (
-  <RoutineProvider>
+  <RoutineProvider routine="morning" selectedDate={selectedDate}>
     <Stack.Navigator
-      initialRouteName="EmotionCheckIn"
+      initialRouteName="RoutineEntry"
       screenOptions={{
         headerShown: false,
         presentation: 'card',
@@ -80,6 +95,7 @@ const MorningFlowStackNavigator = () => {
         contentStyle: { backgroundColor: Colors.lightBackground },
       }}
     >
+      <Stack.Screen name="RoutineEntry" component={RoutineResumeScreen} />
       <Stack.Screen name="EmotionCheckIn" component={EmotionCheckInScreen} />
       <Stack.Screen name="UnderneathIt" component={UnderneathItScreen} />
       <Stack.Screen name="PsalmOfTheDay" component={PsalmOfTheDayScreen} />

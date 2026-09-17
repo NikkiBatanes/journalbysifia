@@ -64,6 +64,9 @@ export function useGuidedPromptGating({
   // Load daily prompt allocation
   const loadDailyAllocation = useCallback(async () => {
     if (!user?.id) {
+      // Prompt selection is local Journal content. Signed-out users still need
+      // the same static prompt pool to begin a Guided Reflection.
+      setDailyAllocation(guidedPromptGatingService.getDailyPrompts('local', currentTier));
       setIsLoading(false);
       return;
     }
@@ -79,14 +82,14 @@ export function useGuidedPromptGating({
 
   // Simplified canUsePrompt using service
   const canUsePrompt = useCallback(async (prompt: string): Promise<boolean> => {
-    if (!user?.id) {return false;}
+    if (!user?.id) {return true;}
 
     try {
       const check = await guidedPromptGatingService.canUsePrompt(user.id, currentTier, prompt);
       return check.canUse;
     } catch (error) {
-      // Error silently handled - prompt access check failures are not critical
-      return false;
+      // Tracking failures must not prevent a core reflection from being saved.
+      return true;
     }
   }, [user?.id, currentTier]);
 

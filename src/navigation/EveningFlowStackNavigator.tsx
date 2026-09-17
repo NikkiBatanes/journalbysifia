@@ -1,4 +1,5 @@
 import React from 'react';
+import { View } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 import { Colors } from '../theme/colors';
@@ -13,8 +14,12 @@ import {
 import EveningGratitudeScreen from '../screens/evening/EveningGratitudeScreen';
 import EveningWinScreen from '../screens/evening/EveningWinScreen';
 import EveningLookingForwardScreen from '../screens/evening/EveningLookingForwardScreen';
+import RoutineResumeScreen from '../screens/routine/RoutineResumeScreen';
+import { toLocalDateString } from '../utils/date';
+import { canOpenRoutineForDate } from '../services/routineDatePolicy';
 
 export type EveningFlowParamList = {
+  RoutineEntry: undefined;
   Gratitude: { selectedDate?: string } | undefined;
   Win: { [key: string]: any } | undefined;
   Proverbs: { [key: string]: any } | undefined;
@@ -25,13 +30,23 @@ export type EveningFlowParamList = {
 
 const Stack = createNativeStackNavigator<EveningFlowParamList>();
 
-const EveningFlowStackNavigator = () => {
+const EveningFlowStackNavigator = ({ route, navigation }: { route: { params?: { selectedDate?: string } }; navigation: any }) => {
   useEveningStatusBar();
+  const selectedDate = route.params?.selectedDate ?? toLocalDateString(new Date());
+  const futureDate = !canOpenRoutineForDate(selectedDate);
+
+  React.useEffect(() => {
+    if (futureDate) {navigation.goBack();}
+  }, [futureDate, navigation]);
+
+  if (futureDate) {
+    return <View style={{ flex: 1, backgroundColor: Colors.lightBackground }} />;
+  }
 
   return (
-  <RoutineProvider>
+  <RoutineProvider routine="evening" selectedDate={selectedDate}>
     <Stack.Navigator
-    initialRouteName="Gratitude"
+    initialRouteName="RoutineEntry"
     screenOptions={{
       headerShown: false,
       presentation: 'card',
@@ -42,6 +57,7 @@ const EveningFlowStackNavigator = () => {
       contentStyle: { backgroundColor: Colors.lightBackground },
     }}
   >
+    <Stack.Screen name="RoutineEntry" component={RoutineResumeScreen} />
     <Stack.Screen name="Gratitude" component={EveningGratitudeScreen} />
     <Stack.Screen name="Win" component={EveningWinScreen} />
     <Stack.Screen name="Proverbs" component={EveningProverbsScreen} />

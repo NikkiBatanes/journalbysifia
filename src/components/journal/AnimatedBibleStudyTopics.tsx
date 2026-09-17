@@ -56,13 +56,13 @@ export default function AnimatedBibleStudyTopics({ suggestions, topics, expanded
         <TouchableOpacity style={buttonStyle} activeOpacity={0.65}
         disabled={!expanded && index >= suggestions.length} accessibilityElementsHidden={!expanded && index >= suggestions.length}
         importantForAccessibility={!expanded && index >= suggestions.length ? 'no-hide-descendants' : 'auto'} onPress={() => onSelect(topic)}>
-        <ThemedText weight="semiBold" style={textStyle}>{topic.title}</ThemedText>
+        <ThemedText style={textStyle}>{topic.title}</ThemedText>
         </TouchableOpacity>
       </Animated.View>)}
     </View>
     <View pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants"
       style={[gridStyle, styles.measured, styles.invisible]} onLayout={event => setCollapsedHeight(event.nativeEvent.layout.height)}>
-      {suggestions.map(topic => <View key={topic.id} style={buttonStyle}><ThemedText weight="semiBold" style={textStyle}>{topic.title}</ThemedText></View>)}
+      {suggestions.map(topic => <View key={topic.id} style={buttonStyle}><ThemedText style={textStyle}>{topic.title}</ThemedText></View>)}
     </View>
   </Animated.View>;
 }

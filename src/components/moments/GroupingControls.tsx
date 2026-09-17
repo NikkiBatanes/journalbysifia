@@ -210,7 +210,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
   },
   searchToggleActive: {
-    backgroundColor: Colors.alertCoral,
+    backgroundColor: Colors.sageMuted,
   },
   searchInput: {
     flex: 1,
@@ -249,7 +249,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   activeOption: {
-    backgroundColor: Colors.alertCoral,
+    backgroundColor: Colors.sageMuted,
   },
   optionText: {
     fontSize: 12,

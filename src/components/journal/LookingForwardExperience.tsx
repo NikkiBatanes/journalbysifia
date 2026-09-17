@@ -17,6 +17,7 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useRoutineDraft } from '../../hooks/useRoutineDraft';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
@@ -39,6 +40,7 @@ export interface LookingForwardExperienceProps {
   onComplete: (record: any) => void | Promise<void>;
   completionButtonText?: string;
   skipCompletionPage?: boolean;
+  routineDraft?: { routine: 'morning' | 'evening'; selectedDate: string; step: string };
 }
 
 // Emotion Data
@@ -672,6 +674,7 @@ export const LookingForwardExperience: React.FC<LookingForwardExperienceProps> =
   onComplete,
   completionButtonText,
   skipCompletionPage,
+  routineDraft,
 }) => {
   const insets = insetsProp ?? { top: 50, bottom: 34 };
   const { width: screenWidth } = useWindowDimensions();
@@ -680,6 +683,19 @@ export const LookingForwardExperience: React.FC<LookingForwardExperienceProps> =
   const [selectedEmotion, setSelectedEmotion] = useState<Emotion | null>(null);
   const [customEmotion, setCustomEmotion] = useState('');
   const [lookingAheadText, setLookingAheadText] = useState('');
+  const clearDraft = useRoutineDraft(
+    routineDraft?.routine ?? 'evening',
+    routineDraft?.selectedDate ?? toLocalDateString(selectedDate),
+    routineDraft?.step ?? 'disabled-looking-forward',
+    { selectedEmotionId: selectedEmotion?.id, customEmotion, lookingAheadText },
+    draft => {
+      if (!routineDraft) {return;}
+      setSelectedEmotion(draft.selectedEmotionId ? EMOTIONS.find(emotion => emotion.id === draft.selectedEmotionId) ?? null : null);
+      setCustomEmotion(draft.customEmotion ?? '');
+      setLookingAheadText(draft.lookingAheadText ?? '');
+    },
+    Boolean(routineDraft),
+  );
 
   const dateStr = toLocalDateString(selectedDate);
   const dateContext = getDateContext(selectedDate);
@@ -743,6 +759,7 @@ export const LookingForwardExperience: React.FC<LookingForwardExperienceProps> =
       }
 
       triggerMediumHaptic();
+      if (routineDraft) {await clearDraft();}
       await onComplete(record);
     } catch (error) {
       Alert.alert('Error', 'Failed to save. Please try again.');

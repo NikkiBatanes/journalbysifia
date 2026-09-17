@@ -79,7 +79,7 @@ const PsalmOfTheDayScreen = () => {
 
   const settingsAnim = useRef(new Animated.Value(0)).current;
 
-  const dateStr = toLocalDateString(new Date(selectedDate));
+  const dateStr = selectedDate;
 
   useEffect(() => {
     let mounted = true;
@@ -171,14 +171,17 @@ const PsalmOfTheDayScreen = () => {
       setPsalmReflectionId(id);
     } catch (error) {
       console.error('Error saving morning psalm read state:', error);
+      return;
     }
+
+    if (!id) {return;}
 
     await markStepCompleted(
       'psalm',
       {
         domain: 'reflection',
         content_type: 'scripture',
-        local_id: id!,
+        local_id: id,
       },
       'psalm',
     );
@@ -590,7 +593,7 @@ const PsalmOfTheDayScreen = () => {
         accessibilityLabel={`I've read Psalm ${psalmNumber}`}
       >
         <Ionicons
-          name={hasReadPsalm ? 'checkmark-circle' : 'book-outline'}
+          name={hasReadPsalm ? 'checkmark-circle' : 'reader-outline'}
           size={16}
           color={hasReadPsalm ? Colors.hopeWhite : Colors.sage}
         />

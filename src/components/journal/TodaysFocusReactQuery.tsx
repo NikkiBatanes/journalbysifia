@@ -29,9 +29,8 @@ import { triggerLightHaptic } from '../../utils/haptics';
 import ThemedText from '../common/ThemedText';
 import { useTheme } from '../../hooks/useTheme';
 import { getFontFamily } from '../../theme/fonts';
-import { usePlanningGating } from '../../hooks/usePlanningGating';
-import PlanningLockIcon from '../PlanningLockIcon';
 import { useMomentsPalette } from '../../context/MomentsPaletteContext';
+import { refreshMorningWidgetSnapshot } from '../../services/morningWidgetService';
 
 interface PriorityItem {
   id: string;
@@ -77,6 +76,7 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
     personalText: { ...baseStyles.personalText, color: Colors.textGray },
     prioritiesTitle: { ...baseStyles.prioritiesTitle, color: Colors.sage },
     priorityText: { ...baseStyles.priorityText, color: Colors.text },
+    priorityItemWrapper: { ...baseStyles.priorityItemWrapper, backgroundColor: Colors.cardBackground },
   } : baseStyles, [momentsPalette]);
   const internalNavigation = useNavigation<NavigationProp<any>>();
   const nav = navigation ?? internalNavigation;
@@ -84,9 +84,6 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
   // Global edit mode context (only for inline view)
   // Global edit mode context - safe version that handles missing provider
   const globalEditMode = useEditModeSafe();
-
-  // Planning gating state
-  const planningGating = usePlanningGating(selectedDate, 'inApp');
 
   // Theme-driven fonts
   const { currentFont } = useTheme();
@@ -242,16 +239,6 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
         };
     }
     if (future) {
-      // Check if planning is locked for this tier
-      if (planningGating.isLocked) {
-        return {
-          eyebrow: 'Upcoming Focus',
-          title: 'Plan in Faith Ahead',
-          subtitle: shouldShowEditingMode ? 'Set your focus and priorities' : 'Prayerfully set what matters so this day can count',
-          ctaLabel: 'Pray & Set',
-          ctaAction: 'plan',
-        };
-      }
       if (!planningEnabled) {
         return {
           eyebrow: 'Upcoming Focus',
@@ -293,7 +280,7 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
           ctaLabel: 'Revisit',
           ctaAction: 'revisit',
         };
-  }, [day, hasEntry, hasPlan, planningEnabled, planningGating.isLocked, future, shouldShowEditingMode]);
+  }, [day, hasEntry, hasPlan, planningEnabled, future, shouldShowEditingMode]);
 
   // Handle global edit mode activation
   React.useEffect(() => {
@@ -350,14 +337,9 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
   }, [error, dateStr, user?.id]);
 
   // Save Today's Focus to storage and cloud
-  const saveFocus = useCallback(async (focusData: TodayFocusData) => {
+  const saveFocus = useCallback(async (focusData: TodayFocusData, notifyMoments = true) => {
     if (isMorning) {
       // In the morning flow, the focus is saved once with the rest of the flow.
-      return;
-    }
-
-    if (!user) {
-      Alert.alert('Error', 'You must be logged in to save today\'s focus.');
       return;
     }
 
@@ -375,7 +357,7 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
       } else {
         // Create new entry (if no existing entry or was deleted)
         await createMutation.mutateAsync({
-          user_id: user.id,
+          user_id: user?.id || '',
           selected_date: dateStr,
           content_type: 'todays_focus',
           content: contentToSave,
@@ -403,16 +385,19 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
         has_priorities: focusData.priorities.some(p => p.text.trim() !== ''),
         priorities_count: focusData.priorities.filter(p => p.text.trim() !== '').length,
         date: dateStr,
-      }, user.id);
+      }, user?.id);
 
       setIsEditing(false);
+      void refreshMorningWidgetSnapshot();
 
       // Emit event for Moments screen (which uses direct Supabase, not React Query)
-      DeviceEventEmitter.emit('reflection_saved', {
-        type: 'todays_focus',
-        date: dateStr,
-        userId: user.id,
-      });
+      if (notifyMoments) {
+        DeviceEventEmitter.emit('reflection_saved', {
+          type: 'todays_focus',
+          date: dateStr,
+          userId: user?.id || '',
+        });
+      }
     } catch (saveError) {
       Alert.alert('Error', 'Failed to save today\'s focus. Please try again.');
       throw saveError;
@@ -420,12 +405,6 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
   }, [isMorning, user, dateStr, existingEntry, wasDeleted, createMutation, updateMutation, nav]);
 
   const toggleEditing = () => {
-    // Check if planning is locked for future dates
-    if (planningGating.isLocked && !isEditing) {
-      planningGating.handleLockedAction();
-      return;
-    }
-
     if (isEditing) {
       // Save when exiting edit mode (for global edit mode compatibility)
       const hasContent = data.focus.trim() || data.priorities.some(p => p.text.trim());
@@ -519,7 +498,9 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
 
     // Persist to database and wait for completion before emitting event
     // This ensures Moments screen fetches updated data
-    await saveFocus(updated).catch(() => {});
+    // This mounted card already owns the optimistic state. Avoid rebuilding the
+    // entire Moments timeline for a content-only checkbox change.
+    await saveFocus(updated, false).catch(() => {});
   };
 
   // Individual priority edit handlers
@@ -664,14 +645,6 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
         showAddButton={(hasContent || shouldShowEditingMode) ? !shouldShowEditingMode : false}
         onAdd={toggleEditing}
         isAdding={shouldShowEditingMode}
-        headerRight={planningGating.lockIconVisible ? (
-          <PlanningLockIcon
-            tier={planningGating.currentTier}
-            context="inApp"
-            onLockTap={planningGating.handleLockedAction}
-            size={16}
-          />
-        ) : undefined}
         variant={variant}
         viewMode={viewMode}
         expanded={expanded}
@@ -781,7 +754,7 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
                       .filter(p => p.text.trim() !== '')
                       .map((priority, index) => (
                         <SwipeableTodoItem
-                          key={`swipeable-priority-${index}`}
+                          key={`swipeable-priority-${priority.id}`}
                           item={{
                             id: priority.id,
                             text: priority.text,

@@ -20,17 +20,19 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../../theme/colors';
 import ThemedText from '../common/ThemedText';
 import { triggerLightHaptic } from '../../utils/haptics';
+import { toLocalDateString } from '../../utils/date';
 import { useTheme } from '../../hooks/useTheme';
 import { getFontFamily } from '../../theme/fonts';
 import PlaybookMetaSection from './PlaybookMetaSection';
 import StepFadeIn from '../common/StepFadeIn';
 import { isToday, isYesterday, startOfDay } from 'date-fns';
+import { useRoutineDraft } from '../../hooks/useRoutineDraft';
 
 interface GratitudeLogEditorProps {
   onSave: (data: {
     items: string[];
     date: Date;
-  }) => void;
+  }) => void | Promise<void>;
   onCancel: () => void;
   onUpgradeRequired?: () => void;
   initialItems?: string[];
@@ -45,6 +47,7 @@ interface GratitudeLogEditorProps {
   stepBody?: string;
   stepExample?: string | null;
   selectedDate?: Date;
+  routineDraft?: { routine: 'morning' | 'evening'; selectedDate: string; step: string };
 }
 
 type DateContext = 'today' | 'yesterday' | 'earlier';
@@ -254,6 +257,7 @@ const GratitudeLogEditorInner = (
     stepBody,
     stepExample,
     selectedDate = new Date(),
+    routineDraft,
   } = props;
 
   const dateContext = getDateContext(selectedDate);
@@ -289,6 +293,14 @@ const GratitudeLogEditorInner = (
   const processedInitialItems = prepareInitialItems(initialItems);
 
   const [gratitudeItems, setGratitudeItems] = React.useState<string[]>(processedInitialItems);
+  const clearDraft = useRoutineDraft(
+    routineDraft?.routine ?? 'evening',
+    routineDraft?.selectedDate ?? toLocalDateString(selectedDate),
+    routineDraft?.step ?? 'disabled-gratitude',
+    gratitudeItems,
+    draft => { if (routineDraft) {setGratitudeItems(prepareInitialItems(draft));} },
+    Boolean(routineDraft),
+  );
   const [hasUserMadeChanges, setHasUserMadeChanges] = React.useState(false);
 
   const hasContent = gratitudeItems.some(item => item.trim() !== '');
@@ -386,7 +398,7 @@ const GratitudeLogEditorInner = (
     setHasUserMadeChanges(true);
   }, []);
 
-  const handleSave = useCallback(() => {
+  const handleSave = useCallback(async () => {
     const filledItems = gratitudeItems.filter((item: string) => item.trim());
     if (filledItems.length === 0) {
       Alert.alert(
@@ -397,11 +409,17 @@ const GratitudeLogEditorInner = (
       return;
     }
     const cleanItems = filledItems.map(item => item.replace(/^\d+\. /, ''));
-    onSave({
-      items: cleanItems,
-      date: selectedDate || new Date(),
-    });
-  }, [gratitudeItems, onSave, selectedDate]);
+    try {
+      await onSave({
+        items: cleanItems,
+        date: selectedDate || new Date(),
+      });
+      if (routineDraft) {await clearDraft();}
+    } catch (error) {
+      console.error('Error saving gratitude:', error);
+      Alert.alert('Error', 'Failed to save your gratitude. Please try again.');
+    }
+  }, [clearDraft, gratitudeItems, onSave, routineDraft, selectedDate]);
 
   return (
     <View style={s.container}>

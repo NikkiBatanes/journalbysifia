@@ -244,7 +244,7 @@ const ScriptureNoteEditorScreen: React.FC = () => {
             <MaterialCommunityIcons
               name="book-open-page-variant-outline"
               size={22}
-              color={readerReference ? Colors.alertCoral : Colors.trustGrey}
+              color={readerReference ? Colors.hopeWhite : Colors.trustGrey}
             />
           </TouchableOpacity>
         </View>
@@ -404,7 +404,7 @@ const styles = StyleSheet.create({
     opacity: 0.9,
   },
   versePreviewRef: {
-    color: Colors.alertCoral,
+    color: Colors.anchorBlueLight,
     fontSize: 12,
     marginTop: 8,
     letterSpacing: 0.4,

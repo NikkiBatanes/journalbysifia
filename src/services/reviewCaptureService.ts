@@ -8,6 +8,7 @@ import {
 import { getLocalPrayers } from '../storage/prayerStorage';
 import { safeJsonParse } from '../utils/safeJsonParse';
 import { type ReviewMemorableItem } from '../storage/reviewStorage';
+import { resolveSessionNoteType, sessionNoteTypeLabel } from '../types/sessionNotes';
 
 const REFLECTION_TYPES = ['sermon', 'scripture', 'free', 'guided', 'playbook'] as const;
 
@@ -61,20 +62,47 @@ const firstLine = (text: string, max = 60): string => {
   return `${line.slice(0, max).trim()}…`;
 };
 
-const classifyReflection = (
+const reflectionTextFromStructuredValue = (value: unknown): string => {
+  if (typeof value === 'string') {return value.trim();}
+  if (Array.isArray(value)) {
+    return value.map(reflectionTextFromStructuredValue).filter(Boolean).join(' · ');
+  }
+  if (!value || typeof value !== 'object') {return '';}
+  const record = value as Record<string, unknown>;
+  if (typeof record.text === 'string') {return record.text.trim();}
+  if (Array.isArray(record.blocks)) {
+    const blocks = reflectionTextFromStructuredValue(record.blocks);
+    if (blocks) {return blocks;}
+  }
+  return Object.values(record).map(reflectionTextFromStructuredValue).filter(Boolean).join(' · ');
+};
+
+/** Reflection content is a mixed-format legacy boundary: plain text is valid. */
+export const getReflectionReviewText = (content: unknown): string => {
+  if (content === null || content === undefined) {return '';}
+  if (typeof content !== 'string') {return reflectionTextFromStructuredValue(content);}
+  const trimmed = content.trim();
+  if (!trimmed) {return '';}
+  const looksLikeJson = (trimmed.startsWith('{') && trimmed.endsWith('}'))
+    || (trimmed.startsWith('[') && trimmed.endsWith(']'));
+  if (!looksLikeJson) {return content;}
+  const invalidJson = {};
+  const parsed = safeJsonParse<unknown>(trimmed, { fallback: invalidJson, context: 'Review reflection content' });
+  return parsed === invalidJson ? content : reflectionTextFromStructuredValue(parsed);
+};
+
+export const classifyReflection = (
   entry: {
     id: string;
     title?: string;
     type: string;
     source?: string;
-    content: string;
+    content: unknown;
     selected_date: string;
+    metadata?: Record<string, any>;
   },
 ): ReviewCaptureItem | null => {
-  const text =
-    safeJsonParse<{ text?: string; blocks?: any[] }>(entry.content, {
-      fallback: { text: entry.content },
-    })?.text || '';
+  const text = getReflectionReviewText(entry.content);
 
   const title = entry.title?.trim() || firstLine(text, 50) || 'Untitled';
 
@@ -83,7 +111,7 @@ const classifyReflection = (
 
   if (entry.type === 'sermon') {
     kind = 'sermon';
-    subtitle = 'Sermon Notes';
+    subtitle = sessionNoteTypeLabel(resolveSessionNoteType(entry));
   } else if (entry.type === 'scripture') {
     if (entry.source === 'morning_psalm') {
       kind = 'morning';

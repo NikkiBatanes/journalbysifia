@@ -19,6 +19,7 @@ jest.mock('../../../../storage/bibleStudyMomentsStorage', () => ({
 jest.mock('../../../../storage/bibleStudyStorage', () => ({ getBibleStudySession: jest.fn() }));
 jest.mock('../../../../components/journal/SavedMorningMoment', () => ({ SavedMorningMoment: () => null }));
 jest.mock('../../../../components/SkeletonLoader/MomentsSkeleton', () => () => null);
+jest.mock('../../../../components/moments/RoutineMomentSummary', () => ({ RoutineMomentSummary: () => null }));
 
 
 jest.mock('../../../../services/api/prayerApi', () => ({ PrayerApi: { getAllPrayers: jest.fn() } }));

@@ -9,6 +9,7 @@ import { QueryConfig } from '../../types/api';
 import { faithPointsService } from '../faithPointsService';
 import { streakTrackingService } from '../streakTrackingService';
 import { getLocalJournalEntries, getLocalJournalSingleton } from '../../storage/journalStorage';
+import { refreshMorningWidgetSnapshot } from '../morningWidgetService';
 
 const updateWithCachedIdentity = async (client: ReturnType<typeof useQueryClient>, id: string, updates: Partial<JournalApiEntry>) => {
   let userId = '';
@@ -857,6 +858,7 @@ export const useCreateTodoEntry = () => {
 
       // Clear cache to force fresh data
       JournalCache.clearCache(variables.user_id, variables.selected_date, 'todo');
+      void refreshMorningWidgetSnapshot();
     },
   });
 };
@@ -922,6 +924,7 @@ export const useUpdateTodoEntry = () => {
 
       // Clear cache to ensure consistency
       JournalCache.clearCache(data.user_id, data.selected_date, 'todo');
+      void refreshMorningWidgetSnapshot();
     },
   });
 };
@@ -1010,6 +1013,7 @@ export const useDeleteTodoEntry = () => {
 
       // Don't invalidate queries here since we're doing optimistic updates
       // The cache is already updated with the entry removed
+      void refreshMorningWidgetSnapshot();
     },
   });
 };

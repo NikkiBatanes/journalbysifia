@@ -30,6 +30,8 @@ import StepFadeIn from '../common/StepFadeIn';
 import { triggerLightHaptic, triggerMediumHaptic } from '../../utils/haptics';
 import { toLocalDateString } from '../../utils/date';
 import { getLocalJournalSingleton, saveLocalJournalSingleton, LocalJournalEntry } from '../../storage/journalStorage';
+import { refreshMorningWidgetSnapshot } from '../../services/morningWidgetService';
+import { useRoutineDraft } from '../../hooks/useRoutineDraft';
 import { isToday, isYesterday, isAfter, startOfDay } from 'date-fns';
 
 type DateContext = 'today' | 'yesterday' | 'earlier' | 'upcoming';
@@ -97,6 +99,9 @@ interface TodaysFocusExperienceProps {
   onComplete: (record: LocalJournalEntry) => void | Promise<void>;
   completionButtonText?: string;
   footerText?: string;
+  routineDraft?: { routine: 'morning' | 'evening'; selectedDate: string; step: string };
+  planningContext?: 'tomorrow' | 'later';
+  onSkip?: () => void;
 }
 
 const CategorySelectionStep: React.FC<{
@@ -108,7 +113,9 @@ const CategorySelectionStep: React.FC<{
   setCustomFocus: (text: string) => void;
   fontKey: string;
   dateContext: DateContext;
-}> = ({ selectedCategory, onSelect, onNext, insets, customFocus, setCustomFocus, fontKey, dateContext }) => {
+  planningContext?: 'tomorrow' | 'later';
+  onSkip?: () => void;
+}> = ({ selectedCategory, onSelect, onNext, insets, customFocus, setCustomFocus, fontKey, dateContext, planningContext, onSkip }) => {
   const [showAllCategories, setShowAllCategories] = React.useState(false);
   const [isOtherSelected, setIsOtherSelected] = React.useState(false);
   const [keyboardVisible, setKeyboardVisible] = React.useState(false);
@@ -229,6 +236,9 @@ const CategorySelectionStep: React.FC<{
   };
 
   const getMainTitle = () => {
+    if (planningContext) {
+      return planningContext === 'tomorrow' ? 'What matters most tomorrow?' : 'What matters most for this day?';
+    }
     if (isOtherSelected) {
       switch (dateContext) {
         case 'today': return 'What is your focus today?';
@@ -363,6 +373,16 @@ const CategorySelectionStep: React.FC<{
 
         <View style={{ height: 100 }} />
       </ScrollView>
+
+      {onSkip && !selectedCategory && (
+        <TouchableOpacity
+          style={[styles.skipButton, { bottom: insets.bottom + 28 }]}
+          onPress={() => { triggerLightHaptic(); onSkip(); }}
+          activeOpacity={0.7}
+        >
+          <ThemedText weight="semiBold" style={styles.skipButtonText}>Skip focus</ThemedText>
+        </TouchableOpacity>
+      )}
 
       {selectedCategory && (!isOtherSelected || customFocus.trim() !== '') && (
         <Animated.View style={[styles.primaryButton, IS_IPAD && styles.primaryButtonPad, { bottom: buttonPosition, transform: [{ scale: buttonScale }], backgroundColor: Colors.sage }]}>
@@ -901,6 +921,9 @@ const TodaysFocusExperience: React.FC<TodaysFocusExperienceProps> = ({
   onComplete,
   completionButtonText,
   footerText,
+  routineDraft,
+  planningContext,
+  onSkip,
 }) => {
   const insets = useSafeAreaInsets();
   const safeInsets = insetsProp ?? { top: insets.top, bottom: insets.bottom };
@@ -913,6 +936,20 @@ const TodaysFocusExperience: React.FC<TodaysFocusExperienceProps> = ({
   const [customFocus, setCustomFocus] = useState('');
   const [personalText, setPersonalText] = useState('');
   const [priorities, setPriorities] = useState(['', '', '']);
+  const clearDraft = useRoutineDraft(
+    routineDraft?.routine ?? 'morning',
+    routineDraft?.selectedDate ?? toLocalDateString(selectedDate),
+    routineDraft?.step ?? 'disabled-focus',
+    { selectedCategoryId: selectedCategory?.id, customFocus, personalText, priorities },
+    draft => {
+      if (!routineDraft) {return;}
+      setSelectedCategory(draft.selectedCategoryId ? FOCUS_CATEGORIES.find(category => category.id === draft.selectedCategoryId) ?? null : null);
+      setCustomFocus(draft.customFocus ?? '');
+      setPersonalText(draft.personalText ?? '');
+      setPriorities(draft.priorities ?? ['', '', '']);
+    },
+    Boolean(routineDraft),
+  );
 
   const dateStr = toLocalDateString(selectedDate);
   const dateContext = getDateContext(selectedDate);
@@ -979,12 +1016,14 @@ const TodaysFocusExperience: React.FC<TodaysFocusExperienceProps> = ({
 
     try {
       const record = await saveLocalJournalSingleton('todays_focus', dateStr, contentToSave);
+      if (routineDraft) {await clearDraft();}
       await onComplete(record);
+      void refreshMorningWidgetSnapshot();
     } catch (error) {
       console.error('Error saving local today\'s focus:', error);
       Alert.alert('Error', 'Failed to save today\'s focus. Please try again.');
     }
-  }, [selectedCategory, customFocus, personalText, priorities, dateStr, onComplete]);
+  }, [selectedCategory, customFocus, personalText, priorities, dateStr, onComplete, routineDraft, clearDraft]);
 
   const handleNext = useCallback(() => {
     if (!selectedCategory) {return;}
@@ -1067,6 +1106,8 @@ const TodaysFocusExperience: React.FC<TodaysFocusExperienceProps> = ({
           setCustomFocus={setCustomFocus}
           fontKey={fontKey}
           dateContext={dateContext}
+          planningContext={planningContext}
+          onSkip={onSkip}
         />
       )}
 
@@ -1466,6 +1507,16 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.cardBackground,
     borderRadius: 999,
     zIndex: 100,
+  },
+  skipButton: {
+    position: 'absolute',
+    left: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  skipButtonText: {
+    color: Colors.sage,
+    fontSize: 14,
   },
 });
 

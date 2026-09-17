@@ -59,6 +59,55 @@ export interface RoutineState {
 const getRoutineStateKey = (routine: RoutineType, date: string): string =>
   `${ROUTINE_STATE_PREFIX}:${routine}:${date}`;
 
+const writeQueues = new Map<string, Promise<void>>();
+
+const serializeWrite = async <T>(key: string, operation: () => Promise<T>): Promise<T> => {
+  const previous = writeQueues.get(key) ?? Promise.resolve();
+  let release!: () => void;
+  const current = new Promise<void>(resolve => { release = resolve; });
+  const tail = previous.catch(() => undefined).then(() => current);
+  writeQueues.set(key, tail);
+
+  await previous.catch(() => undefined);
+  try {
+    return await operation();
+  } finally {
+    release();
+    if (writeQueues.get(key) === tail) {
+      writeQueues.delete(key);
+    }
+  }
+};
+
+const buildRoutineState = (
+  routine: RoutineType,
+  selectedDate: string,
+  existing: RoutineState | null,
+  updates: Partial<Omit<RoutineState, 'id' | 'routine' | 'selected_date'>>,
+): RoutineState => {
+  const now = new Date().toISOString();
+  if (existing) {
+    return {
+      ...existing,
+      ...updates,
+      completed_at: updates.completed && !existing.completed
+        ? now
+        : updates.completed_at ?? existing.completed_at,
+    };
+  }
+
+  return {
+    id: generateUUID(),
+    routine,
+    selected_date: selectedDate,
+    completed: false,
+    completed_steps: [],
+    started_at: now,
+    ...updates,
+    completed_at: updates.completed ? now : undefined,
+  };
+};
+
 export const saveRoutineState = async (
   routine: RoutineType,
   date: string | Date,
@@ -66,37 +115,29 @@ export const saveRoutineState = async (
 ): Promise<RoutineState> => {
   const selectedDate = formatLocalDate(date);
   const key = getRoutineStateKey(routine, selectedDate);
-  const now = new Date().toISOString();
+  return serializeWrite(key, async () => {
+    const raw = await AsyncStorage.getItem(key);
+    const existing = raw ? safeJsonParse<RoutineState>(raw, { fallback: null }) : null;
+    const state = buildRoutineState(routine, selectedDate, existing, updates);
+    await AsyncStorage.setItem(key, JSON.stringify(state));
+    return state;
+  });
+};
 
-  const raw = await AsyncStorage.getItem(key);
-  let state: RoutineState;
-
-  if (raw) {
-    const parsed = safeJsonParse<RoutineState>(raw, { fallback: null });
-    if (parsed) {
-      state = {
-        ...parsed,
-        ...updates,
-        completed_at: updates.completed ? now : updates.completed_at ?? parsed.completed_at,
-      };
-    }
-  }
-
-  if (!state!) {
-    state = {
-      id: generateUUID(),
-      routine,
-      selected_date: selectedDate,
-      completed: false,
-      completed_steps: [],
-      started_at: now,
-      ...updates,
-      completed_at: updates.completed ? now : undefined,
-    };
-  }
-
-  await AsyncStorage.setItem(key, JSON.stringify(state));
-  return state;
+export const updateRoutineState = async (
+  routine: RoutineType,
+  date: string | Date,
+  updater: (current: RoutineState | null) => Partial<Omit<RoutineState, 'id' | 'routine' | 'selected_date'>>,
+): Promise<RoutineState> => {
+  const selectedDate = formatLocalDate(date);
+  const key = getRoutineStateKey(routine, selectedDate);
+  return serializeWrite(key, async () => {
+    const raw = await AsyncStorage.getItem(key);
+    const existing = raw ? safeJsonParse<RoutineState>(raw, { fallback: null }) : null;
+    const state = buildRoutineState(routine, selectedDate, existing, updater(existing));
+    await AsyncStorage.setItem(key, JSON.stringify(state));
+    return state;
+  });
 };
 
 export const getRoutineState = async (
@@ -115,5 +156,6 @@ export const deleteRoutineState = async (
   date: string | Date
 ): Promise<void> => {
   const selectedDate = formatLocalDate(date);
-  await AsyncStorage.removeItem(getRoutineStateKey(routine, selectedDate));
+  const key = getRoutineStateKey(routine, selectedDate);
+  await serializeWrite(key, () => AsyncStorage.removeItem(key));
 };

@@ -13,11 +13,14 @@ import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { useMomentsPalette } from '../../context/MomentsPaletteContext';
 import { preloadScripturePassages } from '../../services/scriptureReaderService';
 import { ViewMode } from '../../systems/journal/types';
+import { getSessionNoteContext, resolveSessionNoteType, sessionNoteTypeLabel } from '../../types/sessionNotes';
 
 interface SermonNotesProps {
   selectedDate: Date;
   refreshKey?: number;
   viewMode?: ViewMode;
+  reflectionId?: string;
+  timelineItem?: import('../../services/momentTimelineService').MomentTimelineItem;
 }
 
 interface SermonBlock {
@@ -32,6 +35,8 @@ export const SermonNotesReactQuery: React.FC<SermonNotesProps> = ({
   selectedDate,
   refreshKey,
   viewMode,
+  reflectionId,
+  timelineItem,
 }) => {
   const navigation = useNavigation();
   const { user } = useAuth();
@@ -43,7 +48,7 @@ export const SermonNotesReactQuery: React.FC<SermonNotesProps> = ({
 
   const inlineColors = isPalette
     ? {
-        background: 'transparent',
+        background: Colors.cardBackground,
         border: Colors.cardBorder,
         cardTitle: Colors.sage,
         title: Colors.text,
@@ -71,7 +76,9 @@ export const SermonNotesReactQuery: React.FC<SermonNotesProps> = ({
     (async () => {
       try {
         const dateStr = toLocalDateString(selectedDate);
-        const sermons = await getLocalReflections('sermon', dateStr);
+        const exactReflection = timelineItem?.reflection;
+        const sermons = exactReflection ? [exactReflection] : (await getLocalReflections('sermon', dateStr))
+          .filter(entry => !reflectionId || entry.id === reflectionId);
         if (!mounted) {return;}
         setEntries(sermons.slice().sort((a, b) =>
           new Date(b.updated_at || b.created_at).getTime() - new Date(a.updated_at || a.created_at).getTime(),
@@ -83,14 +90,14 @@ export const SermonNotesReactQuery: React.FC<SermonNotesProps> = ({
       }
     })();
     return () => { mounted = false; };
-  }, [selectedDate, refreshKey]);
+  }, [selectedDate, refreshKey, reflectionId, timelineItem]);
 
   useEffect(() => {
     const references = entries.flatMap(entry =>
-      String(entry.metadata?.main_scripture || '')
+      resolveSessionNoteType(entry) === 'sermon' ? String(entry.metadata?.main_scripture || '')
         .split(/[;\n]+/)
         .map(reference => reference.trim())
-        .filter(Boolean),
+        .filter(Boolean) : [],
     );
     if (references.length > 0) {
       void preloadScripturePassages([...new Set<string>(references)], bibleVersion);
@@ -151,9 +158,12 @@ export const SermonNotesReactQuery: React.FC<SermonNotesProps> = ({
       return false;
     });
 
-    const title = entry.title || 'Sermon Notes';
-    const seriesLine = [metadata.series, metadata.part ? `Part ${metadata.part}` : ''].filter(Boolean).join(' · ');
-    const detailLine = [metadata.speaker, metadata.main_scripture].filter(Boolean).join(' · ');
+    const sessionType = resolveSessionNoteType(entry);
+    const documentLabel = sessionNoteTypeLabel(sessionType);
+    const context = getSessionNoteContext(metadata, sessionType);
+    const title = entry.title || documentLabel;
+    const seriesLine = [context.event, sessionType === 'sermon' && metadata.part ? `Part ${metadata.part}` : ''].filter(Boolean).join(' · ');
+    const detailLine = [context.person, context.topic].filter(Boolean).join(' · ');
     const quote = getFeaturedQuote(blocks, metadata);
     const time = entry.created_at ? format(new Date(entry.created_at), 'h:mm a') : '';
 
@@ -173,6 +183,7 @@ export const SermonNotesReactQuery: React.FC<SermonNotesProps> = ({
         style={[
           isInline ? styles.inlineCard : styles.card,
           isInline && { backgroundColor: inlineColors.background, borderColor: inlineColors.border },
+          !isInline && isPalette && styles.momentsCard,
         ]}
         activeOpacity={0.8}
         onPress={() => handleOpenSermon(entry)}
@@ -184,7 +195,7 @@ export const SermonNotesReactQuery: React.FC<SermonNotesProps> = ({
                 weight="semiBold"
                 style={[styles.inlineCardTitle, { color: inlineColors.cardTitle }]}
               >
-                SERMON NOTES
+                {documentLabel.toUpperCase()}
               </ThemedText>
               {!!time && (
                 <View
@@ -245,7 +256,7 @@ export const SermonNotesReactQuery: React.FC<SermonNotesProps> = ({
           <>
             <View style={styles.header}>
               <View style={styles.headerLeft}>
-                <ThemedText weight="bold" style={styles.headerTitle}>SERMON NOTES</ThemedText>
+                <ThemedText weight="bold" style={styles.headerTitle}>{documentLabel.toUpperCase()}</ThemedText>
               </View>
               {!!time && <ThemedText style={styles.time}>{time}</ThemedText>}
             </View>
@@ -278,7 +289,7 @@ export const SermonNotesReactQuery: React.FC<SermonNotesProps> = ({
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, isPalette && styles.momentsContainer]}>
       {entries.map(renderSermon)}
     </View>
   );
@@ -287,6 +298,9 @@ export const SermonNotesReactQuery: React.FC<SermonNotesProps> = ({
 const styles = StyleSheet.create({
   container: {
     gap: 8,
+  },
+  momentsContainer: {
+    paddingHorizontal: 22,
   },
   card: {
     backgroundColor: Colors.hopeWhite,
@@ -304,6 +318,11 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     borderWidth: 1,
     padding: 20,
+  },
+  momentsCard: {
+    backgroundColor: Colors.cardBackground,
+    shadowOpacity: 0,
+    elevation: 0,
   },
   header: {
     flexDirection: 'row',

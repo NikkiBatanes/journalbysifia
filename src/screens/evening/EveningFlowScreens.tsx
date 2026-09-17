@@ -23,6 +23,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { Pencil } from 'lucide-react-native';
 
 import ThemedText from '../../components/common/ThemedText';
 import { Colors } from '../../theme/colors';
@@ -30,8 +31,9 @@ import { Fonts } from '../../theme/fonts';
 import { getFontFamily } from '../../theme/fonts';
 import { useTheme } from '../../hooks/useTheme';
 import { triggerLightHaptic } from '../../utils/haptics';
-import { toLocalDateString } from '../../utils/date';
+import { fromLocalDateString, toLocalDateString } from '../../utils/date';
 import { useRoutine } from '../../context/RoutineContext';
+import { useRoutineDraft } from '../../hooks/useRoutineDraft';
 import {
   createLocalJournalEntry,
   getLocalJournalEntry,
@@ -233,7 +235,7 @@ const _EveningGratitudeScreenOld: React.FC = () => {
   const { currentFont } = useTheme();
   const fontRegular = getFontFamily(currentFont || 'lexend', 'regular');
 
-  const selectedDate = params.selectedDate ? new Date(params.selectedDate) : new Date();
+  const selectedDate = params.selectedDate ? fromLocalDateString(params.selectedDate) : new Date();
   const dateStr = toLocalDateString(selectedDate);
 
   const [items, setItems] = useState<string[]>(['', '', '']);
@@ -378,6 +380,17 @@ export const EveningCarryWisdomScreen: React.FC = () => {
   const selectedInsights = selectedIds.flatMap(id => reflection?.insights.filter(insight => insight.id === id) || []);
   const customValue = showCustom ? customWisdom.trim() : '';
   const canContinue = !loading && !saving && (selectedInsights.length > 0 || customValue.length > 0);
+  const clearDraft = useRoutineDraft(
+    'evening', selectedDate, 'wisdom',
+    { selectedIds, applications, showCustom, customWisdom, text },
+    draft => {
+      setSelectedIds(draft.selectedIds ?? []);
+      setApplications(draft.applications ?? {});
+      setShowCustom(Boolean(draft.showCustom));
+      setCustomWisdom(draft.customWisdom ?? '');
+      setText(draft.text ?? '');
+    },
+  );
 
   const scrollToApplication = React.useCallback(() => {
     if (!focusedInsightId) {return;}
@@ -397,7 +410,7 @@ export const EveningCarryWisdomScreen: React.FC = () => {
 
   const [proverbReflectionId, setProverbReflectionId] = useState<string | null>(params.proverbReflectionId || null);
 
-  const dateStr = toLocalDateString(new Date(selectedDate));
+  const dateStr = selectedDate;
 
   React.useEffect(() => {
     let mounted = true;
@@ -482,6 +495,7 @@ export const EveningCarryWisdomScreen: React.FC = () => {
     if (!id) { setSaving(false); return; }
 
     try {
+      await clearDraft();
       await markStepCompleted('wisdom', {
         domain: 'reflection',
         content_type: 'scripture',
@@ -581,7 +595,7 @@ export const EveningClosingScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
-  const { completeRoutine, selectedDate, contentRefs } = useRoutine();
+  const { completeRoutine, selectedDate, contentRefs, completed } = useRoutine();
   const params = route.params ?? {};
   const [showAllGratitude, setShowAllGratitude] = useState(false);
   const [showAllWisdom, setShowAllWisdom] = useState(false);
@@ -618,7 +632,7 @@ export const EveningClosingScreen: React.FC = () => {
     ...(summary.customWisdom ? [{ id: 'custom', label: summary.customWisdom, verses: '', note: summary.wisdomApplication }] : []),
   ];
   const visibleWisdom = showAllWisdom ? wisdomItems : wisdomItems.slice(0, 1);
-  const dateStr = toLocalDateString(new Date(selectedDate));
+  const dateStr = selectedDate;
 
   React.useEffect(() => {
     let active = true;
@@ -674,6 +688,11 @@ export const EveningClosingScreen: React.FC = () => {
   const onDone = async () => {
     triggerLightHaptic();
 
+    if (completed) {
+      exitEveningFlow(navigation, 'Today');
+      return;
+    }
+
     try {
       await completeRoutine();
     } catch (error) {
@@ -688,7 +707,6 @@ export const EveningClosingScreen: React.FC = () => {
 
   return (
     <View style={[styles.closingContainer, { paddingTop: insets.top }]}>
-      <EveningCloseButton />
       <TouchableOpacity
         style={[styles.closingShareButton, { top: insets.top + 8 }]}
         onPress={() => { triggerLightHaptic(); setShareDropdownOpen(true); }}
@@ -697,7 +715,17 @@ export const EveningClosingScreen: React.FC = () => {
         accessibilityRole="button"
         accessibilityLabel="Share evening routine"
       >
-        <Ionicons name="paper-plane-outline" size={17} color={Colors.text} />
+        <Ionicons name="paper-plane-outline" size={17} color={Colors.sage} />
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={[styles.closingEditButton, { top: insets.top + 8 }]}
+        onPress={() => { triggerLightHaptic(); navigation.navigate('Gratitude'); }}
+        activeOpacity={0.7}
+        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        accessibilityRole="button"
+        accessibilityLabel="Edit evening routine"
+      >
+        <Pencil size={17} color={Colors.sage} strokeWidth={1.8} />
       </TouchableOpacity>
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -723,7 +751,13 @@ export const EveningClosingScreen: React.FC = () => {
         <View style={styles.closingGlanceSection}>
           <ThemedText weight="semiBold" style={styles.closingSectionEyebrow}>TONIGHT AT A GLANCE</ThemedText>
           <View style={styles.closingGlanceGrid}>
-            <View style={[styles.closingGlanceColumn, styles.closingGlanceColumnBorder]}>
+            <TouchableOpacity
+              style={[styles.closingGlanceColumn, styles.closingGlanceColumnBorder]}
+              onPress={() => { triggerLightHaptic(); navigation.navigate('Gratitude'); }}
+              accessibilityRole="button"
+              accessibilityLabel="Edit gratitude"
+              activeOpacity={0.75}
+            >
               <ThemedText style={styles.closingGlanceLabel}>Gratitude</ThemedText>
               {gratitudeItems.length > 0 ? visibleGratitude.map((item: string, index: number) => (
                 <View key={index} style={styles.closingGratitudeItem}>
@@ -733,7 +767,8 @@ export const EveningClosingScreen: React.FC = () => {
               )) : <ThemedText style={styles.closingGratitudeText}>—</ThemedText>}
               {gratitudeItems.length > 3 ? (
                 <TouchableOpacity
-                  onPress={() => {
+                  onPress={(event) => {
+                    event.stopPropagation();
                     triggerLightHaptic();
                     setShowAllGratitude(value => !value);
                   }}
@@ -746,15 +781,28 @@ export const EveningClosingScreen: React.FC = () => {
                   </ThemedText>
                 </TouchableOpacity>
               ) : null}
-            </View>
+            </TouchableOpacity>
             <View style={styles.closingGlanceColumn}>
+              <TouchableOpacity
+                onPress={() => { triggerLightHaptic(); navigation.navigate('Win'); }}
+                accessibilityRole="button"
+                accessibilityLabel="Edit today's win"
+                activeOpacity={0.75}
+              >
               <ThemedText style={styles.closingGlanceLabel}>Win</ThemedText>
               <View style={styles.closingValueWithIcon}>
                 <Ionicons name="trophy" size={18} color={Colors.sage} />
                 <ThemedText weight="semiBold" style={styles.closingGlanceValue}>{summary.winContext || summary.win || '—'}</ThemedText>
               </View>
               {summary.win && summary.win !== summary.winContext ? <ThemedText style={styles.closingGlanceSubtext}>{summary.win}</ThemedText> : null}
-          <View style={{ marginTop: 14 }}>
+              </TouchableOpacity>
+          <TouchableOpacity
+            style={{ marginTop: 14 }}
+            onPress={() => { triggerLightHaptic(); navigation.navigate('LookingForward'); }}
+            accessibilityRole="button"
+            accessibilityLabel="Edit looking forward reflection"
+            activeOpacity={0.75}
+          >
             <ThemedText style={styles.closingGlanceLabel}>Looking forward</ThemedText>
             <ThemedText weight="semiBold" style={styles.closingGlanceValue}>{summary.lookingForward || 'Nothing added'}</ThemedText>
             {summary.lookingForwardContext ? (
@@ -763,7 +811,7 @@ export const EveningClosingScreen: React.FC = () => {
                 <ThemedText style={[styles.closingGlanceSubtext, { marginTop: 0 }]}>{summary.lookingForwardContext}</ThemedText>
               </View>
             ) : null}
-          </View>
+          </TouchableOpacity>
             </View>
           </View>
 
@@ -771,18 +819,24 @@ export const EveningClosingScreen: React.FC = () => {
 
         <View style={styles.closingScriptureCard}>
           <View style={styles.closingScriptureColumns}>
-          <View style={styles.closingScriptureLeftColumn}>
+          <TouchableOpacity
+            style={styles.closingScriptureLeftColumn}
+            onPress={() => { triggerLightHaptic(); navigation.navigate('Proverbs'); }}
+            accessibilityRole="button"
+            accessibilityLabel="Edit evening Proverbs reflection"
+            activeOpacity={0.75}
+          >
           <View style={styles.closingScriptureHeader}>
             <ThemedText weight="semiBold" style={styles.closingSectionEyebrow}>EVENING PROVERBS</ThemedText>
             <ThemedText weight="bold" style={styles.closingScriptureTitle}>{summary.proverbNumber ? `Proverbs ${summary.proverbNumber}` : summary.proverbReference || 'Proverbs'}</ThemedText>
           </View>
           <View style={styles.closingReadStatus}>
             <View style={[styles.closingReadStatusIcon, !summary.proverbRead && styles.closingReadStatusIconInactive]}>
-              {summary.proverbRead ? <Ionicons name="checkmark" size={14} color={Colors.hopeWhite} /> : <MaterialCommunityIcons name="script-text-outline" size={14} color={Colors.sage} />}
+              {summary.proverbRead ? <Ionicons name="checkmark" size={14} color={Colors.hopeWhite} /> : <MaterialCommunityIcons name="progress-star" size={14} color={Colors.sage} />}
             </View>
             <ThemedText weight="semiBold" style={styles.closingReadStatusText}>{summary.proverbRead ? 'Full chapter read' : 'Reading in progress'}</ThemedText>
           </View>
-          </View>
+          </TouchableOpacity>
           <View style={styles.closingScriptureRightColumn}>
           <ThemedText style={styles.closingScripturePrompt}>Wisdom you’re carrying into tomorrow</ThemedText>
           {wisdomItems.length > 0 ? (
@@ -829,7 +883,7 @@ export const EveningClosingScreen: React.FC = () => {
           accessibilityRole="button"
           accessibilityLabel="Save and finish"
         >
-          <ThemedText weight="semiBold" style={styles.closingDoneButtonText}>Save & Finish</ThemedText>
+          <ThemedText weight="semiBold" style={styles.closingDoneButtonText}>{completed ? 'Done' : 'Save & Finish'}</ThemedText>
         </TouchableOpacity>
       </View>
       <ShareDropdownModal
@@ -857,8 +911,8 @@ const SummaryRow: React.FC<{ label: string; value: string; context?: string; las
 const styles = StyleSheet.create({
   wisdomSubtitle: { fontSize: 14, color: Colors.textGray, textAlign: 'center', marginBottom: 24 },
   wisdomChoices: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', columnGap: 12, rowGap: 8 },
-  wisdomChoice: { borderRadius: 24, paddingHorizontal: 18, paddingVertical: 14, backgroundColor: 'rgba(82, 106, 91, 0.08)', borderWidth: 0.5, borderColor: Colors.sage },
-  wisdomChoiceSelected: { backgroundColor: Colors.sage },
+  wisdomChoice: { borderRadius: 28, paddingHorizontal: 18, paddingVertical: 14, backgroundColor: 'rgba(82, 106, 91, 0.08)', borderWidth: 0.5, borderColor: 'rgba(82, 106, 91, 0.2)' },
+  wisdomChoiceSelected: { backgroundColor: Colors.sageMuted, borderColor: Colors.sage },
   wisdomChoiceText: { fontSize: 15, color: Colors.text, textAlign: 'center' },
   wisdomSelectedText: { fontSize: 15, color: Colors.hopeWhite, textAlign: 'center' },
   wisdomReference: { fontSize: 12, marginTop: 4, color: Colors.textGray, textAlign: 'center' },
@@ -1289,7 +1343,8 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 21,
   },
-  closingShareButton: { position: 'absolute', right: 70, zIndex: 100, width: 42, height: 42, borderRadius: 21, backgroundColor: Colors.cardBackground, alignItems: 'center', justifyContent: 'center' },
+  closingShareButton: { position: 'absolute', right: 18, zIndex: 100, width: 42, height: 42, borderRadius: 21, backgroundColor: Colors.cardBackground, alignItems: 'center', justifyContent: 'center' },
+  closingEditButton: { position: 'absolute', right: 70, zIndex: 100, width: 42, height: 42, borderRadius: 21, backgroundColor: Colors.cardBackground, alignItems: 'center', justifyContent: 'center' },
   closingContainer: {
     flex: 1,
     backgroundColor: Colors.lightBackground,

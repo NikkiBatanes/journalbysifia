@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import {Sparkle} from 'lucide-react-native';
 import { format } from 'date-fns';
 
 import ThemedText from '../common/ThemedText';
@@ -35,6 +36,7 @@ const PrayerCard = ({
   onEdit,
   onManageAnswers,
   onAnswered,
+  onRelease,
   answering,
 }: {
   prayer: PrayerHomeEntry;
@@ -44,6 +46,7 @@ const PrayerCard = ({
   onEdit?: (prayer: PrayerHomeEntry) => void;
   onManageAnswers?: (prayer: PrayerHomeEntry) => void;
   onAnswered?: (prayer: PrayerHomeEntry, needId?: string) => void;
+  onRelease?: (prayer: PrayerHomeEntry) => void;
   answering: boolean;
 }) => {
   const momentsPalette = useMomentsPalette();
@@ -100,7 +103,6 @@ const PrayerCard = ({
         <View style={styles.prayerTypeRow}>
           {isOpen ? <Ionicons name="chatbubble-outline" size={14} color={Colors.sage} /> : <Ionicons name={isPrayerRequest ? 'mail-unread-outline' : isCast ? 'layers-outline' : 'heart-outline'} size={14} color={Colors.sage} />}
           <ThemedText weight="semiBold" style={styles.cardMeta}>{typeLabel}</ThemedText>
-          {isAnswered && <Ionicons name="checkmark-circle" size={14} color={Colors.sage} />}
           {!momentsPalette && <ThemedText style={styles.cardDate}>{formatStarted(prayer.created_at)}</ThemedText>}
         </View>
         <ThemedText weight="bold" style={styles.cardTitle}>{title}</ThemedText>
@@ -131,7 +133,7 @@ const PrayerCard = ({
         <ThemedText weight="semiBold" style={styles.actionButtonText}>{showHistory ? 'Hide history' : `View history (${history.length})`}</ThemedText>
         <Ionicons name={showHistory ? 'chevron-up' : 'chevron-down'} size={13} color={Colors.sage} />
       </TouchableOpacity>}
-      {tracked && needs.length > 1 && onAnswered && needs.map(need => <View key={need.id} style={styles.castSection}><ThemedText style={styles.cardBody}>{need.text}</ThemedText><ThemedText style={styles.cardMeta}>{need.status === 'pending' ? 'Still praying' : need.status === 'answered' ? 'Answered' : 'Closed'}</ThemedText><TouchableOpacity disabled={answering} style={[styles.actionButton, { alignSelf: 'flex-start', marginVertical: 8 }]} onPress={() => onAnswered(prayer, need.id)}><Ionicons name="checkmark-circle-outline" size={14} color={Colors.sage} /><ThemedText weight="semiBold" style={styles.actionButtonText}>{need.status === 'answered' ? 'Answered' : 'Mark answered'}</ThemedText></TouchableOpacity></View>)}
+      {tracked && needs.length > 1 && onAnswered && needs.map(need => <View key={need.id} style={styles.castSection}><ThemedText style={styles.cardBody}>{need.text}</ThemedText><ThemedText style={styles.cardMeta}>{need.status === 'pending' ? 'Still praying' : need.status === 'answered' ? 'Answered' : 'Let go'}</ThemedText><TouchableOpacity disabled={answering} style={[styles.actionButton, { alignSelf: 'flex-start', marginVertical: 8 }]} onPress={() => onAnswered(prayer, need.id)}><Ionicons name="checkmark-circle-outline" size={14} color={Colors.sage} /><ThemedText weight="semiBold" style={styles.actionButtonText}>{need.status === 'answered' ? 'Answered' : 'Mark answered'}</ThemedText></TouchableOpacity></View>)}
       {needsPrayer && onAddPrayer ? (
         <View style={styles.requestActionContainer}>
           <TouchableOpacity style={styles.requestPrayButton} onPress={() => onAddPrayer(prayer)} activeOpacity={0.7}>
@@ -149,15 +151,29 @@ const PrayerCard = ({
             <Ionicons name="chatbox-ellipses-outline" size={14} color={Colors.sage} />
             <ThemedText weight="semiBold" style={[styles.actionButtonText, styles.cardActionText]} numberOfLines={1}>{tracked ? 'Update' : 'Keep praying'}</ThemedText>
           </TouchableOpacity>}
-          {onAnswered && tracked && !needsPrayer &&  <TouchableOpacity disabled={answering} style={[styles.actionButton, styles.cardActionButton, { flexGrow: 1.35 }, isAnswered && styles.actionButtonActive]} onPress={() => (onManageAnswers && prayerNeeds(prayer).length > 1) ? onManageAnswers(prayer) : onAnswered(prayer, prayerNeeds(prayer)[0]?.id)} activeOpacity={0.7}>
-            <Ionicons name={isAnswered ? 'sparkles-outline' : 'checkmark-circle-outline'} size={14} color={isAnswered ? Colors.hopeWhite : Colors.sage} />
-            <ThemedText weight="semiBold" style={[styles.actionButtonText, styles.cardActionText, isAnswered && styles.actionButtonTextActive]} numberOfLines={1}>{needs.length > 1 ? 'Manage answers' : isAnswered ? 'Answered' : 'Mark answered'}</ThemedText>
+          {tracked && !isAnswered && onRelease && <TouchableOpacity style={[styles.actionButton, styles.cardActionButton]} onPress={() => onRelease(prayer)} activeOpacity={0.7}>
+            <Ionicons name={state === 'closed' ? 'refresh-outline' : 'leaf-outline'} size={14} color={Colors.sage} />
+            <ThemedText weight="semiBold" style={[styles.actionButtonText, styles.cardActionText]} numberOfLines={1}>{state === 'closed' ? 'Return' : 'Let go'}</ThemedText>
           </TouchableOpacity>}
         </View>
       )}
+      {onAnswered && tracked && !needsPrayer && (
+        <TouchableOpacity
+          disabled={answering}
+          style={[styles.releaseButton, isAnswered && styles.releaseButtonActive]}
+          onPress={() => (onManageAnswers && prayerNeeds(prayer).length > 1) ? onManageAnswers(prayer) : onAnswered(prayer, prayerNeeds(prayer)[0]?.id)}
+          activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel={needs.length > 1 ? 'Manage answers' : isAnswered ? 'Answered' : 'Mark answered'}>
+          <Sparkle size={15} color={isAnswered ? Colors.hopeWhite : Colors.sage} strokeWidth={1.8} />
+          <ThemedText weight="semiBold" style={[styles.releaseButtonText, isAnswered && styles.releaseButtonTextActive]}>
+            {needs.length > 1 ? 'Manage answers' : isAnswered ? 'Answered' : 'Mark answered'}
+          </ThemedText>
+        </TouchableOpacity>
+      )}
       {!needsPrayer && (
         <ThemedText style={styles.prayedMeta}>
-          {!tracked ? 'Saved prayer · Not tracked' : isAnswered ? 'Answered' : state === 'closed' ? 'Closed' : 'Still praying'}{prayerCount > 0 ? ` · Prayed ${prayerCount} ${prayerCount === 1 ? 'time' : 'times'}` : ''}{prayer.answered_date && isAnswered ? ` · ${formatStarted(prayer.answered_date)}` : ''}
+          {!tracked ? 'Saved prayer · Not tracked' : isAnswered ? 'Answered' : state === 'closed' ? 'Let go' : 'Still praying'}{prayerCount > 0 ? ` · Prayed ${prayerCount} ${prayerCount === 1 ? 'time' : 'times'}` : ''}{prayer.answered_date && isAnswered ? ` · ${formatStarted(prayer.answered_date)}` : ''}
         </ThemedText>
       )}
     </View>
@@ -166,7 +182,7 @@ const PrayerCard = ({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: 'transparent',
+    backgroundColor: Colors.cardBackground,
     borderColor: Colors.inputBorder,
     borderWidth: 1.5,
     borderRadius: 24,
@@ -187,6 +203,19 @@ const styles = StyleSheet.create({
   requestActionContainer: { borderTopWidth: 1, borderTopColor: Colors.cardBorder, marginTop: 4, paddingTop: 12 },
   requestPrayButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 10 },
   requestPrayText: { color: Colors.sage, fontSize: 14, lineHeight: 20 },
+  releaseButton: {
+    minHeight: 38,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 7,
+    marginTop: 6,
+    borderRadius: 19,
+    backgroundColor: Colors.actionBackground,
+  },
+  releaseButtonText: {color: Colors.sage, fontSize: 11, lineHeight: 16},
+  releaseButtonActive: {backgroundColor: Colors.sage},
+  releaseButtonTextActive: {color: Colors.hopeWhite},
   cardMeta: {
     color: Colors.sage,
     fontFamily: Fonts.semiBold,

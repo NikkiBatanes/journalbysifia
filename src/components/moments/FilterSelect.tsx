@@ -146,7 +146,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255, 255, 255, 0.15)',
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
   },
-  activeOptionPill: { backgroundColor: Colors.alertCoral, borderColor: Colors.alertCoral },
+  activeOptionPill: { backgroundColor: Colors.sageMuted, borderColor: Colors.sageMuted },
   optionPillText: { color: Colors.hopeWhite, fontSize: 14 },
   activeOptionPillText: { color: Colors.hopeWhite },
 });

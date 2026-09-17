@@ -1,6 +1,4 @@
-// useSmartJournalingGating - Feature gating for smart journaling (time blocks, gratitude, prayer, reflect)
-// Restricts Seeker and Spark accounts from using smart journaling features
-// Only Growth and Transformation tiers have access
+// Compatibility hook for Journal's smart journaling entry points.
 
 import { useMemo } from 'react';
 import { useSubscription } from './useSubscription';
@@ -23,9 +21,7 @@ export interface SmartJournalingGatingResult {
 }
 
 /**
- * Hook for managing smart journaling feature access
- * Seeker and Spark accounts are locked out and must upgrade to Growth or Transformation
- * Unless explicitly allowed per feature (e.g., journal carousel freeform)
+ * Smart journaling is core Journal functionality and is not tier-gated.
  */
 export function useSmartJournalingGating(options: SmartJournalingGatingOptions = {}): SmartJournalingGatingResult {
   const { subscription } = useSubscription();
@@ -37,31 +33,15 @@ export function useSmartJournalingGating(options: SmartJournalingGatingOptions =
   } = options;
 
   const result = useMemo(() => {
-    // Allow bypass only for specific features when explicitly enabled (e.g., journal carousel)
-    const seekerBypassesLock = allowSeekerFreeForm && feature === 'reflection';
-
-    // For free_trial users, use their trial_chosen_tier for access checks
     const effectiveTier = tier === 'free_trial' && subscription?.trial_chosen_tier
       ? subscription.trial_chosen_tier
       : tier;
 
-    // Restrict Seeker and Spark tiers - only Growth and Transformation can access smart journaling
-    const isLocked = (effectiveTier === 'seeker' || effectiveTier === 'spark' || effectiveTier === 'spark_annual') && !seekerBypassesLock;
-    const canUseFeature = !isLocked;
-
-    const defaultMessages: Record<SmartJournalingFeature, string> = {
-      general: 'Upgrade to Growth or Transformation to unlock Smart Journaling and track time blocks, gratitude, prayers, and reflections',
-      reflection: 'Upgrade to Growth or Transformation to unlock guided prompts and premium journaling tools',
-      gratitude: 'Upgrade to Growth or Transformation to unlock Smart Gratitude journaling with unlimited entries',
-      prayer: 'Upgrade to Growth or Transformation to unlock Smart Prayer journaling and track answered prayers',
-      time_block: 'Upgrade to Growth or Transformation to schedule time blocks and sync advanced journaling routines',
-    };
-
     return {
-      isLocked,
+      isLocked: false,
       tier: effectiveTier,
-      canUseFeature,
-      upgradeMessage: isLocked ? (customMessage || defaultMessages[feature] || defaultMessages.general) : '',
+      canUseFeature: true,
+      upgradeMessage: '',
       feature,
     };
   }, [allowSeekerFreeForm, customMessage, feature, tier, subscription?.trial_chosen_tier]);

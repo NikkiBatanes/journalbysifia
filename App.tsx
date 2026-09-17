@@ -160,6 +160,7 @@ function App(): React.JSX.Element {
 
 import {useAuth} from './src/context/IndustryStandardAuthContext';
 import {useNotificationSetup} from './src/utils/notificationSetup';
+import {useMorningWidget} from './src/hooks/useMorningWidget';
 import {initializeSentry} from './src/config/sentry';
 import * as Sentry from '@sentry/react-native';
 import { realtimeManager } from './src/utils/supabaseRealtimeManager';
@@ -212,6 +213,9 @@ function AppWithAuth({
 
   // Initialize notification system (deep links, scheduling, badges)
   useNotificationSetup(user?.id, navigationRef);
+
+  // Morning Home Screen widget: widget deep links + pending check-in sync
+  useMorningWidget();
 
   // Track app state changes for analytics (session tracking)
   useEffect(() => {

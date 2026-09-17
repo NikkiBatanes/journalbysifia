@@ -12,7 +12,7 @@ import { Check, ListTodo as LuListTodo, X, Pencil } from 'lucide-react-native';
 import { SwipeableTodoItem } from '../SwipeableTodoItem';
 import { faithPointsService } from '../../services/faithPointsService';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
-import { toLocalDateString } from '../../utils/date';
+import { formatLocalDateLong, fromLocalDateString, toLocalDateString } from '../../utils/date';
 import { ErrorBoundary } from '../ErrorBoundary';
 import { TodoSkeleton } from '../SkeletonLoader/TodoSkeleton';
 import { analytics } from '../../utils/analytics';
@@ -21,10 +21,10 @@ import { triggerLightHaptic } from '../../utils/haptics';
 import ThemedText from '../common/ThemedText';
 import { useTheme } from '../../hooks/useTheme';
 import { getFontFamily } from '../../theme/fonts';
-import { usePlanningGating } from '../../hooks/usePlanningGating';
 import { useNavigation } from '@react-navigation/native';
-import PlanningLockIcon from '../PlanningLockIcon';
 import { useScroll } from '../../context/ScrollContext';
+import { copyLocalIncompleteTodos } from '../../storage/journalStorage';
+import { emitMomentsStructuralRefresh } from '../../utils/momentsRefresh';
 
 // React Query hooks
 import {
@@ -87,7 +87,10 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
   const styles = useMemo(() => momentsPalette ? {
     ...baseStyles,
     todoText: { ...baseStyles.todoText, color: Colors.text },
+    todoItemWrapper: { ...baseStyles.todoItemWrapper, backgroundColor: Colors.cardBackground },
+    showMoreButton: { ...baseStyles.showMoreButton, backgroundColor: 'rgba(82, 106, 91, 0.1)' },
     showMoreText: { ...baseStyles.showMoreText, color: Colors.sage },
+    saveButton: { ...baseStyles.saveButton, backgroundColor: Colors.sage },
   } : baseStyles, [momentsPalette]);
   // Dynamic theming for fonts
   const { currentFont } = useTheme();
@@ -95,9 +98,6 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
   // Global edit mode context (only for inline view)
   // Global edit mode context - safe version that handles missing provider
   const globalEditMode = useEditModeSafe();
-
-  // Planning gating state
-  const planningGating = usePlanningGating(selectedDate, 'inApp');
 
   // Local UI state
   const [newTodo, setNewTodo] = useState('');
@@ -135,7 +135,7 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
 
   const handleDayPress = (day: any) => {
     triggerLightHaptic();
-    const targetDate = new Date(day.timestamp);
+    const targetDate = fromLocalDateString(day.dateString);
     setCopyTargetDate(targetDate);
     setShowCalendar(false);
   };
@@ -286,12 +286,6 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
   }, [error]);
 
   const startAdding = () => {
-    // Check if planning is locked for future dates
-    if (planningGating.isLocked) {
-      planningGating.handleLockedAction();
-      return;
-    }
-
     // Navigate to walkthrough screen instead of inline editor
     if (navigation) {
       triggerLightHaptic();
@@ -314,7 +308,7 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
 
   const handleSave = async () => {
     const todoText = newTodo.trim();
-    if (!todoText || !user) {return;}
+    if (!todoText) {return;}
 
 
     // Clear input immediately for better UX
@@ -329,7 +323,7 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
 
     try {
       await createTodoMutation.mutateAsync({
-        user_id: user.id,
+        user_id: user?.id || '',
         selected_date: dateStr,
         content_type: 'todo',
         content: JSON.stringify({
@@ -345,7 +339,7 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
         text_length: todoText.length,
         has_priority: false,
         date: dateStr,
-      }, user.id);
+      }, user?.id);
 
       // Scroll to top after successful save
       setTimeout(() => {
@@ -363,13 +357,13 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
   };
 
   const addTodo = async (value: string): Promise<boolean> => {
-    if (!user || !value.trim()) {
+    if (!value.trim()) {
       return false;
     }
 
     try {
       await createTodoMutation.mutateAsync({
-        user_id: user.id,
+        user_id: user?.id || '',
         selected_date: dateStr,
         content_type: 'todo',
         content: JSON.stringify({
@@ -441,7 +435,7 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
         };
       }
 
-      updateTodoMutation.mutateAsync({
+      await updateTodoMutation.mutateAsync({
         id,
         updates: {
           content: JSON.stringify(updatedContent),
@@ -519,8 +513,6 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
 
   // Copy incomplete todos to another date
   const copyIncompleteTodos = async (targetDate: Date) => {
-    if (!user) {return;}
-
     const incompleteTodos = todos.filter(t => !t.completed);
     if (incompleteTodos.length === 0) {
       Alert.alert('No Incomplete Todos', 'There are no incomplete todos to copy.');
@@ -529,40 +521,23 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
 
     try {
       const targetDateStr = toLocalDateString(targetDate);
-      let successCount = 0;
-
-      for (const todo of incompleteTodos) {
-        try {
-          await createTodoMutation.mutateAsync({
-            user_id: user.id,
-            selected_date: targetDateStr,
-            content_type: 'todo',
-            content: JSON.stringify({
-              text: todo.text,
-              completed: false,
-              priority: todo.priority || false,
-            }),
-            completed: false,
-          });
-          successCount++;
-        } catch (copyError) {
-          Logger.error('Failed to copy todo', copyError as Error, {
-        component: 'TodosReactQuery',
-        todoText: todo.text,
-      });
-        }
-      }
+      const copied = await copyLocalIncompleteTodos(dateStr, targetDateStr);
+      const successCount = copied.length;
 
       if (successCount > 0) {
+        // A copied destination gains new timeline content. Reuse the existing
+        // Moments refresh signal; ordinary completion toggles intentionally do
+        // not emit it, preserving the viewport.
+        emitMomentsStructuralRefresh('todo_copied', targetDateStr, copied.map(todo => todo.id));
         Alert.alert(
           'Todos Copied',
-          `Successfully copied ${successCount} incomplete todo${successCount === 1 ? '' : 's'} to ${targetDate.toLocaleDateString()}.`
+          `Successfully copied ${successCount} incomplete todo${successCount === 1 ? '' : 's'} to ${formatLocalDateLong(targetDateStr)}.`
         );
         analytics.trackTodoEvent('todo_created', {
           text_length: incompleteTodos.reduce((sum, t) => sum + t.text.length, 0),
           has_priority: incompleteTodos.some(t => t.priority),
           date: targetDateStr,
-        }, user.id);
+        }, user?.id);
       } else {
         Alert.alert('Copy Failed', 'Failed to copy todos. Please try again.');
       }
@@ -709,14 +684,6 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
         icon={null}
         title={undefined}
         subtitle={undefined}
-        headerRight={planningGating.lockIconVisible ? (
-          <PlanningLockIcon
-            tier={planningGating.currentTier}
-            context="inApp"
-            onLockTap={planningGating.handleLockedAction}
-            size={16}
-          />
-        ) : undefined}
         showAddButton={false}
         variant={variant}
         viewMode={viewMode}
@@ -831,14 +798,6 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
       showAddButton={hasContent ? !shouldShowAddingMode : false}
       onAdd={startAdding}
       isAdding={shouldShowAddingMode}
-      headerRight={planningGating.lockIconVisible ? (
-        <PlanningLockIcon
-          tier={planningGating.currentTier}
-          context="inApp"
-          onLockTap={planningGating.handleLockedAction}
-          size={16}
-        />
-      ) : undefined}
       variant={variant}
       viewMode={viewMode}
       expanded={expanded}
@@ -1082,11 +1041,7 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
         <View style={styles.modalContainer}>
           <View style={styles.modalTitleRow}>
             <ThemedText weight="semiBold" style={[styles.modalTitle, styles.flex1]}>Copy Incomplete To-Dos</ThemedText>
-            {planningGating.currentTier === 'seeker' ? (
-              <Ionicons style={styles.modalTitleIcon} name="lock-closed" size={18} color={(momentsPalette ? Colors.sage : Colors.alertCoral)} />
-            ) : (
-              <Ionicons style={styles.modalTitleIcon} name="copy-outline" size={18} color={Colors.hopeWhite} />
-            )}
+            <Ionicons style={styles.modalTitleIcon} name="copy-outline" size={18} color={Colors.hopeWhite} />
           </View>
           <ThemedText style={styles.modalSubtitle}>
             Copy {todos.filter(t => !t.completed).length} incomplete to-do{todos.filter(t => !t.completed).length === 1 ? '' : 's'} to a new date. Original to-dos will remain.
@@ -1169,12 +1124,12 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
                     backgroundColor: Colors.sage,
                     calendarBackground: Colors.sage,
                     textSectionTitleColor: Colors.hopeWhite,
-                    selectedDayBackgroundColor: Colors.alertCoral,
+                    selectedDayBackgroundColor: Colors.sageMuted,
                     selectedDayTextColor: Colors.hopeWhite,
-                    todayTextColor: Colors.alertCoral,
+                    todayTextColor: Colors.text,
                     dayTextColor: Colors.hopeWhite,
                     textDisabledColor: 'rgba(255, 255, 255, 0.3)',
-                    dotColor: Colors.alertCoral,
+                    dotColor: Colors.sageMuted,
                     selectedDotColor: Colors.hopeWhite,
                     arrowColor: Colors.hopeWhite,
                     monthTextColor: Colors.hopeWhite,
@@ -1204,7 +1159,7 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
                     if (todayStr !== selectedStr) {
                       marked[todayStr] = {
                         customStyles: {
-                          text: { color: Colors.alertCoral, fontFamily: getFontFamily(fontKey, 'bold') },
+                          text: { color: Colors.text, fontFamily: getFontFamily(fontKey, 'bold') },
                         },
                       };
                     }
@@ -1229,19 +1184,7 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
                 triggerLightHaptic();
                 setShowCopyModal(false);
 
-                if (planningGating.currentTier === 'seeker') {
-                  // Navigate to OnboardingSalesOffer with copy todos context
-                  (navigation as any).navigate('OnboardingSalesOffer', {
-                    source: 'copy_todos_lock',
-                    feature: 'copy_todos',
-                    // Don't pass tier - let screen detect from planningGating.tier for trial eligibility
-                    incompleteTodosCount: todos.filter(t => !t.completed).length,
-                    incompleteTodosPercentage: Math.round((todos.filter(t => !t.completed).length / Math.max(todos.length, 1)) * 100),
-                    skipNotificationPreference: true,
-                  });
-                } else {
-                  await copyIncompleteTodos(copyTargetDate);
-                }
+                await copyIncompleteTodos(copyTargetDate);
               }}
             >
               <ThemedText weight="semiBold" style={styles.copyButtonText}>Add to Date</ThemedText>
@@ -1632,8 +1575,8 @@ const baseStyles = StyleSheet.create({
     minHeight: 40,
   },
   datePickerButtonActive: {
-    backgroundColor: 'rgba(255, 107, 107, 0.15)',
-    borderColor: 'rgba(255, 107, 107, 0.6)',
+    backgroundColor: Colors.sageMuted,
+    borderColor: Colors.sageMuted,
   },
   datePickerText: {
     fontSize: 14,
@@ -1711,7 +1654,9 @@ const baseStyles = StyleSheet.create({
     borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   copyButton: {
-    backgroundColor: Colors.alertCoral,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   cancelButtonText: {
     fontSize: 15,

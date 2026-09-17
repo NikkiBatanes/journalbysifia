@@ -153,7 +153,7 @@ const ShareDropdownModal: React.FC<ShareDropdownModalProps> = ({
                 activeOpacity={0.7}
               >
                 <View style={styles.dropdownItemIconContainer}>
-                  <Ionicons name="share-social-outline" size={24} color={Colors.alertCoral} />
+                  <Ionicons name="share-social-outline" size={24} color={Colors.hopeWhite} />
                 </View>
                 <View style={styles.dropdownItemTextContainer}>
                   <ThemedText weight="semiBold" style={styles.dropdownItemTitle}>
@@ -173,7 +173,7 @@ const ShareDropdownModal: React.FC<ShareDropdownModalProps> = ({
                   activeOpacity={0.7}
                 >
                   <View style={styles.dropdownItemIconContainer}>
-                    <Ionicons name="document-outline" size={24} color={Colors.alertCoral} />
+                    <Ionicons name="document-outline" size={24} color={Colors.hopeWhite} />
                   </View>
                   <View style={styles.dropdownItemTextContainer}>
                     <ThemedText weight="semiBold" style={styles.dropdownItemTitle}>
@@ -243,7 +243,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: 'rgba(255, 107, 107, 0.15)',
+    backgroundColor: Colors.sageMuted,
     justifyContent: 'center',
     alignItems: 'center',
   },

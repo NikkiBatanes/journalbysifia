@@ -151,21 +151,21 @@ export const DateFilterBar: React.FC<DateFilterBarProps> = ({
       return {
         [format(selectedDate, 'yyyy-MM-dd')]: {
           selected: true,
-          selectedColor: Colors.alertCoral,
+          selectedColor: Colors.sageMuted,
         },
       };
     } else if (filterType === 'range' && tempRange.start) {
       const marked: any = {
         [format(tempRange.start, 'yyyy-MM-dd')]: {
           selected: true,
-          selectedColor: Colors.alertCoral,
+          selectedColor: Colors.sageMuted,
         },
       };
 
       if (tempRange.end) {
         marked[format(tempRange.end, 'yyyy-MM-dd')] = {
           selected: true,
-          selectedColor: Colors.alertCoral,
+          selectedColor: Colors.sageMuted,
         };
       }
 
@@ -257,10 +257,10 @@ export const DateFilterBar: React.FC<DateFilterBarProps> = ({
                 calendarBackground: Colors.sage,
                 textSectionTitleColor: Colors.hopeWhite,
                 dayTextColor: Colors.hopeWhite,
-                todayTextColor: Colors.alertCoral,
+                todayTextColor: Colors.text,
                 selectedDayTextColor: Colors.hopeWhite,
                 monthTextColor: Colors.hopeWhite,
-                arrowColor: Colors.alertCoral,
+                arrowColor: Colors.hopeWhite,
                 textDisabledColor: Colors.textGray,
               }}
             />
@@ -343,7 +343,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   activeFilterType: {
-    backgroundColor: Colors.alertCoral,
+    backgroundColor: Colors.sageMuted,
   },
   filterTypeText: {
     fontSize: 12,
@@ -408,7 +408,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
   },
   selectedPreset: {
-    backgroundColor: Colors.alertCoral,
+    backgroundColor: Colors.sageMuted,
   },
   presetText: {
     fontSize: 16,

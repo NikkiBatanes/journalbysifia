@@ -51,4 +51,20 @@ describe('weekly rhythm', () => {
     (getLocalJournalSingleton as jest.Mock).mockImplementation(async (_type, date) => date === '2026-09-09' ? { id: 'check-in' } : null);
     expect(await getWeeklyRhythm('2026-09-07', '2026-09-13')).toMatchObject({ activeDays: 1, morning: 0 });
   });
+
+  it('does not count future planning content before its local calendar date', async () => {
+    (getReviewCapture as jest.Mock).mockResolvedValue({ items: [
+      { id: 'today-entry', kind: 'journal', selectedDate: '2026-09-16' },
+      { id: 'future-plan', kind: 'journal', selectedDate: '2026-09-18' },
+    ] });
+    (getLocalJournalSingleton as jest.Mock).mockImplementation(async (_type, date) =>
+      date === '2026-09-18' ? { id: 'future-check-in' } : null);
+
+    const result = await getWeeklyRhythm('2026-09-14', '2026-09-20', '2026-09-17');
+
+    expect(result.activeDays).toBe(1);
+    expect(result.days.find(day => day.date === '2026-09-16')?.active).toBe(true);
+    expect(result.days.find(day => day.date === '2026-09-18')?.active).toBe(false);
+    expect(getLocalJournalSingleton).not.toHaveBeenCalledWith('morning_check_in', '2026-09-18');
+  });
 });

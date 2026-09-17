@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, DeviceEventEmitter, LayoutAnimation, Platform, UIManager, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
+import { Animated, LayoutAnimation, Platform, UIManager, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -16,53 +16,17 @@ import { exitMorningFlow } from '../../navigation/exitEveningFlow';
 import RoutineStepShell from '../../components/routine/RoutineStepShell';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { preloadScripturePassages } from '../../services/scriptureReaderService';
-import { getMorningCheckInScripturePool, getMorningCheckInPoolKey } from '../../data/morningCheckInScriptures';
-import { safeJsonParse } from '../../utils/safeJsonParse';
+import { getMorningCheckInScripturePool } from '../../data/morningCheckInScriptures';
+import {
+  MorningFeeling as Feeling,
+  MORNING_INITIAL_FEELINGS as INITIAL_FEELINGS,
+  MORNING_MORE_FEELINGS as MORE_FEELINGS,
+  saveMorningFeeling,
+} from '../../services/morningCheckInService';
 import {
   getLocalJournalSingleton,
-  saveLocalJournalSingleton,
   LocalJournalEntry,
 } from '../../storage/journalStorage';
-
-interface Feeling {
-  id: string;
-  name: string;
-  icon: string;
-  iconType: 'ionicons' | 'material';
-}
-
-const INITIAL_FEELINGS: Feeling[] = [
-  { id: 'peaceful', name: 'Peaceful', icon: 'leaf-outline', iconType: 'ionicons' },
-  { id: 'grateful', name: 'Grateful', icon: 'hand-heart', iconType: 'material' },
-  { id: 'hopeful', name: 'Hopeful', icon: 'sunny-outline', iconType: 'ionicons' },
-  { id: 'joyful', name: 'Joyful', icon: 'happy-outline', iconType: 'ionicons' },
-  { id: 'anxious', name: 'Anxious', icon: 'cloudy-outline', iconType: 'ionicons' },
-  { id: 'tired', name: 'Tired', icon: 'sleep', iconType: 'material' },
-  { id: 'overwhelmed', name: 'Overwhelmed', icon: 'waves', iconType: 'material' },
-  { id: 'sad', name: 'Sad', icon: 'emoticon-sad-outline', iconType: 'material' },
-  { id: 'frustrated', name: 'Frustrated', icon: 'emoticon-angry-outline', iconType: 'material' },
-  { id: 'excited', name: 'Excited', icon: 'sparkles-outline', iconType: 'ionicons' },
-  { id: 'calm', name: 'Calm', icon: 'water-outline', iconType: 'ionicons' },
-  { id: 'content', name: 'Content', icon: 'cafe-outline', iconType: 'ionicons' },
-];
-
-const MORE_FEELINGS: Feeling[] = [
-  { id: 'stressed', name: 'Stressed', icon: 'alert-circle-outline', iconType: 'ionicons' },
-  { id: 'lonely', name: 'Lonely', icon: 'person-outline', iconType: 'ionicons' },
-  { id: 'confident', name: 'Confident', icon: 'trophy-outline', iconType: 'ionicons' },
-  { id: 'worried', name: 'Worried', icon: 'cloudy-night-outline', iconType: 'ionicons' },
-  { id: 'restless', name: 'Restless', icon: 'flash-outline', iconType: 'ionicons' },
-  { id: 'inspired', name: 'Inspired', icon: 'bulb-outline', iconType: 'ionicons' },
-  { id: 'bored', name: 'Bored', icon: 'time-outline', iconType: 'ionicons' },
-  { id: 'angry', name: 'Angry', icon: 'flame-outline', iconType: 'ionicons' },
-  { id: 'discouraged', name: 'Discouraged', icon: 'rainy-outline', iconType: 'ionicons' },
-  { id: 'brave', name: 'Brave', icon: 'shield-outline', iconType: 'ionicons' },
-  { id: 'hopeless', name: 'Hopeless', icon: 'cloudy-outline', iconType: 'ionicons' },
-  { id: 'grumpy', name: 'Grumpy', icon: 'thunderstorm-outline', iconType: 'ionicons' },
-  { id: 'stuck', name: 'Stuck', icon: 'help-circle-outline', iconType: 'ionicons' },
-  { id: 'loved', name: 'Loved', icon: 'heart-outline', iconType: 'ionicons' },
-  { id: 'other', name: 'Other', icon: 'plus-circle', iconType: 'material' },
-];
 
 const EmotionCheckInScreen = () => {
   const navigation = useNavigation<any>();
@@ -133,41 +97,20 @@ const EmotionCheckInScreen = () => {
 
     let record: LocalJournalEntry | null = null;
     try {
-      const existing = await getLocalJournalSingleton('morning_check_in', dateStr);
-      const existingContent = existing
-        ? safeJsonParse<Record<string, any>>(existing.content, { fallback: {} }) || {}
-        : {};
-
-      const newPoolKey = getMorningCheckInPoolKey(selected.id);
-      const existingPoolKey = existingContent.scripture?.poolKey
-        ? existingContent.scripture.poolKey
-        : getMorningCheckInPoolKey(existingContent.feeling);
-      const samePool = existingPoolKey && newPoolKey === existingPoolKey;
-
-      const nextUnderneathIt = samePool && existingContent.underneathIt !== undefined
-        ? existingContent.underneathIt
-        : '';
-
-      const nextScripture = samePool && existingContent.scripture?.reference
-        ? { ...existingContent.scripture, poolKey: existingContent.scripture.poolKey || newPoolKey }
-        : undefined;
-
-      const content = JSON.stringify({
-        feeling: feelingName,
-        feelingIcon: selected.icon,
-        feelingIconType: selected.iconType,
-        underneathIt: nextUnderneathIt,
-        ...(nextScripture ? { scripture: nextScripture } : {}),
-      });
-      record = await saveLocalJournalSingleton('morning_check_in', dateStr, content);
-      DeviceEventEmitter.emit('reflection_saved', { type: 'morning_check_in', date: dateStr });
+      record = await saveMorningFeeling(
+        dateStr,
+        selected,
+        isOtherSelected ? feelingName : undefined,
+      );
     } catch (saveError) {
       console.error('Error saving morning check-in:', saveError);
+      return;
     }
+    if (!record) { return; }
 
     await markStepCompleted(
       'emotion',
-      record ? { domain: 'journal', content_type: 'morning_check_in', local_id: record.id } : undefined,
+      { domain: 'journal', content_type: 'morning_check_in', local_id: record.id },
       'morning_check_in',
     );
     navigation.navigate('UnderneathIt', {

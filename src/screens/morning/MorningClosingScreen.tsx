@@ -13,7 +13,7 @@ import { FOCUS_CATEGORIES } from '../../components/journal/TodaysFocusExperience
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
 import { triggerLightHaptic } from '../../utils/haptics';
-import { toLocalDateString } from '../../utils/date';
+import { fromLocalDateString, toLocalDateString } from '../../utils/date';
 import { exitEveningFlow } from '../../navigation/exitEveningFlow';
 import { useRoutine } from '../../context/RoutineContext';
 import { getLocalJournalSingleton, getLocalJournalEntries } from '../../storage/journalStorage';
@@ -38,7 +38,7 @@ const MorningClosingScreen = () => {
   const params = route.params ?? {};
   const [shareDropdownOpen, setShareDropdownOpen] = useState(false);
 
-  const date = new Date(selectedDate);
+  const date = fromLocalDateString(selectedDate);
   const dateStr = toLocalDateString(date);
 
   const [summary, setSummary] = useState({
@@ -167,7 +167,7 @@ const MorningClosingScreen = () => {
         accessibilityRole="button"
         accessibilityLabel="Share morning routine"
       >
-        <Ionicons name="paper-plane-outline" size={17} color={Colors.text} />
+        <Ionicons name="paper-plane-outline" size={17} color={Colors.sage} />
       </TouchableOpacity>
       <TouchableOpacity
         style={[styles.editButton, { top: insets.top + 8 }]}
@@ -181,7 +181,7 @@ const MorningClosingScreen = () => {
         accessibilityRole="button"
         accessibilityLabel="Edit morning routine"
       >
-        <Pencil size={17} color={Colors.text} strokeWidth={1.8} />
+        <Pencil size={17} color={Colors.sage} strokeWidth={1.8} />
       </TouchableOpacity>
 
       <ScrollView
@@ -196,21 +196,33 @@ const MorningClosingScreen = () => {
           </View>
           <View style={styles.completionHeaderText}>
             <ThemedText style={styles.title}>You’re ready for today.</ThemedText>
-            <ThemedText style={styles.subtitle}>Your morning is set.</ThemedText>
+            <ThemedText style={styles.subtitle}>Your morning is saved.</ThemedText>
           </View>
         </View>
 
         <View style={styles.glanceSection}>
           <ThemedText weight="semiBold" style={styles.sectionEyebrow}>TODAY AT A GLANCE</ThemedText>
           <View style={styles.glanceGrid}>
-            <View style={[styles.glanceColumn, styles.glanceColumnBorder]}>
+            <TouchableOpacity
+              style={[styles.glanceColumn, styles.glanceColumnBorder]}
+              onPress={() => { triggerLightHaptic(); navigation.navigate('EmotionCheckIn'); }}
+              accessibilityRole="button"
+              accessibilityLabel="Edit morning check-in"
+              activeOpacity={0.75}
+            >
               <ThemedText style={styles.glanceLabel}>Feeling</ThemedText>
               <View style={styles.valueWithIcon}>
                 <SummaryIcon icon={summary.feelingIcon} iconType={summary.feelingIconType} />
                 <ThemedText weight="semiBold" style={styles.glanceValue}>{summary.feeling || '—'}</ThemedText>
               </View>
-            </View>
-            <View style={styles.glanceColumn}>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.glanceColumn}
+              onPress={() => { triggerLightHaptic(); navigation.navigate('TodaysFocus'); }}
+              accessibilityRole="button"
+              accessibilityLabel="Edit today's focus"
+              activeOpacity={0.75}
+            >
               <ThemedText style={styles.glanceLabel}>Focus</ThemedText>
               <View style={styles.valueWithIcon}>
                 <SummaryIcon icon={summary.focusIcon} iconType={summary.focusIconType} />
@@ -219,17 +231,29 @@ const MorningClosingScreen = () => {
               {summary.personalText ? (
                 <ThemedText style={styles.focusReflection}>{summary.personalText}</ThemedText>
               ) : null}
-            </View>
+            </TouchableOpacity>
           </View>
-          <View style={styles.todayCount}>
+          <TouchableOpacity
+            style={styles.todayCount}
+            onPress={() => { triggerLightHaptic(); navigation.navigate('Todos'); }}
+            accessibilityRole="button"
+            accessibilityLabel="Edit priorities and to-dos"
+            activeOpacity={0.75}
+          >
             <ThemedText style={styles.glanceLabel}>Today</ThemedText>
             <ThemedText weight="semiBold" style={styles.todayCountValue}>
               {priorityCountLabel} · {todoCountLabel}
             </ThemedText>
-          </View>
+          </TouchableOpacity>
         </View>
 
-        <View style={styles.psalmCard}>
+        <TouchableOpacity
+          style={styles.psalmCard}
+          onPress={() => { triggerLightHaptic(); navigation.navigate('PsalmOfTheDay'); }}
+          accessibilityRole="button"
+          accessibilityLabel="Edit morning Psalm"
+          activeOpacity={0.75}
+        >
           <View style={styles.psalmHeader}>
             <ThemedText weight="semiBold" style={styles.sectionEyebrow}>MORNING PSALM</ThemedText>
             <ThemedText weight="bold" style={styles.psalmTitle}>
@@ -239,7 +263,7 @@ const MorningClosingScreen = () => {
 
           <View style={styles.readStatus}>
             <View style={[styles.readStatusIcon, !summary.psalmRead && styles.readStatusIconInactive]}>
-              {summary.psalmRead ? <Ionicons name="checkmark" size={14} color={Colors.hopeWhite} /> : <MaterialCommunityIcons name="script-text-outline" size={14} color={Colors.sage} />}
+              {summary.psalmRead ? <Ionicons name="checkmark" size={14} color={Colors.hopeWhite} /> : <MaterialCommunityIcons name="progress-star" size={14} color={Colors.sage} />}
             </View>
             <ThemedText weight="semiBold" style={styles.readStatusText}>
               {summary.psalmRead ? 'Full chapter read' : 'Reading in progress'}
@@ -251,7 +275,7 @@ const MorningClosingScreen = () => {
             {summary.selectedAttributes.length > 0 ? summary.selectedAttributes.join(' · ') : 'Nothing selected'}
           </ThemedText>
 
-        </View>
+        </TouchableOpacity>
 
         <View style={styles.asYouGo}>
           <ThemedText weight="semiBold" style={styles.sectionEyebrow}>AS YOU GO</ThemedText>

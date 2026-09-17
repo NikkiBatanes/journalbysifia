@@ -11,6 +11,7 @@ import { getFontFamily } from '../../theme/fonts';
 import { useTheme } from '../../hooks/useTheme';
 import { triggerLightHaptic, triggerMediumHaptic } from '../../utils/haptics';
 import { useRoutine } from '../../context/RoutineContext';
+import { useRoutineDraft } from '../../hooks/useRoutineDraft';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { exitMorningFlow } from '../../navigation/exitEveningFlow';
 import RoutineStepShell from '../../components/routine/RoutineStepShell';
@@ -47,6 +48,7 @@ const UnderneathItScreen = () => {
   const [passage, setPassage] = useState<ScriptureReaderResult | null>(null);
   const [passageLoading, setPassageLoading] = useState(false);
   const [passageError, setPassageError] = useState(false);
+  const clearDraft = useRoutineDraft('morning', selectedDate, 'underneath', text, setText);
 
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';
@@ -231,11 +233,14 @@ const UnderneathItScreen = () => {
     });
     if (record) {
       DeviceEventEmitter.emit('reflection_saved', { type: 'morning_check_in', date: dateStr });
+    } else {
+      return;
     }
+    await clearDraft();
 
     await markStepCompleted(
       'underneath',
-      record ? { domain: 'journal', content_type: 'morning_check_in', local_id: record.id } : undefined,
+      { domain: 'journal', content_type: 'morning_check_in', local_id: record.id },
       'morning_check_in',
     );
     navigation.navigate('PsalmOfTheDay', {
@@ -244,7 +249,7 @@ const UnderneathItScreen = () => {
       feelingIconType: checkIn.feelingIconType,
       underneath: text,
     });
-  }, [checkIn.feeling, checkIn.feelingIcon, checkIn.feelingIconType, dateStr, markStepCompleted, navigation, saveContent, scripture, text]);
+  }, [checkIn.feeling, checkIn.feelingIcon, checkIn.feelingIconType, clearDraft, dateStr, markStepCompleted, navigation, saveContent, scripture, text]);
 
   const handleRetryPassage = React.useCallback(() => {
     triggerLightHaptic();

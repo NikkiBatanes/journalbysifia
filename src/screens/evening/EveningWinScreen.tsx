@@ -7,13 +7,14 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { TodayWinExperience } from '../TodaysWinWalkthroughScreen';
 import { withErrorBoundary } from '../../components/ErrorBoundary/withErrorBoundary';
 import { useRoutine } from '../../context/RoutineContext';
+import { fromLocalDateString } from '../../utils/date';
 
 const EveningWinScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const insets = useSafeAreaInsets();
   const { selectedDate, markStepCompleted } = useRoutine();
-  const selectedDateObj = new Date(selectedDate);
+  const selectedDateObj = fromLocalDateString(selectedDate);
   const params = route.params ?? {};
 
 
@@ -56,6 +57,7 @@ const EveningWinScreen: React.FC = () => {
       onClose={handleClose}
       onComplete={handleComplete}
       skipCompletionPage
+      routineDraft={{ routine: 'evening', selectedDate, step: 'win' }}
     />
   );
 };

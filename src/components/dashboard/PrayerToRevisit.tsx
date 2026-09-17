@@ -4,6 +4,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useQueryClient } from '@tanstack/react-query';
 import { differenceInCalendarDays, formatDistanceToNowStrict, format } from 'date-fns';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import {Sparkle} from 'lucide-react-native';
 import ThemedText from '../common/ThemedText';
 import PrayerTrackingModal from '../prayer/PrayerTrackingModal';
 import type { PrayerChanges } from '../prayer/PrayerDetails';
@@ -95,7 +96,7 @@ export default function PrayerToRevisit() {
     <View style={styles.actions}>
       <TouchableOpacity disabled={saving || !!prayedToday} style={styles.button} onPress={() => { void action(false); }}><ThemedText numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75} style={styles.buttonText}>{prayedToday ? 'Prayed today' : 'Pray again'}</ThemedText></TouchableOpacity>
       <TouchableOpacity disabled={saving} style={styles.button} onPress={() => { triggerLightHaptic(); setMode('update'); }}><ThemedText numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75} style={styles.buttonText}>Update</ThemedText></TouchableOpacity>
-      <TouchableOpacity disabled={saving} style={styles.button} onPress={() => { void action(true); }}><ThemedText numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75} style={styles.buttonText}>Mark answered</ThemedText></TouchableOpacity>
+      <TouchableOpacity disabled={saving} style={styles.button} onPress={() => { void action(true); }}><Sparkle size={13} color={Colors.sage} strokeWidth={1.8} /><ThemedText numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75} style={styles.buttonText}>Mark answered</ThemedText></TouchableOpacity>
     </View>
     {candidateCount > 1 && <TouchableOpacity disabled={saving} style={{ alignSelf: 'center', marginTop: 14 }} onPress={() => {
       triggerLightHaptic(); const version = ++generation.current;
@@ -109,5 +110,5 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 }, savedDate: { color: Colors.textGray, fontSize: 10, lineHeight: 15 },
   label: { color: Colors.sage, fontSize: 10, letterSpacing: 1.5 }, row: { flexDirection: 'row', alignItems: 'center', gap: 14, marginTop: 18 },
   title: { color: Colors.text, fontSize: 15, lineHeight: 22 }, meta: { color: Colors.textGray, fontSize: 11, lineHeight: 18 }, preview: { color: Colors.textGray, fontSize: 13, lineHeight: 21, marginTop: 12 },
-  actions: { flexDirection: 'row', gap: 6, marginTop: 18 }, button: { flex: 1, minWidth: 0, alignItems: 'center', borderWidth: 1, borderColor: Colors.cardBorder, borderRadius: 20, paddingVertical: 9, paddingHorizontal: 7 }, buttonText: { color: Colors.sage, fontSize: 11 },
+  actions: { flexDirection: 'row', gap: 6, marginTop: 18 }, button: { flex: 1, minWidth: 0, flexDirection: 'row', gap: 4, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: Colors.cardBorder, borderRadius: 20, paddingVertical: 9, paddingHorizontal: 7 }, buttonText: { color: Colors.sage, fontSize: 11 },
 });

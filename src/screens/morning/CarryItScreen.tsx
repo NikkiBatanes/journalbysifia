@@ -12,6 +12,7 @@ import { useTheme } from '../../hooks/useTheme';
 import { toLocalDateString } from '../../utils/date';
 import { triggerLightHaptic, triggerMediumHaptic } from '../../utils/haptics';
 import { useRoutine } from '../../context/RoutineContext';
+import { useRoutineDraft } from '../../hooks/useRoutineDraft';
 import { exitMorningFlow } from '../../navigation/exitEveningFlow';
 import RoutineStepShell from '../../components/routine/RoutineStepShell';
 import {
@@ -26,13 +27,22 @@ const CarryItScreen = () => {
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';
   const { selectedDate, markStepCompleted } = useRoutine();
-  const dateStr = toLocalDateString(new Date(selectedDate));
+  const dateStr = selectedDate;
 
   const [psalmNumber, setPsalmNumber] = useState(1);
   const [selectedAttributes, setSelectedAttributes] = useState<string[]>([]);
   const [showCustomInput, setShowCustomInput] = useState(false);
   const [customAttribute, setCustomAttribute] = useState('');
   const [psalmReflectionId, setPsalmReflectionId] = useState<string | null>(null);
+  const clearDraft = useRoutineDraft(
+    'morning', selectedDate, 'carry',
+    { selectedAttributes, customAttribute, showCustomInput },
+    draft => {
+      setSelectedAttributes(draft.selectedAttributes ?? []);
+      setCustomAttribute(draft.customAttribute ?? '');
+      setShowCustomInput(Boolean(draft.showCustomInput));
+    },
+  );
 
   useEffect(() => {
     let mounted = true;
@@ -110,12 +120,14 @@ const CarryItScreen = () => {
       setPsalmReflectionId(id);
     } catch (error) {
       console.error('Error saving morning psalm reflection:', error);
+      return;
     }
 
+    await clearDraft();
     await markStepCompleted('carry');
 
     navigation.navigate('MorningClosing');
-  }, [canContinue, customValue, markStepCompleted, navigation, psalmNumber, psalmReflectionId, selectedAttributes, dateStr]);
+  }, [canContinue, clearDraft, customValue, markStepCompleted, navigation, psalmNumber, psalmReflectionId, selectedAttributes, dateStr]);
 
   const onBack = () => exitMorningFlow(navigation, 'Today');
 

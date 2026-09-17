@@ -56,13 +56,15 @@ export const initializeSentry = () => {
     // Enable Logs
     enableLogs: true,
 
-    // Configure Session Replay
-    replaysSessionSampleRate: 0.1,
-    replaysOnErrorSampleRate: 1.0,
+    // Session Replay is intentionally disabled. Besides recording sensitive
+    // journal surfaces, its iOS screenshot traversal can race Fabric view
+    // commands during animated editor transitions. Error and crash reporting
+    // remain enabled.
+    replaysSessionSampleRate: 0,
+    replaysOnErrorSampleRate: 0,
 
     // Integrations - using current Sentry SDK API
     integrations: [
-      Sentry.mobileReplayIntegration(),
       Sentry.feedbackIntegration(),
     ],
 

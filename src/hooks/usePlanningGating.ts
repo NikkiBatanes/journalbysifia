@@ -1,6 +1,4 @@
 import { useMemo } from 'react';
-import { useNavigation } from '@react-navigation/native';
-import { useAuth } from '../context/IndustryStandardAuthContext';
 import { useSubscription } from '../hooks/useSubscription';
 import {
   checkPlanningAccess,
@@ -11,7 +9,6 @@ import {
   type PlanningAccessRules,
 } from '../utils/tierLockingRules';
 import { SubscriptionTier } from '../types/subscription';
-import { navigateFromRoot } from '../utils/navigationHelpers';
 
 export type PlanningLockReason = 'future_planning' | 'repeat_timeblocks';
 
@@ -58,7 +55,6 @@ export const usePlanningGating = (
   context: 'onboarding' | 'inApp' = 'inApp',
   onUpgradeRequired?: () => void
 ): PlanningGatingResult => {
-  const { user } = useAuth();
   const { subscription } = useSubscription();
 
   // Determine if the selected date is in the future
@@ -67,10 +63,10 @@ export const usePlanningGating = (
   }, [selectedDate]);
 
   // Get current subscription tier
-  const currentTier: SubscriptionTier = useMemo(() => {
-    if (!user) {return 'seeker';}
-    return getEffectivePlanningTier(subscription);
-  }, [user, subscription]);
+  const currentTier: SubscriptionTier = useMemo(
+    () => getEffectivePlanningTier(subscription),
+    [subscription],
+  );
 
   // Get access rules and checks
   const accessRules = useMemo(() =>
@@ -83,29 +79,14 @@ export const usePlanningGating = (
     [currentTier, context]
   );
 
-  // Determine if planning should be locked
-  const shouldShowLock = useMemo(() => {
-    // Only lock future dates for seeker tier
-    return isFutureDate && accessCheck.isLocked;
-  }, [isFutureDate, accessCheck.isLocked]);
+  // Journal core planning is included with ownership of this app. Keep this
+  // compatibility hook for its callers, but do not apply siFia tier rules.
+  const shouldShowLock = false;
 
   // Handle locked action - navigate to onboarding sales offer
-  const navigation = useNavigation();
   const handleLockedAction = useMemo(() => (reason: PlanningLockReason = 'future_planning') => {
-    if (onUpgradeRequired) {
-      onUpgradeRequired();
-    } else {
-      // Navigate to onboarding sales offer like the upgrade modal
-      const isRepeatLock = reason === 'repeat_timeblocks';
-      navigateFromRoot(navigation, 'OnboardingSalesOffer', {
-        source: isRepeatLock ? 'repeat_options' : 'planning_lock',
-        feature: isRepeatLock ? 'repeat_options' : 'future_planning',
-        tier: currentTier,
-        skipNotificationPreference: true,
-        dismissBehavior: 'goBack',
-      });
-    }
-  }, [onUpgradeRequired, currentTier, navigation]);
+    onUpgradeRequired?.();
+  }, [onUpgradeRequired]);
 
   return {
     // Access Control

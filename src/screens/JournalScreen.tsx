@@ -84,37 +84,6 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation, rou
   const lastSelectedDate = useRef<Date | null>(null);
   const handledDeepLinkKeyRef = useRef<string | null>(null);
 
-  // Pending sales-offer navigation queued by TimeBlockEditorScreen.
-  // TimeBlockEditor is a fullScreenModal in the nested JournalStack — its native
-  // layer sits above root-stack screens, so it can't push OnboardingSalesOffer
-  // while still on screen. It emits this event, dismisses itself, then we
-  // navigate here once JournalScreen regains focus (no competing native modal).
-  const pendingSalesOfferRef = useRef<Record<string, unknown> | null>(null);
-
-  useEffect(() => {
-    const sub = DeviceEventEmitter.addListener(
-      'open_sales_offer_after_dismiss',
-      (params: Record<string, unknown>) => {
-        pendingSalesOfferRef.current = params;
-      }
-    );
-    return () => sub.remove();
-  }, []);
-
-  // When JournalScreen regains focus after TimeBlockEditor is dismissed, fire any
-  // pending sales-offer navigation.
-  useFocusEffect(
-    useCallback(() => {
-      if (pendingSalesOfferRef.current) {
-        const params = pendingSalesOfferRef.current;
-        pendingSalesOfferRef.current = null;
-        setTimeout(() => {
-          notificationDeepLinkService.navigateTo('OnboardingSalesOffer', params);
-        }, 600);
-      }
-    }, [])
-  );
-
   // Listen for reflection save and delete events to refresh journal components
   useEffect(() => {
     const handleReflectionChanged = () => {

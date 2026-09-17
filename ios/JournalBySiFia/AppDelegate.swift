@@ -139,7 +139,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
     completionHandler()
   }
 
-  // Handle Google Sign-In redirect URLs
+  // Handle Google Sign-In redirect URLs and deep links (widget/notification taps)
   func application(
     _ app: UIApplication,
     open url: URL,
@@ -149,7 +149,11 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
     if GIDSignIn.sharedInstance.handle(url) {
       return true
     }
-    // Add other URL handlers here if needed
+    // Forward sifia:// and other links to React Native's Linking module so
+    // widget taps (sifia://morning/...) reach notificationDeepLinkService.
+    if RCTLinkingManager.application(app, open: url, options: options) {
+      return true
+    }
     return false
   }
 }

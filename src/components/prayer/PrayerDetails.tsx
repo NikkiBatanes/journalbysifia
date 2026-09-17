@@ -3,7 +3,7 @@ import React, { useRef, useState } from 'react';
 import { Alert, Modal, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { Pencil } from 'lucide-react-native';
+import { Pencil, Sparkle } from 'lucide-react-native';
 import { format } from 'date-fns';
 import ThemedText from '../common/ThemedText';
 import PrayerResponseSheet from './PrayerResponseSheet';
@@ -40,23 +40,23 @@ export default function PrayerDetails({ prayer, onClose, onSave, onDelete, rende
     return { ...base(), status: nextState === 'answered' ? 'answered' as const : 'pending' as const, answered_date: nextState === 'answered' ? current.answered_date || new Date().toISOString() : null, metadata: { ...current.metadata, track_answered: true, tracking_status: nextState, prayer_needs: next } };
   };
   const markAnswer = (needId?: string) => { void run({ ...base(), ...answerPrayer(current, needId) }); };
-  const closeNeed = (needId: string) => { void run(setNeeds(needs.map(n => n.id === needId ? { ...n, status: 'closed' as const } : n))); };
+  const toggleNeedReleased = (needId: string) => { void run(setNeeds(needs.map(n => n.id === needId ? { ...n, status: n.status === 'closed' ? 'pending' as const : 'closed' as const, answeredDate: undefined } : n))); };
   const openNeed = (need?: PrayerNeed) => { setEditingNeed(need?.id); setDraft(need?.text || ''); setEditor('need'); };
   const statusMenu = () => Alert.alert('Prayer status', undefined, [
     { text: tracked ? 'Just save this prayer' : 'Keep praying about this', onPress: () => { triggerLightHaptic(); void run({ ...base(), metadata: { ...current.metadata, track_answered: !tracked } }); } },
-    { text: state === 'closed' ? 'Still praying' : 'Close this prayer', onPress: () => { triggerLightHaptic(); const next = state === 'closed' ? 'pending' : 'closed'; void run({ ...base(), status: 'pending', answered_date: null, metadata: { ...current.metadata, track_answered: true, tracking_status: next, prayer_needs: needs.map(n => ({ ...n, status: next, answeredDate: undefined })) } }); } },
+    { text: state === 'closed' ? 'Return to prayer' : 'Let go of this prayer', onPress: () => { triggerLightHaptic(); const next = state === 'closed' ? 'pending' : 'closed'; void run({ ...base(), status: 'pending', answered_date: null, metadata: { ...current.metadata, track_answered: true, tracking_status: next, prayer_needs: needs.map(n => ({ ...n, status: next, answeredDate: undefined })) } }); } },
     { text: 'Cancel', style: 'cancel', onPress: triggerLightHaptic },
   ]);
   const needMenu = (need: PrayerNeed) => Alert.alert(need.text, undefined, [
     { text: 'Edit need', onPress: () => { triggerLightHaptic(); openNeed(need); } },
     { text: need.status === 'answered' ? 'Still praying' : 'Mark answered', onPress: () => { triggerLightHaptic(); markAnswer(need.id); } },
-    { text: 'Close need', onPress: () => { triggerLightHaptic(); closeNeed(need.id); } },
+    { text: need.status === 'closed' ? 'Return to prayer' : 'Let go of this need', onPress: () => { triggerLightHaptic(); toggleNeedReleased(need.id); } },
     { text: 'Remove need', style: 'destructive', onPress: () => { triggerLightHaptic(); void run(setNeeds(needs.filter(n => n.id !== need.id))); } },
     { text: 'Cancel', style: 'cancel', onPress: triggerLightHaptic },
   ]);
   const remove = () => onDelete && Alert.alert('Delete this prayer?', 'This will remove this prayer and its saved needs and updates.', [{ text: 'Cancel', style: 'cancel', onPress: triggerLightHaptic }, { text: 'Delete', style: 'destructive', onPress: async () => { if (busy.current) return; triggerLightHaptic(); busy.current = true; setSaving(true); try { await onDelete(); onClose(); } catch { Alert.alert('Could not delete', 'Please try again.'); } finally { busy.current = false; setSaving(false); } } }]);
   const label = (text: string) => <ThemedText weight="semiBold" style={styles.label}>{text}</ThemedText>;
-  const action = (text: string, icon: string, press: () => void, filled = false) => <TouchableOpacity disabled={saving} onPress={() => { triggerLightHaptic(); return (press)(); }} style={[styles.action, filled && styles.filled]}><>{icon === 'pencil-outline' ? <Pencil size={16} color={filled ? Colors.hopeWhite : Colors.sage} /> : <Ionicons name={icon as any} size={16} color={filled ? Colors.hopeWhite : Colors.sage} />}</><ThemedText weight="semiBold" style={[styles.actionText, filled && { color: Colors.hopeWhite }]}>{text}</ThemedText></TouchableOpacity>;
+  const action = (text: string, icon: string, press: () => void, filled = false) => <TouchableOpacity disabled={saving} onPress={() => { triggerLightHaptic(); return (press)(); }} style={[styles.action, filled && styles.filled]}><>{icon === 'pencil-outline' ? <Pencil size={16} color={filled ? Colors.hopeWhite : Colors.sage} /> : icon === 'sparkle' ? <Sparkle size={16} color={filled ? Colors.hopeWhite : Colors.sage} strokeWidth={1.8} /> : <Ionicons name={icon as any} size={16} color={filled ? Colors.hopeWhite : Colors.sage} />}</><ThemedText weight="semiBold" style={[styles.actionText, filled && { color: Colors.hopeWhite }]}>{text}</ThemedText></TouchableOpacity>;
   return <Modal visible animationType="slide" onRequestClose={() => !saving && onClose()}>
     <View style={styles.page}>
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}><TouchableOpacity disabled={saving} onPress={() => { triggerLightHaptic(); return (onClose)(); }} accessibilityLabel="Back"><Ionicons name="chevron-back" size={25} color={Colors.sage} /></TouchableOpacity><ThemedText weight="bold" style={styles.title}>Your prayer</ThemedText><TouchableOpacity disabled={saving} onPress={() => { triggerLightHaptic(); return (statusMenu)(); }} accessibilityLabel="Prayer options"><Ionicons name="ellipsis-horizontal" size={24} color={Colors.sage} /></TouchableOpacity></View>
@@ -72,13 +72,13 @@ export default function PrayerDetails({ prayer, onClose, onSave, onDelete, rende
         </View>
         <View style={styles.card}>
           <View style={styles.row}>{label('PRAYER STATUS')}<ThemedText style={styles.date}>Since {dateLabel(current.created_at)}</ThemedText></View>
-          <TouchableOpacity disabled={saving} onPress={() => { triggerLightHaptic(); return (statusMenu)(); }} style={styles.status}><Ionicons name="ellipse" size={12} color={Colors.sage} /><ThemedText weight="bold" style={styles.statusText}>{!tracked ? 'Saved prayer' : current.is_prayer_request && !current.prayed && state === 'pending' ? 'Needs prayer' : state === 'answered' ? 'Answered' : state === 'closed' ? 'Closed' : 'Still praying'}</ThemedText><Ionicons name="chevron-down" size={18} color={Colors.sage} /></TouchableOpacity>
-          <View style={styles.actions}>{action(current.is_prayer_request ? 'Pray now' : 'Pray again', 'refresh-outline', () => { if (current.is_prayer_request) { setEditor('response'); return; } void run({ ...base(), prayed: true, prayer_count: (current.prayer_count ?? (current.prayed ? 1 : 0)) + 1, last_prayed_at: new Date().toISOString() }); })}{tracked && needs.length < 2 && action(state === 'answered' ? 'Answered' : 'Mark answered', 'checkmark-circle-outline', () => markAnswer(), state === 'answered')}</View>
+          <TouchableOpacity disabled={saving} onPress={() => { triggerLightHaptic(); return (statusMenu)(); }} style={styles.status}><Ionicons name="ellipse" size={12} color={Colors.sage} /><ThemedText weight="bold" style={styles.statusText}>{!tracked ? 'Saved prayer' : current.is_prayer_request && !current.prayed && state === 'pending' ? 'Needs prayer' : state === 'answered' ? 'Answered' : state === 'closed' ? 'Let go' : 'Still praying'}</ThemedText><Ionicons name="chevron-down" size={18} color={Colors.sage} /></TouchableOpacity>
+          <View style={styles.actions}>{action(current.is_prayer_request ? 'Pray now' : 'Pray again', 'refresh-outline', () => { if (current.is_prayer_request) { setEditor('response'); return; } void run({ ...base(), prayed: true, prayer_count: (current.prayer_count ?? (current.prayed ? 1 : 0)) + 1, last_prayed_at: new Date().toISOString() }); })}{tracked && needs.length < 2 && action(state === 'answered' ? 'Answered' : 'Mark answered', 'sparkle', () => markAnswer(), state === 'answered')}</View>
           {needs.length > 1 && <ThemedText style={styles.hint}>Mark individual needs answered below.</ThemedText>}
         </View>
         <View style={styles.card}>
           <View style={styles.row}>{label('TRACKED NEEDS')}{action('Add a need', 'add', () => openNeed())}</View><ThemedText style={styles.hint}>Add separate needs when one prayer holds several requests.</ThemedText>
-          {needs.map(need => <View style={styles.need} key={need.id}><View style={styles.needIcon}><Ionicons name="leaf-outline" size={22} color={Colors.sage} /></View><View style={{ flex: 1 }}><ThemedText style={styles.needText}>{need.text}</ThemedText><ThemedText style={styles.hint}>{need.status === 'pending' ? 'Still praying' : need.status === 'answered' ? 'Answered' : 'Closed'}</ThemedText></View><TouchableOpacity disabled={saving} onPress={() => { triggerLightHaptic(); return (() => needMenu(need))(); }} accessibilityLabel={`Options for ${need.text}`}><Ionicons name="ellipsis-horizontal" size={20} color={Colors.sage} /></TouchableOpacity></View>)}
+          {needs.map(need => <View style={styles.need} key={need.id}><View style={styles.needIcon}><Ionicons name="leaf-outline" size={22} color={Colors.sage} /></View><View style={{ flex: 1 }}><ThemedText style={styles.needText}>{need.text}</ThemedText><ThemedText style={styles.hint}>{need.status === 'pending' ? 'Still praying' : need.status === 'answered' ? 'Answered' : 'Let go'}</ThemedText></View><TouchableOpacity disabled={saving} onPress={() => { triggerLightHaptic(); return (() => needMenu(need))(); }} accessibilityLabel={`Options for ${need.text}`}><Ionicons name="ellipsis-horizontal" size={20} color={Colors.sage} /></TouchableOpacity></View>)}
         </View>
         <View style={styles.card}>
           <View style={styles.row}>{label('UPDATES')}{action('Add update', 'add', () => setEditor('update'), true)}</View><ThemedText style={styles.hint}>Keep a record of what’s happening.</ThemedText>

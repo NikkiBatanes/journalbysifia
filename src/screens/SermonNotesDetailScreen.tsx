@@ -15,7 +15,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { format } from 'date-fns';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { Pencil, Trash2, X, FileText, Sparkles, Leaf } from 'lucide-react-native';
+import { Pencil, Trash2, FileText, Sparkles, Leaf } from 'lucide-react-native';
 import { Colors } from '../theme/colors';
 import ThemedText from '../components/common/ThemedText';
 import { deleteLocalReflection, getLocalReflection } from '../storage/reflectionStorage';
@@ -27,6 +27,7 @@ import { useNetworkStore } from '../services/network/networkManager';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import ScriptureReaderModal from '../components/ScriptureReaderModal';
 import { BLOCKS, BlockIcon, SermonNotesStyles } from './SermonNotesScreen';
+import { getSessionNoteConfig, getSessionNoteContext, resolveSessionNoteType, sessionNoteTypeLabel } from '../types/sessionNotes';
 
 type NoteBlock = {
   id: string;
@@ -141,17 +142,20 @@ const SermonNotesDetailScreen: React.FC = () => {
     return format(date, 'MMMM d, yyyy').toUpperCase();
   }, [entry, selectedDate]);
 
-  const title = useMemo(() => entry?.title?.trim() || 'Sermon Notes', [entry]);
-  const speaker = useMemo(() => metadata.speaker?.trim() || '', [metadata]);
-  const series = useMemo(() => metadata.series?.trim() || '', [metadata]);
-  const church = useMemo(() => metadata.church?.trim() || '', [metadata]);
-  const mainScripture: string = useMemo(() => metadata.main_scripture?.trim() || '', [metadata]);
+  const sessionType = useMemo(() => resolveSessionNoteType(entry), [entry]);
+  const sessionConfig = useMemo(() => getSessionNoteConfig(sessionType), [sessionType]);
+  const sessionContext = useMemo(() => getSessionNoteContext(metadata, sessionType), [metadata, sessionType]);
+  const title = useMemo(() => entry?.title?.trim() || sessionNoteTypeLabel(sessionType), [entry, sessionType]);
+  const speaker = sessionContext.person.trim();
+  const series = sessionContext.event.trim();
+  const church = sessionContext.location.trim();
+  const mainScripture: string = sessionContext.topic.trim();
   const mainScriptureRefs = useMemo(() => {
-    return mainScripture
+    return sessionType === 'sermon' ? mainScripture
       .split(/[;\n]+/)
       .map((r: string) => r.trim())
-      .filter(Boolean);
-  }, [mainScripture]);
+      .filter(Boolean) : [];
+  }, [mainScripture, sessionType]);
 
   useEffect(() => {
     if (mainScriptureRefs.length === 0) {
@@ -176,7 +180,7 @@ const SermonNotesDetailScreen: React.FC = () => {
     return () => { active = false; };
   }, [bibleVersion, isOnline, mainScriptureRefs]);
 
-  const hasAdditionalDetails = useMemo(() => series || church, [series, church]);
+  const hasAdditionalDetails = useMemo(() => series || church || (sessionType !== 'sermon' && mainScripture), [series, church, mainScripture, sessionType]);
 
   const reflectionKinds = useMemo(() => ['question', 'reflection_question', 'remember', 'revisit', 'response'], []);
   const notesBlocks = useMemo(() => {
@@ -513,10 +517,13 @@ const SermonNotesDetailScreen: React.FC = () => {
             activeOpacity={0.7}>
             <TabIcon
               size={17}
-              color={active ? Colors.hopeWhite : Colors.sage}
+              color={active ? Colors.hopeWhite : Colors.text}
             />
             <ThemedText
               weight="medium"
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.8}
               style={[styles.pillText, active && styles.pillTextActive]}>
               {tab[0].toUpperCase() + tab.slice(1)}
             </ThemedText>
@@ -617,7 +624,7 @@ const SermonNotesDetailScreen: React.FC = () => {
             <ThemedText style={SermonNotesStyles.sermonDate}>{dateStr}</ThemedText>
           )}
           <ThemedText weight="bold" style={SermonNotesStyles.sermonEyebrow}>
-            SERMON NOTES
+            {sessionNoteTypeLabel(sessionType).toUpperCase()}
           </ThemedText>
           {!!title && (
             <ThemedText weight="bold" style={SermonNotesStyles.sermonTitle}>
@@ -637,7 +644,7 @@ const SermonNotesDetailScreen: React.FC = () => {
                 {!!series && (
                   <View style={SermonNotesStyles.detailItem}>
                     <ThemedText weight="bold" style={SermonNotesStyles.detailLabel}>
-                      SERIES
+                      {sessionConfig.details[0].label.toUpperCase()}
                     </ThemedText>
                     <ThemedText weight="bold" style={SermonNotesStyles.detailValue}>
                       {series}
@@ -647,11 +654,17 @@ const SermonNotesDetailScreen: React.FC = () => {
                 {!!church && (
                   <View style={SermonNotesStyles.detailItem}>
                     <ThemedText weight="bold" style={SermonNotesStyles.detailLabel}>
-                      CHURCH / EVENT
+                      {sessionConfig.details[2].label.toUpperCase()}
                     </ThemedText>
                     <ThemedText weight="bold" style={SermonNotesStyles.detailValue}>
                       {church}
                     </ThemedText>
+                  </View>
+                )}
+                {sessionType !== 'sermon' && !!mainScripture && (
+                  <View style={SermonNotesStyles.detailItem}>
+                    <ThemedText weight="bold" style={SermonNotesStyles.detailLabel}>{sessionConfig.details[1].label.toUpperCase()}</ThemedText>
+                    <ThemedText weight="bold" style={SermonNotesStyles.detailValue}>{mainScripture}</ThemedText>
                   </View>
                 )}
               </View>
@@ -774,8 +787,8 @@ const SermonNotesDetailScreen: React.FC = () => {
       </Animated.ScrollView>
 
       <View style={[styles.topBar, {top: insets.top + 16}]}>
-        <TouchableOpacity onPress={handleDelete} style={SermonNotesStyles.floatingBackButton} activeOpacity={0.7}>
-          <Trash2 size={18} color={Colors.textGray} />
+        <TouchableOpacity onPress={handleDelete} style={styles.cornerActionButton} activeOpacity={0.7} hitSlop={{top: 8, bottom: 8, left: 8, right: 8}} accessibilityRole="button" accessibilityLabel="Delete sermon notes">
+          <Trash2 size={17} color={Colors.textGray} />
         </TouchableOpacity>
         <Animated.View
           pointerEvents={tabsFloating ? 'auto' : 'none'}
@@ -810,11 +823,11 @@ const SermonNotesDetailScreen: React.FC = () => {
           })}
         </Animated.View>
         <View style={styles.topBarActions}>
-          <TouchableOpacity onPress={handleEdit} style={SermonNotesStyles.floatingBackButton} activeOpacity={0.7}>
-            <Pencil size={20} color={Colors.sage} />
+          <TouchableOpacity onPress={handleEdit} style={styles.cornerActionButton} activeOpacity={0.7} hitSlop={{top: 8, bottom: 8, left: 8, right: 8}} accessibilityRole="button" accessibilityLabel="Edit sermon notes">
+            <Pencil size={17} color={Colors.sage} strokeWidth={1.8} />
           </TouchableOpacity>
-          <TouchableOpacity onPress={handleClose} style={SermonNotesStyles.floatingBackButton} activeOpacity={0.7}>
-            <X size={20} color={Colors.sage} />
+          <TouchableOpacity onPress={handleClose} style={styles.cornerActionButton} activeOpacity={0.7} hitSlop={{top: 8, bottom: 8, left: 8, right: 8}} accessibilityRole="button" accessibilityLabel="Close sermon notes">
+            <Ionicons name="close" size={17} color={Colors.sage} />
           </TouchableOpacity>
         </View>
       </View>
@@ -859,6 +872,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
   },
+  cornerActionButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 999,
+    backgroundColor: Colors.cardBackground,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   pills: {
     flexDirection: 'row',
     gap: 8,
@@ -866,8 +887,14 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   compactTabs: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    left: 0,
+    right: 0,
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: 5,
   },
   compactTab: {
@@ -890,20 +917,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    paddingVertical: 11,
-    paddingHorizontal: 8,
+    paddingVertical: 14,
+    paddingHorizontal: 18,
     backgroundColor: 'rgba(82, 106, 91, 0.08)',
-    borderRadius: 22,
-    borderWidth: 1,
+    borderRadius: 28,
+    borderWidth: 0.5,
     borderColor: 'rgba(82, 106, 91, 0.2)',
   },
   pillActive: {
-    backgroundColor: Colors.sage,
+    backgroundColor: Colors.sageMuted,
     borderColor: Colors.sage,
   },
   pillText: {
-    fontSize: 13,
-    color: Colors.sage,
+    fontSize: 15,
+    color: Colors.text,
   },
   pillTextActive: {
     color: Colors.hopeWhite,

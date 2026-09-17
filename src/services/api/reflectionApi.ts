@@ -1,6 +1,7 @@
 // src/services/api/reflectionApi.clean.ts
 import { supabase } from '../supabaseClient';
 import { Logger } from '../../utils/ProductionLogger';
+import type { GuidedReflectionPayload } from '../../types/guidedReflection';
 
 export interface ReflectionApiEntry {
   id: string;
@@ -23,6 +24,8 @@ export interface ReflectionApiEntry {
   playbook_title?: string;
   playbook_id?: string;
   subtask_id?: string;
+  journal_classification?: string;
+  guided_journey?: GuidedReflectionPayload;
 }
 
 export interface SearchReflectionsOptions {

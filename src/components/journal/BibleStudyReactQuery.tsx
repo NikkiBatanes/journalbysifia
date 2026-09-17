@@ -23,11 +23,12 @@ interface Props {
   selectedDate: Date;
   refreshKey?: number;
   reflectionId?: string;
+  timelineItem?: import('../../services/momentTimelineService').MomentTimelineItem;
 }
 
 type SavedStudy = { reflection: LocalReflectionEntry; content: BibleStudyContent };
 
-export const BibleStudyReactQuery: React.FC<Props> = ({ selectedDate, refreshKey, reflectionId }) => {
+export const BibleStudyReactQuery: React.FC<Props> = ({ selectedDate, refreshKey, reflectionId, timelineItem }) => {
   const navigation = useNavigation();
   const momentsPalette = useMomentsPalette();
   const [studies, setStudies] = useState<SavedStudy[]>([]);
@@ -37,19 +38,20 @@ export const BibleStudyReactQuery: React.FC<Props> = ({ selectedDate, refreshKey
   useEffect(() => {
     let mounted = true;
     (async () => {
-      const reflections = (await getSavedBibleStudyReflections()).filter(entry =>
+      const exactReflection = timelineItem?.reflection;
+      const reflections = exactReflection ? [exactReflection] : (await getSavedBibleStudyReflections()).filter(entry =>
         reflectionId ? entry.id === reflectionId : entry.selected_date === toLocalDateString(selectedDate),
       );
       const loaded = reflections.map(reflection => ({ reflection, content: parseSavedBibleStudy(reflection)! }));
       if (mounted) {setStudies(loaded);}
     })().catch(error => console.warn('[BibleStudyReactQuery] load error', error));
     return () => { mounted = false; };
-  }, [refreshKey, selectedDate, reflectionId]);
+  }, [refreshKey, selectedDate, reflectionId, timelineItem]);
 
   if (!studies.length) {return null;}
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, momentsPalette && styles.momentsContainer]}>
       {studies.map(({ reflection, content }) => {
         const timestamp = reflection.metadata?.bibleStudyCompletedAt || reflection.created_at;
         const time = timestamp ? format(new Date(timestamp), 'h:mm a') : '';
@@ -144,8 +146,9 @@ export const BibleStudyReactQuery: React.FC<Props> = ({ selectedDate, refreshKey
 
 const styles = StyleSheet.create({
   container: { gap: 8 },
+  momentsContainer: { paddingHorizontal: 22 },
   card: { backgroundColor: Colors.hopeWhite, borderRadius: 24, borderWidth: 1, borderColor: Colors.cardBorder, padding: 20, shadowColor: '#29342E', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.04, shadowRadius: 12, elevation: 2 },
-  momentsCard: { backgroundColor: 'transparent', shadowOpacity: 0, elevation: 0 },
+  momentsCard: { backgroundColor: Colors.cardBackground, shadowOpacity: 0, elevation: 0 },
   header: { alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
   eyebrow: { fontSize: 10, color: Colors.textGray, letterSpacing: 1.2, textAlign: 'center' },
   momentsEyebrow: { color: Colors.sage },

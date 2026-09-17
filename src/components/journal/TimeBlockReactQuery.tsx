@@ -29,16 +29,14 @@ import { useEditModeSafe } from '../../systems/journal/context/EditModeContext';
 import { getCategoryColor, getCategoryIcon } from './TimeBlockCategories';
 import TimeBlockCategoryModal from './TimeBlockCategoryModal';
 import { triggerLightHaptic, triggerSelectionHaptic } from '../../utils/haptics';
-import { usePlanningGating } from '../../hooks/usePlanningGating';
-import PlanningLockIcon from '../PlanningLockIcon';
 import { useCalendarGating } from '../../hooks/useCalendarGating';
 import { LocationSelector } from '../LocationSelector';
 import { DeleteTimeBlockModal, DeleteOptions } from '../DeleteTimeBlockModal';
 import { CalendarSyncButton } from '../CalendarSyncButton';
 import { syncTimeBlockToCalendar, removeTimeBlockFromCalendar } from '../../services/calendarSyncService';
 import { useScroll } from '../../context/ScrollContext';
+import { useMomentsPalette } from '../../context/MomentsPaletteContext';
 import { useNavigation } from '@react-navigation/native';
-import { isRecurringPlanningFrequency } from '../../utils/tierLockingRules';
 
 type RepeatFrequency = 'never' | 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'yearly' | 'custom';
 
@@ -152,12 +150,10 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
   // Global edit mode context (only for inline view)
   // Global edit mode context - safe version that handles missing provider
   const globalEditMode = useEditModeSafe();
+  const momentsPalette = useMomentsPalette();
 
   // Navigation
   const navigation = useNavigation();
-
-  // Planning gating state
-  const planningGating = usePlanningGating(selectedDate, 'inApp');
 
   // Calendar gating state
   const calendarGating = useCalendarGating();
@@ -640,16 +636,6 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
 
   const addTimeBlock = async () => {
     if (!user) {return;}
-
-    if (planningGating.isLocked) {
-      planningGating.handleLockedAction();
-      return;
-    }
-
-    if (planningGating.accessCheck.isLocked && isRecurringPlanningFrequency(newBlock.repeat.frequency)) {
-      planningGating.handleLockedAction('repeat_timeblocks');
-      return;
-    }
 
     if (!newBlock.title.trim()) {
       setShowTitleError(true);
@@ -1149,11 +1135,6 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
   }, [dateStr]);
 
   const openTimeBlockEditor = (options?: { autoFocus?: boolean; existingTimeBlock?: any }) => {
-    if (planningGating.isLocked) {
-      planningGating.handleLockedAction();
-      return;
-    }
-
     (navigation as any).navigate('TimeBlockEditor', {
       selectedDate: dateStr,
       ...options,
@@ -1370,14 +1351,6 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
       viewMode={viewMode}
       expanded={expanded}
       onExpand={onExpand}
-      headerRight={planningGating.lockIconVisible ? (
-        <PlanningLockIcon
-          tier={planningGating.currentTier}
-          context="inApp"
-          onLockTap={planningGating.handleLockedAction}
-          size={16}
-        />
-      ) : undefined}
     >
       {/* Show empty state or time blocks */}
       {timeBlocks.length === 0 ? (
@@ -1491,15 +1464,15 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
               <View style={styles.paginationButtonGroup}>
                 {timeBlocks.length > visibleCount && (
                   <TouchableOpacity
-                    style={[styles.paginationButton, styles.showMoreButton]}
+                    style={[styles.paginationButton, styles.showMoreButton, momentsPalette && styles.showMoreButtonPalette]}
                     onPress={loadMoreBlocks}
                     activeOpacity={0.7}
                     accessibilityRole="button"
                     accessibilityLabel={`Show ${Math.min(5, timeBlocks.length - visibleCount)} more time blocks`}
                     accessibilityHint="Loads 5 more time blocks"
                   >
-                    <Ionicons name="chevron-down" size={12} color={Colors.alertCoral} />
-                    <ThemedText weight="medium" style={[styles.paginationButtonText, styles.showMoreText]}>Show more</ThemedText>
+                    <Ionicons name="chevron-down" size={12} color={momentsPalette ? Colors.sage : Colors.alertCoral} />
+                    <ThemedText weight="medium" style={[styles.paginationButtonText, styles.showMoreText, momentsPalette && styles.showMoreTextPalette]}>Show more</ThemedText>
                   </TouchableOpacity>
                 )}
                 {visibleCount > 3 && timeBlocks.length > 3 && (
@@ -2648,6 +2621,12 @@ const styles = StyleSheet.create({
   },
   showMoreText: {
     color: Colors.alertCoral,
+  },
+  showMoreButtonPalette: {
+    backgroundColor: 'rgba(82, 106, 91, 0.1)',
+  },
+  showMoreTextPalette: {
+    color: Colors.sage,
   },
   showLessButton: {
     backgroundColor: 'rgba(0, 0, 0, 0.05)',

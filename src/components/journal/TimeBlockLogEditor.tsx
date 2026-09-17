@@ -402,8 +402,9 @@ const createDefaultStyles = (_fonts: any) => ({
     backgroundColor: 'rgba(255, 255, 255, 0.09)',
   },
   saveFab: {
-    backgroundColor: Colors.alertCoral,
-    borderColor: Colors.alertCoral,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   fabDisabled: {
     opacity: 0.4,

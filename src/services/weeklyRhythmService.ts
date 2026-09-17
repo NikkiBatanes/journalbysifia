@@ -3,6 +3,7 @@ import { getReviewCapture } from './reviewCaptureService';
 import { getRoutineState } from '../storage/routineStateStorage';
 import { getLocalJournalSingleton } from '../storage/journalStorage';
 import { getLocalPrayers } from '../storage/prayerStorage';
+import { toLocalDateString } from '../utils/date';
 
 export interface WeeklyRhythm {
   days: { date: string; active: boolean }[];
@@ -13,11 +14,18 @@ export interface WeeklyRhythm {
   journal: number;
 }
 
-export const getWeeklyRhythm = async (start: string, end: string): Promise<WeeklyRhythm> => {
+export const getWeeklyRhythm = async (
+  start: string,
+  end: string,
+  today = toLocalDateString(new Date()),
+): Promise<WeeklyRhythm> => {
   const capture = await getReviewCapture(start, end);
   const dates = eachDayOfInterval({ start: parseISO(start), end: parseISO(end) });
   const details = await Promise.all(dates.map(async day => {
     const date = format(day, 'yyyy-MM-dd');
+    if (date > today) {
+      return { date, active: false, morning: 0, evening: 0, prayers: 0, journal: 0 };
+    }
     const [morning, evening, checkIn, prayers] = await Promise.all([
       getRoutineState('morning', date), getRoutineState('evening', date),
       getLocalJournalSingleton('morning_check_in', date), getLocalPrayers(date),

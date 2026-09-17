@@ -94,11 +94,11 @@ export class JournalApi {
 
   // Create a new journal entry
   static async createJournalEntry(entry: Omit<JournalApiEntry, 'id' | 'created_at' | 'updated_at'>): Promise<JournalApiEntry> {
-    if (entry.content_type === 'todo' && (await getLocalJournalEntries('todo', entry.selected_date)).length) {
+    if (entry.content_type === 'todo') {
       const local = await createLocalJournalEntry({ content_type: 'todo', selected_date: entry.selected_date, content: typeof entry.content === 'string' ? entry.content : JSON.stringify(entry.content), completed: entry.completed });
       return { ...local, user_id: entry.user_id } as JournalApiEntry;
     }
-    if (entry.content_type === 'todays_focus' && await getLocalJournalSingleton('todays_focus', entry.selected_date)) {
+    if (entry.content_type === 'todays_focus') {
       const local = await saveLocalJournalSingleton('todays_focus', entry.selected_date, typeof entry.content === 'string' ? entry.content : JSON.stringify(entry.content));
       return { ...local, user_id: entry.user_id } as JournalApiEntry;
     }

@@ -20,7 +20,6 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useQueryClient } from '@tanstack/react-query';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
 import { Colors } from '../theme/colors';
 import { Fonts } from '../theme/fonts';
@@ -175,7 +174,7 @@ const PrayerPathSelectionStep: React.FC<{
       >
         <StepFadeIn delay={0}>
           <View style={styles.focusLabelContainer}>
-            <MaterialCommunityIcons name="hands-pray" size={16} color={Colors.sage} style={styles.labelIcon} />
+            <Ionicons name="hand-left-outline" size={16} color={Colors.sage} style={[styles.labelIcon, { transform: [{ rotate: '-28deg' }] }]} />
             <ThemedText weight="semiBold" style={styles.focusLabel}>PRAYER JOURNAL</ThemedText>
           </View>
         </StepFadeIn>
@@ -329,7 +328,7 @@ const CASTDescriptionStep: React.FC<{
       >
         <StepFadeIn delay={0}>
           <View style={styles.focusLabelContainer}>
-            <MaterialCommunityIcons name="hands-pray" size={16} color={Colors.sage} style={styles.labelIcon} />
+            <Ionicons name="hand-left-outline" size={16} color={Colors.sage} style={[styles.labelIcon, { transform: [{ rotate: '-28deg' }] }]} />
             <ThemedText weight="semiBold" style={styles.focusLabel}>CAST PRAYER</ThemedText>
           </View>
         </StepFadeIn>
@@ -493,7 +492,7 @@ const OpenPrayerDescriptionStep: React.FC<{
       >
         <StepFadeIn delay={0}>
           <View style={styles.focusLabelContainer}>
-            <MaterialCommunityIcons name="hands-pray" size={16} color={Colors.sage} style={styles.labelIcon} />
+            <Ionicons name="hand-left-outline" size={16} color={Colors.sage} style={[styles.labelIcon, { transform: [{ rotate: '-28deg' }] }]} />
             <ThemedText weight="semiBold" style={styles.focusLabel}>OPEN PRAYER</ThemedText>
           </View>
         </StepFadeIn>
@@ -741,7 +740,7 @@ const ACTSPrayerSlidesStep: React.FC<{
         keyboardShouldPersistTaps="handled"
       >
         <StepFadeIn delay={0} style={styles.stepLabelRow}>
-          <MaterialCommunityIcons name="hands-pray" size={16} color={Colors.sage} />
+          <Ionicons name="hand-left-outline" size={16} color={Colors.sage} style={{ transform: [{ rotate: '-28deg' }] }} />
           <ThemedText weight="semiBold" style={styles.stepLabelWhite}>
             CAST PRAYER
           </ThemedText>
@@ -926,7 +925,7 @@ const OpenPrayerStep: React.FC<{
         keyboardShouldPersistTaps="handled"
       >
         <StepFadeIn delay={0} style={[styles.stepLabelRow, { justifyContent: 'flex-start', paddingHorizontal: 24 }]}>
-          <MaterialCommunityIcons name="hands-pray" size={16} color={Colors.sage} />
+          <Ionicons name="hand-left-outline" size={16} color={Colors.sage} style={{ transform: [{ rotate: '-28deg' }] }} />
           <ThemedText weight="semiBold" style={styles.stepLabelWhite}>
             OPEN PRAYER
           </ThemedText>
@@ -1174,7 +1173,7 @@ const CompletionStep: React.FC<{
         showsVerticalScrollIndicator={false}
       >
         <StepFadeIn delay={0} style={styles.stepLabelRow}>
-          <MaterialCommunityIcons name="hands-pray" size={18} color={Colors.sage} />
+          <Ionicons name="hand-left-outline" size={18} color={Colors.sage} style={{ transform: [{ rotate: '-28deg' }] }} />
           <ThemedText weight="semiBold" style={styles.stepLabelWhite}>
             PRAYER JOURNAL
           </ThemedText>
@@ -1191,7 +1190,7 @@ const CompletionStep: React.FC<{
                 ],
               },
             ]}>
-              <MaterialCommunityIcons name="hands-pray" size={24} color={Colors.sage} />
+              <Ionicons name="hand-left-outline" size={24} color={Colors.sage} style={{ transform: [{ rotate: '-28deg' }] }} />
             </Animated.View>
             <View style={styles.completionHeaderContent}>
               <ThemedText weight="semiBold" style={styles.completionCategory}>{isEditing ? 'Updated Prayer' : 'Saved Prayer'}</ThemedText>

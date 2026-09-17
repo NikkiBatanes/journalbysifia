@@ -1,7 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { useRoute } from '@react-navigation/native';
 import { toLocalDateString } from '../utils/date';
-import { saveRoutineState, getRoutineState, ContentRef } from '../storage/routineStateStorage';
+import { saveRoutineState, updateRoutineState, ContentRef } from '../storage/routineStateStorage';
+import { refreshMorningWidgetSnapshot } from '../services/morningWidgetService';
 
 export interface RoutineContextValue {
   routine: 'morning' | 'evening';
@@ -18,12 +18,18 @@ export interface RoutineContextValue {
 
 const RoutineContext = createContext<RoutineContextValue | null>(null);
 
-export const RoutineProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const route = useRoute<any>();
-  const routine = route.params?.routine ?? 'morning';
-  const dateParam = route.params?.selectedDate;
+interface RoutineProviderProps {
+  children: React.ReactNode;
+  routine: 'morning' | 'evening';
+  selectedDate?: string;
+}
+
+export const RoutineProvider: React.FC<RoutineProviderProps> = ({ children, routine, selectedDate: dateParam }) => {
 
   const selectedDate = useMemo(() => {
+    if (dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam)) {
+      return dateParam;
+    }
     if (dateParam) {
       return toLocalDateString(new Date(dateParam));
     }
@@ -46,34 +52,15 @@ export const RoutineProvider: React.FC<{ children: React.ReactNode }> = ({ child
   useEffect(() => {
     let mounted = true;
     (async () => {
-      const existing = await getRoutineState(routine, selectedDate);
-      if (!mounted) {return;}
-
-      if (existing) {
+      const persisted = await saveRoutineState(routine, selectedDate, {});
+      if (mounted) {
         setState({
-          completedSteps: existing.completed_steps ?? [],
-          contentRefs: existing.content_refs ?? {},
-          startedAt: existing.started_at,
-          completed: existing.completed,
+          completedSteps: persisted.completed_steps ?? [],
+          contentRefs: persisted.content_refs ?? {},
+          startedAt: persisted.started_at,
+          completed: persisted.completed,
           isLoading: false,
         });
-      } else {
-        const startedAt = new Date().toISOString();
-        const created = await saveRoutineState(routine, selectedDate, {
-          completed: false,
-          completed_steps: [],
-          content_refs: {},
-          started_at: startedAt,
-        });
-        if (mounted) {
-          setState({
-            completedSteps: created.completed_steps,
-            contentRefs: created.content_refs ?? {},
-            startedAt: created.started_at,
-            completed: false,
-            isLoading: false,
-          });
-        }
       }
     })();
 
@@ -81,12 +68,10 @@ export const RoutineProvider: React.FC<{ children: React.ReactNode }> = ({ child
   }, [routine, selectedDate]);
 
   const markStepCompleted = useCallback(async (step: string, ref?: ContentRef | ContentRef[], refKey?: string) => {
-    setState(prev => {
-      const nextCompletedSteps = prev.completedSteps.includes(step)
-        ? prev.completedSteps
-        : [...prev.completedSteps, step];
-
-      const nextContentRefs = { ...prev.contentRefs };
+    const saved = await updateRoutineState(routine, selectedDate, current => {
+      const currentSteps = current?.completed_steps ?? [];
+      const nextCompletedSteps = currentSteps.includes(step) ? currentSteps : [...currentSteps, step];
+      const nextContentRefs = { ...(current?.content_refs ?? {}) };
       if (ref) {
         const key = refKey ?? step;
         if (Array.isArray(ref)) {
@@ -108,24 +93,29 @@ export const RoutineProvider: React.FC<{ children: React.ReactNode }> = ({ child
         }
       }
 
-      (async () => {
-        await saveRoutineState(routine, selectedDate, {
-          completed_steps: nextCompletedSteps,
-          content_refs: nextContentRefs,
-        });
-      })();
-
       return {
-        ...prev,
-        completedSteps: nextCompletedSteps,
-        contentRefs: nextContentRefs,
+        completed_steps: nextCompletedSteps,
+        content_refs: nextContentRefs,
       };
     });
+    setState(prev => ({
+      ...prev,
+      completedSteps: saved.completed_steps,
+      contentRefs: saved.content_refs ?? {},
+      startedAt: saved.started_at,
+      completed: saved.completed,
+    }));
+    if (routine === 'morning') {
+      void refreshMorningWidgetSnapshot();
+    }
   }, [routine, selectedDate]);
 
   const completeRoutine = useCallback(async () => {
-    await saveRoutineState(routine, selectedDate, { completed: true });
-    setState(prev => ({ ...prev, completed: true }));
+    const saved = await updateRoutineState(routine, selectedDate, () => ({ completed: true }));
+    setState(prev => ({ ...prev, completed: saved.completed }));
+    if (routine === 'morning') {
+      void refreshMorningWidgetSnapshot();
+    }
   }, [routine, selectedDate]);
 
   const getContentRef = useCallback((step: string) => {

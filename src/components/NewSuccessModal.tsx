@@ -275,7 +275,9 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255, 255, 255, 0.15)',
   },
   doneButton: {
-    backgroundColor: Colors.alertCoral,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   editButtonText: {
     color: Colors.hopeWhite,

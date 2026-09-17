@@ -6,6 +6,8 @@
 
 import { Logger } from '../utils/ProductionLogger';
 import { supabase } from './supabaseClient';
+import { toLocalDateString } from '../utils/date';
+import { reconcileMorningWidgetActions } from './morningWidgetService';
 
 class NotificationDeepLinkService {
   private navigationRef: any = null;
@@ -347,6 +349,27 @@ class NotificationDeepLinkService {
   }
 
   /**
+   * Route an external URL (e.g. a Home Screen widget link) through the same
+   * deep-link pipeline used by push notifications. Queues the link until the
+   * navigation ref is ready so cold-start widget taps still resolve.
+   */
+  handleExternalUrl(url: string): void {
+    if (!url) {
+      return;
+    }
+    if (!this.navigationRef?.current) {
+      this.pendingDeepLink = url;
+      return;
+    }
+    this.navigate(url).catch(error => {
+      Logger.error('Failed to navigate to external URL', error as Error, {
+        component: 'notificationDeepLinkService',
+        url,
+      });
+    });
+  }
+
+  /**
    * Handle notification tap and navigate to appropriate screen
    */
   handleNotificationTap(notification: any): void {
@@ -655,6 +678,44 @@ class NotificationDeepLinkService {
             component: 'notificationDeepLinkService',
           });
           break;
+
+        case 'morning': {
+          // sifia://morning/today | sifia://morning/{YYYY-MM-DD} | .../{step}
+          // Widget taps may carry a pending feeling write; canonicalize it
+          // before MorningFlow mounts so step screens read settled storage.
+          await reconcileMorningWidgetActions();
+
+          const datePart = parts[1];
+          const stepSlug = parts[2];
+          const morningDate = !datePart || datePart === 'today'
+            ? toLocalDateString(new Date())
+            : datePart;
+
+          const morningStepRoutes: Record<string, string> = {
+            emotion: 'EmotionCheckIn',
+            'check-in': 'EmotionCheckIn',
+            underneath: 'UnderneathIt',
+            psalm: 'PsalmOfTheDay',
+            focus: 'TodaysFocus',
+            todos: 'Todos',
+            carry: 'CarryIt',
+            closing: 'MorningClosing',
+          };
+          const stepRoute = stepSlug ? morningStepRoutes[stepSlug] : undefined;
+
+          this.navigationRef.current.navigate(
+            'MorningFlow',
+            stepRoute
+              ? { selectedDate: morningDate, screen: stepRoute }
+              : { selectedDate: morningDate },
+          );
+          Logger.info('Navigated to MorningFlow', {
+            component: 'notificationDeepLinkService',
+            selectedDate: morningDate,
+            stepRoute,
+          });
+          break;
+        }
 
         default:
           Logger.warn('Unknown deep link screen type', {

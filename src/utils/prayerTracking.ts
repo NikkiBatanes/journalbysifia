@@ -25,6 +25,35 @@ export const answerPrayer = (p: PrayerApiEntry, needId?: string, date = new Date
   };
 };
 
+export const releasePrayer = (p: PrayerApiEntry, date = new Date().toISOString()) => {
+  const released = trackingStatus(p) !== 'closed';
+  const nextStatus = released ? 'closed' as const : 'pending' as const;
+  const nextNeeds = prayerNeeds(p).map(need =>
+    need.status === 'answered'
+      ? need
+      : {...need, status: nextStatus, answeredDate: undefined},
+  );
+  return {
+    status: 'pending' as const,
+    answered_date: null,
+    metadata: {
+      ...p.metadata,
+      track_answered: true,
+      tracking_status: nextStatus,
+      prayer_needs: nextNeeds,
+      prayer_updates: [
+        ...(p.metadata?.prayer_updates || []),
+        {
+          id: `${date}-${Math.random().toString(36).slice(2, 8)}`,
+          date,
+          text: released ? 'Let go of this prayer' : 'Returned to prayer',
+          status: nextStatus,
+        },
+      ],
+    },
+  };
+};
+
 export const describePrayerUpdate = (p: PrayerApiEntry, text: string, kind: PrayerUpdateKind, needId?: string, date = new Date().toISOString()) => {
   const needs = prayerNeeds(p);
   const selected = needId ? needs.find(n => n.id === needId) : needs.length === 1 ? needs[0] : undefined;

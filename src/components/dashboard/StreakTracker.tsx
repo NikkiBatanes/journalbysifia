@@ -64,7 +64,6 @@ const StreakTracker: React.FC<StreakTrackerProps> = ({
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const [streaks, setStreaks] = useState<Streak[]>([
     { id: 'playbook', type: 'playbook', currentStreak: 0, longestStreak: 0, lastActivity: '', isActive: false },
-    { id: 'devotional', type: 'devotional', currentStreak: 0, longestStreak: 0, lastActivity: '', isActive: false },
     { id: 'journal', type: 'journal', currentStreak: 0, longestStreak: 0, lastActivity: '', isActive: false },
     { id: 'prayer', type: 'prayer', currentStreak: 0, longestStreak: 0, lastActivity: '', isActive: false },
   ]);

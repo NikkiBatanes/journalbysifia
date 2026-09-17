@@ -19,7 +19,7 @@ import { toLocalDateString } from '../../utils/date';
 import {
   createLocalJournalEntry,
   deleteLocalJournalEntry,
-  getLocalJournalEntries,
+  getLocalTodosForDate,
   updateLocalJournalEntry,
   LocalJournalEntry,
 } from '../../storage/journalStorage';
@@ -28,18 +28,21 @@ import ThemedText from '../common/ThemedText';
 import { Colors } from '../../theme/colors';
 import { getFontFamily } from '../../theme/fonts';
 import { useTheme } from '../../hooks/useTheme';
-import { isToday, isYesterday, startOfDay } from 'date-fns';
+import { useRoutineDraft } from '../../hooks/useRoutineDraft';
+import { refreshMorningWidgetSnapshot } from '../../services/morningWidgetService';
+import { isAfter, isToday, isYesterday, startOfDay } from 'date-fns';
 import StepFadeIn from '../common/StepFadeIn';
 
 const IS_IPAD = Platform.OS === 'ios' && (Platform as any).isPad === true;
 
-type DateContext = 'today' | 'yesterday' | 'earlier';
+type DateContext = 'today' | 'yesterday' | 'earlier' | 'upcoming';
 
 const getDateContext = (selectedDate: Date): DateContext => {
   const day = startOfDay(selectedDate);
 
   if (isToday(day)) {return 'today';}
   if (isYesterday(day)) {return 'yesterday';}
+  if (isAfter(day, startOfDay(new Date()))) {return 'upcoming';}
   return 'earlier';
 };
 
@@ -53,15 +56,193 @@ interface TodosExperienceProps {
   initialItems?: string[];
   onClose?: () => void;
   onComplete: (result: { record: LocalJournalEntry | null; items: LocalJournalEntry[] }) => void | Promise<void>;
+  routineDraft?: { routine: 'morning' | 'evening'; selectedDate: string; step: string };
+  planningContext?: 'tomorrow' | 'later';
+  skipCompletionPage?: boolean;
 }
 
 const emptyTodo = (): TodoItem => ({ text: '' });
+
+// Saved summary shown at the end of the standalone walkthrough — embedded
+// routine/planning flows pass skipCompletionPage and advance via onComplete.
+const TodosCompletionStep: React.FC<{
+  items: string[];
+  onDone: () => void;
+  insets: { top: number; bottom: number };
+  dateContext: DateContext;
+}> = ({ items, onDone, insets, dateContext }) => {
+  const checkmarkScale = useRef(new Animated.Value(0)).current;
+  const iconScale = useRef(new Animated.Value(0)).current;
+  const iconRotation = useRef(new Animated.Value(0)).current;
+  const itemAnims = useRef(items.map(() => new Animated.Value(0))).current;
+
+  useEffect(() => {
+    const checkmarkAnim = Animated.spring(checkmarkScale, {
+      toValue: 1,
+      tension: 50,
+      friction: 7,
+      delay: 400,
+      useNativeDriver: true,
+    });
+    const iconAnim = Animated.parallel([
+      Animated.spring(iconScale, {
+        toValue: 1,
+        tension: 80,
+        friction: 8,
+        delay: 200,
+        useNativeDriver: true,
+      }),
+      Animated.timing(iconRotation, {
+        toValue: 1,
+        duration: 600,
+        delay: 200,
+        useNativeDriver: true,
+      }),
+    ]);
+    const itemAnim = Animated.stagger(80, itemAnims.map(anim =>
+      Animated.spring(anim, {
+        toValue: 1,
+        tension: 80,
+        friction: 8,
+        useNativeDriver: true,
+      })
+    ));
+
+    checkmarkAnim.start();
+    iconAnim.start();
+    itemAnim.start();
+
+    return () => {
+      checkmarkAnim.stop();
+      iconAnim.stop();
+      itemAnim.stop();
+    };
+  }, [checkmarkScale, iconScale, iconRotation, itemAnims]);
+
+  const iconRotateInterpolate = iconRotation.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '360deg'],
+  });
+
+  const getEyebrowLabel = () => {
+    switch (dateContext) {
+      case 'today': return "TODAY'S TO-DOS";
+      case 'yesterday': return "YESTERDAY'S TO-DOS";
+      case 'upcoming': return 'UPCOMING TO-DOS';
+      default: return 'TO-DOS';
+    }
+  };
+
+  const getSubtext = () => {
+    switch (dateContext) {
+      case 'today': return 'Your to-dos are set for today';
+      case 'yesterday': return 'Your to-dos from yesterday';
+      case 'upcoming': return 'Your to-dos for this day';
+      default: return 'Your to-dos from this day';
+    }
+  };
+
+  const getFooterText = () => {
+    switch (dateContext) {
+      case 'today': return 'You can check these off throughout the day.';
+      case 'yesterday': return 'A record of what you needed to do yesterday.';
+      case 'upcoming': return 'A plan set ahead — you can update it any time.';
+      default: return 'A record of what you needed to do this day.';
+    }
+  };
+
+  return (
+    <View style={styles.stepContainer}>
+      <ScrollView
+        style={styles.stepScroll}
+        contentContainerStyle={[styles.stepContent, IS_IPAD && styles.stepContentPad, { paddingTop: insets.top + (IS_IPAD ? 28 : 8), paddingBottom: 30 }]}
+        showsVerticalScrollIndicator={false}
+      >
+        <StepFadeIn delay={0} style={styles.stepLabelRow}>
+          <Entypo name="list" size={16} color={Colors.sage} />
+          <ThemedText weight="semiBold" style={[styles.stepLabelWhite, { color: Colors.sageMuted }]}>
+            {getEyebrowLabel()}
+          </ThemedText>
+        </StepFadeIn>
+
+        <StepFadeIn delay={80} style={[styles.completionCard, { backgroundColor: Colors.cardBackground }]}>
+          <View style={styles.completionHeader}>
+            <Animated.View style={[
+              styles.completionIconContainer,
+              {
+                backgroundColor: Colors.sage,
+                transform: [
+                  { scale: iconScale },
+                  { rotate: iconRotateInterpolate },
+                ],
+              },
+            ]}>
+              <Entypo name="list" size={22} color={Colors.hopeWhite} />
+            </Animated.View>
+            <View style={styles.completionHeaderContent}>
+              <ThemedText weight="semiBold" style={styles.completionCategory}>To-dos</ThemedText>
+              <ThemedText style={styles.completionSubtext}>{getSubtext()}</ThemedText>
+            </View>
+            <Animated.View style={[
+              styles.completionCheckmark,
+              { transform: [{ scale: checkmarkScale }] },
+            ]}>
+              <Ionicons name="checkmark-circle" size={28} color={Colors.sage} />
+            </Animated.View>
+          </View>
+
+          <View style={[styles.completionSection, { borderTopColor: Colors.inputBorder }]}>
+            <ThemedText weight="medium" style={styles.completionSectionLabel}>To-dos</ThemedText>
+            <View style={styles.prioritiesList}>
+              {items.map((item: string, index: number) => (
+                <View key={index} style={styles.priorityItem}>
+                  <Animated.View style={[
+                    styles.priorityBullet,
+                    { backgroundColor: Colors.sage },
+                    { transform: [{ scale: itemAnims[index] || 0 }] },
+                  ]}>
+                    <ThemedText weight="semiBold" style={styles.priorityBulletText}>{index + 1}</ThemedText>
+                  </Animated.View>
+                  <ThemedText style={styles.priorityText}>{item}</ThemedText>
+                </View>
+              ))}
+            </View>
+          </View>
+
+          <View style={[styles.completionFooter, { borderTopColor: Colors.inputBorder }]}>
+            <ThemedText style={styles.completionFooterText}>
+              {getFooterText()}
+            </ThemedText>
+          </View>
+        </StepFadeIn>
+
+        <View style={{ height: 100 }} />
+      </ScrollView>
+
+      <View style={[styles.completionButtonContainer, IS_IPAD && styles.completionButtonContainerPad, { bottom: insets.bottom + 20, backgroundColor: Colors.lightBackground }]}>
+        <TouchableOpacity
+          onPress={() => {
+            triggerMediumHaptic();
+            onDone();
+          }}
+          activeOpacity={0.85}
+          style={[styles.completionButton, { backgroundColor: Colors.sage }]}
+        >
+          <ThemedText weight="semiBold" style={styles.completionButtonText}>Done</ThemedText>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+};
 
 const TodosExperience: React.FC<TodosExperienceProps> = ({
   selectedDate,
   initialItems,
   onClose,
   onComplete,
+  routineDraft,
+  planningContext,
+  skipCompletionPage,
 }) => {
   const insets = useSafeAreaInsets();
   const { currentFont } = useTheme();
@@ -71,29 +252,44 @@ const TodosExperience: React.FC<TodosExperienceProps> = ({
 
   const [todos, setTodos] = useState<TodoItem[]>([emptyTodo(), emptyTodo(), emptyTodo()]);
   const [showSaveButton, setShowSaveButton] = useState(false);
-  const hasLoadedInitialTodos = useRef(false);
+  const [showCompletion, setShowCompletion] = useState(false);
+  const [completedItems, setCompletedItems] = useState<string[]>([]);
+  const pendingResultRef = useRef<{ record: LocalJournalEntry | null; items: LocalJournalEntry[] } | null>(null);
+  const clearDraft = useRoutineDraft(
+    routineDraft?.routine ?? 'morning',
+    routineDraft?.selectedDate ?? dateStr,
+    routineDraft?.step ?? 'disabled-todos',
+    todos,
+    draft => { if (routineDraft) {setTodos(draft);} },
+    Boolean(routineDraft),
+  );
+  const loadedDateRef = useRef<string | null>(null);
 
   const inputRefs = useRef<(TextInput | null)[]>([]).current;
   const scrollViewRef = useRef<ScrollView>(null);
 
   const getTitle = () => {
+    if (planningContext) {
+      return planningContext === 'tomorrow' ? 'What needs your attention tomorrow?' : 'What needs your attention on this day?';
+    }
     switch (dateContext) {
       case 'today': return 'What needs to get done today?';
       case 'yesterday': return 'What needed to get done yesterday?';
       case 'earlier': return 'What needed to get done on this day?';
+      case 'upcoming': return 'What needs to get done on this day?';
     }
   };
 
   useEffect(() => {
-    if (hasLoadedInitialTodos.current) {return;}
-    hasLoadedInitialTodos.current = true;
+    if (loadedDateRef.current === dateStr) {return;}
+    loadedDateRef.current = dateStr;
     (async () => {
       let loaded: TodoItem[] = [];
       if (initialItems && initialItems.length > 0) {
         loaded = initialItems.map(text => ({ text }));
       } else {
         try {
-          const entries = await getLocalJournalEntries('todo', dateStr);
+          const entries = await getLocalTodosForDate(dateStr);
           loaded = entries
             .map(entry => {
               const parsed = typeof entry.content === 'string'
@@ -140,7 +336,7 @@ const TodosExperience: React.FC<TodosExperienceProps> = ({
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
 
   useEffect(() => {
-    const shouldShow = todos.some((todo: TodoItem) => todo.text.trim() !== '');
+    const shouldShow = Boolean(planningContext) || todos.some((todo: TodoItem) => todo.text.trim() !== '');
     setShowSaveButton(shouldShow);
 
     Animated.spring(saveButtonOpacity, {
@@ -156,7 +352,7 @@ const TodosExperience: React.FC<TodosExperienceProps> = ({
       tension: 50,
       friction: 7,
     }).start();
-  }, [todos, saveButtonOpacity, saveButtonScale]);
+  }, [todos, planningContext, saveButtonOpacity, saveButtonScale]);
 
   useEffect(() => {
     const shouldShow = todos[2]?.text?.trim() !== '';
@@ -232,12 +428,12 @@ const TodosExperience: React.FC<TodosExperienceProps> = ({
     try {
       const validTodos = todos.filter((t: TodoItem) => t.text.trim() !== '');
 
-      if (validTodos.length === 0) {
+      if (validTodos.length === 0 && !planningContext) {
         Alert.alert('No Tasks', 'Please add at least one task before saving.');
         return;
       }
 
-      const existingEntries = await getLocalJournalEntries('todo', dateStr);
+      const existingEntries = await getLocalTodosForDate(dateStr);
       const existingById = new Map<string, LocalJournalEntry>();
       for (const entry of existingEntries) {
         existingById.set(entry.id, entry);
@@ -288,10 +484,22 @@ const TodosExperience: React.FC<TodosExperienceProps> = ({
       }
 
       setTodos([...todos]);
+
+      if (routineDraft) {await clearDraft();}
       triggerMediumHaptic();
 
       const record = saved[0] || null;
-      await onComplete({ record, items: saved });
+      void refreshMorningWidgetSnapshot();
+
+      if (skipCompletionPage) {
+        await onComplete({ record, items: saved });
+        return;
+      }
+
+      pendingResultRef.current = { record, items: saved };
+      setCompletedItems(validTodos.map(todo => todo.text.trim()));
+      Keyboard.dismiss();
+      setShowCompletion(true);
     } catch (saveError) {
       console.error('Error saving to-dos:', saveError);
       Alert.alert('Error', 'Failed to save to-dos. Please try again.');
@@ -311,6 +519,12 @@ const TodosExperience: React.FC<TodosExperienceProps> = ({
     }, 100);
   };
 
+  const handleDone = async () => {
+    const result = pendingResultRef.current;
+    pendingResultRef.current = null;
+    await onComplete(result ?? { record: null, items: [] });
+  };
+
   const handleClose = () => {
     if (onClose) {onClose();}
   };
@@ -320,6 +534,19 @@ const TodosExperience: React.FC<TodosExperienceProps> = ({
     newTodos[index] = { ...newTodos[index], text };
     setTodos(newTodos);
   };
+
+  if (showCompletion) {
+    return (
+      <View style={[styles.container, { backgroundColor: Colors.lightBackground }]}>
+        <TodosCompletionStep
+          items={completedItems}
+          onDone={handleDone}
+          insets={insets}
+          dateContext={dateContext}
+        />
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.container, { backgroundColor: Colors.lightBackground }]}>
@@ -401,7 +628,7 @@ const TodosExperience: React.FC<TodosExperienceProps> = ({
             activeOpacity={0.7}
             style={[styles.primaryButton, { backgroundColor: Colors.sage, shadowColor: Colors.sage }]}
           >
-            <ThemedText weight="semiBold" style={styles.saveButtonText}>Save To-dos</ThemedText>
+            <ThemedText weight="semiBold" style={styles.saveButtonText}>{planningContext ? 'Done' : 'Save To-dos'}</ThemedText>
           </TouchableOpacity>
         </Animated.View>
         <Animated.View
@@ -441,8 +668,126 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.lightBackground,
   },
+  stepContainer: {
+    flex: 1,
+  },
   stepScroll: {
     flex: 1,
+  },
+  stepLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginBottom: 24,
+    marginTop: 48,
+  },
+  stepLabelWhite: {
+    fontSize: 14,
+    color: Colors.text,
+    letterSpacing: 0.5,
+  },
+  completionCard: {
+    borderRadius: 26,
+    padding: 24,
+    borderWidth: 1.5,
+    borderColor: Colors.inputBorder,
+  },
+  completionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  completionIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  completionHeaderContent: {
+    flex: 1,
+    marginHorizontal: 12,
+  },
+  completionCategory: {
+    fontSize: 18,
+    color: Colors.text,
+  },
+  completionSubtext: {
+    fontSize: 13,
+    color: Colors.textGray,
+    marginTop: 2,
+  },
+  completionCheckmark: {
+    width: 32,
+    alignItems: 'flex-end',
+  },
+  completionSection: {
+    paddingVertical: 16,
+    borderTopWidth: 1,
+  },
+  completionSectionLabel: {
+    fontSize: 11,
+    color: Colors.textGray,
+    marginBottom: 6,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  prioritiesList: {
+    gap: 8,
+  },
+  priorityItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  priorityBullet: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: Colors.sage,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  priorityBulletText: {
+    fontSize: 12,
+    color: Colors.hopeWhite,
+  },
+  priorityText: {
+    flex: 1,
+    fontSize: 15,
+    color: Colors.text,
+    lineHeight: 22,
+  },
+  completionFooter: {
+    paddingTop: 16,
+    borderTopWidth: 1,
+  },
+  completionFooterText: {
+    fontSize: 13,
+    color: Colors.textGray,
+    lineHeight: 20,
+  },
+  completionButtonContainer: {
+    position: 'absolute',
+    left: 20,
+    right: 20,
+    padding: 12,
+    borderRadius: 26,
+  },
+  completionButtonContainerPad: {
+    left: 160,
+    right: 160,
+  },
+  completionButton: {
+    height: 50,
+    borderRadius: 25,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  completionButtonText: {
+    fontSize: 16,
+    color: Colors.hopeWhite,
   },
   stepContent: {
     paddingHorizontal: 20,

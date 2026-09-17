@@ -7,14 +7,68 @@ import { queryKeys } from '../queryKeys';
 import { defaultQueryOptions, defaultMutationOptions, queryOptionsPresets } from '../config/queryConfig';
 import { analytics } from '../../utils/analytics';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
+import {
+  createLocalReflection,
+  deleteLocalReflection,
+  findLocalReflection,
+  getLocalReflections,
+  updateLocalReflection,
+  type LocalReflectionEntry,
+} from '../../storage/reflectionStorage';
+
+const toReflectionApiEntry = (entry: LocalReflectionEntry): ReflectionApiEntry => ({
+  id: entry.id,
+  user_id: entry.linked_account_id || '',
+  title: entry.title,
+  content: entry.content,
+  type: entry.type,
+  selected_date: entry.selected_date,
+  created_at: entry.created_at,
+  updated_at: entry.updated_at,
+  prompt: entry.metadata?.prompt,
+  tags: entry.tags,
+  source: entry.source,
+  day_number: entry.metadata?.day_number,
+  day_title: entry.metadata?.day_title,
+  total_days: entry.metadata?.total_days,
+  question_number: entry.metadata?.question_number,
+  question_text: entry.metadata?.question_text,
+  playbook_title: entry.metadata?.playbook_title,
+  playbook_id: entry.metadata?.playbook_id,
+  subtask_id: entry.metadata?.subtask_id,
+  journal_classification: entry.metadata?.journalClassification,
+  guided_journey: entry.metadata?.guidedJourney,
+});
+
+const reflectionMetadata = (entry: Partial<ReflectionApiEntry>): Record<string, any> => ({
+  ...(entry.prompt !== undefined ? { prompt: entry.prompt } : {}),
+  ...(entry.day_number !== undefined ? { day_number: entry.day_number } : {}),
+  ...(entry.day_title !== undefined ? { day_title: entry.day_title } : {}),
+  ...(entry.total_days !== undefined ? { total_days: entry.total_days } : {}),
+  ...(entry.question_number !== undefined ? { question_number: entry.question_number } : {}),
+  ...(entry.question_text !== undefined ? { question_text: entry.question_text } : {}),
+  ...(entry.playbook_title !== undefined ? { playbook_title: entry.playbook_title } : {}),
+  ...(entry.playbook_id !== undefined ? { playbook_id: entry.playbook_id } : {}),
+  ...(entry.subtask_id !== undefined ? { subtask_id: entry.subtask_id } : {}),
+  ...(entry.journal_classification !== undefined ? { journalClassification: entry.journal_classification } : {}),
+  ...(entry.guided_journey !== undefined ? { guidedJourney: entry.guided_journey } : {}),
+});
 
 // Hook for getting reflection entries for a specific date
 export const useReflectionData = (userId: string, date: string) => {
   return useQuery({
     ...queryOptionsPresets.critical, // Use critical instead of realtime for better caching
     queryKey: queryKeys.reflections.byDate(userId, date),
-    queryFn: () => ReflectionApi.getReflectionEntries(userId, date),
-    enabled: !!userId && !!date,
+    queryFn: async () => {
+      const [free, guided] = await Promise.all([
+        getLocalReflections('free', date),
+        getLocalReflections('guided', date),
+      ]);
+      return [...free, ...guided]
+        .map(toReflectionApiEntry)
+        .sort((a, b) => b.created_at.localeCompare(a.created_at));
+    },
+    enabled: !!date,
     initialData: [], // Provide empty array as initial data
     refetchOnMount: true, // Always refetch on mount to ensure fresh data
   });
@@ -157,7 +211,20 @@ export const useCreateReflection = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ReflectionApi.createReflectionEntry,
+    mutationFn: async (entry: Omit<ReflectionApiEntry, 'id' | 'created_at' | 'updated_at'>) => {
+      const local = await createLocalReflection({
+        server_id: null,
+        linked_account_id: entry.user_id || null,
+        title: entry.title,
+        content: entry.content,
+        type: entry.type,
+        source: entry.source,
+        tags: entry.tags,
+        selected_date: entry.selected_date,
+        metadata: reflectionMetadata(entry),
+      });
+      return toReflectionApiEntry(local);
+    },
     ...defaultMutationOptions,
     onMutate: async (newReflection) => {
       // Cancel any outgoing refetches
@@ -263,7 +330,21 @@ export const useUpdateReflection = () => {
   return useMutation({
     mutationFn: ({ id, updates }: { id: string; updates: Partial<Omit<ReflectionApiEntry, 'id' | 'user_id' | 'created_at'>> }) => {
 
-      return ReflectionApi.updateReflectionEntry(id, updates);
+      return findLocalReflection(id).then(async existing => {
+        if (!existing) {throw new Error('Reflection not found locally');}
+        const local = await updateLocalReflection({
+          ...existing,
+          title: updates.title ?? existing.title,
+          content: updates.content ?? existing.content,
+          type: updates.type ?? existing.type,
+          source: updates.source ?? existing.source,
+          tags: updates.tags ?? existing.tags,
+          selected_date: updates.selected_date ?? existing.selected_date,
+          linked_account_id: existing.linked_account_id,
+          metadata: { ...existing.metadata, ...reflectionMetadata(updates) },
+        });
+        return toReflectionApiEntry(local);
+      });
     },
     onMutate: async ({ id, updates }) => {
       // Skip optimistic updates for better performance - direct cache updates are sufficient
@@ -333,10 +414,9 @@ export const useDeleteReflection = () => {
   return useMutation({
     mutationFn: async (reflectionId: string) => {
 
-      // Direct database call without complex logic
-      const result = await ReflectionApi.deleteReflectionEntry(reflectionId);
-
-      return result;
+      const existing = await findLocalReflection(reflectionId);
+      if (!existing) {throw new Error('Reflection not found locally');}
+      await deleteLocalReflection(existing.id, existing.type, existing.selected_date);
     },
     onSuccess: () => {
 

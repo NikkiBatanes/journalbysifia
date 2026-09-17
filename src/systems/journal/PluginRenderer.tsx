@@ -11,6 +11,8 @@ export const PluginRenderer: React.FC<PluginRenderProps> = ({
   navigation,
   sessionId,
   reflectionId,
+  reflectionIds,
+  timelineItem,
 }) => {
   const Component = plugin.component;
 
@@ -26,6 +28,8 @@ export const PluginRenderer: React.FC<PluginRenderProps> = ({
     // Pass the specific saved session (e.g. Bible study) so plugins can render it individually
     ...(sessionId !== undefined && { sessionId }),
     ...(reflectionId !== undefined && { reflectionId }),
+    ...(reflectionIds !== undefined && { reflectionIds }),
+    ...(timelineItem !== undefined && { timelineItem }),
   };
 
   return (

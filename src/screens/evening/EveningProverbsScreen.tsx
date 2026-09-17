@@ -76,7 +76,7 @@ const EveningProverbsScreen = () => {
 
   const settingsAnim = useRef(new Animated.Value(0)).current;
 
-  const dateStr = toLocalDateString(new Date(selectedDate));
+  const dateStr = selectedDate;
 
   useEffect(() => {
     let mounted = true;
@@ -168,14 +168,17 @@ const EveningProverbsScreen = () => {
       setProverbReflectionId(id);
     } catch (error) {
       console.error('Error saving evening proverbs read state:', error);
+      return;
     }
+
+    if (!id) {return;}
 
     await markStepCompleted(
       'proverbs',
       {
         domain: 'reflection',
         content_type: 'scripture',
-        local_id: id!,
+        local_id: id,
       },
       'proverbs',
     );
@@ -598,7 +601,7 @@ const EveningProverbsScreen = () => {
         {hasReadProverb ? (
           <Ionicons name="checkmark-circle" size={16} color={Colors.hopeWhite} />
         ) : (
-          <MaterialCommunityIcons name="script-text" size={16} color={Colors.sage} />
+          <Ionicons name="reader-outline" size={16} color={Colors.sage} />
         )}
         <ThemedText weight="medium" style={[styles.readButtonText, hasReadProverb && styles.readButtonTextActive]}>
           {hasReadProverb ? `Proverbs ${proverbNumber} read` : `I've read Proverbs ${proverbNumber}`}

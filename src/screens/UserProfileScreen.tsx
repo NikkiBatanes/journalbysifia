@@ -1859,6 +1859,53 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
     </View>
   );
 
+  const renderReflectionSection = () => (
+    <View>
+      <Text style={[styles.sectionLabel, styles.sectionLabelRight, font]}>REFLECTION</Text>
+      <View style={styles.menuContainer}>
+        <TouchableOpacity
+          style={[styles.menuItem, styles.menuItemSpaced]}
+          onPress={() => {
+            try { triggerLightHaptic(); } catch {}
+            navigation.navigate('Journal', {screen: 'PastReviews'});
+          }}
+          accessibilityLabel="Open Reviews">
+          <View style={styles.menuIconBox}><Ionicons name="journal-outline" size={18} color={Colors.sage} /></View>
+          <View style={styles.flex1}>
+            <Text style={[styles.menuText, font]}>Reviews</Text>
+            <Text style={[styles.menuValueText, font]}>Look back. Look forward.</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={theme.colors.chevronColor} />
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+
+  const renderGospelSection = () => (
+    <View>
+      <Text style={[styles.sectionLabel, styles.sectionLabelRight, font]}>GOSPEL</Text>
+      <View style={styles.menuContainer}>
+        <TouchableOpacity
+          style={[styles.menuItem, styles.menuItemSpaced]}
+          onPress={() => {
+            try { triggerLightHaptic(); } catch {}
+            navigation.navigate('Gospel');
+          }}
+          accessibilityRole="button"
+          accessibilityLabel="Open Gospel">
+          <View style={styles.menuIconBox}>
+            <Ionicons name="sparkles-outline" size={18} color={Colors.sage} />
+          </View>
+          <View style={styles.flex1}>
+            <Text style={[styles.menuText, font]}>Gospel</Text>
+            <Text style={[styles.menuValueText, font]}>Know it · Share it · Walk with others</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={theme.colors.chevronColor} />
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+
   // POST-LAUNCH: Family Management Section - Removed for MVP launch
   // Function preserved in feature/family-subscription branch
 
@@ -2613,6 +2660,8 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
               onBadgesPress={() => { try { triggerLightHaptic(); } catch {} setBadgesModalVisible(true); }}
             />
           </View>
+          {renderGospelSection()}
+          {renderReflectionSection()}
           {renderSubscriptionSection()}
           {renderMenuOptions()}
           {/* POST-LAUNCH: {renderFamilyManagementSection()} */}

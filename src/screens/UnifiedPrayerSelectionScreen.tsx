@@ -13,7 +13,6 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
 import { Colors } from '../theme/colors';
 import ThemedText from '../components/common/ThemedText';
@@ -179,7 +178,7 @@ const CASTDescriptionStep: React.FC<{
       >
         <StepFadeIn delay={0}>
           <View style={styles.focusLabelContainer}>
-            <MaterialCommunityIcons name="hands-pray" size={16} color={Colors.alertCoral} style={styles.labelIcon} />
+            <Ionicons name="hand-left-outline" size={16} color={Colors.alertCoral} style={[styles.labelIcon, { transform: [{ rotate: '-28deg' }] }]} />
             <ThemedText weight="semiBold" style={styles.focusLabel}>CAST PRAYER</ThemedText>
           </View>
         </StepFadeIn>
@@ -343,7 +342,7 @@ const OpenPrayerDescriptionStep: React.FC<{
       >
         <StepFadeIn delay={0}>
           <View style={styles.focusLabelContainer}>
-            <MaterialCommunityIcons name="hands-pray" size={16} color={Colors.alertCoral} style={styles.labelIcon} />
+            <Ionicons name="hand-left-outline" size={16} color={Colors.alertCoral} style={[styles.labelIcon, { transform: [{ rotate: '-28deg' }] }]} />
             <ThemedText weight="semiBold" style={styles.focusLabel}>OPEN PRAYER</ThemedText>
           </View>
         </StepFadeIn>
@@ -593,7 +592,7 @@ const UnifiedPrayerSelectionScreen: React.FC<Props> = ({ route, navigation }) =>
         >
           <StepFadeIn delay={0}>
             <View style={styles.focusLabelContainer}>
-              <MaterialCommunityIcons name="hands-pray" size={16} color={Colors.alertCoral} style={styles.labelIcon} />
+              <Ionicons name="hand-left-outline" size={16} color={Colors.alertCoral} style={[styles.labelIcon, { transform: [{ rotate: '-28deg' }] }]} />
               <ThemedText weight="semiBold" style={styles.focusLabel}>PRAYER JOURNAL</ThemedText>
             </View>
           </StepFadeIn>

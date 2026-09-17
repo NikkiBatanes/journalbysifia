@@ -18,6 +18,7 @@ import UserInputScreen from '../screens/UserInputScreen';
 import TodaysFocusWalkthroughScreen from '../screens/TodaysFocusWalkthroughScreen';
 import TomorrowInHisHandsWalkthroughScreen from '../screens/TomorrowInHisHandsWalkthroughScreen';
 import TodosWalkthroughScreen from '../screens/TodosWalkthroughScreen';
+import FuturePlanningScreen from '../screens/FuturePlanningScreen';
 import TodaysWinWalkthroughScreen from '../screens/TodaysWinWalkthroughScreen';
 import PrayerJournalWalkthroughScreen from '../screens/PrayerJournalWalkthroughScreen';
 import PrayersForPeopleWalkthroughScreen from '../screens/PrayersForPeopleWalkthroughScreen';
@@ -30,6 +31,7 @@ import ActionStepsProviderWrapper from '../context/ActionStepsProviderWrapper';
 import UserProfileScreen from '../screens/UserProfileScreen';
 import NotificationsScreen from '../screens/NotificationsScreen';
 import AdminDashboardScreen from '../screens/AdminDashboardScreen';
+import GospelScreen from '../screens/GospelScreen';
 // NotificationDebugScreen removed in Phase 1 cleanup
 
 // New Onboarding screens
@@ -247,6 +249,17 @@ export default function RootStackNavigator({
         }}
       />
 
+      <Stack.Screen
+        name="Gospel"
+        component={GospelScreen as React.ComponentType}
+        options={{
+          headerShown: false,
+          presentation: 'fullScreenModal',
+          animation: 'slide_from_right',
+          contentStyle: { backgroundColor: '#F4F0E7' },
+        }}
+      />
+
       {/* Morning Flow - multi-page morning check-in modal */}
       <Stack.Screen
         name="MorningFlow"
@@ -317,6 +330,27 @@ export default function RootStackNavigator({
               animation: 'none',
             }}
           />
+      <Stack.Screen
+        name="FuturePlanning"
+        component={FuturePlanningScreen as React.ComponentType}
+        options={{
+          headerShown: false,
+          presentation: 'fullScreenModal',
+          animation: 'slide_from_bottom',
+          contentStyle: { backgroundColor: Colors.lightBackground },
+        }}
+      />
+
+      {/* To-dos is available from MainTabs, including local use before authentication. */}
+      <Stack.Screen
+        name="TodosWalkthrough"
+        component={TodosWalkthroughScreen as React.ComponentType}
+        options={{
+          headerShown: false,
+          presentation: 'fullScreenModal',
+          animation: 'none',
+        }}
+      />
 
       {/* Pre-auth screens */}
       {!isAuthenticated ? (
@@ -530,17 +564,6 @@ export default function RootStackNavigator({
 
           {/* Prayer Editor Screen */}
 
-
-          {/* Todos Walkthrough */}
-          <Stack.Screen
-            name="TodosWalkthrough"
-            component={TodosWalkthroughScreen as React.ComponentType}
-            options={{
-              headerShown: false,
-              presentation: 'fullScreenModal',
-              animation: 'none',
-            }}
-          />
 
           {/* siFia AI Input Screen */}
           <Stack.Screen

@@ -19,7 +19,7 @@ import { Fonts } from '../../theme/fonts';
 import { triggerLightHaptic, triggerSuccessHaptic, triggerSelectionHaptic } from '../../utils/haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Pencil } from 'lucide-react-native';
+import { Pencil, Sparkle } from 'lucide-react-native';
 import { JournalCard } from './JournalCard';
 import PrayerCard, { PrayerHomeEntry } from './PrayerCard';
 import { ErrorBoundary } from '../ErrorBoundary';
@@ -925,10 +925,10 @@ const SwipeablePrayerCard: React.FC<{
                 }}
                 activeOpacity={0.8}
               >
-                <Ionicons
-                  name={prayer.status === 'answered' ? 'sparkles' : 'checkmark-circle-outline'}
+                <Sparkle
                   size={14}
                   color={prayer.status === 'answered' ? Colors.alertCoral : Colors.hopeWhite}
+                  strokeWidth={1.8}
                 />
                 <ThemedText style={[styles.answeredActionText, prayer.status === 'answered' && styles.answeredActionTextActive]} weight="medium">
                   {prayer.status === 'answered' ? 'Answered' : 'Mark Answered'}

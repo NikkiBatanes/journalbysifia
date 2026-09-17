@@ -19,6 +19,7 @@ import {
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useRoutineDraft } from '../hooks/useRoutineDraft';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -941,7 +942,8 @@ export const TodayWinExperience: React.FC<{
   onClose?: () => void;
   onComplete: (record: any) => void | Promise<void>;
   skipCompletionPage?: boolean;
-}> = ({ selectedDate, insets: insetsProp, onClose, onComplete, skipCompletionPage }) => {
+  routineDraft?: { routine: 'morning' | 'evening'; selectedDate: string; step: string };
+}> = ({ selectedDate, insets: insetsProp, onClose, onComplete, skipCompletionPage, routineDraft }) => {
   const insets = insetsProp ?? { top: 50, bottom: 34 };
   const screenWidth = Dimensions.get('window').width;
 
@@ -950,6 +952,20 @@ export const TodayWinExperience: React.FC<{
   const [quietWin, setQuietWin] = useState('');
   const [customWin, setCustomWin] = useState('');
   const [isOtherStateActive, setIsOtherStateActive] = useState(false);
+  const clearDraft = useRoutineDraft(
+    routineDraft?.routine ?? 'evening',
+    routineDraft?.selectedDate ?? toLocalDateString(selectedDate),
+    routineDraft?.step ?? 'disabled-win',
+    { selectedWinTypeId: selectedWinType?.id, quietWin, customWin, isOtherStateActive },
+    draft => {
+      if (!routineDraft) {return;}
+      setSelectedWinType(draft.selectedWinTypeId ? WIN_TYPES.find(type => type.id === draft.selectedWinTypeId) ?? null : null);
+      setQuietWin(draft.quietWin ?? '');
+      setCustomWin(draft.customWin ?? '');
+      setIsOtherStateActive(Boolean(draft.isOtherStateActive));
+    },
+    Boolean(routineDraft),
+  );
 
   const dateStr = toLocalDateString(selectedDate);
   const dateContext = getDateContext(selectedDate);
@@ -1072,6 +1088,7 @@ export const TodayWinExperience: React.FC<{
       }
 
       triggerMediumHaptic();
+      if (routineDraft) {await clearDraft();}
       await onComplete(record);
     } catch (error) {
       Alert.alert('Error', 'Failed to save your win. Please try again.');

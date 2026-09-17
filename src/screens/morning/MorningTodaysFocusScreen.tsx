@@ -2,6 +2,7 @@ import React, { useCallback } from 'react';
 import { useNavigation } from '@react-navigation/native';
 
 import { useRoutine } from '../../context/RoutineContext';
+import { fromLocalDateString } from '../../utils/date';
 import { exitMorningFlow } from '../../navigation/exitEveningFlow';
 import TodaysFocusExperience from '../../components/journal/TodaysFocusExperience';
 
@@ -28,11 +29,12 @@ const MorningTodaysFocusScreen: React.FC = () => {
 
   return (
     <TodaysFocusExperience
-      selectedDate={new Date(selectedDate)}
+      selectedDate={fromLocalDateString(selectedDate)}
       onClose={handleClose}
       onComplete={handleComplete}
       completionButtonText="Continue"
       footerText="A simple morning anchor before you move into the rest of your day."
+      routineDraft={{ routine: 'morning', selectedDate, step: 'todays_focus' }}
     />
   );
 };

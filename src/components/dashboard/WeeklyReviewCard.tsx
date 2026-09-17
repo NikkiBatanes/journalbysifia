@@ -12,9 +12,10 @@ interface Props {
   periodEnd: string;
   onBegin: () => void;
   alsoReady?: string;
+  started?: boolean;
 }
 
-const WeeklyReviewCard = ({ periodStart, periodEnd, onBegin, alsoReady }: Props) => {
+const WeeklyReviewCard = ({ periodStart, periodEnd, onBegin, alsoReady, started = false }: Props) => {
   const rhythm = useWeeklyRhythm(periodStart, periodEnd);
   const start = parseISO(periodStart);
   const end = parseISO(periodEnd);
@@ -25,10 +26,10 @@ const WeeklyReviewCard = ({ periodStart, periodEnd, onBegin, alsoReady }: Props)
         <View style={styles.copy}>
           <ThemedText weight="semiBold" style={styles.eyebrow}>WEEKLY REVIEW</ThemedText>
           <ThemedText weight="semiBold" style={styles.title}>A week worth remembering.</ThemedText>
-          <ThemedText style={styles.description}>Your weekly review is ready.</ThemedText>
+          <ThemedText style={styles.description}>{started ? 'Your weekly review is in progress.' : 'Your weekly review is ready.'}</ThemedText>
           <ThemedText style={styles.period}>{periodLabel}</ThemedText>
           <TouchableOpacity style={styles.begin} accessibilityRole="button" activeOpacity={0.8} onPress={() => { triggerLightHaptic(); onBegin(); }}>
-            <ThemedText weight="semiBold" style={styles.beginText}>Explore your week</ThemedText>
+            <ThemedText weight="semiBold" style={styles.beginText}>{started ? 'Continue your week' : 'Explore your week'}</ThemedText>
             <ArrowRight size={16} color={Colors.sage} />
           </TouchableOpacity>
         </View>

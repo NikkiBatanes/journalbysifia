@@ -12,7 +12,7 @@ import {
 // import { format } from 'date-fns'; // Unused
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { Pencil } from 'lucide-react-native';
+import { Pencil, Sparkle } from 'lucide-react-native';
 
 import { Colors } from '../../theme/colors';
 // import { getFontFamily, DEFAULT_FONT_FAMILY } from '../../theme/fonts'; // Unused
@@ -139,7 +139,7 @@ const SwipeablePrayerCard: React.FC<SwipeablePrayerCardProps> = ({
           }}
           activeOpacity={0.8}
         >
-          <Ionicons name={prayer.answered_at ? 'sparkles' : 'checkmark-circle-outline'} size={14} color={prayer.answered_at ? Colors.alertCoral : Colors.hopeWhite} />
+          <Sparkle size={14} color={prayer.answered_at ? Colors.alertCoral : Colors.hopeWhite} strokeWidth={1.8} />
           <ThemedText style={[styles.markAnsweredText, prayer.answered_at && styles.markAnsweredTextActive]} weight="medium">
             {prayer.answered_at ? 'Answered' : 'Mark Answered'}
           </ThemedText>
@@ -229,7 +229,7 @@ const CombinedCASTPrayerCard: React.FC<CombinedCASTPrayerCardProps> = ({
             }}
             activeOpacity={0.8}
           >
-            <Ionicons name={supplicationPrayer.answered_at ? 'sparkles' : 'checkmark-circle-outline'} size={14} color={supplicationPrayer.answered_at ? Colors.alertCoral : Colors.hopeWhite} />
+            <Sparkle size={14} color={supplicationPrayer.answered_at ? Colors.alertCoral : Colors.hopeWhite} strokeWidth={1.8} />
             <ThemedText style={[styles.markAnsweredText, supplicationPrayer.answered_at && styles.markAnsweredTextActive]} weight="medium">
               {supplicationPrayer.answered_at ? 'Answered' : 'Mark Answered'}
             </ThemedText>

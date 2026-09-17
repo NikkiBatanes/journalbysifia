@@ -86,7 +86,11 @@ export const SavedMorningMoment = ({ moment, viewMode = 'inline' }: { moment: Mo
     const [year, month, day] = moment.date.split('-').map(Number);
     const proverbDate = format(new Date(year, month - 1, day), 'MMMM d, yyyy');
     const handleEdit = () => {
-      (navigation as any).navigate('EveningFlow', { screen: 'Proverbs', params: { selectedDate: moment.date } });
+      (navigation as any).navigate('EveningFlow', {
+        selectedDate: moment.date,
+        screen: 'Proverbs',
+        params: { selectedDate: moment.date },
+      });
     };
     return <>
       <TouchableOpacity style={styles.proverbCard} onPress={() => setReflectionOpen(true)} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel={`View reflection for ${moment.title}`}>
@@ -152,7 +156,7 @@ export const SavedMorningMoment = ({ moment, viewMode = 'inline' }: { moment: Mo
 const styles = StyleSheet.create({
   centered: { textAlign: 'center' },
   proverbCard: {},
-  proverbContent: { borderWidth: 1.5, borderColor: Colors.inputBorder, borderRadius: 24, padding: 20 },
+  proverbContent: { backgroundColor: Colors.cardBackground, borderWidth: 1.5, borderColor: Colors.inputBorder, borderRadius: 24, padding: 20 },
   proverbTopBar: { position: 'absolute', left: 0, right: 0, zIndex: 10, flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', gap: 10, paddingHorizontal: 20, backgroundColor: 'transparent' },
   proverbTopButton: { width: 42, height: 42, borderRadius: 21, backgroundColor: Colors.cardBackground, alignItems: 'center', justifyContent: 'center' },
   proverbDateText: { color: Colors.textGray, fontSize: 11, letterSpacing: 1.5, textAlign: 'center', marginBottom: 16 },
@@ -163,7 +167,7 @@ const styles = StyleSheet.create({
   reflection: { color: Colors.text, fontSize: 16, lineHeight: 24, textAlign: 'center' },
   viewAllButton: { alignSelf: 'center', paddingHorizontal: 12, paddingTop: 8 },
   viewAllText: { color: Colors.sage, fontSize: 12 },
-  observations: { marginTop: 16, borderWidth: 1.5, borderColor: Colors.inputBorder, borderRadius: 24, padding: 20 },
+  observations: { marginTop: 16, backgroundColor: Colors.cardBackground, borderWidth: 1.5, borderColor: Colors.inputBorder, borderRadius: 24, padding: 20 },
   observationText: { marginTop: 6 },
   divider: { height: 1, backgroundColor: Colors.cardBorder, marginVertical: 16 },
   feelingLabel: { color: Colors.sage, fontSize: 10, letterSpacing: 1.5, textAlign: 'center', marginBottom: 8 },

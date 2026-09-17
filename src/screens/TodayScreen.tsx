@@ -1,12 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { DeviceEventEmitter, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import Animated, { FadeInUp } from 'react-native-reanimated';
+import Animated, { FadeInUp, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { BookOpen, CalendarDays, Heart, Leaf, List, Moon, Pencil, Sparkles, Sun, Target } from 'lucide-react-native';
-import { differenceInCalendarDays, endOfWeek, format, isAfter, isSameDay, isYesterday, startOfDay, startOfWeek, subYears } from 'date-fns';
+import { differenceInCalendarDays, endOfWeek, format, isAfter, isSameDay, isYesterday, startOfDay, startOfWeek } from 'date-fns';
 
 import WeeklyQuickLook from '../components/dashboard/WeeklyQuickLook';
 import WeeklyReviewCard from '../components/dashboard/WeeklyReviewCard';
@@ -19,10 +19,18 @@ import { useScroll } from '../context/ScrollContext';
 import { Colors } from '../theme/colors';
 import { Fonts } from '../theme/fonts';
 import { triggerLightHaptic } from '../utils/haptics';
+import { compareLocalDate, toLocalDateString } from '../utils/date';
 import { getReviewEligibility, type ReviewEligibilityResult } from '../services/reviewEligibilityService';
 import { getLocalReviewsByType, type LocalReviewEntry } from '../storage/reviewStorage';
 import { getRoutineState, type RoutineState } from '../storage/routineStateStorage';
 import { preloadScripturePassages } from '../services/scriptureReaderService';
+import { getLocalJournalEntries, getLocalJournalSingleton } from '../storage/journalStorage';
+import { getDailyRhythmCardState, getDailyRhythmContentState, type DailyRhythmContentState } from '../services/dailyRhythmCardState';
+import { refreshMorningWidgetSnapshot } from '../services/morningWidgetService';
+import { getDailyLine } from '../data/dailyLines';
+
+const CALENDAR_SHEET_HEIGHT = 60;
+const CALENDAR_SPRING = { damping: 12, stiffness: 185, mass: 0.85 };
 
 const SectionHeading = ({ title, detail }: { title: string; detail: string }) => (
   <View style={styles.sectionHeading}>
@@ -66,12 +74,22 @@ const TodayScreen = () => {
   const [displayDate, setDisplayDate] = useState(() => now);
   const [manualDate, setManualDate] = useState(false);
   const [calendarVisible, setCalendarVisible] = useState(false);
+  const calendarProgress = useSharedValue(0);
   const [morningState, setMorningState] = useState<RoutineState | null>(null);
   const [eveningState, setEveningState] = useState<RoutineState | null>(null);
   const [previewEvening, setPreviewEvening] = useState<boolean | null>(null);
-  const isEvening = (__DEV__ ? previewEvening : null) ?? displayDate.getHours() >= 17;
+  const [futurePlanParts, setFuturePlanParts] = useState({ focus: false, todos: false });
+  const [pastContent, setPastContent] = useState({ morning: false, evening: false });
+  const [contentState, setContentState] = useState<DailyRhythmContentState>({
+    morning: { checkIn: false, psalm: false, focus: false, priorities: false },
+    evening: { gratitude: false, win: false, proverbs: false, reflection: false },
+  });
   const hour = displayDate.getHours();
   const isToday = isSameDay(displayDate, now);
+  const selectedDateRelation = compareLocalDate(toLocalDateString(displayDate), toLocalDateString(now));
+  const isEvening = (__DEV__ ? previewEvening : null) ?? (
+    isToday ? now.getHours() >= 17 : selectedDateRelation === 'past' && pastContent.evening && !pastContent.morning
+  );
   const greetingText = isToday
     ? (hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening')
     : 'Hi';
@@ -79,9 +97,14 @@ const TodayScreen = () => {
   const morningDone = morningState?.selected_date === format(displayDate, 'yyyy-MM-dd') && morningState.completed;
   const routineDone = isEvening ? eveningDone : morningDone;
   const routineStarted = isEvening
-    ? !!eveningState?.started_at && !eveningState?.completed
-    : !!morningState?.started_at && !morningState?.completed;
+    ? Boolean(eveningState?.completed_steps.length) && !eveningState?.completed
+    : Boolean(morningState?.completed_steps.length) && !morningState?.completed;
+  const routineHasContent = isEvening ? pastContent.evening : pastContent.morning;
+  const hasFuturePlan = futurePlanParts.focus || futurePlanParts.todos;
+  const displayedContent = isEvening ? Object.values(contentState.evening) : Object.values(contentState.morning);
+  const allDisplayedContent = displayedContent.every(Boolean);
   const dayOffset = differenceInCalendarDays(displayDate, now);
+  const isFutureDate = selectedDateRelation === 'future';
   const rhythmTitle =
     dayOffset === 0 ? 'TODAY' :
     dayOffset === 1 ? 'TOMORROW' :
@@ -102,21 +125,18 @@ const TodayScreen = () => {
     return 'earlier';
   })();
 
-  const routineTitle = isEvening
-    ? (routineDone
-        ? (dateContext === 'yesterday' || dateContext === 'earlier' ? 'Your evening was saved.' : 'Your evening is saved.')
-        : (dateContext === 'upcoming'
-            ? 'Plan your evening.'
-            : dateContext === 'today'
-              ? 'Close your day.'
-              : 'Close this evening.'))
-    : (routineDone
-        ? (dateContext === 'yesterday' || dateContext === 'earlier' ? 'Your morning was saved.' : 'Your morning is saved.')
-        : (dateContext === 'upcoming'
-            ? 'Plan your day.'
-            : dateContext === 'today'
-              ? 'Begin your day.'
-              : 'Begin this morning.'));
+  const routineCardState = getDailyRhythmCardState({
+    relation: selectedDateRelation,
+    period: isEvening ? 'evening' : 'morning',
+    dayOffset,
+    hasContent: routineHasContent,
+    started: routineStarted,
+    completed: routineDone,
+    hasFocusPlan: futurePlanParts.focus,
+    hasTodoPlan: futurePlanParts.todos,
+    allDisplayedContent,
+  });
+  const routineTitle = routineCardState.title;
 
   const weekStartsOn = Math.max(0, ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'].indexOf(appPreferences?.weekStart || 'monday')) as 0 | 1 | 2 | 3 | 4 | 5 | 6;
   const weekLabel = useMemo(() => {
@@ -124,6 +144,7 @@ const TodayScreen = () => {
     const end = endOfWeek(displayDate, { weekStartsOn });
     return `${format(start, 'MMM d')}–${format(end, start.getMonth() === end.getMonth() ? 'd' : 'MMM d')}`.toUpperCase();
   }, [displayDate, weekStartsOn]);
+  const dailyLine = getDailyLine(now, isEvening ? 'evening' : 'morning');
   const firstName = useMemo(() => {
     const metadata = profile;
     const value = metadata?.first_name || metadata?.full_name || user?.email?.split('@')[0] || 'Friend';
@@ -148,7 +169,7 @@ const TodayScreen = () => {
   }, [now, manualDate, displayDate]);
 
   const [eligibility, setEligibility] = useState<ReviewEligibilityResult | null>(null);
-  const [weeklyReview, setWeeklyReview] = useState<LocalReviewEntry | null>(null);
+  const [weeklyReviews, setWeeklyReviews] = useState<LocalReviewEntry[]>([]);
   const [tick, setTick] = useState(0);
 
   useEffect(() => {
@@ -157,10 +178,7 @@ const TodayScreen = () => {
       if (active) setEligibility(result);
     });
     getLocalReviewsByType('weekly').then(reviews => {
-      const sorted = [...reviews].sort((a, b) =>
-        b.periodEnd.localeCompare(a.periodEnd),
-      );
-      setWeeklyReview(sorted[0] ?? null);
+      setWeeklyReviews(reviews);
     });
     return () => { active = false; };
   }, [tick, appPreferences?.weekStart, format(now, 'yyyy-MM-dd')]);
@@ -174,20 +192,47 @@ const TodayScreen = () => {
         const version = ++loadVersion;
         setNow(new Date());
         try {
-          const [morning, evening] = await Promise.all([
+          const [morning, evening, focus, todos, derivedContent] = await Promise.all([
             getRoutineState('morning', displayDate),
             getRoutineState('evening', displayDate),
+            isFutureDate ? getLocalJournalSingleton('todays_focus', displayDate) : Promise.resolve(null),
+            isFutureDate ? getLocalJournalEntries('todo', displayDate) : Promise.resolve([]),
+            isFutureDate ? Promise.resolve(null) : getDailyRhythmContentState(displayDate),
           ]);
           if (focused && version === loadVersion) {
             setMorningState(morning);
             setEveningState(evening);
+            setFuturePlanParts(isFutureDate ? { focus: Boolean(focus), todos: todos.length > 0 } : { focus: false, todos: false });
+            const nextContent = derivedContent ?? {
+              morning: { checkIn: false, psalm: false, focus: false, priorities: false },
+              evening: { gratitude: false, win: false, proverbs: false, reflection: false },
+            };
+            setContentState(nextContent);
+            const routineMeaningful = (state: RoutineState | null) => Boolean(
+              state?.completed || state?.completed_steps.length || Object.keys(state?.content_refs ?? {}).length,
+            );
+            setPastContent({
+              morning: routineMeaningful(morning) || Object.values(nextContent.morning).some(Boolean),
+              evening: routineMeaningful(evening) || Object.values(nextContent.evening).some(Boolean),
+            });
           }
         } catch {
-          if (focused && version === loadVersion) { setMorningState(null); setEveningState(null); }
+          if (focused && version === loadVersion) {
+            setMorningState(null);
+            setEveningState(null);
+            setFuturePlanParts({ focus: false, todos: false });
+            setPastContent({ morning: false, evening: false });
+            setContentState({
+              morning: { checkIn: false, psalm: false, focus: false, priorities: false },
+              evening: { gratitude: false, win: false, proverbs: false, reflection: false },
+            });
+          }
         }
       };
       void refreshMorning();
+      void refreshMorningWidgetSnapshot();
       const saved = DeviceEventEmitter.addListener('reflection_saved', () => { void refreshMorning(); });
+      const planSaved = DeviceEventEmitter.addListener('future_plan_saved', () => { void refreshMorning(); });
       const timer = setInterval(() => { void refreshMorning(); }, 60000);
       scrollRef.current?.scrollTo({ y: 0, animated: false });
       const frame = requestAnimationFrame(() => scrollRef.current?.scrollTo({ y: 0, animated: false }));
@@ -198,12 +243,13 @@ const TodayScreen = () => {
       return () => {
         focused = false;
         saved.remove();
+        planSaved.remove();
         clearInterval(timer);
         cancelAnimationFrame(frame);
         tabBarCollapsedRef.current = false;
         setShowTabBar(true);
       };
-    }, [setShowTabBar, displayDate])
+    }, [setShowTabBar, displayDate, isFutureDate, selectedDateRelation])
   );
 
   useEffect(() => {
@@ -212,12 +258,23 @@ const TodayScreen = () => {
     }
   }, [showTabBar]);
 
+  const selectedWeekStart = format(startOfWeek(displayDate, { weekStartsOn }), 'yyyy-MM-dd');
+  const selectedWeekEnd = format(endOfWeek(displayDate, { weekStartsOn }), 'yyyy-MM-dd');
+  const selectedWeeklyReview = weeklyReviews.find(review =>
+    review.status === 'completed'
+    && review.periodStart === selectedWeekStart
+    && review.periodEnd === selectedWeekEnd,
+  ) ?? null;
+
   const handleScroll = useCallback((event: any) => {
     const y = Math.max(0, event.nativeEvent.contentOffset.y);
     const isScrollingUp = y < lastScrollYRef.current;
     lastScrollYRef.current = y;
 
-    if (calendarVisible) { setCalendarVisible(false); }
+    if (calendarVisible) {
+      setCalendarVisible(false);
+      calendarProgress.value = withSpring(0, CALENDAR_SPRING);
+    }
 
     if (y > 60 && !tabBarCollapsedRef.current) {
       tabBarCollapsedRef.current = true;
@@ -226,7 +283,20 @@ const TodayScreen = () => {
       tabBarCollapsedRef.current = false;
       setShowTabBar(true);
     }
-  }, [setShowTabBar, calendarVisible]);
+  }, [setShowTabBar, calendarVisible, calendarProgress]);
+
+  const toggleCalendar = useCallback(() => {
+    triggerLightHaptic();
+    const next = !calendarVisible;
+    setCalendarVisible(next);
+    calendarProgress.value = withSpring(next ? 1 : 0, CALENDAR_SPRING);
+  }, [calendarVisible, calendarProgress]);
+
+  const calendarSheetStyle = useAnimatedStyle(() => ({
+    height: Math.max(0, calendarProgress.value * CALENDAR_SHEET_HEIGHT),
+    opacity: Math.min(1, calendarProgress.value * 1.4),
+    transform: [{ scaleY: 0.96 + Math.min(1, calendarProgress.value) * 0.04 }],
+  }));
 
   const reviewCard = useMemo(() => {
     if (!eligibility?.main) {return null;}
@@ -238,6 +308,7 @@ const TodayScreen = () => {
         key={`${main.period.periodStart}:${main.period.periodEnd}`}
         periodStart={main.period.periodStart}
         periodEnd={main.period.periodEnd}
+        started={main.review.memorableItems.length > 0 || Object.values(main.review.answers).some(answer => answer.trim().length > 0)}
         alsoReady={eligibility.alsoReady.map(item => item.type.replace('_', ' ')).join(', ')}
         onBegin={() => (navigation as any).navigate('Journal', {
           screen: 'Review',
@@ -292,8 +363,12 @@ const TodayScreen = () => {
         scrollEventThrottle={16}
       >
         <View style={styles.headerColumn}>
-          {calendarVisible && (
-            <View style={styles.calendarSheet}>
+          <Animated.View
+            style={[styles.calendarSheet, calendarSheetStyle]}
+            pointerEvents={calendarVisible ? 'auto' : 'none'}
+            accessibilityElementsHidden={!calendarVisible}
+          >
+            <View>
               <JournalCalendarStrip
                 currentDate={displayDate}
                 onSelectDate={(date) => {
@@ -310,25 +385,16 @@ const TodayScreen = () => {
                 weekStartsOn={weekStartsOn}
               />
             </View>
-          )}
+          </Animated.View>
           <View style={styles.headerIconsRow}>
             <TouchableOpacity
               style={styles.calendarButton}
               activeOpacity={0.7}
-              onPress={() => { triggerLightHaptic(); setCalendarVisible(v => !v); }}
+              onPress={toggleCalendar}
               accessibilityRole="button"
               accessibilityLabel="Open calendar"
             >
               <CalendarDays size={24} color={Colors.text} strokeWidth={1.6} />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.notificationsButton}
-              activeOpacity={0.7}
-              onPress={() => { triggerLightHaptic(); }}
-              accessibilityRole="button"
-              accessibilityLabel="Open notifications"
-            >
-              <Ionicons name="notifications-outline" size={26} color={Colors.text} />
             </TouchableOpacity>
           </View>
           <View style={styles.headerGreeting}>
@@ -342,7 +408,9 @@ const TodayScreen = () => {
                 <Sun size={24} color={Colors.sage} strokeWidth={1.6} />
               )}
             </View>
-            <ThemedText style={styles.subtitle}>Begin where you are.</ThemedText>
+            {isToday ? (
+              <ThemedText style={styles.subtitle}>{dailyLine.text}</ThemedText>
+            ) : null}
           </View>
           <DashboardHeaderScripture
             date={displayDate}
@@ -352,63 +420,95 @@ const TodayScreen = () => {
         </View>
 
         <Stagger key={tick}>
-        {reviewCard}
+        {dateContext === 'today' ? reviewCard : null}
 
         <SectionHeading title={rhythmTitle} detail={rhythmDetail} />
         <TouchableOpacity
           style={[styles.card, styles.morningCard]}
           activeOpacity={0.85}
           accessibilityRole="button"
-          accessibilityLabel={isEvening ? (routineDone ? "View your saved evening" : (dateContext === 'upcoming' ? "Plan your evening reflection" : "Begin your evening reflection")) : (routineDone ? "View your saved morning" : (dateContext === 'upcoming' ? "Plan your morning check-in" : "Begin your morning check-in"))}
-          onPress={() => {
+          accessibilityLabel={isFutureDate ? (hasFuturePlan ? 'Edit this plan' : 'Plan this day') : selectedDateRelation === 'past' ? (routineHasContent ? `Revisit this ${isEvening ? 'evening' : 'morning'}` : `Reflect on this ${isEvening ? 'evening' : 'morning'}`) : isEvening ? (routineDone ? "View your saved evening" : "Begin your evening reflection") : (routineDone ? "View your saved morning" : "Begin your morning check-in")}
+          onPress={isFutureDate ? () => {
+            triggerLightHaptic();
+            (navigation as any).navigate('FuturePlanning', {
+              selectedDate: toLocalDateString(displayDate),
+              isTomorrow: dayOffset === 1,
+            });
+          } : () => {
             triggerLightHaptic();
             if (isEvening) {
               (navigation as any).navigate('EveningFlow', {
-                screen: routineDone ? 'EveningClosing' : 'Gratitude',
-                params: { selectedDate: displayDate.toISOString(), routine: 'evening' },
+                selectedDate: toLocalDateString(displayDate),
+                ...(routineDone ? {
+                  screen: 'EveningClosing',
+                  params: { selectedDate: toLocalDateString(displayDate) },
+                } : {}),
               });
             } else {
               (navigation as any).navigate('MorningFlow', {
-                selectedDate: displayDate.toISOString(),
-                screen: routineDone ? 'MorningClosing' : 'EmotionCheckIn',
+                selectedDate: toLocalDateString(displayDate),
+                ...(routineDone ? { screen: 'MorningClosing' } : {}),
               });
             }
           }}
         >
           <View style={styles.morningTop}>
             <View style={styles.routineIcon}>
-              <Ionicons name={isEvening ? 'moon-outline' : 'sunny-outline'} size={24} color={Colors.sage} />
+              <Ionicons name={isFutureDate ? 'sunny-outline' : isEvening ? 'moon-outline' : 'sunny-outline'} size={24} color={Colors.sage} />
             </View>
             <View style={styles.morningCopy}>
               <Text numberOfLines={2} maxFontSizeMultiplier={1.2} style={styles.morningTitle}>{routineTitle}</Text>
-              <ThemedText style={styles.morningDescription}>{isEvening ? (routineDone ? 'You’ve given thanks and closed your day with God.' : 'Give thanks, reflect, and rest your heart in God.') : (routineDone ? 'You’ve paused, reflected, and set your heart on what matters.' : 'Pause, reflect, and set your heart on what matters.')}</ThemedText>
+              <ThemedText style={styles.morningDescription}>{isFutureDate ? 'Set what matters before the day begins.' : selectedDateRelation === 'past' ? (routineHasContent ? 'Return to what you recorded without losing your progress.' : 'Make space to reflect on this day.') : isEvening ? (routineDone ? 'You’ve given thanks and closed your day with God.' : 'Give thanks, reflect, and rest your heart in God.') : (routineDone ? 'You’ve paused, reflected, and set your heart on what matters.' : 'Pause, reflect, and set your heart on what matters.')}</ThemedText>
             </View>
             <View style={styles.routineBegin}>
-              {!routineDone && <Pencil size={14} color={Colors.hopeWhite} />}
-              <ThemedText style={styles.beginButtonText}>{routineDone ? 'View' : (routineStarted ? 'Continue' : 'Begin')}</ThemedText>
+              {(!routineDone || isFutureDate || selectedDateRelation === 'past') && <Pencil size={14} color={Colors.hopeWhite} />}
+              <ThemedText style={styles.beginButtonText}>{routineCardState.cta}</ThemedText>
             </View>
           </View>
-          <View style={styles.morningSteps}>
+          {isFutureDate && <>
+            <View style={styles.futurePlanningSteps}>
+              {([
+                { label: 'Set Focus', Icon: Target, complete: futurePlanParts.focus },
+                { label: 'Priorities', Icon: List, complete: futurePlanParts.todos },
+              ] as const).map(({ label, Icon, complete }, index) => (
+                <React.Fragment key={label}>
+                  {index > 0 && <View style={styles.futureStepDivider} />}
+                  <View style={styles.futurePlanningStep}>
+                    <View style={[styles.routineStepIcon, complete && styles.routineStepIconComplete]}>
+                      <Icon size={18} strokeWidth={1.7} color={complete ? Colors.hopeWhite : Colors.sage} />
+                      {complete && <View style={styles.plannedCheck}><Ionicons name="checkmark" size={9} color={Colors.sage} /></View>}
+                    </View>
+                    <ThemedText style={styles.morningStepLabel}>{label}</ThemedText>
+                  </View>
+                </React.Fragment>
+              ))}
+            </View>
+            <ThemedText style={styles.planningNote}>Morning and evening reflection will be available {dayOffset === 1 ? 'tomorrow' : 'that day'}.</ThemedText>
+          </>}
+          {!isFutureDate && <View style={styles.morningSteps}>
             {(isEvening ? [
-              { label: 'Gratitude', Icon: Heart },
-              { label: 'Win', Icon: Sparkles },
-              { label: 'Proverbs', Icon: BookOpen },
-              { label: 'Reflection', Icon: Leaf },
+              { label: 'Gratitude', Icon: Heart, complete: contentState.evening.gratitude },
+              { label: 'Win', Icon: Sparkles, complete: contentState.evening.win },
+              { label: 'Proverbs', Icon: BookOpen, complete: contentState.evening.proverbs },
+              { label: 'Reflection', Icon: Leaf, complete: contentState.evening.reflection },
             ] : [
-              { label: 'Check in', Icon: Leaf },
-              { label: 'Psalm', Icon: BookOpen },
-              { label: 'Set Focus', Icon: Target },
-              { label: 'Priorities', Icon: List },
-            ]).map(({ label, Icon }, index) => (
+              { label: 'Check in', Icon: Leaf, complete: contentState.morning.checkIn },
+              { label: 'Psalm', Icon: BookOpen, complete: contentState.morning.psalm },
+              { label: 'Set Focus', Icon: Target, complete: contentState.morning.focus },
+              { label: 'Priorities', Icon: List, complete: contentState.morning.priorities },
+            ]).map(({ label, Icon, complete }, index) => (
               <React.Fragment key={label}>
                 {index > 0 && <View style={styles.morningStepDivider} />}
                 <View style={styles.morningStep}>
-                  <View style={styles.routineStepIcon}><Icon size={18} strokeWidth={1.6} color={Colors.sage} /></View>
+                  <View style={[styles.routineStepIcon, complete && styles.routineStepIconComplete]}>
+                    <Icon size={18} strokeWidth={1.6} color={complete ? Colors.hopeWhite : Colors.sage} />
+                    {complete && <View style={styles.plannedCheck}><Ionicons name="checkmark" size={9} color={Colors.sage} /></View>}
+                  </View>
                   <ThemedText numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={styles.morningStepLabel}>{label}</ThemedText>
                 </View>
               </React.Fragment>
             ))}
-          </View>
+          </View>}
         </TouchableOpacity>
 
         {__DEV__ && (
@@ -425,8 +525,8 @@ const TodayScreen = () => {
         <SectionHeading title="A QUICK LOOK" detail={weekLabel} />
         <WeeklyQuickLook start={format(startOfWeek(displayDate, { weekStartsOn }), 'yyyy-MM-dd')} end={format(endOfWeek(displayDate, { weekStartsOn }), 'yyyy-MM-dd')} />
 
+        {selectedWeeklyReview ? <>
         <SectionHeading title="YOUR RHYTHM" detail="for this season" />
-        {weeklyReview ? (
           <TouchableOpacity
             style={[styles.card, styles.weeklyPreviewCard]}
             activeOpacity={0.7}
@@ -436,38 +536,32 @@ const TodayScreen = () => {
                 screen: 'Review',
                 params: {
                   type: 'weekly',
-                  periodStart: weeklyReview.periodStart,
-                  periodEnd: weeklyReview.periodEnd,
+                  periodStart: selectedWeeklyReview.periodStart,
+                  periodEnd: selectedWeeklyReview.periodEnd,
                 },
               });
             }}>
             <ThemedText style={styles.cardLabel}>FROM YOUR WEEK · {weekLabel}</ThemedText>
             <ThemedText style={styles.compactTitle}>You said this mattered.</ThemedText>
             {(['priority_1', 'priority_2', 'priority_3'] as const).map(key =>
-              weeklyReview.answers[key]?.trim() ? (
+              selectedWeeklyReview.answers[key]?.trim() ? (
                 <View key={key} style={styles.priorityRow}>
                   <ThemedText style={styles.priorityBullet}>○</ThemedText>
-                  <ThemedText style={styles.priorityText}>{weeklyReview.answers[key]}</ThemedText>
+                  <ThemedText style={styles.priorityText}>{selectedWeeklyReview.answers[key]}</ThemedText>
                 </View>
               ) : null,
             )}
-            {weeklyReview.answers.faithful_step?.trim() ? (
+            {selectedWeeklyReview.answers.faithful_step?.trim() ? (
               <View style={styles.faithfulStepBox}>
                 <ThemedText style={styles.meta}>One faithful step</ThemedText>
-                <ThemedText style={styles.faithfulStepText}>{weeklyReview.answers.faithful_step}</ThemedText>
+                <ThemedText style={styles.faithfulStepText}>{selectedWeeklyReview.answers.faithful_step}</ThemedText>
               </View>
             ) : null}
             <ThemedText style={styles.textLink}>Look back into this week →</ThemedText>
           </TouchableOpacity>
-        ) : (
-          <View style={styles.card}>
-            <ThemedText style={styles.cardLabel}>THIS WEEK · {weekLabel}</ThemedText>
-            <ThemedText style={styles.compactTitle}>Look back. Look ahead.</ThemedText>
-            <ThemedText style={styles.body}>One weekly review to reflect on the past week and prepare for the week ahead.</ThemedText>
-            <View style={[styles.button, styles.leftButton]}><ThemedText style={styles.buttonText}>Weekly Review  →</ThemedText></View>
-          </View>
-        )}
+        </> : null}
 
+        {!isFutureDate && <>
         <SectionHeading title="JOURNAL" detail="write anytime" />
         <TouchableOpacity
           style={[styles.card, styles.rowCard]}
@@ -479,7 +573,7 @@ const TodayScreen = () => {
             (navigation as any).navigate('Journal', {
               screen: 'ReflectionEditor',
               params: {
-                selectedDate: new Date().toISOString(),
+                selectedDate: toLocalDateString(displayDate),
                 initialMode: 'free-form',
                 source: 'freeform',
                 fromCarousel: true,
@@ -497,11 +591,29 @@ const TodayScreen = () => {
           <Ionicons name="chevron-forward" size={24} color={Colors.chevronColor} />
         </TouchableOpacity>
         <View style={styles.twoColumns}>
-          <View style={[styles.card, styles.smallCard]}>
+          <TouchableOpacity
+            style={[styles.card, styles.smallCard]}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="Open a guided reflection"
+            onPress={() => {
+              triggerLightHaptic();
+              (navigation as any).navigate('Journal', {
+                screen: 'ReflectionEditor',
+                params: {
+                  selectedDate: toLocalDateString(displayDate),
+                  initialMode: 'guided',
+                  source: 'guided',
+                  fromCarousel: true,
+                  openHeart: true,
+                  returnTo: 'Today',
+                },
+              });
+            }}>
             <IconTile icon="sunny" />
             <ThemedText weight="bold" style={styles.smallTitle}>Reflection</ThemedText>
             <ThemedText style={styles.meta}>Choose a gentle prompt.</ThemedText>
-          </View>
+          </TouchableOpacity>
           <TouchableOpacity
             style={[styles.card, styles.smallCard]}
             activeOpacity={0.7}
@@ -512,7 +624,11 @@ const TodayScreen = () => {
               (navigation as any).navigate('Journal', {
                 screen: 'BibleStudy',
                 params: {
-                  selectedDate: new Date().toISOString(),
+                  openMode: 'create',
+                  openRequestId: `${Date.now()}-${Math.random()}`,
+                  sessionId: null,
+                  reflectionId: null,
+                  selectedDate: toLocalDateString(displayDate),
                   returnTo: 'Today',
                 },
               });
@@ -523,51 +639,49 @@ const TodayScreen = () => {
             <ThemedText style={styles.meta}>Read, notice, and go deeper.</ThemedText>
           </TouchableOpacity>
         </View>
+        </>}
 
+        {dateContext === 'today' && <>
         <SectionHeading title="PRAYER" detail="bring it before God" />
-        <View style={[styles.card, styles.rowCard]}>
+        <TouchableOpacity
+          style={[styles.card, styles.rowCard]}
+          activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel="Open Prayer"
+          onPress={() => { triggerLightHaptic(); (navigation as any).navigate('Prayer'); }}>
           <IconTile icon="clover" family="material" />
           <View style={styles.rowCopy}>
             <ThemedText weight="bold" style={styles.rowTitle}>Prayer Journal</ThemedText>
             <ThemedText style={styles.meta}>Open Prayer · CAST · Pray for Someone</ThemedText>
           </View>
           <Ionicons name="chevron-forward" size={24} color={Colors.chevronColor} />
-        </View>
-
-        <SectionHeading title="REMEMBER" detail="from your journal" />
-        <View style={[styles.card, styles.memoryCard]}>
-          <View style={styles.memoryTop}>
-            <ThemedText style={styles.cardLabel}>ON THIS DAY</ThemedText>
-            <ThemedText style={styles.meta}>1 year ago</ThemedText>
-          </View>
-          <ThemedText style={styles.quote}>“I don’t know what happens next. That’s why I am writing this now.”</ThemedText>
-          <ThemedText style={styles.meta}>{format(subYears(now, 1), 'MMMM d, yyyy')} · Heart Journal</ThemedText>
-          <ThemedText style={styles.textLink}>Read this entry  →</ThemedText>
-        </View>
+        </TouchableOpacity>
         <PrayerToRevisit />
+        </>}
 
-        <View style={styles.writeButton}>
+        {!isFutureDate && <TouchableOpacity
+          style={styles.writeButton}
+          activeOpacity={0.8}
+          accessibilityRole="button"
+          accessibilityLabel="Write anything"
+          onPress={() => {
+            triggerLightHaptic();
+            (navigation as any).navigate('Journal', {
+              screen: 'ReflectionEditor',
+              params: {
+                selectedDate: toLocalDateString(displayDate),
+                initialMode: 'free-form',
+                source: 'freeform',
+                fromCarousel: true,
+                returnTo: 'Today',
+              },
+            });
+          }}>
           <Pencil size={16} color={Colors.hopeWhite} style={{ marginRight: 8 }} />
           <ThemedText weight="bold" style={styles.writeButtonText}>Write anything</ThemedText>
-        </View>
+        </TouchableOpacity>}
         <ThemedText style={styles.closing}>Nothing on Today has to be completed.</ThemedText>
 
-        {__DEV__ ? (
-          <TouchableOpacity
-            style={[styles.card, styles.rowCard]}
-            activeOpacity={0.7}
-            onPress={() => {
-              triggerLightHaptic();
-              (navigation as any).navigate('DevReviewTriggers');
-            }}>
-            <Ionicons name="bug-outline" size={25} color={Colors.sage} />
-            <View style={styles.rowCopy}>
-              <ThemedText weight="bold" style={styles.rowTitle}>Dev review flows</ThemedText>
-              <ThemedText style={styles.meta}>Open any review cadence for testing</ThemedText>
-            </View>
-            <Ionicons name="chevron-forward" size={24} color={Colors.chevronColor} />
-          </TouchableOpacity>
-        ) : null}
         </Stagger>
       </ScrollView>
     </View>
@@ -598,14 +712,20 @@ const styles = StyleSheet.create({
   routinePreviewButton: { alignSelf: 'center', paddingHorizontal: 16, paddingVertical: 9, borderRadius: 18, borderWidth: 1, borderColor: Colors.inputBorder, marginTop: 10 },
   routinePreviewText: { color: Colors.sage, fontSize: 12 },
   routineIcon: { width: 42, height: 42, borderRadius: 21, backgroundColor: Colors.anchorBlueLight, alignItems: 'center', justifyContent: 'center' },
-  routineBegin: { borderRadius: 22, backgroundColor: Colors.sage, paddingHorizontal: 14, paddingVertical: 10, flexDirection: 'row', alignItems: 'center', gap: 6 },
+  routineBegin: { borderRadius: 22, backgroundColor: Colors.sage, paddingHorizontal: 14, paddingVertical: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, maxWidth: 142 },
   routineStepIcon: { width: 34, height: 34, borderRadius: 17, backgroundColor: Colors.anchorBlueLight, alignItems: 'center', justifyContent: 'center' },
+  routineStepIconComplete: { backgroundColor: Colors.sage },
+  plannedCheck: { position: 'absolute', right: -3, bottom: -2, width: 15, height: 15, borderRadius: 8, backgroundColor: Colors.hopeWhite, borderWidth: 1, borderColor: Colors.cardBorder, alignItems: 'center', justifyContent: 'center' },
   morningCopy: { flex: 1, minWidth: 0 },
   morningTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
   morningEyebrow: { color: Colors.sage, fontSize: 10, lineHeight: 15, letterSpacing: 2.5 },
   morningTitle: { color: Colors.text, fontFamily: Fonts.semiBold, fontSize: 21, lineHeight: 28 },
   morningDoneLabel: { color: Colors.sage, fontSize: 10, letterSpacing: 1.5, marginTop: 12 },
   morningDescription: { color: Colors.textGray, fontSize: 12, lineHeight: 19, marginTop: 6 },
+  planningNote: { color: Colors.textGray, fontSize: 10, lineHeight: 15, marginTop: 12, textAlign: 'center' },
+  futurePlanningSteps: { flexDirection: 'row', alignItems: 'center', marginTop: 20, paddingTop: 16, borderTopWidth: 1, borderTopColor: Colors.cardBorder, paddingHorizontal: 32 },
+  futurePlanningStep: { flex: 1, alignItems: 'center', gap: 8 },
+  futureStepDivider: { width: 1, height: 44, backgroundColor: Colors.cardBorder, marginHorizontal: 24 },
   morningSteps: { flexDirection: 'row', alignItems: 'center', marginTop: 20, paddingTop: 16, borderTopWidth: 1, borderTopColor: Colors.cardBorder },
   morningStep: { flex: 1, minWidth: 0, minHeight: 54, alignItems: 'center', gap: 8 },
   morningStepLabel: { color: Colors.text, fontSize: 11, lineHeight: 16, textAlign: 'center' },

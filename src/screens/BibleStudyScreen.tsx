@@ -241,6 +241,7 @@ const BibleStudyScreen = () => {
   const navigation = useNavigation();
   const route = useRoute<any>();
   const creatingStudy = route.params?.openMode === 'create';
+  const requestedSelectedDate = route.params?.selectedDate as string | undefined;
   const openRequestId = route.params?.openRequestId;
   const savedSessionId = creatingStudy ? undefined : route.params?.sessionId as string | undefined;
   const savedReflectionId = creatingStudy ? undefined : route.params?.reflectionId as string | undefined;
@@ -446,7 +447,7 @@ const BibleStudyScreen = () => {
       }
       const active = savedSessionId
         ? await getBibleStudySession(savedSessionId)
-        : await getActiveBibleStudySession();
+        : await getActiveBibleStudySession(requestedSelectedDate);
       if (!mounted) {return;}
       if (active) {
         setSession(active);
@@ -465,7 +466,7 @@ const BibleStudyScreen = () => {
       Alert.alert('Unable to open Bible Study', error.message, [{ text: 'Close', onPress: () => navigation.goBack() }]);
     });
     return () => { mounted = false; };
-  }, [applyContent, creatingStudy, loadPassageText, navigation, openRequestId, savedReflectionId, savedSelectedDate, savedSessionId]);
+  }, [applyContent, creatingStudy, loadPassageText, navigation, openRequestId, requestedSelectedDate, savedReflectionId, savedSelectedDate, savedSessionId]);
 
   const debouncedSave = useRef<NodeJS.Timeout | null>(null);
   const saveDraft = useCallback(async () => {
@@ -491,7 +492,7 @@ const BibleStudyScreen = () => {
   const startStudy = useCallback(async (reference: string) => {
     triggerLightHaptic();
     const passage = parsePassageReference(reference);
-    const newSession = await createBibleStudySession(passage);
+    const newSession = await createBibleStudySession(passage, requestedSelectedDate);
     setSession(newSession);
     setPassageSelection({ start: 0, end: 0 });
     setHighlightActionsVisible(false);
@@ -503,7 +504,7 @@ const BibleStudyScreen = () => {
     applyContent(createEmptyBibleStudyContent());
     await loadPassageText(passage.reference);
     setStage('read');
-  }, [applyContent, loadPassageText]);
+  }, [applyContent, loadPassageText, requestedSelectedDate]);
 
   const advance = useCallback(async (next: BibleStudyStage) => {
     if (!session) {return;}
@@ -1502,7 +1503,7 @@ const BibleStudyScreen = () => {
               accessibilityState={{ checked: passageRead }}
             >
               <Ionicons
-                name={passageRead ? 'checkmark-circle' : 'book-outline'}
+                name={passageRead ? 'checkmark-circle' : 'reader-outline'}
                 size={16}
                 color={passageRead ? Colors.hopeWhite : Colors.sage}
               />
@@ -1692,6 +1693,7 @@ const BibleStudyScreen = () => {
         onScrollBeginDrag={() => { if (stage === 'read') {dismissHighlightActions();} }}
         ref={screenScrollRef}
         style={styles.scroll}
+        showsVerticalScrollIndicator={stage !== 'read'}
         contentContainerStyle={[
           styles.scrollContent,
           stage === 'observe' && keyboardHeight > 0 && { paddingBottom: keyboardHeight },
@@ -2520,7 +2522,7 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingVertical: 14,
     paddingHorizontal: 18,
-    backgroundColor: 'rgba(82, 106, 91, 0.08)',
+    backgroundColor: '#E9EAE3',
     borderRadius: 28,
     borderWidth: 0.5,
     borderColor: 'rgba(82, 106, 91, 0.2)',

@@ -26,6 +26,9 @@ import { toLocalDateString } from '../../utils/date';
 import { analytics } from '../../utils/analytics';
 import { triggerLightHaptic } from '../../utils/haptics';
 import { useScroll } from '../../context/ScrollContext';
+import { useMomentsPalette } from '../../context/MomentsPaletteContext';
+import { heartJournalClassificationLabel, type HeartJournalClassification } from '../../types/heartJournal';
+import { parseGuidedReflection } from '../../types/guidedReflection';
 
 // Define styles at the top to avoid hoisting issues
 const styles = StyleSheet.create({
@@ -180,6 +183,12 @@ const styles = StyleSheet.create({
     lineHeight: 14,
     color: Colors.alertCoral,
   },
+  showMoreButtonPalette: {
+    backgroundColor: 'rgba(82, 106, 91, 0.1)',
+  },
+  showMoreTextPalette: {
+    color: Colors.sage,
+  },
   showLessButton: {
     backgroundColor: 'rgba(0, 0, 0, 0.05)',
   },
@@ -284,6 +293,38 @@ const styles = StyleSheet.create({
     borderLeftWidth: 2,
     borderLeftColor: 'rgba(136, 158, 187, 0.2)',
   },
+  entryCardPalette: {
+    backgroundColor: Colors.cardBackground,
+    borderWidth: 1.5,
+    borderColor: Colors.inputBorder,
+  },
+  guidedPromptContainerPalette: {
+    backgroundColor: 'rgba(82, 106, 91, 0.1)',
+  },
+  guidedPromptTextPalette: {
+    color: Colors.sage,
+  },
+  playbookPromptContainerPalette: {
+    backgroundColor: 'rgba(82, 106, 91, 0.1)',
+  },
+  playbookPromptTextPalette: {
+    color: Colors.sage,
+  },
+  freeFormPromptContainerPalette: {
+    backgroundColor: 'rgba(82, 106, 91, 0.08)',
+    borderWidth: 0.5,
+    borderColor: 'rgba(82, 106, 91, 0.2)',
+  },
+  freeFormPromptTextPalette: {
+    color: Colors.text,
+  },
+  promptCardTextPalette: {
+    color: Colors.text,
+  },
+  entryContentPalette: {
+    color: Colors.text,
+    borderLeftColor: Colors.borderLight,
+  },
   tagsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -335,10 +376,14 @@ interface ReflectionLogEntry {
   created_at: string;
   updated_at: string;
   selected_date: string;
+  journal_classification?: HeartJournalClassification;
 }
 
 interface ReflectionLogProps {
   selectedDate?: Date;
+  /** A Moments timeline card represents one canonical reflection. */
+  reflectionId?: string;
+  reflectionIds?: string[];
   refreshKey?: number;
   viewMode?: 'carousel' | 'inline' | 'moments';
   expanded?: boolean;
@@ -347,10 +392,11 @@ interface ReflectionLogProps {
   fromCarousel?: boolean; // Indicate if navigation is from carousel
 }
 
-export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selectedDate = new Date(), viewMode, expanded, onExpand, onPencilTap, fromCarousel = false }) => {
+export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selectedDate = new Date(), reflectionId, reflectionIds, viewMode, expanded, onExpand, onPencilTap, fromCarousel = false }) => {
   // Global edit mode context (only for inline view)
   // Global edit mode context - safe version that handles missing provider
   const globalEditMode = useEditModeSafe();
+  const momentsPalette = useMomentsPalette();
   const navigation = useNavigation();
 
   const { user } = useAuth();
@@ -409,7 +455,7 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
   // Transform API data to local format with memoization
   const entries: ReflectionLogEntry[] = React.useMemo(() => {
 
-    return reflectionEntries.map(entry => ({
+    const mapped = reflectionEntries.map(entry => ({
       id: entry.id,
       title: entry.title || '', // Handle optional title from API
       content: normalizeIncoming(entry.content),
@@ -430,8 +476,13 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
       created_at: entry.created_at,
       updated_at: entry.updated_at,
       selected_date: entry.selected_date,
+      journal_classification: entry.journal_classification as HeartJournalClassification | undefined,
     }));
-  }, [reflectionEntries, normalizeIncoming]);
+    // The canonical Moments timeline has already selected a stable record.
+    // Do not let one timeline card render every reflection from that day.
+    const exactIds = reflectionIds || (reflectionId ? [reflectionId] : null);
+    return exactIds ? mapped.filter(entry => exactIds.includes(entry.id)) : mapped;
+  }, [reflectionEntries, normalizeIncoming, reflectionId, reflectionIds]);
 
   // Determine if there's content for the selected date
   const hasContentForSelectedDate = React.useMemo(() => {
@@ -831,15 +882,15 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
             <View style={styles.paginationButtonGroup}>
               {entriesToShow.length > visibleCount && (
                 <TouchableOpacity
-                  style={[styles.paginationButton, styles.showMoreButton]}
+                  style={[styles.paginationButton, styles.showMoreButton, momentsPalette && styles.showMoreButtonPalette]}
                   onPress={() => { triggerLightHaptic(); setVisibleCount(prev => Math.min(prev + 3, entriesToShow.length)); }}
                   activeOpacity={0.7}
                   accessibilityRole="button"
                   accessibilityLabel={`Show more reflections. ${entriesToShow.length - visibleCount} remaining`}
                   accessibilityHint="Loads 3 more reflection items to the list"
                 >
-                  <Ionicons name="chevron-down" size={12} color={Colors.alertCoral} />
-                  <ThemedText style={[styles.paginationButtonText, styles.showMoreText]}>
+                  <Ionicons name="chevron-down" size={12} color={momentsPalette ? Colors.sage : Colors.alertCoral} />
+                  <ThemedText style={[styles.paginationButtonText, styles.showMoreText, momentsPalette && styles.showMoreTextPalette]}>
                     Show more
                   </ThemedText>
                 </TouchableOpacity>
@@ -881,14 +932,15 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
         entry.type === 'guided'
           ? styles.guidedEntry
           : styles.freeFormEntry,
+        momentsPalette && styles.entryCardPalette,
       ]}
       onPress={() => { triggerLightHaptic(); handleEntryPress(entry); }}
       activeOpacity={0.8}
     >
       {entry.source === 'playbook' || entry.type === 'playbook' ? (
         <View style={styles.guidedPromptRow}>
-          <View style={styles.playbookPromptContainer}>
-            <ThemedText style={styles.playbookPromptText}>PLAYBOOK</ThemedText>
+          <View style={[styles.playbookPromptContainer, momentsPalette && styles.playbookPromptContainerPalette]}>
+            <ThemedText style={[styles.playbookPromptText, momentsPalette && styles.playbookPromptTextPalette]}>PLAYBOOK</ThemedText>
           </View>
           <ThemedText style={styles.timeText}>
             {new Date(entry.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
@@ -896,8 +948,8 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
         </View>
       ) : entry.type === 'guided' ? (
         <View style={styles.guidedPromptRow}>
-          <View style={styles.guidedPromptContainer}>
-            <ThemedText style={styles.guidedPromptText}>GUIDED PROMPT</ThemedText>
+          <View style={[styles.guidedPromptContainer, momentsPalette && styles.guidedPromptContainerPalette]}>
+            <ThemedText style={[styles.guidedPromptText, momentsPalette && styles.guidedPromptTextPalette]}>GUIDED PROMPT</ThemedText>
           </View>
           <ThemedText style={styles.timeText}>
             {new Date(entry.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
@@ -905,8 +957,8 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
         </View>
       ) : (
         <View style={styles.freeFormPromptRow}>
-          <View style={styles.freeFormPromptContainer}>
-            <ThemedText style={styles.freeFormPromptText}>THOUGHTS</ThemedText>
+          <View style={[styles.freeFormPromptContainer, momentsPalette && styles.freeFormPromptContainerPalette]}>
+            <ThemedText style={[styles.freeFormPromptText, momentsPalette && styles.freeFormPromptTextPalette]}>{(heartJournalClassificationLabel(entry.journal_classification) || 'Thoughts').toUpperCase()}</ThemedText>
           </View>
           <ThemedText style={styles.timeText}>
             {new Date(entry.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
@@ -915,17 +967,27 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
       )}
 
       {entry.type === 'guided' ? (
-        <ThemedText style={styles.promptCardText}>{entry.prompt || entry.title || 'Guided Reflection'}</ThemedText>
+        <ThemedText style={[styles.promptCardText, momentsPalette && styles.promptCardTextPalette]}>{entry.prompt || entry.title || 'Guided Reflection'}</ThemedText>
       ) : entry.title ? (
-        <ThemedText style={[styles.promptCardText, styles.normalTitleText]}>{entry.title}</ThemedText>
+        <ThemedText style={[styles.promptCardText, styles.normalTitleText, momentsPalette && styles.promptCardTextPalette]}>{entry.title}</ThemedText>
       ) : null}
 
       <ThemedText
-        style={styles.entryContent}
+        style={[styles.entryContent, momentsPalette && styles.entryContentPalette]}
         numberOfLines={3}
         ellipsizeMode="tail"
       >
-        {typeof entry.content === 'string' ? normalizeIncoming(entry.content) : JSON.stringify(entry.content)}
+        {(() => {
+          const journey = entry.type === 'guided' ? parseGuidedReflection(entry.content) : null;
+          if (!journey) {return typeof entry.content === 'string' ? normalizeIncoming(entry.content) : JSON.stringify(entry.content);}
+          return journey.answers.flatMap(answer => [
+            ...(answer.selected || []),
+            answer.text || '',
+            answer.optionalText || '',
+            ...Object.values(answer.fields || {}),
+            ...answer.notes.map(note => note.text),
+          ]).filter(Boolean).join(' · ');
+        })()}
       </ThemedText>
 
       {/* Removed lower right tags - only show upper left type tags (FREE FORM, PLAYBOOK, GUIDED PROMPT) */}
@@ -997,10 +1059,14 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
 
 // ...
 
+if (momentsPalette && !hasContentForSelectedDate) {
+  return null;
+}
+
 return (
   <>
     <JournalCard
-      icon={!hasContentForSelectedDate ? undefined : <MaterialCommunityIcons name="head-dots-horizontal-outline" size={24} color={Colors.alertCoral} />}
+      icon={!hasContentForSelectedDate ? undefined : <MaterialCommunityIcons name="head-dots-horizontal-outline" size={24} color={momentsPalette ? Colors.sage : Colors.alertCoral} />}
       title={!hasContentForSelectedDate ? undefined : 'HEART JOURNAL'}
       subtitle={!hasContentForSelectedDate ? undefined : getReflectionSubtitle(entries.filter(e => {
         const entryDate = e.selected_date?.split('T')[0] || e.selected_date;
@@ -1050,7 +1116,7 @@ return (
         >
           <Pencil
             size={16}
-            color={Colors.alertCoral}
+            color={momentsPalette ? Colors.sage : Colors.alertCoral}
             strokeWidth={2}
           />
         </TouchableOpacity>

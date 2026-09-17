@@ -48,7 +48,16 @@ export const getSavedBibleStudyReflections = async (): Promise<LocalReflectionEn
       const session = await getBibleStudySession(entry.metadata.bibleStudySessionId);
       if (session?.completed) {
         saved.push({ ...entry, metadata: { ...entry.metadata, bibleStudyCompleted: true, bibleStudyCompletedAt: session.completed_at } });
+      } else if (!session) {
+        // Legacy reflections predate the durable completion marker. The canonical
+        // saved bible_study_v1 reflection is historical content even when its
+        // transient workflow session has since been lost.
+        saved.push(entry);
       }
+    } else if (entry.metadata?.bibleStudyCompleted === undefined) {
+      // Some oldest records never stored a session reference. Their valid
+      // canonical bible_study_v1 payload is the only durable saved-content proof.
+      saved.push(entry);
     }
   }
   return saved.sort((a, b) =>

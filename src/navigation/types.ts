@@ -86,6 +86,7 @@ export type RootStackParamList = {
 
   // Main App
   MainTabs: undefined;
+  Gospel: undefined;
   UserProfileModal: undefined;
   UserInput: { initialText?: string; autoFocus?: boolean } | undefined;
   PlaybookDetail: {
@@ -137,6 +138,11 @@ export type RootStackParamList = {
     selectedDate?: string;
     existingEntry?: any;
   } | undefined;
+
+  FuturePlanning: {
+    selectedDate: string;
+    isTomorrow: boolean;
+  };
 
   // Today's Win Walkthrough
   TodaysWinWalkthrough: {

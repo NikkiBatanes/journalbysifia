@@ -572,7 +572,7 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
                 accessibilityLabel={`Show more gratitude items. ${gratitudeItems.length - visibleCount} remaining`}
                 accessibilityHint="Loads more gratitude items to the list"
               >
-                  <Ionicons name="chevron-down" size={12} color={Colors.alertCoral} />
+                  <Ionicons name="chevron-down" size={12} color={isPalette ? Colors.sage : Colors.alertCoral} />
                   <ThemedText style={[styles.paginationButtonText, styles.showMoreText]}>
                     Show more
                   </ThemedText>
@@ -843,10 +843,10 @@ const createStyles = (fonts: any, isPalette: boolean) => StyleSheet.create({
     lineHeight: 14,
   },
   showMoreButton: {
-    backgroundColor: 'rgba(255, 107, 107, 0.1)',
+    backgroundColor: isPalette ? 'rgba(82, 106, 91, 0.1)' : 'rgba(255, 107, 107, 0.1)',
   },
   showMoreText: {
-    color: Colors.alertCoral,
+    color: isPalette ? Colors.sage : Colors.alertCoral,
   },
   showLessButton: {
     backgroundColor: 'rgba(0, 0, 0, 0.05)',
