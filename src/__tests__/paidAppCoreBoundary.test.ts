@@ -26,6 +26,8 @@ describe('paid-app core boundary', () => {
     expect(exportHandler).not.toContain('useFeatureAccess');
     expect(exportHandler).not.toContain('OnboardingSalesOffer');
     expect(read('utils/pdfExportService.ts')).toContain("from 'react-native-html-to-pdf'");
+    expect(fs.existsSync(path.resolve(__dirname, '..', 'services/exportService.ts'))).toBe(false);
+    expect(fs.existsSync(path.resolve(__dirname, '..', 'components/ExportOptionsModal.tsx'))).toBe(false);
   });
 
   it('has no core gate navigation in Guided Reflection or Time Block saving', () => {

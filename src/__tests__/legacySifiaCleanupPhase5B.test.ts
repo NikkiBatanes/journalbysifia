@@ -11,17 +11,15 @@ describe('legacy siFia cleanup phase 5B', () => {
 
   it('does not expose active playbook or refinement quota actions', () => {
     const service = read('services/NewSubscriptionService.ts');
-    const hook = read('hooks/useNewSubscription.ts');
     expect(service).not.toContain("action: 'playbook'");
     expect(service).not.toContain("case 'refinement'");
-    expect(hook).not.toContain('canGeneratePlaybook');
-    expect(hook).not.toContain('playbooksRemaining');
+    expect(fs.existsSync(path.resolve(__dirname, '../hooks/useNewSubscription.ts'))).toBe(false);
   });
 
   it('keeps guided reflection, smart journaling, and future planning free of tier locks', () => {
     expect(read('hooks/useGuidedPromptGating.ts')).toContain('return true;');
-    expect(read('hooks/useSmartJournalingGating.ts')).toContain('canUseFeature: true');
-    expect(read('hooks/usePlanningGating.ts')).toContain('const shouldShowLock = false');
+    expect(fs.existsSync(path.resolve(__dirname, '../hooks/useSmartJournalingGating.ts'))).toBe(false);
+    expect(fs.existsSync(path.resolve(__dirname, '../hooks/usePlanningGating.ts'))).toBe(false);
   });
 
   it('removes active legacy notification candidates and zero-producer analytics', () => {
@@ -37,9 +35,10 @@ describe('legacy siFia cleanup phase 5B', () => {
     expect(monitoring).not.toContain("'generation_success'");
   });
 
-  it('preserves product identifiers while removing obsolete product counters', () => {
-    const platformSubscriptions = read('services/platformSubscriptionService.ts');
-    expect(platformSubscriptions).toContain('productId');
+  it('quarantines store product identifiers while removing obsolete tier facades', () => {
+    expect(read('services/AppleStoreKitService.ts')).toContain('PRODUCT_IDS');
+    expect(read('services/GooglePlayBillingService.ts')).toContain('PRODUCT_IDS');
+    expect(fs.existsSync(path.resolve(__dirname, '../services/platformSubscriptionService.ts'))).toBe(false);
     expect(fs.existsSync(path.resolve(__dirname, '../components/SubscriptionPlanModal.tsx'))).toBe(false);
   });
 });

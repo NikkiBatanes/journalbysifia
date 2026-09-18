@@ -1,9 +1,8 @@
 // useGuidedPromptGating - Simplified hook using centralized gating service
 // Provides React state management for guided prompt access
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/IndustryStandardAuthContext';
-import { useSubscription } from './useSubscription';
 import {
   guidedPromptGatingService,
   type DailyPromptAllocation,
@@ -42,10 +41,8 @@ export interface UseGuidedPromptGatingReturn {
  */
 export function useGuidedPromptGating({
   context = 'inApp',
-  onUpgradeRequired,
 }: UseGuidedPromptGatingOptions = {}): UseGuidedPromptGatingReturn {
   const { user } = useAuth();
-  const { subscription } = useSubscription();
   const [isLoading, setIsLoading] = useState(true);
   const [dailyAllocation, setDailyAllocation] = useState<DailyPromptAllocation>({
     freePrompts: [],
@@ -53,8 +50,9 @@ export function useGuidedPromptGating({
     allPrompts: [],
   });
 
-  // Get current tier - memoize to prevent infinite loops
-  const currentTier = useMemo(() => subscription?.tier || 'seeker', [subscription?.tier]);
+  // Retain the legacy helper shape without reading shared siFia subscription
+  // metadata. Guided Reflection is included for every Journal user.
+  const currentTier = 'transformation' as const;
 
   // Legacy compatibility - calculate from new service
   const accessCheck = checkGuidedPromptAccess(currentTier, 0, context);
@@ -107,11 +105,7 @@ export function useGuidedPromptGating({
   }, [user?.id, loadDailyAllocation]);
 
   // Show upgrade modal
-  const showUpgradeModal = useCallback(() => {
-    if (onUpgradeRequired) {
-      onUpgradeRequired(accessCheck);
-    }
-  }, [accessCheck, onUpgradeRequired]);
+  const showUpgradeModal = useCallback(() => {}, []);
 
   // Refresh access data
   const refreshAccess = useCallback(async () => {
@@ -119,11 +113,11 @@ export function useGuidedPromptGating({
     await loadDailyAllocation();
   }, [loadDailyAllocation]);
 
-  // Load data on mount and when user or tier changes
+  // Load data on mount and when the local user identity changes.
   useEffect(() => {
     loadDailyAllocation();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id, currentTier]); // Use direct dependencies instead of loadDailyAllocation
+  }, [user?.id]);
 
   // Note: Removed automatic upgrade trigger - let components handle this manually
   // This prevents unwanted sales offer popups when just viewing locked prompts

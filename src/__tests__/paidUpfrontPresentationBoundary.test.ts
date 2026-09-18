@@ -71,13 +71,16 @@ describe('paid-upfront Journal presentation boundary', () => {
     expect(production).not.toMatch(/(?:navigate|replace)\([^\n]*['"]OnboardingTrialOffer['"]/);
   });
 
-  it('preserves low-level store services and product identifiers for later audit', () => {
+  it('quarantines low-level store services and removes obsolete payment facades', () => {
     [
       'services/AppleStoreKitService.ts',
       'services/GooglePlayBillingService.ts',
+    ].forEach(file => expect(fs.existsSync(path.join(srcRoot, file))).toBe(true));
+    [
       'services/PlatformPaymentService.ts',
       'services/platformSubscriptionService.ts',
-    ].forEach(file => expect(fs.existsSync(path.join(srcRoot, file))).toBe(true));
+      'hooks/usePlatformSubscription.ts',
+    ].forEach(file => expect(fs.existsSync(path.join(srcRoot, file))).toBe(false));
     expect(read('services/AppleStoreKitService.ts')).toContain('PRODUCT_IDS');
     expect(read('services/GooglePlayBillingService.ts')).toContain('PRODUCT_IDS');
   });

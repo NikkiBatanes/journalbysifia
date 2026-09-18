@@ -1,9 +1,7 @@
 import { supabase } from '../supabaseClient';
 import { Logger } from '../../utils/ProductionLogger';
 import { toLocalDateString } from '../../utils/date';
-import { NewSubscriptionService } from '../NewSubscriptionService';
 import { guidedPromptGatingService } from '../guidedPromptGatingService';
-import { Subscription } from '../../types/subscription';
 import { buildSmartNotificationCopy } from './notificationCopyBank';
 import {
   SmartNotificationCandidate,
@@ -51,11 +49,6 @@ type PlaybookRowLike = {
     completed?: boolean | null;
     order_index?: number | null;
   }>;
-};
-
-type SubscriptionWithReset = Subscription & {
-  billing_cycle?: 'monthly' | 'annual';
-  last_usage_reset?: string;
 };
 
 type PendingPrayerRequest = {
@@ -416,22 +409,16 @@ const getReflectionLines = (playbook: PlaybookRowLike): string[] => {
   return splitRaw(playbook.bible_verse?.reflection);
 };
 
-const getHeartJournalPrompt = async (
-  userId: string,
-  subscription: SubscriptionWithReset | null
-): Promise<string> => {
+const getHeartJournalPrompt = async (userId: string): Promise<string> => {
   try {
-    const tier = subscription?.tier || 'seeker';
-    const allocation = guidedPromptGatingService.getDailyPrompts(userId, tier);
+    const allocation = guidedPromptGatingService.getDailyPrompts(userId, 'transformation');
     const completedPrompts = await guidedPromptGatingService.getCompletedPrompts();
     const availablePrompts = allocation.freePrompts.filter(prompt => !completedPrompts.includes(prompt));
 
-    // For Seeker tier, only use prompts from freePrompts allocation (not locked prompts)
     if (availablePrompts.length > 0) {
       return availablePrompts[0];
     } else {
       // If no free prompts available, use the first free prompt from allocation even if completed
-      // This ensures we only show prompts that are actually free for the user's tier
       if (allocation.freePrompts.length > 0) {
         return allocation.freePrompts[0];
       }
@@ -452,22 +439,12 @@ export async function buildSmartNotificationCandidates(userId: string): Promise<
   const candidates: SmartNotificationCandidate[] = [];
   const currentDate = today();
 
-  const [journalEntries, prayerRequestState, unansweredPrayers, playbooks, subscriptionResult] = await Promise.all([
+  const [journalEntries, prayerRequestState, unansweredPrayers, playbooks] = await Promise.all([
     getJournalEntriesForToday(userId),
     getPendingPrayerRequestState(userId),
     getUnansweredPrayersForCheck(userId),
     getPlaybooks(userId),
-    NewSubscriptionService.getUserSubscription(userId).catch(error => {
-      Logger.warn('[SmartNotifications] Unable to read subscription state', {
-        component: 'notificationCandidateResolver',
-        userId,
-        error,
-      });
-      return null;
-    }),
   ]);
-
-  const subscription = subscriptionResult ? subscriptionResult as SubscriptionWithReset : null;
 
   // Get tracking data for notified reflection questions
   const { data: userData } = await supabase
@@ -953,7 +930,7 @@ export async function buildSmartNotificationCandidates(userId: string): Promise<
   }
 
   {
-    const heartJournalTitle = await getHeartJournalPrompt(userId, subscription);
+    const heartJournalTitle = await getHeartJournalPrompt(userId);
     if (heartJournalTitle) {
       candidates.push(createCandidate({
         type: 'heart_journal_prompt',
@@ -967,7 +944,6 @@ export async function buildSmartNotificationCandidates(userId: string): Promise<
         },
         metadata: {
           heart_journal_title: heartJournalTitle,
-          is_free_user: subscription?.tier === 'seeker' || subscription?.tier === 'free_trial',
         },
       }));
     }

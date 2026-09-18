@@ -4,9 +4,6 @@
  */
 
 import { useMemo } from 'react';
-import { useAuth } from '../context/IndustryStandardAuthContext';
-import { useQuery } from '@tanstack/react-query';
-import NewSubscriptionService from '../services/NewSubscriptionService';
 
 export interface CalendarGatingState {
   // Calendar sync permissions
@@ -33,35 +30,8 @@ export interface CalendarGatingState {
 }
 
 export const useCalendarGating = (): CalendarGatingState => {
-  const { user } = useAuth();
-
-  // Use React Query to watch subscription changes - this makes the hook reactive
-  const { data: subscription } = useQuery({
-    queryKey: ['subscription', user?.id || ''],
-    queryFn: () => NewSubscriptionService.getUserSubscription(user?.id || ''),
-    enabled: !!user?.id,
-    staleTime: 0, // Always consider stale to ensure immediate updates after payment
-    gcTime: 5 * 60 * 1000, // 5 minutes
-    refetchOnMount: 'always', // Always refetch on mount to get latest state
-  });
-
-  // Get current tier from subscription, with fallback
-  const currentTier = useMemo(() => {
-    if (subscription?.tier) {
-      return subscription.tier;
-    }
-
-    // Fallback to user object properties
-    const userTier = (user as any)?.subscription?.tier
-      || (user as any)?.app_metadata?.subscription_tier
-      || (user as any)?.user_metadata?.subscription_tier
-      || (user as any)?.tier
-      || 'seeker';
-
-    return userTier;
-  }, [subscription, user]);
-
-  const isSeeker = currentTier === 'seeker';
+  const currentTier = 'included';
+  const isSeeker = false;
   // Journal is paid up front. These values deliberately do not depend on the
   // retained siFia subscription metadata. Device permission checks still live
   // in the calendar/location integrations themselves.

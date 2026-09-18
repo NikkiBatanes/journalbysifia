@@ -107,8 +107,6 @@ const JOURNAL_POST_AUTH_EXIT_ROUTES = new Set([
   'JournalOnboarding',
   'OnboardingSplash',
   'OnboardingPersonalization',
-  'OnboardingSalesOffer',
-  'OnboardingTrialOffer',
   'OnboardingNotificationSetup',
 ]);
 
@@ -244,8 +242,6 @@ function AppWithAuth({
         'OnboardingPersonalization',
         'OnboardingPlaybookGeneration',
         'OnboardingPlaybookReady',
-        'OnboardingSalesOffer',
-        'OnboardingTrialOffer',
         'OnboardingPaymentProcessing',
         'OnboardingPaymentConfirmation',
         'OnboardingNotificationSetup',
@@ -275,98 +271,12 @@ function AppWithAuth({
   }, []);
 
   useEffect(() => {
-    // Initialize app-level services
     if (__DEV__) {
       console.log(' siFia App initialized');
     }
-
-    // Track app open for analytics when user is authenticated
     if (isAuthenticated && user?.id) {
       adminAnalyticsService.trackAppOpen(user.id);
     }
-
-    // CRITICAL: Initialize IAP system on app start
-    const initializeIAP = async () => {
-      if (__DEV__) {
-        console.log('[App] IAP Init Check - isAuthenticated:', isAuthenticated, 'user?.id:', user?.id);
-      }
-
-      if (isAuthenticated && user?.id) {
-        try {
-          if (__DEV__) {
-            console.log('[App] About to import PlatformPaymentService...');
-          }
-
-          const {PlatformPaymentService} = await import(
-            './src/services/PlatformPaymentService'
-          );
-
-          if (__DEV__) {
-            console.log('[App] PlatformPaymentService imported successfully');
-          }
-
-          if (__DEV__) {
-            console.log('[App] Initializing IAP system...');
-          }
-
-          const paymentService = PlatformPaymentService.getInstance();
-
-          if (__DEV__) {
-            console.log('[App] About to call paymentService.initialize()...');
-          }
-
-          await paymentService.initialize();
-
-          if (__DEV__) {
-            console.log('[App] ✅ IAP system initialized');
-          }
-
-          // Preload products in background after 2 seconds
-          setTimeout(async () => {
-            try {
-              await paymentService.preloadProducts();
-              if (__DEV__) {
-                console.log('[App] ✅ Products preloaded');
-              }
-            } catch (preloadError) {
-              console.warn('[App] Product preload failed:', preloadError);
-            }
-          }, 2000);
-        } catch (error) {
-          console.error('[App] IAP initialization failed:', error);
-        }
-      } else {
-        if (__DEV__) {
-          console.log('[App] Skipping IAP init - not authenticated');
-        }
-      }
-    };
-
-    initializeIAP();
-
-    // ENTERPRISE: Sync subscription status on app launch
-    const syncSubscriptionStatus = async () => {
-      if (isAuthenticated && user?.id) {
-        try {
-          const {AppleStoreKitService} = await import(
-            './src/services/AppleStoreKitService'
-          );
-
-          if (__DEV__) {
-            console.log('[App] Syncing subscription status on launch...');
-          }
-          const storeKit = AppleStoreKitService.getInstance();
-          await storeKit.checkAndSyncSubscriptionStatus(user.id);
-          if (__DEV__) {
-            console.log('[App] Subscription status synced');
-          }
-        } catch (error) {
-          console.error('[App] Failed to sync subscription status:', error);
-        }
-      }
-    };
-
-    syncSubscriptionStatus();
   }, [isAuthenticated, user?.id]);
 
   useEffect(() => {
@@ -465,24 +375,7 @@ function AppWithAuth({
     }
 
     const handleAppStateChange = (nextState: AppStateStatus) => {
-      if (nextState === 'active') {
-        (async () => {
-          try {
-            const {AppleStoreKitService} = await import(
-              './src/services/AppleStoreKitService'
-            );
-            const storeKit = AppleStoreKitService.getInstance();
-            await storeKit.checkAndSyncSubscriptionStatus(user.id);
-          } catch (error) {
-            if (__DEV__) {
-              console.error(
-                '[App] Failed to sync subscription status on foreground:',
-                error,
-              );
-            }
-          }
-        })();
-      } else if (nextState === 'background') {
+      if (nextState === 'background') {
         // Clean up WebSocket connections to prevent NSInternalInconsistencyException
         try {
           realtimeManager.cleanupAllSubscriptions();
