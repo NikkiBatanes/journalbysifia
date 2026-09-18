@@ -360,16 +360,6 @@ export class NotificationTester {
         return 'sifia://dashboard';
 
       // Subscription/upgrade deep links
-      case 'create_playbook':
-      case 'usage_room_playbook':
-        return 'sifia://userinput';
-
-      case 'content_refresh_wait':
-        return 'sifia://journal';
-
-      case 'upgrade_room':
-        return 'sifia://subscription/upgrade';
-
       // Faith points notifications
       case 'faith_points_awarded':
         return 'sifia://profile/stats';

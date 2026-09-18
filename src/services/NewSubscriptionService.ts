@@ -159,14 +159,6 @@ export class NewSubscriptionService {
     }
   }
 
-  /**
-   * Get onboarding playbook limit.
-   * Seeker onboarding playbook is free and does not increment playbooks_used.
-   */
-  static getOnboardingPlaybookLimit(tier: SubscriptionTier, subscription?: Subscription | null): number {
-    return this.getTierLimits(tier, subscription).playbooks_limit;
-  }
-
   // ===== USER SUBSCRIPTION MANAGEMENT =====
 
   /**
@@ -957,7 +949,7 @@ export class NewSubscriptionService {
   /**
    * Check if user can perform an action
    */
-  static async checkUsageLimit(userId: string, action: 'playbook' | 'smart_journal' | 'export' | 'wisdom' | 'refinement', isOnboarding: boolean = false): Promise<SubscriptionCheck> {
+  static async checkUsageLimit(userId: string, action: 'smart_journal' | 'export' | 'wisdom', isOnboarding: boolean = false): Promise<SubscriptionCheck> {
     // Check and perform monthly usage reset before checking limits
     await this.checkAndResetMonthlyUsage(userId);
 
@@ -994,16 +986,12 @@ export class NewSubscriptionService {
     const limits = this.getTierLimits(subscription.tier, subscription);
 
     switch (action) {
-      case 'playbook':
-        return this.checkPlaybookLimit(subscription, limits, isOnboarding);
       case 'smart_journal':
         return this.checkSmartJournalingLimit(subscription, limits);
       case 'export':
         return this.checkExportLimit(subscription, limits);
       case 'wisdom':
         return this.checkWisdomLimit(subscription, limits, isOnboarding);
-      case 'refinement':
-        return this.checkRefinementLimit(subscription, limits, isOnboarding);
       default:
         throw new SubscriptionError(`Unknown action: ${action}`, 'INVALID_ACTION');
     }
@@ -1012,21 +1000,12 @@ export class NewSubscriptionService {
   /**
    * Increment usage counter
    */
-  static async incrementUsage(userId: string, action: 'playbook' | 'smart_journal' | 'export' | 'wisdom' | 'refinement', isOnboarding: boolean = false): Promise<void> {
+  static async incrementUsage(userId: string, action: 'smart_journal' | 'export' | 'wisdom', isOnboarding: boolean = false): Promise<void> {
     // First check if action is allowed
     const check = await this.checkUsageLimit(userId, action, isOnboarding);
     const subscription = await this.getUserSubscription(userId);
-    if (!check.can_generate_playbook && action === 'playbook') {
-      throw new UsageLimitError(subscription.tier, 'playbook', subscription.playbooks_limit, subscription.playbooks_used);
-    }
-    if (check.show_upgrade_prompt && action === 'refinement') {
-      throw new UsageLimitError(subscription.tier, 'refinement', subscription.refinement_limit, subscription.refinement_count);
-    }
-
     // Increment the appropriate counter
-    const updateField = action === 'playbook' ? 'playbooks_used' :
-                       action === 'wisdom' ? 'wisdom_count' :
-                       action === 'refinement' ? 'refinement_count' : null;
+    const updateField = action === 'wisdom' ? 'wisdom_count' : null;
 
     if (updateField) {
       // Optimistic-lock increment with a fresh limit check on every retry.
@@ -1036,13 +1015,7 @@ export class NewSubscriptionService {
           const currentSubscription = await this.getUserSubscription(userId, true);
           const currentValue = (currentSubscription as any)?.[updateField] || 0;
           const limits = this.getTierLimits(currentSubscription.tier, currentSubscription);
-          const limit = action === 'playbook'
-            ? (currentSubscription.tier === 'seeker' && isOnboarding ? this.getOnboardingPlaybookLimit(currentSubscription.tier, currentSubscription) : limits.playbooks_limit)
-            : action === 'wisdom'
-                ? (isOnboarding ? 1 : limits.wisdom_limit)
-                : action === 'refinement'
-                  ? (isOnboarding ? 1 : limits.refinement_limit)
-                  : -1;
+          const limit = action === 'wisdom' ? (isOnboarding ? 1 : limits.wisdom_limit) : -1;
 
           if (limit !== -1 && currentValue >= limit) {
             throw new UsageLimitError(currentSubscription.tier, action, limit, currentValue);
@@ -1071,26 +1044,12 @@ export class NewSubscriptionService {
         throw new SubscriptionError('Failed to increment usage after concurrent updates', 'USAGE_UPDATE_CONFLICT');
       };
 
-      // Only skip counting playbook usage for seeker users during onboarding —
-      // their first generated content is free and should not consume their quota.
-      // free_trial usage MUST be counted so the profile shows accurate progress
-      // (e.g. 3/15) and so the trial limit is actually enforced.
-      const skipCount = isOnboarding
-        && subscription.tier === 'seeker'
-        && action === 'playbook';
-      if (!skipCount) {
-        await doAtomicIncrement();
-      }
+      await doAtomicIncrement();
     }
 
     // Also update the legacy usage tracking table where enabled.
     // free_trial is no longer excluded — counts must be recorded there too.
-    const isOnboardingSeeker = isOnboarding
-      && subscription.tier === 'seeker'
-      && action === 'playbook';
-    if (!isOnboardingSeeker) {
-      await this.updateUsageTracking(userId, action);
-    }
+    await this.updateUsageTracking(userId, action);
   }
 
   // ===== TRIAL MANAGEMENT =====
@@ -1384,36 +1343,6 @@ export class NewSubscriptionService {
   }
 
   /**
-   * Check playbook generation limit
-   */
-  private static checkPlaybookLimit(subscription: Subscription, limits: SubscriptionLimits, isOnboarding: boolean = false): SubscriptionCheck {
-    // PHASE 5: Grace period check - block generation if billing issue
-    const isInGracePeriod = (subscription as any).billing_issue === true;
-    const gracePeriodEnd = (subscription as any).grace_period_end_date;
-    const isGracePeriodActive = isInGracePeriod && gracePeriodEnd && new Date(gracePeriodEnd) > new Date();
-
-    // Onboarding usage counts against the same monthly quota as regular usage.
-    const effectiveLimit = (subscription.tier === 'seeker' && isOnboarding)
-      ? this.getOnboardingPlaybookLimit(subscription.tier, subscription)
-      : limits.playbooks_limit;
-
-    const isUnlimited = effectiveLimit === -1;
-    const canGenerate = isGracePeriodActive ? false : (isUnlimited || subscription.playbooks_used < effectiveLimit);
-    const remaining = isGracePeriodActive ? 0 : (isUnlimited ? -1 : Math.max(0, effectiveLimit - subscription.playbooks_used));
-
-    return {
-      can_generate_playbook: canGenerate,
-      can_use_smart_journaling: limits.smart_journaling_enabled,
-      can_export: true, // Will be checked separately
-      playbooks_remaining: remaining,
-      show_upgrade_prompt: !canGenerate && subscription.tier !== 'transformation', // POST-LAUNCH: && subscription.tier !== 'family'
-      upgrade_message: !canGenerate
-        ? this.getPlaybookLimitMessage(subscription, limits)
-        : undefined,
-    };
-  }
-
-  /**
    * Check wisdom usage limit
    */
   private static checkWisdomLimit(subscription: Subscription, limits: SubscriptionLimits, isOnboarding: boolean = false): SubscriptionCheck {
@@ -1439,55 +1368,13 @@ export class NewSubscriptionService {
     };
   }
 
-  private static checkRefinementLimit(subscription: Subscription, limits: SubscriptionLimits, isOnboarding: boolean = false): SubscriptionCheck {
-    const refinementUsed = (subscription as any).refinement_count || 0;
-    const refinementLimit = isOnboarding ? 1 : limits.refinement_limit || 0;
-    const isUnlimited = refinementLimit === -1;
-    const canUse = isUnlimited || refinementUsed < refinementLimit;
-    const normalizedTier = subscription.tier.replace('_annual', '');
-
-    return {
-      can_generate_playbook: true,
-      can_use_smart_journaling: limits.smart_journaling_enabled,
-      can_export: true,
-      playbooks_remaining: -1,
-      show_upgrade_prompt: !canUse,
-      upgrade_message: !canUse
-        ? isOnboarding
-          ? 'You have used your onboarding playbook refinement. You will get your normal refinements after onboarding.'
-          : normalizedTier === 'transformation'
-          ? `You've used all ${refinementLimit} playbook refinements this month. Your refinements will refresh next month.`
-          : `You've used all ${refinementLimit} playbook refinements this month. Upgrade for more!`
-        : undefined,
-    };
-  }
-
-  /**
-   * Get tier-specific playbook limit message
-   */
-  private static getPlaybookLimitMessage(subscription: Subscription, _limits: SubscriptionLimits): string {
-    switch (subscription.tier) {
-      case 'free_trial':
-        return 'You\'ve reached your trial limit.';
-      case 'spark':
-        return 'You\'ve reached your Spark plan limit.';
-      case 'growth':
-        return 'You\'ve reached your Growth plan limit.';
-      case 'seeker':
-        return 'Ready to begin your journey?';
-      default:
-        return `You've reached your ${subscription.tier} plan limit.`;
-    }
-  }
-
   private static checkSmartJournalingLimit(subscription: Subscription, limits: SubscriptionLimits): SubscriptionCheck {
     return {
       can_generate_playbook: true,
-      can_use_smart_journaling: limits.smart_journaling_enabled,
+      can_use_smart_journaling: true,
       can_export: true,
       playbooks_remaining: -1,
-      show_upgrade_prompt: !limits.smart_journaling_enabled,
-      upgrade_message: !limits.smart_journaling_enabled ? 'Smart journaling is available with Spark plan and above!' : undefined,
+      show_upgrade_prompt: false,
     };
   }
 

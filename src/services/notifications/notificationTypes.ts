@@ -20,10 +20,6 @@ export const SMART_NOTIFICATION_TYPES = [
   'prayer_answered_check',
   'prayer_today',
   'prayer_people_nudge',
-  'create_playbook',
-  'usage_room_playbook',
-  'content_refresh_wait',
-  'upgrade_room',
   'daily_review',
 ] as const;
 
@@ -115,10 +111,6 @@ export const SMART_NOTIFICATION_PREFERENCE_MAP: Record<SmartNotificationType, ke
   prayer_answered_check: 'prayer_reminders',
   prayer_today: 'prayer_reminders',
   prayer_people_nudge: 'prayer_reminders',
-  create_playbook: 'playbook_steps',
-  usage_room_playbook: 'playbook_steps',
-  content_refresh_wait: 'trial_notifications',
-  upgrade_room: 'trial_notifications',
   daily_review: 'journal_prompts',
 };
 

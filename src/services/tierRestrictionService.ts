@@ -87,19 +87,6 @@ class TierRestrictionService {
     //   usageType: 'familyMembers',
     // },
 
-    // Basic content generation
-    {
-      feature: 'playbook_generation',
-      requiredTier: 'seeker',
-      usageType: 'playbooks',
-    },
-    // Higher monthly content quotas
-    {
-      feature: 'more_playbooks',
-      requiredTier: 'growth',
-      usageType: 'playbooks',
-    },
-
     // Copy incomplete todos
     {
       feature: 'copy_incomplete_todos',
@@ -378,7 +365,6 @@ class TierRestrictionService {
     recommendedTier: SubscriptionTier;
   } {
     const featureNames: Record<string, string> = {
-      'playbook_generation': 'Playbook Generation',
       'export_pdf': 'PDF Export',
       'export_docx': 'Word Export',
       'smart_journaling': 'Smart Journaling',

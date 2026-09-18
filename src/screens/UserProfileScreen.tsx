@@ -59,11 +59,6 @@ interface Subscription {
   billing_cycle?: 'monthly' | 'annual';
 }
 
-interface UsageTracking {
-  playbooks_generated: number;
-  refinements_generated: number;
-  wisdom_generated: number;
-}
 import { Colors } from '../theme/colors';
 import { useTheme } from '../theme/ThemeContext';
 import { notificationManagementService, NotificationPreferences } from '../services/notificationManagementService';
@@ -186,7 +181,6 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
   const [_userProgress, setUserProgress] = useState<UserProgress | null>(null);
   const [profileStats, setProfileStats] = useState<ProfileStats | null>(null);
   const [subscription, setSubscription] = useState<Subscription | null>({ id: 'default', tier: 'seeker', status: 'active' });
-  const [_usage, setUsage] = useState<UsageTracking | null>(null);
   // Form states
   const [profileForm, setProfileForm] = useState({
     firstName: (user as any)?.firstName || savedProfile?.first_name || '',
@@ -497,13 +491,6 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
 
         const subscriptionData = await NewSubscriptionService.getUserSubscription(user.id, true); // Force fresh data
         setSubscription(subscriptionData as any);
-
-        const usageData = {
-          playbooks_generated: subscriptionData.playbooks_used || 0,
-          refinements_generated: subscriptionData.refinement_count || 0,
-          wisdom_generated: subscriptionData.wisdom_count || 0,
-        };
-        setUsage(usageData);
 
         // Auto-disable calendar autoSync if user is on seeker tier
         // Check user metadata directly since preferences state may not be loaded yet
@@ -1433,7 +1420,6 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
       setUserProgress(null);
       setProfileStats(null);
       setSubscription(null);
-      setUsage(null);
       setNotificationPrefs(null);
 
       await signOut();

@@ -131,45 +131,16 @@ export const subscriptionService = {
   // Legacy: canGenerate wrapper for different content types
   async canGenerate(
     userId: string,
-    type: 'playbook' | 'smart_journal' | 'export',
+    type: 'smart_journal' | 'export',
     isOnboarding: boolean = false
   ): Promise<LegacyCanGenerateResult> {
     const sub = await NSS.getUserSubscription(userId);
-
-    // Onboarding generation uses the same monthly quota as regular usage.
-    if (type === 'playbook' && isOnboarding) {
-      const onboardingLimit = NSS.getOnboardingPlaybookLimit(sub.tier, sub);
-      const used = (sub as any).playbooks_used || 0;
-      const allowed = onboardingLimit === -1 || used < onboardingLimit;
-      return {
-        allowed,
-        upgradeRequired: !allowed,
-        remaining: onboardingLimit === -1 ? 'Unlimited' : Math.max(0, onboardingLimit - used),
-        limit: onboardingLimit === -1 ? 'Unlimited' : onboardingLimit,
-        message: allowed ? undefined : `You've used all ${onboardingLimit} monthly playbooks. Upgrade for more!`,
-      };
-    }
 
     const check: SubscriptionCheck = await NSS.checkUsageLimit(userId, type);
 
     // Determine remaining/limit based on action type
     let remaining: number | 'Unlimited' = 0;
     let limit: number | 'Unlimited' = 0;
-
-    if (type === 'playbook') {
-      const limits = NSS.getTierLimits(sub.tier, sub);
-      const isUnlimited = limits.playbooks_limit === -1;
-      const used = (sub as any).playbooks_used || 0;
-      remaining = isUnlimited ? 'Unlimited' : Math.max(0, limits.playbooks_limit - used);
-      limit = isUnlimited ? 'Unlimited' : limits.playbooks_limit;
-      return {
-        allowed: !!check.can_generate_playbook,
-        upgradeRequired: !!check.show_upgrade_prompt,
-        remaining,
-        limit,
-        message: check.upgrade_message,
-      };
-    }
 
     if (type === 'export') {
       const limits = subscriptionService.getSubscriptionLimits(sub.tier);
@@ -200,7 +171,7 @@ export const subscriptionService = {
   // Legacy: track usage (adapts extra params and forwards)
   async trackUsage(
     userId: string,
-    action: 'playbook' | 'smart_journal' | 'export',
+    action: 'smart_journal' | 'export',
     _tokensUsed?: number,
     isOnboarding?: boolean
   ): Promise<void> {

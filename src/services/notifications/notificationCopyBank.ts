@@ -195,44 +195,6 @@ export function buildSmartNotificationCopy(
         message: compact('Someone on your heart may need prayer today. Take a moment to bring them before God.'),
       };
 
-    case 'create_playbook': {
-      const playbookMessages = [
-        'Begin with the moment that needs clarity today.',
-        'Take a moment to process what needs clarity today.',
-        'Start with the moment you need help sorting through.',
-        'Use this space to process what feels tangled today.',
-        'Pause and work through the moment in front of you.',
-        'Start with the moment you do not want to react to too quickly.',
-      ];
-      const createDay = context._simulatedDayOfWeek ?? new Date().getDay();
-      return {
-        title: 'Start a new playbook',
-        message: compact(playbookMessages[createDay % playbookMessages.length]),
-      };
-    }
-
-    case 'usage_room_playbook': {
-      const count = context.remainingCount ?? 1;
-      return {
-        title: 'There is room for more',
-        message: compact(`You still have room for ${count} more ${plural(count, 'playbook')} this month.`),
-      };
-    }
-
-    case 'content_refresh_wait':
-      return {
-        title: 'Keep today simple',
-        message: compact(context.refreshDate
-          ? `New creation room returns on ${context.refreshDate}. Pray or revisit today's focus.`
-          : 'Pray, journal, or revisit a verse while you wait for more creation room.'),
-      };
-
-    case 'upgrade_room':
-      return {
-        title: 'Need more room?',
-        message: compact('Upgrade for more room to keep going with new playbooks.'),
-      };
-
     case 'daily_review':
       return {
         title: compact('Look back on your day, {name} 🌿'),

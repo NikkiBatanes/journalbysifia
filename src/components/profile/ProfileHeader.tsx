@@ -17,8 +17,6 @@ export interface ProfileStatsLite {
 }
 
 export interface UsageSummary {
-  playbooks: { used: number; limit: number };
-  refinements: { used: number; limit: number };
   wisdom: { used: number; limit: number };
 }
 
@@ -88,18 +86,6 @@ export const ProfilePlanUsage: React.FC<Pick<Props, 'plan' | 'usage' | 'subscrip
             <Text style={[styles.planText, font]}>{String(plan)}</Text>
             {!!usage && (
               <View style={styles.pillsRow}>
-                <TouchableOpacity style={styles.usagePill} onPress={() => showTooltip('playbooks')} activeOpacity={0.7}>
-                  <View style={styles.usageItemRow}>
-                    <MaterialCommunityIcons name="clipboard-text-play" size={12} color={Colors.hopeWhite} />
-                    <Text style={[styles.usageText, font]}>{usage.playbooks.used}{usage.playbooks.limit >= 0 ? `/${usage.playbooks.limit}` : '/∞'}</Text>
-                  </View>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.usagePill} onPress={() => showTooltip('refinements')} activeOpacity={0.7}>
-                  <View style={styles.usageItemRow}>
-                    <MaterialCommunityIcons name="auto-fix" size={12} color={Colors.hopeWhite} />
-                    <Text style={[styles.usageText, font]}>{usage.refinements.used}{usage.refinements.limit >= 0 ? `/${usage.refinements.limit}` : '/∞'}</Text>
-                  </View>
-                </TouchableOpacity>
                 <TouchableOpacity style={styles.usagePill} onPress={() => showTooltip('wisdom')} activeOpacity={0.7}>
                   <View style={styles.usageItemRow}>
                     <MaterialCommunityIcons name="lightbulb" size={12} color={Colors.hopeWhite} />

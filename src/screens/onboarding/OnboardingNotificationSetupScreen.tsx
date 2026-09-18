@@ -335,7 +335,7 @@ const OnboardingNotificationSetupScreen = () => {
     if (fromCancelledSales) {
       return {
         title: 'Welcome to siFia',
-        subtitle: 'Your free Seeker plan includes 2 playbooks each month.\nMove at a pace that feels right for your season.',
+        subtitle: 'Move at a pace that feels right for your season.',
         badge: 'Free Access',
       };
     }
@@ -343,34 +343,30 @@ const OnboardingNotificationSetupScreen = () => {
     const currentTier = subscription?.tier || tier || 'seeker';
     const baseTier = currentTier.replace('_annual', '');
     const trialChosenTier = (subscription as any)?.trial_chosen_tier?.replace('_annual', '') || 'growth';
-    const trialLimits =
-      trialChosenTier === 'spark' ? { playbooks: 5 } :
-      trialChosenTier === 'transformation' ? { playbooks: 25 } :
-      { playbooks: 15 };
 
     switch (baseTier) {
       case 'free_trial':
         return {
           title: 'Make the Most of Your Free Trial',
-          subtitle: `Get timely reminders for your ${trialLimits.playbooks} playbooks over the next 3 days.`,
+          subtitle: 'Choose the reminders that support your journaling routine.',
           badge: '3-Day Trial Active',
         };
       case 'spark':
         return {
           title: 'Welcome to Spark',
-          subtitle: 'Get reminders for your 10 monthly playbooks and journaling.',
+          subtitle: 'Choose the reminders that support your journaling routine.',
           badge: 'Spark Subscriber',
         };
       case 'growth':
         return {
           title: 'Welcome to Growth',
-          subtitle: 'Make the most of your 25 monthly playbooks with helpful reminders.',
+          subtitle: 'Choose the reminders that support your journaling routine.',
           badge: 'Growth Subscriber',
         };
       case 'transformation':
         return {
           title: 'Welcome to siFia Transformation',
-          subtitle: 'Enjoy 60 monthly playbooks with gentle reminders to support your daily walk.',
+          subtitle: 'Choose gentle reminders to support your daily walk.',
           badge: 'Transformation Subscriber',
         };
       // POST-LAUNCH: Family tier removed
@@ -384,7 +380,7 @@ const OnboardingNotificationSetupScreen = () => {
       default:
         return {
           title: 'Welcome to siFia',
-          subtitle: 'Your free Seeker plan includes 2 playbooks each month.\nMove at a pace that feels right for your season.',
+          subtitle: 'Move at a pace that feels right for your season.',
           badge: 'Free Access',
         };
     }

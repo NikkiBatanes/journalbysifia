@@ -139,10 +139,6 @@ const createCandidate = ({
     prayer_answered_check: 'prayer',
     prayer_today: 'prayer',
     prayer_people_nudge: 'prayer',
-    create_playbook: 'creation',
-    usage_room_playbook: 'subscription',
-    content_refresh_wait: 'subscription',
-    upgrade_room: 'subscription',
     daily_review: 'journal',
   };
 
@@ -418,61 +414,6 @@ const getReflectionLines = (playbook: PlaybookRowLike): string[] => {
 
   // Fallback: piggybacked inside bible_verse JSONB (legacy modernPlaybookApi storage)
   return splitRaw(playbook.bible_verse?.reflection);
-};
-
-const getRemainingUsage = (subscription: Subscription): { playbooks: number } => {
-  const playbookLimit = subscription.playbooks_limit ?? 0;
-
-  return {
-    playbooks: playbookLimit < 0 ? Number.MAX_SAFE_INTEGER : Math.max(0, playbookLimit - (subscription.playbooks_used ?? 0)),
-  };
-};
-
-const addMonthsClamped = (date: Date, months: number): Date => {
-  const targetMonth = date.getMonth() + months;
-  const targetYear = date.getFullYear() + Math.floor(targetMonth / 12);
-  const normalizedMonth = ((targetMonth % 12) + 12) % 12;
-  const lastDay = new Date(targetYear, normalizedMonth + 1, 0).getDate();
-  return new Date(targetYear, normalizedMonth, Math.min(date.getDate(), lastDay), 9, 0, 0, 0);
-};
-
-const getNextUsageResetDate = (subscription: SubscriptionWithReset): Date | null => {
-  if (subscription.tier === 'free_trial' && subscription.trial_end_date) {
-    return new Date(subscription.trial_end_date);
-  }
-
-  const anchor = new Date(subscription.subscription_start_date || subscription.created_at);
-  if (Number.isNaN(anchor.getTime())) {
-    return null;
-  }
-
-  if (subscription.tier === 'seeker') {
-    const now = new Date();
-    const daysSinceAnchor = (now.getTime() - anchor.getTime()) / (1000 * 60 * 60 * 24);
-    const nextPeriod = Math.floor(Math.max(daysSinceAnchor, 0) / 30) + 1;
-    return new Date(anchor.getTime() + nextPeriod * 30 * 24 * 60 * 60 * 1000);
-  }
-
-  const now = new Date();
-  let reset = new Date(anchor);
-  reset.setHours(9, 0, 0, 0);
-
-  while (reset <= now) {
-    reset = addMonthsClamped(reset, 1);
-  }
-
-  return reset;
-};
-
-const formatShortDate = (date: Date | null): string | undefined => {
-  if (!date || Number.isNaN(date.getTime())) {
-    return undefined;
-  }
-
-  return date.toLocaleDateString(undefined, {
-    month: 'short',
-    day: 'numeric',
-  });
 };
 
 const getHeartJournalPrompt = async (
@@ -1029,65 +970,6 @@ export async function buildSmartNotificationCandidates(userId: string): Promise<
           is_free_user: subscription?.tier === 'seeker' || subscription?.tier === 'free_trial',
         },
       }));
-    }
-  }
-
-  if (subscription) {
-    const remaining = getRemainingUsage(subscription);
-    const resetDate = getNextUsageResetDate(subscription);
-    const refreshDate = formatShortDate(resetDate);
-
-    if (!ongoingPlaybook && remaining.playbooks > 0) {
-      candidates.push(createCandidate({
-        type: 'create_playbook',
-        timeWindow: 'afternoon',
-        score: 50,
-        dedupeKey: buildDedupeKey('create_playbook', currentDate),
-        deepLink: 'sifia://userinput',
-        sourceType: 'subscription',
-      }));
-    }
-
-    if (remaining.playbooks > 0 && remaining.playbooks <= 5 && !ongoingPlaybook) {
-      candidates.push(createCandidate({
-        type: 'usage_room_playbook',
-        timeWindow: 'afternoon',
-        score: 39,
-        dedupeKey: buildDedupeKey('usage_room_playbook', remaining.playbooks, currentDate),
-        deepLink: 'sifia://playbooks/new',
-        sourceType: 'subscription',
-        copyContext: {
-          remainingCount: remaining.playbooks,
-        },
-      }));
-    }
-
-    if (remaining.playbooks === 0) {
-      candidates.push(createCandidate({
-        type: 'content_refresh_wait',
-        timeWindow: 'afternoon',
-        score: 48,
-        dedupeKey: buildDedupeKey('content_refresh_wait', refreshDate || 'unknown', currentDate),
-        deepLink: 'sifia://journal',
-        sourceType: 'subscription',
-        copyContext: {
-          refreshDate,
-        },
-        metadata: {
-          refresh_date: resetDate?.toISOString(),
-        },
-      }));
-
-      if (subscription.tier === 'seeker' || subscription.tier === 'spark') {
-        candidates.push(createCandidate({
-          type: 'upgrade_room',
-          timeWindow: 'evening',
-          score: 34,
-          dedupeKey: buildDedupeKey('upgrade_room', currentDate),
-          deepLink: 'sifia://subscription/upgrade',
-          sourceType: 'subscription',
-        }));
-      }
     }
   }
 

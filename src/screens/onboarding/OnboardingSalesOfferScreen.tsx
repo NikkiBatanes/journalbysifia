@@ -373,8 +373,9 @@ const OnboardingSalesOfferScreen: React.FC = () => {
     if (!isUpgradeMode || isProfileTrialViewPlans) {return null;}
 
     // Use explicit featureType from route params if provided
-    const rawFeatureType = routeParams?.featureType || 'playbooks';
-    const featureType = rawFeatureType === 'wisdom' ? 'wisdom' : 'playbooks';
+    const rawFeatureType = routeParams?.featureType;
+    if (rawFeatureType !== 'wisdom') {return null;}
+    const featureType = 'wisdom';
 
     // Test mode: use override values from route params if provided
     const testModeRemaining = routeParams?.testModeRemaining;
@@ -382,23 +383,17 @@ const OnboardingSalesOfferScreen: React.FC = () => {
     const testModeHasEverStartedTrial = routeParams?.testModeHasEverStartedTrial;
 
     // Compute remaining counts so we can distinguish "no remaining" vs "duration locked"
-    const playbooksUsed = subscription?.playbooks_used || 0;
     const wisdomUsed = (subscription as any)?.wisdom_count || 0;
-    const playbooksLimit = subscription?.playbooks_limit || 0;
     const wisdomLimit = (subscription as any)?.wisdom_limit || 0;
-
-    const remainingPlaybooks = playbooksLimit === -1 ? -1 : Math.max(0, playbooksLimit - playbooksUsed);
     const remainingWisdom = wisdomLimit === -1 ? -1 : Math.max(0, wisdomLimit - wisdomUsed);
 
     const remaining = testModeRemaining !== undefined
       ? testModeRemaining
-      : (featureType === 'wisdom'
-        ? (remainingWisdom === -1 ? wisdomLimit : remainingWisdom)
-        : (remainingPlaybooks === -1 ? playbooksLimit : remainingPlaybooks));
+      : (remainingWisdom === -1 ? wisdomLimit : remainingWisdom);
 
     const limit = testModeLimit !== undefined
       ? testModeLimit
-      : (featureType === 'wisdom' ? wisdomLimit : playbooksLimit);
+      : wisdomLimit;
 
     return generateSalesCopy({
       featureType,
@@ -1685,25 +1680,22 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           ? 'The most room for frequent reflection and continued use.'
           : tier.secondaryDescription;
     const planFeatures = tier.id === 'spark' ? [
-      'Guided playbooks for the moments you’re facing',
+      'Repeat Time Blocks for steady routines',
       'Faithful Action guides',
-      'Guided prompts + Smart Journaling',
-      'Plan Ahead + Copy To-Dos',
+      'Copy To-Dos',
     ] : tier.id === 'growth' ? [
-      'More guided playbooks',
-      'More Faithful Action guides',
-      'Guided prompts + Smart Journaling',
-      'Plan Ahead + Copy To-Dos',
       'Calendar Auto-Sync',
+      'More Faithful Action guides',
+      'Repeat Time Blocks',
+      'Copy To-Dos',
       'PDF export',
     ] : tier.id === 'transformation' ? [
-      'Our highest playbook usage',
+      'Priority Support',
       'Our highest Faithful Action usage',
-      'Guided prompts + Smart Journaling',
-      'Plan Ahead + Copy To-Dos',
+      'Repeat Time Blocks',
+      'Copy To-Dos',
       'Calendar Auto-Sync',
       'PDF export',
-      'Priority support',
     ] : null;
 
     return (
@@ -1803,14 +1795,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           ) : (() => {
             // Default formatting for all tiers
             const processed: string[] = [];
-            const first = tier.features[0]?.trim() || '';
-            const m = first.match(/^(\d+)\s*playbooks\s*each\s*month$/i);
-            if (m) {
-              processed.push(`${m[1]} playbooks each month`);
-              processed.push(...tier.features.slice(1));
-            } else {
-              processed.push(...tier.features);
-            }
+            processed.push(...tier.features);
             return processed.map((feature, index) => (
               <View key={index} style={styles.featureRow}>
                 <Ionicons name="heart" size={16} color={Colors.alertCoral} style={styles.iconMarginRight} />
@@ -1936,18 +1921,18 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                 : fromPlanningLock
                   ? 'Gently prepare for what\'s ahead with guided planning inside your journal.'
                   : fromCopyTodosLock
-                    ? `Copy ${incompleteTodosCount} incomplete to-do${incompleteTodosCount === 1 ? '' : 's'} to future dates, and unlock advanced planning features and playbooks.`
+                    ? `Copy ${incompleteTodosCount} incomplete to-do${incompleteTodosCount === 1 ? '' : 's'} to future dates and continue planning your week.`
                     : (fromRepeatOptionsLock || fromRepeatUpgradePrompt)
-                      ? 'Create recurring time blocks to build steady rhythms in your week. With an upgrade, you’ll also have more room for playbooks.'
+                      ? 'Create recurring time blocks to build steady rhythms in your week.'
                       : fromCalendarAutoSync
                         ? 'Automatically sync your time blocks to your device calendar so what you plan is easier to follow through on.'
                         : fromGuidedPromptsLock
-                          ? 'Access guided reflection prompts to help you slow down, reflect more deeply, and keep going with clarity. With an upgrade, you’ll also unlock more room for playbooks.'
+                          ? 'Guided reflection is available to help you slow down, reflect more deeply, and keep going with clarity.'
                           : fromExportRestriction
                               ? 'Export your playbooks as PDF documents so you can return to them later, print them, or save them for future reflection.\n\nPDF export is available with Growth and Transformation.'
                               : routeParams?.onboardingFlow
                                 ? 'Return with new moments, bring them before God, and know how to move forward faithfully.'
-                                : 'Get more space for playbooks and guided reflection as new moments come up.'}
+                                : 'Choose the plan that fits how you use Journal by siFia.'}
           </ThemedText>
           {isProfileTrialViewPlans && (
             <View style={styles.profileTrialNoteBox}>
@@ -1965,7 +1950,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                 What Growth includes
               </ThemedText>
               {[
-                'More playbooks for ongoing situations',
+                'Calendar Auto-Sync',
                 'Smart journaling to help you reflect and notice patterns',
                 'Gentle guidance for faithful next steps',
                 'A consistent space to return to when moments resurface',
@@ -2021,7 +2006,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                   </ThemedText>
                 </View>
                 <ThemedText style={styles.extraLine}>
-                  With an upgrade, you'll also unlock more playbooks each month.
+                  Choose a plan based on the planning and calendar tools you need.
                 </ThemedText>
                 </>
               ) : fromCopyTodosLock ? (
@@ -2058,7 +2043,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                   <View style={styles.featureBullet}>
                     <Ionicons name="book-outline" size={18} color={Colors.growthGreen} />
                     <ThemedText style={styles.bulletText}>
-                      Create more playbooks and return to spiritual content that helps guide your journey.
+                      Choose the plan that fits your ongoing journaling routine.
                     </ThemedText>
                   </View>
                 </>

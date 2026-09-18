@@ -396,7 +396,6 @@ class AnalyticsService {
     try {
       // Map feature names to usage tracking fields
       const featureMapping: Record<string, string> = {
-        'playbook_generation': 'playbooks_used',
         'export_pdf': 'exports_used',
         'export_docx': 'exports_used',
         'ai_question': 'api_calls_used',
@@ -437,9 +436,6 @@ class AnalyticsService {
       const updates: any = { updated_at: new Date().toISOString() };
 
       switch (featureName) {
-        case 'playbook_generation':
-          updates.playbooks_generated = (existing?.playbooks_generated || 0) + 1;
-          break;
         case 'export_pdf':
         case 'export_docx':
           updates.export_count = (existing?.export_count || 0) + 1;

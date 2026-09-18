@@ -230,7 +230,6 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
   const { user } = useAuth();
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [loading, setLoading] = useState(false);
-  const [allUsageExpanded, setAllUsageExpanded] = useState(false);
 
   // Check if in test mode
   const isTestMode = !!testModeTier;
@@ -304,7 +303,6 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
   // Force refresh to get latest data after purchases
   useEffect(() => {
     if (visible && (user?.id || isTestMode)) {
-      setAllUsageExpanded(false);
       loadSubscriptionData(true); // Force fresh read to catch post-purchase updates
     }
   }, [visible, user?.id, isTestMode, loadSubscriptionData]);
@@ -350,9 +348,7 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
           name: 'siFia Spark',
           description: 'For getting started',
           features: [
-            'Guided Prompts',
-            'Smart Journaling',
-            'Plan Ahead',
+            'Repeat Time Blocks',
             'Copy To-Dos',
           ],
           limits: {
@@ -368,9 +364,7 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
           description: 'For regular reflection',
           secondaryDescription: 'Return to siFia as new situations, decisions, and struggles come up.',
           features: [
-            'Guided Prompts',
-            'Smart Journaling',
-            'Plan Ahead',
+            'Repeat Time Blocks',
             'Copy To-Dos',
             'Calendar Auto-Sync',
             'PDF Export',
@@ -388,9 +382,7 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
           description: 'For deeper, ongoing use',
           secondaryDescription: 'The most room for frequent reflection and continued use.',
           features: [
-            'Guided Prompts',
-            'Smart Journaling',
-            'Plan Ahead',
+            'Repeat Time Blocks',
             'Copy To-Dos',
             'Calendar Auto-Sync',
             'PDF Export',
@@ -417,50 +409,34 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
 
         // Get tier-specific features based on chosen tier
         const tierFeatures = chosenTier === 'spark' ? [
-          `${trialLimits.playbooks} playbooks during trial`,
           `${trialLimits.wisdom} how-to's for faithful actions during trial`,
-          `${trialLimits.refinement} playbook refinements during trial`,
           'Gentle reminders',
           'Track your progress week by week',
-          'Plan Ahead inside your journal',
           'Copy To-Dos to other dates',
-          'Guided prompts',
-          'Smart Journaling',
+          'Repeat Time Blocks',
         ] : chosenTier === 'growth' ? [
-          `${trialLimits.playbooks} playbooks during trial`,
           `${trialLimits.wisdom} how-to's for faithful actions during trial`,
-          `${trialLimits.refinement} playbook refinements during trial`,
           'Gentle reminders',
           'Track your progress week by week',
-          'Plan Ahead inside your journal',
           'Copy To-Dos to other dates',
-          'Guided prompts',
-          'Smart Journaling',
+          'Repeat Time Blocks',
           'Calendar Auto-Sync',
           'Export to PDF',
         ] : chosenTier === 'transformation' ? [
-          `${trialLimits.playbooks} playbooks during trial`,
           `${trialLimits.wisdom} how-to's for faithful actions during trial`,
-          `${trialLimits.refinement} playbook refinements during trial`,
           'Gentle reminders',
           'Track your progress week by week',
-          'Plan Ahead inside your journal',
           'Copy To-Dos to other dates',
-          'Guided prompts',
-          'Smart Journaling',
+          'Repeat Time Blocks',
           'Calendar Auto-Sync',
           'Export to PDF',
           'Priority support',
         ] : [
-          `${trialLimits.playbooks} playbooks during trial`,
           `${trialLimits.wisdom} how-to's for faithful actions during trial`,
-          `${trialLimits.refinement} playbook refinements during trial`,
           'Gentle reminders',
           'Track your progress week by week',
-          'Plan Ahead inside your journal',
           'Copy To-Dos to other dates',
-          'Guided prompts',
-          'Smart Journaling',
+          'Repeat Time Blocks',
         ];
 
         return {
@@ -559,9 +535,7 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
     year: 'numeric',
   });
   const currentPlanUsage = [
-    { label: 'Playbooks', used: subscription?.playbooks_used || 0, limit: tierInfo.limits.playbooks },
     { label: 'Faithful Action How-Tos', used: subscription?.wisdom_count || 0, limit: tierInfo.limits.wisdom },
-    { label: 'Playbook Refinements', used: subscription?.refinement_count || 0, limit: tierInfo.limits.refinement },
   ];
 
   // Determine billing period
@@ -771,7 +745,7 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
                 <View style={styles.seekerUsageSection}>
                   <ThemedText weight="semiBold" style={styles.sectionTitle}>Your usage</ThemedText>
                   <View style={styles.seekerUsageCard}>
-                    {currentPlanUsage.slice(0, allUsageExpanded ? currentPlanUsage.length : 2).map(item => {
+                    {currentPlanUsage.map(item => {
                       const progress = item.limit > 0 ? Math.min(item.used / item.limit, 1) : 0;
                       return (
                         <View key={item.label} style={styles.seekerUsageItem}>
@@ -784,16 +758,6 @@ const SubscriptionPlanModal: React.FC<SubscriptionPlanModalProps> = ({
                         </View>
                       );
                     })}
-                    <TouchableOpacity
-                      style={styles.viewAllUsageButton}
-                      onPress={() => {
-                        try { triggerLightHaptic(); } catch {}
-                        setAllUsageExpanded(previous => !previous);
-                      }}
-                      activeOpacity={0.8}
-                    >
-                      <ThemedText style={styles.viewAllUsageText}>{allUsageExpanded ? 'Show less usage' : 'View all usage'}</ThemedText>
-                    </TouchableOpacity>
                   </View>
                   <ThemedText style={styles.usageResetText}>Resets {nextResetDate}</ThemedText>
                 </View>

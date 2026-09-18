@@ -124,27 +124,6 @@ class MonitoringService {
   }
 
   /**
-   * Track generation metrics
-   */
-  trackGeneration(
-    type: 'playbook' | 'journal',
-    duration: number,
-    success: boolean,
-    tier?: string
-  ): void {
-    this.trackMetric('generation_duration', duration, {
-      type,
-      success,
-      tier,
-    });
-
-    this.trackMetric('generation_success', success ? 1 : 0, {
-      type,
-      tier,
-    });
-  }
-
-  /**
    * Track rate limit hits
    */
   trackRateLimit(

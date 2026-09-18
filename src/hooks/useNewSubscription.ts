@@ -1,14 +1,13 @@
 // New Subscription Hook for React Components
 // Created: 2025-08-20
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import { AppState, AppStateStatus } from 'react-native';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import NewSubscriptionService from '../services/NewSubscriptionService';
 import { billingNotificationService } from '../services/billingNotificationService';
 import {
   Subscription,
-  SubscriptionCheck,
   SubscriptionUpgradeOptions,
   TrialStartOptions,
   SubscriptionError,
@@ -24,27 +23,17 @@ interface UseSubscriptionResult {
   isSeeker: boolean;
   isTrial: boolean;
   isPaid: boolean;
-  isUnlimited: boolean;
-  showDashboardCounts: boolean;
   daysRemaining: number;
-
-  // Usage checks
-  canGeneratePlaybook: boolean;
-  canUseSmartJournaling: boolean;
-  playbooksRemaining: number;
 
   // Actions
   startTrial: (options?: Partial<TrialStartOptions>) => Promise<void>;
   upgradeSubscription: (options: SubscriptionUpgradeOptions) => Promise<void>;
   cancelSubscription: () => Promise<void>;
-  incrementUsage: (action: 'playbook' | 'smart_journal' | 'export', isOnboarding?: boolean) => Promise<void>;
-  checkUsage: (action: 'playbook' | 'smart_journal' | 'export') => Promise<SubscriptionCheck>;
   refreshSubscription: () => Promise<void>;
 }
 
 export function useNewSubscription(userId: string): UseSubscriptionResult {
   const queryClient = useQueryClient();
-  const [usageCheck, setUsageCheck] = useState<SubscriptionCheck | null>(null);
   const appStateRef = useRef<AppStateStatus>(AppState.currentState);
 
   // Query for subscription data
@@ -66,17 +55,7 @@ export function useNewSubscription(userId: string): UseSubscriptionResult {
   const isSeeker = subscription?.tier === 'seeker';
   const isTrial = subscription?.tier === 'free_trial';
   const isPaid = subscription && !isSeeker && !isTrial;
-  const isUnlimited = subscription?.playbooks_limit === -1;
-  const showDashboardCounts = subscription?.limits?.show_dashboard_counts ?? false;
   const daysRemaining = subscription?.days_remaining ?? 0;
-
-  // Usage properties with better defaults
-  const canGeneratePlaybook = usageCheck?.can_generate_playbook ?? true;
-  const canUseSmartJournaling = subscription?.limits?.smart_journaling_enabled ?? false;
-
-  // Calculate remaining based on subscription data if usageCheck isn't ready
-  const playbooksRemaining = usageCheck?.playbooks_remaining ??
-    (subscription ? Math.max(0, subscription.playbooks_limit - subscription.playbooks_used) : 0);
 
   // Start trial mutation
   const startTrialMutation = useMutation({
@@ -102,51 +81,6 @@ export function useNewSubscription(userId: string): UseSubscriptionResult {
     },
   });
 
-  // Increment usage mutation
-  const incrementUsageMutation = useMutation({
-    mutationFn: ({ action, isOnboarding }: { action: 'playbook' | 'smart_journal' | 'export'; isOnboarding?: boolean }) =>
-      NewSubscriptionService.incrementUsage(userId, action, isOnboarding),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['subscription', userId] });
-      // Refresh usage check
-      if (subscription) {
-        updateUsageCheck();
-      }
-    },
-  });
-
-  // Update usage check when subscription changes
-  const updateUsageCheck = useCallback(async () => {
-    if (!subscription) {return;}
-
-    try {
-      const playbookCheck = await NewSubscriptionService.checkUsageLimit(userId, 'playbook');
-
-      setUsageCheck({
-        can_generate_playbook: playbookCheck.can_generate_playbook,
-        can_use_smart_journaling: playbookCheck.can_use_smart_journaling,
-        can_export: playbookCheck.can_export,
-        playbooks_remaining: playbookCheck.playbooks_remaining,
-        show_upgrade_prompt: playbookCheck.show_upgrade_prompt,
-        upgrade_message: playbookCheck.upgrade_message,
-      });
-    } catch (catchError) {
-      // Usage check failed - set default restrictive values
-      setUsageCheck({
-        can_generate_playbook: false,
-        can_use_smart_journaling: false,
-        can_export: false,
-        playbooks_remaining: 0,
-        show_upgrade_prompt: false,
-        upgrade_message: '',
-      });
-    }
-  }, [userId, subscription]);
-
-  // Update usage check when subscription changes
-  useEffect(() => {
-    updateUsageCheck();
-  }, [updateUsageCheck]);
 
   // Issue 3 fix: trigger reset check when app comes to foreground
   useEffect(() => {
@@ -212,85 +146,29 @@ export function useNewSubscription(userId: string): UseSubscriptionResult {
     }
   }, [cancelSubscriptionMutation]);
 
-  const incrementUsage = useCallback(async (action: 'playbook' | 'smart_journal' | 'export', isOnboarding?: boolean) => {
-    try {
-      await incrementUsageMutation.mutateAsync({ action, isOnboarding });
-    } catch (catchError) {
-      throw new SubscriptionError(
-        `Failed to increment usage: ${catchError instanceof Error ? catchError.message : 'Unknown error'}`,
-        'USAGE_INCREMENT_FAILED',
-        catchError
-      );
-    }
-  }, [incrementUsageMutation]);
-
-  const checkUsage = useCallback(async (action: 'playbook' | 'smart_journal' | 'export') => {
-    try {
-      return await NewSubscriptionService.checkUsageLimit(userId, action);
-    } catch (catchError) {
-      throw new SubscriptionError(
-        `Failed to check usage: ${catchError instanceof Error ? catchError.message : 'Unknown error'}`,
-        'USAGE_CHECK_FAILED',
-        catchError
-      );
-    }
-  }, [userId]);
-
   const refreshSubscription = useCallback(async () => {
     await refetch();
-    await updateUsageCheck();
-  }, [refetch, updateUsageCheck]);
+  }, [refetch]);
 
   return {
     // Data
     subscription: subscription || null,
     isLoading: isLoading || startTrialMutation.isPending || upgradeSubscriptionMutation.isPending ||
-               cancelSubscriptionMutation.isPending || incrementUsageMutation.isPending,
+               cancelSubscriptionMutation.isPending,
     error: error || startTrialMutation.error || upgradeSubscriptionMutation.error ||
-           cancelSubscriptionMutation.error || incrementUsageMutation.error,
+           cancelSubscriptionMutation.error,
 
     // Computed properties
     isSeeker,
     isTrial,
     isPaid: !!isPaid,
-    isUnlimited,
-    showDashboardCounts,
     daysRemaining,
-
-    // Usage checks
-    canGeneratePlaybook,
-    canUseSmartJournaling,
-    playbooksRemaining,
 
     // Actions
     startTrial,
     upgradeSubscription,
     cancelSubscription,
-    incrementUsage,
-    checkUsage,
     refreshSubscription,
-  };
-}
-
-// Utility hook for checking specific feature access
-export function useFeatureAccess(userId: string, feature: 'playbook' | 'smart_journal' | 'export') {
-  const { subscription, checkUsage } = useNewSubscription(userId);
-
-  const { data: featureCheck, isLoading, error } = useQuery({
-    queryKey: ['feature-access', userId, feature],
-    queryFn: () => checkUsage(feature),
-    enabled: !!userId && !!subscription,
-    staleTime: 1 * 60 * 1000, // 1 minute
-  });
-
-  return {
-    canAccess: featureCheck?.can_generate_playbook ||
-               featureCheck?.can_use_smart_journaling || featureCheck?.can_export || false,
-    remaining: feature === 'playbook' ? featureCheck?.playbooks_remaining : -1,
-    showUpgradePrompt: featureCheck?.show_upgrade_prompt || false,
-    upgradeMessage: featureCheck?.upgrade_message,
-    isLoading,
-    error,
   };
 }
 
