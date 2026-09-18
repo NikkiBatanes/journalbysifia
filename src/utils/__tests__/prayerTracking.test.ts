@@ -1,5 +1,5 @@
 import type { PrayerApiEntry } from '../../services/api/prayerApi';
-import { answerPrayer, continuePrayer, describePrayerUpdate, hasAnswerHistory, isPrayerActive, isPrayerLetGo, releasePrayer } from '../prayerTracking';
+import { answerPrayer, changeNeedLifecycle, continuePrayer, describePrayerUpdate, hasAnswerHistory, isPrayerActive, isPrayerLetGo, releasePrayer, setPrayerTracking } from '../prayerTracking';
 
 const prayer = (overrides: Partial<PrayerApiEntry> = {}): PrayerApiEntry => ({
   id: 'prayer-1', prayer_type: 'journal', journal_category: 'supplication', content: 'Please help',
@@ -57,5 +57,32 @@ describe('prayer lifecycle', () => {
     const active = { ...note, ...continuePrayer(note) };
     expect(isPrayerActive(active)).toBe(true);
     expect(hasAnswerHistory(active)).toBe(true);
+  });
+
+  it('keeps independently Let Go Needs closed after a parent Return', () => {
+    const mixed = prayer({ metadata: { track_answered: true, prayer_needs: [
+      { id: 'a', text: 'Answered', status: 'answered', answeredDate: '2026-09-18' },
+      { id: 'b', text: 'Active', status: 'pending' },
+      { id: 'c', text: 'Released', status: 'closed' },
+    ] } });
+    const letGo = { ...mixed, ...releasePrayer(mixed, '2026-09-20T00:00:00.000Z') };
+    expect(letGo.metadata!.prayer_needs.find((n: any) => n.id === 'b')!.closedByParent).toBe(true);
+    expect(letGo.metadata!.prayer_needs.find((n: any) => n.id === 'c')!.closedByParent).toBeUndefined();
+    const returned = { ...letGo, ...releasePrayer(letGo, '2026-09-21T00:00:00.000Z') };
+    expect(returned.metadata!.prayer_needs.find((n: any) => n.id === 'b')).toMatchObject({ status: 'pending', active: true });
+    expect(returned.metadata!.prayer_needs.find((n: any) => n.id === 'c')).toMatchObject({ status: 'closed' });
+  });
+
+  it('uses canonical helpers for tracking toggles and Need-specific Let Go/Return', () => {
+    const answered = { ...prayer(), ...answerPrayer(prayer()) };
+    const active = { ...answered, ...setPrayerTracking(answered, true) };
+    expect(isPrayerActive(active)).toBe(true);
+    expect(hasAnswerHistory(active)).toBe(true);
+    const withNeed = prayer({ metadata: { track_answered: true, prayer_needs: [{ id: 'need', text: 'Need', status: 'pending' }] } });
+    const released = { ...withNeed, ...changeNeedLifecycle(withNeed, 'need', 'let-go') };
+    const returned = { ...released, ...changeNeedLifecycle(released, 'need', 'return') };
+    expect(released.metadata!.prayer_needs[0]).toMatchObject({ status: 'closed', active: false, closedByParent: false });
+    expect(returned.metadata!.prayer_needs[0]).toMatchObject({ status: 'pending', active: true });
+    expect(returned.metadata!.prayer_needs[0].lifecycleHistory).toHaveLength(2);
   });
 });

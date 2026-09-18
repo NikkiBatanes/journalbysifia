@@ -12,7 +12,7 @@ import PrayerResponseSheet from './PrayerResponseSheet';
 import PrayerWritingSheet from './PrayerWritingSheet';
 import { Colors } from '../../theme/colors';
 import type { PrayerApiEntry } from '../../services/api/prayerApi';
-import { answerPrayer, releasePrayer, hasAnswerHistory, isPrayerActive, isPrayerLetGo, isTrackedPrayer, prayerNeeds, trackingStatus, type PrayerNeed, type PrayerUpdate } from '../../utils/prayerTracking';
+import { answerPrayer, changeNeedLifecycle, releasePrayer, setPrayerTracking, hasAnswerHistory, isPrayerActive, isPrayerLetGo, isTrackedPrayer, prayerNeeds, trackingStatus, type PrayerNeed, type PrayerUpdate } from '../../utils/prayerTracking';
 
 export type PrayerChanges = { content: string; person_name?: string; notes?: string; status: 'pending' | 'answered'; answered_date: string | null; metadata: Record<string, any>; prayed?: boolean; prayer_count?: number; last_prayed_at?: string };
 type Props = { prayer: PrayerApiEntry; onClose: () => void; onSave: (data: PrayerChanges) => Promise<void>; onDelete?: () => Promise<void>; renderUpdate: (prayer: PrayerApiEntry, save: (data: PrayerChanges) => Promise<void>, close: () => void) => React.ReactNode };
@@ -48,7 +48,7 @@ export default function PrayerDetails({ prayer, onClose, onSave, onDelete, rende
     { text: 'Continue praying', onPress: () => { triggerLightHaptic(); void run({ ...base(), ...answerPrayer(current, needId, new Date().toISOString(), undefined, true) }); } },
     { text: 'Cancel', style: 'cancel' },
   ]);
-  const toggleNeedReleased = (needId: string) => { void run(setNeeds(needs.map(n => n.id === needId ? { ...n, status: n.status === 'closed' ? 'pending' as const : 'closed' as const, answeredDate: undefined } : n))); };
+  const toggleNeedReleased = (needId: string) => { const need = needs.find(item => item.id === needId); if (need) void run({ ...base(), ...changeNeedLifecycle(current, needId, need.status === 'closed' ? 'return' : 'let-go') }); };
   const openNeed = (need?: PrayerNeed) => { setEditingNeed(need?.id); setDraft(need?.text || ''); setEditor('need'); };
   const toggleReleased = () => {
     if (isPrayerLetGo(current)) { void run({ ...base(), ...releasePrayer(current) }); return; }
@@ -58,7 +58,7 @@ export default function PrayerDetails({ prayer, onClose, onSave, onDelete, rende
     ]);
   };
   const statusMenu = () => Alert.alert('Prayer status', undefined, [
-    { text: tracked ? 'Just save this prayer' : 'Keep praying about this', onPress: () => { triggerLightHaptic(); void run({ ...base(), metadata: { ...current.metadata, track_answered: !tracked } }); } },
+    { text: tracked ? 'Just save this prayer' : 'Keep praying about this', onPress: () => { triggerLightHaptic(); void run({ ...base(), ...setPrayerTracking(current, !tracked) }); } },
     { text: isPrayerLetGo(current) ? 'Return to prayer' : 'Let go of this prayer', onPress: () => { triggerLightHaptic(); toggleReleased(); } },
     { text: 'Cancel', style: 'cancel', onPress: triggerLightHaptic },
   ]);

@@ -7,6 +7,7 @@ import { faithPointsService } from '../faithPointsService';
 import { createRetryFunction } from '../../utils/retry';
 import { RETRY_CONFIGS } from '../../utils/retry';
 import { streakTrackingService } from '../streakTrackingService';
+import { persistPrayerUpdate, type PrayerUpdatePayload } from '../prayerUpdateBoundary';
 
 // ===== QUERY HOOKS =====
 
@@ -346,11 +347,14 @@ export const useUpdatePrayer = () => {
       _dateStr,
     }: {
       id: string;
-      updates: Partial<Omit<PrayerApiEntry, 'id' | 'user_id' | 'created_at'> & { metadata?: Record<string, any> }>;
+      updates: PrayerUpdatePayload;
       _userId: string;
       _dateStr: string;
-    }) => PrayerApi.updatePrayer(id, updates),
+    }) => {
+      return persistPrayerUpdate(id, updates);
+    },
     onMutate: async ({ id, updates, _userId, _dateStr }) => {
+      const { __canonicalPrayerLifecycle: _canonicalLifecycle, ...persistedUpdates } = updates;
       // Cancel any outgoing refetches for entries, people, and acts caches
       await queryClient.cancelQueries({
         queryKey: queryKeys.prayers.entries(_userId, _dateStr),
@@ -378,7 +382,7 @@ export const useUpdatePrayer = () => {
 
       const applyUpdate = (prayer: PrayerApiEntry) =>
         prayer.id === id
-          ? { ...prayer, ...updates, ...(updates.metadata ? { metadata: { ...prayer.metadata, ...updates.metadata } } : {}), ...(updates.status ? { is_answered: updates.status === 'answered' } : {}), updated_at: new Date().toISOString() }
+          ? { ...prayer, ...persistedUpdates, ...(persistedUpdates.metadata ? { metadata: { ...prayer.metadata, ...persistedUpdates.metadata } } : {}), ...(persistedUpdates.status ? { is_answered: persistedUpdates.status === 'answered' } : {}), updated_at: new Date().toISOString() }
           : prayer;
 
       queryClient.setQueryData<PrayerApiEntry[]>(queryKeys.prayers.allEntries(_userId), old => old?.map(applyUpdate));

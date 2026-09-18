@@ -1,6 +1,7 @@
 // src/services/api/prayerApi.ts
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { toLocalDateString } from '../../utils/date';
+import { answerPrayer, continuePrayer } from '../../utils/prayerTracking';
 import { Logger } from '../../utils/ProductionLogger';
 import {
   createLocalPrayer,
@@ -200,7 +201,10 @@ export class PrayerApi {
     if (!existing) {
       throw new Error('Prayer not found');
     }
-    const localUpdates = toLocalFormat({ ...updates, ...(updates.metadata ? { metadata: { ...existing.metadata, ...updates.metadata } } : {}), id } as any);
+    // Canonical lifecycle intent is operation-only; direct API callers must
+    // receive the same non-persistence guarantee as hook callers.
+    const { __canonicalPrayerLifecycle: _canonicalLifecycle, ...persistedUpdates } = updates as typeof updates & { __canonicalPrayerLifecycle?: true };
+    const localUpdates = toLocalFormat({ ...persistedUpdates, ...(persistedUpdates.metadata ? { metadata: { ...existing.metadata, ...persistedUpdates.metadata } } : {}), id } as any);
     const updated = await updateLocalPrayer({ ...existing, ...localUpdates });
     return toApiFormat(updated);
   }
@@ -236,11 +240,10 @@ export class PrayerApi {
     const all = await listAllPrayerEntries();
     const existing = all.find(p => p.id === id);
     if (!existing) {throw new Error('Prayer not found');}
-    const updated = await updateLocalPrayer({
-      ...existing,
-      status: isAnswered ? 'answered' : 'pending',
-      answered_date: isAnswered ? new Date().toISOString() : undefined,
-    });
+    // Legacy callers use false for “still praying”; it must never delete answer history.
+    const changes = isAnswered ? answerPrayer(toApiFormat(existing)) : continuePrayer(toApiFormat(existing));
+    const { __canonicalPrayerLifecycle: _canonicalLifecycle, ...persistedChanges } = changes;
+    const updated = await updateLocalPrayer({ ...existing, ...persistedChanges, answered_date: persistedChanges.answered_date ?? undefined });
     return toApiFormat(updated);
   }
 
