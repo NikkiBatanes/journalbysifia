@@ -1,5 +1,7 @@
 # 🔍 PAYMENT FLOW ANALYSIS - Step by Step
 
+> Historical siFia payment-flow analysis. Journal by siFia no longer contains this IAP flow.
+
 ## Current Flow Breakdown with Code References
 
 | Phase | Step | Location | Status | Issues Found |

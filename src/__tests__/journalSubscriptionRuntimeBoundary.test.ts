@@ -18,6 +18,20 @@ const collectProductionSource = (directory: string): string => fs
   .join('\n');
 
 describe('Journal subscription runtime boundary', () => {
+  it('has no react-native-iap dependency while preserving native PDF generation', () => {
+    const packageJson = JSON.parse(readRoot('package.json'));
+    const production = collectProductionSource(srcRoot);
+
+    expect(packageJson.dependencies?.['react-native-iap']).toBeUndefined();
+    expect(production).not.toContain('react-native-iap');
+    expect(fs.existsSync(path.join(root, 'patches/react-native-iap+13.0.4.patch'))).toBe(false);
+    expect(packageJson.dependencies?.['react-native-html-to-pdf']).toBeDefined();
+    expect(fs.existsSync(path.join(srcRoot, 'utils/pdfExportService.ts'))).toBe(true);
+    expect(readSrc('utils/pdfExportService.ts')).toContain("from 'react-native-html-to-pdf'");
+    expect(readSrc('screens/PlaybookWalkthroughScreen.tsx')).toContain('pdfExportService.exportPlaybookPDF');
+    expect(readSrc('screens/SermonNotesScreen.tsx')).toContain('generatePDF');
+  });
+
   it('does not initialize or synchronize legacy subscriptions during startup', () => {
     const app = readRoot('App.tsx');
     expect(app).not.toContain('PlatformPaymentService');

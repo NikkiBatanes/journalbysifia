@@ -1,5 +1,7 @@
 # Trial to Sales Offer Migration - Implementation Summary
 
+> Historical siFia subscription migration record. This is not current Journal product behavior.
+
 ## ✅ Completed Changes
 
 ### Phase 1: Sales Offer Screen Updates

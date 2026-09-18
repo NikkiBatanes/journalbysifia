@@ -1,5 +1,7 @@
 # Trial Offer to Sales Offer Migration Plan
 
+> Historical siFia migration plan. Journal by siFia has no trial or subscription sales flow.
+
 ## Executive Summary
 Disable the separate Trial Offer screen to comply with Apple's guidelines. Instead, use Sales Offer screen with `.freetrial` products that include a 3-day free trial configured in App Store Connect.
 

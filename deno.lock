@@ -146,7 +146,6 @@
         "npm:react-native-get-random-values@^1.11.0",
         "npm:react-native-haptic-feedback@^2.3.3",
         "npm:react-native-html-to-pdf@^1.3.0",
-        "npm:react-native-iap@^13.0.4",
         "npm:react-native-image-picker@^8.2.1",
         "npm:react-native-in-app-review@^4.3.5",
         "npm:react-native-keyboard-aware-scroll-view@~0.9.5",

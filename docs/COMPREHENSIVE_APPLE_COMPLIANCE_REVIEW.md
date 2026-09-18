@@ -1,4 +1,6 @@
 # Comprehensive Apple App Store Review Guidelines Compliance Report
+
+> Historical review: subscription/IAP findings describe retired Journal-local code and are not current implementation guidance.
 **App:** siFia  
 **Version:** 1.3.0  
 **Review Date:** December 7, 2025  

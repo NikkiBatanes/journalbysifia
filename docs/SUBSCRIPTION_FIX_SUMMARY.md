@@ -1,5 +1,7 @@
 # SUBSCRIPTION FIX SUMMARY - December 27, 2024
 
+> Historical siFia subscription record. Journal by siFia no longer uses this subscription/IAP architecture.
+
 ## ✅ COMPLETED: Options C → B → A
 
 ### OPTION C: Database Schema Verification ✅

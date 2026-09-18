@@ -1,4 +1,6 @@
 # COMPLETE PURCHASE FLOW INSPECTION
+
+> Historical siFia subscription inspection. Journal by siFia no longer contains this purchase flow.
 **Date:** December 27, 2024
 **Scope:** Full trial purchase flow from user tap to paid conversion
 

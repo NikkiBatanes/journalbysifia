@@ -1,5 +1,7 @@
 # Annual Subscription Fix - Complete Summary
 
+> Historical siFia subscription documentation. Journal by siFia no longer contains or uses this subscription/IAP implementation.
+
 ## ✅ Fixed Components
 
 ### 1. **AppleStoreKitService.ts**

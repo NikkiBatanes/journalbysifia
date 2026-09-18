@@ -1,4 +1,6 @@
 # Subscription Scenarios - Quick FAQ
+
+> Historical siFia subscription FAQ. These plans and behaviors do not apply to the paid-upfront Journal app.
 **Direct Answers to Critical Questions**
 
 ## Your Specific Questions Answered

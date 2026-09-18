@@ -30,13 +30,6 @@
 		9473976BF4F447CAA858DB7D /* OleoScriptSwashCaps-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = AD38D622C38A421A8B70F4F6 /* OleoScriptSwashCaps-Bold.ttf */; };
 		9F72F288FABC4A0D87C03863 /* Lexend-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = FEF5C05996784F21B3BF2BB0 /* Lexend-Bold.ttf */; };
 		A54B2E1C950443E1B510C6B1 /* Poppins-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 4D2764BA199D4440A1D5D017 /* Poppins-Bold.ttf */; };
-		AFC685DFDB184B2AA9A3469B /* Lexend-SemiBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 43D1FCFBE4BC418F8F1B879C /* Lexend-SemiBold.ttf */; };
-		B8CE4D9A00F44E6791846BFA /* OleoScriptSwashCaps-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 3FC4D19ABE124930A1FA5919 /* OleoScriptSwashCaps-Regular.ttf */; };
-		DEC88A0E5D7A4B109D7344A9 /* IndieFlower.ttf in Resources */ = {isa = PBXBuildFile; fileRef = B87BB3F4758C430CAFB73965 /* IndieFlower.ttf */; };
-		ED3D520D83354468A016F1B8 /* Lora-SemiBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 0236ACB8DAE6421C87EDBC23 /* Lora-SemiBold.ttf */; };
-		F54AE62EBA9E4307958CDFDB /* AlexBrush-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = A541C99736F94480818FEB74 /* AlexBrush-Regular.ttf */; };
-		F64F75FDC2374FD8B050C0A7 /* GreatVibes-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 5608835C08AD4377BE0FE566 /* GreatVibes-Regular.ttf */; };
-		FFDBD14C30E442AF93231B7C /* Poppins-SemiBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 884EE6073AEE4AC7BB2FD40A /* Poppins-SemiBold.ttf */; };
 		AAMW00000000000000000117 /* SiFiaMorningWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAMW00000000000000000110 /* SiFiaMorningWidget.swift */; };
 		AAMW00000000000000000118 /* SelectFeelingIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAMW00000000000000000111 /* SelectFeelingIntent.swift */; };
 		AAMW00000000000000000119 /* MorningWidgetShared.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAMW00000000000000000112 /* MorningWidgetShared.swift */; };
@@ -44,7 +37,38 @@
 		AAMW00000000000000000121 /* MorningWidgetBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAMW00000000000000000113 /* MorningWidgetBridge.swift */; };
 		AAMW00000000000000000122 /* MorningWidgetBridge.m in Sources */ = {isa = PBXBuildFile; fileRef = AAMW00000000000000000114 /* MorningWidgetBridge.m */; };
 		AAMW00000000000000000123 /* SiFiaMorningWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = AAMW00000000000000000107 /* SiFiaMorningWidget.appex */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		AFC685DFDB184B2AA9A3469B /* Lexend-SemiBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 43D1FCFBE4BC418F8F1B879C /* Lexend-SemiBold.ttf */; };
+		B8CE4D9A00F44E6791846BFA /* OleoScriptSwashCaps-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 3FC4D19ABE124930A1FA5919 /* OleoScriptSwashCaps-Regular.ttf */; };
+		DEC88A0E5D7A4B109D7344A9 /* IndieFlower.ttf in Resources */ = {isa = PBXBuildFile; fileRef = B87BB3F4758C430CAFB73965 /* IndieFlower.ttf */; };
+		ED3D520D83354468A016F1B8 /* Lora-SemiBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 0236ACB8DAE6421C87EDBC23 /* Lora-SemiBold.ttf */; };
+		F54AE62EBA9E4307958CDFDB /* AlexBrush-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = A541C99736F94480818FEB74 /* AlexBrush-Regular.ttf */; };
+		F64F75FDC2374FD8B050C0A7 /* GreatVibes-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 5608835C08AD4377BE0FE566 /* GreatVibes-Regular.ttf */; };
+		FFDBD14C30E442AF93231B7C /* Poppins-SemiBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 884EE6073AEE4AC7BB2FD40A /* Poppins-SemiBold.ttf */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		AAMW00000000000000000125 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 83CBB9F71A601CBA00E9B192 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = AAMW00000000000000000100;
+			remoteInfo = SiFiaMorningWidget;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		AAMW00000000000000000124 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				AAMW00000000000000000123 /* SiFiaMorningWidget.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		0236ACB8DAE6421C87EDBC23 /* Lora-SemiBold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Lora-SemiBold.ttf"; path = "../assets/fonts/Lora/Lora-SemiBold.ttf"; sourceTree = "<group>"; };
@@ -75,6 +99,14 @@
 		88DC19642ECB8E240060E257 /* JournalBySiFia-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "JournalBySiFia-Bridging-Header.h"; sourceTree = "<group>"; };
 		9D531852859B4AC5BDC9CCE0 /* Poppins-Medium.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Poppins-Medium.ttf"; path = "../assets/fonts/Poppins/Poppins-Medium.ttf"; sourceTree = "<group>"; };
 		A541C99736F94480818FEB74 /* AlexBrush-Regular.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "AlexBrush-Regular.ttf"; path = "../assets/fonts/AlexBrush/AlexBrush-Regular.ttf"; sourceTree = "<group>"; };
+		AAMW00000000000000000107 /* SiFiaMorningWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = SiFiaMorningWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		AAMW00000000000000000110 /* SiFiaMorningWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SiFiaMorningWidget.swift; sourceTree = "<group>"; };
+		AAMW00000000000000000111 /* SelectFeelingIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelectFeelingIntent.swift; sourceTree = "<group>"; };
+		AAMW00000000000000000112 /* MorningWidgetShared.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MorningWidgetShared.swift; sourceTree = "<group>"; };
+		AAMW00000000000000000113 /* MorningWidgetBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JournalBySiFia/MorningWidgetBridge.swift; sourceTree = "<group>"; };
+		AAMW00000000000000000114 /* MorningWidgetBridge.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = JournalBySiFia/MorningWidgetBridge.m; sourceTree = "<group>"; };
+		AAMW00000000000000000115 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		AAMW00000000000000000116 /* SiFiaMorningWidget.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = SiFiaMorningWidget.entitlements; sourceTree = "<group>"; };
 		AD38D622C38A421A8B70F4F6 /* OleoScriptSwashCaps-Bold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "OleoScriptSwashCaps-Bold.ttf"; path = "../assets/fonts/OleoScriptSwashCaps/OleoScriptSwashCaps-Bold.ttf"; sourceTree = "<group>"; };
 		B62E77873B8CF9FD8510DFED /* libPods-JournalBySiFia.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-JournalBySiFia.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		B87BB3F4758C430CAFB73965 /* IndieFlower.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = IndieFlower.ttf; path = ../assets/fonts/IndieFlower/IndieFlower.ttf; sourceTree = "<group>"; };
@@ -85,14 +117,6 @@
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
 		F3E5E6C36DE54FF0A0AB4FA4 /* Lexend-Medium.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Lexend-Medium.ttf"; path = "../assets/fonts/Lexend/Lexend-Medium.ttf"; sourceTree = "<group>"; };
 		FEF5C05996784F21B3BF2BB0 /* Lexend-Bold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Lexend-Bold.ttf"; path = "../assets/fonts/Lexend/Lexend-Bold.ttf"; sourceTree = "<group>"; };
-		AAMW00000000000000000107 /* SiFiaMorningWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = SiFiaMorningWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
-		AAMW00000000000000000110 /* SiFiaMorningWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SiFiaMorningWidget.swift; sourceTree = "<group>"; };
-		AAMW00000000000000000111 /* SelectFeelingIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelectFeelingIntent.swift; sourceTree = "<group>"; };
-		AAMW00000000000000000112 /* MorningWidgetShared.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MorningWidgetShared.swift; sourceTree = "<group>"; /* inside Shared group */ };
-		AAMW00000000000000000113 /* MorningWidgetBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JournalBySiFia/MorningWidgetBridge.swift; sourceTree = "<group>"; };
-		AAMW00000000000000000114 /* MorningWidgetBridge.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = JournalBySiFia/MorningWidgetBridge.m; sourceTree = "<group>"; };
-		AAMW00000000000000000115 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		AAMW00000000000000000116 /* SiFiaMorningWidget.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = SiFiaMorningWidget.entitlements; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -129,25 +153,6 @@
 				13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */,
 			);
 			name = JournalBySiFia;
-			sourceTree = "<group>";
-		};
-		AAMW00000000000000000108 /* SiFiaMorningWidget */ = {
-			isa = PBXGroup;
-			children = (
-				AAMW00000000000000000110 /* SiFiaMorningWidget.swift */,
-				AAMW00000000000000000111 /* SelectFeelingIntent.swift */,
-				AAMW00000000000000000115 /* Info.plist */,
-				AAMW00000000000000000116 /* SiFiaMorningWidget.entitlements */,
-			);
-			path = SiFiaMorningWidget;
-			sourceTree = "<group>";
-		};
-		AAMW00000000000000000109 /* Shared */ = {
-			isa = PBXGroup;
-			children = (
-				AAMW00000000000000000112 /* MorningWidgetShared.swift */,
-			);
-			path = Shared;
 			sourceTree = "<group>";
 		};
 		2D16E6871FA4F8E400B85C8A /* Frameworks */ = {
@@ -198,6 +203,25 @@
 				AAMW00000000000000000107 /* SiFiaMorningWidget.appex */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		AAMW00000000000000000108 /* SiFiaMorningWidget */ = {
+			isa = PBXGroup;
+			children = (
+				AAMW00000000000000000110 /* SiFiaMorningWidget.swift */,
+				AAMW00000000000000000111 /* SelectFeelingIntent.swift */,
+				AAMW00000000000000000115 /* Info.plist */,
+				AAMW00000000000000000116 /* SiFiaMorningWidget.entitlements */,
+			);
+			path = SiFiaMorningWidget;
+			sourceTree = "<group>";
+		};
+		AAMW00000000000000000109 /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				AAMW00000000000000000112 /* MorningWidgetShared.swift */,
+			);
+			path = Shared;
 			sourceTree = "<group>";
 		};
 		BBD78D7AC51CEA395F1C20DB /* Pods */ = {
@@ -316,20 +340,6 @@
 			);
 		};
 /* End PBXProject section */
-
-/* Begin PBXCopyFilesBuildPhase section */
-		AAMW00000000000000000124 /* Embed Foundation Extensions */ = {
-			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
-			dstPath = "";
-			dstSubfolderSpec = 13;
-			files = (
-				AAMW00000000000000000123 /* SiFiaMorningWidget.appex in Embed Foundation Extensions */,
-			);
-			name = "Embed Foundation Extensions";
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXResourcesBuildPhase section */
 		13B07F8E1A680F5B00A75B9A /* Resources */ = {
@@ -521,16 +531,6 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
-
-/* Begin PBXContainerItemProxy section */
-		AAMW00000000000000000125 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 83CBB9F71A601CBA00E9B192 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = AAMW00000000000000000100;
-			remoteInfo = SiFiaMorningWidget;
-		};
-/* End PBXContainerItemProxy section */
 
 /* Begin PBXTargetDependency section */
 		AAMW00000000000000000126 /* PBXTargetDependency */ = {

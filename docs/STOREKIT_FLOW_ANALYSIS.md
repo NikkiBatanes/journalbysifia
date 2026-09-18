@@ -1,4 +1,6 @@
 # Apple StoreKit 2 - Complete Flow Analysis
+
+> Historical siFia StoreKit analysis. It is retained as history, not current Journal implementation guidance.
 **Last Updated:** December 13, 2024  
 **Status:** Production Implementation Review
 

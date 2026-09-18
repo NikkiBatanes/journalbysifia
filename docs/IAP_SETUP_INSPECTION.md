@@ -1,5 +1,7 @@
 # 🔍 IAP SETUP INSPECTION REPORT
 
+> Historical siFia IAP inspection. Journal by siFia no longer uses this dependency or subscription setup.
+
 ## ✅ **WHAT'S WORKING:**
 
 ### 1. **Package Installation**

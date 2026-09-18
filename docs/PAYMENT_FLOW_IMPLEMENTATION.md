@@ -1,5 +1,7 @@
 # siFia Payment Flow - Enterprise Implementation Guide
 
+> Historical siFia implementation guide. It does not describe the current paid-upfront Journal app.
+
 ## 🎯 Overview
 
 This document provides a comprehensive guide to the enterprise-grade Apple Store Kit payment integration for siFia version 1.3.0. The payment system has been validated and is **100% complete** with production-ready features.

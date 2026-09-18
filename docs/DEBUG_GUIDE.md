@@ -1,5 +1,7 @@
 # 🔍 PAYMENT FLOW DEBUG GUIDE
 
+> Historical siFia payment-flow guide. It must not be used to configure the current paid-upfront Journal app.
+
 ## How to Debug the Payment Issue
 
 ### 1. Enable Debug Logging

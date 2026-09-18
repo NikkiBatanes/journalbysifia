@@ -1,5 +1,7 @@
 # API Documentation
 
+> Historical note: subscription and StoreKit sections describe the retired siFia-derived implementation and are not current Journal APIs.
+
 ## 🌐 Base Configuration
 
 ### Endpoints

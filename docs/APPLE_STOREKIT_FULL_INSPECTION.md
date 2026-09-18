@@ -1,5 +1,7 @@
 # FULL APPLE STOREKIT & WEBHOOK INSPECTION REPORT
 
+> Historical siFia subscription audit. Journal by siFia no longer contains this StoreKit implementation.
+
 ## Executive Summary
 **Date:** December 27, 2025
 **Status:** 🔴 CRITICAL ISSUES FOUND
