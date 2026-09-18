@@ -43,9 +43,20 @@ describe('siFia read compatibility boundary', () => {
 
   it('uses stable persisted action-step identity for Faithful Actions', () => {
     const model = adaptFaithfulAction(faithfulAction, 'Courage for Today');
-    expect(model.id).toBe('action-step-1');
-    expect(model.playbookId).toBe('playbook-1');
+    expect(model).toMatchObject({
+      id: 'action-step-1',
+      playbookId: 'playbook-1',
+      playbookTitle: 'Courage for Today',
+      title: 'Make the call',
+      description: 'Reach out before noon.',
+      completed: false,
+      orderIndex: 0,
+      createdAt: faithfulAction.created_at,
+      updatedAt: faithfulAction.updated_at,
+      origin: 'sifia_playbook',
+    });
     expect(model.searchText).toContain('make the call');
+    expect(model.searchText).toContain('courage for today');
   });
 
   it('centralizes devotional and playbook prayer origins while preserving IDs', () => {

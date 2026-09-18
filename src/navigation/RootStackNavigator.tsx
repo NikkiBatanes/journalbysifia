@@ -30,6 +30,7 @@ import UserProfileScreen from '../screens/UserProfileScreen';
 import NotificationsScreen from '../screens/NotificationsScreen';
 import AdminDashboardScreen from '../screens/AdminDashboardScreen';
 import GospelScreen from '../screens/GospelScreen';
+import ForMeDayScreen from '../screens/ForMeDayScreen';
 // NotificationDebugScreen removed in Phase 1 cleanup
 
 // New Onboarding screens
@@ -44,10 +45,7 @@ import OnboardingPersonalizationScreen from '../screens/onboarding/OnboardingPer
 import JournalOnboardingScreen from '../screens/journalOnboarding/JournalOnboardingScreen';
 
 // New Simplified Onboarding Flow Screens
-import OnboardingSalesOfferScreen from '../screens/onboarding/OnboardingSalesOfferScreen';
 import TimeBlockEditorScreen from '../screens/TimeBlockEditorScreen';
-// RE-ENABLED: Trial Offer screen for trial flow navigation
-import OnboardingTrialOfferScreen from '../screens/onboarding/OnboardingTrialOfferScreen';
 import OnboardingNotificationSetupScreen from '../screens/onboarding/OnboardingNotificationSetupScreen';
 
 import { OnboardingAnimations, splashToFirstScreenAnimation } from './onboardingAnimations';
@@ -255,6 +253,16 @@ export default function RootStackNavigator({
           contentStyle: { backgroundColor: '#F4F0E7' },
         }}
       />
+      <Stack.Screen
+        name="ForMeDay"
+        component={ForMeDayScreen as React.ComponentType}
+        options={{
+          headerShown: false,
+          presentation: 'fullScreenModal',
+          animation: 'slide_from_bottom',
+          contentStyle: { backgroundColor: Colors.lightBackground },
+        }}
+      />
 
       {/* Morning Flow - multi-page morning check-in modal */}
       <Stack.Screen
@@ -366,20 +374,6 @@ export default function RootStackNavigator({
       ) : (
         <>
           <Stack.Screen
-            name="OnboardingSalesOffer"
-            component={OnboardingSalesOfferScreen as React.ComponentType}
-            options={{
-              headerShown: false,
-              presentation: 'fullScreenModal',
-              animation: 'slide_from_bottom',
-              animationDuration: 350,
-              gestureEnabled: true,
-              gestureDirection: 'vertical',
-              contentStyle: { backgroundColor: Colors.sage },
-            }}
-          />
-          {/* RE-ENABLED: Trial Offer screen for trial flow navigation */}
-          <Stack.Screen
             name="TimeBlockEditorModal"
             component={TimeBlockEditorScreen as React.ComponentType}
             options={{
@@ -389,21 +383,6 @@ export default function RootStackNavigator({
               animationDuration: 350,
               gestureEnabled: true,
               gestureDirection: 'vertical',
-            }}
-          />
-          <Stack.Screen
-            name="OnboardingTrialOffer"
-            component={OnboardingTrialOfferScreen as React.ComponentType}
-            options={{
-              headerShown: false,
-              presentation: Platform.OS === 'android' ? 'transparentModal' : 'modal',
-              animation: 'slide_from_bottom',
-              animationDuration: 350,
-              gestureEnabled: true,
-              gestureDirection: 'vertical',
-              contentStyle: {
-                backgroundColor: Platform.OS === 'android' ? 'transparent' : Colors.sage,
-              },
             }}
           />
           <Stack.Screen

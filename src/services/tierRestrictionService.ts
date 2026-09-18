@@ -38,32 +38,12 @@ export const PDF_EXPORT_UPGRADE_PROMPT = {
 
 class TierRestrictionService {
   private restrictions: TierRestriction[] = [
-    // Export features - Growth tier and above only
-    {
-      feature: 'export_pdf',
-      requiredTier: 'growth',
-      usageType: 'exports',
-      featureFlag: 'intelligenceEnabled',
-    },
+    // DOCX remains legacy/incomplete and is intentionally not included here.
     {
       feature: 'export_docx',
       requiredTier: 'growth',
       usageType: 'exports',
       featureFlag: 'intelligenceEnabled',
-    },
-
-    // Smart journaling - Spark tier and above only (restrict Seeker and Free Trial)
-    {
-      feature: 'smart_journaling',
-      requiredTier: 'spark',
-      featureFlag: 'smartJournalingEnabled',
-    },
-
-    // Calendar sync
-    {
-      feature: 'calendar_sync',
-      requiredTier: 'growth',
-      featureFlag: 'calendarSyncEnabled',
     },
 
     // Advanced analytics
@@ -87,13 +67,6 @@ class TierRestrictionService {
     //   usageType: 'familyMembers',
     // },
 
-    // Copy incomplete todos
-    {
-      feature: 'copy_incomplete_todos',
-      requiredTier: 'spark',
-      featureFlag: 'copyIncompleteTodosEnabled',
-    },
-
     // Answered prayer tracking
     {
       feature: 'answered_prayer_tracking',
@@ -101,17 +74,6 @@ class TierRestrictionService {
       featureFlag: 'answeredPrayerTrackingEnabled',
     },
 
-    // Guided prompts
-    {
-      feature: 'guided_prompts',
-      requiredTier: 'spark',
-      usageType: 'guidedPrompts',
-    },
-    {
-      feature: 'unlimited_guided_prompts',
-      requiredTier: 'spark',
-      usageType: 'guidedPrompts',
-    },
   ];
 
   /**

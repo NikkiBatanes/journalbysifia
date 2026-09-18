@@ -1,7 +1,5 @@
 import { Playbook } from '../interfaces/playbook';
 
-type OfferDismissBehavior = 'goBack' | 'userInput' | 'notificationSetup';
-
 export type RootStackParamList = {
   // Auth Stack
   Auth: { screen: 'Login' | 'Register' } | undefined;
@@ -20,45 +18,6 @@ export type RootStackParamList = {
   OnboardingPersonalization: { name?: string; registrationMethod?: 'email' | 'oauth'; step?: number; rewriteData?: any } | undefined;
   OnboardingNotificationPermission: { playbook?: Playbook } | undefined;
 
-  OnboardingSalesOffer: {
-    upgradeMode?: boolean;
-    currentTier?: string;
-    selectedTier?: string;
-    billingCycle?: 'monthly' | 'annual';
-    currentTrialBillingCycle?: 'monthly' | 'annual';
-    selectedBillingCycle?: 'monthly' | 'annual';
-    source?: string;
-    feature?: string;
-    featureType?: 'playbooks' | 'wisdom' | 'export_pdf' | 'export_docx';
-    tier?: string;
-    skipNotificationPreference?: boolean;
-    dismissBehavior?: OfferDismissBehavior;
-    currentTrialChosenTier?: string;
-    profileTrialViewPlans?: boolean;
-    testModeTier?: string;
-    testModeIsOnTrial?: boolean;
-    testModeHasStartedTrial?: boolean;
-    testModeHasEverStartedTrial?: boolean;
-    testModeTrialChosenTier?: string;
-    testModeTrialEndDate?: string;
-    testModeBillingCycle?: 'monthly' | 'annual';
-    testModeRemaining?: number;
-    testModeLimit?: number;
-  } | undefined;
-  // RE-ENABLED: Trial Offer screen for trial flow navigation
-  OnboardingTrialOffer: {
-    selectedTierId?: string;
-    billing?: 'monthly' | 'annual';
-    source?: string;
-    feature?: string;
-    skipNotificationPreference?: boolean;
-    returnTo?: string;
-    context?: string;
-    dismissBothModalsOnClose?: boolean;
-    dismissBehavior?: OfferDismissBehavior;
-    onboardingFlow?: boolean;
-    isTrialEligible?: boolean;
-  } | undefined;
   OnboardingPaymentConfirmation: {
     userType: 'trial' | 'paid' | 'freemium';
     selectedTier?: string;
@@ -67,9 +26,7 @@ export type RootStackParamList = {
     isDiscounted?: boolean;
     discountPercentage?: number;
   };
-  OnboardingNotificationSetup: {
-    userType: 'trial' | 'paid' | 'freemium';
-  };
+  OnboardingNotificationSetup: undefined;
 
   // Journal first-launch onboarding (local AsyncStorage flag, no auth)
   JournalOnboarding: undefined;
@@ -77,6 +34,7 @@ export type RootStackParamList = {
   // Main App
   MainTabs: undefined;
   Gospel: undefined;
+  ForMeDay: { mode?: 'celebrate' | 'settings' } | undefined;
   UserProfileModal: undefined;
   PlaybookDetail: {
     playbook: Playbook;

@@ -271,12 +271,9 @@ const StreakPlanScreen: React.FC = () => {
   const handleContinue = () => {
     try { triggerLightHaptic(); } catch {}
 
-    // Navigate to sales offer screen if in onboarding flow, otherwise go back
+    // Continue to the existing notification preferences when onboarding.
     if (params.onboarding) {
-      (navigation as any).navigate('OnboardingSalesOffer', {
-        onboardingFlow: true,
-        skipNotificationPreference: false,
-      });
+      (navigation as any).navigate('OnboardingNotificationSetup');
     } else if (params.returnTo === 'journal') {
       (navigation as any).navigate('MainTabs', {
         screen: 'Journal',

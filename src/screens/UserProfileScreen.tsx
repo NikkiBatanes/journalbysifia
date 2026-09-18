@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { useFocusEffect } from '@react-navigation/native';
 import { Logger } from '../utils/ProductionLogger';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -36,29 +35,11 @@ import { userApi } from '../services/userApi';
 import ProfileHeader from '../components/profile/ProfileHeader';
 import StreakTracker from '../components/dashboard/StreakTracker';
 import { pickImageLocal, uploadAvatar } from '../services/avatarService';
-import { NewSubscriptionService } from '../services/NewSubscriptionService';
-import PlatformPaymentService from '../services/PlatformPaymentService';
 import { faithPointsEvents, FAITH_POINTS_EVENTS } from '../services/faithPointsEvents';
 import { accountDeletionService } from '../services/accountDeletionService';
-import SubscriptionPlanModal from '../components/SubscriptionPlanModal';
 import BadgesModal from '../components/BadgesModal';
 import PlatformPageSheetModal from '../components/common/PlatformPageSheetModal';
 import { UserProgress, UserPreferences } from '../types/auth';
-// Types for subscription - using inline types to avoid import issues
-interface Subscription {
-  id: string;
-  tier: string;
-  status: string;
-  platform_subscription_id?: string;
-  limits?: {
-    playbooks: number;
-  };
-  refinement_limit?: number;
-  wisdom_limit?: number;
-  subscription_display_name?: string;
-  billing_cycle?: 'monthly' | 'annual';
-}
-
 import { Colors } from '../theme/colors';
 import { useTheme } from '../theme/ThemeContext';
 import { notificationManagementService, NotificationPreferences } from '../services/notificationManagementService';
@@ -163,15 +144,6 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
     });
   }, [androidBackdropOpacity, androidSheetTranslateY, navigation]);
 
-  const navigateToSalesOffer = useCallback((params: Record<string, unknown>) => {
-    const didNavigate = navigateFromRoot(navigation, 'OnboardingSalesOffer', params);
-    if (!didNavigate) {
-      Logger.warn('[UserProfileScreen] Unable to navigate to sales offer', {
-        component: 'UserProfileScreen',
-      });
-    }
-  }, [navigation]);
-
   // POST-LAUNCH: Family subscription hook
   // const {
   //   familyGroup,
@@ -180,7 +152,6 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
   // TODO: Add updateProfile and updatePreferences to IndustryStandardAuthContext
   const [_userProgress, setUserProgress] = useState<UserProgress | null>(null);
   const [profileStats, setProfileStats] = useState<ProfileStats | null>(null);
-  const [subscription, setSubscription] = useState<Subscription | null>({ id: 'default', tier: 'seeker', status: 'active' });
   // Form states
   const [profileForm, setProfileForm] = useState({
     firstName: (user as any)?.firstName || savedProfile?.first_name || '',
@@ -239,45 +210,12 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
   const [_loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  useFocusEffect(
-    useCallback(() => {
-      if (!user?.id) {
-        return;
-      }
-
-      (async () => {
-        try {
-          const { AppleStoreKitService } = await import('../services/AppleStoreKitService');
-          const storeKit = AppleStoreKitService.getInstance();
-          await storeKit.checkAndSyncSubscriptionStatus(user.id);
-
-          // CRITICAL: Force refresh subscription data from database after sync
-          // This ensures the UI shows the correct tier, especially after cancellation
-          const subscriptionData = await NewSubscriptionService.getUserSubscription(user.id, true); // Force fresh data
-          setSubscription(subscriptionData as any);
-
-          Logger.info('[UserProfileScreen] Subscription refreshed on focus', {
-            component: 'UserProfileScreen',
-            tier: subscriptionData.tier,
-            status: subscriptionData.status,
-          });
-        } catch (_error) {
-          Logger.error('[UserProfileScreen] Failed to sync subscription status on focus', _error as Error, {
-            component: 'UserProfileScreen',
-            action: 'sync_subscription_on_focus',
-          });
-        }
-      })();
-    }, [user?.id])
-  );
-
   // Modal states
   const [editProfileModal, setEditProfileModal] = useState(false);
   const [deleteAccountModal, setDeleteAccountModal] = useState(false);
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
   const [showInlineYearPicker, setShowInlineYearPicker] = useState(false);
   const [systemPermissionsModal, setSystemPermissionsModal] = useState(false);
-  const [subscriptionPlanModal, setSubscriptionPlanModal] = useState(false);
   const [badgesModalVisible, setBadgesModalVisible] = useState(false);
   const [tempBirthDate, setTempBirthDate] = useState<Date>(() => {
     const birthDateStr = savedProfile?.birth_date || (profileForm as any)?.birthDate;
@@ -417,7 +355,6 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
         const defaultPrefs = {
           user_id: user.id,
           playbook_steps: true,
-          trial_notifications: true,
           prayer_request_alerts: false,
           prayer_requests: false,
           created_at: new Date().toISOString(),
@@ -439,7 +376,6 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
       setNotificationPrefs({
         user_id: user.id,
         playbook_steps: false,
-        trial_notifications: false,
         prayer_request_alerts: false,
         prayer_requests: false,
         created_at: new Date().toISOString(),
@@ -483,42 +419,6 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
 
       // Badge data loading removed - badges section not currently displayed
 
-      // Load subscription and usage data separately to avoid blocking UI
-      try {
-        // Check and apply monthly reset before reading — ensures profile always shows
-        // current-period counts even if the billing webhook hasn't fired yet.
-        await NewSubscriptionService.checkAndResetMonthlyUsage(user.id);
-
-        const subscriptionData = await NewSubscriptionService.getUserSubscription(user.id, true); // Force fresh data
-        setSubscription(subscriptionData as any);
-
-        // Auto-disable calendar autoSync if user is on seeker tier
-        // Check user metadata directly since preferences state may not be loaded yet
-        const currentPrefs = (user as any)?.user_metadata?.preferences || {};
-        if (subscriptionData.tier === 'seeker' && currentPrefs.calendar?.autoSync === true) {
-          const updatedPreferences = {
-            ...currentPrefs,
-            calendar: {
-              ...currentPrefs.calendar,
-              autoSync: false,
-            },
-          };
-          const result = await updatePreferences(updatedPreferences);
-          if (result.success) {
-            setPreferences(updatedPreferences);
-            Logger.info('Auto-disabled calendar autoSync for seeker tier', {
-              component: 'UserProfileScreen',
-              userId: user.id,
-            });
-          }
-        }
-
-      } catch (_error) {
-        Logger.error('Failed to load subscription data', _error as Error, {
-      component: 'UserProfileScreen',
-    });
-      }
-
       // Load notification preferences separately to avoid blocking
       loadNotificationPreferences().catch(error => {
         Logger.error('Failed to load notification preferences', error as Error, {
@@ -536,92 +436,6 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id, loadNotificationPreferences]);
-
-  /**
-   * ENTERPRISE IMPROVEMENT: Restore Purchases Handler
-   * Explanation: This allows users to recover their subscriptions after:
-   * - Reinstalling the app
-   * - Switching devices
-   * - Losing their subscription status
-   *
-   * This is REQUIRED by Apple for all subscription apps. On Android it syncs
-   * active subscriptions from Google Play for the signed-in Play account.
-   * Now includes server-side validation for security.
-   */
-  const handleRestorePurchases = useCallback(async () => {
-    if (!user?.id) {
-      Alert.alert('Error', 'Please sign in to restore purchases');
-      return;
-    }
-
-    try {
-      triggerLightHaptic();
-    } catch {}
-
-    const isAndroid = Platform.OS === 'android';
-
-    Alert.alert(
-      isAndroid ? 'Sync Purchases' : 'Restore Purchases',
-      isAndroid
-        ? 'This will sync any active siFia subscriptions from your Google Play account.'
-        : 'This will restore any previous purchases made with this Apple ID.',
-      [
-        {
-          text: 'Cancel',
-          style: 'cancel',
-        },
-        {
-          text: isAndroid ? 'Sync' : 'Restore',
-          onPress: async () => {
-            try {
-              // Show loading state
-              Alert.alert(isAndroid ? 'Syncing...' : 'Restoring...', isAndroid ? 'Please wait while we sync your Google Play purchases.' : 'Please wait while we restore your purchases.');
-
-              if (isAndroid) {
-                const paymentService = PlatformPaymentService.getInstance();
-                const synced = await paymentService.restorePurchases(user.id);
-
-                if (synced) {
-                  await loadProfileData();
-                  Alert.alert('Success', 'Your Google Play purchases were synced.', [{ text: 'OK' }]);
-                } else {
-                  Alert.alert('No Purchases Found', 'No active Google Play purchases were found for this app.', [{ text: 'OK' }]);
-                }
-                return;
-              }
-
-              const { AppleStoreKitService } = await import('../services/AppleStoreKitService');
-              const storeKit = AppleStoreKitService.getInstance();
-              const result = await storeKit.restorePurchases(user.id);
-
-              if (result.success) {
-                // Refresh subscription data
-                await loadProfileData();
-
-                // Auto-dismiss loading alert and show success
-                setTimeout(() => {
-                  Alert.alert('Success', result.message, [{ text: 'OK' }]);
-                }, 100);
-              } else {
-                Alert.alert('No Purchases Found', result.message, [{ text: 'OK' }]);
-              }
-            } catch (_error) {
-              Logger.error('Restore purchases error', _error as Error, {
-      component: 'UserProfileScreen',
-    });
-              Alert.alert(
-                isAndroid ? 'Sync Failed' : 'Restore Failed',
-                isAndroid
-                  ? 'Unable to sync Google Play purchases. Please try again later or contact support.'
-                  : 'Unable to restore purchases. Please try again later or contact support.',
-                [{ text: 'OK' }]
-              );
-            }
-          },
-        },
-      ]
-    );
-  }, [user, loadProfileData]);
 
   // Personalization toggles
   const [hapticsEnabled, setHapticsEnabled] = useState(true);
@@ -1310,33 +1124,6 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
       const newValue = !currentValue;
 
       if (newValue) {
-        try {
-          const subscriptionData = await NewSubscriptionService.getUserSubscription(user?.id || '');
-          if (subscriptionData.tier === 'seeker') {
-            navigateToSalesOffer({
-              source: 'calendar_auto_sync',
-              feature: 'Calendar Auto-Sync & Future Planning',
-              context: 'profile_settings',
-              skipNotificationPreference: true,
-              dismissBehavior: 'goBack',
-              returnTo: 'UserProfile',
-              title: 'Upgrade to Plan Ahead',
-              subtitle: 'Unlock calendar auto-sync and guided journaling to support your journey.',
-              benefits: [
-                'Auto-sync time blocks to your calendar seamlessly.',
-                'Plan days ahead with clear focus, to-dos, and time blocks.',
-                'Stay consistent with guided journaling that builds faithful rhythms.',
-                'Make room for deeper guided reflection.',
-              ],
-            });
-            return;
-          }
-        } catch (_error) {
-          Logger.error('Failed to check subscription tier', _error as Error, {
-            component: 'UserProfileScreen',
-          });
-        }
-
         const { requestCalendarPermissions } = await import('../services/calendarSyncService');
         const hasPermission = await requestCalendarPermissions();
 
@@ -1383,8 +1170,6 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
     isSavingCalendarAutoSync,
     preferences,
     updatePreferences,
-    user?.id,
-    navigateToSalesOffer,
   ]);
 
   // Initialize draft when opening the Week Start modal
@@ -1419,7 +1204,6 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
       // Clear local state before logout to prevent stale data
       setUserProgress(null);
       setProfileStats(null);
-      setSubscription(null);
       setNotificationPrefs(null);
 
       await signOut();
@@ -1666,73 +1450,6 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
     </View>
   );
 
-  const renderSubscriptionSection = () => {
-    if (!subscription) {return null;}
-
-    const tier = subscription.tier?.replace(/_annual$/, '') || 'seeker';
-    // For trials, use billing_cycle field; for paid tiers, check tier suffix
-    const isAnnual = subscription.tier === 'free_trial'
-      ? subscription.billing_cycle === 'annual'
-      : subscription.tier?.includes('_annual') || false;
-    const billingPeriod = isAnnual ? 'Annual' : 'Monthly';
-    const isSeeker = tier === 'seeker';
-    const isSpark = tier === 'spark';
-    const isGrowth = tier === 'growth';
-    const isTransformation = tier === 'transformation';
-
-    // Check if user is eligible for free trial
-    // const isEligibleForTrial = subscription.status !== 'trialing' &&
-    //                            subscription.status !== 'active' &&
-    //                            !(subscription as any)?.has_used_trial;
-
-    const tierDisplayName = isSeeker ? 'Seeker' :
-                           isSpark ? 'Spark Plan' :
-                           isGrowth ? 'Growth Plan' :
-                           isTransformation ? 'Transformation Plan' :
-                           tier === 'free_trial' ? subscription.subscription_display_name || 'Free Trial Plan' : `${tier.charAt(0).toUpperCase() + tier.slice(1)} Plan`;
-
-    const handleSubscriptionTap = () => {
-      try { triggerLightHaptic(); } catch {}
-      setSubscriptionPlanModal(true);
-    };
-
-    return (
-      <View>
-        <Text style={[styles.sectionLabel, styles.sectionLabelRight, font]}>SUBSCRIPTION</Text>
-        <View style={styles.menuContainer}>
-          <TouchableOpacity
-            style={[styles.menuItem, styles.menuItemSpaced]}
-            onPress={handleSubscriptionTap}
-          >
-            <View style={styles.menuIconBox}>
-              <Ionicons name="diamond" size={18} color={Colors.sage} />
-            </View>
-            <View style={styles.flex1}>
-              <Text style={[styles.menuText, font]}>{tierDisplayName}</Text>
-                          </View>
-            {isSeeker ? (
-              <Text style={[styles.menuValueText, font, styles.iconWithMargin]}>Free Plan</Text>
-            ) : (
-              <Text style={[styles.menuValueText, font, styles.iconWithMargin]}>{billingPeriod}</Text>
-            )}
-            <Ionicons name="chevron-forward" size={20} color={theme.colors.chevronColor} />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.menuItem, styles.menuItemSpaced]}
-            onPress={() => { try { triggerLightHaptic(); } catch {} handleRestorePurchases(); }}
-          >
-            <View style={styles.menuIconBox}>
-              <Ionicons name="refresh" size={18} color={Colors.sage} />
-            </View>
-            <Text style={[styles.menuText, font]}>{Platform.OS === 'android' ? 'Sync Purchases' : 'Restore Purchases'}</Text>
-            <Ionicons name="chevron-forward" size={20} color={theme.colors.chevronColor} />
-          </TouchableOpacity>
-        </View>
-      </View>
-    );
-  };
-
   const renderMenuOptions = () => (
     <View>
       <Text style={[styles.sectionLabel, styles.sectionLabelRight, font]}>PERSONALIZATION</Text>
@@ -1888,6 +1605,23 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           </View>
           <Ionicons name="chevron-forward" size={20} color={theme.colors.chevronColor} />
         </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.menuItem, styles.menuItemSpaced]}
+          onPress={() => {
+            try { triggerLightHaptic(); } catch {}
+            navigation.navigate('ForMeDay', { mode: 'settings' });
+          }}
+          accessibilityRole="button"
+          accessibilityLabel="Set up My For Me Day">
+          <View style={styles.menuIconBox}>
+            <Ionicons name="calendar-outline" size={18} color={Colors.faithGold} />
+          </View>
+          <View style={styles.flex1}>
+            <Text style={[styles.menuText, font]}>My For Me Day</Text>
+            <Text style={[styles.menuValueText, font]}>Remember your spiritual birthday</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={theme.colors.chevronColor} />
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -1913,7 +1647,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
             <View style={styles.menuIconBox}>
               <Ionicons name="stats-chart" size={18} color={Colors.sage} />
             </View>
-            <Text style={[styles.menuText, font]}>Subscription Dashboard</Text>
+            <Text style={[styles.menuText, font]}>Admin Dashboard</Text>
             <Ionicons name="chevron-forward" size={20} color={theme.colors.chevronColor} />
           </TouchableOpacity>
         </View>
@@ -2575,27 +2309,6 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
               </TouchableOpacity>
             </View>
 
-            {subscription?.tier === 'free_trial' && (
-              <View style={styles.settingItem}>
-                <Text style={[styles.settingLabel, font]}>Trial Notifications</Text>
-                <TouchableOpacity
-                  onPress={() => updatePref('trial_notifications', !(notificationPrefs?.trial_notifications ?? false))}
-                  disabled={!notificationPrefs}
-                  style={styles.switchContainer}
-                >
-                  <View style={[
-                    styles.switchTrack,
-                    (notificationPrefs?.trial_notifications ?? false) ? styles.switchTrackActive : styles.switchTrackInactive,
-                  ]}>
-                    <View style={[
-                      styles.switchThumb,
-                      { transform: [{ translateX: (notificationPrefs?.trial_notifications ?? false) ? 20 : 0 }] },
-                    ]} />
-                  </View>
-                </TouchableOpacity>
-              </View>
-            )}
-
             <View style={styles.settingItem}>
               <Text style={[styles.settingLabel, font]}>Prayer Request Alerts</Text>
               <TouchableOpacity
@@ -2648,7 +2361,6 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           </View>
           {renderGospelSection()}
           {renderReflectionSection()}
-          {renderSubscriptionSection()}
           {renderMenuOptions()}
           {/* POST-LAUNCH: {renderFamilyManagementSection()} */}
           {renderAppBehaviorSection()}
@@ -2670,17 +2382,6 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
       {renderSettingsModal()}
       {renderReportBugModal()}
       {renderFeatureModal()}
-
-      <SubscriptionPlanModal
-        visible={subscriptionPlanModal}
-        onClose={() => setSubscriptionPlanModal(false)}
-        onOpenSalesOffer={navigateToSalesOffer}
-        onContinueWithSiFia={() => {
-          setSubscriptionPlanModal(false);
-          dismissAndroidRoute();
-        }}
-        navigation={navigation}
-      />
 
       <BadgesModal
         visible={badgesModalVisible}

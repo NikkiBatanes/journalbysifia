@@ -13,6 +13,7 @@ import WeeklyReviewCard from '../components/dashboard/WeeklyReviewCard';
 import PrayerToRevisit from '../components/dashboard/PrayerToRevisit';
 import JournalCalendarStrip from '../components/dashboard/JournalCalendarStrip';
 import DashboardHeaderScripture from '../components/dashboard/DashboardHeaderScripture';
+import ForMeDayCard from '../components/dashboard/ForMeDayCard';
 import ThemedText from '../components/common/ThemedText';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { useScroll } from '../context/ScrollContext';
@@ -418,6 +419,8 @@ const TodayScreen = () => {
             centered
           />
         </View>
+
+        {dateContext === 'today' ? <ForMeDayCard /> : null}
 
         <Stagger key={tick}>
         {dateContext === 'today' ? reviewCard : null}

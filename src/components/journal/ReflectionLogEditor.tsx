@@ -2,7 +2,6 @@ import React, {
   useEffect,
   useRef,
   useImperativeHandle,
-  useState,
   useCallback,
 } from 'react';
 import {Logger} from '../../utils/ProductionLogger';
@@ -30,10 +29,7 @@ import {triggerLightHaptic} from '../../utils/haptics';
 import ThemedText from '../common/ThemedText';
 import {useTheme} from '../../hooks/useTheme';
 import {getFontFamily} from '../../theme/fonts';
-import {useSubscription} from '../../hooks/useSubscription';
 import {useGuidedPromptGating} from '../../hooks/useGuidedPromptGating';
-import GuidedPromptLockIcon from '../GuidedPromptLockIcon';
-import {useNavigation} from '@react-navigation/native';
 import PlaybookMetaSection from './PlaybookMetaSection';
 import {
   HEART_JOURNAL_CLASSIFICATIONS,
@@ -539,7 +535,7 @@ const ReflectionLogEditor = React.forwardRef<
       onSave,
       onCancel,
       onDelete,
-      onUpgradeRequired,
+      onUpgradeRequired: _onUpgradeRequired,
       entryId,
       playbookTitle,
       totalDays,
@@ -594,26 +590,12 @@ const ReflectionLogEditor = React.forwardRef<
     }, []);
 
     const {currentFont} = useTheme();
-    const {subscription} = useSubscription();
-    const navigation = useNavigation();
     const fontKey = currentFont || 'lexend';
     const fontFamilyRegular = getFontFamily(fontKey, 'regular');
     const fontFamilyBold = getFontFamily(fontKey, 'bold');
 
     // Guided prompt gating
-    const guidedPromptGating = useGuidedPromptGating({
-      context: 'inApp',
-      onUpgradeRequired: () => {
-        // Navigate directly to sales offer screen
-        (navigation as any).navigate('OnboardingSalesOffer', {
-          source: 'guided_prompts_lock',
-          feature: 'guided_prompts',
-          tier: subscription?.tier || 'seeker',
-          upgradeMode: false,
-          skipNotificationPreference: true,
-        });
-      },
-    });
+    const guidedPromptGating = useGuidedPromptGating({context: 'inApp'});
 
     // Merge styles prop with fallbackStyles
     const s = {...fallbackStyles, ...styles};
@@ -691,20 +673,6 @@ const ReflectionLogEditor = React.forwardRef<
     // fire during prop-change-driven re-renders (source: guided→thoughts etc.)
     // know to abort instead of re-opening the keyboard.
     const isClosingRef = useRef(false);
-
-    const isSelectedPromptLocked = React.useMemo(() => {
-      // Check both selectedPrompt and title to catch all cases
-      const promptToCheck = selectedPrompt || newEntry.title;
-      if (!promptToCheck) {
-        return false;
-      }
-
-      // Check if prompt is in the locked prompts list
-      const lockedPrompts = guidedPromptGating.lockedPrompts || [];
-      const isLocked = lockedPrompts.includes(promptToCheck);
-
-      return isLocked;
-    }, [selectedPrompt, newEntry.title, guidedPromptGating.lockedPrompts]);
 
     const slideAnim = useRef(new Animated.Value(300)).current; // Start 300px below screen
 
@@ -1118,30 +1086,9 @@ const ReflectionLogEditor = React.forwardRef<
 
       if (promptToCheck) {
         // Use async canUsePrompt method
-        const canUseResult = await guidedPromptGating.canUsePrompt(
-          promptToCheck,
-        );
-
-        if (!canUseResult) {
-          // Close the reflection modal first so the sales offer shows in front
-          if (onUpgradeRequired) {
-            try {
-              onUpgradeRequired();
-            } catch {}
-          }
-          // Wait briefly for modal animation before navigating
-          setTimeout(() => {
-            (navigation as any).navigate('OnboardingSalesOffer', {
-              source: 'guided_prompts_lock',
-              feature: 'guided_prompts',
-              tier: subscription?.tier || 'seeker',
-              upgradeMode: false,
-              skipNotificationPreference: true,
-              returnToReflection: true,
-            });
-          }, 300);
-          return; // Block the save
-        }
+        // Retain completion/analytics compatibility without using the result
+        // as an entitlement decision.
+        await guidedPromptGating.canUsePrompt(promptToCheck);
       }
 
       // Clear any existing draft since we're saving the entry
@@ -1162,7 +1109,7 @@ const ReflectionLogEditor = React.forwardRef<
       }
 
       // Determine the entry type - if there's a guided prompt, it's a guided entry
-      const entryType = promptToCheck ? 'guided' : viewMode;
+      const entryType: ViewMode = promptToCheck ? 'guided' : effectiveViewMode;
 
       const entry = {
         title: newEntry.title.trim(),
@@ -1185,7 +1132,7 @@ const ReflectionLogEditor = React.forwardRef<
       onSave(entry);
     };
 
-    // Question selection belongs to GuidedReflectionExperience; this legacy
+    // Prompt selection belongs to GuidedReflectionExperience; this legacy
     // editor is now always the focused writer.
     const effectiveViewMode = 'free-form' as const;
     const editorEntranceAnims = useRef([
@@ -1713,36 +1660,6 @@ const ReflectionLogEditor = React.forwardRef<
                           ]}>
                           {initialTitle || newEntry.title}
                         </ThemedText>
-                        {isSelectedPromptLocked && (
-                          <GuidedPromptLockIcon
-                            tier={subscription?.tier || 'seeker'}
-                            usedPrompts={guidedPromptGating.usedPrompts}
-                            context="inApp"
-                            onLockTap={() => {
-                              if (onUpgradeRequired) {
-                                onUpgradeRequired();
-                              }
-                              setTimeout(() => {
-                                (navigation as any).navigate(
-                                  'OnboardingSalesOffer',
-                                  {
-                                    source: 'guided_prompts_lock',
-                                    feature: 'guided_prompts',
-                                    tier: subscription?.tier || 'seeker',
-                                    upgradeMode: false,
-                                    skipNotificationPreference: true,
-                                    returnToReflection: true,
-                                  },
-                                );
-                              }, 300);
-                            }}
-                            size={20}
-                            position="right"
-                            prompt={selectedPrompt}
-                            forceShow={true}
-                            style={s.titleLockIcon}
-                          />
-                        )}
                       </View>
                     </View>
                   ) : (
@@ -1779,36 +1696,6 @@ const ReflectionLogEditor = React.forwardRef<
                         underlineColorAndroid="transparent"
                         multiline={true}
                       />
-                      {isSelectedPromptLocked && (
-                        <GuidedPromptLockIcon
-                          tier={subscription?.tier || 'seeker'}
-                          usedPrompts={guidedPromptGating.usedPrompts}
-                          context="inApp"
-                          onLockTap={() => {
-                            if (onUpgradeRequired) {
-                              onUpgradeRequired();
-                            }
-                            setTimeout(() => {
-                              (navigation as any).navigate(
-                                'OnboardingSalesOffer',
-                                {
-                                  source: 'guided_prompts_lock',
-                                  feature: 'guided_prompts',
-                                  tier: subscription?.tier || 'seeker',
-                                  upgradeMode: false,
-                                  skipNotificationPreference: true,
-                                  returnToReflection: true,
-                                },
-                              );
-                            }, 300);
-                          }}
-                          size={20}
-                          position="right"
-                          prompt={selectedPrompt}
-                          forceShow={true}
-                          style={s.titleLockIcon}
-                        />
-                      )}
                     </View>
                   )}
                   </Animated.View>

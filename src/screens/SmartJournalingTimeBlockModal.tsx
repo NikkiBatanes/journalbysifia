@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Modal,
   Alert,
@@ -17,14 +17,6 @@ import { useNavigation } from '@react-navigation/native';
 import { TimeBlockApi, TimeBlockApiEntry } from '../services/api/timeBlockApi';
 import { toLocalDateString } from '../utils/date';
 import { Logger } from '../utils/ProductionLogger';
-import { useSubscription } from '../hooks/useSubscription';
-import {
-  checkPlanningAccess,
-  getEffectivePlanningTier,
-  isFuturePlanningDate,
-  isRecurringPlanningFrequency,
-} from '../utils/tierLockingRules';
-import { navigateFromRoot } from '../utils/navigationHelpers';
 import { visibleStreakService } from '../services/visibleStreakService';
 
 interface SmartJournalingTimeBlockModalProps {
@@ -61,10 +53,8 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
 
   const { user } = useAuth();
   const navigation = useNavigation();
-  const { subscription } = useSubscription();
   const queryClient = useQueryClient();
   const { handleAutoCheckStep } = useActionSteps();
-  const planningTier = useMemo(() => getEffectivePlanningTier(subscription), [subscription]);
 
   // Store the initial metadata to preserve it
   const [preservedSubtaskTitle, setPreservedSubtaskTitle] = useState(subtaskTitle);
@@ -122,25 +112,9 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
   const [hasSaved, setHasSaved] = useState(false);
   const [_pendingTimeBlockData, _setPendingTimeBlockData] = useState<{ timeBlockEntry: any } | null>(null); // Store data before DB save
   const timeBlockEditorRef = useRef<TimeBlockLogEditorRef>(null);
-  const [temporarilyHiddenForUpgrade, setTemporarilyHiddenForUpgrade] = useState(false);
-  const shouldRestoreAfterUpgradeRef = useRef(false);
-
-  useEffect(() => {
-    const unsubscribe = navigation.addListener?.('focus', () => {
-      if (shouldRestoreAfterUpgradeRef.current) {
-        shouldRestoreAfterUpgradeRef.current = false;
-        setTemporarilyHiddenForUpgrade(false);
-      }
-    });
-
-    return unsubscribe;
-  }, [navigation]);
-
   // Track visibility changes to detect when modal opens/closes
   useEffect(() => {
     if (!visible) {
-      shouldRestoreAfterUpgradeRef.current = false;
-      setTemporarilyHiddenForUpgrade(false);
     }
 
     if (visible && !prevVisible) {
@@ -268,38 +242,10 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
       hasUser: !!user,
       repeatFrequency: timeBlockData.repeatFrequency,
       date: timeBlockData.date,
-      planningTier,
     });
     try {
       if (!user) {
         Alert.alert('Error', 'You must be logged in to save time blocks.');
-        return;
-      }
-
-      const planningAccess = checkPlanningAccess(planningTier, 'inApp');
-      const lockedByRepeat = planningAccess.isLocked && isRecurringPlanningFrequency(timeBlockData.repeatFrequency);
-      const lockedByFutureDate = planningAccess.isLocked && isFuturePlanningDate(timeBlockData.date);
-      if (lockedByRepeat || lockedByFutureDate) {
-        Logger.info('[TimeBlockModal] Locked feature detected, navigating to sales offer', {
-          lockedByRepeat,
-          lockedByFutureDate,
-          planningTier,
-        });
-        shouldRestoreAfterUpgradeRef.current = true;
-        // Close the modal properly before navigating to avoid modal conflict
-        onCancel();
-        // Wait for modal slide animation to complete (300ms matches typical React Native modal animation)
-        setTimeout(() => {
-          Logger.info('[TimeBlockModal] Attempting navigation to OnboardingSalesOffer');
-          const didNavigate = navigateFromRoot(navigation, 'OnboardingSalesOffer', {
-            source: lockedByRepeat ? 'repeat_options' : 'planning_lock',
-            feature: lockedByRepeat ? 'repeat_options' : 'future_planning',
-            tier: planningTier,
-            skipNotificationPreference: true,
-            dismissBehavior: 'goBack',
-          });
-          Logger.info('[TimeBlockModal] Navigation result', { didNavigate });
-        }, 350);
         return;
       }
 
@@ -419,7 +365,7 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
   return (
     <>
       <Modal
-        visible={visible && !temporarilyHiddenForUpgrade}
+        visible={visible}
         animationType="slide"
         transparent={false}
         statusBarTranslucent={Platform.OS === 'android'}

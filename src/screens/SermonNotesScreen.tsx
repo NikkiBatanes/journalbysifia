@@ -3195,9 +3195,7 @@ const SermonNotesScreen = ({navigation, route}: any) => {
       <ShareComposer
         visible={shareComposerOpen}
         text={shareComposerText}
-        userId=""
         onClose={() => setShareComposerOpen(false)}
-        onUpgrade={() => setShareComposerOpen(false)}
       />
 
       <BibleCopyrightModal

@@ -193,7 +193,7 @@ export const buildMomentTimeline = ({ journalEntries, reflections, bibleStudies,
 };
 
 export const getCanonicalMomentTimeline = async (): Promise<MomentTimelineItem[]> => {
-  const reflectionTypes = ['scripture', 'sermon', 'free', 'freeform', 'free-form', 'guided', 'thought', 'thoughts', 'devotional', 'playbook', 'reflection'];
+  const reflectionTypes = ['scripture', 'sermon', 'free', 'freeform', 'free-form', 'guided', 'thought', 'thoughts', 'devotional', 'playbook', 'reflection', 'gospel_anniversary'];
   const [journalEntries, bibleStudies, prayers, ...reflectionGroups] = await Promise.all([
     getAllLocalJournalEntries(),
     getSavedBibleStudyReflections(),

@@ -193,19 +193,7 @@ export default function TruthInLoveCard({
       <TruthToCarryShareComposer
         visible={composerVisible}
         text={shareText}
-        userId={(user as any)?.id || ''}
         onClose={() => setComposerVisible(false)}
-        onUpgrade={() => {
-          navigation.navigate('OnboardingSalesOffer' as never, {
-            upgradeMode: true,
-            currentTier: 'seeker',
-            selectedTier: 'growth',
-            source: 'sifia_reflection_watermark',
-            feature: 'remove_share_watermark',
-            skipNotificationPreference: true,
-            dismissBehavior: 'goBack',
-          } as never);
-        }}
       />
     </View>
   );

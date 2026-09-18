@@ -19,6 +19,8 @@ RCT_EXTERN_METHOD(getBadgeNumber:(RCTPromiseResolveBlock)resolve
 
 RCT_EXTERN_METHOD(cancelAllLocalNotifications)
 
+RCT_EXTERN_METHOD(cancelLocalNotification:(NSString *)identifier)
+
 RCT_EXTERN_METHOD(removeAllDeliveredNotifications)
 
 RCT_EXTERN_METHOD(scheduleLocalNotification:(NSDictionary *)notification

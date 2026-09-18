@@ -53,7 +53,7 @@ interface PlanningGatingResult {
 export const usePlanningGating = (
   selectedDate: Date,
   context: 'onboarding' | 'inApp' = 'inApp',
-  onUpgradeRequired?: () => void
+  _onUpgradeRequired?: () => void
 ): PlanningGatingResult => {
   const { subscription } = useSubscription();
 
@@ -83,10 +83,8 @@ export const usePlanningGating = (
   // compatibility hook for its callers, but do not apply siFia tier rules.
   const shouldShowLock = false;
 
-  // Handle locked action - navigate to onboarding sales offer
-  const handleLockedAction = useMemo(() => (reason: PlanningLockReason = 'future_planning') => {
-    onUpgradeRequired?.();
-  }, [onUpgradeRequired]);
+  // Compatibility callback: core Journal planning has no locked action.
+  const handleLockedAction = useMemo(() => (_reason: PlanningLockReason = 'future_planning') => {}, []);
 
   return {
     // Access Control

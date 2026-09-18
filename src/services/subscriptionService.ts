@@ -3,7 +3,7 @@
 
 import { supabase } from './supabaseClient';
 import { NewSubscriptionService as NSS } from './NewSubscriptionService';
-import type { Subscription, SubscriptionTier, SubscriptionLimits, SubscriptionCheck } from '../types/subscription';
+import type { Subscription, SubscriptionTier, SubscriptionLimits } from '../types/subscription';
 
 // Augmented limits shape expected by legacy code
 export interface LegacySubscriptionLimits extends SubscriptionLimits {
@@ -86,7 +86,6 @@ export const subscriptionService = {
   getSubscriptionLimits(tier: SubscriptionTier): LegacySubscriptionLimits {
     const base = NSS.getTierLimits(tier);
     const normalizedTier = tier.replace('_annual', '') as SubscriptionTier;
-    const isPaidTier = normalizedTier !== 'seeker' && normalizedTier !== 'free_trial';
     const isGrowthOrHigher = normalizedTier === 'growth' || normalizedTier === 'transformation';
     const isTransformation = normalizedTier === 'transformation';
 
@@ -97,11 +96,11 @@ export const subscriptionService = {
       apiCalls: -1,
       familyMembers: 0,
       intelligenceEnabled: mapIntelligenceEnabled(tier),
-      smartJournalingEnabled: base.smart_journaling_enabled,
-      calendarSyncEnabled: isGrowthOrHigher,
+      smartJournalingEnabled: true,
+      calendarSyncEnabled: true,
       advancedAnalytics: isGrowthOrHigher,
       prioritySupport: isTransformation,
-      copyIncompleteTodosEnabled: isPaidTier,
+      copyIncompleteTodosEnabled: true,
       answeredPrayerTrackingEnabled: tier !== 'seeker',
     };
   },
@@ -132,12 +131,18 @@ export const subscriptionService = {
   async canGenerate(
     userId: string,
     type: 'smart_journal' | 'export',
-    isOnboarding: boolean = false
+    _isOnboarding: boolean = false
   ): Promise<LegacyCanGenerateResult> {
+    if (type === 'smart_journal') {
+      return {
+        allowed: true,
+        upgradeRequired: false,
+        remaining: 'Unlimited',
+        limit: 'Unlimited',
+      };
+    }
+
     const sub = await NSS.getUserSubscription(userId);
-
-    const check: SubscriptionCheck = await NSS.checkUsageLimit(userId, type);
-
     // Determine remaining/limit based on action type
     let remaining: number | 'Unlimited' = 0;
     let limit: number | 'Unlimited' = 0;
@@ -157,15 +162,7 @@ export const subscriptionService = {
       };
     }
 
-    // smart_journal
-    const limits = NSS.getTierLimits(sub.tier);
-    return {
-      allowed: !!limits.smart_journaling_enabled,
-      upgradeRequired: !limits.smart_journaling_enabled,
-      remaining: -1 as any, // not used by callers
-      limit: -1 as any,
-      message: !limits.smart_journaling_enabled ? 'Smart journaling requires Spark plan or above.' : undefined,
-    };
+    throw new Error(`Unsupported generation type: ${type}`);
   },
 
   // Legacy: track usage (adapts extra params and forwards)
@@ -175,6 +172,7 @@ export const subscriptionService = {
     _tokensUsed?: number,
     isOnboarding?: boolean
   ): Promise<void> {
+    if (action === 'smart_journal') {return;}
     await NSS.incrementUsage(userId, action, isOnboarding || false);
   },
 

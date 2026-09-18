@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Logger } from '../../utils/ProductionLogger';
 import {
   View,
@@ -9,22 +9,15 @@ import {
   Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors } from '../../theme/colors';
 import { withErrorBoundary } from '../../components/ErrorBoundary/withErrorBoundary';
 import { triggerLightHaptic, triggerSuccessHaptic } from '../../utils/haptics';
-import { useNewSubscription } from '../../hooks/useNewSubscription';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { pushNotificationService } from '../../services/pushNotificationService';
 import { supabase } from '../../services/supabaseClient';
-import { NewSubscriptionService } from '../../services/NewSubscriptionService';
 import ThemedText from '../../components/common/ThemedText';
-
-interface RouteParams {
-  userType: 'trial' | 'paid' | 'freemium';
-  tier?: string;
-}
 
 interface NotificationSetting {
   id: string;
@@ -38,11 +31,7 @@ interface NotificationSetting {
 const OnboardingNotificationSetupScreen = () => {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
-  const route = useRoute();
   const { user } = useAuth();
-  const { subscription, refreshSubscription } = useNewSubscription(user?.id || '');
-  const { userType, tier } = (route.params as RouteParams) || {};
-  const assistResetDoneRef = useRef(false);
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [permissionStatus, setPermissionStatus] = useState<'unknown' | 'granted' | 'denied' | 'checking'>('unknown'); // Used in lines 83-89
@@ -75,25 +64,6 @@ const OnboardingNotificationSetupScreen = () => {
     return 'Friend';
   })();
 
-  useEffect(() => {
-    if (!user?.id || assistResetDoneRef.current) {
-      return;
-    }
-
-    assistResetDoneRef.current = true;
-
-    NewSubscriptionService.resetOnboardingAssistCounters(user.id)
-      .catch(error => {
-        Logger.warn('Could not replenish onboarding assist counters', {
-          component: 'OnboardingNotificationSetupScreen',
-          errorMessage: (error as Error)?.message || 'Unknown assist reset error',
-        });
-      })
-      .finally(() => {
-        refreshSubscription();
-      });
-  }, [user?.id, refreshSubscription]);
-
   // Enterprise-grade permission status checking
   useEffect(() => {
     const checkPermissionStatus = async () => {
@@ -109,9 +79,6 @@ const OnboardingNotificationSetupScreen = () => {
 
     checkPermissionStatus();
   }, []);
-
-  // Determine effective user type from subscription or route params
-  const effectiveUserType = userType || (subscription?.tier === 'free_trial' ? 'trial' : 'freemium');
 
   const [notificationSettings, setNotificationSettings] = useState<NotificationSetting[]>([
     {
@@ -141,14 +108,6 @@ const OnboardingNotificationSetupScreen = () => {
       description: 'Quiet celebrations of growth and faithfulness',
       icon: 'trending-up-outline',
       enabled: true,
-    },
-    {
-      id: 'trial_reminders',
-      title: 'Trial Reminders',
-      description: 'Helpful updates so you can decide with peace',
-      icon: 'time-outline',
-      enabled: false,
-      required: false,
     },
     {
       id: 'prayer_request_alerts',
@@ -217,7 +176,6 @@ const OnboardingNotificationSetupScreen = () => {
               playbook_steps: enabledSettings.playbooks || false,
               journal_prompts: enabledSettings.journal_reminders || false,
               milestone_celebrations: enabledSettings.progress_updates || false,
-              trial_notifications: enabledSettings.trial_reminders || false,
               streak_alerts: enabledSettings.progress_updates || false,
               prayer_requests: enabledSettings.prayer_request_alerts || false,
               prayer_request_alerts: enabledSettings.prayer_request_alerts || false,
@@ -329,64 +287,10 @@ const OnboardingNotificationSetupScreen = () => {
     );
   };
 
-  const getWelcomeMessage = () => {
-    // If user cancelled sales offer, they should be seeker regardless of subscription tier
-    const fromCancelledSales = (route.params as any)?.fromCancelledSales;
-    if (fromCancelledSales) {
-      return {
-        title: 'Welcome to siFia',
-        subtitle: 'Move at a pace that feels right for your season.',
-        badge: 'Free Access',
-      };
-    }
-
-    const currentTier = subscription?.tier || tier || 'seeker';
-    const baseTier = currentTier.replace('_annual', '');
-    const trialChosenTier = (subscription as any)?.trial_chosen_tier?.replace('_annual', '') || 'growth';
-
-    switch (baseTier) {
-      case 'free_trial':
-        return {
-          title: 'Make the Most of Your Free Trial',
-          subtitle: 'Choose the reminders that support your journaling routine.',
-          badge: '3-Day Trial Active',
-        };
-      case 'spark':
-        return {
-          title: 'Welcome to Spark',
-          subtitle: 'Choose the reminders that support your journaling routine.',
-          badge: 'Spark Subscriber',
-        };
-      case 'growth':
-        return {
-          title: 'Welcome to Growth',
-          subtitle: 'Choose the reminders that support your journaling routine.',
-          badge: 'Growth Subscriber',
-        };
-      case 'transformation':
-        return {
-          title: 'Welcome to siFia Transformation',
-          subtitle: 'Choose gentle reminders to support your daily walk.',
-          badge: 'Transformation Subscriber',
-        };
-      // POST-LAUNCH: Family tier removed
-      // case 'family':
-      //   return {
-      //     title: 'Welcome to siFia Family',
-      //     subtitle: 'Keep your family connected with notifications for unlimited resources.',
-      //     badge: 'Family Subscriber',
-      //   };
-      case 'seeker':
-      default:
-        return {
-          title: 'Welcome to siFia',
-          subtitle: 'Move at a pace that feels right for your season.',
-          badge: 'Free Access',
-        };
-    }
+  const welcomeData = {
+    title: 'Welcome to Journal by siFia',
+    subtitle: 'Choose the reminders that support your journaling routine.',
   };
-
-  const welcomeData = getWelcomeMessage();
 
   return (
     <View style={styles.container}>
@@ -400,16 +304,11 @@ const OnboardingNotificationSetupScreen = () => {
 
         {/* Welcome Message */}
         <View style={styles.welcomeSection}>
-          {/* Subscription Badge */}
-          <View key="subscription-badge" style={styles.badgeContainer}>
-            <ThemedText weight="semiBold" style={styles.badgeText}>{welcomeData.badge}</ThemedText>
-          </View>
-
           <View style={styles.iconContainer}>
             <Ionicons name="notifications-outline" size={48} color={Colors.alertCoral} />
           </View>
           <ThemedText
-            style={[styles.welcomeTitle, effectiveUserType === 'paid' ? styles.welcomeTitleSmall : null]}
+            style={styles.welcomeTitle}
             numberOfLines={1}
             adjustsFontSizeToFit
             minimumFontScale={0.9}
@@ -426,9 +325,7 @@ const OnboardingNotificationSetupScreen = () => {
           <ThemedText weight="bold" style={styles.settingsTitle}>Notification Preferences</ThemedText>
           <ThemedText style={styles.settingsSubtitle}>Choose what would be helpful for you right now. You can change these anytime.</ThemedText>
 
-          {notificationSettings
-            .filter(setting => !(setting.id === 'trial_reminders' && effectiveUserType === 'trial'))
-            .map((setting) => (
+          {notificationSettings.map((setting) => (
             <View key={setting.id} style={styles.settingItem}>
               <View style={styles.settingLeft}>
                 <View style={styles.settingIconContainer}>

@@ -32,8 +32,6 @@ describe('Journal has no reachable Playbook generation entry point', () => {
       'screens/onboarding/OnboardingAccountCreationScreen.tsx',
       'screens/onboarding/OnboardingPersonalizationScreen.tsx',
       'screens/onboarding/OnboardingNotificationSetupScreen.tsx',
-      'screens/onboarding/OnboardingSalesOfferScreen.tsx',
-      'screens/onboarding/OnboardingTrialOfferScreen.tsx',
     ];
     files.forEach(file => expectNoGenerationNavigation(read(file)));
     const personalization = read('screens/onboarding/OnboardingPersonalizationScreen.tsx');

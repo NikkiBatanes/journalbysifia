@@ -16,11 +16,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { GOSPEL_PAGES, GOSPEL_PRAYER, LISTEN_FIRST_QUESTIONS } from '../data/gospelContent';
 import { GospelPerson, GospelResponse, gospelStorage } from '../storage/gospelStorage';
 import { Colors } from '../theme/colors';
+import { Fonts } from '../theme/fonts';
 import { useTheme } from '../theme/ThemeContext';
 import { useScreenStatusBar } from '../hooks/useScreenStatusBar';
 import { triggerLightHaptic, triggerSuccessHaptic } from '../utils/haptics';
+import { scheduleForMeDayReminder } from '../services/forMeDayService';
+import { toLocalDateString } from '../utils/date';
 
-type ViewName = 'home' | 'mode' | 'listen' | 'player' | 'response' | 'prayer' | 'assurance' | 'other' | 'people' | 'add-person' | 'send';
+type ViewName = 'home' | 'mode' | 'listen' | 'player' | 'response' | 'prayer' | 'assurance' | 'birthday' | 'next-steps' | 'other' | 'people' | 'add-person' | 'send';
 type Mode = 'app_self' | 'app_together';
 
 const RESPONSE_OPTIONS: Array<{ value: GospelResponse; label: string }> = [
@@ -48,6 +51,7 @@ const GospelScreen: React.FC<any> = ({ navigation }) => {
   const [listenIndex, setListenIndex] = useState(0);
   const [pageIndex, setPageIndex] = useState(0);
   const [response, setResponse] = useState<GospelResponse | null>(null);
+  const [pickedChoice, setPickedChoice] = useState<number | null>(null);
   const [people, setPeople] = useState<GospelPerson[]>([]);
   const [personName, setPersonName] = useState('');
   const [personNote, setPersonNote] = useState('');
@@ -89,6 +93,7 @@ const GospelScreen: React.FC<any> = ({ navigation }) => {
 
   const loadPeople = useCallback(async () => setPeople(await gospelStorage.getPeople()), []);
   useEffect(() => { loadPeople(); }, [loadPeople]);
+  useEffect(() => { setPickedChoice(null); }, [pageIndex, view]);
 
   const startPlayer = (selectedMode: Mode) => {
     setMode(selectedMode);
@@ -123,10 +128,14 @@ const GospelScreen: React.FC<any> = ({ navigation }) => {
   };
 
   const saveTrustedResponse = async (saveDate: boolean) => {
-    const date = saveDate ? new Date().toISOString().slice(0, 10) : undefined;
+    const date = saveDate ? toLocalDateString(new Date()) : undefined;
     await gospelStorage.saveResponse('trusted_jesus_today', mode, date);
+    if (saveDate) {
+      const settings = await gospelStorage.getForMeDaySettings();
+      await scheduleForMeDayReminder(settings);
+    }
     try { triggerSuccessHaptic(); } catch {}
-    go('assurance');
+    go('next-steps');
   };
 
   const addPerson = async () => {
@@ -169,17 +178,19 @@ const GospelScreen: React.FC<any> = ({ navigation }) => {
     switch (view) {
       case 'mode': return 'Go through the Gospel';
       case 'listen': return 'Listen first';
-      case 'player': return pageIndex === 0 ? 'The Gospel' : GOSPEL_PAGES[pageIndex].eyebrow;
+      case 'player': return pageIndex === 0 ? (mode === 'app_together' ? 'For us' : 'For me') : (GOSPEL_PAGES[pageIndex].headerTitle || GOSPEL_PAGES[pageIndex].eyebrow);
       case 'response': return 'Your response';
       case 'prayer': return 'Respond in faith';
       case 'assurance': return 'A new beginning';
+      case 'birthday': return 'Remember this day';
+      case 'next-steps': return 'First steps';
       case 'other': return 'Your response';
       case 'people': return "People I'm praying for";
       case 'add-person': return 'Add someone';
       case 'send': return 'Send the Gospel';
       default: return 'Gospel';
     }
-  }, [pageIndex, view]);
+  }, [mode, pageIndex, view]);
 
   const Header = () => (
     <View style={styles.header}>
@@ -256,15 +267,37 @@ const GospelScreen: React.FC<any> = ({ navigation }) => {
       const page = GOSPEL_PAGES[pageIndex];
       return <>
         <View style={styles.progressTrack}><View style={[styles.progressFill, { width: `${((pageIndex + 1) / GOSPEL_PAGES.length) * 100}%` }]} /></View>
-        <Text style={[styles.eyebrow, font]}>{page.eyebrow}</Text>
-        <Text style={[styles.title, font]}>{page.title}</Text>
-        {page.body ? <Text style={[styles.body, font]}>{page.body}</Text> : null}
-        {page.points?.map((point, index) => <View key={point.title} style={styles.step}>
-          <View style={styles.stepNumber}><Text style={[styles.stepNumberText, font]}>{index + 1}</Text></View>
-          <View style={styles.flex}><Text style={[styles.cardTitle, font]}>{point.title}</Text><Text style={[styles.cardBody, font]}>{point.body}</Text></View>
+        <Text style={[styles.eyebrow, (page.centered || page.eyebrowCentered) && styles.center, font]}>{page.eyebrow}</Text>
+        <Text style={[styles.title, page.centered && styles.center, font, page.serifTitle && styles.titleSerif]}>{page.title}</Text>
+        {page.body ? <Text style={[styles.body, page.centered && styles.center, font]}>{page.body}</Text> : null}
+        {page.scriptures?.map(scripture => <View key={scripture.ref} style={styles.scriptureCard}>
+          <Text style={styles.scriptureText}>“{scripture.text}”</Text>
+          <Text style={[styles.scriptureRef, font]}>{scripture.ref.toUpperCase()}</Text>
         </View>)}
+        {page.points?.map((point, index) => <View key={point.title} style={styles.step}>
+          {(page.points?.length ?? 0) > 1 && <View style={styles.stepNumber}><Text style={[styles.stepNumberText, font]}>{index + 1}</Text></View>}
+          <View style={styles.flex}>
+            <Text style={[styles.cardTitle, font]}>{point.title}</Text>
+            <Text style={[styles.cardBody, font]}>{point.body}</Text>
+            {point.reference ? <Text style={[styles.reference, styles.pointRef, font]}>{point.reference}</Text> : null}
+          </View>
+        </View>)}
+        {page.choices?.map((choice, choiceIndex) => {
+          const answered = pickedChoice !== null;
+          const isCorrect = choice.correct === true;
+          const showFeedback = pickedChoice === choiceIndex && choice.feedback;
+          return <TouchableOpacity key={choice.text} style={[styles.choice, answered && isCorrect && styles.choiceSelected]} onPress={() => { triggerLightHaptic(); setPickedChoice(choiceIndex); }} accessibilityRole="button">
+            <View style={[styles.radio, answered && isCorrect && styles.radioSelected]} />
+            <View style={styles.flex}>
+              <Text style={[styles.choiceText, (isCorrect && answered) && styles.choiceTextCorrect, font]}>{choice.text}</Text>
+              {choice.detail ? <Text style={[styles.choiceDetail, font]}>{choice.detail}</Text> : null}
+              {showFeedback ? <Text style={[styles.choiceFeedback, isCorrect ? styles.choiceFeedbackRight : styles.choiceFeedbackWrong, font]}>{choice.feedback}</Text> : null}
+            </View>
+          </TouchableOpacity>;
+        })}
         {page.references?.length ? <View style={styles.references}>{page.references.map(reference => <Text key={reference} style={[styles.reference, font]}>{reference}</Text>)}</View> : null}
-        <Action label={pageIndex === GOSPEL_PAGES.length - 1 ? "I'm ready to respond →" : 'Continue →'} onPress={continuePlayer} />
+        {page.note ? <View style={styles.note}><Text style={[styles.noteText, page.noteCentered === false && styles.noteTextLeft, font]}>{page.note}</Text></View> : null}
+        <Action label={page.cta || (pageIndex === GOSPEL_PAGES.length - 1 ? "I'm ready to respond →" : 'Continue →')} onPress={continuePlayer} />
       </>;
     }
 
@@ -287,20 +320,39 @@ const GospelScreen: React.FC<any> = ({ navigation }) => {
         <Text style={[styles.title, styles.center, font]}>Talk to Jesus.</Text>
         <Text style={[styles.body, styles.center, font]}>Prayer doesn't earn salvation. It can express the faith, repentance, and surrender of your heart.</Text>
         <View style={styles.prayerCard}><Text style={[styles.prayerText, font]}>{GOSPEL_PRAYER}</Text></View>
-        <Action label="Save today & continue →" onPress={() => saveTrustedResponse(true)} />
-        <Action label="Continue without saving the date" onPress={() => saveTrustedResponse(false)} secondary />
+        <Action label="I trust Jesus today →" onPress={() => go('assurance')} />
       </>;
     }
 
     if (view === 'assurance') {
       return <>
         <View style={styles.check}><Ionicons name="checkmark" size={34} color={Colors.hopeWhite} /></View>
-        <Text style={[styles.eyebrowCenter, font]}>A NEW BEGINNING</Text>
         <Text style={[styles.title, styles.center, font]}>Your eternal life with God begins today.</Text>
         <Card icon="checkmark-circle-outline" title="Forgiven" body="Your sins are paid for and forgiven in Christ. · Hebrews 10:17" />
         <Card icon="leaf-outline" title="New life" body="You are a new person in God's eyes. · 2 Corinthians 5:17" />
         <Card icon="heart-outline" title="Child of God" body="Those who receive Christ and believe in Him become God's children. · John 1:12" />
-        <Text style={[styles.eyebrowCenter, styles.sectionTop, font]}>WHAT'S NEXT?</Text>
+        <Action label="Continue →" onPress={() => go('birthday')} />
+      </>;
+    }
+
+    if (view === 'birthday') {
+      const today = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+      return <>
+        <Text style={[styles.eyebrowCenter, font]}>SPIRITUAL BIRTHDAY</Text>
+        <Text style={[styles.title, styles.center, font, styles.titleSerif]}>Today, I trusted Jesus to be my Lord and Savior.</Text>
+        <Text style={[styles.body, styles.center, font]}>You can save this date as a personal reminder of your commitment.</Text>
+        <View style={styles.dateCard}>
+          <Text style={[styles.dateCardLabel, font]}>DATE</Text>
+          <Text style={[styles.dateCardValue, font]}>{today}</Text>
+        </View>
+        <Action label="Save & continue →" onPress={() => saveTrustedResponse(true)} />
+        <Action label="Continue without saving" onPress={() => saveTrustedResponse(false)} secondary />
+      </>;
+    }
+
+    if (view === 'next-steps') {
+      return <>
+        <Text style={[styles.eyebrowCenter, font]}>WHAT'S NEXT?</Text>
         <Text style={[styles.title, styles.center, font]}>Grow in your relationship with Jesus.</Text>
         {FIRST_STEPS.map(([title, body], index) => <View key={title} style={styles.step}><View style={styles.stepNumber}><Text style={[styles.stepNumberText, font]}>{index + 1}</Text></View><View style={styles.flex}><Text style={[styles.cardTitle, font]}>{title}</Text><Text style={[styles.cardBody, font]}>{body}</Text></View></View>)}
         <Action label="Finish" onPress={resetHome} />
@@ -370,16 +422,17 @@ const GospelScreen: React.FC<any> = ({ navigation }) => {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#F4F0E7' },
   flex: { flex: 1 },
-  header: { height: 52, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 14, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#D8DED8', backgroundColor: '#FFFDF8' },
+  header: { height: 52, marginTop: 80, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 14, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#D8DED8' },
   headerButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   headerTitle: { flex: 1, paddingHorizontal: 8, fontSize: 15, fontWeight: '700', color: '#24342C', textAlign: 'center' },
   content: { padding: 22, paddingBottom: 48, maxWidth: 640, width: '100%', alignSelf: 'center' },
-  hero: { backgroundColor: '#30483A', padding: 26, borderRadius: 24, marginBottom: 18 },
+  hero: { backgroundColor: '#30483A', padding: 26, borderRadius: 24, marginTop: 12, marginBottom: 18 },
   heroTitle: { color: '#FFFFFF', fontSize: 34, lineHeight: 40, fontWeight: '700', marginTop: 7 },
   heroBody: { color: '#E5ECE7', fontSize: 15, lineHeight: 23, marginTop: 12 },
   eyebrow: { color: '#607967', fontSize: 12, fontWeight: '800', letterSpacing: 1.3, marginBottom: 10 },
   eyebrowCenter: { color: '#607967', fontSize: 12, fontWeight: '800', letterSpacing: 1.3, marginBottom: 10, textAlign: 'center', marginTop: 26 },
   title: { color: '#24342C', fontSize: 32, lineHeight: 39, fontWeight: '700', marginBottom: 13 },
+  titleSerif: { fontFamily: Fonts.lora.bold, fontSize: 36, lineHeight: 44, fontWeight: '700' },
   body: { color: '#66736C', fontSize: 16, lineHeight: 25, marginBottom: 24 },
   center: { textAlign: 'center' },
   card: { backgroundColor: '#FFFDF8', borderWidth: 1, borderColor: '#DCE2DB', padding: 16, borderRadius: 18, marginBottom: 12 },
@@ -391,12 +444,17 @@ const styles = StyleSheet.create({
   privacy: { color: '#758078', fontSize: 12, lineHeight: 18, textAlign: 'center', marginTop: 8 },
   note: { backgroundColor: '#E5ECE5', padding: 16, borderRadius: 16, marginVertical: 14 },
   noteText: { color: '#425248', fontSize: 14, lineHeight: 21, textAlign: 'center' },
+  noteTextLeft: { textAlign: 'left' },
   action: { minHeight: 52, borderRadius: 16, backgroundColor: '#607967', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 18, marginTop: 16 },
   actionSecondary: { backgroundColor: 'transparent', borderWidth: 1, borderColor: '#607967', marginTop: 10 },
   actionText: { color: '#FFFFFF', fontSize: 15, fontWeight: '800', textAlign: 'center' },
   actionSecondaryText: { color: '#526A59' },
   progressTrack: { height: 4, backgroundColor: '#DCE2DB', borderRadius: 2, overflow: 'hidden', marginBottom: 34 },
   progressFill: { height: 4, backgroundColor: '#607967' },
+  scriptureCard: { backgroundColor: '#FFFDF8', borderWidth: 1, borderColor: '#DCE2DB', borderRadius: 18, padding: 20, marginBottom: 12 },
+  scriptureText: { color: '#30483A', fontFamily: Fonts.lora.regular, fontSize: 19, lineHeight: 30, marginBottom: 10 },
+  scriptureRef: { color: '#607967', fontSize: 12, fontWeight: '800', letterSpacing: 1.3 },
+  pointRef: { alignSelf: 'flex-start', marginTop: 10 },
   step: { flexDirection: 'row', gap: 12, alignItems: 'flex-start', backgroundColor: '#FFFDF8', borderRadius: 16, borderWidth: 1, borderColor: '#DCE2DB', padding: 15, marginBottom: 10 },
   stepNumber: { width: 30, height: 30, borderRadius: 15, backgroundColor: '#E5ECE5', alignItems: 'center', justifyContent: 'center' },
   stepNumberText: { color: '#526A59', fontSize: 13, fontWeight: '800' },
@@ -407,6 +465,14 @@ const styles = StyleSheet.create({
   radio: { width: 20, height: 20, borderRadius: 10, borderWidth: 2, borderColor: '#A6B0AA' },
   radioSelected: { borderWidth: 6, borderColor: '#607967' },
   choiceText: { flex: 1, color: '#24342C', fontSize: 15, lineHeight: 21 },
+  choiceTextCorrect: { fontWeight: '700' },
+  choiceDetail: { color: '#24342C', fontSize: 15, lineHeight: 21 },
+  choiceFeedback: { fontSize: 13, lineHeight: 19, marginTop: 6 },
+  choiceFeedbackRight: { color: '#526A59' },
+  choiceFeedbackWrong: { color: '#A65A4A' },
+  dateCard: { backgroundColor: '#FFFDF8', borderWidth: 1, borderColor: '#DCE2DB', padding: 18, borderRadius: 18, marginBottom: 6 },
+  dateCardLabel: { color: '#607967', fontSize: 12, fontWeight: '800', letterSpacing: 1.3, marginBottom: 4 },
+  dateCardValue: { color: '#24342C', fontSize: 18, fontWeight: '700' },
   prayerCard: { backgroundColor: '#FFFDF8', borderWidth: 1, borderColor: '#DCE2DB', padding: 22, borderRadius: 20 },
   prayerText: { color: '#30483A', textAlign: 'center', fontSize: 18, lineHeight: 29 },
   check: { width: 64, height: 64, borderRadius: 32, backgroundColor: '#607967', alignSelf: 'center', alignItems: 'center', justifyContent: 'center', marginTop: 18, marginBottom: 18 },

@@ -526,6 +526,14 @@ class PushNotificationService {
     }
   }
 
+  async cancelLocalNotification(id: string): Promise<void> {
+    if (Platform.OS === 'ios' && isNativeModuleAvailable()) {
+      PushNotificationBridge.cancelLocalNotification(id);
+    } else if (Platform.OS === 'android' && PushNotification) {
+      PushNotification.cancelLocalNotification(id);
+    }
+  }
+
   async setBadgeNumber(number: number): Promise<void> {
     if (Platform.OS === 'ios' && isNativeModuleAvailable()) {
       PushNotificationBridge.setBadgeNumber(number);

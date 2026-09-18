@@ -39,9 +39,6 @@ import PlaybookSkeletonLoader from '../components/PlaybookSkeletonLoader';
 import SmartJournalingReflectionModal from './SmartJournalingReflectionModal';
 import SmartJournalingGratitudeModal from './SmartJournalingGratitudeModal';
 import SmartJournalingTimeBlockModal from './SmartJournalingTimeBlockModal';
-import HowToModal from '../components/HowToModal';
-import { getActionWisdom } from '../services/actionWisdomService';
-import { NewSubscriptionService } from '../services/NewSubscriptionService';
 import { triggerLightHaptic, triggerMediumHaptic, triggerSuccessHaptic } from '../utils/haptics';
 import { parseCanonicalQuotedInstructionLine } from '../utils/actionWisdomParsing';
 import { buildTruthPostText } from '../utils/truthSharing';
@@ -54,8 +51,6 @@ import { useCreateGuidedPrayer } from '../services/hooks/usePrayerData';
 import { faithPointsService } from '../services/faithPointsService';
 import { visibleStreakService } from '../services/visibleStreakService';
 import { toLocalDateString } from '../utils/date';
-import { useFeatureAccess } from '../hooks/useFeatureAccess';
-import { PDF_EXPORT_UPGRADE_PROMPT } from '../services/tierRestrictionService';
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getPlaybook } from '../services/apiIntegration';
@@ -4435,10 +4430,6 @@ interface FaithfulActionsStepProps {
   playbookId?: string;
   playbookTitle?: string;
   playbookStatus?: string;
-  truthSummary?: string;
-  truthInLove?: string;
-  dateOfBirth?: string;
-  preferredBibleTranslation?: string;
   isOnboarding?: boolean;
   userId: string;
   onNext: () => void;
@@ -4454,12 +4445,6 @@ interface FaithfulActionsStepProps {
 }
 
 type JournalModalType = 'reflection' | 'prayer' | 'gratitude' | 'timeblock' | null;
-
-type HowToJournalContext = {
-  question: string;
-  wisdom: string;
-  actionTitle: string;
-};
 
 // Module-level flag — persists across remounts so the nudge only fires once per session
 let journalNudgeFired = false;
@@ -4509,14 +4494,6 @@ type WisdomThreadEntry = {
   wisdom: string;
 };
 
-let persistedWisdomThreads: Record<string, WisdomThreadEntry[]> = {};
-
-const serializeWisdomThread = (thread: WisdomThreadEntry[]): string =>
-  thread
-    .filter(entry => entry.question.trim() && entry.wisdom.trim())
-    .map(entry => `User: ${entry.question.trim()}\nsiFia: ${entry.wisdom.trim()}`)
-    .join('\n\n');
-
 const parseWisdomThread = (value: string): WisdomThreadEntry[] => {
   const trimmed = value.trim();
   if (!trimmed) {
@@ -4558,11 +4535,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
   playbookId,
   playbookTitle,
   playbookStatus,
-  truthSummary,
-  truthInLove,
-  dateOfBirth,
-  preferredBibleTranslation,
-  isOnboarding = false,
+  isOnboarding: _isOnboarding = false,
   userId,
   onNext,
   onGoBack,
@@ -4583,11 +4556,7 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
   const [journalSaved, setJournalSaved] = useState(false);
   const [selectedChoice, setSelectedChoice] = useState<string | null>(null);
   const [activeJournalModal, setActiveJournalModal] = useState<JournalModalType>(null);
-  const [howToJournalContext, setHowToJournalContext] = useState<HowToJournalContext | null>(null);
   const [, setJournalExpanded] = useState(false);
-  const [howToModalVisible, setHowToModalVisible] = useState(false);
-  const [wisdomCount, setWisdomCount] = useState(0);
-  const [wisdomLimit, setWisdomLimit] = useState(0);
   const [currentActionWisdom, setCurrentActionWisdom] = useState('');
   const [wisdomThread, setWisdomThread] = useState<WisdomThreadEntry[]>([]);
   const [wisdomExpanded, setWisdomExpanded] = useState(true);
@@ -4598,7 +4567,6 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
   const iconAnims = useRef(JOURNAL_ICONS.map(() => new Animated.Value(0))).current;
   const rowHeight = useRef(new Animated.Value(0)).current;
   const rowOpacity = useRef(new Animated.Value(0)).current;
-  const howToButtonAnim = useRef(new Animated.Value(0)).current;
   const wisdomChevronAnim = useRef(new Animated.Value(0)).current;
   // Ref tracks real expanded state to avoid stale closure in toggle
   const journalExpandedRef = useRef(false);
@@ -4618,54 +4586,6 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
   const [fabCollapsed, setFabCollapsed] = React.useState(false);
 
   const ICON_ROW_HEIGHT = 76; // circle 44 + label ~14 + gap 5 + padding 12
-
-  const { user } = useAuth();
-  const queryClient = useQueryClient();
-
-  const loadWisdomUsage = React.useCallback(() => {
-    if (user?.id) {
-      NewSubscriptionService.getUserSubscription(user.id).then(subscription => {
-        const limits = NewSubscriptionService.getTierLimits(subscription.tier, subscription);
-        setWisdomCount((subscription as any).wisdom_count || 0);
-        setWisdomLimit(isOnboarding ? 1 : limits.wisdom_limit ?? 0);
-      });
-    }
-  }, [isOnboarding, user?.id]);
-
-  // Load wisdom counts
-  React.useEffect(() => {
-    loadWisdomUsage();
-  }, [loadWisdomUsage]);
-
-  React.useEffect(() => {
-    const subscription = DeviceEventEmitter.addListener('wisdomUsageReset', (payload?: { wisdomCount?: number; wisdomLimit?: number }) => {
-      setWisdomCount(payload?.wisdomCount ?? 0);
-      if (typeof payload?.wisdomLimit === 'number') {
-        setWisdomLimit(payload.wisdomLimit);
-      } else {
-        loadWisdomUsage();
-      }
-    });
-
-    return () => subscription.remove();
-  }, [loadWisdomUsage]);
-
-  // Animate How to button appearance with 2 second delay
-  React.useEffect(() => {
-    // Reset animation to 0 when step changes
-    howToButtonAnim.setValue(0);
-
-    const timer = setTimeout(() => {
-      Animated.spring(howToButtonAnim, {
-        toValue: 1,
-        tension: 80,
-        friction: 8,
-        useNativeDriver: true,
-      }).start();
-    }, 2000);
-
-    return () => clearTimeout(timer);
-  }, [actionStepIndex, howToButtonAnim]);
 
   const rotateInterpolate = triggerRotation.interpolate({
     inputRange: [0, 1],
@@ -4732,12 +4652,8 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
   React.useEffect(() => {
     const storedWisdom = currentStep?.wisdom_text || '';
     const parsedThread = parseWisdomThread(storedWisdom);
-    const restoredThread = currentStep?.id
-      ? persistedWisdomThreads[currentStep.id] || parsedThread
-      : parsedThread;
-
     setCurrentActionWisdom(storedWisdom);
-    setWisdomThread(restoredThread);
+    setWisdomThread(parsedThread);
     setWisdomExpanded(false);
   }, [currentStep?.id, currentStep?.wisdom_text]);
 
@@ -5048,27 +4964,13 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
 
   // Full plain text for prayer saving and body-start detection (strips bullet markers)
   const mainBodyText = rawBodyLines.map(l => l.replace(/^(?:\*|-|•) /, '')).join(' ');
-  const actionGuidanceBody = [
-    mainBodyText,
-    exampleText ? `Example: ${exampleText}` : '',
-  ].filter(Boolean).join('\n\n');
-  const reflectionJournalTitle = howToJournalContext
-    ? `How To: ${howToJournalContext.actionTitle || currentStep.title || ''}`.trim()
-    : currentStep.title ?? '';
-  const reflectionJournalBody = howToJournalContext
-    ? [
-        howToJournalContext.question ? `Question:\n${howToJournalContext.question.trim()}` : '',
-        howToJournalContext.wisdom ? `Wisdom:\n${howToJournalContext.wisdom.trim()}` : '',
-      ].filter(Boolean).join('\n\n')
-    : mainBodyText;
-  const reflectionJournalExample = howToJournalContext ? undefined : exampleText || undefined;
+  const reflectionJournalTitle = currentStep.title ?? '';
+  const reflectionJournalBody = mainBodyText;
+  const reflectionJournalExample = exampleText || undefined;
 
   const smartBodyLines = detectBodyLines(rawBodyLines, actionType);
   const hasActionWisdom = Boolean(currentActionWisdom || wisdomThread.length > 0);
   const displayWisdomThread = getDisplayWisdomThread(currentActionWisdom, wisdomThread);
-  const wisdomContext = wisdomThread.length > 0
-    ? wisdomThread.map(entry => `User: ${entry.question}\nsiFia: ${entry.wisdom}`).join('\n\n')
-    : currentActionWisdom;
 
   const generatedPrimaryLabel = currentStep.primaryButton ?? (
     actionType === 'choose' ? "I've chosen" :
@@ -5201,29 +5103,6 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
         <StepFadeIn delay={130}>
         <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: cardTranslateY }] }}>
           <View style={styles.actionStepCard}>
-            <Animated.View
-              style={[
-                styles.actionHowToButton,
-                {
-                  opacity: howToButtonAnim,
-                  transform: [{ scale: howToButtonAnim.interpolate({ inputRange: [0, 1], outputRange: [0.8, 1] }) }],
-                },
-              ]}
-            >
-              <TouchableOpacity
-                onPress={() => {
-                  triggerLightHaptic();
-                  setHowToModalVisible(true);
-                }}
-                activeOpacity={0.8}
-              >
-                <View style={styles.actionHowToButtonContent}>
-                  <Ionicons name="help-circle-outline" size={14} color={Colors.hopeWhite} />
-                  <ThemedText style={styles.actionHowToButtonText}>How to</ThemedText>
-                </View>
-              </TouchableOpacity>
-            </Animated.View>
-
             {/* Step number circle — matches ActionStepsCard design */}
             <View style={styles.stepNumberContainer}>
               <View style={styles.stepCircle}>
@@ -6151,7 +6030,6 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
                 onPress={() => {
                   journalExpandedRef.current = false;
                   setJournalExpanded(false);
-                  setHowToJournalContext(null);
                   setActiveJournalModal(type);
                   triggerLightHaptic();
                 }}
@@ -6267,12 +6145,10 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
           stepBody={reflectionJournalBody || undefined}
           stepExample={reflectionJournalExample}
           onSave={() => {
-            setHowToJournalContext(null);
             setActiveJournalModal(null);
             advanceStep(true);
           }}
           onCancel={() => {
-            setHowToJournalContext(null);
             setActiveJournalModal(null);
           }}
         />
@@ -6303,94 +6179,6 @@ const FaithfulActionsStep: React.FC<FaithfulActionsStepProps> = ({
           onCancel={() => setActiveJournalModal(null)}
         />
       )}
-
-      <HowToModal
-        visible={howToModalVisible}
-        actionTitle={currentStep.title || ''}
-        actionNumber={stepNumber}
-        onDismiss={() => setHowToModalVisible(false)}
-        onJournalPress={(context) => {
-          setHowToJournalContext(context);
-          setHowToModalVisible(false);
-          setActiveJournalModal(context.type);
-        }}
-        onSubmit={async (question) => {
-          try {
-            const response = await getActionWisdom({
-              playbookId: playbookId || '',
-              userId: userId,
-              userName: getUserFirstName(user),
-              actionId: currentStep.id || '',
-              actionTitle: currentStep.title || '',
-              actionBody: actionGuidanceBody || '',
-              userQuestion: question,
-              truthSummary: truthSummary || '',
-              truthInLove: truthInLove || '',
-              previousWisdom: wisdomContext,
-              dateOfBirth,
-              preferredBibleTranslation,
-              isOnboarding,
-            });
-
-            if (response.success && response.wisdom) {
-              const returnedWisdom = response.wisdom.trim();
-              const threadEntry = { question: question.trim(), wisdom: returnedWisdom };
-              const existingThread = currentStep.id
-                ? persistedWisdomThreads[currentStep.id] || wisdomThread || parseWisdomThread(currentActionWisdom)
-                : wisdomThread || parseWisdomThread(currentActionWisdom);
-              const nextThread = response.wisdomThread?.length
-                ? response.wisdomThread
-                : [threadEntry, ...existingThread];
-              const serializedThread = response.storedWisdom || serializeWisdomThread(nextThread);
-
-              if (currentStep.id) {
-                persistedWisdomThreads = {
-                  ...persistedWisdomThreads,
-                  [currentStep.id]: nextThread,
-                };
-              }
-              setWisdomThread(nextThread);
-              setCurrentActionWisdom(serializedThread);
-              LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-              setWisdomExpanded(false);
-              setWisdomCount(typeof response.wisdomCount === 'number' ? response.wisdomCount : wisdomCount + 1);
-              if (typeof response.wisdomLimit === 'number') {
-                setWisdomLimit(response.wisdomLimit);
-              }
-              if (playbookId && user?.id) {
-                queryClient.setQueryData(['playbook', playbookId, user.id], (cachedPlaybook: any) => {
-                  if (!cachedPlaybook?.actionSteps) {
-                    return cachedPlaybook;
-                  }
-
-                  return {
-                    ...cachedPlaybook,
-                    actionSteps: cachedPlaybook.actionSteps.map((step: any) =>
-                      step.id === currentStep.id
-                        ? { ...step, wisdom_text: serializedThread }
-                        : step
-                    ),
-                  };
-                });
-                queryClient.invalidateQueries({ queryKey: ['playbook', playbookId, user.id] });
-                queryClient.invalidateQueries({ queryKey: ['subscription', user.id] });
-              }
-              triggerSuccessHaptic();
-            }
-
-            return response;
-          } catch (error) {
-            return {
-              success: false,
-              error: 'ERROR',
-              message: 'Something went wrong. Please try again.',
-            };
-          }
-        }}
-        wisdomCount={wisdomCount}
-        wisdomLimit={wisdomLimit}
-        hideUsageCounter={isOnboarding}
-      />
 
     </>
   );
@@ -7166,7 +6954,6 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const pdfExportAccess = useFeatureAccess({ feature: 'export_pdf' });
   const fabCollapseAnimRef = useRef(new Animated.Value(1));
   const [stepIndex, setStepIndex] = useState(() => {
     if (initialStep !== undefined && initialStep >= 0 && initialStep < TOTAL_STEPS) {
@@ -7571,40 +7358,6 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
   );
 
   const handleExportPDF = useCallback(async () => {
-    // Check feature access
-    if (!pdfExportAccess.hasAccess) {
-      const upgradePrompt = pdfExportAccess.accessResult?.upgradePrompt;
-      const upgradeMessage = typeof upgradePrompt?.message === 'string'
-        ? upgradePrompt.message
-        : typeof upgradePrompt === 'object' && upgradePrompt?.message
-          ? (upgradePrompt as any).message
-          : PDF_EXPORT_UPGRADE_PROMPT;
-
-      Alert.alert(
-        'Upgrade Required',
-        upgradeMessage,
-        [
-          {
-            text: 'Cancel',
-            style: 'cancel',
-          },
-          {
-            text: 'Upgrade',
-            onPress: () => {
-              (navigation as any).navigate('OnboardingSalesOffer' as any, {
-                upgradeMode: true,
-                currentTier: pdfExportAccess.accessResult?.requiredTier,
-                skipNotificationPreference: true,
-                featureType: 'export_pdf',
-                source: 'playbook_walkthrough',
-              });
-            },
-          },
-        ]
-      );
-      return;
-    }
-
     if (!playbook) { return; }
 
     // Get user metadata for name replacement
@@ -7690,7 +7443,7 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
       ),
       createdAt: playbook.createdAt,
     });
-  }, [playbook, user, pdfExportAccess, navigation]);
+  }, [playbook, user]);
 
   const handleFinish = useCallback(async () => {
     triggerMediumHaptic();
@@ -7703,16 +7456,6 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
     persistedHasPrayed = false;
     persistedHasRead = false;
     journalNudgeFired = false;
-
-    if (source === 'onboarding' && userId) {
-      try {
-        await NewSubscriptionService.resetOnboardingAssistCounters(userId);
-        queryClient.invalidateQueries({ queryKey: ['subscription', userId] });
-        DeviceEventEmitter.emit('wisdomUsageReset', { wisdomCount: 0 });
-      } catch (error) {
-        console.warn('Failed to replenish onboarding assist counters after walkthrough', error);
-      }
-    }
 
     // Perform async operations in background without blocking navigation
     (async () => {
@@ -7745,11 +7488,7 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
 
     if (!shouldShowStreakPlan) {
       if (source === 'onboarding') {
-        (navigation as any).navigate('OnboardingSalesOffer', {
-          playbookId,
-          source: 'playbook_walkthrough',
-          onboardingFlow: true,
-        });
+        (navigation as any).navigate('OnboardingNotificationSetup');
       } else {
         navigation.goBack();
       }
@@ -7906,11 +7645,8 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
   const handleSkipWalkthrough = useCallback(() => {
     if (source === 'onboarding') {
       triggerLightHaptic();
-      // Skip walkthrough and go directly to trial offer
-      (navigation as any).replace('OnboardingTrialOffer', {
-        source: 'onboarding',
-        skipNotificationPreference: true,
-      });
+      // Continue onboarding without presenting a second purchase or trial.
+      (navigation as any).replace('OnboardingNotificationSetup');
     } else {
       // Normal flow: go back
       navigation.goBack();
@@ -7976,7 +7712,6 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
 
   // Derive data
   const userMetadata = (user as any)?.user_metadata || {};
-  const dateOfBirth = userMetadata.birth_date || userMetadata.dateOfBirth || userMetadata.birthDate || '';
   const preferredBibleTranslation = userMetadata.preferences?.content?.bibleVersion || 'NASB';
   const truthInLoveText = personalizeTruthContent(
     typeof playbook.truthInLove === 'string'
@@ -8124,10 +7859,6 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
                 playbookId={playbook.id}
                 playbookTitle={playbook.title}
                 playbookStatus={playbook.status}
-                truthSummary={truthInLoveSummary}
-                truthInLove={truthInLoveText}
-                dateOfBirth={dateOfBirth}
-                preferredBibleTranslation={preferredBibleTranslation}
                 isOnboarding={source === 'onboarding'}
                 userId={userId}
                 onNext={goNext}
@@ -8349,19 +8080,7 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
       textColor={shareTextColor}
       lineHeightMultiplier={shareLineHeightMultiplier}
       noSplit={shareNoSplit}
-      userId={userId}
       onClose={() => setShowTruthShareComposer(false)}
-      onUpgrade={() => {
-        navigation.navigate('OnboardingSalesOffer', {
-          upgradeMode: true,
-          currentTier: 'seeker',
-          selectedTier: 'growth',
-          source: 'sifia_reflection_watermark',
-          feature: 'remove_share_watermark',
-          skipNotificationPreference: true,
-          dismissBehavior: 'goBack',
-        });
-      }}
     />
 
     {/* Onboarding-only "Your playbook is ready" overlay — appears once */}
@@ -10725,29 +10444,6 @@ const styles = StyleSheet.create({
   actionTitleContainer: {
     marginBottom: 6,
   },
-  actionHowToButton: {
-    position: 'absolute',
-    top: -15,
-    right: 18,
-    backgroundColor: 'Colors.sage',
-    borderRadius: 999,
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.15)',
-    zIndex: 10,
-    elevation: 10,
-  },
-  actionHowToButtonContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  actionHowToButtonText: {
-    fontSize: 12,
-    color: Colors.hopeWhite,
-    fontWeight: '600',
-  },
   actionBody: {
     fontSize: 15,
     color: 'rgba(255,255,255,0.7)',
@@ -11057,19 +10753,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     width: '100%',
-  },
-  howToButton: {
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    borderRadius: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.15)',
-  },
-  howToButtonText: {
-    fontSize: 14,
-    color: Colors.hopeWhite,
-    fontWeight: '600',
   },
   completionPlaybookLabel: {
     fontSize: 12,

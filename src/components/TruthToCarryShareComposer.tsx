@@ -27,7 +27,6 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import { Pencil, PencilOff } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ENV } from '../config/environment';
-import { NewSubscriptionService } from '../services/NewSubscriptionService';
 import { Colors } from '../theme/colors';
 import { getFontFamily } from '../theme/fonts';
 import { triggerLightHaptic, triggerSuccessHaptic } from '../utils/haptics';
@@ -105,9 +104,7 @@ interface TruthToCarryShareComposerProps {
   textColor?: string;
   lineHeightMultiplier?: number;
   noSplit?: boolean;
-  userId: string;
   onClose: () => void;
-  onUpgrade: () => void;
 }
 
 const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
@@ -116,26 +113,21 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
   textColor,
   lineHeightMultiplier,
   noSplit,
-  userId,
   onClose,
-  onUpgrade,
 }) => {
   const insets = useSafeAreaInsets();
   const sheetAnim = useRef(new Animated.Value(0)).current;
   const editorAnim = useRef(new Animated.Value(0)).current;
-  const watermarkUpsellAnim = useRef(new Animated.Value(0)).current;
   const textScaleAnim = useRef(new Animated.Value(1)).current;
   const liveTextScale = useRef(1);
   const closing = useRef(false);
   const cardRefs = useRef<Array<ViewShot | null>>([]);
   const carouselRef = useRef<FlatList<ShareTemplate>>(null);
   const sizeSliderWidth = useRef(112);
-  const pendingUpgrade = useRef(false);
   const [templates, setTemplates] = useState<ShareTemplate[]>(buildTemplates);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const lastScrollHapticIndex = useRef(0);
   const [showWatermark, setShowWatermark] = useState<boolean | null>(true);
-  const [canToggleWatermark, setCanToggleWatermark] = useState<boolean>(false);
   const [textScale, setTextScale] = useState(1);
   const [typography, setTypography] = useState<ShareTypography>('classic');
   const [textAlign, setTextAlign] = useState<ShareTextAlign>('center');
@@ -160,7 +152,7 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
     setSelectedIndex(0);
     lastScrollHapticIndex.current = 0;
     setShowWatermark(null);
-    setCanToggleWatermark(false);
+    setShowWatermark(true);
     setTextScale(1);
     liveTextScale.current = 1;
     textScaleAnim.setValue(1);
@@ -168,51 +160,15 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
     setTextAlign('center');
     setEditorOpen(false);
     editorAnim.setValue(0);
-    watermarkUpsellAnim.setValue(0);
     requestAnimationFrame(() => carouselRef.current?.scrollToOffset({ offset: 0, animated: false }));
 
-    let cancelled = false;
-    if (userId) {
-      NewSubscriptionService.getUserSubscription(userId)
-        .then(subscription => {
-          if (!cancelled) {
-            const baseTier = subscription.tier.replace('_annual', '');
-            const canChooseWatermark = baseTier === 'growth' || baseTier === 'transformation';
-            setCanToggleWatermark(canChooseWatermark);
-            setShowWatermark(true);
-          }
-        })
-        .catch(() => {
-          if (!cancelled) {
-            setCanToggleWatermark(false);
-            setShowWatermark(true);
-          }
-        });
-    } else {
-      setCanToggleWatermark(false);
-      setShowWatermark(true);
-    }
-
-    return () => {
-      cancelled = true;
-    };
-  }, [editorAnim, textScaleAnim, userId, visible, watermarkUpsellAnim]);
-
-  useEffect(() => {
-    Animated.timing(watermarkUpsellAnim, {
-      toValue: 1,
-      duration: 320,
-      delay: 100,
-      easing: Easing.out(Easing.cubic),
-      useNativeDriver: false,
-    }).start();
-  }, [canToggleWatermark, watermarkUpsellAnim]);
+  }, [editorAnim, textScaleAnim, visible]);
 
   const toggleWatermark = useCallback(() => {
-    if (!canToggleWatermark || showWatermark === null) { return; }
+    if (showWatermark === null) { return; }
     triggerLightHaptic();
     setShowWatermark(current => !current);
-  }, [canToggleWatermark, showWatermark]);
+  }, [showWatermark]);
 
   const toggleEditor = useCallback(() => {
     const opening = !editorOpen;
@@ -264,7 +220,7 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
     extrapolate: 'clamp',
   });
 
-  const closeComposer = useCallback((afterClose?: () => void) => {
+  const closeComposer = useCallback(() => {
     if (closing.current) { return; }
     closing.current = true;
     Animated.timing(sheetAnim, {
@@ -274,11 +230,7 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
       useNativeDriver: true,
     }).start(({ finished }) => {
       if (!finished) { closing.current = false; return; }
-      pendingUpgrade.current = !!afterClose && Platform.OS === 'ios';
       onClose();
-      if (afterClose && Platform.OS !== 'ios') {
-        setTimeout(afterClose, 350);
-      }
     });
   }, [onClose, sheetAnim]);
 
@@ -398,18 +350,6 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
       setSharingAction(null);
     }
   }, [sharingAction, showWatermark, text]);
-
-  const handleUpgrade = useCallback(() => {
-    triggerLightHaptic();
-    closeComposer(onUpgrade);
-  }, [closeComposer, onUpgrade]);
-
-  const handleDismiss = useCallback(() => {
-    if (pendingUpgrade.current) {
-      pendingUpgrade.current = false;
-      onUpgrade();
-    }
-  }, [onUpgrade]);
 
   const renderCard = useCallback(({ item, index }: { item: ShareTemplate; index: number }) => {
     if (showWatermark === null) {
@@ -549,7 +489,6 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
       hardwareAccelerated={Platform.OS === 'android'}
       onShow={openComposer}
       onRequestClose={() => closeComposer()}
-      onDismiss={handleDismiss}
     >
       <View style={styles.overlay}>
         <Pressable style={StyleSheet.absoluteFill} onPress={() => closeComposer()}>
@@ -769,60 +708,27 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
             ))}
           </View>
 
-          <Animated.View
-            pointerEvents="auto"
-            accessibilityElementsHidden={false}
-            importantForAccessibility="auto"
-            style={[
-              styles.upgradeReveal,
-              {
-                height: watermarkUpsellAnim.interpolate({
-                  inputRange: [-1, 0, 1],
-                  outputRange: [0, 60, 60],
-                }),
-                marginTop: watermarkUpsellAnim.interpolate({
-                  inputRange: [-1, 0, 1],
-                  outputRange: [0, 16, 16],
-                }),
-                opacity: watermarkUpsellAnim.interpolate({
-                  inputRange: [-1, 0, 1],
-                  outputRange: [0, 0, 1],
-                }),
-                transform: [{
-                  translateY: watermarkUpsellAnim.interpolate({
-                    inputRange: [-1, 0, 1],
-                    outputRange: [0, 6, 0],
-                  }),
-                }],
-              },
-            ]}
-          >
+          <View style={styles.upgradeReveal}>
             <TouchableOpacity
               style={styles.upgradeRow}
-              onPress={canToggleWatermark ? toggleWatermark : handleUpgrade}
+              onPress={toggleWatermark}
               activeOpacity={0.75}
-              accessibilityRole={canToggleWatermark ? 'switch' : 'button'}
-              accessibilityLabel={canToggleWatermark ? 'Show siFia watermark' : 'Hide the siFia watermark'}
-              accessibilityState={canToggleWatermark ? { checked: !!showWatermark } : undefined}
+              accessibilityRole="switch"
+              accessibilityLabel="Show siFia watermark"
+              accessibilityState={{ checked: !!showWatermark }}
             >
               <View style={styles.upgradeIcon}>
                 <Ionicons name="eye-off-outline" size={18} color={Colors.alertCoral} />
               </View>
               <View style={styles.upgradeCopy}>
-                <ThemedText weight="semiBold" style={styles.upgradeTitle}>{canToggleWatermark ? 'siFia watermark' : 'Hide the siFia watermark'}</ThemedText>
-                <ThemedText style={styles.upgradeSubtitle}>{canToggleWatermark ? (showWatermark ? 'Shown on this post' : 'Hidden from this post') : 'Available with Growth'}</ThemedText>
+                <ThemedText weight="semiBold" style={styles.upgradeTitle}>siFia watermark</ThemedText>
+                <ThemedText style={styles.upgradeSubtitle}>{showWatermark ? 'Shown on this post' : 'Hidden from this post'}</ThemedText>
               </View>
-              {canToggleWatermark ? (
-                <View style={[styles.watermarkSwitch, showWatermark && styles.watermarkSwitchOn]}>
-                  <View style={[styles.watermarkSwitchThumb, showWatermark && styles.watermarkSwitchThumbOn]} />
-                </View>
-              ) : (
-                <View style={styles.growthPill}>
-                  <ThemedText weight="semiBold" style={styles.growthPillText}>Get Growth</ThemedText>
-                </View>
-              )}
+              <View style={[styles.watermarkSwitch, showWatermark && styles.watermarkSwitchOn]}>
+                <View style={[styles.watermarkSwitchThumb, showWatermark && styles.watermarkSwitchThumbOn]} />
+              </View>
             </TouchableOpacity>
-          </Animated.View>
+          </View>
           </ScrollView>
         </Animated.View>
       </View>

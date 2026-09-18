@@ -1,17 +1,12 @@
 /**
  * Calendar Feature Gating Hook
- * Controls access to calendar sync and repeat features based on subscription tier
+ * Compatibility API for calendar and repeat feature access.
  */
 
-import { useMemo, useEffect } from 'react';
-import { Logger } from '../utils/ProductionLogger';
+import { useMemo } from 'react';
 import { useAuth } from '../context/IndustryStandardAuthContext';
-import { useNavigation } from '@react-navigation/native';
-import { analytics } from '../utils/analytics';
 import { useQuery } from '@tanstack/react-query';
 import NewSubscriptionService from '../services/NewSubscriptionService';
-import { navigateFromRoot } from '../utils/navigationHelpers';
-import { triggerLightHaptic } from '../utils/haptics';
 
 export interface CalendarGatingState {
   // Calendar sync permissions
@@ -38,8 +33,7 @@ export interface CalendarGatingState {
 }
 
 export const useCalendarGating = (): CalendarGatingState => {
-  const { user, updatePreferences } = useAuth();
-  const navigation = useNavigation();
+  const { user } = useAuth();
 
   // Use React Query to watch subscription changes - this makes the hook reactive
   const { data: subscription } = useQuery({
@@ -68,125 +62,28 @@ export const useCalendarGating = (): CalendarGatingState => {
   }, [subscription, user]);
 
   const isSeeker = currentTier === 'seeker';
-  const effectiveTier = currentTier === 'free_trial' && subscription?.trial_chosen_tier
-    ? subscription.trial_chosen_tier
-    : currentTier;
-  const canAccessPaidFeatures = effectiveTier !== 'seeker';
-  const canAccessGrowthFeatures = effectiveTier === 'growth' || effectiveTier === 'transformation' || effectiveTier === 'transformation_annual';
+  // Journal is paid up front. These values deliberately do not depend on the
+  // retained siFia subscription metadata. Device permission checks still live
+  // in the calendar/location integrations themselves.
+  const permissions = useMemo(() => ({
+    canSyncToCalendar: true,
+    canUseRepeat: true,
+    canUseLocationServices: true,
+    canDeleteSeries: true,
+  }), []);
 
-  const permissions = useMemo(() => {
-    return {
-      canSyncToCalendar: canAccessGrowthFeatures,
-      canUseRepeat: canAccessPaidFeatures,
-      canUseLocationServices: canAccessPaidFeatures,
-      canDeleteSeries: canAccessPaidFeatures,
-    };
-  }, [canAccessGrowthFeatures, canAccessPaidFeatures]);
-
-  // When user becomes seeker (cancelled or downgraded), automatically turn off calendar auto-sync
-  useEffect(() => {
-    const ensureAutoSyncOffForSeeker = async () => {
-      try {
-        if (!user?.id) {return;}
-        if (currentTier !== 'seeker') {return;}
-
-        const prefs = (user as any)?.user_metadata?.preferences || {};
-        const calendarPrefs = prefs?.calendar || {};
-        if (calendarPrefs.autoSync === true) {
-          const updated = {
-            ...prefs,
-            calendar: { ...calendarPrefs, autoSync: false },
-          };
-          try {
-            await updatePreferences(updated);
-            Logger.info('Auto-disabled calendar autoSync for seeker tier', { component: 'useCalendarGating', userId: user.id });
-          } catch (e) {
-            Logger.warn('Failed to auto-disable calendar autoSync for seeker tier', { component: 'useCalendarGating', userId: user.id });
-          }
-        }
-      } catch (error) {
-        Logger.warn('ensureAutoSyncOffForSeeker error', { component: 'useCalendarGating', errorMessage: (error as Error)?.message });
-      }
-    };
-
-    ensureAutoSyncOffForSeeker();
-    // Depend on tier and user identity only
-  }, [currentTier, user?.id, user, updatePreferences]);
-
-  const handleCalendarLockTap = () => {
-    triggerLightHaptic();
-    analytics.trackTimeBlockEvent('calendar_lock_tapped' as any, {
-      current_tier: currentTier,
-      feature: 'calendar_sync',
-    }, user?.id);
-
-    // Navigate to upgrade screen
-    navigateFromRoot(navigation, 'OnboardingSalesOffer', {
-      source: 'calendar_auto_sync',
-      feature: 'calendar_sync',
-      context: 'timeblock',
-      skipNotificationPreference: true,
-      dismissBehavior: 'goBack',
-    });
-  };
-
-  const handleRepeatLockTap = () => {
-    Logger.info('[useCalendarGating] handleRepeatLockTap called', {
-      current_tier: currentTier,
-      feature: 'repeat_options',
-    });
-    analytics.trackTimeBlockEvent('repeat_lock_tapped' as any, {
-      current_tier: currentTier,
-      feature: 'repeat_options',
-    }, user?.id);
-
-    // Navigate to upgrade screen with skip notification flag
-    const didNavigate = navigateFromRoot(navigation, 'OnboardingSalesOffer', {
-      source: 'repeat_options',
-      feature: 'repeat_options',
-      context: 'timeblock',
-      skipNotificationPreference: true,
-      dismissBehavior: 'goBack',
-    });
-    Logger.info('[useCalendarGating] Navigation result', { didNavigate });
-  };
-
-  const showCalendarUpgradePrompt = () => {
-    analytics.trackTimeBlockEvent('calendar_upgrade_prompt_shown' as any, {
-      current_tier: currentTier,
-    }, user?.id);
-
-    navigateFromRoot(navigation, 'OnboardingSalesOffer', {
-      source: 'calendar_auto_sync',
-      feature: 'calendar_sync',
-      context: 'timeblock',
-      message: 'Automatically sync your time blocks to your device calendar so what you plan is easier to follow through on.',
-      skipNotificationPreference: true,
-      dismissBehavior: 'goBack',
-    });
-  };
-
-  const showRepeatUpgradePrompt = () => {
-    analytics.trackTimeBlockEvent('repeat_upgrade_prompt_shown' as any, {
-      current_tier: currentTier,
-    }, user?.id);
-
-    navigateFromRoot(navigation, 'OnboardingSalesOffer', {
-      source: 'repeat_upgrade_prompt',
-      feature: 'repeat_options',
-      context: 'timeblock',
-      message: 'Create recurring time blocks to build steady rhythms in your week. With an upgrade, you’ll also have more room for playbooks.',
-      skipNotificationPreference: true,
-      dismissBehavior: 'goBack',
-    });
-  };
+  // Preserve the legacy callback shape while there is no Journal lock to act on.
+  const handleCalendarLockTap = () => {};
+  const handleRepeatLockTap = () => {};
+  const showCalendarUpgradePrompt = () => {};
+  const showRepeatUpgradePrompt = () => {};
 
   return {
     ...permissions,
     currentTier,
     isSeeker,
-    showCalendarLock: !canAccessGrowthFeatures,
-    showRepeatLock: isSeeker,
+    showCalendarLock: false,
+    showRepeatLock: false,
     handleCalendarLockTap,
     handleRepeatLockTap,
     showCalendarUpgradePrompt,

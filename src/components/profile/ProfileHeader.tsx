@@ -1,13 +1,9 @@
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import React, { useMemo, useState } from 'react';
 import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Pencil as LuPencil } from 'lucide-react-native';
 import { Colors } from '../../theme/colors';
 import { useTheme } from '../../theme/ThemeContext';
-import UsageTooltipModal, { TooltipType } from './UsageTooltipModal';
-import { triggerLightHaptic } from '../../utils/haptics';
-import BadgesModal from '../BadgesModal';
 
 export interface ProfileStatsLite {
   faithPoints: number;
@@ -16,104 +12,12 @@ export interface ProfileStatsLite {
   badgesCount?: number;
 }
 
-export interface UsageSummary {
-  wisdom: { used: number; limit: number };
-}
-
 interface Props {
   user: any | null;
   stats: ProfileStatsLite | null;
   onEditPress?: () => void;
   onEditAvatar?: () => void;
-  plan?: string; // e.g., 'Starter', 'Growth', 'Premium', 'Basic'
-  usage?: UsageSummary | null;
-  subscription?: any | null; // Add subscription data for tooltips
-  isLoading?: boolean; // Add loading state
 }
-
-export const ProfilePlanUsage: React.FC<Pick<Props, 'plan' | 'usage' | 'subscription' | 'stats' | 'isLoading'> & { placement?: 'header' | 'body' }> = ({
-  plan,
-  usage,
-  subscription,
-  stats,
-  isLoading = false,
-  placement = 'header',
-}) => {
-  const { profile } = useAuth();
-  const theme = useTheme();
-  const font = useMemo(() => ({ fontFamily: theme.fontFamily }), [theme.fontFamily]);
-  const [tooltipVisible, setTooltipVisible] = useState(false);
-  const [tooltipType, setTooltipType] = useState<TooltipType | null>(null);
-  const [badgesModalVisible, setBadgesModalVisible] = useState(false);
-  const points = stats?.faithPoints ?? 0;
-  const badgesCount = stats?.badgesCount ?? 0;
-
-  const showTooltip = (type: TooltipType) => {
-    try { triggerLightHaptic(); } catch {}
-    setTooltipType(type);
-    setTooltipVisible(true);
-  };
-
-  const hideTooltip = () => {
-    setTooltipVisible(false);
-    setTimeout(() => setTooltipType(null), 300);
-  };
-
-  if (isLoading) {
-    return (
-      <View style={[styles.planAndUsageRow, placement === 'body' && styles.planAndUsageBody]}>
-        <View style={[styles.planPill, placement === 'body' && styles.planPillBody, styles.skeletonPill]}>
-          <View style={styles.skeletonText} />
-          <View style={styles.pillsRow}>
-            {[1, 2, 3, 4].map(i => (
-              <View key={i} style={[styles.usagePill, styles.skeletonUsagePill]}>
-                <View style={styles.skeletonUsageItem} />
-              </View>
-            ))}
-          </View>
-        </View>
-      </View>
-    );
-  }
-
-  if (!plan && !usage) { return null; }
-
-  return (
-    <>
-      <View style={[styles.planAndUsageRow, placement === 'body' && styles.planAndUsageBody]}>
-        {!!plan && (
-          <View style={[styles.planPill, placement === 'body' && styles.planPillBody]}>
-            <Text style={[styles.planText, font]}>{String(plan)}</Text>
-            {!!usage && (
-              <View style={styles.pillsRow}>
-                <TouchableOpacity style={styles.usagePill} onPress={() => showTooltip('wisdom')} activeOpacity={0.7}>
-                  <View style={styles.usageItemRow}>
-                    <MaterialCommunityIcons name="lightbulb" size={12} color={Colors.hopeWhite} />
-                    <Text style={[styles.usageText, font]}>{usage.wisdom.used}{usage.wisdom.limit >= 0 ? `/${usage.wisdom.limit}` : '/∞'}</Text>
-                  </View>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.usagePill} onPress={() => showTooltip('faithPoints')} activeOpacity={0.7}>
-                  <View style={styles.usageItemRow}>
-                    <MaterialCommunityIcons name="star-four-points" size={12} color={Colors.hopeWhite} />
-                    <Text style={[styles.usageText, font]}>{points} FP</Text>
-                  </View>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.usagePill} onPress={() => { try { triggerLightHaptic(); } catch {} setBadgesModalVisible(true); }} activeOpacity={0.7}>
-                  <View style={styles.usageItemRow}>
-                    <MaterialCommunityIcons name="trophy" size={12} color={Colors.hopeWhite} />
-                    <Text style={[styles.usageText, font]}>{badgesCount}</Text>
-                  </View>
-                </TouchableOpacity>
-              </View>
-            )}
-          </View>
-        )}
-      </View>
-      <UsageTooltipModal visible={tooltipVisible} type={tooltipType} onClose={hideTooltip} subscription={subscription || null} usage={usage || null} stats={stats || null} />
-      <BadgesModal visible={badgesModalVisible} onClose={() => setBadgesModalVisible(false)} />
-    </>
-  );
-};
 
 const ProfileHeader: React.FC<Props> = ({ user, onEditPress, onEditAvatar: _onEditAvatar }) => {
   const { profile } = useAuth();

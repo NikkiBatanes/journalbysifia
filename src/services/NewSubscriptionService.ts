@@ -14,7 +14,6 @@ import {
   SubscriptionUpgradeOptions,
   TrialStartOptions,
   SubscriptionError,
-  UsageLimitError,
   TrialExpiredError,
 } from '../types/subscription';
 
@@ -218,14 +217,13 @@ export class NewSubscriptionService {
   }
 
   /**
-   * Replenish onboarding-only assist allowances without touching generated content counters.
+   * Replenish the remaining onboarding refinement allowance.
    */
   static async resetOnboardingAssistCounters(userId: string): Promise<Subscription> {
     const resetAt = new Date().toISOString();
     const { error } = await supabase
       .from('user_subscriptions_new')
       .update({
-        wisdom_count: 0,
         refinement_count: 0,
         updated_at: resetAt,
       })
@@ -949,7 +947,7 @@ export class NewSubscriptionService {
   /**
    * Check if user can perform an action
    */
-  static async checkUsageLimit(userId: string, action: 'smart_journal' | 'export' | 'wisdom', isOnboarding: boolean = false): Promise<SubscriptionCheck> {
+  static async checkUsageLimit(userId: string, action: 'smart_journal' | 'export'): Promise<SubscriptionCheck> {
     // Check and perform monthly usage reset before checking limits
     await this.checkAndResetMonthlyUsage(userId);
 
@@ -990,8 +988,6 @@ export class NewSubscriptionService {
         return this.checkSmartJournalingLimit(subscription, limits);
       case 'export':
         return this.checkExportLimit(subscription, limits);
-      case 'wisdom':
-        return this.checkWisdomLimit(subscription, limits, isOnboarding);
       default:
         throw new SubscriptionError(`Unknown action: ${action}`, 'INVALID_ACTION');
     }
@@ -1000,52 +996,9 @@ export class NewSubscriptionService {
   /**
    * Increment usage counter
    */
-  static async incrementUsage(userId: string, action: 'smart_journal' | 'export' | 'wisdom', isOnboarding: boolean = false): Promise<void> {
+  static async incrementUsage(userId: string, action: 'smart_journal' | 'export', _isOnboarding: boolean = false): Promise<void> {
     // First check if action is allowed
-    const check = await this.checkUsageLimit(userId, action, isOnboarding);
-    const subscription = await this.getUserSubscription(userId);
-    // Increment the appropriate counter
-    const updateField = action === 'wisdom' ? 'wisdom_count' : null;
-
-    if (updateField) {
-      // Optimistic-lock increment with a fresh limit check on every retry.
-      // This prevents concurrent requests from pushing usage beyond the monthly quota.
-      const doAtomicIncrement = async (): Promise<void> => {
-        for (let attempt = 0; attempt < 3; attempt++) {
-          const currentSubscription = await this.getUserSubscription(userId, true);
-          const currentValue = (currentSubscription as any)?.[updateField] || 0;
-          const limits = this.getTierLimits(currentSubscription.tier, currentSubscription);
-          const limit = action === 'wisdom' ? (isOnboarding ? 1 : limits.wisdom_limit) : -1;
-
-          if (limit !== -1 && currentValue >= limit) {
-            throw new UsageLimitError(currentSubscription.tier, action, limit, currentValue);
-          }
-
-          const { data: updated, error } = await supabase
-            .from('user_subscriptions_new')
-            .update({
-              [updateField]: currentValue + 1,
-              updated_at: new Date().toISOString(),
-            })
-            .eq('user_id', userId)
-            .eq(updateField, currentValue)
-            .select(updateField)
-            .maybeSingle();
-
-          if (error) {
-            throw new SubscriptionError(`Failed to increment usage: ${error.message}`, 'USAGE_UPDATE_ERROR', error);
-          }
-
-          if (updated) {
-            return;
-          }
-        }
-
-        throw new SubscriptionError('Failed to increment usage after concurrent updates', 'USAGE_UPDATE_CONFLICT');
-      };
-
-      await doAtomicIncrement();
-    }
+    await this.checkUsageLimit(userId, action);
 
     // Also update the legacy usage tracking table where enabled.
     // free_trial is no longer excluded — counts must be recorded there too.
@@ -1342,33 +1295,7 @@ export class NewSubscriptionService {
     return toIndex >= fromIndex;
   }
 
-  /**
-   * Check wisdom usage limit
-   */
-  private static checkWisdomLimit(subscription: Subscription, limits: SubscriptionLimits, isOnboarding: boolean = false): SubscriptionCheck {
-    const wisdomUsed = (subscription as any).wisdom_count || 0;
-    const wisdomLimit = isOnboarding ? 1 : limits.wisdom_limit || 0;
-    const isUnlimited = wisdomLimit === -1;
-    const canUse = isUnlimited || wisdomUsed < wisdomLimit;
-    const normalizedTier = subscription.tier.replace('_annual', '');
-
-    return {
-      can_generate_playbook: true,
-      can_use_smart_journaling: limits.smart_journaling_enabled,
-      can_export: true,
-      playbooks_remaining: -1,
-      show_upgrade_prompt: !canUse,
-      upgrade_message: !canUse
-        ? isOnboarding
-          ? 'You have used your onboarding How To request. You will get your normal How To requests after onboarding.'
-          : normalizedTier === 'transformation'
-          ? `You've used all ${wisdomLimit} wisdom requests this month. Your wisdom requests will refresh next month.`
-          : `You've used all ${wisdomLimit} wisdom requests this month. Upgrade for more!`
-        : undefined,
-    };
-  }
-
-  private static checkSmartJournalingLimit(subscription: Subscription, limits: SubscriptionLimits): SubscriptionCheck {
+  private static checkSmartJournalingLimit(_subscription: Subscription, _limits: SubscriptionLimits): SubscriptionCheck {
     return {
       can_generate_playbook: true,
       can_use_smart_journaling: true,

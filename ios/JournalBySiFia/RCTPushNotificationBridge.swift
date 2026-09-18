@@ -100,6 +100,10 @@ class RCTPushNotificationBridge: RCTEventEmitter {
   @objc func cancelAllLocalNotifications() {
     UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
   }
+
+  @objc func cancelLocalNotification(_ identifier: String) {
+    UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [identifier])
+  }
   
   // Cancel all delivered notifications
   @objc func removeAllDeliveredNotifications() {

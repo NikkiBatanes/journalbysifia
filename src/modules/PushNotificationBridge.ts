@@ -18,6 +18,7 @@ interface PushNotificationBridgeInterface {
   setBadgeNumber: (number: number) => void;
   getBadgeNumber: () => Promise<number>;
   cancelAllLocalNotifications: () => void;
+  cancelLocalNotification: (id: string) => void;
   removeAllDeliveredNotifications: () => void;
   scheduleLocalNotification: (notification: {
     title: string;
@@ -119,6 +120,12 @@ export const PushNotificationBridge: PushNotificationBridgeInterface = {
   cancelAllLocalNotifications: () => {
     if (Platform.OS === 'ios' && RCTPushNotificationBridge) {
       RCTPushNotificationBridge.cancelAllLocalNotifications();
+    }
+  },
+
+  cancelLocalNotification: (id: string) => {
+    if (Platform.OS === 'ios' && RCTPushNotificationBridge) {
+      RCTPushNotificationBridge.cancelLocalNotification(id);
     }
   },
 

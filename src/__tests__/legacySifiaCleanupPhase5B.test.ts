@@ -37,12 +37,9 @@ describe('legacy siFia cleanup phase 5B', () => {
     expect(monitoring).not.toContain("'generation_success'");
   });
 
-  it('preserves product identifiers and the Faithful Action How-To counter', () => {
+  it('preserves product identifiers while removing obsolete product counters', () => {
     const platformSubscriptions = read('services/platformSubscriptionService.ts');
-    const modal = read('components/SubscriptionPlanModal.tsx');
     expect(platformSubscriptions).toContain('productId');
-    expect(modal).toContain('Faithful Action How-Tos');
-    expect(modal).not.toContain("label: 'Playbooks'");
-    expect(modal).not.toContain("label: 'Playbook Refinements'");
+    expect(fs.existsSync(path.resolve(__dirname, '../components/SubscriptionPlanModal.tsx'))).toBe(false);
   });
 });

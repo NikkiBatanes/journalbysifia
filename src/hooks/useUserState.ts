@@ -216,9 +216,9 @@ export const useUserState = () => {
         playbooks: { used: 0, total: 0 },
         exports: { used: 0, total: 0 },
         intelligenceEnabled: false,
-        smartJournalingEnabled: false,
-        calendarSyncEnabled: false,
-        copyIncompleteTodosEnabled: false,
+        smartJournalingEnabled: true,
+        calendarSyncEnabled: true,
+        copyIncompleteTodosEnabled: true,
         answeredPrayerTrackingEnabled: false,
         advancedAnalytics: false,
         prioritySupport: false,
@@ -235,9 +235,9 @@ export const useUserState = () => {
       },
       exports: { used: 0, total: -1 }, // No export limits in new system
       intelligenceEnabled: subscription.tier !== 'seeker',
-      smartJournalingEnabled: subscription.smart_journaling_enabled,
-      calendarSyncEnabled: subscription.tier !== 'seeker',
-      copyIncompleteTodosEnabled: subscription.tier !== 'seeker',
+      smartJournalingEnabled: true,
+      calendarSyncEnabled: true,
+      copyIncompleteTodosEnabled: true,
       answeredPrayerTrackingEnabled: subscription.tier !== 'seeker',
       advancedAnalytics: subscription.tier === 'transformation', // POST-LAUNCH: || subscription.tier === 'family'
       prioritySupport: subscription.tier === 'transformation', // POST-LAUNCH: || subscription.tier === 'family'
@@ -261,14 +261,13 @@ export const useUserState = () => {
   }, [subscription]);
 
   const hasFeatureAccess = useCallback((feature: string) => {
+    if (feature === 'smartJournaling' || feature === 'calendarSync' || feature === 'copyIncompleteTodos') {
+      return true;
+    }
     if (!subscription) {return false;}
 
     switch (feature) {
       case 'intelligence':
-        return subscription.tier !== 'seeker';
-      case 'smartJournaling':
-        return subscription.smart_journaling_enabled;
-      case 'calendarSync':
         return subscription.tier !== 'seeker';
       case 'advancedAnalytics':
         return subscription.tier === 'transformation'; // POST-LAUNCH: || subscription.tier === 'family'

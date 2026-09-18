@@ -5,7 +5,6 @@ import Share from 'react-native-share';
 import { captureRef } from 'react-native-view-shot';
 import TruthToCarryShareComposer from '../TruthToCarryShareComposer';
 import { triggerLightHaptic } from '../../utils/haptics';
-import { NewSubscriptionService } from '../../services/NewSubscriptionService';
 
 jest.mock('react-native-share', () => ({
   __esModule: true,
@@ -29,9 +28,6 @@ jest.mock('react-native-safe-area-context', () => ({
 }));
 jest.mock('../common/ThemedText', () => require('react-native').Text);
 jest.mock('../../config/environment', () => ({ ENV: {} }));
-jest.mock('../../services/NewSubscriptionService', () => ({
-  NewSubscriptionService: { getUserSubscription: jest.fn() },
-}));
 jest.mock('../../utils/haptics', () => ({ triggerLightHaptic: jest.fn(), triggerSuccessHaptic: jest.fn() }));
 jest.mock('../../utils/ProductionLogger', () => ({ Logger: { error: jest.fn() } }));
 
@@ -44,7 +40,7 @@ describe('Truth to Carry Message sharing', () => {
   });
 
   it('uses an uppercase reflection label on the share card', () => {
-    const screen = render(<TruthToCarryShareComposer visible text="A truth to carry." userId="" onClose={jest.fn()} onUpgrade={jest.fn()} />);
+    const screen = render(<TruthToCarryShareComposer visible text="A truth to carry." onClose={jest.fn()} />);
     expect(screen.getByText('siFia REFLECTION')).toBeTruthy();
   });
 
@@ -53,9 +49,7 @@ describe('Truth to Carry Message sharing', () => {
       <TruthToCarryShareComposer
         visible
         text={'Jesus calls you to rest.\n\nYou do not need to earn his grace.'}
-        userId=""
         onClose={jest.fn()}
-        onUpgrade={jest.fn()}
       />
     );
     expect(screen.getByText('Jesus calls you to rest.')).toBeTruthy();
@@ -73,7 +67,7 @@ describe('Truth to Carry Message sharing', () => {
   });
 
   it('adjusts share-card text with a continuous size control', () => {
-    const screen = render(<TruthToCarryShareComposer visible text="A truth to carry." userId="" onClose={jest.fn()} onUpgrade={jest.fn()} />);
+    const screen = render(<TruthToCarryShareComposer visible text="A truth to carry." onClose={jest.fn()} />);
     fireEvent.press(screen.getByLabelText('Edit post style'));
 
     const initialSize = StyleSheet.flatten(screen.getByText('A truth to carry.').props.style).fontSize;
@@ -85,39 +79,35 @@ describe('Truth to Carry Message sharing', () => {
     expect(triggerLightHaptic).toHaveBeenCalled();
   });
 
-  it('lets Growth accounts choose whether to show share-card branding', async () => {
-    jest.mocked(NewSubscriptionService.getUserSubscription).mockResolvedValueOnce({ tier: 'growth' } as any);
-    const screen = render(<TruthToCarryShareComposer visible text="A truth to carry." userId="paid-user" onClose={jest.fn()} onUpgrade={jest.fn()} />);
+  it('lets every Journal user choose whether to show share-card branding', async () => {
+    const screen = render(<TruthToCarryShareComposer visible text="A truth to carry." onClose={jest.fn()} />);
 
     await waitFor(() => expect(screen.getByLabelText('Message').props.accessibilityState.disabled).toBe(false));
-    expect(screen.queryByText('www.sifia.app')).toBeNull();
-    expect(screen.queryByText('Hide the siFia watermark')).toBeNull();
+    expect(screen.getByText('www.sifia.app')).toBeTruthy();
 
     const watermarkToggle = screen.getByLabelText('Show siFia watermark');
-    expect(watermarkToggle.props.accessibilityState.checked).toBe(false);
+    expect(watermarkToggle.props.accessibilityState.checked).toBe(true);
     fireEvent.press(watermarkToggle);
 
-    expect(screen.getByText('www.sifia.app')).toBeTruthy();
-    expect(screen.getByText('Shown on this post')).toBeTruthy();
+    expect(screen.queryByText('www.sifia.app')).toBeNull();
+    expect(screen.getByText('Hidden from this post')).toBeTruthy();
   });
 
-  it('keeps share-card branding for Spark accounts', async () => {
-    jest.mocked(NewSubscriptionService.getUserSubscription).mockResolvedValueOnce({ tier: 'spark' } as any);
-    const screen = render(<TruthToCarryShareComposer visible text="A truth to carry." userId="spark-user" onClose={jest.fn()} onUpgrade={jest.fn()} />);
-
-    await waitFor(() => expect(screen.getByText('www.sifia.app')).toBeTruthy());
-    expect(screen.getByText('Hide the siFia watermark')).toBeTruthy();
+  it('does not present a tier upsell for share-card branding', () => {
+    const screen = render(<TruthToCarryShareComposer visible text="A truth to carry." onClose={jest.fn()} />);
+    expect(screen.queryByText('Available with Growth')).toBeNull();
+    expect(screen.queryByText('Get Growth')).toBeNull();
   });
 
   it('closes without haptic feedback', () => {
-    const screen = render(<TruthToCarryShareComposer visible text="A truth to carry." userId="" onClose={jest.fn()} onUpgrade={jest.fn()} />);
+    const screen = render(<TruthToCarryShareComposer visible text="A truth to carry." onClose={jest.fn()} />);
     fireEvent.press(screen.getByLabelText('Close share composer'));
     expect(triggerLightHaptic).not.toHaveBeenCalled();
   });
 
   it.each(['ios', 'android'] as const)('passes a safe recipient and image attachment on %s', async os => {
     Platform.OS = os;
-    const screen = render(<TruthToCarryShareComposer visible text="A truth to carry." userId="" onClose={jest.fn()} onUpgrade={jest.fn()} />);
+    const screen = render(<TruthToCarryShareComposer visible text="A truth to carry." onClose={jest.fn()} />);
     fireEvent.press(screen.getByLabelText('Message'));
     await waitFor(() => expect(Share.shareSingle).toHaveBeenCalledWith(expect.objectContaining({
       social: 'sms',
@@ -136,7 +126,7 @@ describe('Truth to Carry Message sharing', () => {
     Platform.OS = 'ios';
     jest.mocked(captureRef).mockRejectedValueOnce(new Error('Capture failed'));
     const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
-    const screen = render(<TruthToCarryShareComposer visible text="A truth to carry." userId="" onClose={jest.fn()} onUpgrade={jest.fn()} />);
+    const screen = render(<TruthToCarryShareComposer visible text="A truth to carry." onClose={jest.fn()} />);
     fireEvent.press(screen.getByLabelText('Message'));
     await waitFor(() => expect(alert).toHaveBeenCalled());
     expect(Share.shareSingle).not.toHaveBeenCalled();

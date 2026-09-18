@@ -491,6 +491,10 @@ class NotificationDeepLinkService {
 
       // Navigate based on screen type - use root-level screen navigation
       switch (screen) {
+        case 'for-me-day':
+          this.navigationRef.current.navigate('ForMeDay', { mode: 'celebrate' });
+          break;
+
         case 'prayer':
           if (id) {
             const didNavigate = await this.navigateToPrayerById(id, {
@@ -653,20 +657,10 @@ class NotificationDeepLinkService {
           break;
 
         case 'subscription':
-          if (id === 'upgrade') {
-            this.navigationRef.current.navigate('OnboardingSalesOffer', {
-              upgradeMode: true,
-              source: 'notification',
-              skipNotificationPreference: true,
-            });
-          } else {
-            this.navigationRef.current.navigate('OnboardingSalesOffer', {
-              upgradeMode: true,
-              source: 'notification',
-              skipNotificationPreference: true,
-            });
-          }
-          Logger.info('Navigated to subscription offer', {
+          // Preserve tolerant parsing of historical subscription payloads without
+          // exposing the retired Journal subscription funnel.
+          this.navigationRef.current.navigate('UserProfileModal');
+          Logger.info('Ignored retired subscription offer deep link', {
             component: 'notificationDeepLinkService',
           });
           break;
