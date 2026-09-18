@@ -101,18 +101,15 @@ const INTRO_AUTH_ROUTES = new Set([
 
 // Routes a Journal user should never remain on after authentication.
 // Covers the Journal first-launch flow plus legacy siFia destinations
-// written by post_auth_redirect (UserInput, OnboardingPersonalization, ...).
+// written by legacy post_auth_redirect values.
 const JOURNAL_POST_AUTH_EXIT_ROUTES = new Set([
   ...INTRO_AUTH_ROUTES,
   'JournalOnboarding',
   'OnboardingSplash',
   'OnboardingPersonalization',
-  'OnboardingPlaybookGeneration',
-  'OnboardingPlaybookReady',
   'OnboardingSalesOffer',
   'OnboardingTrialOffer',
   'OnboardingNotificationSetup',
-  'UserInput',
 ]);
 
 const isRecentlyCreatedAuthUser = (createdAt?: string): boolean => {
@@ -413,7 +410,10 @@ function AppWithAuth({
         }
 
         const redirect = await getPostAuthRedirect('App:postAuthRedirect');
-        const target = redirect?.target;
+        const legacyTarget = redirect?.target;
+        const target = ['UserInput', 'GeneratingPlaybook', 'OnboardingPlaybookGeneration', 'OnboardingPlaybookReady'].includes(legacyTarget || '')
+          ? 'MainTabs'
+          : legacyTarget;
         const params = redirect?.params || {};
         const isLoginFlow = redirect?.is_login_flow === true;
         const redirectKey = `${user.id}:${target || ''}`;
@@ -437,10 +437,10 @@ function AppWithAuth({
         if (currentRoute && INTRO_AUTH_ROUTES.has(currentRoute)) {
           const hasCompleted = await onboardingService.hasCompletedOnboarding(user.id);
           if (!cancelled && hasCompleted) {
-            lastHandledLoginRedirectRef.current = `${user.id}:UserInput`;
+            lastHandledLoginRedirectRef.current = `${user.id}:MainTabs`;
             navigation.reset({
               index: 0,
-              routes: [{ name: 'UserInput' as never }],
+              routes: [{ name: 'MainTabs' as never }],
             });
           }
         }

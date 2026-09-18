@@ -1,7 +1,7 @@
 /**
  * Playbook completeness guard.
  *
- * The backend's `generate-guided-playbook` function already retries on missing
+ * The legacy backend generator already retried on missing
  * content (prayer, words_to_speak, completion, closing), but if anything still
  * slips through (network truncation, parser race, model regression, etc.) we
  * must refuse to persist the partial playbook — otherwise the walkthrough

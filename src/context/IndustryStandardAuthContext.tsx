@@ -489,7 +489,7 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
                     onboardingCompleted: existingProfile?.onboarding_completed,
                     profileError: profileError?.message,
                     profileErrorCode: profileError?.code,
-                    willRouteTo: existingProfile?.onboarding_completed ? 'UserInput' : 'OnboardingPersonalization',
+                    willRouteTo: existingProfile?.onboarding_completed ? 'MainTabs' : 'OnboardingPersonalization',
                   });
 
                   if (profileError && profileError.code !== 'PGRST116') {
@@ -509,9 +509,9 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
 
                       await setUserInputLoginRedirect();
 
-                      Logger.debug('[AuthContext] SOCIAL AUTH - Updated redirect to UserInput for completed user', {
+                      Logger.debug('[AuthContext] SOCIAL AUTH - Updated redirect to MainTabs for completed user', {
                         userId: session.user.id,
-                        target: 'UserInput',
+                        target: 'MainTabs',
                         is_login_flow: true,
                       });
                     } else {
@@ -588,7 +588,7 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
                     onboardingCompleted: profile?.onboarding_completed,
                     profileError: profileError?.message,
                     profileErrorCode: profileError?.code,
-                    willRouteTo: profile?.onboarding_completed === true ? 'UserInput' : 'OnboardingPersonalization',
+                    willRouteTo: profile?.onboarding_completed === true ? 'MainTabs' : 'OnboardingPersonalization',
                   });
 
                   if (profileError) {
@@ -634,7 +634,7 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
 
                   if (profileCheck) {
 
-                    const target = profileCheck.onboarding_completed ? 'UserInput' : 'OnboardingPersonalization';
+                    const target = profileCheck.onboarding_completed ? 'MainTabs' : 'OnboardingPersonalization';
                     // Pass registrationMethod for OAuth users
                     const provider = session.user.app_metadata?.provider || session.user.identities?.[0]?.provider;
                     const isOAuth = provider === 'apple' || provider === 'google';
@@ -644,7 +644,7 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
                         name: '',
                         registrationMethod: isOAuth ? 'oauth' : 'email',
                       } : {},
-                      is_login_flow: target === 'UserInput', // Add bypass flag for completed users
+                      is_login_flow: target === 'MainTabs',
                     }));
                   } else {
                     Logger.warn('No profile found, defaulting to personalization', {
@@ -794,7 +794,7 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
       try {
         const hasPreparedLoginRedirect = await hasLoginFlowRedirect('IndustryStandardAuthContext:signIn');
         if (hasPreparedLoginRedirect) {
-          Logger.debug('[signIn] Login flow redirect already prepared - preserving UserInput redirect');
+          Logger.debug('[signIn] Login flow redirect already prepared - preserving main app redirect');
           return { error: null };
         }
 
@@ -823,7 +823,7 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
           onboardingCompleted: profile?.onboarding_completed,
           profileError: profileError?.message,
           profileErrorCode: profileError?.code,
-          willRouteTo: (profileError || !profile || profile?.onboarding_completed !== true) ? 'OnboardingPersonalization' : 'UserInput',
+          willRouteTo: (profileError || !profile || profile?.onboarding_completed !== true) ? 'OnboardingPersonalization' : 'MainTabs',
         });
 
         // If profile doesn't exist or onboarding is not completed, route to personalization
@@ -843,8 +843,8 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
             },
           }));
         } else {
-          // User has completed onboarding - route to UserInput with bypass flag
-          Logger.debug('[signIn] User has completed onboarding - routing to UserInput');
+          // User has completed onboarding - route to Journal with bypass flag
+          Logger.debug('[signIn] User has completed onboarding - routing to MainTabs');
 
           await setUserInputLoginRedirect();
         }
@@ -1481,7 +1481,7 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
         const { data: currentUser } = await supabase.auth.getUser();
         const hasPreparedLoginRedirect = await hasLoginFlowRedirect('IndustryStandardAuthContext:google');
         if (hasPreparedLoginRedirect && currentUser.user && !isRecentlyCreatedAuthUser(currentUser.user.created_at)) {
-          Logger.debug('[Google signIn] Login flow redirect already prepared - preserving UserInput redirect');
+          Logger.debug('[Google signIn] Login flow redirect already prepared - preserving main app redirect');
           return { error: null };
         }
 
@@ -1519,8 +1519,8 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
             },
           }));
         } else {
-          // User has completed onboarding - route to UserInput with bypass flag
-          Logger.debug('[Google signIn] User has completed onboarding - routing to UserInput');
+          // User has completed onboarding - route to the main app.
+          Logger.debug('[Google signIn] User has completed onboarding - routing to MainTabs');
 
           await setUserInputLoginRedirect();
         }
@@ -1767,7 +1767,7 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
         const hasPreparedLoginRedirect = await hasLoginFlowRedirect('IndustryStandardAuthContext:apple');
         if (hasPreparedLoginRedirect) {
           if (finalUser && !isRecentlyCreatedAuthUser(finalUser.created_at)) {
-            Logger.debug('[Apple signIn] Login flow redirect already prepared - preserving UserInput redirect');
+            Logger.debug('[Apple signIn] Login flow redirect already prepared - preserving main app redirect');
             return { error: null };
           }
 
@@ -1813,8 +1813,8 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
             },
           }));
         } else {
-          // User has completed onboarding - route to UserInput with bypass flag
-          Logger.debug('[Apple signIn] User has completed onboarding - routing to UserInput');
+          // User has completed onboarding - route to the main app.
+          Logger.debug('[Apple signIn] User has completed onboarding - routing to MainTabs');
 
           await setUserInputLoginRedirect();
         }

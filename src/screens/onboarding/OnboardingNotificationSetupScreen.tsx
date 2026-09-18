@@ -247,10 +247,10 @@ const OnboardingNotificationSetupScreen = () => {
             {
               text: 'Let\'s go',
               onPress: () => {
-                // Navigate to UserInput after notification setup (post-purchase)
+                // Enter Journal after notification setup.
                 navigation.reset({
                   index: 0,
-                  routes: [{ name: 'UserInput' as any }],
+                  routes: [{ name: 'MainTabs' as any }],
                 });
               },
             },
@@ -265,10 +265,10 @@ const OnboardingNotificationSetupScreen = () => {
             {
               text: 'Continue Anyway',
               onPress: () => {
-                // Navigate to UserInput after notification setup (post-purchase)
+                // Enter Journal after notification setup.
                 navigation.reset({
                   index: 0,
-                  routes: [{ name: 'UserInput' as any }],
+                  routes: [{ name: 'MainTabs' as any }],
                 });
               },
             },
@@ -289,10 +289,10 @@ const OnboardingNotificationSetupScreen = () => {
           {
             text: 'Let\'s Go!',
             onPress: () => {
-              // Navigate to UserInput after notification setup (post-purchase)
+              // Enter Journal after notification setup.
               navigation.reset({
                 index: 0,
-                routes: [{ name: 'UserInput' as any }],
+                routes: [{ name: 'MainTabs' as any }],
               });
             },
           },
@@ -318,10 +318,10 @@ const OnboardingNotificationSetupScreen = () => {
         {
           text: 'Skip',
           onPress: () => {
-            // Navigate to UserInput after notification setup (post-purchase)
+            // Enter Journal after notification setup.
             navigation.reset({
               index: 0,
-              routes: [{ name: 'UserInput' as any }],
+              routes: [{ name: 'MainTabs' as any }],
             });
           },
         },

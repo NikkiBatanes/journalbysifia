@@ -577,8 +577,9 @@ class NotificationDeepLinkService {
               });
             }
           } else {
-            // Navigate to Playbooks tab if no specific ID
-            this.navigationRef.current.navigate('MainTabs', { screen: 'Playbooks' });
+            // A missing/new ID represented legacy creation intent. Journal has no
+            // Playbook authoring surface, so return to the main app.
+            this.navigationRef.current.navigate('MainTabs');
           }
           Logger.info('Navigated to Playbook', {
             component: 'notificationDeepLinkService',
@@ -671,10 +672,9 @@ class NotificationDeepLinkService {
           break;
 
         case 'userinput':
-          this.navigationRef.current.navigate('UserInput', {
-            autoFocus: true,
-          });
-          Logger.info('Navigated to UserInput screen', {
+          // Retired generation deep links must never restart authoring.
+          this.navigationRef.current.navigate('MainTabs');
+          Logger.info('Ignored retired UserInput generation deep link', {
             component: 'notificationDeepLinkService',
           });
           break;

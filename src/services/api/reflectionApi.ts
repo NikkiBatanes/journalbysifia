@@ -21,6 +21,8 @@ export interface ReflectionApiEntry {
   total_days?: number;
   question_number?: number;
   question_text?: string;
+  devotional_title?: string;
+  devotional_id?: string;
   playbook_title?: string;
   playbook_id?: string;
   subtask_id?: string;

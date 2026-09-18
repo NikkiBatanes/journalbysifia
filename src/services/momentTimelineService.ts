@@ -19,6 +19,7 @@ import { trackingStatus } from '../utils/prayerTracking';
 import type { MorningMoment } from '../storage/morningMomentsStorage';
 import { heartJournalClassificationLabel } from '../types/heartJournal';
 import { resolveSessionNoteType, sessionNoteSearchMetadata, sessionNoteTypeLabel } from '../types/sessionNotes';
+import { adaptSifiaPrayer, adaptSifiaReflection } from '../compatibility/sifiaReadCompatibility';
 
 export type MomentTimelineKind = 'morning' | 'evening' | 'bible_study' | 'sermon' | 'reflection' | 'prayer';
 export type MomentCanonicalSource = 'journal' | 'reflection' | 'prayer';
@@ -168,11 +169,12 @@ export const buildMomentTimeline = ({ journalEntries, reflections, bibleStudies,
 
   reflections.filter(entry => !entry.deleted && entry.type !== 'scripture' && !bibleIds.has(entry.id)).forEach(reflection => {
     const isSermon = reflection.type === 'sermon' || reflection.source === 'sermon_notes';
+    const compatibility = adaptSifiaReflection(reflection);
     const documentLabel = isSermon ? sessionNoteTypeLabel(resolveSessionNoteType(reflection)) : 'Reflection';
     const lines = isSermon
       ? text(reflection.title, reflection.content, sessionNoteSearchMetadata(reflection.metadata))
-      : text(heartJournalClassificationLabel(reflection.metadata?.journalClassification), reflection.title, reflection.content, reflection.metadata);
-    result.push({ key: `reflection:${isSermon ? 'sermon' : 'journal'}:${reflection.id}`, kind: isSermon ? 'sermon' : 'reflection', selectedDate: reflection.selected_date, canonicalSource: 'reflection', canonicalIds: [reflection.id], savedAt: reflection.updated_at, preview: { title: reflection.title || documentLabel, lines }, searchText: itemSearchText(documentLabel, lines), reflection, metadata: { serverIds: serverIds([reflection]) }, navigation: { screen: isSermon ? 'SermonNotes' : 'ReflectionEditor', params: { reflectionId: reflection.id, selectedDate: reflection.selected_date } } });
+      : text(heartJournalClassificationLabel(reflection.metadata?.journalClassification), compatibility.title, compatibility.content, compatibility.contextLines, reflection.metadata);
+    result.push({ key: `reflection:${isSermon ? 'sermon' : compatibility.origin}:${reflection.id}`, kind: isSermon ? 'sermon' : 'reflection', selectedDate: reflection.selected_date, canonicalSource: 'reflection', canonicalIds: [reflection.id], savedAt: reflection.updated_at, preview: { title: reflection.title || (isSermon ? documentLabel : compatibility.title), lines }, searchText: itemSearchText(isSermon ? documentLabel : compatibility.title, lines), reflection, metadata: { serverIds: serverIds([reflection]), compatibilityOrigin: compatibility.origin, originalType: compatibility.originalType, originalSource: compatibility.originalSource, relationships: compatibility.relationships }, navigation: { screen: isSermon ? 'SermonNotes' : 'ReflectionEditor', params: { reflectionId: reflection.id, selectedDate: reflection.selected_date, readCompatibilityOrigin: compatibility.origin } } });
   });
 
   groupPrayerEntries(prayers.filter(prayer => !prayer.deleted) as any).forEach(prayer => {
@@ -180,8 +182,9 @@ export const buildMomentTimeline = ({ journalEntries, reflections, bibleStudies,
     const ids = underlying.map((entry: any) => entry.id).filter(Boolean);
     const selectedDate = (prayer as any).selected_date;
     if (!selectedDate || !ids.length) return;
-    const lines = text((prayer as any).title, (prayer as any).person_name, (prayer as any).content, (prayer as any).notes, (prayer as any).metadata?.topics);
-    result.push({ key: ids.length > 1 ? `prayer:cast:${(prayer as any).metadata?.prayer_session_id || ids.join(':')}` : `prayer:${ids[0]}`, kind: 'prayer', selectedDate, canonicalSource: 'prayer', canonicalIds: ids, savedAt: (prayer as any).updated_at || (prayer as any).created_at, preview: { title: prayerMomentType(prayer), lines }, searchText: itemSearchText('Prayer', lines), prayers: [prayer], metadata: { answered: trackingStatus(prayer) === 'answered', isPrayerRequest: (prayer as any).is_prayer_request === true, status: trackingStatus(prayer), serverIds: serverIds(underlying) } });
+    const compatibility = adaptSifiaPrayer(prayer as any);
+    const lines = text((prayer as any).title, (prayer as any).person_name, compatibility.content, (prayer as any).notes, (prayer as any).metadata?.topics, compatibility.contextLines);
+    result.push({ key: ids.length > 1 ? `prayer:cast:${(prayer as any).metadata?.prayer_session_id || ids.join(':')}` : `prayer:${ids[0]}`, kind: 'prayer', selectedDate, canonicalSource: 'prayer', canonicalIds: ids, savedAt: (prayer as any).updated_at || (prayer as any).created_at, preview: { title: prayerMomentType(prayer), lines }, searchText: compatibility.searchText || itemSearchText('Prayer', lines), prayers: [prayer], metadata: { answered: trackingStatus(prayer) === 'answered', isPrayerRequest: (prayer as any).is_prayer_request === true, status: trackingStatus(prayer), serverIds: serverIds(underlying), compatibilityOrigin: compatibility.origin, relationships: compatibility.relationships } });
   });
 
   const seen = new Set<string>();
@@ -190,7 +193,7 @@ export const buildMomentTimeline = ({ journalEntries, reflections, bibleStudies,
 };
 
 export const getCanonicalMomentTimeline = async (): Promise<MomentTimelineItem[]> => {
-  const reflectionTypes = ['scripture', 'sermon', 'free', 'guided', 'playbook', 'reflection'];
+  const reflectionTypes = ['scripture', 'sermon', 'free', 'freeform', 'free-form', 'guided', 'thought', 'thoughts', 'devotional', 'playbook', 'reflection'];
   const [journalEntries, bibleStudies, prayers, ...reflectionGroups] = await Promise.all([
     getAllLocalJournalEntries(),
     getSavedBibleStudyReflections(),

@@ -1334,12 +1334,12 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
               dismissBehavior: 'goBack',
               returnTo: 'UserProfile',
               title: 'Upgrade to Plan Ahead',
-              subtitle: 'Unlock calendar auto-sync—plus guided journaling and playbooks to support your journey.',
+              subtitle: 'Unlock calendar auto-sync and guided journaling to support your journey.',
               benefits: [
                 'Auto-sync time blocks to your calendar seamlessly.',
                 'Plan days ahead with clear focus, to-dos, and time blocks.',
                 'Stay consistent with guided journaling that builds faithful rhythms.',
-                'Gain momentum with personalized playbooks.',
+                'Make room for deeper guided reflection.',
               ],
             });
             return;

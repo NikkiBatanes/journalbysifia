@@ -260,7 +260,7 @@ const OnboardingTrialOfferScreen = () => {
         if (routeParams?.skipNotificationPreference) {
           navigation.reset({
             index: 0,
-            routes: [{ name: 'UserInput' as any }],
+            routes: [{ name: 'MainTabs' as any }],
           });
         } else {
           (navigation as any).navigate('OnboardingNotificationSetup', {
@@ -273,7 +273,7 @@ const OnboardingTrialOfferScreen = () => {
     } else if (routeParams?.dismissBehavior === 'userInput') {
       navigation.reset({
         index: 0,
-        routes: [{ name: 'UserInput' as any }],
+        routes: [{ name: 'MainTabs' as any }],
       });
     } else if (routeParams?.dismissBehavior === 'notificationSetup') {
       (navigation as any).navigate('OnboardingNotificationSetup', {
@@ -326,7 +326,7 @@ const OnboardingTrialOfferScreen = () => {
           if (routeParams?.skipNotificationPreference) {
             navigation.reset({
               index: 0,
-              routes: [{ name: 'UserInput' as any }],
+              routes: [{ name: 'MainTabs' as any }],
             });
           } else {
             (navigation as any).navigate('OnboardingNotificationSetup', {
@@ -1053,13 +1053,13 @@ ${Platform.OS === 'android'
   const getTrialBenefits = useCallback(() => {
     switch (selectedTierId) {
       case 'growth':
-        return 'You get 15 playbooks and guided multi-day plans.';
+        return 'You get guided reflection and planning tools.';
       case 'spark':
-        return 'You get 5 playbooks and guided multi-day plans.';
+        return 'You get guided reflection and planning tools.';
       case 'transformation':
-        return 'You get 25 playbooks and guided multi-day plans.';
+        return 'You get expanded guided reflection and planning tools.';
       default:
-        return 'You get 15 playbooks and guided multi-day plans.';
+        return 'You get guided reflection and planning tools.';
     }
   }, [selectedTierId]);
 
@@ -1101,7 +1101,7 @@ ${Platform.OS === 'android'
         id: 2,
         title: formatDateRange(today, day2),
         subtitle: 'Use it in real moments',
-        description: 'Come back with new situations, create playbooks, and see if the structure helps.',
+        description: 'Come back to your journal, build steady rhythms, and see what helps.',
         icon: 'notifications',
         iconColor: Colors.growthGreen,
         isCompleted: false,
@@ -1185,13 +1185,13 @@ ${Platform.OS === 'android'
         } else {
           navigation.reset({
             index: 0,
-            routes: [{ name: 'UserInput' as any }],
+            routes: [{ name: 'MainTabs' as any }],
           });
         }
       } catch (error) {
         logger.error('Failed to navigate after success modal', error as Error);
         try {
-          (navigation as any).navigate('UserInput');
+          (navigation as any).navigate('MainTabs');
         } catch (fallbackError) {
           logger.error('Fallback navigation failed', fallbackError as Error);
         }

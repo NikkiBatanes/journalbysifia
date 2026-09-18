@@ -15,7 +15,7 @@ import { monitoring } from './monitoring';
 
 export interface QueuedRequest {
   id: string;
-  type: 'playbook_generation' | 'playbook_save' | 'api_call';
+  type: 'api_call';
   endpoint?: string;
   payload: any;
   timestamp: number;
@@ -180,12 +180,6 @@ class OfflineQueueService {
       let success = false;
 
       switch (request.type) {
-        case 'playbook_generation':
-          success = await this.retryPlaybookGeneration(request);
-          break;
-        case 'playbook_save':
-          success = await this.retryPlaybookSave(request);
-          break;
         case 'api_call':
           success = await this.retryApiCall(request);
           break;
@@ -242,45 +236,6 @@ class OfflineQueueService {
   // ==========================================================================
   // REQUEST HANDLERS
   // ==========================================================================
-
-  private async retryPlaybookGeneration(request: QueuedRequest): Promise<boolean> {
-    try {
-      // Import dynamically to avoid circular dependencies
-      const { generatePlaybook } = await import('../services/modernPlaybookApi');
-
-      const result = await generatePlaybook(
-        request.payload.userInput,
-        request.payload.userName
-      );
-
-      return !!result;
-    } catch (error) {
-      Logger.warn('Failed to retry playbook generation', {
-        component: 'offlineQueue',
-        data: error,
-      });
-      return false;
-    }
-  }
-
-  private async retryPlaybookSave(request: QueuedRequest): Promise<boolean> {
-    try {
-      const { savePlaybook } = await import('../services/modernPlaybookApi');
-
-      const result = await savePlaybook(
-        request.payload.playbook,
-        request.payload.userId
-      );
-
-      return result.success;
-    } catch (error) {
-      Logger.warn('Failed to retry playbook save', {
-        component: 'offlineQueue',
-        data: error,
-      });
-      return false;
-    }
-  }
 
   private async retryApiCall(request: QueuedRequest): Promise<boolean> {
     try {
@@ -407,41 +362,6 @@ export const offlineQueue = new OfflineQueueService();
 // ============================================================================
 // CONVENIENCE FUNCTIONS
 // ============================================================================
-
-/**
- * Queue a playbook generation for retry
- */
-export async function queuePlaybookGeneration(
-  userInput: string,
-  userName: string,
-  userId?: string,
-  priority: 'low' | 'medium' | 'high' = 'high'
-): Promise<string> {
-  return offlineQueue.addToQueue({
-    type: 'playbook_generation',
-    payload: { userInput, userName },
-    maxRetries: 3,
-    priority,
-    userId,
-  });
-}
-
-/**
- * Queue a playbook save for retry
- */
-export async function queuePlaybookSave(
-  playbook: any,
-  userId: string,
-  priority: 'low' | 'medium' | 'high' = 'high'
-): Promise<string> {
-  return offlineQueue.addToQueue({
-    type: 'playbook_save',
-    payload: { playbook, userId },
-    maxRetries: 5,
-    priority,
-    userId,
-  });
-}
 
 /**
  * Check if device is online

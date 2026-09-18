@@ -182,11 +182,9 @@ export class PerformanceMonitoringService {
    */
   private async getQueueHealth(): Promise<SystemHealth['queueHealth']> {
     try {
-      // Get queue statistics
-      const { data: queueStats } = await supabase
-        .from('generation_queue')
-        .select('status, created_at, started_at, completed_at, processing_time_ms')
-        .gte('created_at', new Date(Date.now() - 3600000).toISOString()); // Last hour
+      // Local Playbook generation queues were retired. Preserve the generic
+      // health shape without querying the legacy remote table.
+      const queueStats: any[] = [];
 
       if (!queueStats) {
         return { totalItems: 0, averageWaitTime: 0, processingRate: 0, errorRate: 0 };
@@ -278,13 +276,7 @@ export class PerformanceMonitoringService {
 
       const activeUsers = new Set(activeUsersData?.map(event => event.user_id) || []).size;
 
-      // Get generations per hour
-      const { data: generationsData } = await supabase
-        .from('generation_queue')
-        .select('id')
-        .gte('created_at', hourAgo);
-
-      const generationsPerHour = generationsData?.length || 0;
+      const generationsPerHour = 0;
 
       // Get faith points awarded
       const { data: faithPointsData } = await supabase

@@ -796,7 +796,7 @@ const TabPressContext = React.createContext<{
 export default function BottomTabNavigator({ onLogout: _onLogout }: BottomTabNavigatorProps) {
   const theme = useTheme();
   const { user } = useAuth();
-  const currentTabRef = React.useRef<string>('UserInput');
+  const currentTabRef = React.useRef<string>('Today');
   const journalScreenRef = React.useRef<JournalScreenRef>(null);
 
   // Subtle haptic feedback, gated by user preference

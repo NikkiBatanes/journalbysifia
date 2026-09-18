@@ -1448,7 +1448,7 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
                 updates: {
                   content: text.trim(),
                   status: step.key === 'supplication' ? Object.values(prayerEntries).flat().find(p => p.id === existingId)?.status || 'pending' : undefined,
-                  metadata: { ...Object.values(prayerEntries).flat().find(p => p.id === existingId)?.metadata, prayer_style: 'cast', prayer_session_id: prayerSessionId.current, track_answered: step.key === 'supplication' ? supplicationTrackAnswered : false },
+                  metadata: { ...Object.values(prayerEntries).flat().find(p => p.id === existingId)?.metadata, prayer_style: 'cast', prayer_session_id: prayerSessionId.current, track_answered: step.key === 'supplication' ? supplicationTrackAnswered : false, ...(fromPlaybook ? { origin: 'playbook', source: 'playbook', playbook_id: playbookId, playbook_title: playbookTitle, step_id: stepId, subtask_id: subtaskId, action_step_number: actionStepNumber, action_step_title: actionStepTitle } : {}) },
                 },
                 _userId: user?.id ?? 'local',
                 _dateStr: dateStr,
@@ -1465,7 +1465,7 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
                 prayer_count: 1,
                 last_prayed_at: new Date().toISOString(),
                 status: step.key === 'supplication' ? 'pending' : undefined,
-                metadata: { ...Object.values(prayerEntries).flat().find(p => p.id === existingId)?.metadata, prayer_style: 'cast', prayer_session_id: prayerSessionId.current, track_answered: step.key === 'supplication' ? supplicationTrackAnswered : false },
+                metadata: { ...Object.values(prayerEntries).flat().find(p => p.id === existingId)?.metadata, prayer_style: 'cast', prayer_session_id: prayerSessionId.current, track_answered: step.key === 'supplication' ? supplicationTrackAnswered : false, ...(fromPlaybook ? { origin: 'playbook', source: 'playbook', playbook_id: playbookId, playbook_title: playbookTitle, step_id: stepId, subtask_id: subtaskId, action_step_number: actionStepNumber, action_step_title: actionStepTitle } : {}) },
               });
               savedPrayerIds.current[step.key] = created.id;
             }
@@ -1488,7 +1488,7 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
             updates: {
               content: openPrayerText.trim(),
               status: Object.values(prayerEntries).flat().find(p => p.id === existingId)?.status || 'pending',
-              metadata: { ...Object.values(prayerEntries).flat().find(p => p.id === existingId)?.metadata, prayer_style: 'open', track_answered: openPrayerTrackAnswered },
+              metadata: { ...Object.values(prayerEntries).flat().find(p => p.id === existingId)?.metadata, prayer_style: 'open', track_answered: openPrayerTrackAnswered, ...(fromPlaybook ? { origin: 'playbook', source: 'playbook', playbook_id: playbookId, playbook_title: playbookTitle, step_id: stepId, subtask_id: subtaskId, action_step_number: actionStepNumber, action_step_title: actionStepTitle } : {}) },
             },
             _userId: user?.id ?? 'local',
             _dateStr: dateStr,
@@ -1505,7 +1505,7 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
             prayer_count: 1,
             last_prayed_at: new Date().toISOString(),
             status: 'pending',
-            metadata: { ...Object.values(prayerEntries).flat().find(p => p.id === existingId)?.metadata, prayer_style: 'open', track_answered: openPrayerTrackAnswered },
+            metadata: { ...Object.values(prayerEntries).flat().find(p => p.id === existingId)?.metadata, prayer_style: 'open', track_answered: openPrayerTrackAnswered, ...(fromPlaybook ? { origin: 'playbook', source: 'playbook', playbook_id: playbookId, playbook_title: playbookTitle, step_id: stepId, subtask_id: subtaskId, action_step_number: actionStepNumber, action_step_title: actionStepTitle } : {}) },
           });
           savedPrayerIds.current.freeform = created.id;
         }

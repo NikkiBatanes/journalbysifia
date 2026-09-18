@@ -1281,6 +1281,7 @@ const PrayersForPeopleWalkthroughScreen: React.FC<Props> = ({ navigation, route 
         metadata: {
           prayer_type: selectedType?.id,
           track_answered: trackAnswered,
+          ...(fromPlaybook ? { origin: 'playbook', source: 'playbook', playbook_id: playbookId, playbook_title: playbookTitle, step_id: stepId, subtask_id: subtaskId, action_step_number: actionStepNumber, action_step_title: actionStepTitle } : {}),
         },
         selected_date: dateStr,
       };

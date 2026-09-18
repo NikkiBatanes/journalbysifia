@@ -363,10 +363,10 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
         }
 
         if (hasCompleted) {
-          // FLOW 3: Detected user finished onboarding → Splash > UserInput (new main screen)
-          const target = 'UserInput';
-        logger.onboarding.navigation('Splash', 'UserInputRoute');
-          logger.debug('📋 FLOW: Splash > UserInput (new main screen)');
+          // FLOW 3: Completed users enter Journal, never legacy generation.
+          const target = 'MainTabs';
+          logger.onboarding.navigation('Splash', 'MainTabs');
+          logger.debug('📋 FLOW: Splash > MainTabs');
           try {
             navigation.reset({ index: 0, routes: [{ name: target as any }] });
           } catch (navErr) {

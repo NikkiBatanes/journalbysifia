@@ -2,8 +2,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { toLocalDateString } from '../utils/date';
 import { safeJsonParse } from '../utils/safeJsonParse';
 
-export type PrayerType = 'journal' | 'people' | 'guided_playbook';
-export type JournalCategory = 'adoration' | 'confession' | 'thanksgiving' | 'supplication';
+export type PrayerType = 'journal' | 'people' | 'devotional' | 'guided_playbook';
+export type JournalCategory = 'adoration' | 'confession' | 'thanksgiving' | 'supplication' | 'personal_prayer';
 export type PrayerStatus = 'pending' | 'answered';
 
 export interface LocalPrayerEntry {

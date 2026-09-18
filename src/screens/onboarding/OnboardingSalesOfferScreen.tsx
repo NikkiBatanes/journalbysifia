@@ -182,10 +182,10 @@ const OnboardingSalesOfferScreen: React.FC = () => {
   const routeParams = route.params as RouteParams | undefined;
   const isUpgradeMode = routeParams?.upgradeMode || false;
 
-  const resetToUserInput = useCallback(() => {
+  const resetToMainTabs = useCallback(() => {
     navigation.reset({
       index: 0,
-      routes: [{ name: 'UserInput' as any }],
+      routes: [{ name: 'MainTabs' as any }],
     });
   }, [navigation]);
 
@@ -207,8 +207,8 @@ const OnboardingSalesOfferScreen: React.FC = () => {
       return;
     }
 
-    resetToUserInput();
-  }, [navigation, navigateToNotificationSetup, resetToUserInput]);
+    resetToMainTabs();
+  }, [navigation, navigateToNotificationSetup, resetToMainTabs]);
 
   const hasEverStartedTrial = Boolean(
     subscription?.trial_start_date ||
@@ -474,15 +474,15 @@ const OnboardingSalesOfferScreen: React.FC = () => {
         logger.debug('Navigating to notification setup for onboarding flow');
         navigateToNotificationSetup('paid');
       } else if (routeParams?.source === 'profile_upgrade') {
-        resetToUserInput();
+        resetToMainTabs();
       } else if (routeParams?.dismissBehavior === 'goBack' || routeParams?.source === 'wisdom_limit') {
         goBackOrFallback('userInput');
       } else {
         // The purchase success modal CTA is the intentional "Process another moment" path.
-        resetToUserInput();
+        resetToMainTabs();
       }
     }, 100);
-  }, [goBackOrFallback, navigateToNotificationSetup, resetToUserInput, routeParams]);
+  }, [goBackOrFallback, navigateToNotificationSetup, resetToMainTabs, routeParams]);
 
   // Pre-fetch available products on mount to avoid delays during purchase
   useEffect(() => {
@@ -782,7 +782,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
     logger.info('Dismissing sales offer based on origin context');
     setTimeout(() => {
       if (routeParams?.dismissBehavior === 'userInput') {
-        resetToUserInput();
+        resetToMainTabs();
         return;
       }
 

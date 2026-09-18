@@ -23,6 +23,7 @@ import PrayerMomentsCarousel from '../../../components/moments/PrayerMomentsCaro
 import type { PrayerHomeEntry } from '../../../components/journal/PrayerCard';
 import type { PluginFilters } from '../types';
 import type { FilterKey } from '../../../components/moments/FilterSelect';
+import { adaptSifiaPrayer, adaptSifiaReflection } from '../../../compatibility/sifiaReadCompatibility';
 import { getMomentsListStructureKey, hasMomentsListStructureChanged } from '../../../utils/momentsListIdentity';
 
 // Removed unused screenWidth variable
@@ -940,6 +941,7 @@ const EnhancedMomentsContent: React.FC<EnhancedMomentsRendererProps> = ({
               const hasUserContent = hasText || hasObjectContent || hasPeopleList || hasPrayerList || !!(prayer as any).journal_category || isGuidedPrayer;
 
               if (hasUserContent && shouldIncludePrayer) {
+                const prayerCompatibility = adaptSifiaPrayer(prayer as any);
                 // Parse date-only strings as local midnight to avoid off-by-one issues
                 const selected = (prayer as any).selected_date as string | null;
                 const entryDate = selected && /^\d{4}-\d{2}-\d{2}$/.test(selected)
@@ -969,10 +971,7 @@ const EnhancedMomentsContent: React.FC<EnhancedMomentsRendererProps> = ({
                       : prayerPlugin);
 
                 const dateKey = entryDate.toDateString();
-                const existingPrayerEntry = entries.find(e =>
-                  e.plugin.id === targetPlugin.id &&
-                  e.date.toDateString() === dateKey
-                );
+                const existingPrayerEntry = entries.find(e => e._canonicalId === prayer.id);
 
                 if (!existingPrayerEntry) {
                   const prayerEntry = {
@@ -983,18 +982,7 @@ const EnhancedMomentsContent: React.FC<EnhancedMomentsRendererProps> = ({
                     _canonicalId: prayer.id,
                     isAnswered: ((prayer as any).is_answered === true) || ((prayer as any).status === 'answered') || !!(prayer as any).answered_date,
                     _isPrayerRequest: (prayer as any)?.is_prayer_request === true,
-                    _searchText: buildSearchText(
-                      contentText,
-                      contentObj,
-                      (prayer as any)?.title,
-                      (prayer as any)?.name,
-                      (prayer as any)?.notes,
-                      (prayer as any)?.people,
-                      (prayer as any)?.prayer_list,
-                      (prayer as any)?.request,
-                      (prayer as any)?.journal_category,
-                      (prayer as any)?.prayer_type,
-                    ),
+                    _searchText: buildSearchText(prayerCompatibility.searchText, contentObj, (prayer as any)?.title, (prayer as any)?.name, (prayer as any)?.notes, (prayer as any)?.people, (prayer as any)?.prayer_list, (prayer as any)?.request, (prayer as any)?.journal_category),
                   };
 
                   entries.push(prayerEntry);
@@ -1022,26 +1010,11 @@ const EnhancedMomentsContent: React.FC<EnhancedMomentsRendererProps> = ({
 
           if (reflectionPlugin) {
             reflections.forEach(reflection => {
-              // Allow Reflection Journal of all subtypes: freeform, guided, legacy, playbook
+              const compatibility = adaptSifiaReflection(reflection as any);
               const typeStr = (reflection.type || '').toString().toLowerCase();
               const sourceStr = (reflection.source || '').toString().toLowerCase();
-              const allowedType =
-                typeStr === '' ||
-                typeStr === 'free' ||
-                typeStr === 'guided' ||
-                typeStr === 'playbook' ||
-                typeStr.includes('freeform') ||
-                typeStr.includes('guided') ||
-                typeStr.includes('playbook');
-
-              const allowedSource =
-                sourceStr === '' ||
-                sourceStr === 'freeform' ||
-                sourceStr === 'guided' ||
-                sourceStr === 'playbook' ||
-                sourceStr.includes('freeform') ||
-                sourceStr.includes('guided') ||
-                sourceStr.includes('playbook');
+              const allowedType = typeStr === '' || ['free', 'freeform', 'free-form', 'guided', 'playbook', 'devotional', 'thought', 'thoughts', 'reflection'].includes(typeStr);
+              const allowedSource = sourceStr === '' || ['freeform', 'free-form', 'guided', 'playbook', 'devotional', 'thought', 'thoughts', 'reflection'].includes(sourceStr);
 
               // Check if reflection has content (string or object)
               const hasUserContent = reflection.content &&
@@ -1053,26 +1026,16 @@ const EnhancedMomentsContent: React.FC<EnhancedMomentsRendererProps> = ({
                 const dateKey = entryDate.toDateString();
 
                 // Check if we already have an entry for this plugin on this date
-                const existingEntry = entries.find(e =>
-                  e.plugin.id === reflectionPlugin.id &&
-                  e.date.toDateString() === dateKey
-                );
+                const existingEntry = entries.find(e => e._canonicalId === reflection.id);
 
                 if (!existingEntry) {
                   const reflectionEntry = {
                     plugin: reflectionPlugin,
                     date: entryDate,
                     category: 'Reflection',
-                    type: reflection.type || 'Reflection',
+                    type: reflection.type || compatibility.title,
                     _canonicalId: reflection.id,
-                    _searchText: buildSearchText(
-                      reflection.content,
-                      (reflection as any)?.title,
-                      (reflection as any)?.subtitle,
-                      (reflection as any)?.prompt,
-                      (reflection as any)?.notes,
-                      (reflection as any)?.metadata,
-                    ),
+                    _searchText: compatibility.searchText,
                   };
 
                   entries.push(reflectionEntry);

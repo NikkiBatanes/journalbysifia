@@ -12,10 +12,6 @@ export const TabBarIcons = {
     name: 'grid-outline',
     focused: 'grid',
   },
-  UserInput: {
-    name: 'chatbubble',
-    focused: 'chatbubble',
-  },
   Playbooks: {
     name: 'book',
     focused: 'book',

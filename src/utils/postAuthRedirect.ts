@@ -26,7 +26,7 @@ export const hasLoginFlowRedirect = async (context: string): Promise<boolean> =>
 export const setUserInputLoginRedirect = async (): Promise<void> => {
   await AsyncStorage.removeItem(FORCE_NAVIGATE_TO_MAIN_KEY);
   await AsyncStorage.setItem(POST_AUTH_REDIRECT_KEY, JSON.stringify({
-    target: 'UserInput',
+    target: 'MainTabs',
     params: {},
     is_login_flow: true,
   }));

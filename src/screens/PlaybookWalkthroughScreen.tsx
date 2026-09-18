@@ -65,7 +65,6 @@ import PlaybookReadyOverlay from '../components/PlaybookReadyOverlay';
 import ShareDropdownModal from '../components/ShareDropdownModal';
 import TruthToCarryShareComposer from '../components/TruthToCarryShareComposer';
 import ScriptureReaderModal from '../components/ScriptureReaderModal';
-import { refinePlaybook, type PlaybookCorrectionType } from '../services/playbookRefinementService';
 
 import type { RootStackParamList } from '../navigation/types';
 import type { ActionStep, PlaybookCover, TruthBeat } from '../interfaces/playbook';
@@ -80,59 +79,6 @@ type Props = NativeStackScreenProps<RootStackParamList, 'PlaybookWalkthrough'>;
 
 const COVER_STEP_INDEX = -1;
 const TOTAL_STEPS = 7;
-
-if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
-  UIManager.setLayoutAnimationEnabledExperimental(true);
-}
-
-const REFINEMENT_OPTIONS: Array<{ id: string; type: PlaybookCorrectionType; label: string }> = [
-  { id: 'not_what_i_meant', type: 'wrong_assumption', label: "That's not what I meant" },
-  { id: 'more_to_situation', type: 'missing_detail', label: "There's more to the situation" },
-  { id: 'wrong_focus', type: 'wrong_assumption', label: "This isn't what I'm struggling with most" },
-  { id: 'something_else', type: 'explain_more', label: 'Something else' },
-];
-
-type RefinementUpgradeTier = 'growth' | 'transformation';
-
-const getRefinementUpgradeTier = (subscription: any): RefinementUpgradeTier | null => {
-  const storedTier = String(subscription?.tier || 'seeker').replace(/_annual$/, '');
-  const effectiveTier = storedTier === 'free_trial'
-    ? String(subscription?.trial_chosen_tier || 'growth').replace(/_annual$/, '')
-    : storedTier;
-  if (effectiveTier === 'transformation') { return null; }
-  return effectiveTier === 'growth' ? 'transformation' : 'growth';
-};
-
-const getRefinementResetLabel = (subscription: any): string => {
-  const now = new Date();
-  const storedTier = String(subscription?.tier || 'seeker').replace(/_annual$/, '');
-  let resetDate: Date;
-
-  if (storedTier === 'free_trial' && subscription?.trial_end_date) {
-    resetDate = new Date(subscription.trial_end_date);
-  } else if (storedTier === 'seeker') {
-    const anchor = new Date(subscription?.last_usage_reset || subscription?.created_at || now);
-    resetDate = new Date(anchor.getTime() + 30 * 24 * 60 * 60 * 1000);
-    while (resetDate <= now) {
-      resetDate = new Date(resetDate.getTime() + 30 * 24 * 60 * 60 * 1000);
-    }
-  } else {
-    const anchor = new Date(subscription?.subscription_start_date || subscription?.created_at || now);
-    const anchorDay = anchor.getDate();
-    const thisMonthDay = Math.min(anchorDay, new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate());
-    resetDate = new Date(now.getFullYear(), now.getMonth(), thisMonthDay);
-    if (resetDate <= now) {
-      const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-      const nextMonthDay = Math.min(anchorDay, new Date(nextMonth.getFullYear(), nextMonth.getMonth() + 1, 0).getDate());
-      resetDate = new Date(nextMonth.getFullYear(), nextMonth.getMonth(), nextMonthDay);
-    }
-  }
-
-  if (Number.isNaN(resetDate.getTime()) || resetDate <= now) {
-    resetDate = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
-  }
-  return resetDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
-};
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -656,14 +602,12 @@ const getTruthToCarry = (playbook: any): string | undefined => {
 interface PlaybookInputToggleProps {
   userInput: string;
   refinementNote?: string | null;
-  onEditUserInput?: () => void;
   style?: any;
 }
 
 const PlaybookInputToggle: React.FC<PlaybookInputToggleProps> = ({
   userInput,
   refinementNote,
-  onEditUserInput,
   style,
 }) => {
   const { currentFont } = useTheme();
@@ -722,13 +666,6 @@ const PlaybookInputToggle: React.FC<PlaybookInputToggleProps> = ({
                     triggerLightHaptic();
                     Clipboard.setString(momentCopyText);
                     Alert.alert('Copied', 'Moment copied to clipboard');
-                  },
-                },
-                {
-                  text: 'Edit',
-                  onPress: () => {
-                    triggerLightHaptic();
-                    onEditUserInput?.();
                   },
                 },
                 {
@@ -791,7 +728,6 @@ interface CoverStepProps {
   userInput: string;
   refinementNote?: string | null;
   onBegin: () => void;
-  onEditUserInput?: () => void;
   insets: { top: number; bottom: number };
 }
 
@@ -800,7 +736,6 @@ const CoverStep: React.FC<CoverStepProps> = ({
   userInput,
   refinementNote,
   onBegin,
-  onEditUserInput,
   insets,
 }) => {
   const estimatedMinutes = cover.estimatedMinutes ?? 1;
@@ -822,7 +757,6 @@ const CoverStep: React.FC<CoverStepProps> = ({
         <PlaybookInputToggle
           userInput={userInput}
           refinementNote={refinementNote}
-          onEditUserInput={onEditUserInput}
           style={styles.coverInputToggle}
         />
 
@@ -876,7 +810,6 @@ interface EnterMomentProps {
   showInputToggle?: boolean;
   showSummary?: boolean;
   onContinue: () => void;
-  onEditUserInput?: () => void;
   insets: { top: number };
 }
 
@@ -891,7 +824,6 @@ const EnterMomentStep: React.FC<EnterMomentProps> = ({
   showInputToggle = true,
   showSummary = true,
   onContinue: _onContinue,
-  onEditUserInput: _onEditUserInput,
   insets,
 }) => {
   const { currentFont } = useTheme();
@@ -912,7 +844,6 @@ const EnterMomentStep: React.FC<EnterMomentProps> = ({
         <PlaybookInputToggle
           userInput={userInput}
           refinementNote={refinementNote}
-          onEditUserInput={_onEditUserInput}
         />
       ) : null}
 
@@ -991,7 +922,6 @@ interface TruthStepProps {
   onBeatBack?: () => void;
   onGoToScripture?: () => void;
   bibleVersion?: string;
-  onOpenRefinement?: () => void;
   onShareReflection?: (text: string, options?: { noSplit?: boolean }) => void;
   onShareScripture?: (text: string) => void;
   insets: { top: number; bottom: number };
@@ -1052,7 +982,6 @@ const TruthBeatStep: React.FC<TruthBeatStepProps> = ({
   onBeatBack,
   onGoToScripture,
   bibleVersion,
-  onOpenRefinement,
   onShareReflection,
   onShareScripture,
   insets,
@@ -1786,19 +1715,6 @@ const TruthBeatStep: React.FC<TruthBeatStepProps> = ({
           pointerEvents={truthNavCollapsed ? 'none' : 'box-none'}
         >
           <Animated.View style={[styles.truthBeatNavRowContent, { opacity: truthNavContentOpacity }]}>
-            {onOpenRefinement ? (
-              <TouchableOpacity
-                style={styles.truthBeatRefineButton}
-                onPress={onOpenRefinement}
-                activeOpacity={0.7}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                accessibilityRole="button"
-                accessibilityLabel="That’s not quite it"
-              >
-                <Ionicons name="sparkles" size={14} color={Colors.alertCoral} />
-              </TouchableOpacity>
-            ) : null}
-
             {currentIndex > 0 ? (
               <TouchableOpacity
                 style={styles.truthBeatIconButton}
@@ -2052,337 +1968,6 @@ const TruthInLoveStep: React.FC<TruthStepProps> = (props) => {
   }
 
   return <LegacyTruthInLoveStep {...props} />;
-};
-
-interface FloatingRefinementControlProps {
-  open: boolean;
-  onClose: () => void;
-  isRefining: boolean;
-  refinementsRemaining: number;
-  upgradeTier: RefinementUpgradeTier | null;
-  resetDateLabel: string;
-  insets: { bottom: number };
-  onRefineSubmit: (correctionType: PlaybookCorrectionType, clarification: string) => Promise<boolean>;
-  onUpgrade: () => void;
-}
-
-const FloatingRefinementControl: React.FC<FloatingRefinementControlProps> = ({
-  open,
-  onClose,
-  isRefining,
-  refinementsRemaining,
-  upgradeTier,
-  resetDateLabel,
-  insets,
-  onRefineSubmit,
-  onUpgrade,
-}) => {
-  const { currentFont } = useTheme();
-  const fontKey = currentFont || 'lexend';
-  const fontFamily = getFontFamily(fontKey, 'regular');
-  const [selectedRefinementOptionId, setSelectedRefinementOptionId] = useState<string | null>(null);
-  const [refinementText, setRefinementText] = useState('');
-  const [keyboardHeight, setKeyboardHeight] = useState(0);
-  const revealAnim = useRef(new Animated.Value(0)).current;
-  const inputRef = useRef<TextInput>(null);
-  const refiningAnim = useRef(new Animated.Value(1)).current;
-  const dotAnim = useRef(new Animated.Value(0)).current;
-  const [dotIndex, setDotIndex] = useState(0);
-  const selectedOption = REFINEMENT_OPTIONS.find(option => option.id === selectedRefinementOptionId);
-  const selectedRefinementType = selectedOption?.type ?? null;
-  const keyboardLift = keyboardHeight > 0 ? Math.max(0, keyboardHeight - insets.bottom) : 0;
-  const panelMaxHeight = keyboardHeight > 0
-    ? Math.max(260, SCREEN_HEIGHT - keyboardHeight - 42)
-    : SCREEN_HEIGHT - 82;
-  const noRefinementsLeft = refinementsRemaining === 0;
-  const upgradeTierName = upgradeTier === 'transformation' ? 'Transformation' : 'Growth';
-
-  useEffect(() => {
-    if (open) {
-      Animated.spring(revealAnim, {
-        toValue: 1,
-        tension: 80,
-        friction: 9,
-        useNativeDriver: true,
-      }).start();
-    }
-  }, [open, revealAnim]);
-
-  useEffect(() => {
-    const animation = Animated.loop(
-      Animated.sequence([
-        Animated.timing(refiningAnim, {
-          toValue: 0.5,
-          duration: 800,
-          useNativeDriver: true,
-        }),
-        Animated.timing(refiningAnim, {
-          toValue: 1,
-          duration: 800,
-          useNativeDriver: true,
-        }),
-      ])
-    );
-
-    if (isRefining) {
-      animation.start();
-    } else {
-      animation.stop();
-      refiningAnim.setValue(1);
-    }
-
-    return () => {
-      animation.stop();
-    };
-  }, [isRefining, refiningAnim]);
-
-  useEffect(() => {
-    if (isRefining) {
-      Animated.loop(
-        Animated.timing(dotAnim, {
-          toValue: 1,
-          duration: 1500,
-          useNativeDriver: true,
-        })
-      ).start();
-
-      dotAnim.addListener(({ value }) => {
-        setDotIndex(Math.floor(value * 3) % 3);
-      });
-    } else {
-      dotAnim.stopAnimation();
-      dotAnim.setValue(0);
-      setDotIndex(0);
-    }
-
-    return () => {
-      dotAnim.stopAnimation();
-      dotAnim.removeAllListeners();
-    };
-  }, [isRefining, dotAnim]);
-
-  useEffect(() => {
-    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
-    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
-
-    const showSubscription = Keyboard.addListener(showEvent, event => {
-      setKeyboardHeight(event.endCoordinates?.height || 0);
-    });
-    const hideSubscription = Keyboard.addListener(hideEvent, () => {
-      setKeyboardHeight(0);
-    });
-
-    return () => {
-      showSubscription.remove();
-      hideSubscription.remove();
-    };
-  }, []);
-
-  useEffect(() => {
-    if (selectedRefinementOptionId && inputRef.current) {
-      const timeout = setTimeout(() => {
-        inputRef.current?.focus();
-      }, 100);
-      return () => clearTimeout(timeout);
-    }
-  }, [selectedRefinementOptionId]);
-
-  const handleCloseRefinement = () => {
-    if (isRefining) {
-      return;
-    }
-
-    triggerLightHaptic();
-    Keyboard.dismiss();
-    setSelectedRefinementOptionId(null);
-    setRefinementText('');
-    onClose();
-  };
-
-  const handleReasonPress = (optionId: string) => {
-    triggerLightHaptic();
-    setSelectedRefinementOptionId(optionId);
-  };
-
-  const handleSubmit = async () => {
-    if (!selectedOption || !selectedRefinementType || isRefining) {
-      return;
-    }
-
-    triggerMediumHaptic();
-    const refined = await onRefineSubmit(
-      selectedRefinementType,
-      `${selectedOption.label}: ${refinementText.trim()}`
-    );
-    if (refined) {
-      setSelectedRefinementOptionId(null);
-      setRefinementText('');
-      onClose();
-    }
-  };
-
-  if (!open) {
-    return null;
-  }
-
-  return (
-    <>
-      <TouchableOpacity
-        style={styles.refinementBackdrop}
-        activeOpacity={1}
-        onPress={handleCloseRefinement}
-        disabled={isRefining}
-      />
-
-      <Animated.View
-        style={[
-          styles.floatingRefinementPanel,
-          {
-            bottom: keyboardLift,
-            maxHeight: panelMaxHeight,
-            opacity: revealAnim,
-            transform: [
-              {
-                translateY: revealAnim.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [10, 0],
-                }),
-              },
-            ],
-          },
-        ]}
-      >
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-          contentContainerStyle={{ paddingBottom: insets.bottom }}
-        >
-          <View style={styles.floatingRefinementHeader}>
-            <View style={styles.refinementSheetTitleRow}>
-              <ThemedText weight="bold" style={styles.refinementSheetTitle}>
-                Help siFia understand
-              </ThemedText>
-              {noRefinementsLeft ? (
-                <View style={styles.refinementCountBadge}>
-                  <ThemedText weight="semiBold" style={styles.refinementCountBadgeText}>
-                    No refinements left
-                  </ThemedText>
-                </View>
-              ) : null}
-            </View>
-            <ThemedText style={styles.refinementSheetPrompt}>
-              {noRefinementsLeft ? 'These are the parts you can refine.' : 'What did we miss?'}
-            </ThemedText>
-          </View>
-
-          <View style={styles.floatingRefinementReasons}>
-            {REFINEMENT_OPTIONS.map((option, index) => {
-              const selected = selectedRefinementOptionId === option.id;
-              return (
-                <StepFadeIn key={option.id} delay={index * 45}>
-                  <TouchableOpacity
-                    style={[
-                      styles.refinementReasonButton,
-                      selected && styles.refinementReasonButtonSelected,
-                      noRefinementsLeft && styles.refinementReasonButtonDisabled,
-                    ]}
-                    onPress={() => handleReasonPress(option.id)}
-                    activeOpacity={0.82}
-                    disabled={isRefining || noRefinementsLeft}
-                    accessibilityState={{ disabled: isRefining || noRefinementsLeft }}
-                  >
-                    <Ionicons
-                      name={selected ? 'radio-button-on' : 'radio-button-off'}
-                      size={18}
-                      color={selected ? Colors.alertCoral : 'rgba(255,255,255,0.42)'}
-                      style={styles.refinementReasonRadio}
-                    />
-                    <ThemedText weight={selected ? 'semiBold' : 'regular'} style={[styles.refinementReasonText, selected && styles.refinementReasonTextSelected]}>
-                      {option.label}
-                    </ThemedText>
-                  </TouchableOpacity>
-                </StepFadeIn>
-              );
-            })}
-          </View>
-
-          {noRefinementsLeft ? (
-            <View style={styles.refinementExhaustedActions}>
-              {upgradeTier ? (
-                <TouchableOpacity
-                  style={styles.refinementUpgradeButton}
-                  onPress={() => {
-                    triggerLightHaptic();
-                    onUpgrade();
-                  }}
-                  activeOpacity={0.82}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Upgrade to ${upgradeTierName}`}
-                >
-                  <MaterialCommunityIcons name="star-four-points" size={16} color={Colors.hopeWhite} />
-                  <ThemedText weight="bold" style={styles.refinementUpgradeButtonText}>
-                    Upgrade to {upgradeTierName}
-                  </ThemedText>
-                </TouchableOpacity>
-              ) : null}
-              <ThemedText style={styles.refinementResetText}>
-                {upgradeTier ? 'Or wait until ' : 'Refinements reset on '}
-                <ThemedText weight="semiBold" style={styles.refinementResetDateText}>
-                  {resetDateLabel}
-                </ThemedText>
-                {upgradeTier ? ' for your refinements to reset.' : '.'}
-              </ThemedText>
-            </View>
-          ) : null}
-
-          {!noRefinementsLeft && selectedRefinementType ? (
-            <StepFadeIn delay={260} style={styles.refinementFloatingInputBlock}>
-              <TextInput
-                ref={inputRef}
-                value={refinementText}
-                onChangeText={setRefinementText}
-                editable={!isRefining}
-                multiline
-                placeholder="Tell siFia more..."
-                placeholderTextColor="rgba(255,255,255,0.45)"
-                keyboardAppearance="light"
-                textAlignVertical="top"
-                autoFocus
-                style={[styles.refinementInput, { fontFamily }]}
-              />
-
-              <TouchableOpacity
-                style={[styles.refinementSubmitButton, (!refinementText.trim() || isRefining) && styles.refinementSubmitButtonDisabled]}
-                onPress={handleSubmit}
-                activeOpacity={0.82}
-                disabled={!refinementText.trim() || isRefining}
-              >
-                {isRefining ? (
-                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    <Animated.Text
-                      style={[styles.refinementSubmitButtonText, { opacity: refiningAnim, fontFamily, fontWeight: '500' }]}
-                    >
-                      Refining
-                    </Animated.Text>
-                    <Animated.Text
-                      style={[styles.refinementSubmitButtonText, { opacity: refiningAnim, fontFamily, width: 20, textAlign: 'left', fontWeight: '500' }]}
-                    >
-                      {'.'.repeat(dotIndex + 1)}
-                    </Animated.Text>
-                  </View>
-                ) : (
-                  <>
-                    <Ionicons name="refresh-outline" size={16} color={Colors.hopeWhite} />
-                    <ThemedText weight="semiBold" style={styles.refinementSubmitButtonText}>Refine Playbook</ThemedText>
-                  </>
-                )}
-              </TouchableOpacity>
-            </StepFadeIn>
-          ) : null}
-        </ScrollView>
-      </Animated.View>
-    </>
-  );
 };
 
 // ─── Step 2: Scripture Anchor ────────────────────────────────────────────────
@@ -7611,15 +7196,6 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
   const [shareTextColor, setShareTextColor] = useState<string | undefined>(undefined);
   const [shareLineHeightMultiplier, setShareLineHeightMultiplier] = useState<number | undefined>(undefined);
   const [shareNoSplit, setShareNoSplit] = useState<boolean | undefined>(undefined);
-  const [refinedPlaybookOverride, setRefinedPlaybookOverride] = useState<typeof routePlaybook | null>(null);
-  const [isRefining, setIsRefining] = useState(false);
-  const [refinementCount, setRefinementCount] = useState(0);
-  const [refinementLimit, setRefinementLimit] = useState(0);
-  const [refinementUpgradeTier, setRefinementUpgradeTier] = useState<RefinementUpgradeTier | null>('growth');
-  const [refinementResetLabel, setRefinementResetLabel] = useState(() => getRefinementResetLabel(null));
-  const [refinementCurrentTier, setRefinementCurrentTier] = useState('seeker');
-  const [refinementTrialChosenTier, setRefinementTrialChosenTier] = useState<string | undefined>(undefined);
-  const [refinementOpen, setRefinementOpen] = useState(false);
   const [positionLoadedFor, setPositionLoadedFor] = useState<string | null>(null);
 
 
@@ -7676,7 +7252,7 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
     retry: 2,
   });
 
-  const playbook = (refinedPlaybookOverride || (isFullPlaybook ? routePlaybook : fetchedPlaybook)) as typeof routePlaybook;
+  const playbook = (isFullPlaybook ? routePlaybook : fetchedPlaybook) as typeof routePlaybook;
   const coverPage = getPlaybookCover(playbook);
   const truthBeats = personalizeTruthContent(getTruthBeats(playbook, userName), userName);
   const truthToCarry = personalizeTruthContent(getTruthToCarry(playbook), userName);
@@ -7684,10 +7260,6 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
   const currentTruthBeatPrimary = currentTruthBeatForShare?.primaryTruth || '';
   const currentTruthBeatSupporting = currentTruthBeatForShare?.supportingTruth;
   const hasLoadedPlaybook = !!playbook;
-
-  const refinementsRemaining = refinementLimit === -1
-    ? Number.MAX_SAFE_INTEGER
-    : Math.max(0, refinementLimit - refinementCount);
 
   useEffect(() => {
     if (!playbookId || !playbook) { return; }
@@ -7767,41 +7339,6 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
 
     setTruthBeatIndex(current => Math.min(current, truthBeats.length - 1));
   }, [truthBeats.length]);
-
-  const loadRefinementUsage = useCallback(() => {
-    if (!userId) {
-      setRefinementCount(0);
-      setRefinementLimit(0);
-      setRefinementUpgradeTier('growth');
-      setRefinementResetLabel(getRefinementResetLabel(null));
-      setRefinementCurrentTier('seeker');
-      setRefinementTrialChosenTier(undefined);
-      return;
-    }
-
-    NewSubscriptionService.getUserSubscription(userId)
-      .then(subscription => {
-        const limits = NewSubscriptionService.getTierLimits(subscription.tier, subscription);
-        setRefinementCount((subscription as any).refinement_count || 0);
-        setRefinementLimit(source === 'onboarding' ? 1 : limits.refinement_limit ?? 0);
-        setRefinementUpgradeTier(getRefinementUpgradeTier(subscription));
-        setRefinementResetLabel(getRefinementResetLabel(subscription));
-        setRefinementCurrentTier(String(subscription.tier || 'seeker'));
-        setRefinementTrialChosenTier(subscription.trial_chosen_tier);
-      })
-      .catch(() => {
-        setRefinementCount(0);
-        setRefinementLimit(0);
-        setRefinementUpgradeTier('growth');
-        setRefinementResetLabel(getRefinementResetLabel(null));
-        setRefinementCurrentTier('seeker');
-        setRefinementTrialChosenTier(undefined);
-      });
-  }, [source, userId]);
-
-  useEffect(() => {
-    loadRefinementUsage();
-  }, [loadRefinementUsage]);
 
   useEffect(() => {
     if (!userId || !playbookId || !playbook) {
@@ -8154,71 +7691,6 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
       createdAt: playbook.createdAt,
     });
   }, [playbook, user, pdfExportAccess, navigation]);
-
-  const handleRefinePlaybook = useCallback(async (
-    correctionType: PlaybookCorrectionType,
-    clarificationInput: string
-  ): Promise<boolean> => {
-    if (!playbook?.id || !userId) {
-      Alert.alert('Unable to refine', 'This playbook is still loading.');
-      return false;
-    }
-
-    const clarification = clarificationInput.trim();
-    if (clarification.length < 8) {
-      Alert.alert('Add a little more', 'Share what siFia missed before refining this playbook.');
-      return false;
-    }
-
-    setIsRefining(true);
-    try {
-      const metadata = (user as any)?.user_metadata || {};
-      const dateOfBirth = metadata.birth_date || metadata.dateOfBirth || metadata.birthDate;
-      const result = await refinePlaybook({
-        playbookId: playbook.id,
-        userId,
-        userName: userName || 'Friend',
-        correctionType,
-        clarification,
-        dateOfBirth,
-        isOnboarding: source === 'onboarding',
-        isBeatBased: truthBeats.length > 0,
-      });
-
-      setRefinedPlaybookOverride(result.playbook as any);
-      setRefinementCount(result.refinementCount);
-      setRefinementLimit(result.refinementLimit);
-      setStepIndex(getPlaybookCover(result.playbook) ? COVER_STEP_INDEX : 0);
-      setActionStepIndex(0);
-      setTruthBeatIndex(0);
-
-      persistedCommittedSteps = {};
-      persistedActionStepIndex = 0;
-      persistedHasPrayed = false;
-      persistedHasRead = false;
-      persistedCompletionChoice = null;
-      if (playbook.id) {
-        clearSessionStorage(playbook.id);
-      }
-
-      queryClient.invalidateQueries({ queryKey: ['playbook', playbook.id, userId] });
-      queryClient.invalidateQueries({ queryKey: ['playbooks', userId, 'lightweight'] });
-      queryClient.invalidateQueries({ queryKey: ['subscription', userId] });
-      DeviceEventEmitter.emit('playbook_refined', { playbookId: playbook.id });
-      DeviceEventEmitter.emit('playbookProgressUpdate', { playbookId: playbook.id });
-      triggerSuccessHaptic();
-      Alert.alert('Playbook refined', 'siFia revised this playbook with your clarification.');
-      return true;
-    } catch (error: any) {
-      const message = error?.code === 'REFINEMENT_LIMIT_REACHED'
-        ? error.message || 'You have used your playbook refinements this month.'
-        : error?.message || 'siFia could not revise this playbook right now. Your current playbook is still here. Please try again in a moment.';
-      Alert.alert('Could not refine playbook', message);
-      return false;
-    } finally {
-      setIsRefining(false);
-    }
-  }, [playbook, userId, user, userName, queryClient, source, truthBeats]);
 
   const handleFinish = useCallback(async () => {
     triggerMediumHaptic();
@@ -8576,9 +8048,6 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
                 userInput={playbook.userInput}
                 refinementNote={playbook.latestRefinementNote}
                 onBegin={goNext}
-                onEditUserInput={() => {
-                  navigation.navigate('UserInput' as any, { initialText: playbook.userInput });
-                }}
                 insets={insets}
               />
             )}
@@ -8595,9 +8064,6 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
                 showInputToggle={!coverPage}
                 showSummary={truthBeats.length === 0}
                 onContinue={goNext}
-                onEditUserInput={() => {
-                  navigation.navigate('UserInput' as any, { initialText: playbook.userInput });
-                }}
                 insets={insets}
               />
             )}
@@ -8615,10 +8081,6 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
                 onBeatBack={goBack}
                 onGoToScripture={goToScriptureFromTruth}
                 bibleVersion={preferredBibleTranslation}
-                onOpenRefinement={() => {
-                  triggerLightHaptic();
-                  setRefinementOpen(true);
-                }}
                 onShareReflection={(reflectionText, options) => {
                   setShareReflectionText(reflectionText);
                   setShareTextColor(undefined);
@@ -8836,33 +8298,6 @@ const PlaybookWalkthroughScreen: React.FC<Props> = ({ route, navigation }) => {
           </Animated.View>
         </>
       )}
-
-
-      <FloatingRefinementControl
-        open={refinementOpen && stepIndex === 1}
-        onClose={() => setRefinementOpen(false)}
-        isRefining={isRefining}
-        refinementsRemaining={refinementsRemaining}
-        upgradeTier={refinementUpgradeTier}
-        resetDateLabel={refinementResetLabel}
-        insets={insets}
-        onRefineSubmit={handleRefinePlaybook}
-        onUpgrade={() => {
-          if (!refinementUpgradeTier) { return; }
-          setRefinementOpen(false);
-          navigation.navigate('OnboardingSalesOffer' as any, {
-            upgradeMode: true,
-            source: 'refinement_limit',
-            feature: 'refinement',
-            featureType: 'refinement',
-            currentTier: refinementCurrentTier,
-            currentTrialChosenTier: refinementTrialChosenTier,
-            selectedTier: refinementUpgradeTier,
-            skipNotificationPreference: true,
-            dismissBehavior: 'goBack',
-          });
-        }}
-      />
 
 
       {/* Floating coral next button — bottom right */}

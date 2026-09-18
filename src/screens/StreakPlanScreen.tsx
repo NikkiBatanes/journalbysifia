@@ -299,11 +299,6 @@ const StreakPlanScreen: React.FC = () => {
     }
   };
 
-  const handleProcessAnotherMoment = () => {
-    try { triggerLightHaptic(); } catch {}
-    (navigation as any).navigate('UserInput');
-  };
-
   const handleShare = () => {
     triggerLightHaptic();
     setShowShareDropdown(true);
@@ -393,15 +388,6 @@ const StreakPlanScreen: React.FC = () => {
             </Text>
           </TouchableOpacity>
 
-          {params.source === 'playbook_walkthrough' && (
-            <TouchableOpacity
-              style={[styles.secondaryButton, IS_IPAD && styles.secondaryButtonPad]}
-              onPress={handleProcessAnotherMoment}
-              activeOpacity={0.85}
-            >
-              <Text style={[styles.secondaryButtonText, font, { fontWeight: '600' }]}>Process Another Moment</Text>
-            </TouchableOpacity>
-          )}
         </Animated.View>
       </ScrollView>
 

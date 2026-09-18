@@ -12,9 +12,7 @@ import MorningFlowStackNavigator from './MorningFlowStackNavigator';
 import EveningFlowStackNavigator from './EveningFlowStackNavigator';
 import PlaybookDetailScreen from '../screens/PlaybookDetailGuided';
 import PlaybookWalkthroughScreen from '../screens/PlaybookWalkthroughScreen';
-import GeneratingPlaybookScreen from '../screens/GeneratingPlaybookScreen';
 import JournalScreen from '../screens/JournalScreen';
-import UserInputScreen from '../screens/UserInputScreen';
 import TodaysFocusWalkthroughScreen from '../screens/TodaysFocusWalkthroughScreen';
 import TomorrowInHisHandsWalkthroughScreen from '../screens/TomorrowInHisHandsWalkthroughScreen';
 import TodosWalkthroughScreen from '../screens/TodosWalkthroughScreen';
@@ -37,7 +35,6 @@ import GospelScreen from '../screens/GospelScreen';
 // New Onboarding screens
 import OnboardingSplashScreen from '../screens/onboarding/OnboardingSplashScreen';
 import OnboardingWelcomeScreen from '../screens/onboarding/OnboardingWelcomeScreen';
-import OnboardingPlaybookGenerationScreen from '../screens/onboarding/OnboardingPlaybookGenerationScreen';
 import OnboardingTransformYourLifeScreen from '../screens/onboarding/OnboardingTransformYourLifeScreen';
 import OnboardingWhenToOpenSiFiaScreen from '../screens/onboarding/OnboardingWhenToOpenSiFiaScreen';
 import OnboardingPostureScreen from '../screens/onboarding/OnboardingPostureScreen';
@@ -47,7 +44,6 @@ import OnboardingPersonalizationScreen from '../screens/onboarding/OnboardingPer
 import JournalOnboardingScreen from '../screens/journalOnboarding/JournalOnboardingScreen';
 
 // New Simplified Onboarding Flow Screens
-import OnboardingPlaybookReadyScreen from '../screens/onboarding/OnboardingPlaybookReadyScreenNew';
 import OnboardingSalesOfferScreen from '../screens/onboarding/OnboardingSalesOfferScreen';
 import TimeBlockEditorScreen from '../screens/TimeBlockEditorScreen';
 // RE-ENABLED: Trial Offer screen for trial flow navigation
@@ -369,20 +365,6 @@ export default function RootStackNavigator({
         </>
       ) : (
         <>
-          {/* PHASE 3: Challenge Selection & Playbook Generation (35%) */}
-
-          <Stack.Screen
-            name="OnboardingPlaybookGeneration"
-            component={OnboardingPlaybookGenerationScreen as React.ComponentType}
-            options={OnboardingAnimations.crossDissolve}
-          />
-
-          {/* NEW SIMPLIFIED ONBOARDING FLOW */}
-          <Stack.Screen
-            name="OnboardingPlaybookReady"
-            component={OnboardingPlaybookReadyScreen as React.ComponentType}
-            options={OnboardingAnimations.crossDissolve}
-          />
           <Stack.Screen
             name="OnboardingSalesOffer"
             component={OnboardingSalesOfferScreen as React.ComponentType}
@@ -500,15 +482,6 @@ export default function RootStackNavigator({
             }}
           />
           <Stack.Screen
-            name="GeneratingPlaybook"
-            component={GeneratingPlaybookScreen as React.ComponentType}
-            options={{
-              headerShown: false,
-              presentation: 'fullScreenModal',
-              animation: 'slide_from_bottom',
-            }}
-          />
-          <Stack.Screen
             name="Journal"
             component={JournalScreen as React.ComponentType}
             options={{ headerShown: false }}
@@ -563,19 +536,6 @@ export default function RootStackNavigator({
 
 
           {/* Prayer Editor Screen */}
-
-
-          {/* siFia AI Input Screen */}
-          <Stack.Screen
-            name="UserInput"
-            component={UserInputScreen as React.ComponentType}
-            options={{
-              headerShown: false,
-              presentation: 'fullScreenModal',
-              animation: 'fade',
-              contentStyle: { backgroundColor: Colors.sage },
-            }}
-          />
 
           {/* Streak Plan Screen - shown after completing playbook walkthrough */}
           <Stack.Screen

@@ -20,16 +20,6 @@ export type RootStackParamList = {
   OnboardingPersonalization: { name?: string; registrationMethod?: 'email' | 'oauth'; step?: number; rewriteData?: any } | undefined;
   OnboardingNotificationPermission: { playbook?: Playbook } | undefined;
 
-  // New Simplified Onboarding Flow Screens
-  OnboardingPlaybookReady: {
-    playbook: Playbook;
-    onboardingData: {
-      name: string;
-      birthDate?: string;
-      faithJourney: string;
-      challengeDetails: string;
-    };
-  };
   OnboardingSalesOffer: {
     upgradeMode?: boolean;
     currentTier?: string;
@@ -88,7 +78,6 @@ export type RootStackParamList = {
   MainTabs: undefined;
   Gospel: undefined;
   UserProfileModal: undefined;
-  UserInput: { initialText?: string; autoFocus?: boolean } | undefined;
   PlaybookDetail: {
     playbook: Playbook;
     isFromOnboarding?: boolean;
@@ -106,17 +95,6 @@ export type RootStackParamList = {
     initialStep?: number;
     initialActionIndex?: number;
     fromNotification?: boolean;
-  };
-  GeneratingPlaybook: {
-    userInput: string;
-    userName: string;
-    isFromOnboarding?: boolean;
-    onboardingData?: {
-      birthDate?: string;
-      faithJourney: string;
-      challenge: string;
-      challengeDetails: string;
-    };
   };
   // Journal screen
   Journal: undefined;

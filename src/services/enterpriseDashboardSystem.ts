@@ -393,10 +393,7 @@ class EnterpriseDashboardSystem {
 
   private async checkQueueHealth(): Promise<any> {
     try {
-      const { data: queueItems } = await supabase
-        .from('generation_queue')
-        .select('status')
-        .limit(1000);
+      const queueItems: Array<{ status: string }> = [];
 
       const pending = queueItems?.filter(item => item.status === 'pending').length || 0;
       const processing = queueItems?.filter(item => item.status === 'processing').length || 0;
@@ -643,9 +640,7 @@ class EnterpriseDashboardSystem {
 
   private async getQueueStats(): Promise<any> {
     try {
-      const { data: queueItems } = await supabase
-        .from('generation_queue')
-        .select('status');
+      const queueItems: Array<{ status: string }> = [];
 
       if (!queueItems) {
         return { pending: 0, processing: 0, completed: 0, failed: 0 };

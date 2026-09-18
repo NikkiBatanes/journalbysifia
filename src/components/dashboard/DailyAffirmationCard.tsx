@@ -377,7 +377,7 @@ const DailyAffirmationCard: React.FC<DailyAffirmationCardProps> = ({ onRefresh, 
           {affirmations.length === 0 ? (
             // This branch will rarely be hit because we return null when no affirmations and no error.
             // Kept for safety in case of future changes.
-            <ThemedText style={styles.errorText}>No declarations found. Create a playbook to get started.</ThemedText>
+            <ThemedText style={styles.errorText}>No saved declarations from siFia yet.</ThemedText>
           ) : (
             <View style={[
               styles.listContainer,
