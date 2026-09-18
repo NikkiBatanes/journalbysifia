@@ -10,9 +10,7 @@ describe('legacy siFia cleanup phase 5B', () => {
   });
 
   it('does not expose active playbook or refinement quota actions', () => {
-    const service = read('services/NewSubscriptionService.ts');
-    expect(service).not.toContain("action: 'playbook'");
-    expect(service).not.toContain("case 'refinement'");
+    expect(fs.existsSync(path.resolve(__dirname, '../services/NewSubscriptionService.ts'))).toBe(false);
     expect(fs.existsSync(path.resolve(__dirname, '../hooks/useNewSubscription.ts'))).toBe(false);
   });
 
@@ -35,9 +33,10 @@ describe('legacy siFia cleanup phase 5B', () => {
     expect(monitoring).not.toContain("'generation_success'");
   });
 
-  it('quarantines store product identifiers while removing obsolete tier facades', () => {
-    expect(read('services/AppleStoreKitService.ts')).toContain('PRODUCT_IDS');
-    expect(read('services/GooglePlayBillingService.ts')).toContain('PRODUCT_IDS');
+  it('removes local store services and obsolete tier facades', () => {
+    expect(fs.existsSync(path.resolve(__dirname, '../services/AppleStoreKitService.ts'))).toBe(false);
+    expect(fs.existsSync(path.resolve(__dirname, '../services/GooglePlayBillingService.ts'))).toBe(false);
+    expect(fs.existsSync(path.resolve(__dirname, '../utils/paymentFailureLogger.ts'))).toBe(false);
     expect(fs.existsSync(path.resolve(__dirname, '../services/platformSubscriptionService.ts'))).toBe(false);
     expect(fs.existsSync(path.resolve(__dirname, '../components/SubscriptionPlanModal.tsx'))).toBe(false);
   });

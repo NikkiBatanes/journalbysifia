@@ -6,6 +6,17 @@ const srcRoot = path.join(root, 'src');
 const readRoot = (relative: string) => fs.readFileSync(path.join(root, relative), 'utf8');
 const readSrc = (relative: string) => fs.readFileSync(path.join(srcRoot, relative), 'utf8');
 
+const collectProductionSource = (directory: string): string => fs
+  .readdirSync(directory, { withFileTypes: true })
+  .flatMap(entry => {
+    const target = path.join(directory, entry.name);
+    if (entry.isDirectory()) {
+      return entry.name === '__tests__' ? [] : [collectProductionSource(target)];
+    }
+    return /\.(?:ts|tsx)$/.test(entry.name) ? [fs.readFileSync(target, 'utf8')] : [];
+  })
+  .join('\n');
+
 describe('Journal subscription runtime boundary', () => {
   it('does not initialize or synchronize legacy subscriptions during startup', () => {
     const app = readRoot('App.tsx');
@@ -21,6 +32,19 @@ describe('Journal subscription runtime boundary', () => {
     expect(auth).not.toContain("rpc('create_default_seeker_subscription'");
     expect(auth).not.toContain('smart_journaling_enabled');
     expect(auth).not.toContain('subscription_display_name');
+  });
+
+  it('updates shared profiles by column without replacing opaque siFia metadata', () => {
+    const userApi = readSrc('services/userApi.ts');
+    const onboarding = readSrc('services/onboardingService.ts');
+
+    expect(userApi).toContain(".from('user_profiles')");
+    expect(userApi).toContain('.update(profileUpdates)');
+    expect(userApi).toContain('.update({\n          preferences,');
+    expect(onboarding).toContain(".from('user_profiles')");
+    expect(onboarding).toContain('onboarding_completed: true');
+    expect(userApi).not.toMatch(/\.from\(['"]user_profiles['"]\)\s*\.delete\(/);
+    expect(onboarding).not.toMatch(/\.from\(['"]user_profiles['"]\)\s*\.delete\(/);
   });
 
   it('completes onboarding without resetting legacy subscription counters', () => {
@@ -41,7 +65,7 @@ describe('Journal subscription runtime boundary', () => {
     expect(notifications).not.toContain('is_free_user');
   });
 
-  it('removes closed local subscription graphs while retaining store quarantine', () => {
+  it('removes the complete local subscription and store service graph', () => {
     const deleted = [
       'hooks/useSubscription.ts',
       'hooks/useNewSubscription.ts',
@@ -58,10 +82,22 @@ describe('Journal subscription runtime boundary', () => {
       'services/TrialManagementService.ts',
       'services/billingNotificationService.ts',
       'utils/subscriptionSync.ts',
+      'services/NewSubscriptionService.ts',
+      'services/AppleStoreKitService.ts',
+      'services/GooglePlayBillingService.ts',
+      'utils/paymentFailureLogger.ts',
     ];
     deleted.forEach(file => expect(fs.existsSync(path.join(srcRoot, file))).toBe(false));
-    expect(fs.existsSync(path.join(srcRoot, 'services/NewSubscriptionService.ts'))).toBe(true);
-    expect(fs.existsSync(path.join(srcRoot, 'services/AppleStoreKitService.ts'))).toBe(true);
-    expect(fs.existsSync(path.join(srcRoot, 'services/GooglePlayBillingService.ts'))).toBe(true);
+  });
+
+  it('has zero production references to the deleted service graph', () => {
+    const production = collectProductionSource(srcRoot);
+    [
+      'AppleStoreKitService',
+      'GooglePlayBillingService',
+      'NewSubscriptionService',
+      'paymentFailureLogger',
+      'PaymentFailureLogger',
+    ].forEach(symbol => expect(production).not.toContain(symbol));
   });
 });

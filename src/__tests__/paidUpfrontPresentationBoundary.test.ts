@@ -71,18 +71,16 @@ describe('paid-upfront Journal presentation boundary', () => {
     expect(production).not.toMatch(/(?:navigate|replace)\([^\n]*['"]OnboardingTrialOffer['"]/);
   });
 
-  it('quarantines low-level store services and removes obsolete payment facades', () => {
+  it('removes low-level store services and obsolete payment facades', () => {
     [
       'services/AppleStoreKitService.ts',
       'services/GooglePlayBillingService.ts',
-    ].forEach(file => expect(fs.existsSync(path.join(srcRoot, file))).toBe(true));
-    [
+      'services/NewSubscriptionService.ts',
+      'utils/paymentFailureLogger.ts',
       'services/PlatformPaymentService.ts',
       'services/platformSubscriptionService.ts',
       'hooks/usePlatformSubscription.ts',
     ].forEach(file => expect(fs.existsSync(path.join(srcRoot, file))).toBe(false));
-    expect(read('services/AppleStoreKitService.ts')).toContain('PRODUCT_IDS');
-    expect(read('services/GooglePlayBillingService.ts')).toContain('PRODUCT_IDS');
   });
 
   it('makes share-card watermark choice a core feature with no tier upsell', () => {
