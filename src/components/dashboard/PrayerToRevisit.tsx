@@ -6,6 +6,7 @@ import { differenceInCalendarDays, formatDistanceToNowStrict, format } from 'dat
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import {Sparkle} from 'lucide-react-native';
 import ThemedText from '../common/ThemedText';
+import PrayerHandsIcon from '../common/PrayerHandsIcon';
 import PrayerTrackingModal from '../prayer/PrayerTrackingModal';
 import type { PrayerChanges } from '../prayer/PrayerDetails';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
@@ -58,7 +59,7 @@ export default function PrayerToRevisit() {
       const related = await PrayerApi.getAllPrayers(userId);
       for (const linked of related.filter(p => p.id !== prayer.id && (p.id === requestId || p.metadata?.original_request_id === requestId))) {
         await PrayerApi.updatePrayer(linked.id, { status: data.status, answered_date: data.answered_date, metadata: {
-          ...linked.metadata, ...Object.fromEntries(['track_answered', 'tracking_status', 'prayer_needs', 'prayer_updates'].filter(key => data.metadata[key] !== undefined).map(key => [key, data.metadata[key]])),
+          ...linked.metadata, ...Object.fromEntries(['track_answered', 'is_active', 'tracking_status', 'answer_history', 'lifecycle_history', 'prayer_needs', 'prayer_updates'].filter(key => data.metadata[key] !== undefined).map(key => [key, data.metadata[key]])),
         } });
       }
     }
@@ -94,7 +95,7 @@ export default function PrayerToRevisit() {
       {!need && <ThemedText numberOfLines={3} style={styles.preview}>{prayer.content}</ThemedText>}
     </TouchableOpacity>
     <View style={styles.actions}>
-      <TouchableOpacity disabled={saving || !!prayedToday} style={styles.button} onPress={() => { void action(false); }}><ThemedText numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75} style={styles.buttonText}>{prayedToday ? 'Prayed today' : 'Pray again'}</ThemedText></TouchableOpacity>
+      <TouchableOpacity disabled={saving || !!prayedToday} style={styles.button} onPress={() => { void action(false); }}><PrayerHandsIcon size={13} color={Colors.sage} /><ThemedText numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75} style={styles.buttonText}>{prayedToday ? 'Prayed today' : 'Pray again'}</ThemedText></TouchableOpacity>
       <TouchableOpacity disabled={saving} style={styles.button} onPress={() => { triggerLightHaptic(); setMode('update'); }}><ThemedText numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75} style={styles.buttonText}>Update</ThemedText></TouchableOpacity>
       <TouchableOpacity disabled={saving} style={styles.button} onPress={() => { void action(true); }}><Sparkle size={13} color={Colors.sage} strokeWidth={1.8} /><ThemedText numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75} style={styles.buttonText}>Mark answered</ThemedText></TouchableOpacity>
     </View>

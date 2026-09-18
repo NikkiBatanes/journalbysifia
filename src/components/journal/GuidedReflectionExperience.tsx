@@ -3,6 +3,7 @@ import {
   Alert,
   Animated,
   Easing,
+  Keyboard,
   LayoutAnimation,
   Platform,
   ScrollView,
@@ -19,12 +20,12 @@ import {useFloatingKeyboardButton} from '../../hooks/useFloatingKeyboardButton';
 import ScriptureReaderModal from '../ScriptureReaderModal';
 import ThemedText from '../common/ThemedText';
 import {ReflectionQuestionCard} from './shared/ReflectionQuestionCard';
-import {JournalComposerBar} from './shared/JournalComposer';
+import {JournalComposerBar, JournalPickerMenu} from './shared/JournalComposer';
 import {JournalInlineBlock} from './shared/JournalInlineBlock';
 import {JOURNAL_BLOCKS, type JournalBlockConfig} from './shared/journalBlocks';
 import {Colors} from '../../theme/colors';
 import {Fonts} from '../../theme/fonts';
-import {triggerLightHaptic} from '../../utils/haptics';
+import {triggerLightHaptic, triggerMediumHaptic} from '../../utils/haptics';
 import {
   GUIDED_REFLECTION_PATHS,
   getGuidedReflectionPath,
@@ -136,7 +137,6 @@ const GuidedReflectionExperience: React.FC<Props> = ({
   ).current;
   const notePlusRotation = useRef(new Animated.Value(0)).current;
   const notePickerColorAnim = useRef(new Animated.Value(0)).current;
-  const noteMenuEntrance = useRef(new Animated.Value(0)).current;
   const composerEntrance = useRef(new Animated.Value(0)).current;
   const journeyHeaderActionEntrance = useRef(new Animated.Value(0)).current;
   const journeyContentEntrance = useRef(new Animated.Value(0)).current;
@@ -151,15 +151,16 @@ const GuidedReflectionExperience: React.FC<Props> = ({
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [scriptureOpen, setScriptureOpen] = useState(false);
   const [showSavedView, setShowSavedView] = useState(Boolean(restored));
-  const [activeNoteAnchor, setActiveNoteAnchor] = useState<string | null>(null);
   const primaryInputRef = useRef<TextInput>(null);
   const journeyScrollRef = useRef<ScrollView>(null);
   const noteInputRefs = useRef(new Map<string, TextInput>());
   const noteFocusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const noteFocusRetryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const noteFocusFrameRef = useRef<number | null>(null);
   useEffect(() => () => {
     if (noteFocusFrameRef.current !== null) cancelAnimationFrame(noteFocusFrameRef.current);
     if (noteFocusTimerRef.current) clearTimeout(noteFocusTimerRef.current);
+    if (noteFocusRetryTimerRef.current) clearTimeout(noteFocusRetryTimerRef.current);
   }, []);
   const chooserAnimations = (section: 'guided' | 'questions') =>
     section === 'guided'
@@ -249,12 +250,6 @@ const GuidedReflectionExperience: React.FC<Props> = ({
           outputRange: [18, 0],
         }),
       },
-      {
-        scale: journeyContentEntrance.interpolate({
-          inputRange: [0, 1],
-          outputRange: [0.975, 1],
-        }),
-      },
     ],
   };
   const revealChooserItems = (section: 'guided' | 'questions') => {
@@ -273,7 +268,9 @@ const GuidedReflectionExperience: React.FC<Props> = ({
           useNativeDriver: true,
         }),
       ),
-    ).start(() => setChooserTransitioning(false));
+    ).start(() => {
+      requestAnimationFrame(() => setChooserTransitioning(false));
+    });
   };
   const chooserRevealStyle = (animation: Animated.Value) => ({
     opacity: animation,
@@ -282,12 +279,6 @@ const GuidedReflectionExperience: React.FC<Props> = ({
         translateY: animation.interpolate({
           inputRange: [0, 1],
           outputRange: [12, 0],
-        }),
-      },
-      {
-        scale: animation.interpolate({
-          inputRange: [0, 1],
-          outputRange: [0.96, 1],
         }),
       },
     ],
@@ -344,8 +335,8 @@ const GuidedReflectionExperience: React.FC<Props> = ({
         animation.stopAnimation();
         animation.setValue(0);
       });
-      setTopic(nextTopic);
       requestAnimationFrame(() => {
+        setTopic(nextTopic);
         Animated.stagger(
           38,
           incoming.map(animation =>
@@ -356,7 +347,9 @@ const GuidedReflectionExperience: React.FC<Props> = ({
               useNativeDriver: true,
             }),
           ),
-        ).start(() => setTopicTransitioning(false));
+        ).start(() => {
+          requestAnimationFrame(() => setTopicTransitioning(false));
+        });
       });
     });
   };
@@ -394,8 +387,10 @@ const GuidedReflectionExperience: React.FC<Props> = ({
           duration: 180,
         },
       });
-      setChooserSection(section);
-      requestAnimationFrame(() => revealChooserItems(section));
+      requestAnimationFrame(() => {
+        setChooserSection(section);
+        revealChooserItems(section);
+      });
     });
   };
   const closeJourney = () => {
@@ -413,8 +408,10 @@ const GuidedReflectionExperience: React.FC<Props> = ({
       easing: Easing.inOut(Easing.ease),
       useNativeDriver: true,
     }).start(() => {
-      setStepIndex(nextIndex);
-      setJourneyTransitioning(false);
+      requestAnimationFrame(() => {
+        setStepIndex(nextIndex);
+        setJourneyTransitioning(false);
+      });
     });
   };
 
@@ -456,9 +453,6 @@ const GuidedReflectionExperience: React.FC<Props> = ({
   }, [payload, selectedDate]);
 
   const step = path?.steps[stepIndex];
-  useEffect(() => {
-    setActiveNoteAnchor(null);
-  }, [step?.id]);
   const renderedStep = useMemo(() => {
     if (!step || step.id !== 'heaviest' || !payload) {
       return step;
@@ -523,8 +517,7 @@ const GuidedReflectionExperience: React.FC<Props> = ({
     setNotePickerOpen(false);
   };
   const openNotePicker = () => {
-    noteMenuEntrance.stopAnimation();
-    noteMenuEntrance.setValue(0);
+    Keyboard.dismiss();
     notePickerAnimations.forEach(animation => {
       animation.stopAnimation();
       animation.setValue(0);
@@ -546,12 +539,6 @@ const GuidedReflectionExperience: React.FC<Props> = ({
           friction: 12,
           useNativeDriver: true,
         }),
-        Animated.spring(noteMenuEntrance, {
-          toValue: 1,
-          tension: 76,
-          friction: 9,
-          useNativeDriver: true,
-        }),
         Animated.stagger(
           38,
           [...notePickerAnimations].reverse().map(animation =>
@@ -570,7 +557,6 @@ const GuidedReflectionExperience: React.FC<Props> = ({
     notePickerAnimations.forEach(animation => animation.stopAnimation());
     notePlusRotation.stopAnimation();
     notePickerColorAnim.stopAnimation();
-    noteMenuEntrance.stopAnimation();
     Animated.parallel([
       Animated.timing(notePickerColorAnim, {
         toValue: 0,
@@ -584,12 +570,6 @@ const GuidedReflectionExperience: React.FC<Props> = ({
         friction: 12,
         useNativeDriver: true,
       }),
-      Animated.timing(noteMenuEntrance, {
-        toValue: 0,
-        duration: 150,
-        easing: Easing.inOut(Easing.ease),
-        useNativeDriver: true,
-      }),
       Animated.stagger(
         28,
         notePickerAnimations.map(animation =>
@@ -601,8 +581,10 @@ const GuidedReflectionExperience: React.FC<Props> = ({
         ),
       ),
     ]).start(() => {
-      setNotePickerOpen(false);
-      onComplete?.();
+      requestAnimationFrame(() => {
+        setNotePickerOpen(false);
+        onComplete?.();
+      });
     });
   };
   const closeNoteEditor = () => {
@@ -621,22 +603,28 @@ const GuidedReflectionExperience: React.FC<Props> = ({
       id,
       kind,
       text: '',
-      ...(activeNoteAnchor ? {anchorId: activeNoteAnchor} : {}),
     };
     updateAnswer({notes: [...answer.notes, note]});
     if (noteFocusFrameRef.current !== null) cancelAnimationFrame(noteFocusFrameRef.current);
     noteFocusFrameRef.current = requestAnimationFrame(() => {
       noteFocusFrameRef.current = null;
+      noteInputRefs.current.get(id)?.focus();
       journeyScrollRef.current?.scrollToEnd({animated: true});
       if (noteFocusTimerRef.current) clearTimeout(noteFocusTimerRef.current);
       noteFocusTimerRef.current = setTimeout(() => {
         noteFocusTimerRef.current = null;
         noteInputRefs.current.get(id)?.focus();
       }, 80);
+      if (noteFocusRetryTimerRef.current) clearTimeout(noteFocusRetryTimerRef.current);
+      noteFocusRetryTimerRef.current = setTimeout(() => {
+        noteFocusRetryTimerRef.current = null;
+        noteInputRefs.current.get(id)?.focus();
+        journeyScrollRef.current?.scrollToEnd({animated: true});
+      }, 320);
     });
   };
   const beginNote = (kind: (typeof GUIDED_NOTE_TYPES)[number]['kind']) => {
-    triggerLightHaptic();
+    triggerMediumHaptic();
     closeNotePicker(() => appendInlineNote(kind));
   };
   const beginWrite = () => {
@@ -672,6 +660,36 @@ const GuidedReflectionExperience: React.FC<Props> = ({
         'Your reflection is still saved as a draft. Please try again.',
       );
     }
+  };
+
+  const openGuidedPath = async (selectedPath: (typeof GUIDED_REFLECTION_PATHS)[number]) => {
+    triggerLightHaptic();
+    // Flashing-light regression note:
+    // Do not set pathId before its payload is ready. When pathId was updated
+    // first, the render guard below briefly returned the ivory `styles.screen`
+    // while the draft loaded. That produced a full-screen light flash before
+    // the green journey sheet appeared. Keep the chooser mounted, resolve the
+    // payload, then commit payload + pathId together in the same React batch.
+    const savedDraft = await loadGuidedReflectionDraft(
+      selectedDate,
+      selectedPath.id,
+    ).catch(() => null);
+    const nextPayload = savedDraft || {
+      format: GUIDED_REFLECTION_FORMAT,
+      pathId: selectedPath.id,
+      pathTitle: selectedPath.title,
+      currentStepId: selectedPath.steps[0].id,
+      completed: false,
+      answers: selectedPath.steps.map(item => emptyGuidedAnswer(item.id)),
+    };
+    setStepIndex(
+      Math.max(
+        0,
+        selectedPath.steps.findIndex(item => item.id === nextPayload.currentStepId),
+      ),
+    );
+    setPayload(nextPayload);
+    setPathId(selectedPath.id);
   };
 
   if (!pathId) {
@@ -744,10 +762,7 @@ const GuidedReflectionExperience: React.FC<Props> = ({
                 <Animated.View key={item.id} style={chooserRevealStyle(guideRevealAnims[index])}>
                   <TouchableOpacity
                     style={styles.chooserPathCard}
-                    onPress={() => {
-                      triggerLightHaptic();
-                      setPathId(item.id);
-                    }}
+                    onPress={() => openGuidedPath(item)}
                     accessibilityRole="button"
                     accessibilityLabel={item.title}>
                     <View style={{flex: 1}}>
@@ -840,7 +855,7 @@ const GuidedReflectionExperience: React.FC<Props> = ({
             accessibilityRole="button"
             accessibilityLabel="Close"
             style={styles.close}>
-            <Ionicons name="close" size={18} color={Colors.sage} />
+            <Ionicons name="close" size={17} color={Colors.sage} />
           </TouchableOpacity>
         </View>
         <View style={styles.progress}>
@@ -917,7 +932,7 @@ const GuidedReflectionExperience: React.FC<Props> = ({
             accessibilityRole="button"
             accessibilityLabel="Close"
             style={styles.close}>
-            <Ionicons name="close" size={18} color={Colors.sage} />
+            <Ionicons name="close" size={17} color={Colors.sage} />
           </TouchableOpacity>
         </View>
         <View style={styles.focusedWriter}>
@@ -981,34 +996,32 @@ const GuidedReflectionExperience: React.FC<Props> = ({
       </View>
     );
   }
+  const journeyDate = new Date(`${selectedDate}T12:00:00`).toLocaleDateString(
+    'en-US',
+    {weekday: 'long', month: 'long', day: 'numeric'},
+  );
   if (showSavedView) {
     return (
-      <View style={styles.screen}>
-        <View style={styles.header}>
+      <View style={styles.journeyScreen}>
+        <View style={styles.journeyHeaderBackdrop} />
+        <View style={styles.journeyHeader}>
+          <ThemedText weight="bold" style={styles.journeyDate}>{journeyDate}</ThemedText>
+          <View style={styles.journeyHeaderActions}>
           <TouchableOpacity
             onPress={closeJourney}
             accessibilityRole="button"
             accessibilityLabel="Close"
-            style={styles.close}>
-            <Ionicons name="close" size={18} color={Colors.sage} />
+            style={styles.journeyHeaderButton}>
+            <Ionicons name="close" size={17} color={Colors.sage} />
           </TouchableOpacity>
-          <ThemedText style={styles.headerTitle}>Guided Reflection</ThemedText>
-          <TouchableOpacity
-            onPress={() => {
-              triggerLightHaptic();
-              setShowSavedView(false);
-            }}
-            accessibilityRole="button"
-            accessibilityLabel="Edit reflection"
-            style={styles.close}>
-            <Ionicons name="pencil-outline" size={18} color={Colors.sage} />
-          </TouchableOpacity>
+          </View>
         </View>
+        <View style={styles.journeySheet}>
         <ScrollView
-          contentContainerStyle={styles.savedContent}
+          contentContainerStyle={styles.savedJourneyContent}
           showsVerticalScrollIndicator={false}>
-          <ThemedText style={styles.eyebrow}>GUIDED REFLECTION</ThemedText>
-          <ThemedText weight="bold" style={styles.homeTitle}>
+          <ThemedText style={styles.savedJourneyEyebrow}>GUIDED REFLECTION</ThemedText>
+          <ThemedText weight="bold" style={styles.savedJourneyTitle}>
             {path.title}
           </ThemedText>
           {path.steps.map(savedStep => {
@@ -1020,16 +1033,23 @@ const GuidedReflectionExperience: React.FC<Props> = ({
             }
             return (
               <View key={savedStep.id} style={styles.savedSection}>
-                <ThemedText style={styles.savedLabel}>
+                <ThemedText style={styles.savedJourneyLabel}>
                   {savedStep.eyebrow}
                 </ThemedText>
+                <ThemedText weight="semiBold" style={styles.savedJourneyPrompt}>
+                  {savedStep.prompt}
+                </ThemedText>
                 {savedAnswer.selected?.length ? (
-                  <ThemedText style={styles.savedText}>
-                    {savedAnswer.selected.join(' · ')}
-                  </ThemedText>
+                  <View style={styles.savedSelections}>
+                    {savedAnswer.selected.map(selection => (
+                      <View key={selection} style={styles.savedSelectionPill}>
+                        <ThemedText style={styles.savedJourneySelectionText}>{selection}</ThemedText>
+                      </View>
+                    ))}
+                  </View>
                 ) : null}
                 {savedAnswer.text?.trim() ? (
-                  <ThemedText style={styles.savedQuote}>
+                  <ThemedText style={styles.savedJourneyQuote}>
                     {savedAnswer.text.trim()}
                   </ThemedText>
                 ) : null}
@@ -1037,18 +1057,18 @@ const GuidedReflectionExperience: React.FC<Props> = ({
                   ([fieldId, value]) =>
                     value?.trim() ? (
                       <View key={fieldId} style={styles.savedField}>
-                        <ThemedText style={styles.savedFieldLabel}>
+                        <ThemedText style={styles.savedJourneyFieldLabel}>
                           {savedStep.fields?.find(field => field.id === fieldId)
                             ?.label || fieldId}
                         </ThemedText>
-                        <ThemedText style={styles.savedText}>
+                        <ThemedText style={styles.savedJourneyText}>
                           {value.trim()}
                         </ThemedText>
                       </View>
                     ) : null,
                 )}
                 {savedAnswer.optionalText?.trim() ? (
-                  <ThemedText style={styles.savedQuote}>
+                  <ThemedText style={styles.savedJourneyQuote}>
                     {savedAnswer.optionalText.trim()}
                   </ThemedText>
                 ) : null}
@@ -1057,26 +1077,26 @@ const GuidedReflectionExperience: React.FC<Props> = ({
                     <Ionicons
                       name="book-outline"
                       size={16}
-                      color={Colors.sage}
+                      color={Colors.hopeWhite}
                     />
-                    <ThemedText style={styles.scriptureRef}>
+                    <ThemedText style={styles.savedJourneyText}>
                       {savedStep.scripture.reference}
                     </ThemedText>
                   </View>
                 ) : null}
-                {savedAnswer.notes.map(note => (
-                  <View key={note.id} style={styles.note}>
+                {savedAnswer.notes.filter(note => note.text.trim() || note.reference?.trim()).map(note => (
+                  <View key={note.id} style={styles.savedJourneyNote}>
                     <View style={{flex: 1}}>
-                      <ThemedText style={styles.noteKind}>
+                      <ThemedText style={styles.savedJourneyNoteKind}>
                         {GUIDED_NOTE_TYPES.find(
                           item => item.kind === note.kind,
                         )?.label?.toUpperCase()}
                       </ThemedText>
-                      <ThemedText style={styles.noteText}>
+                      <ThemedText style={styles.savedJourneyNoteText}>
                         {note.text}
                       </ThemedText>
                       {note.reference ? (
-                        <ThemedText style={styles.support}>
+                        <ThemedText style={styles.savedJourneySupport}>
                           {note.reference}
                         </ThemedText>
                       ) : null}
@@ -1100,19 +1120,15 @@ const GuidedReflectionExperience: React.FC<Props> = ({
             </TouchableOpacity>
           ) : null}
         </ScrollView>
+        </View>
       </View>
     );
   }
   const atLastStep = stepIndex === path.steps.length - 1;
   const canContinue = !step.required || answerHasValue(answer);
   const canWrite = true;
-  const journeyDate = new Date(`${selectedDate}T12:00:00`).toLocaleDateString(
-    'en-US',
-    {weekday: 'long', month: 'long', day: 'numeric'},
-  );
-  const renderInlineNotes = (anchorId?: string) =>
+  const renderInlineNotes = () =>
     answer.notes
-      .filter(note => note.anchorId === anchorId)
       .map(note => {
         const noteIndex = answer.notes.findIndex(item => item.id === note.id);
         const noteType = GUIDED_NOTE_TYPES.find(item => item.kind === note.kind);
@@ -1150,7 +1166,6 @@ const GuidedReflectionExperience: React.FC<Props> = ({
                 notes: answer.notes.filter(item => item.id !== note.id),
               });
             }}
-            onFocus={() => setActiveNoteAnchor(anchorId || null)}
             renderScripture={
               note.kind === 'scripture'
                 ? () => (
@@ -1163,7 +1178,6 @@ const GuidedReflectionExperience: React.FC<Props> = ({
                         style={[styles.captureInput, styles.scriptureReferenceInline]}
                         value={note.reference || ''}
                         onChangeText={reference => updateNote({reference})}
-                        onFocus={() => setActiveNoteAnchor(anchorId || null)}
                         placeholder="Scripture reference"
                         placeholderTextColor="rgba(255,255,255,0.45)"
                       />
@@ -1171,7 +1185,6 @@ const GuidedReflectionExperience: React.FC<Props> = ({
                         style={styles.captureInput}
                         value={note.text}
                         onChangeText={text => updateNote({text})}
-                        onFocus={() => setActiveNoteAnchor(anchorId || null)}
                         placeholder={config.placeholder}
                         placeholderTextColor="rgba(255,255,255,0.45)"
                         multiline
@@ -1186,6 +1199,7 @@ const GuidedReflectionExperience: React.FC<Props> = ({
       });
   return (
     <View style={styles.journeyScreen}>
+      <View style={styles.journeyHeaderBackdrop} />
       <View style={styles.journeyHeader}>
         <ThemedText weight="bold" style={styles.journeyDate}>{journeyDate}</ThemedText>
         <Animated.View style={[styles.journeyHeaderActions, journeyHeaderActionEntranceStyle]}>
@@ -1194,7 +1208,7 @@ const GuidedReflectionExperience: React.FC<Props> = ({
             accessibilityRole="button"
             accessibilityLabel="Close"
             style={styles.journeyHeaderButton}>
-            <Ionicons name="close" size={18} color={Colors.sage} />
+            <Ionicons name="close" size={17} color={Colors.sage} />
           </TouchableOpacity>
         </Animated.View>
       </View>
@@ -1214,7 +1228,11 @@ const GuidedReflectionExperience: React.FC<Props> = ({
         </View>
         <ScrollView
           ref={journeyScrollRef}
-          contentContainerStyle={styles.stepContent}
+          contentContainerStyle={[
+            styles.stepContent,
+            notePickerOpen && styles.stepContentWithNotePicker,
+          ]}
+          scrollIndicatorInsets={{bottom: notePickerOpen ? 300 : 120}}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}>
         <ThemedText style={styles.journeyEyebrow}>{step.eyebrow}</ThemedText>
@@ -1223,18 +1241,11 @@ const GuidedReflectionExperience: React.FC<Props> = ({
         </ThemedText>
         <StepInteraction
           key={step.id}
-          inputRef={primaryInputRef}
           step={renderedStep || step}
           answer={answer}
-          onText={text => updateAnswer({text})}
-          onField={(id, value) =>
-            updateAnswer({fields: {...(answer.fields || {}), [id]: value}})
-          }
           onSelect={value =>
             toggleSelection(value, step.interactionType !== 'single_select')
           }
-          onFocusTarget={setActiveNoteAnchor}
-          renderNotesForAnchor={anchorId => renderInlineNotes(anchorId)}
           onOpenScripture={() => setScriptureOpen(true)}
         />
         {step.optionalWrite && answer.optionalText?.trim() ? (
@@ -1258,95 +1269,33 @@ const GuidedReflectionExperience: React.FC<Props> = ({
             </View>
           </View>
         ) : null}
-        {renderInlineNotes(undefined)}
+        {renderInlineNotes()}
         </ScrollView>
       </Animated.View>
       </View>
-      {notePickerOpen && (
-        <>
-          <TouchableOpacity
-            activeOpacity={1}
-            onPress={() => closeNotePicker()}
-            accessibilityLabel="Close note type picker"
-            style={styles.menuDim}
-          />
-          <Animated.View
-            style={[
-              styles.noteMenu,
-              {bottom: Animated.add(composerBottom, 66)},
-              {
-                opacity: noteMenuEntrance.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [0, 1],
-                  extrapolate: 'clamp',
-                }),
-                transform: [
-                  {
-                    translateY: noteMenuEntrance.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [18, 0],
-                    }),
-                  },
-                  {
-                    scale: noteMenuEntrance.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [0.96, 1],
-                    }),
-                  },
-                ],
-              },
-            ]}>
-            {[...GUIDED_NOTE_TYPES].reverse().map((item, index) => {
-              const animation =
-                notePickerAnimations[GUIDED_NOTE_TYPES.length - 1 - index];
-              return (
-                <Animated.View
-                  key={item.kind}
-                  style={{
-                    opacity: animation,
-                    transform: [
-                      {
-                        translateY: animation.interpolate({
-                          inputRange: [0, 1],
-                          outputRange: [12, 0],
-                        }),
-                      },
-                      {
-                        scale: animation.interpolate({
-                          inputRange: [0, 1],
-                          outputRange: [0.94, 1],
-                        }),
-                      },
-                    ],
-                  }}>
-                  <TouchableOpacity
-                    style={styles.noteMenuPill}
-                    onPress={() => beginNote(item.kind)}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Add ${item.label}`}>
-                    <View style={styles.noteMenuIcon}>
-                      <Ionicons
-                        name={item.icon as any}
-                        size={14}
-                        color={Colors.sage}
-                      />
-                    </View>
-                    <ThemedText weight="semiBold" style={styles.noteMenuText}>
-                      {item.label.toUpperCase()}
-                    </ThemedText>
-                  </TouchableOpacity>
-                </Animated.View>
-              );
-            })}
-          </Animated.View>
-        </>
-      )}
       <Animated.View
         pointerEvents="box-none"
         style={[
           styles.floatingComposer,
           {bottom: composerBottom},
         ]}>
+        {notePickerOpen && (
+          <JournalPickerMenu
+            items={GUIDED_NOTE_TYPES.map(item => ({
+              key: item.kind,
+              label: item.label,
+              icon: (
+                <Ionicons
+                  name={item.icon as any}
+                  size={13}
+                  color={Colors.sage}
+                />
+              ),
+            }))}
+            animations={notePickerAnimations}
+            onSelect={beginNote}
+          />
+        )}
         <Animated.View
           style={{
             width: '100%',
@@ -1363,7 +1312,6 @@ const GuidedReflectionExperience: React.FC<Props> = ({
           <JournalComposerBar
           onBack={() =>
             {
-              triggerLightHaptic();
               stepIndex > 0 ? goToJourneyStep(stepIndex - 1) : setPathId('');
             }
           }
@@ -1403,31 +1351,20 @@ const GuidedReflectionExperience: React.FC<Props> = ({
 };
 
 const StepInteraction = ({
-  inputRef,
   step,
   answer,
-  onText,
-  onField,
   onSelect,
   onOpenScripture,
-  onFocusTarget,
-  renderNotesForAnchor,
 }: {
-  inputRef: React.RefObject<TextInput | null>;
   step: GuidedReflectionStepDefinition;
   answer: GuidedStepAnswer;
-  onText: (text: string) => void;
-  onField: (id: string, value: string) => void;
   onSelect: (value: string) => void;
   onOpenScripture: () => void;
-  onFocusTarget: (anchorId: string) => void;
-  renderNotesForAnchor: (anchorId: string) => React.ReactNode;
 }) => {
   const itemCount = Math.max(
     1,
     step.options?.length || 0,
-    step.fields?.length || 0,
-    step.interactionType === 'scripture_reflection' ? 3 : 0,
+    step.interactionType === 'scripture_reflection' ? 2 : 0,
   );
   const itemEntrances = useRef(
     Array.from({length: itemCount}, () => new Animated.Value(0)),
@@ -1465,32 +1402,9 @@ const StepInteraction = ({
           outputRange: [12, 0],
         }),
       },
-      {
-        scale: itemEntrances[index].interpolate({
-          inputRange: [0, 1],
-          outputRange: [0.97, 1],
-        }),
-      },
     ],
   });
-  if (step.interactionType === 'write')
-    return (
-      <>
-        <Animated.View style={itemEntranceStyle(0)}>
-        <TextInput
-          ref={inputRef}
-          style={[styles.input, {minHeight: 160}]}
-          multiline
-          value={answer.text || ''}
-          onChangeText={onText}
-          onFocus={() => onFocusTarget('__primary__')}
-          placeholder="Write here..."
-          placeholderTextColor="rgba(255,255,255,0.45)"
-        />
-        </Animated.View>
-        {renderNotesForAnchor('__primary__')}
-      </>
-    );
+  if (step.interactionType === 'write') return null;
   if (
     step.interactionType === 'single_select' ||
     step.interactionType === 'multi_select'
@@ -1505,7 +1419,6 @@ const StepInteraction = ({
               <TouchableOpacity
                 onPress={() => {
                   triggerLightHaptic();
-                  onFocusTarget('__primary__');
                   onSelect(option);
                 }}
                 style={[styles.option, selected && styles.optionSelected]}
@@ -1520,14 +1433,13 @@ const StepInteraction = ({
                   {option}
                 </ThemedText>
                 {selected && (
-                  <Ionicons name="checkmark" size={16} color={Colors.sage} />
+                  <Ionicons name="checkmark" size={16} color={Colors.hopeWhite} />
                 )}
               </TouchableOpacity>
               </Animated.View>
             );
           })}
         </View>
-        {renderNotesForAnchor('__primary__')}
       </>
     );
   if (step.interactionType === 'scripture_reflection' && step.scripture)
@@ -1554,42 +1466,9 @@ const StepInteraction = ({
           {step.scripture.question.toUpperCase()}
         </ThemedText>
         </Animated.View>
-        <Animated.View style={itemEntranceStyle(2)}>
-        <TextInput
-          ref={inputRef}
-          style={[styles.input, {minHeight: 130}]}
-          multiline
-          value={answer.text || ''}
-          onChangeText={onText}
-          onFocus={() => onFocusTarget('__primary__')}
-          placeholder="What do you notice?"
-          placeholderTextColor="rgba(255,255,255,0.45)"
-        />
-        </Animated.View>
-        {renderNotesForAnchor('__primary__')}
       </>
     );
-  return (
-    <View style={styles.fields}>
-      {step.fields?.map((field, index) => (
-        <Animated.View key={field.id} style={itemEntranceStyle(index)}>
-          <ThemedText style={styles.inputLabel}>{field.label}</ThemedText>
-          <TextInput
-            ref={index === 0 ? inputRef : undefined}
-            style={styles.input}
-            multiline
-            value={answer.fields?.[field.id] || ''}
-            onChangeText={value => onField(field.id, value)}
-            onFocus={() => onFocusTarget(field.id)}
-            placeholder={field.prompt || 'Add your thoughts...'}
-            placeholderTextColor="rgba(255,255,255,0.45)"
-            accessibilityLabel={field.label}
-          />
-          {renderNotesForAnchor(field.id)}
-        </Animated.View>
-      ))}
-    </View>
-  );
+  return null;
 };
 
 const NoteEntrance = ({
@@ -1620,7 +1499,6 @@ const NoteEntrance = ({
         }),
         transform: [
           {translateY: entrance.interpolate({inputRange: [0, 1], outputRange: [14, 0]})},
-          {scale: entrance.interpolate({inputRange: [0, 1], outputRange: [0.97, 1]})},
         ],
       }}>
       {children}
@@ -1630,7 +1508,18 @@ const NoteEntrance = ({
 
 const styles = StyleSheet.create({
   screen: {flex: 1, backgroundColor: Colors.lightBackground},
-  journeyScreen: {flex: 1, backgroundColor: Colors.lightBackground},
+  // Keep green as the first opaque paint so changing from the chooser to a
+  // journey cannot expose a full-screen ivory frame. The separate backdrop
+  // retains the original ivory header and rounded-corner reveal.
+  journeyScreen: {flex: 1, backgroundColor: Colors.sage},
+  journeyHeaderBackdrop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: '50%',
+    backgroundColor: Colors.lightBackground,
+  },
   journeyHeader: {
     paddingTop: 50,
     paddingHorizontal: 16,
@@ -1643,12 +1532,10 @@ const styles = StyleSheet.create({
   journeyDate: {color: Colors.sage, fontSize: 18},
   journeyHeaderActions: {flexDirection: 'row', alignItems: 'center', gap: 6},
   journeyHeaderButton: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: 'rgba(82, 106, 91, 0.12)',
-    borderWidth: 1,
-    borderColor: 'rgba(82, 106, 91, 0.16)',
+    width: 42,
+    height: 42,
+    borderRadius: 999,
+    backgroundColor: Colors.cardBackground,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1730,7 +1617,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     textAlign: 'center',
   },
-  chooserSectionLabelActive: {color: Colors.sage},
+  chooserSectionLabelActive: {color: Colors.hopeWhite},
   chooserSectionSwitch: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1749,8 +1636,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   chooserSectionPillActive: {
-    backgroundColor: Colors.hopeWhite,
-    borderColor: Colors.hopeWhite,
+    backgroundColor: Colors.darkBackground,
+    borderColor: Colors.sageMuted,
   },
   chooserPathCard: {
     borderWidth: 1,
@@ -1785,11 +1672,11 @@ const styles = StyleSheet.create({
     paddingVertical: 9,
   },
   chooserTopicSelected: {
-    backgroundColor: Colors.hopeWhite,
-    borderColor: Colors.hopeWhite,
+    backgroundColor: Colors.darkBackground,
+    borderColor: Colors.sageMuted,
   },
   chooserTopicText: {color: Colors.hopeWhite, fontSize: 12},
-  chooserTopicTextSelected: {color: Colors.sage},
+  chooserTopicTextSelected: {color: Colors.hopeWhite},
   promptCard: {
     width: '100%',
     minHeight: 160,
@@ -1858,11 +1745,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   close: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: Colors.cardBorder,
+    width: 42,
+    height: 42,
+    borderRadius: 999,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: Colors.cardBackground,
@@ -1876,6 +1761,53 @@ const styles = StyleSheet.create({
   },
   homeContent: {padding: 24, paddingBottom: 60},
   savedContent: {padding: 24, paddingBottom: 60},
+  savedJourneyContent: {padding: 24, paddingBottom: 80},
+  savedJourneyEyebrow: {
+    color: 'rgba(255,255,255,0.68)',
+    fontFamily: Fonts.semiBold,
+    fontSize: 11,
+    letterSpacing: 2.2,
+    marginBottom: 10,
+  },
+  savedJourneyTitle: {
+    color: Colors.hopeWhite,
+    fontSize: 30,
+    lineHeight: 38,
+    marginBottom: 30,
+  },
+  savedJourneyLabel: {
+    color: 'rgba(255,255,255,0.62)',
+    fontFamily: Fonts.semiBold,
+    fontSize: 10,
+    letterSpacing: 1.5,
+    marginBottom: 8,
+  },
+  savedJourneyPrompt: {
+    color: Colors.hopeWhite,
+    fontSize: 18,
+    lineHeight: 25,
+    marginBottom: 12,
+  },
+  savedJourneyText: {color: Colors.hopeWhite, fontSize: 15, lineHeight: 23},
+  savedJourneyQuote: {
+    color: Colors.hopeWhite,
+    fontFamily: Fonts.lora.regular,
+    fontStyle: 'italic',
+    fontSize: 16,
+    lineHeight: 25,
+    marginTop: 7,
+  },
+  savedJourneyFieldLabel: {color: 'rgba(255,255,255,0.58)', fontSize: 11, marginBottom: 3},
+  savedJourneySelectionText: {color: Colors.hopeWhite, fontSize: 12},
+  savedJourneyNote: {
+    marginTop: 10,
+    padding: 12,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+  },
+  savedJourneyNoteKind: {color: 'rgba(255,255,255,0.65)', fontSize: 9, letterSpacing: 1.3},
+  savedJourneyNoteText: {color: Colors.hopeWhite, fontSize: 14, lineHeight: 20, marginTop: 4},
+  savedJourneySupport: {color: 'rgba(255,255,255,0.62)', fontSize: 12, lineHeight: 18, marginTop: 3},
   eyebrow: {
     color: Colors.sage,
     fontFamily: Fonts.semiBold,
@@ -1891,7 +1823,7 @@ const styles = StyleSheet.create({
   },
   savedSection: {
     borderTopWidth: 1,
-    borderTopColor: Colors.cardBorder,
+    borderTopColor: 'rgba(255,255,255,0.18)',
     paddingVertical: 18,
   },
   savedLabel: {
@@ -1901,6 +1833,27 @@ const styles = StyleSheet.create({
     letterSpacing: 1.5,
     marginBottom: 8,
   },
+  savedPrompt: {
+    color: Colors.text,
+    fontSize: 18,
+    lineHeight: 25,
+    marginBottom: 12,
+  },
+  savedSelections: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 7,
+    marginBottom: 10,
+  },
+  savedSelectionPill: {
+    borderRadius: 16,
+    paddingHorizontal: 11,
+    paddingVertical: 7,
+    backgroundColor: Colors.darkBackground,
+    borderWidth: 1,
+    borderColor: Colors.sageMuted,
+  },
+  savedSelectionText: {color: Colors.sage, fontSize: 12},
   savedText: {color: Colors.text, fontSize: 15, lineHeight: 23},
   savedQuote: {
     color: Colors.text,
@@ -1988,7 +1941,8 @@ const styles = StyleSheet.create({
   reflectButtonText: {color: Colors.hopeWhite, fontSize: 12},
   progress: {height: 2, backgroundColor: Colors.cardBorder},
   progressFill: {height: 2, backgroundColor: Colors.sage},
-  stepContent: {padding: 24, paddingBottom: 120},
+  stepContent: {padding: 24, paddingBottom: 180},
+  stepContentWithNotePicker: {paddingBottom: 410},
   stepPrompt: {
     color: Colors.text,
     fontSize: 25,
@@ -2032,9 +1986,9 @@ const styles = StyleSheet.create({
     gap: 7,
     backgroundColor: 'rgba(255,255,255,0.08)',
   },
-  optionSelected: {backgroundColor: Colors.hopeWhite, borderColor: Colors.hopeWhite},
+  optionSelected: {backgroundColor: Colors.darkBackground, borderColor: Colors.sageMuted},
   optionText: {color: Colors.hopeWhite, fontSize: 13},
-  optionTextSelected: {color: Colors.sage},
+  optionTextSelected: {color: Colors.hopeWhite},
   fields: {gap: 5},
   secondaryArea: {marginTop: 18},
   optionalPreview: {
@@ -2094,10 +2048,10 @@ const styles = StyleSheet.create({
     borderBottomColor: 'rgba(255,255,255,0.16)',
   },
   freeText: {
-    minHeight: 72,
+    minHeight: 44,
     paddingHorizontal: 0,
-    paddingVertical: 12,
-    marginBottom: 9,
+    paddingVertical: 6,
+    marginBottom: 6,
     color: Colors.hopeWhite,
     fontFamily: Fonts.regular,
     fontSize: 15,
@@ -2141,42 +2095,6 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-end',
   },
   continueText: {color: Colors.hopeWhite},
-  menuDim: {
-    ...StyleSheet.absoluteFillObject,
-    bottom: 76,
-    backgroundColor: 'transparent',
-    zIndex: 6,
-    elevation: 6,
-  },
-  noteMenu: {
-    position: 'absolute',
-    right: 77,
-    zIndex: 8,
-    elevation: 8,
-    alignItems: 'flex-end',
-    gap: 7,
-  },
-  noteMenuPill: {
-    minHeight: 36,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: Colors.sage,
-    backgroundColor: Colors.cardBackground,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingLeft: 5,
-    paddingRight: 13,
-  },
-  noteMenuIcon: {
-    width: 25,
-    height: 25,
-    borderRadius: 13,
-    backgroundColor: Colors.anchorBlueLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  noteMenuText: {color: Colors.text, fontSize: 10, letterSpacing: 0.7},
   focusedWriter: {flex: 1, padding: 24},
   focusedInput: {
     flex: 1,

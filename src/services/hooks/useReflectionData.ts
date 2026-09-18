@@ -38,6 +38,7 @@ const toReflectionApiEntry = (entry: LocalReflectionEntry): ReflectionApiEntry =
   subtask_id: entry.metadata?.subtask_id,
   journal_classification: entry.metadata?.journalClassification,
   guided_journey: entry.metadata?.guidedJourney,
+  journal_blocks: entry.metadata?.journalBlocks,
 });
 
 const reflectionMetadata = (entry: Partial<ReflectionApiEntry>): Record<string, any> => ({
@@ -52,6 +53,7 @@ const reflectionMetadata = (entry: Partial<ReflectionApiEntry>): Record<string, 
   ...(entry.subtask_id !== undefined ? { subtask_id: entry.subtask_id } : {}),
   ...(entry.journal_classification !== undefined ? { journalClassification: entry.journal_classification } : {}),
   ...(entry.guided_journey !== undefined ? { guidedJourney: entry.guided_journey } : {}),
+  ...(entry.journal_blocks !== undefined ? { journalBlocks: entry.journal_blocks } : {}),
 });
 
 // Hook for getting reflection entries for a specific date

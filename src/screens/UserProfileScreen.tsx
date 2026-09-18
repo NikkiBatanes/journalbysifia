@@ -3,6 +3,7 @@ import { Logger } from '../utils/ProductionLogger';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import {
+  AccessibilityInfo,
   View,
   Text,
   ScrollView,
@@ -23,6 +24,7 @@ import {
   Image,
   Keyboard,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { experiencePreferences } from '../services/experiencePreferences';
 import { initSound, releaseSound } from '../utils/soundUtils';
@@ -62,6 +64,8 @@ const { width } = Dimensions.get('window');
 const APPLE_APP_ID = '6751785713';
 // Android package is already defined in app.json and native; keep here for clarity
 const ANDROID_PACKAGE = 'app.journal.sifia';
+const MORE_ENTRY_COUNT = 11;
+const MORE_ENTRY_STAGGER_MS = 55;
 
 interface Props {
   navigation: any;
@@ -88,6 +92,86 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
   const androidBackdropOpacity = useRef(new Animated.Value(0)).current;
   const androidSheetTranslateY = useRef(new Animated.Value(Dimensions.get('window').height)).current;
   const androidDismissedRef = useRef(false);
+  const entryAnimations = useRef(
+    Array.from({ length: MORE_ENTRY_COUNT }, () => new Animated.Value(0))
+  ).current;
+
+  // Replay the entrance whenever More becomes the active tab. Each content
+  // group rises and overshoots slightly, producing a quick staggered bounce.
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      let entrance: Animated.CompositeAnimation | null = null;
+
+      entryAnimations.forEach(value => {
+        value.stopAnimation();
+        value.setValue(0);
+      });
+
+      AccessibilityInfo.isReduceMotionEnabled()
+        .then(reduceMotion => {
+          if (!active) { return; }
+
+          if (reduceMotion) {
+            entryAnimations.forEach(value => value.setValue(1));
+            return;
+          }
+
+          entrance = Animated.stagger(
+            MORE_ENTRY_STAGGER_MS,
+            entryAnimations.map(value => Animated.spring(value, {
+              toValue: 1,
+              stiffness: 240,
+              damping: 15,
+              mass: 0.72,
+              useNativeDriver: true,
+            }))
+          );
+          entrance.start();
+        })
+        .catch(() => {
+          if (active) {
+            entryAnimations.forEach(value => value.setValue(1));
+          }
+        });
+
+      return () => {
+        active = false;
+        entrance?.stop();
+      };
+    }, [entryAnimations])
+  );
+
+  const renderEntry = useCallback((index: number, content: React.ReactNode) => {
+    const progress = entryAnimations[index];
+    return (
+      <Animated.View
+        style={{
+          opacity: progress.interpolate({
+            inputRange: [0, 0.35, 1],
+            outputRange: [0, 1, 1],
+            extrapolate: 'clamp',
+          }),
+          transform: [
+            {
+              translateY: progress.interpolate({
+                inputRange: [0, 1],
+                outputRange: [22, 0],
+              }),
+            },
+            {
+              scale: progress.interpolate({
+                inputRange: [0, 1],
+                outputRange: [0.96, 1],
+              }),
+            },
+          ],
+        }}
+      >
+        {content}
+      </Animated.View>
+    );
+  }, [entryAnimations]);
 
   useEffect(() => {
     if (Platform.OS !== 'android') {
@@ -2348,27 +2432,27 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           }
           showsVerticalScrollIndicator={false}
         >
-          <View style={[styles.headerWrapper, { backgroundColor: theme.colors.lightBackground }]}>
+          {renderEntry(0, <View style={[styles.headerWrapper, { backgroundColor: theme.colors.lightBackground }]}>
             {renderProfileHeader()}
-          </View>
-          <View style={styles.streakSection}>
+          </View>)}
+          {renderEntry(1, <View style={styles.streakSection}>
             <StreakTracker
               showProfileStats
               faithPoints={profileStats?.faithPoints ?? 0}
               badgesCount={profileStats?.totalBadges ?? 0}
               onBadgesPress={() => { try { triggerLightHaptic(); } catch {} setBadgesModalVisible(true); }}
             />
-          </View>
-          {renderGospelSection()}
-          {renderReflectionSection()}
-          {renderMenuOptions()}
+          </View>)}
+          {renderEntry(2, renderGospelSection())}
+          {renderEntry(3, renderReflectionSection())}
+          {renderEntry(4, renderMenuOptions())}
           {/* POST-LAUNCH: {renderFamilyManagementSection()} */}
-          {renderAppBehaviorSection()}
-          {renderCommunitySection()}
-          {renderHelpSupportSection()}
-          {renderLegalPrivacySection()}
-          {renderAdminSection()}
-          {renderLogoutSection()}
+          {renderEntry(5, renderAppBehaviorSection())}
+          {renderEntry(6, renderCommunitySection())}
+          {renderEntry(7, renderHelpSupportSection())}
+          {renderEntry(8, renderLegalPrivacySection())}
+          {isAdmin && renderEntry(9, renderAdminSection())}
+          {renderEntry(10, renderLogoutSection())}
         </ScrollView>
       </View>
 

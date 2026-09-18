@@ -18,7 +18,8 @@ import { useEditModeSafe } from '../systems/journal/context/EditModeContext';
 import { visibleStreakService } from '../services/visibleStreakService';
 import { findLocalReflection } from '../storage/reflectionStorage';
 import ThemedText from '../components/common/ThemedText';
-import { HEART_JOURNAL_CLASSIFICATIONS, type HeartJournalClassification } from '../types/heartJournal';
+import ThemedTextInput from '../components/common/ThemedTextInput';
+import { HEART_JOURNAL_CLASSIFICATIONS, heartJournalClassificationLabel, type HeartJournalClassification } from '../types/heartJournal';
 import { Colors } from '../theme/colors';
 import GuidedReflectionExperience from '../components/journal/GuidedReflectionExperience';
 import { parseGuidedReflection } from '../types/guidedReflection';
@@ -83,6 +84,8 @@ const ReflectionEditorScreen: React.FC = () => {
     params.existingReflection?.metadata?.journalClassification || params.existingReflection?.journal_classification || params.journalClassification
   );
   const [guidedFromChooser, setGuidedFromChooser] = useState(false);
+  const [namingOtherClassification, setNamingOtherClassification] = useState(false);
+  const [otherClassificationName, setOtherClassificationName] = useState('');
   const [singleGuidedPrompt, setSingleGuidedPrompt] = useState('');
   const [classificationTransitioning, setClassificationTransitioning] = useState(false);
   const classificationRevealAnims = useRef(
@@ -265,6 +268,7 @@ const ReflectionEditorScreen: React.FC = () => {
         }),
         ...(entryData.journalClassification && { journal_classification: entryData.journalClassification }),
         ...(entryData.guidedJourney && { guided_journey: entryData.guidedJourney }),
+        ...(entryData.journalBlocks && { journal_blocks: entryData.journalBlocks }),
         ...(entryData.tags && entryData.tags.length > 0 && { tags: entryData.tags }),
         ...(determinedSource && { source: determinedSource }),
       };
@@ -318,10 +322,21 @@ const ReflectionEditorScreen: React.FC = () => {
       }
 
       // Show success modal
+      const savedClassification = entryData.journalClassification ||
+        existingReflection?.metadata?.journalClassification ||
+        existingReflection?.journal_classification;
+      const classificationLabel = savedClassification === 'notes'
+        ? 'Note'
+        : heartJournalClassificationLabel(savedClassification);
+      const successLabel = normalizedType === 'guided'
+        ? 'Guided Reflection'
+        : classificationLabel || 'Reflection';
       setTimeout(() => {
         successModal.showSuccess({
-          title: editingId ? 'Reflection Updated' : 'Reflection Saved',
-          message: editingId ? 'Your reflection has been updated in your journal.' : 'Your reflection has been saved to your journal.',
+          title: `${successLabel} ${editingId ? 'Updated' : 'Saved'}`,
+          message: editingId
+            ? 'Your entry has been updated in your journal.'
+            : 'Your entry has been saved to your journal.',
           showEditButton: true,
         });
       }, 100);
@@ -362,7 +377,14 @@ const ReflectionEditorScreen: React.FC = () => {
     ? (existingReflection.metadata?.guidedJourney || existingReflection.guided_journey || parseGuidedReflection(existingReflection.content))
     : null;
   const legacyGuidedPrompt = existingReflection?.prompt || existingReflection?.metadata?.prompt || params.initialPrompt || singleGuidedPrompt;
-  const showGuidedExperience = guidedMode && (!existingReflection || Boolean(structuredJourney)) && !params.initialPrompt && !singleGuidedPrompt;
+  // A persisted structured journey must always reopen in its purpose-built
+  // saved view. Journal cards also pass its title as `initialPrompt`; treating
+  // that as a legacy single-question reflection exposed serialized JSON in
+  // the plain text editor.
+  const showGuidedExperience = guidedMode && (
+    Boolean(structuredJourney) ||
+    (!existingReflection && !params.initialPrompt && !singleGuidedPrompt)
+  );
   const showClassificationChooser = !existingReflection && !guidedMode && !journalClassification;
   if (showClassificationChooser) {
     return <View style={{ flex: 1, backgroundColor: Colors.sage }}>
@@ -399,8 +421,46 @@ const ReflectionEditorScreen: React.FC = () => {
           <ThemedText weight="bold" style={{ color: Colors.hopeWhite, fontSize: 30, marginBottom: 32, textAlign: 'center' }}>What's on your heart?</ThemedText>
         </Animated.View>
         <View testID="heart-journal-classification-grid" style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 10 }}>
-          {HEART_JOURNAL_CLASSIFICATIONS.map((item, index) => <Animated.View key={item.value} style={classificationRevealStyle(classificationRevealAnims[index + 1])}><TouchableOpacity accessibilityRole="button" accessibilityLabel={item.label} onPress={() => leaveClassificationChooser(() => setJournalClassification(item.value))} style={{ borderRadius: 28, paddingVertical: 14, paddingHorizontal: 18, borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.3)', backgroundColor: 'rgba(255, 255, 255, 0.15)' }}><ThemedText style={{ color: Colors.hopeWhite, fontSize: 15 }}>{item.label}</ThemedText></TouchableOpacity></Animated.View>)}
+          {HEART_JOURNAL_CLASSIFICATIONS.map((item, index) => <Animated.View key={item.value} style={classificationRevealStyle(classificationRevealAnims[index + 1])}><TouchableOpacity accessibilityRole="button" accessibilityLabel={item.label} onPress={() => {
+            if (item.value === 'other') {
+              triggerLightHaptic();
+              setNamingOtherClassification(true);
+              return;
+            }
+            leaveClassificationChooser(() => setJournalClassification(item.value));
+          }} style={{ borderRadius: 28, paddingVertical: 14, paddingHorizontal: 18, borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.3)', backgroundColor: 'rgba(255, 255, 255, 0.15)' }}><ThemedText style={{ color: Colors.hopeWhite, fontSize: 15 }}>{item.label}</ThemedText></TouchableOpacity></Animated.View>)}
         </View>
+        {namingOtherClassification && (
+          <View style={{ marginTop: 20 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+              <ThemedTextInput
+                autoFocus
+                value={otherClassificationName}
+                onChangeText={setOtherClassificationName}
+                placeholder="Name your journal type... e.g. Dream"
+                placeholderTextColor="rgba(255,255,255,0.58)"
+                maxLength={32}
+                returnKeyType="done"
+                onSubmitEditing={() => {
+                  const name = otherClassificationName.trim();
+                  if (name) leaveClassificationChooser(() => setJournalClassification(`other:${name}`));
+                }}
+                style={{ flex: 1, minHeight: 46, paddingHorizontal: 0, paddingVertical: 8, color: Colors.hopeWhite, fontSize: 15 }}
+              />
+              <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityLabel="Use custom journal type"
+                disabled={!otherClassificationName.trim()}
+                onPress={() => {
+                  const name = otherClassificationName.trim();
+                  if (name) leaveClassificationChooser(() => setJournalClassification(`other:${name}`));
+                }}
+                style={{ minHeight: 46, justifyContent: 'center', borderRadius: 23, paddingHorizontal: 17, borderWidth: 1, borderColor: otherClassificationName.trim() ? Colors.sageMuted : 'rgba(255,255,255,0.2)', backgroundColor: otherClassificationName.trim() ? Colors.darkBackground : 'rgba(255,255,255,0.1)' }}>
+                <Ionicons name="arrow-forward" size={18} color={otherClassificationName.trim() ? Colors.hopeWhite : 'rgba(255,255,255,0.45)'} />
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
         <Animated.View style={[{ marginTop: 40 }, classificationRevealStyle(classificationRevealAnims[classificationRevealAnims.length - 1])] }>
           <ThemedText weight="medium" style={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: 12, letterSpacing: 1.2, marginBottom: 10, textAlign: 'center' }}>NEED SOMEWHERE TO START?</ThemedText>
           <TouchableOpacity accessibilityRole="button" accessibilityLabel="Choose a Guided Reflection question" onPress={() => leaveClassificationChooser(() => setGuidedFromChooser(true))} style={{ borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.3)', backgroundColor: 'rgba(255, 255, 255, 0.15)', borderRadius: 20, paddingHorizontal: 18, paddingVertical: 14 }}><ThemedText weight="semiBold" style={{ color: Colors.hopeWhite }}>Guided Reflection</ThemedText><ThemedText style={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: 12, marginTop: 3 }}>Choose a question to reflect on</ThemedText></TouchableOpacity>
@@ -450,6 +510,7 @@ const ReflectionEditorScreen: React.FC = () => {
             source: existingReflection.source,
             prompt: existingReflection.prompt || existingReflection.metadata?.prompt,
             journalClassification: existingReflection.metadata?.journalClassification || existingReflection.journal_classification,
+            journalBlocks: existingReflection.metadata?.journalBlocks || existingReflection.journal_blocks,
           } : {
             title: params.initialTitle || '',
             content: '',

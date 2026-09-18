@@ -39,9 +39,9 @@ describe('Truth to Carry Message sharing', () => {
     jest.restoreAllMocks();
   });
 
-  it('uses an uppercase reflection label on the share card', () => {
+  it('uses the full Journal by siFia brand on the share card', () => {
     const screen = render(<TruthToCarryShareComposer visible text="A truth to carry." onClose={jest.fn()} />);
-    expect(screen.getByText('siFia REFLECTION')).toBeTruthy();
+    expect(screen.getByLabelText('Journal by siFia logo')).toBeTruthy();
   });
 
   it('lets the user choose typography and separates supporting truth', async () => {
@@ -83,13 +83,13 @@ describe('Truth to Carry Message sharing', () => {
     const screen = render(<TruthToCarryShareComposer visible text="A truth to carry." onClose={jest.fn()} />);
 
     await waitFor(() => expect(screen.getByLabelText('Message').props.accessibilityState.disabled).toBe(false));
-    expect(screen.getByText('www.sifia.app')).toBeTruthy();
+    expect(screen.getByText('www.journalby.sifia.app')).toBeTruthy();
 
-    const watermarkToggle = screen.getByLabelText('Show siFia watermark');
+    const watermarkToggle = screen.getByLabelText('Show Journal by siFia watermark');
     expect(watermarkToggle.props.accessibilityState.checked).toBe(true);
     fireEvent.press(watermarkToggle);
 
-    expect(screen.queryByText('www.sifia.app')).toBeNull();
+    expect(screen.queryByText('www.journalby.sifia.app')).toBeNull();
     expect(screen.getByText('Hidden from this post')).toBeTruthy();
   });
 

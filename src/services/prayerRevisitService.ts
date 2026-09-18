@@ -2,16 +2,16 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { format } from 'date-fns';
 import type { PrayerApiEntry } from './api/prayerApi';
 import { groupPrayerEntries } from '../utils/prayerMoments';
-import { isTrackedPrayer, prayerNeeds, trackingStatus } from '../utils/prayerTracking';
+import { isPrayerActive, prayerNeeds, isNeedActive } from '../utils/prayerTracking';
 
 export type PrayerRevisit = { prayerId: string; needId?: string };
 export const revisitKey = (item: PrayerRevisit) => JSON.stringify([item.prayerId, item.needId || '']);
 export function revisitCandidates(prayers: PrayerApiEntry[], today: string): PrayerRevisit[] {
   return groupPrayerEntries(prayers).flatMap(group => {
     const p = group.groupedEntries?.find(e => e.journal_category === 'supplication') || group;
-    if (p.is_prayer_request || !isTrackedPrayer(p) || trackingStatus(p) !== 'pending' || p.selected_date.slice(0, 10) > today) return [];
+    if (p.is_prayer_request || !isPrayerActive(p) || p.selected_date.slice(0, 10) > today) return [];
     const needs = prayerNeeds(p);
-    return needs.length ? needs.filter(n => n.status === 'pending').map(n => ({ prayerId: p.id, needId: n.id })) : [{ prayerId: p.id }];
+    return needs.length ? needs.filter(isNeedActive).map(n => ({ prayerId: p.id, needId: n.id })) : [{ prayerId: p.id }];
   }).sort((a, b) => {
     const last = (item: PrayerRevisit) => {
       const p = prayers.find(entry => entry.id === item.prayerId)!;

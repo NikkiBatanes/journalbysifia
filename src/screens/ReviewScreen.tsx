@@ -768,8 +768,11 @@ const ReviewScreen: React.FC = () => {
           Keyboard.dismiss();
           navigation.goBack();
         }}
-        activeOpacity={0.7}>
-        <Ionicons name="close" size={20} color={Colors.text} />
+        activeOpacity={0.7}
+        hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}
+        accessibilityRole="button"
+        accessibilityLabel="Close review">
+        <Ionicons name="close" size={17} color={Colors.sage} />
       </TouchableOpacity>
 
       <View style={{ flex: 1 }} {...panResponder.panHandlers}>
@@ -828,7 +831,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: Colors.cardBackground,
-    borderRadius: 21,
+    borderRadius: 999,
   },
   stage: {
     paddingHorizontal: 28,

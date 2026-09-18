@@ -22,6 +22,7 @@ import {
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useTheme } from '../theme/ThemeContext';
+import { triggerLightHaptic } from '../utils/haptics';
 
 const { width } = Dimensions.get('window');
 
@@ -43,6 +44,7 @@ export const PurchaseErrorModal: React.FC<PurchaseErrorModalProps> = ({
   onContactSupport,
 }) => {
   const theme = useTheme();
+  const handleClose = () => { triggerLightHaptic(); onClose(); };
   const paymentProvider = Platform.OS === 'android' ? 'Google Play' : 'Apple';
 
   const getErrorInfo = () => {
@@ -138,7 +140,7 @@ export const PurchaseErrorModal: React.FC<PurchaseErrorModalProps> = ({
                 { borderColor: theme.colors.cardBorder },
                 !errorInfo.showRetry && { backgroundColor: errorInfo.color },
               ]}
-              onPress={onClose}
+              onPress={handleClose}
               activeOpacity={0.8}
             >
               <Text

@@ -3,6 +3,7 @@ import {
   Alert,
   DeviceEventEmitter,
   KeyboardAvoidingView,
+  Image,
   Platform,
   ScrollView,
   StyleSheet,
@@ -279,9 +280,11 @@ const ForMeDayScreen: React.FC<any> = ({navigation, route}) => {
                 options={{format: 'png', quality: 1, result: 'tmpfile'}}
                 style={styles.shareCard}>
                 <View style={styles.shareTop}>
-                  <ThemedText style={styles.shareLogo}>
-                    Journal by siFia
-                  </ThemedText>
+                  <Image
+                    source={require('../../assets/images/journalbysifia.png')}
+                    resizeMode="contain"
+                    style={styles.shareLogo}
+                  />
                   <Ionicons
                     name="sparkles-outline"
                     size={22}
@@ -513,9 +516,8 @@ const styles = StyleSheet.create({
   },
   shareTop: {flexDirection: 'row', justifyContent: 'space-between'},
   shareLogo: {
-    fontFamily: Fonts.semiBold,
-    fontSize: 12,
-    color: Colors.hopeWhite,
+    width: 44,
+    height: 44,
   },
   shareCenter: {alignItems: 'center'},
   yearNumber: {

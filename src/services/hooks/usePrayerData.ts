@@ -169,25 +169,32 @@ export const useCreatePrayer = () => {
     mutationFn: (prayer: Omit<PrayerApiEntry, 'id' | 'created_at' | 'updated_at'> & { metadata?: Record<string, any> }) =>
       PrayerApi.createPrayer(prayer),
     onMutate: async (newPrayer) => {
+      const prayerUserId = newPrayer.user_id ?? 'local';
       // Cancel any outgoing refetches
       await queryClient.cancelQueries({
-        queryKey: queryKeys.prayers.entries(newPrayer.user_id ?? 'local', newPrayer.selected_date),
+        queryKey: queryKeys.prayers.entries(prayerUserId, newPrayer.selected_date),
+      });
+      await queryClient.cancelQueries({
+        queryKey: queryKeys.prayers.allEntries(prayerUserId),
       });
 
       // Also cancel people prayers query if this is a people prayer
       if (newPrayer.prayer_type === 'people') {
         await queryClient.cancelQueries({
-          queryKey: queryKeys.prayers.people(newPrayer.user_id ?? 'local', newPrayer.selected_date),
+          queryKey: queryKeys.prayers.people(prayerUserId, newPrayer.selected_date),
         });
       }
 
       // Snapshot the previous values
       const previousPrayers = queryClient.getQueryData<PrayerApiEntry[]>(
-        queryKeys.prayers.entries(newPrayer.user_id ?? 'local', newPrayer.selected_date)
+        queryKeys.prayers.entries(prayerUserId, newPrayer.selected_date)
+      );
+      const previousAllPrayers = queryClient.getQueryData<PrayerApiEntry[]>(
+        queryKeys.prayers.allEntries(prayerUserId)
       );
       const previousPeoplePrayers = newPrayer.prayer_type === 'people'
         ? queryClient.getQueryData<PrayerApiEntry[]>(
-            queryKeys.prayers.people(newPrayer.user_id ?? 'local', newPrayer.selected_date)
+            queryKeys.prayers.people(prayerUserId, newPrayer.selected_date)
           )
         : undefined;
 
@@ -201,14 +208,18 @@ export const useCreatePrayer = () => {
 
       // Update main prayers query
       queryClient.setQueryData<PrayerApiEntry[]>(
-        queryKeys.prayers.entries(newPrayer.user_id ?? 'local', newPrayer.selected_date),
+        queryKeys.prayers.entries(prayerUserId, newPrayer.selected_date),
+        (old = []) => [optimisticPrayer, ...old]
+      );
+      queryClient.setQueryData<PrayerApiEntry[]>(
+        queryKeys.prayers.allEntries(prayerUserId),
         (old = []) => [optimisticPrayer, ...old]
       );
 
       // Update people prayers query if applicable
       if (newPrayer.prayer_type === 'people') {
         queryClient.setQueryData<PrayerApiEntry[]>(
-          queryKeys.prayers.people(newPrayer.user_id ?? 'local', newPrayer.selected_date),
+          queryKeys.prayers.people(prayerUserId, newPrayer.selected_date),
           (old = []) => [optimisticPrayer, ...old]
         );
       }
@@ -217,19 +228,19 @@ export const useCreatePrayer = () => {
       let previousUnprayedRequests: PrayerApiEntry[] | undefined;
       if (newPrayer.prayer_type === 'people' && newPrayer.is_prayer_request === true) {
         await queryClient.cancelQueries({
-          queryKey: queryKeys.prayers.unprayedRequests(newPrayer.user_id ?? 'local'),
+          queryKey: queryKeys.prayers.unprayedRequests(prayerUserId),
         });
         previousUnprayedRequests = queryClient.getQueryData<PrayerApiEntry[]>(
-          queryKeys.prayers.unprayedRequests(newPrayer.user_id ?? 'local')
+          queryKeys.prayers.unprayedRequests(prayerUserId)
         );
         queryClient.setQueryData<PrayerApiEntry[]>(
-          queryKeys.prayers.unprayedRequests(newPrayer.user_id ?? 'local'),
+          queryKeys.prayers.unprayedRequests(prayerUserId),
           (old = []) => [optimisticPrayer, ...old]
         );
       }
 
       // Return a context object with the snapshotted values
-      return { previousPrayers, previousPeoplePrayers, previousUnprayedRequests, optimisticPrayer };
+      return { previousPrayers, previousAllPrayers, previousPeoplePrayers, previousUnprayedRequests, optimisticPrayer };
     },
     onError: (err: Error, newPrayer, context) => {
       Logger.error('Error creating prayer', err as Error, {
@@ -240,6 +251,12 @@ export const useCreatePrayer = () => {
         queryClient.setQueryData(
           queryKeys.prayers.entries(newPrayer.user_id ?? 'local', newPrayer.selected_date),
           context.previousPrayers
+        );
+      }
+      if (context?.previousAllPrayers !== undefined) {
+        queryClient.setQueryData(
+          queryKeys.prayers.allEntries(newPrayer.user_id ?? 'local'),
+          context.previousAllPrayers
         );
       }
       if (context?.previousPeoplePrayers && newPrayer.prayer_type === 'people') {
@@ -255,8 +272,14 @@ export const useCreatePrayer = () => {
         );
       }
     },
-    onSuccess: async (_data, variables) => {
-      // Cache is automatically handled by React Query
+    onSuccess: async (data, variables, context) => {
+      const prayerUserId = variables.user_id ?? 'local';
+      // Replace the optimistic row immediately. The Prayers screen consumes
+      // this cross-date cache, so it should not have to wait for a refetch.
+      queryClient.setQueryData<PrayerApiEntry[]>(
+        queryKeys.prayers.allEntries(prayerUserId),
+        (old = []) => old.map(prayer => prayer.id === context?.optimisticPrayer.id ? data : prayer)
+      );
 
       // Update prayer streak
       if (variables.user_id && variables.user_id !== 'local') {

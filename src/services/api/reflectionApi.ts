@@ -2,6 +2,7 @@
 import { supabase } from '../supabaseClient';
 import { Logger } from '../../utils/ProductionLogger';
 import type { GuidedReflectionPayload } from '../../types/guidedReflection';
+import type { GuidedReflectionNote } from '../../types/guidedReflection';
 
 export interface ReflectionApiEntry {
   id: string;
@@ -28,6 +29,7 @@ export interface ReflectionApiEntry {
   subtask_id?: string;
   journal_classification?: string;
   guided_journey?: GuidedReflectionPayload;
+  journal_blocks?: GuidedReflectionNote[];
 }
 
 export interface SearchReflectionsOptions {

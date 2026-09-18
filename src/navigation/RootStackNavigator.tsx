@@ -16,6 +16,7 @@ import JournalScreen from '../screens/JournalScreen';
 import TodaysFocusWalkthroughScreen from '../screens/TodaysFocusWalkthroughScreen';
 import TomorrowInHisHandsWalkthroughScreen from '../screens/TomorrowInHisHandsWalkthroughScreen';
 import TodosWalkthroughScreen from '../screens/TodosWalkthroughScreen';
+import GratitudeWalkthroughScreen from '../screens/GratitudeWalkthroughScreen';
 import FuturePlanningScreen from '../screens/FuturePlanningScreen';
 import TodaysWinWalkthroughScreen from '../screens/TodaysWinWalkthroughScreen';
 import PrayerJournalWalkthroughScreen from '../screens/PrayerJournalWalkthroughScreen';
@@ -355,6 +356,29 @@ export default function RootStackNavigator({
           animation: 'none',
         }}
       />
+      <Stack.Screen
+        name="GratitudeWalkthrough"
+        component={GratitudeWalkthroughScreen as React.ComponentType}
+        options={{
+          headerShown: false,
+          presentation: 'fullScreenModal',
+          animation: 'none',
+        }}
+      />
+
+      {/* Prayer/journal walkthroughs are available before sign-in, so their
+          streak celebration destination must live in the shared stack too. */}
+      <Stack.Screen
+        name="StreakPlan"
+        component={StreakPlanScreen as React.ComponentType}
+        options={{
+          headerShown: false,
+          presentation: 'fullScreenModal',
+          animation: 'slide_from_bottom',
+          gestureEnabled: false,
+          contentStyle: { backgroundColor: Colors.sage },
+        }}
+      />
 
       {/* Pre-auth screens */}
       {!isAuthenticated ? (
@@ -515,19 +539,6 @@ export default function RootStackNavigator({
 
 
           {/* Prayer Editor Screen */}
-
-          {/* Streak Plan Screen - shown after completing playbook walkthrough */}
-          <Stack.Screen
-            name="StreakPlan"
-            component={StreakPlanScreen as React.ComponentType}
-            options={{
-              headerShown: false,
-              presentation: 'fullScreenModal',
-              animation: 'slide_from_bottom',
-              gestureEnabled: false,
-              contentStyle: { backgroundColor: Colors.sage },
-            }}
-          />
 
           {/* Streak Plan Test Dashboard - for testing all variations */}
           <Stack.Screen

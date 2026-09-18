@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   ScrollView,
   Animated,
+  Easing,
   StatusBar,
   TextInput,
   Alert,
@@ -278,18 +279,10 @@ const CASTDescriptionStep: React.FC<{
   const fadeAnims = React.useRef([...Array(4)].map(() => new Animated.Value(0))).current;
   const dotScaleAnims = React.useRef([...Array(4)].map(() => new Animated.Value(0.5))).current;
   const timelineHeight = React.useRef(new Animated.Value(0)).current;
-  const castTimelineTargetHeight = Platform.OS === 'android'
-    ? 410
-    : IS_IPAD ? 300 : 380;
+  const timelinePointYs = React.useRef<Record<number, number>>({});
+  const [castTimelineTargetHeight, setCastTimelineTargetHeight] = React.useState(0);
 
   React.useEffect(() => {
-    Animated.timing(timelineHeight, {
-      toValue: 1,
-      duration: 2000,
-      delay: 200,
-      useNativeDriver: false,
-    }).start();
-
     const animations = dotScaleAnims.map((anim, index) =>
       Animated.sequence([
         Animated.delay(100 + index * 280),
@@ -310,7 +303,27 @@ const CASTDescriptionStep: React.FC<{
     );
 
     Animated.stagger(298, animations).start();
-  }, [fadeAnims, dotScaleAnims, timelineHeight]);
+  }, [fadeAnims, dotScaleAnims]);
+
+  React.useEffect(() => {
+    if (castTimelineTargetHeight <= 0) {return;}
+    timelineHeight.setValue(0);
+    Animated.timing(timelineHeight, {
+      toValue: 1,
+      duration: 2000,
+      delay: 200,
+      useNativeDriver: false,
+    }).start();
+  }, [castTimelineTargetHeight, timelineHeight]);
+
+  const measureTimelinePoint = React.useCallback((index: number, y: number, height: number) => {
+    timelinePointYs.current[index] = y + Math.min(height, 28) / 2;
+    const firstCenter = timelinePointYs.current[0];
+    const lastCenter = timelinePointYs.current[3];
+    if (firstCenter !== undefined && lastCenter !== undefined) {
+      setCastTimelineTargetHeight(Math.max(0, lastCenter - firstCenter));
+    }
+  }, []);
 
   const prayerSteps = [
     { label: 'Confession', description: 'Bring before God what you need to confess, release, or lay down.', icon: 'hand-right' },
@@ -357,8 +370,7 @@ const CASTDescriptionStep: React.FC<{
           <View style={styles.timelineContainer}>
             <Animated.View style={[
               styles.timelineThickBar,
-              IS_IPAD && styles.timelineThickBarPad,
-              { height: timelineHeight.interpolate({
+              { top: 14, height: timelineHeight.interpolate({
                 inputRange: [0, 1],
                 outputRange: [0, castTimelineTargetHeight],
               }) },
@@ -373,6 +385,10 @@ const CASTDescriptionStep: React.FC<{
                     opacity: fadeAnims[index],
                   },
                 ]}
+                onLayout={({ nativeEvent }) => {
+                  const { y, height } = nativeEvent.layout;
+                  measureTimelinePoint(index, y, height);
+                }}
               >
                 <Animated.View style={[
                   styles.timelineDot,
@@ -1032,8 +1048,8 @@ const CompletionStep: React.FC<{
   insets: { top: number; bottom: number };
   onSupplicationTrackingChange: (value: boolean) => void;
   onOpenTrackingChange: (value: boolean) => void;
-  supplicationTrackAnswered: boolean;
-  openPrayerTrackAnswered: boolean;
+  supplicationTrackAnswered: boolean | undefined;
+  openPrayerTrackAnswered: boolean | undefined;
   isEditing?: boolean;
   castOpening: string;
   castClosing: string;
@@ -1110,7 +1126,7 @@ const CompletionStep: React.FC<{
             <View key={step.key} style={[styles.completionSection, isLast && { borderBottomWidth: 0 }]}>
               <ThemedText weight="medium" style={styles.completionSectionLabel}>{step.label}</ThemedText>
               <ThemedText style={styles.completionSectionText}>{text}</ThemedText>
-              {step.key === 'supplication' && <TouchableOpacity style={[styles.trackingBadgeContainer, { marginTop: 12 }]} onPress={() => onSupplicationTrackingChange(!supplicationTrackAnswered)}><Ionicons name={supplicationTrackAnswered ? 'checkbox-outline' : 'square-outline'} size={18} color={Colors.sage} /><ThemedText style={styles.trackingBadgeText}>{supplicationTrackAnswered ? 'Keep praying about this' : 'Just save this prayer'}</ThemedText></TouchableOpacity>}
+              {step.key === 'supplication' && <><ThemedText style={[styles.trackingBadgeText, { marginTop: 12 }]}>Do you want to keep praying about this?</ThemedText><TouchableOpacity style={[styles.trackingBadgeContainer, { marginTop: 8 }]} onPress={() => onSupplicationTrackingChange(true)}><Ionicons name={supplicationTrackAnswered === true ? 'radio-button-on' : 'radio-button-off'} size={18} color={Colors.sage} /><ThemedText style={styles.trackingBadgeText}>Keep praying · Add this to Still Praying so you can return to it.</ThemedText></TouchableOpacity><TouchableOpacity style={[styles.trackingBadgeContainer, { marginTop: 8 }]} onPress={() => onSupplicationTrackingChange(false)}><Ionicons name={supplicationTrackAnswered === false ? 'radio-button-on' : 'radio-button-off'} size={18} color={Colors.sage} /><ThemedText style={styles.trackingBadgeText}>Just save this · Keep this prayer in your journal.</ThemedText></TouchableOpacity></>}
               {step.key === 'supplication' && supplicationTrackAnswered && (
                 <View style={[styles.completionSection, styles.completionSectionSmall]}>
                   <View style={styles.trackingRow}>
@@ -1149,7 +1165,7 @@ const CompletionStep: React.FC<{
       <View style={[styles.completionSection, { borderBottomWidth: 0 }]}>
         <ThemedText weight="medium" style={styles.completionSectionLabel}>PRAYER</ThemedText>
         <ThemedText style={styles.completionSectionText}>{openPrayerText}</ThemedText>
-        <TouchableOpacity style={[styles.trackingBadgeContainer, { marginTop: 12 }]} onPress={() => onOpenTrackingChange(!openPrayerTrackAnswered)}><Ionicons name={openPrayerTrackAnswered ? 'checkbox-outline' : 'square-outline'} size={18} color={Colors.sage} /><ThemedText style={styles.trackingBadgeText}>{openPrayerTrackAnswered ? 'Keep praying about this' : 'Just save this prayer'}</ThemedText></TouchableOpacity>
+        <ThemedText style={[styles.trackingBadgeText, { marginTop: 12 }]}>Do you want to keep praying about this?</ThemedText><TouchableOpacity style={[styles.trackingBadgeContainer, { marginTop: 8 }]} onPress={() => onOpenTrackingChange(true)}><Ionicons name={openPrayerTrackAnswered === true ? 'radio-button-on' : 'radio-button-off'} size={18} color={Colors.sage} /><ThemedText style={styles.trackingBadgeText}>Keep praying · Add this to Still Praying so you can return to it.</ThemedText></TouchableOpacity><TouchableOpacity style={[styles.trackingBadgeContainer, { marginTop: 8 }]} onPress={() => onOpenTrackingChange(false)}><Ionicons name={openPrayerTrackAnswered === false ? 'radio-button-on' : 'radio-button-off'} size={18} color={Colors.sage} /><ThemedText style={styles.trackingBadgeText}>Just save this · Keep this prayer in your journal.</ThemedText></TouchableOpacity>
         {openPrayerTrackAnswered && (
           <View style={[styles.completionSection, styles.completionSectionSmall]}>
             <View style={styles.trackingRow}>
@@ -1217,6 +1233,7 @@ const CompletionStep: React.FC<{
 
       <View style={[styles.completionButtonContainer, IS_IPAD && styles.completionButtonContainerPad, { bottom: insets.bottom + 20 }]}>
         <TouchableOpacity
+          disabled={(prayerPath.id === 'open' ? openPrayerTrackAnswered : supplicationTrackAnswered) === undefined}
           onPress={() => {
             triggerMediumHaptic();
             onDone();
@@ -1238,6 +1255,7 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
   const insets = useSafeAreaInsets();
   const { width: screenWidth } = useWindowDimensions();
   const { user } = useAuth();
+  const prayerUserId = user?.id || 'local';
   const queryClient = useQueryClient();
   const { selectedDate: selectedDateStr, initialPrayerType, showDescription, editingPrayerId, subtaskId, stepId, playbookId, playbookTitle, playbookStatus, actionStepNumber, actionStepTitle, stepBody, stepExample, fromPlaybook, fromNotificationAnsweredCheck } = route.params || {};
   const selectedDate = selectedDateStr ? new Date(selectedDateStr) : new Date();
@@ -1248,12 +1266,14 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
   const [selectedPath, setSelectedPath] = useState<PrayerPath | null>(fromPlaybook ? (initialPrayerType === 'acts' ? PRAYER_PATHS[0] : initialPrayerType === 'open' ? PRAYER_PATHS[1] : null) : null);
   const [prayerTexts, setPrayerTexts] = useState<{ [key: string]: string }>({});
   const [openPrayerText, setOpenPrayerText] = useState('');
-  const [openPrayerTrackAnswered, setOpenPrayerTrackAnswered] = useState(true);
-  const [supplicationTrackAnswered, setSupplicationTrackAnswered] = useState(true);
+  const [openPrayerTrackAnswered, setOpenPrayerTrackAnswered] = useState<boolean | undefined>(editingPrayerId ? true : undefined);
+  const [supplicationTrackAnswered, setSupplicationTrackAnswered] = useState<boolean | undefined>(editingPrayerId ? true : undefined);
   const [castOpening, setCastOpening] = useState('Heavenly Father,');
   const [castClosing, setCastClosing] = useState('In Jesus\' Name,\nAmen');
   const [existingPrayerIds, setExistingPrayerIds] = useState<{ [key: string]: string }>({});
   const [showPrayerNeedPicker, setShowPrayerNeedPicker] = useState(false);
+  const entranceOpacity = useRef(new Animated.Value(0)).current;
+  const entranceProgress = useRef(new Animated.Value(0)).current;
   const editLoaded = useRef(false);
   const saveInFlight = useRef(false);
   const saveCompleted = useRef(false);
@@ -1266,11 +1286,32 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
   const updateMutation = useUpdatePrayer();
   const deletePrayerMutation = useDeletePrayer();
   const markSupplicationAnsweredMutation = useMarkSupplicationAnswered();
-  const { data: prayerEntries = [] } = useACTSPrayerData(user?.id || '', dateStr);
+  const { data: prayerEntries = [] } = useACTSPrayerData(prayerUserId, dateStr);
   const draftType = selectedPath?.id === 'acts' || selectedPath?.id === 'open' ? selectedPath.id : null;
   const draftKey = draftType ? getPrayerDraftKey(draftType, dateStr, subtaskId) : null;
   const loadedDraftKey = useRef<string | null>(null);
   const [draftReady, setDraftReady] = useState(false);
+
+  // Keep the native stack transition disabled so the underlying screen cannot
+  // flash through. Animate the opaque walkthrough content itself with a small,
+  // iOS-style spring settle instead.
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(entranceOpacity, {
+        toValue: 1,
+        duration: 180,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.spring(entranceProgress, {
+        toValue: 1,
+        stiffness: 240,
+        damping: 24,
+        mass: 0.9,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [entranceOpacity, entranceProgress]);
 
   useEffect(() => {
     if (!draftKey || editingPrayerId || fromNotificationAnsweredCheck || loadedDraftKey.current === draftKey) {return;}
@@ -1279,11 +1320,11 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
     getPrayerDraft(draftKey).then((draft) => {
       if (draft?.type === 'acts') {
         setPrayerTexts(draft.data.prayerTexts || {});
-        setSupplicationTrackAnswered(draft.data.supplicationTrackAnswered !== false);
+        setSupplicationTrackAnswered(draft.data.supplicationTrackAnswered);
         setCurrentStep(draft.data.currentStep || 2);
       } else if (draft?.type === 'open') {
         setOpenPrayerText(draft.data.openPrayerText || '');
-        setOpenPrayerTrackAnswered(draft.data.openPrayerTrackAnswered !== false);
+        setOpenPrayerTrackAnswered(draft.data.openPrayerTrackAnswered);
         setCurrentStep(draft.data.currentStep || 2);
       }
       setDraftReady(true);
@@ -1690,8 +1731,20 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
   );
 
   return (
-    <>
-    <View style={styles.container} {...panResponder.panHandlers}>
+    <View style={styles.container}>
+      <Animated.View
+        style={[
+          styles.entranceContent,
+          {
+            opacity: entranceOpacity,
+            transform: [
+              { translateY: entranceProgress.interpolate({ inputRange: [0, 1], outputRange: [10, 0] }) },
+              { scale: entranceProgress.interpolate({ inputRange: [0, 1], outputRange: [0.985, 1] }) },
+            ],
+          },
+        ]}
+        {...panResponder.panHandlers}
+      >
         {currentStep === 0 && (
           <PrayerPathSelectionStep
             selectedPath={selectedPath}
@@ -1778,6 +1831,7 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
             onCastClosingChange={setCastClosing}
           />
         )}
+      </Animated.View>
         <NewSuccessModal
           visible={successModal.isVisible}
           config={successModal.config}
@@ -1808,8 +1862,7 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
             }}
           />
         )}
-      </View>
-    </>
+    </View>
   );
 };
 
@@ -1817,6 +1870,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.lightBackground,
+  },
+  entranceContent: {
+    flex: 1,
   },
   stepContainer: {
     flex: 1,
@@ -2211,9 +2267,6 @@ const styles = StyleSheet.create({
     width: 5,
     backgroundColor: Colors.sage,
     borderRadius: 2.5,
-  },
-  timelineThickBarPad: {
-    height: 300,
   },
   timelineStep: {
     flexDirection: 'row',

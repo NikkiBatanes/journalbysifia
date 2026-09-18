@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import NetInfo from '@react-native-community/netinfo';
 import { supabase } from './supabaseClient';
 
 export interface ScriptureReaderResult {
@@ -7,6 +8,8 @@ export interface ScriptureReaderResult {
   version: string;
   verses?: { number: string; lines: string[] }[];
 }
+
+export const SCRIPTURE_OFFLINE_MESSAGE = 'This passage is not saved on this device yet. Connect to the internet and try again.';
 
 const passageCache = new Map<string, ScriptureReaderResult>();
 const pendingPassages = new Map<string, Promise<ScriptureReaderResult>>();
@@ -54,6 +57,11 @@ export async function getScripturePassage(
     if (stored) {
       passageCache.set(cacheKey, stored);
       return stored;
+    }
+
+    const network = await NetInfo.fetch();
+    if (network.isConnected === false || network.isInternetReachable === false) {
+      throw new Error(SCRIPTURE_OFFLINE_MESSAGE);
     }
 
     const { data, error } = await supabase.functions.invoke('get-scripture-passage', {

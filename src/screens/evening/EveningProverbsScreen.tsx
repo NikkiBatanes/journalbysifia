@@ -60,6 +60,7 @@ const EveningProverbsScreen = () => {
   const [proverbVersion, setProverbVersion] = useState<string | null>(null);
   const [proverbLoading, setProverbLoading] = useState(false);
   const [proverbError, setProverbError] = useState<string | null>(null);
+  const [proverbRetry, setProverbRetry] = useState(0);
   const [showAaSettings, setShowAaSettings] = useState(false);
   const [showCopyright, setShowCopyright] = useState(false);
   const [hasReadProverb, setHasReadProverb] = useState(false);
@@ -120,7 +121,7 @@ const EveningProverbsScreen = () => {
         if (!cancelled) { setProverbLoading(false); }
       });
     return () => { cancelled = true; };
-  }, [proverbNumber]);
+  }, [proverbNumber, proverbRetry]);
 
   const onNext = React.useCallback(async () => {
     triggerLightHaptic();
@@ -539,7 +540,11 @@ const EveningProverbsScreen = () => {
           {proverbLoading ? (
             <ActivityIndicator color={Colors.sage} style={styles.proverbLoader} />
           ) : proverbError ? (
-            <Text style={[styles.proverbLine, proverbLineStyle]}>{proverbError}</Text>
+            <TouchableOpacity style={styles.scriptureError} onPress={() => setProverbRetry(value => value + 1)} activeOpacity={0.7}>
+              <Ionicons name="cloud-offline-outline" size={24} color={Colors.sage} />
+              <Text style={[styles.proverbLine, styles.scriptureErrorText]}>{proverbError}</Text>
+              <ThemedText weight="semiBold" style={styles.scriptureRetry}>Tap to try again</ThemedText>
+            </TouchableOpacity>
           ) : proverbVerses && proverbVerses.length > 0 ? (
             <>
               {proverbVerses.map((verse, vIndex) => (
@@ -866,6 +871,22 @@ const styles = StyleSheet.create({
   proverbLine: {
     color: Colors.text,
     marginBottom: 6,
+  },
+  scriptureError: {
+    minHeight: 220,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+  },
+  scriptureErrorText: {
+    marginTop: 12,
+    textAlign: 'center',
+    lineHeight: 21,
+  },
+  scriptureRetry: {
+    marginTop: 10,
+    color: Colors.sage,
+    fontSize: 12,
   },
   proverbStanzaBreak: {
     height: 16,

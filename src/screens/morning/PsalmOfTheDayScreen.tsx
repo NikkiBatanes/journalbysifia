@@ -63,6 +63,7 @@ const PsalmOfTheDayScreen = () => {
   const [psalmVersion, setPsalmVersion] = useState<string | null>(null);
   const [psalmLoading, setPsalmLoading] = useState(false);
   const [psalmError, setPsalmError] = useState<string | null>(null);
+  const [psalmRetry, setPsalmRetry] = useState(0);
   const [showAaSettings, setShowAaSettings] = useState(false);
   const [showCopyright, setShowCopyright] = useState(false);
   const [hasReadPsalm, setHasReadPsalm] = useState(false);
@@ -123,7 +124,7 @@ const PsalmOfTheDayScreen = () => {
         if (!cancelled) { setPsalmLoading(false); }
       });
     return () => { cancelled = true; };
-  }, [psalmNumber]);
+  }, [psalmNumber, psalmRetry]);
 
   const onNext = React.useCallback(async () => {
     triggerLightHaptic();
@@ -533,7 +534,11 @@ const PsalmOfTheDayScreen = () => {
           {psalmLoading ? (
             <ActivityIndicator color={Colors.sage} style={styles.psalmLoader} />
           ) : psalmError ? (
-            <Text style={[styles.psalmLine, psalmLineStyle]}>{psalmError}</Text>
+            <TouchableOpacity style={styles.scriptureError} onPress={() => setPsalmRetry(value => value + 1)} activeOpacity={0.7}>
+              <Ionicons name="cloud-offline-outline" size={24} color={Colors.sage} />
+              <Text style={[styles.psalmLine, styles.scriptureErrorText]}>{psalmError}</Text>
+              <ThemedText weight="semiBold" style={styles.scriptureRetry}>Tap to try again</ThemedText>
+            </TouchableOpacity>
           ) : psalmVerses && psalmVerses.length > 0 ? (
             <>
               {psalmVerses.map((verse, vIndex) => (
@@ -859,6 +864,22 @@ const styles = StyleSheet.create({
   psalmLine: {
     color: Colors.text,
     marginBottom: 6,
+  },
+  scriptureError: {
+    minHeight: 220,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+  },
+  scriptureErrorText: {
+    marginTop: 12,
+    textAlign: 'center',
+    lineHeight: 21,
+  },
+  scriptureRetry: {
+    marginTop: 10,
+    color: Colors.sage,
+    fontSize: 12,
   },
   psalmStanzaBreak: {
     height: 16,

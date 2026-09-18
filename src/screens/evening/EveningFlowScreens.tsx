@@ -54,7 +54,7 @@ const EveningCloseButton = () => {
   return (
     <TouchableOpacity
       style={{ position: 'absolute', top: insets.top + 8, right: 20, width: 42, height: 42, borderRadius: 21, backgroundColor: Colors.cardBackground, alignItems: 'center', justifyContent: 'center', zIndex: 100 }}
-      onPress={() => { Keyboard.dismiss(); exitEveningFlow(navigation, 'Today'); }}
+      onPress={() => { triggerLightHaptic(); Keyboard.dismiss(); exitEveningFlow(navigation, 'Today'); }}
       accessibilityRole="button"
       accessibilityLabel="Close"
       hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}

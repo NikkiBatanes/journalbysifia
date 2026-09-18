@@ -22,8 +22,8 @@ import { deleteLocalReflection, getLocalReflection } from '../storage/reflection
 import { safeJsonParse } from '../utils/safeJsonParse';
 import { triggerLightHaptic } from '../utils/haptics';
 import { getScripturePassage } from '../services/scriptureReaderService';
-import { formatBibleVerse } from '../utils/textFormatting';
 import { useNetworkStore } from '../services/network/networkManager';
+import { formatBibleVerse } from '../utils/textFormatting';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import ScriptureReaderModal from '../components/ScriptureReaderModal';
 import { BLOCKS, BlockIcon, SermonNotesStyles } from './SermonNotesScreen';
@@ -56,11 +56,11 @@ const TAB_ICONS = {
 } as const;
 
 const SermonNotesDetailScreen: React.FC = () => {
+  const isOnline = useNetworkStore(state => state.isOnline);
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const insets = useSafeAreaInsets();
   const {user} = useAuth();
-  const isOnline = useNetworkStore(state => state.isOnline);
   const { reflectionId, selectedDate } = route.params ?? {};
   const bibleVersion = useMemo(
     () =>
@@ -159,10 +159,6 @@ const SermonNotesDetailScreen: React.FC = () => {
 
   useEffect(() => {
     if (mainScriptureRefs.length === 0) {
-      setMainScriptureTexts([]);
-      return;
-    }
-    if (!isOnline) {
       setMainScriptureTexts([]);
       return;
     }

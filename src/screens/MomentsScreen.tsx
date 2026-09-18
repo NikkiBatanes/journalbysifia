@@ -307,7 +307,7 @@ export const MomentsScreen: React.FC = () => {
                 />
               </View>
               {searchQuery.length > 0 && (
-                <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.clearButton} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                <TouchableOpacity onPress={() => { triggerLightHaptic(); setSearchQuery(''); }} style={styles.clearButton} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
                   <Ionicons name="close-circle" size={16} color={Colors.placeholderText} />
                 </TouchableOpacity>
               )}

@@ -15,9 +15,11 @@
 		1CC5CB56316943A7A38E8663 /* DancingScript-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 41BBBFAE4F8542B4BA2367E9 /* DancingScript-Regular.ttf */; };
 		1E6A7623AF6A40AF892E71B3 /* Allura-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = BBABE04A412440D3BC974702 /* Allura-Regular.ttf */; };
 		1EAD0C3167834E3FA012806E /* Poppins-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 69025D5AE32D4F0C9E300580 /* Poppins-Regular.ttf */; };
+		1F7E387BCCE2E9FFF7B12305 /* LiquidGlassViewManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF8F79F8ECACC81C33EBBDF8 /* LiquidGlassViewManager.swift */; };
 		2BBD9FD75C884CA79B676E20 /* NunitoSans-VariableFont_YTLC,opsz,wdth,wght.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 79C4EAB745CB4A43B25C08B1 /* NunitoSans-VariableFont_YTLC,opsz,wdth,wght.ttf */; };
 		427FC447A691C58BB6D3B3CC /* libPods-JournalBySiFia.a in Frameworks */ = {isa = PBXBuildFile; fileRef = B62E77873B8CF9FD8510DFED /* libPods-JournalBySiFia.a */; };
 		5D3BECA3F76C47EA978B5F3D /* Poppins-Medium.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 9D531852859B4AC5BDC9CCE0 /* Poppins-Medium.ttf */; };
+		6D3976B3D62A0BC10B8F2817 /* LiquidGlassViewManager.m in Sources */ = {isa = PBXBuildFile; fileRef = DC8E06AD3847B6FCF573388F /* LiquidGlassViewManager.m */; };
 		75BBBDB9CD3149CEA405A762 /* Lora-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = D044DFC269B948D8BFD99AE7 /* Lora-Regular.ttf */; };
 		761780ED2CA45674006654EE /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 761780EC2CA45674006654EE /* AppDelegate.swift */; };
 		7C64DB553D46C3EE68655733 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */; };
@@ -114,7 +116,9 @@
 		C25CAFB41141C4BF044BE084 /* Pods-JournalBySiFia.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-JournalBySiFia.debug.xcconfig"; path = "Target Support Files/Pods-JournalBySiFia/Pods-JournalBySiFia.debug.xcconfig"; sourceTree = "<group>"; };
 		CA99DA14CC894AFAB6807E65 /* Lexend-Regular.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Lexend-Regular.ttf"; path = "../assets/fonts/Lexend/Lexend-Regular.ttf"; sourceTree = "<group>"; };
 		D044DFC269B948D8BFD99AE7 /* Lora-Regular.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Lora-Regular.ttf"; path = "../assets/fonts/Lora/Lora-Regular.ttf"; sourceTree = "<group>"; };
+		DC8E06AD3847B6FCF573388F /* LiquidGlassViewManager.m */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.objc; name = LiquidGlassViewManager.m; path = JournalBySiFia/LiquidGlassViewManager.m; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
+		EF8F79F8ECACC81C33EBBDF8 /* LiquidGlassViewManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = LiquidGlassViewManager.swift; path = JournalBySiFia/LiquidGlassViewManager.swift; sourceTree = "<group>"; };
 		F3E5E6C36DE54FF0A0AB4FA4 /* Lexend-Medium.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Lexend-Medium.ttf"; path = "../assets/fonts/Lexend/Lexend-Medium.ttf"; sourceTree = "<group>"; };
 		FEF5C05996784F21B3BF2BB0 /* Lexend-Bold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Lexend-Bold.ttf"; path = "../assets/fonts/Lexend/Lexend-Bold.ttf"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -151,6 +155,8 @@
 				13B07FB61A68108700A75B9A /* Info.plist */,
 				81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */,
 				13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */,
+				EF8F79F8ECACC81C33EBBDF8 /* LiquidGlassViewManager.swift */,
+				DC8E06AD3847B6FCF573388F /* LiquidGlassViewManager.m */,
 			);
 			name = JournalBySiFia;
 			sourceTree = "<group>";
@@ -517,6 +523,8 @@
 				AAMW00000000000000000121 /* MorningWidgetBridge.swift in Sources */,
 				AAMW00000000000000000122 /* MorningWidgetBridge.m in Sources */,
 				761780ED2CA45674006654EE /* AppDelegate.swift in Sources */,
+				1F7E387BCCE2E9FFF7B12305 /* LiquidGlassViewManager.swift in Sources */,
+				6D3976B3D62A0BC10B8F2817 /* LiquidGlassViewManager.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

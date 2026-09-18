@@ -827,7 +827,7 @@ const PrayForSomeonePrayerFocusStep: React.FC<{
 const PrayForSomeoneTrackOptionStep: React.FC<{
   personName: string;
   prayerText: string;
-  trackAnswered: boolean;
+  trackAnswered: boolean | undefined;
   onTrackAnsweredChange: (value: boolean) => void;
   onNext: () => void;
   onBack: () => void;
@@ -851,7 +851,7 @@ const PrayForSomeoneTrackOptionStep: React.FC<{
         <StepFadeIn delay={40}>
           <View style={styles.titleRowLeft}>
             <ThemedText weight="semiBold" style={styles.stepTitleLeft}>
-              Would you like to keep praying about this?
+              Do you want to keep praying about this?
             </ThemedText>
           </View>
         </StepFadeIn>
@@ -859,30 +859,34 @@ const PrayForSomeoneTrackOptionStep: React.FC<{
         <StepFadeIn delay={120}>
           <View style={styles.trackOptionsContainer}>
             <TouchableOpacity
-              style={[styles.trackOptionButton, trackAnswered && styles.trackOptionButtonSelected]}
+              style={[styles.trackOptionButton, trackAnswered === true && styles.trackOptionButtonSelected]}
               onPress={() => {
                 triggerLightHaptic();
                 onTrackAnsweredChange(true);
               }}
               activeOpacity={0.7}
             >
-              <Ionicons name="checkmark-circle" size={20} color={trackAnswered ? Colors.sage : Colors.textGray} />
-              <ThemedText style={[styles.trackOptionText, trackAnswered && styles.trackOptionTextSelected]}>
-                Keep praying about this
+              <ThemedText weight="semiBold" style={[styles.trackOptionText, trackAnswered === true && styles.trackOptionTextSelected]}>
+                Keep praying
+              </ThemedText>
+              <ThemedText style={[styles.trackOptionDescription, trackAnswered === true && styles.trackOptionDescriptionSelected]}>
+                Add this to Still Praying so you can return to it.
               </ThemedText>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.trackOptionButton, !trackAnswered && styles.trackOptionButtonSelected]}
+              style={[styles.trackOptionButton, trackAnswered === false && styles.trackOptionButtonSelected]}
               onPress={() => {
                 triggerLightHaptic();
                 onTrackAnsweredChange(false);
               }}
               activeOpacity={0.7}
             >
-              <Ionicons name="close-circle" size={20} color={!trackAnswered ? Colors.sage : Colors.textGray} />
-              <ThemedText style={[styles.trackOptionText, !trackAnswered && styles.trackOptionTextSelected]}>
-                Just save this prayer
+              <ThemedText weight="semiBold" style={[styles.trackOptionText, trackAnswered === false && styles.trackOptionTextSelected]}>
+                Just save this
+              </ThemedText>
+              <ThemedText style={[styles.trackOptionDescription, trackAnswered === false && styles.trackOptionDescriptionSelected]}>
+                Keep this prayer in your journal.
               </ThemedText>
             </TouchableOpacity>
           </View>
@@ -893,6 +897,7 @@ const PrayForSomeoneTrackOptionStep: React.FC<{
 
       <View style={[styles.primaryButton, IS_IPAD && styles.primaryButtonPad, { bottom: insets.bottom + 20 }]}>
         <TouchableOpacity
+          disabled={trackAnswered === undefined}
           onPress={() => {
             triggerMediumHaptic();
             onNext();
@@ -1114,6 +1119,7 @@ const CompletionStep: React.FC<{
 // Main Screen Component
 const PrayersForPeopleWalkthroughScreen: React.FC<Props> = ({ navigation, route }) => {
   const { user } = useAuth();
+  const prayerUserId = user?.id || 'local';
   const insets = useSafeAreaInsets();
   const { width: screenWidth } = useWindowDimensions();
   const createPrayerMutation = useCreatePrayer();
@@ -1130,7 +1136,7 @@ const PrayersForPeopleWalkthroughScreen: React.FC<Props> = ({ navigation, route 
   const [personName, setPersonName] = useState('');
   const [prayerNeed, setPrayerNeed] = useState('');
   const [prayerText, setPrayerText] = useState('');
-  const [trackAnswered, setTrackAnswered] = useState(true);
+  const [trackAnswered, setTrackAnswered] = useState<boolean | undefined>(route.params?.editingPrayerId ? true : undefined);
   const [editingPrayerId, setEditingPrayerId] = useState<string | undefined>(undefined);
 
   // State for prayer modal
@@ -1269,7 +1275,7 @@ const PrayersForPeopleWalkthroughScreen: React.FC<Props> = ({ navigation, route 
     try {
       const existing = editingPrayerId ? await getLocalPrayer(editingPrayerId, dateStr) : null;
       const prayerData = {
-        user_id: user?.id || '',
+        user_id: prayerUserId,
         prayer_type: 'people' as const,
         content: selectedType?.id === 'prayer-request' ? prayerNeed : prayerText,
         person_name: personName,
@@ -1280,7 +1286,7 @@ const PrayersForPeopleWalkthroughScreen: React.FC<Props> = ({ navigation, route 
         last_prayed_at: existing?.last_prayed_at || (selectedType?.id === 'pray-for-someone' ? new Date().toISOString() : undefined),
         metadata: {
           prayer_type: selectedType?.id,
-          track_answered: trackAnswered,
+          track_answered: trackAnswered === true,
           ...(fromPlaybook ? { origin: 'playbook', source: 'playbook', playbook_id: playbookId, playbook_title: playbookTitle, step_id: stepId, subtask_id: subtaskId, action_step_number: actionStepNumber, action_step_title: actionStepTitle } : {}),
         },
         selected_date: dateStr,
@@ -1292,7 +1298,7 @@ const PrayersForPeopleWalkthroughScreen: React.FC<Props> = ({ navigation, route 
         result = await updatePrayerMutation.mutateAsync({
           id: editingPrayerId,
           updates: prayerData,
-          _userId: user?.id || '',
+          _userId: prayerUserId,
           _dateStr: dateStr,
         });
       } else {
@@ -1348,7 +1354,7 @@ const PrayersForPeopleWalkthroughScreen: React.FC<Props> = ({ navigation, route 
             person_name: personName,
             content: prayerNeed,
             id: result.id,
-            user_id: user?.id || '',
+            user_id: prayerUserId,
             selected_date: dateStr,
           },
         });
@@ -1410,7 +1416,7 @@ const PrayersForPeopleWalkthroughScreen: React.FC<Props> = ({ navigation, route 
     const answeredDate = new Date().toISOString();
 
     queryClient.setQueryData(
-      queryKeys.prayers.people(user?.id || '', dateStr),
+      queryKeys.prayers.people(prayerUserId, dateStr),
       (old: any[] | undefined) => {
         if (!Array.isArray(old)) {
           return old;
@@ -1441,15 +1447,15 @@ const PrayersForPeopleWalkthroughScreen: React.FC<Props> = ({ navigation, route 
           status: 'answered' as const,
           answered_date: answeredDate,
         },
-        _userId: user?.id || '',
+        _userId: prayerUserId,
         _dateStr: dateStr,
       }).then(() => {
         queryClient.invalidateQueries({
-          queryKey: queryKeys.prayers.people(user?.id || '', dateStr),
+          queryKey: queryKeys.prayers.people(prayerUserId, dateStr),
         });
       }).catch(_error => {
         queryClient.invalidateQueries({
-          queryKey: queryKeys.prayers.people(user?.id || '', dateStr),
+          queryKey: queryKeys.prayers.people(prayerUserId, dateStr),
         });
         Alert.alert('Error', 'Failed to mark prayer as answered. Please try again.');
       });
@@ -2256,32 +2262,33 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   trackOptionsContainer: {
-    flexDirection: 'row',
-    gap: 10,
+    gap: 14,
+    marginTop: 48,
+    width: '100%',
   },
   trackOptionButton: {
-    flex: 1,
-    flexDirection: 'row',
-    backgroundColor: Colors.cardBackground,
-    borderRadius: 22,
-    paddingVertical: 13,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: Colors.cardBorder,
-    gap: 8,
+    width: '100%',
+    backgroundColor: 'rgba(82, 106, 91, 0.08)',
+    borderRadius: 20,
+    paddingVertical: 18,
+    paddingHorizontal: 20,
+    alignItems: 'flex-start',
+    borderWidth: 0.5,
+    borderColor: 'rgba(82, 106, 91, 0.2)',
   },
   trackOptionButtonSelected: {
-    backgroundColor: Colors.actionBackground,
+    backgroundColor: Colors.sageMuted,
     borderColor: Colors.sage,
   },
   trackOptionText: {
-    fontSize: 15,
+    fontSize: 17,
     color: Colors.text,
   },
+  trackOptionDescription: { fontSize: 14, lineHeight: 21, color: Colors.textGray, marginTop: 5 },
   trackOptionTextSelected: {
-    color: Colors.sage,
+    color: Colors.hopeWhite,
   },
+  trackOptionDescriptionSelected: { color: 'rgba(255, 255, 255, 0.86)' },
   completionNote: {
     fontSize: 14,
     color: Colors.textGray,

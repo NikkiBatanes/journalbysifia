@@ -33,6 +33,28 @@ describe('Guided Reflection presentation contract', () => {
     expect(guidedSource).toContain('styles.journeySheet');
     expect(guidedSource).toContain('styles.journeyPathTitle');
     expect(guidedSource).toContain('styles.journeyProgressFill');
+    expect(guidedSource).toContain('journeyScreen: {flex: 1, backgroundColor: Colors.sage}');
+    expect(guidedSource).toContain('<View style={styles.journeyHeaderBackdrop} />');
+    expect(guidedSource).toMatch(/journeyHeaderBackdrop:\s*\{[\s\S]*?backgroundColor: Colors\.lightBackground/);
+    expect(guidedSource).toMatch(/journeyHeader:\s*\{[\s\S]*?backgroundColor: Colors\.lightBackground/);
+  });
+
+  it('reopens structured saved journeys in the readable guided summary', () => {
+    expect(screenSource).toMatch(/showGuidedExperience = guidedMode[\s\S]*?Boolean\(structuredJourney\)/);
+    expect(guidedSource).toContain('style={styles.savedJourneyPrompt}');
+    expect(guidedSource).toContain('style={styles.savedSelectionPill}');
+    expect(guidedSource).toContain('note.text.trim() || note.reference?.trim()');
+    expect(guidedSource).toContain('contentContainerStyle={styles.savedJourneyContent}');
+    expect(guidedSource).toContain('accessibilityLabel="Close"');
+    expect(guidedSource).toContain('<Ionicons name="close" size={17} color={Colors.sage} />');
+    expect(guidedSource).not.toContain('<Pencil');
+    expect(guidedSource).not.toContain('name="pencil-outline"');
+  });
+
+  it('prepares the guided journey before switching away from the chooser', () => {
+    expect(guidedSource).toContain('const openGuidedPath =');
+    expect(guidedSource).toMatch(/openGuidedPath[\s\S]*?setPayload\([\s\S]*?setPathId\(selectedPath\.id\)/);
+    expect(guidedSource).toContain('onPress={() => openGuidedPath(item)}');
   });
 
   it('animates a selected guided path into its reflection journey', () => {
@@ -57,8 +79,23 @@ describe('Guided Reflection presentation contract', () => {
     expect(guidedSource).toContain('<NoteEntrance key={note.id} delay={noteIndex * 55}>');
     expect(guidedSource).toContain('const NoteEntrance =');
     expect(guidedSource).toContain('delay,\n      useNativeDriver: true');
-    expect(guidedSource).toContain('noteMenuEntrance');
-    expect(guidedSource).toMatch(/styles\.noteMenu[\s\S]*?opacity: noteMenuEntrance\.interpolate/);
+    expect(guidedSource).toContain('<JournalPickerMenu');
+    expect(guidedSource).toContain('animations={notePickerAnimations}');
+  });
+
+  it('keeps text-bearing pills sharp while their entrances animate', () => {
+    expect(guidedSource).not.toContain('outputRange: [0.96, 1]');
+    expect(guidedSource).not.toContain('outputRange: [0.97, 1]');
+    expect(guidedSource).not.toContain('outputRange: [0.94, 1]');
+    expect(guidedSource).not.toContain('outputRange: [0.975, 1]');
+  });
+
+  it('uses a block-first journey without built-in response inputs', () => {
+    expect(guidedSource).toContain("if (step.interactionType === 'write') return null");
+    expect(guidedSource).toMatch(/scripture_reflection[\s\S]*?return \([\s\S]*?styles\.scripture[\s\S]*?styles\.inputLabel/);
+    expect(guidedSource).not.toContain('primaryFocusTimerRef');
+    expect(guidedSource).not.toContain('onFocusTarget');
+    expect(guidedSource).toMatch(/freeText:\s*\{[\s\S]*?minHeight: 44,[\s\S]*?marginBottom: 6/);
   });
 
   it('keeps the step count beside the title and the progress line full width', () => {
@@ -73,9 +110,9 @@ describe('Guided Reflection presentation contract', () => {
     expect(guidedSource).toContain('closeNotePicker(() => appendInlineNote(kind))');
     expect(guidedSource).toContain('journeyScrollRef.current?.scrollToEnd');
     expect(guidedSource).toContain("noteInputRefs.current.get(id)?.focus()");
-    expect(guidedSource).toContain('activeNoteAnchor');
-    expect(guidedSource).toContain('renderNotesForAnchor={anchorId => renderInlineNotes(anchorId)}');
-    expect(guidedSource).toContain('onFocus={() => onFocusTarget(field.id)}');
+    expect(guidedSource).toContain('{renderInlineNotes()}');
+    expect(guidedSource).not.toContain('activeNoteAnchor');
+    expect(guidedSource).not.toContain('anchorId: activeNoteAnchor');
     expect(guidedSource).toContain("noteKind === 'scripture'");
     expect(guidedSource).toContain("noteKind === 'quote'");
   });
@@ -90,14 +127,22 @@ describe('Guided Reflection presentation contract', () => {
     expect(inlineBlockSource).toContain("if (!block.text.trim()) onDelete(false)");
   });
 
-  it('uses the Sermon Notes add-button motion without a dimmed backdrop', () => {
+  it('uses the same picker implementation and motion as Sermon Notes', () => {
     expect(guidedSource).toContain('notePlusRotation');
     expect(guidedSource).toContain('notePickerColorAnim');
     expect(guidedSource).toContain('Animated.stagger(\n          38');
     expect(composerSource).toContain("outputRange: ['0deg', '45deg']");
-    expect(guidedSource).toMatch(/menuDim:\s*\{[\s\S]*?backgroundColor: 'transparent'/);
-    expect(guidedSource).toMatch(/noteMenuPill:\s*\{[\s\S]*?minHeight: 36[\s\S]*?backgroundColor: Colors\.cardBackground/);
-    expect(guidedSource).toContain('{item.label.toUpperCase()}');
+    expect(guidedSource).toContain("import {JournalComposerBar, JournalPickerMenu}");
+    expect(guidedSource).toContain('Keyboard.dismiss()');
+    expect(guidedSource).not.toContain('styles.menuDim');
+    expect(composerSource).toContain('styles.floatingTools');
+  });
+
+  it('keeps guided content scrollable above the open note picker', () => {
+    expect(guidedSource).toContain('notePickerOpen && styles.stepContentWithNotePicker');
+    expect(guidedSource).toContain('stepContentWithNotePicker: {paddingBottom: 410}');
+    expect(guidedSource).toContain('scrollIndicatorInsets={{bottom: notePickerOpen ? 300 : 120}}');
+    expect(guidedSource).toContain('stepContent: {padding: 24, paddingBottom: 180}');
   });
 
   it('floats the shared Sermon Notes composer and removes Save here', () => {
@@ -110,8 +155,15 @@ describe('Guided Reflection presentation contract', () => {
     expect(guidedSource).not.toContain('Save here');
   });
 
+  it('uses the requested Guided Reflection composer colors', () => {
+    expect(composerSource).toContain("backButtonOnDark: {backgroundColor: '#64796C'}");
+    expect(composerSource).toContain("writeButtonOnDark: {backgroundColor: '#6B7F73'}");
+    expect(composerSource).toContain("actionButtonOnDark: {backgroundColor: '#64796C'}");
+    expect(composerSource).toContain("tone === 'onDark' ? '#64796C' : Colors.sage");
+  });
+
   it('only renders the approved Guided note registry', () => {
-    expect(guidedSource).toContain('[...GUIDED_NOTE_TYPES].reverse()');
+    expect(guidedSource).toContain('items={GUIDED_NOTE_TYPES.map(item => ({');
     for (const sermonOnly of ['Bible Character', 'Historical Context', 'Language Note', 'Message Outline', 'Worship Song', 'Book to Read']) {
       expect(guidedSource).not.toContain(sermonOnly);
     }
@@ -161,10 +213,14 @@ describe('Guided Reflection presentation contract', () => {
     expect(editorSource).toContain('setSelectedPrompt(guidedPrompt)');
     expect(editorSource).toContain("const effectiveViewMode = 'free-form' as const");
     expect(editorSource).toMatch(/source === 'guided'[\s\S]*?createManagedTimeout\(\(\) => \{[\s\S]*?contentInputRef\.current\.focus\(\)/);
-    expect(editorSource).toContain("autoFocus={!isEditing && source !== 'guided'}");
+    expect(editorSource).toContain('<JournalComposerBar');
+    expect(editorSource).toContain('<JournalPickerMenu');
+    expect(editorSource).toContain('<JournalInlineBlock');
     expect(editorSource).not.toContain('contentInputRef.current.setSelection(cursor, cursor)');
     expect(guidedSource).toContain('noteFocusTimerRef');
     expect(guidedSource).toContain('noteFocusFrameRef');
+    expect(guidedSource).toContain('noteFocusRetryTimerRef');
+    expect(guidedSource).toContain('}, 320);');
   });
 
   it('uses only the new Guided Reflection question screen', () => {

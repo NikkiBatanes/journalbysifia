@@ -14,11 +14,13 @@ import {
   Keyboard,
   DeviceEventEmitter,
   AccessibilityInfo,
+  Animated,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import LinearGradient from 'react-native-linear-gradient';
 import { format } from 'date-fns';
 
 import ThemedText from '../components/common/ThemedText';
@@ -28,7 +30,7 @@ import AnimatedBibleStudyTopics from '../components/journal/AnimatedBibleStudyTo
 import { Colors } from '../theme/colors';
 import { Fonts, FontFamily, getFontFamily } from '../theme/fonts';
 import { triggerLightHaptic } from '../utils/haptics';
-import { getScripturePassage } from '../services/scriptureReaderService';
+import { getScripturePassage, preloadScripturePassages } from '../services/scriptureReaderService';
 import { BIBLE_STUDY_TOPICS, BibleStudyTopic } from '../data/bibleStudyTopics';
 import { deleteLocalReflection, getLocalReflection, LocalReflectionEntry } from '../storage/reflectionStorage';
 import { parseSavedBibleStudy } from '../storage/bibleStudyMomentsStorage';
@@ -158,6 +160,36 @@ const PageLead = ({ children, style }: { children: string; style?: any }) => (
   <ThemedText style={[styles.lead, style]}>{children}</ThemedText>
 );
 
+const StaggeredReveal = ({ children, delay = 0, reduceMotion = false, style }: {
+  children: React.ReactNode;
+  delay?: number;
+  reduceMotion?: boolean;
+  style?: any;
+}) => {
+  const reveal = useRef(new Animated.Value(reduceMotion ? 1 : 0)).current;
+  useEffect(() => {
+    reveal.stopAnimation();
+    if (reduceMotion) {
+      reveal.setValue(1);
+      return undefined;
+    }
+    reveal.setValue(0);
+    const animation = Animated.sequence([
+      Animated.delay(delay),
+      Animated.spring(reveal, {toValue: 1, tension: 78, friction: 8, useNativeDriver: true}),
+    ]);
+    animation.start();
+    return () => animation.stop();
+  }, [delay, reduceMotion, reveal]);
+  return <Animated.View style={[style, {
+    opacity: reveal,
+    transform: [
+      {translateY: reveal.interpolate({inputRange: [0, 1], outputRange: [16, 0]})},
+      {scale: reveal.interpolate({inputRange: [0, 1], outputRange: [0.96, 1]})},
+    ],
+  }]}>{children}</Animated.View>;
+};
+
 const PrimaryButton = ({
   children,
   onPress,
@@ -246,6 +278,16 @@ const BibleStudyScreen = () => {
   const savedSessionId = creatingStudy ? undefined : route.params?.sessionId as string | undefined;
   const savedReflectionId = creatingStudy ? undefined : route.params?.reflectionId as string | undefined;
   const savedSelectedDate = creatingStudy ? undefined : route.params?.selectedDate as string | undefined;
+  const closeBibleStudy = () => {
+    DeviceEventEmitter.emit('pencilAddFlowClosed');
+    if (route.params?.openedFromPencil) {
+      // Pop across any stale editors to Moments. Unlike reset(), popTo keeps
+      // the screen's native fade-out transition visible.
+      (navigation as any).popTo('JournalMoments');
+      return;
+    }
+    if (navigation.canGoBack()) {navigation.goBack();}
+  };
   const [savedReflection, setSavedReflection] = useState<LocalReflectionEntry | null>(null);
   const { width: screenWidth } = useWindowDimensions();
 
@@ -256,7 +298,12 @@ const BibleStudyScreen = () => {
 
   const [search, setSearch] = useState('');
   const [selectedTopic, setSelectedTopic] = useState<BibleStudyTopic | null>(null);
-  const [topicsExpanded, setTopicsExpanded] = useState(false);
+  const homeRevealAnims = useRef(
+    Array.from({length: 5}, () => new Animated.Value(0)),
+  ).current;
+  const topicRevealAnims = useRef(
+    Array.from({length: 16}, () => new Animated.Value(0)),
+  ).current;
   const reduceMotion = useRef(false);
   useEffect(() => {
     let mounted = true;
@@ -277,6 +324,67 @@ const BibleStudyScreen = () => {
     return shuffled.slice(0, 4);
   }, []);
 
+  useEffect(() => {
+    if (isLoading || stage !== 'home' || selectedTopic) {return;}
+    homeRevealAnims.forEach(animation => {
+      animation.stopAnimation();
+      animation.setValue(reduceMotion.current ? 1 : 0);
+    });
+    if (reduceMotion.current) {return;}
+    const entrance = Animated.stagger(
+      38,
+      homeRevealAnims.map(animation =>
+        Animated.spring(animation, {
+          toValue: 1,
+          tension: 90,
+          friction: 12,
+          useNativeDriver: true,
+        }),
+      ),
+    );
+    requestAnimationFrame(() => entrance.start());
+    return () => entrance.stop();
+  }, [homeRevealAnims, isLoading, openRequestId, selectedTopic, stage]);
+
+  const homeRevealStyle = (animation: Animated.Value) => ({
+    opacity: animation,
+    transform: [
+      {translateY: animation.interpolate({inputRange: [0, 1], outputRange: [12, 0]})},
+      {scale: animation.interpolate({inputRange: [0, 1], outputRange: [0.96, 1]})},
+    ],
+  });
+
+  useEffect(() => {
+    if (isLoading || stage !== 'home' || !selectedTopic) {return;}
+    const animations = topicRevealAnims.slice(0, selectedTopic.passages.length + 5);
+    animations.forEach(animation => {
+      animation.stopAnimation();
+      animation.setValue(reduceMotion.current ? 1 : 0);
+    });
+    if (reduceMotion.current) {return;}
+    const entrance = Animated.stagger(
+      65,
+      animations.map(animation =>
+        Animated.spring(animation, {
+          toValue: 1,
+          tension: 75,
+          friction: 7,
+          useNativeDriver: true,
+        }),
+      ),
+    );
+    requestAnimationFrame(() => entrance.start());
+    return () => entrance.stop();
+  }, [isLoading, selectedTopic, stage, topicRevealAnims]);
+
+  const topicRevealStyle = (animation: Animated.Value) => ({
+    opacity: animation,
+    transform: [
+      {translateY: animation.interpolate({inputRange: [0, 1], outputRange: [18, 0]})},
+      {scale: animation.interpolate({inputRange: [0, 1], outputRange: [0.94, 1]})},
+    ],
+  });
+
   const [highlights, setHighlights] = useState<BibleStudyHighlight[]>([]);
   const [observationText, setObservationText] = useState('');
   const [observationTags, setObservationTags] = useState<Set<string>>(new Set());
@@ -287,6 +395,7 @@ const BibleStudyScreen = () => {
   const observationInputRefs = useRef<Record<string, TextInput | null>>({});
   const observationNoteLayouts = useRef<Record<string, number>>({});
   const screenScrollRef = useRef<ScrollView>(null);
+  const headerGlassOpacity = useRef(new Animated.Value(0)).current;
   const activeObservationFocus = useRef<string | null>(null);
   const [observeHighlightIndex, setObserveHighlightIndex] = useState(0);
   const [understandingText, setUnderstandingText] = useState('');
@@ -305,6 +414,8 @@ const BibleStudyScreen = () => {
 
   const [passageVerses, setPassageVerses] = useState<{ n: string; text: string }[]>([]);
   const [passageLoading, setPassageLoading] = useState(false);
+  const [passageLoadError, setPassageLoadError] = useState<string | null>(null);
+  const [pendingPassageReference, setPendingPassageReference] = useState<string | null>(null);
   const [passageRead, setPassageRead] = useState(false);
   const [showTextSettings, setShowTextSettings] = useState(false);
   const [scriptureFontSize, setScriptureFontSize] = useState(18);
@@ -321,6 +432,10 @@ const BibleStudyScreen = () => {
   const ignoreSelectionEvents = useRef(true);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [scriptureReaderOpen, setScriptureReaderOpen] = useState(false);
+
+  useEffect(() => {
+    headerGlassOpacity.setValue(0);
+  }, [headerGlassOpacity, stage]);
 
   const stageIndex = STAGES.indexOf(stage);
   const progress = useMemo(() => {
@@ -391,6 +506,7 @@ const BibleStudyScreen = () => {
 
   const loadPassageText = useCallback(async (reference: string, translation = 'NASB') => {
     setPassageLoading(true);
+    setPassageLoadError(null);
     try {
       const result = await getScripturePassage(reference, translation);
       if (result.verses && result.verses.length > 0) {
@@ -398,8 +514,9 @@ const BibleStudyScreen = () => {
       } else {
         setPassageVerses([{ n: '', text: result.text }]);
       }
-    } catch (e) {
-      setPassageVerses([{ n: '', text: `${reference} could not be loaded. Please try again when you have a connection.` }]);
+    } catch {
+      setPassageVerses([]);
+      setPassageLoadError(`${reference} could not be loaded. Connect to the internet and try again.`);
     } finally {
       setPassageLoading(false);
     }
@@ -414,12 +531,13 @@ const BibleStudyScreen = () => {
     setEditingSavedStudy(false);
     setSearch('');
     setSelectedTopic(null);
-    setTopicsExpanded(false);
     setObserveHighlightIndex(0);
     setUnderstandingPhase('main');
     setResponsePhase('journal');
     setPassageRead(false);
     setPassageVerses([]);
+    setPassageLoadError(null);
+    setPendingPassageReference(null);
     setPassageSelection({ start: 0, end: 0 });
     setHighlightActionsVisible(false);
     setActiveHighlightId(null);
@@ -463,7 +581,7 @@ const BibleStudyScreen = () => {
     })().catch(error => {
       if (!mounted) {return;}
       setIsLoading(false);
-      Alert.alert('Unable to open Bible Study', error.message, [{ text: 'Close', onPress: () => navigation.goBack() }]);
+      Alert.alert('Unable to open Bible Study', error.message, [{ text: 'Close', onPress: closeBibleStudy }]);
     });
     return () => { mounted = false; };
   }, [applyContent, creatingStudy, loadPassageText, navigation, openRequestId, requestedSelectedDate, savedReflectionId, savedSelectedDate, savedSessionId]);
@@ -492,8 +610,8 @@ const BibleStudyScreen = () => {
   const startStudy = useCallback(async (reference: string) => {
     triggerLightHaptic();
     const passage = parsePassageReference(reference);
-    const newSession = await createBibleStudySession(passage, requestedSelectedDate);
-    setSession(newSession);
+    setSession(null);
+    setPendingPassageReference(passage.reference);
     setPassageSelection({ start: 0, end: 0 });
     setHighlightActionsVisible(false);
     ignoreSelectionEvents.current = true;
@@ -502,9 +620,23 @@ const BibleStudyScreen = () => {
     setUnderstandingPhase('main');
     setResponsePhase('journal');
     applyContent(createEmptyBibleStudyContent());
-    await loadPassageText(passage.reference);
+    setPassageVerses([]);
+    setPassageLoadError(null);
     setStage('read');
+
+    // Open the reader immediately. Local session creation and Scripture loading
+    // can safely happen together while the reader displays its loading state.
+    const [newSession] = await Promise.all([
+      createBibleStudySession(passage, requestedSelectedDate),
+      loadPassageText(passage.reference),
+    ]);
+    setSession(newSession);
   }, [applyContent, loadPassageText, requestedSelectedDate]);
+
+  useEffect(() => {
+    if (!selectedTopic) {return;}
+    void preloadScripturePassages(selectedTopic.passages.map(passage => passage.reference));
+  }, [selectedTopic]);
 
   const advance = useCallback(async (next: BibleStudyStage) => {
     if (!session) {return;}
@@ -550,7 +682,7 @@ const BibleStudyScreen = () => {
 
   const back = useCallback(() => {
     if (stage === 'home' || stage === 'saved' || stage === 'detail') {
-      if (navigation.canGoBack()) {navigation.goBack();}
+      closeBibleStudy();
       return;
     }
     if (stage === 'observe' && observeHighlightIndex > 0) {
@@ -657,8 +789,8 @@ const BibleStudyScreen = () => {
 
   const topTitle = useMemo(() => {
     if (stage === 'home' || stage === 'saved' || stage === 'detail') {return '';}
-    return session?.passage.reference ?? '';
-  }, [stage, session?.passage.reference]);
+    return session?.passage.reference ?? pendingPassageReference ?? '';
+  }, [pendingPassageReference, stage, session?.passage.reference]);
 
   const renderTop = () => stage === 'home' ? (
     <View style={[styles.homeTop, { top: insets.top + 8 }]} pointerEvents="box-none">
@@ -676,7 +808,7 @@ const BibleStudyScreen = () => {
         accessibilityLabel="Close Bible Study"
         onPress={() => {
           triggerLightHaptic();
-          if (navigation.canGoBack()) {navigation.goBack();}
+          closeBibleStudy();
         }}
         style={[styles.homeNavButton, styles.homeCloseButton]}
         activeOpacity={0.7}
@@ -705,7 +837,7 @@ const BibleStudyScreen = () => {
               accessibilityRole="button"
               accessibilityLabel="Open scripture reader"
             >
-              <MaterialCommunityIcons name="script-text" size={18} color={Colors.text} />
+              <MaterialCommunityIcons name="book-outline" size={18} color={Colors.text} />
             </TouchableOpacity>
           ) : null}
         </View>
@@ -743,17 +875,25 @@ const BibleStudyScreen = () => {
 
   const renderTopic = (topic: BibleStudyTopic) => (
     <View style={[styles.homePage, { paddingTop: insets.top + 8 }]}>
-      <View style={styles.homeLabelContainer}>
-        <MaterialCommunityIcons name="script-text" size={16} color={Colors.sage} />
+      <Animated.View
+        style={[styles.homeLabelContainer, topicRevealStyle(topicRevealAnims[0])]}
+      >
+        <MaterialCommunityIcons name="book-outline" size={16} color={Colors.sage} />
         <ThemedText weight="semiBold" style={styles.homeEyebrow}>Bible Study</ThemedText>
-      </View>
-      <ThemedText weight="semiBold" style={styles.homeTitle}>{topic.title}</ThemedText>
-      <ThemedText style={styles.homeLead}>{topic.description}</ThemedText>
+      </Animated.View>
+      <Animated.View style={topicRevealStyle(topicRevealAnims[1])}>
+        <ThemedText weight="semiBold" style={styles.homeTitle}>{topic.title}</ThemedText>
+      </Animated.View>
+      <Animated.View style={topicRevealStyle(topicRevealAnims[2])}>
+        <ThemedText style={styles.homeLead}>{topic.description}</ThemedText>
+      </Animated.View>
 
-      <ThemedText weight="semiBold" style={styles.sectionLabel}>Choose a passage</ThemedText>
-      {topic.passages.map((passage) => (
-        <TouchableOpacity
-          key={passage.reference}
+      <Animated.View style={topicRevealStyle(topicRevealAnims[3])}>
+        <ThemedText weight="semiBold" style={styles.sectionLabel}>Choose a passage</ThemedText>
+      </Animated.View>
+      {topic.passages.map((passage, index) => (
+        <Animated.View key={passage.reference} style={topicRevealStyle(topicRevealAnims[index + 4])}>
+          <TouchableOpacity
           style={styles.passageRow}
           activeOpacity={0.65}
           onPress={() => startStudy(passage.reference)}
@@ -763,24 +903,33 @@ const BibleStudyScreen = () => {
             <ThemedText style={styles.passageContext}>{passage.context}</ThemedText>
           </View>
           <Ionicons name="chevron-forward" size={20} color={Colors.textGray} />
-        </TouchableOpacity>
+          </TouchableOpacity>
+        </Animated.View>
       ))}
 
-      <ThemedText style={styles.curatedNote}>These are curated starting points, not an exhaustive list.</ThemedText>
+      <Animated.View style={topicRevealStyle(topicRevealAnims[topic.passages.length + 4])}>
+        <ThemedText style={styles.curatedNote}>These are curated starting points, not an exhaustive list.</ThemedText>
+      </Animated.View>
     </View>
   );
 
   const renderHome = () => selectedTopic ? renderTopic(selectedTopic) : (
     <View style={[styles.homePage, { paddingTop: insets.top + 8 }]}>
-      <View style={styles.homeLabelContainer}>
-        <MaterialCommunityIcons name="script-text" size={16} color={Colors.sage} />
+      <Animated.View
+        style={[styles.homeLabelContainer, homeRevealStyle(homeRevealAnims[0])]}
+      >
+        <MaterialCommunityIcons name="book-outline" size={16} color={Colors.sage} />
         <ThemedText weight="semiBold" style={styles.homeEyebrow}>Bible Study</ThemedText>
-      </View>
-      <ThemedText weight="semiBold" style={styles.homeTitle}>What would you like to study?</ThemedText>
-      <ThemedText style={styles.homeLead}>Choose a passage and take time to read, understand, and respond.</ThemedText>
+      </Animated.View>
+      <Animated.View style={homeRevealStyle(homeRevealAnims[1])}>
+        <ThemedText weight="semiBold" style={styles.homeTitle}>What would you like to study?</ThemedText>
+      </Animated.View>
+      <Animated.View style={homeRevealStyle(homeRevealAnims[2])}>
+        <ThemedText style={styles.homeLead}>Choose a passage and take time to read, understand, and respond.</ThemedText>
+      </Animated.View>
 
       {session && !session.completed && !session.completed_at && session.current_stage !== 'saved' && session.current_stage !== 'detail' ? (
-        <TouchableOpacity
+        <Animated.View style={homeRevealStyle(homeRevealAnims[3])}><TouchableOpacity
           style={styles.resumeButton}
           activeOpacity={0.7}
           onPress={() => { triggerLightHaptic(); setStage(session.current_stage === 'home' ? 'read' : session.current_stage); }}
@@ -790,10 +939,12 @@ const BibleStudyScreen = () => {
             <ThemedText weight="semiBold" style={styles.resumeReference}>{session.passage.reference}</ThemedText>
           </View>
           <Ionicons name="chevron-forward" size={20} color={Colors.textGray} />
-        </TouchableOpacity>
+        </TouchableOpacity></Animated.View>
       ) : null}
 
-      <View style={styles.passageInputRow}>
+      <Animated.View
+        style={[styles.passageInputRow, homeRevealStyle(homeRevealAnims[3])]}
+      >
         <Ionicons name="search-outline" size={21} color={Colors.textGray} />
         <TextInput
         value={search}
@@ -809,27 +960,15 @@ const BibleStudyScreen = () => {
             <Ionicons name="arrow-forward-circle" size={29} color={Colors.sage} />
           </TouchableOpacity>
         ) : null}
-      </View>
+      </Animated.View>
 
-      <ThemedText weight="semiBold" style={styles.sectionLabel}>Or browse by topic</ThemedText>
-      <AnimatedBibleStudyTopics suggestions={suggestedTopics} topics={BIBLE_STUDY_TOPICS} expanded={topicsExpanded}
+      <Animated.View style={homeRevealStyle(homeRevealAnims[4])}>
+        <ThemedText weight="semiBold" style={styles.sectionLabel}>Or browse by topic</ThemedText>
+      </Animated.View>
+      <AnimatedBibleStudyTopics suggestions={suggestedTopics} topics={BIBLE_STUDY_TOPICS} expanded
+        animateOnMount entranceDelay={190}
         reduceMotion={reduceMotion.current} onSelect={selectTopic} gridStyle={styles.topicGrid}
         buttonStyle={styles.topicButton} textStyle={styles.topicButtonText} />
-
-      <TouchableOpacity
-        style={styles.allTopicsButton}
-        activeOpacity={0.7}
-        accessibilityRole="button"
-        accessibilityState={{ expanded: topicsExpanded }}
-        onPress={() => {
-          triggerLightHaptic();
-          setTopicsExpanded(value => !value);
-        }}
-      >
-        <ThemedText weight="semiBold" style={styles.allTopicsText}>
-          {topicsExpanded ? 'Show less' : 'Show more'}
-        </ThemedText>
-      </TouchableOpacity>
 
     </View>
   );
@@ -870,6 +1009,7 @@ const BibleStudyScreen = () => {
   }) : undefined;
 
   const dismissHighlightActions = () => {
+    triggerLightHaptic();
     ignoreSelectionEvents.current = true;
     setHighlightActionsVisible(false);
     setActiveHighlightId(null);
@@ -964,14 +1104,18 @@ const BibleStudyScreen = () => {
     );
   };
 
+  const animatedStageHeading = (eyebrow: string, title: string, lead: string) => <>
+    <StaggeredReveal delay={20} reduceMotion={reduceMotion.current}><Eyebrow>{eyebrow}</Eyebrow></StaggeredReveal>
+    <StaggeredReveal delay={75} reduceMotion={reduceMotion.current}><PageTitle>{title}</PageTitle></StaggeredReveal>
+    <StaggeredReveal delay={130} reduceMotion={reduceMotion.current}><PageLead>{lead}</PageLead></StaggeredReveal>
+  </>;
+
   const renderRead = () => (
     <View style={styles.page}>
-      <Eyebrow>Read</Eyebrow>
-      <PageTitle>Read slowly.</PageTitle>
-      <PageLead>Press and hold, then drag to select the words you want to highlight.</PageLead>
+      {animatedStageHeading('Read', 'Read slowly.', 'Press and hold, then drag to select the words you want to highlight.')}
 
       {showTextSettings ? (
-        <View style={styles.textSettings}>
+        <StaggeredReveal delay={170} reduceMotion={reduceMotion.current} style={styles.textSettings}>
           <View style={styles.readerTopRow}>
             <View style={styles.readerQuickControls}>
               <View style={styles.textSizeControls}>
@@ -1043,12 +1187,35 @@ const BibleStudyScreen = () => {
               ))}
             </View>
           ) : null}
-        </View>
+        </StaggeredReveal>
       ) : null}
 
-      <View style={styles.scripture}>
+      <StaggeredReveal delay={200} reduceMotion={reduceMotion.current} style={styles.scripture}>
           {passageLoading ? (
-            <ActivityIndicator color={Colors.sage} />
+            <View style={styles.passageLoadingState}>
+              <ActivityIndicator color={Colors.sage} />
+              <ThemedText style={styles.passageLoadingText}>Loading passage…</ThemedText>
+            </View>
+          ) : passageLoadError ? (
+            <View style={styles.passageErrorState}>
+              <Ionicons name="cloud-offline-outline" size={25} color={Colors.sage} />
+              <ThemedText weight="semiBold" style={styles.passageErrorTitle}>Passage unavailable</ThemedText>
+              <ThemedText style={styles.passageErrorText}>{passageLoadError}</ThemedText>
+              <TouchableOpacity
+                accessibilityRole="button"
+                style={styles.passageRetryButton}
+                onPress={() => {
+                  const reference = session?.passage.reference ?? pendingPassageReference;
+                  if (reference) {
+                    triggerLightHaptic();
+                    void loadPassageText(reference, session?.passage.translation ?? 'NASB');
+                  }
+                }}
+              >
+                <Ionicons name="refresh" size={16} color={Colors.hopeWhite} />
+                <ThemedText weight="semiBold" style={styles.passageRetryText}>Try again</ThemedText>
+              </TouchableOpacity>
+            </View>
           ) : (
             <View style={styles.selectablePassageLayer} onTouchEnd={event => event.stopPropagation()}>
               <Text
@@ -1152,7 +1319,7 @@ const BibleStudyScreen = () => {
               ) : null}
             </View>
           )}
-      </View>
+      </StaggeredReveal>
 
       <View style={styles.spacer} />
     </View>
@@ -1164,10 +1331,8 @@ const BibleStudyScreen = () => {
     if (!highlight) {
       return (
         <View style={styles.page}>
-          <Eyebrow>Observe</Eyebrow>
-          <PageTitle>What do you notice?</PageTitle>
-          <PageLead>Look again at the passage. What do you see in the text?</PageLead>
-          <TextInput
+          {animatedStageHeading('Observe', 'What do you notice?', 'Look again at the passage. What do you see in the text?')}
+          <StaggeredReveal delay={195} reduceMotion={reduceMotion.current}><TextInput
             multiline
             value={observationText}
             onChangeText={(text) => { setObservationText(text); scheduleDraftSave(); }}
@@ -1175,7 +1340,7 @@ const BibleStudyScreen = () => {
             placeholder="Start writing what you notice..."
             placeholderTextColor={Colors.placeholderText}
             style={styles.observationInputPlain}
-          />
+          /></StaggeredReveal>
           <View style={styles.spacer} />
         </View>
       );
@@ -1183,23 +1348,20 @@ const BibleStudyScreen = () => {
 
     return (
       <View style={styles.page}>
-        <Eyebrow>{`Observe · ${observeHighlightIndex + 1} of ${highlights.length}`}</Eyebrow>
-        <PageTitle>What do you notice?</PageTitle>
-        <PageLead>Stay with this highlight. What stands out in these words?</PageLead>
+        {animatedStageHeading(`Observe · ${observeHighlightIndex + 1} of ${highlights.length}`, 'What do you notice?', 'Stay with this highlight. What stands out in these words?')}
 
-        <View style={styles.focusedHighlight}>
+        <StaggeredReveal delay={190} reduceMotion={reduceMotion.current} style={styles.focusedHighlight}>
           <View style={[styles.focusedHighlightMarker, { backgroundColor: highlight.color ?? HIGHLIGHT_COLORS[0] }]} />
           <ThemedText style={styles.focusedHighlightText}>{highlight.text}</ThemedText>
-        </View>
+        </StaggeredReveal>
 
         <View style={styles.chips}>
-          {OBSERVE_PROMPTS.map((prompt) => (
-            <Chip
-              key={prompt}
+          {OBSERVE_PROMPTS.map((prompt, index) => (
+            <StaggeredReveal key={prompt} delay={235 + index * 42} reduceMotion={reduceMotion.current}><Chip
               label={prompt}
               on={(highlightPromptSelections[highlight.id] ?? []).includes(prompt)}
               onPress={() => toggleHighlightPrompt(highlight.id, prompt)}
-            />
+            /></StaggeredReveal>
           ))}
         </View>
 
@@ -1262,10 +1424,8 @@ const BibleStudyScreen = () => {
     if (understandingPhase === 'main') {
       return (
         <View style={styles.page}>
-          <Eyebrow>Understand</Eyebrow>
-          <PageTitle>What is this passage teaching?</PageTitle>
-          <PageLead>In your own words, what do you think the main truth or message is?</PageLead>
-          <TextInput
+          {animatedStageHeading('Understand', 'What is this passage teaching?', 'In your own words, what do you think the main truth or message is?')}
+          <StaggeredReveal delay={195} reduceMotion={reduceMotion.current}><TextInput
             multiline
             autoFocus
             value={understandingText}
@@ -1274,7 +1434,7 @@ const BibleStudyScreen = () => {
             placeholder="Write the main truth in your own words..."
             placeholderTextColor={Colors.placeholderText}
             style={styles.observationInputPlain}
-          />
+          /></StaggeredReveal>
           <View style={styles.spacer} />
         </View>
       );
@@ -1282,18 +1442,15 @@ const BibleStudyScreen = () => {
 
     return (
       <View style={styles.page}>
-        <Eyebrow>Go deeper</Eyebrow>
-        <PageTitle>Would you like to go deeper?</PageTitle>
-        <PageLead>Choose any questions you want to explore. You don’t need to answer them all.</PageLead>
+        {animatedStageHeading('Go deeper', 'Would you like to go deeper?', 'Choose any questions you want to explore. You don’t need to answer them all.')}
 
         <View style={styles.chips}>
-          {UNDERSTAND_PROMPTS.map((prompt) => (
-            <Chip
-              key={prompt}
+          {UNDERSTAND_PROMPTS.map((prompt, index) => (
+            <StaggeredReveal key={prompt} delay={190 + index * 42} reduceMotion={reduceMotion.current}><Chip
               label={prompt}
               on={understandingPromptSelections.includes(prompt)}
               onPress={() => toggleUnderstandingPrompt(prompt)}
-            />
+            /></StaggeredReveal>
           ))}
         </View>
 
@@ -1343,12 +1500,10 @@ const BibleStudyScreen = () => {
     if (responsePhase === 'prayer') {
       return (
         <View style={styles.page}>
-          <Eyebrow>Pray</Eyebrow>
-          <PageTitle>Turn your response into prayer.</PageTitle>
-          <PageLead>You don’t need new words. Begin with what you just wrote.</PageLead>
+          {animatedStageHeading('Pray', 'Turn your response into prayer.', 'You don’t need new words. Begin with what you just wrote.')}
 
           {responseEntries.length > 0 ? (
-            <View style={styles.prayerResponseReminder}>
+            <StaggeredReveal delay={190} reduceMotion={reduceMotion.current} style={styles.prayerResponseReminder}>
               <ThemedText weight="semiBold" style={styles.observationNoteLabel}>Your response</ThemedText>
               {responseEntries.map(entry => (
                 <View key={entry.prompt} style={styles.prayerResponseItem}>
@@ -1356,10 +1511,10 @@ const BibleStudyScreen = () => {
                   <ThemedText style={styles.prayerResponseText}>{entry.text}</ThemedText>
                 </View>
               ))}
-            </View>
+            </StaggeredReveal>
           ) : null}
 
-          <TextInput
+          <StaggeredReveal delay={245} reduceMotion={reduceMotion.current}><TextInput
             multiline
             autoFocus
             value={prayerText}
@@ -1368,7 +1523,7 @@ const BibleStudyScreen = () => {
             placeholder="Father..."
             placeholderTextColor={Colors.placeholderText}
             style={styles.observationInputPlain}
-          />
+          /></StaggeredReveal>
 
           <View style={styles.spacer} />
         </View>
@@ -1377,18 +1532,15 @@ const BibleStudyScreen = () => {
 
     return (
     <View style={styles.page}>
-      <Eyebrow>Respond</Eyebrow>
-      <PageTitle>How will you respond to what you've read?</PageTitle>
-      <PageLead>Choose any responses that fit. You can journal each one in your own words.</PageLead>
+      {animatedStageHeading('Respond', "How will you respond to what you've read?", 'Choose any responses that fit. You can journal each one in your own words.')}
 
       <View style={styles.chips}>
-        {RESPONSE_PROMPTS.map((prompt) => (
-          <Chip
-            key={prompt}
+        {RESPONSE_PROMPTS.map((prompt, index) => (
+          <StaggeredReveal key={prompt} delay={190 + index * 42} reduceMotion={reduceMotion.current}><Chip
             label={prompt}
             on={responsePromptSelections.includes(prompt)}
             onPress={() => toggleResponsePrompt(prompt)}
-          />
+          /></StaggeredReveal>
         ))}
       </View>
 
@@ -1430,14 +1582,14 @@ const BibleStudyScreen = () => {
 
     return (
       <View style={[styles.page, styles.centered]}>
-        <View style={styles.checkCircle}>
+        <StaggeredReveal delay={20} reduceMotion={reduceMotion.current} style={styles.checkCircle}>
           <Ionicons name="checkmark" size={32} color={Colors.hopeWhite} />
-        </View>
-        <ThemedText weight="semiBold" style={styles.eyebrow}>Bible Study saved</ThemedText>
-        <ThemedText weight="bold" style={styles.title}>{session.passage.reference}</ThemedText>
-        <ThemedText style={styles.lead}>{dateText}</ThemedText>
+        </StaggeredReveal>
+        <StaggeredReveal delay={80} reduceMotion={reduceMotion.current}><ThemedText weight="semiBold" style={styles.eyebrow}>Bible Study saved</ThemedText></StaggeredReveal>
+        <StaggeredReveal delay={135} reduceMotion={reduceMotion.current}><ThemedText weight="bold" style={styles.title}>{session.passage.reference}</ThemedText></StaggeredReveal>
+        <StaggeredReveal delay={190} reduceMotion={reduceMotion.current}><ThemedText style={styles.lead}>{dateText}</ThemedText></StaggeredReveal>
 
-        <Card soft style={{ width: '100%' }}>
+        <StaggeredReveal delay={245} reduceMotion={reduceMotion.current} style={{width: '100%'}}><Card soft style={{ width: '100%' }}>
           <View style={styles.summaryRow}>
             <Eyebrow>Highlights</Eyebrow>
             <ThemedText weight="semiBold" style={styles.summaryText}>
@@ -1468,10 +1620,10 @@ const BibleStudyScreen = () => {
               {content.prayer.saveToPrayerJournal ? 'Saved to Prayer Journal' : 'Not saved'}
             </ThemedText>
           </View>
-        </Card>
+        </Card></StaggeredReveal>
 
-        <PrimaryButton onPress={() => setStage('detail')}>View Bible Study</PrimaryButton>
-        <SecondaryButton onPress={() => { if (navigation.canGoBack()) {navigation.goBack();} }}>Done</SecondaryButton>
+        <StaggeredReveal delay={300} reduceMotion={reduceMotion.current} style={{width: '100%'}}><PrimaryButton onPress={() => setStage('detail')}>View Bible Study</PrimaryButton></StaggeredReveal>
+        <StaggeredReveal delay={350} reduceMotion={reduceMotion.current} style={{width: '100%'}}><SecondaryButton onPress={closeBibleStudy}>Done</SecondaryButton></StaggeredReveal>
       </View>
     );
   };
@@ -1496,7 +1648,8 @@ const BibleStudyScreen = () => {
         return (
           <View style={styles.readFooterRow}>
             <TouchableOpacity
-              style={[styles.readPassageButton, passageRead && styles.readPassageButtonActive]}
+              style={[styles.readPassageButton, passageRead && styles.readPassageButtonActive, (passageLoading || !!passageLoadError || !session) && styles.disabledButton]}
+              disabled={passageLoading || !!passageLoadError || !session}
               onPress={() => { triggerLightHaptic(); setPassageRead(value => !value); }}
               activeOpacity={0.8}
               accessibilityRole="checkbox"
@@ -1513,8 +1666,9 @@ const BibleStudyScreen = () => {
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => advance('observe')}
+              disabled={passageLoading || !!passageLoadError || !session}
               activeOpacity={0.7}
-              style={styles.nextButton}
+              style={[styles.nextButton, (passageLoading || !!passageLoadError || !session) && styles.disabledButton]}
               accessibilityRole="button"
               accessibilityLabel="Next"
             >
@@ -1639,7 +1793,7 @@ const BibleStudyScreen = () => {
       selectedDate={selectedDate}
       translation={savedReflection?.metadata?.passage?.translation || session?.passage.translation || 'NASB'}
       content={buildContent()}
-      onClose={() => { triggerLightHaptic(); navigation.goBack(); }}
+      onClose={() => { triggerLightHaptic(); closeBibleStudy(); }}
       onEdit={async () => {
         if (!reflectionId) {throw new Error('Saved reflection is missing.');}
         const reflection = await getLocalReflection(reflectionId, 'scripture', selectedDate);
@@ -1672,7 +1826,7 @@ const BibleStudyScreen = () => {
         // The intentionally saved prayer is a separate canonical record.
         DeviceEventEmitter.emit('reflection_deleted', reflectionId);
         DeviceEventEmitter.emit('bible_study_saved', reflectionId);
-        navigation.goBack();
+        closeBibleStudy();
       }}
     />;
   }
@@ -1683,19 +1837,23 @@ const BibleStudyScreen = () => {
       style={[
         styles.container,
         stage === 'home' && styles.homeContainer,
-        { paddingTop: stage === 'home' ? 0 : insets.top, paddingBottom: insets.bottom },
+        { paddingBottom: insets.bottom },
       ]}
       behavior={Platform.OS === 'ios' && stage !== 'observe' && stage !== 'understand' && stage !== 'respond' ? 'padding' : undefined}
     >
-      {renderTop()}
-      {renderProgress()}
       <ScrollView
         onScrollBeginDrag={() => { if (stage === 'read') {dismissHighlightActions();} }}
+        onScroll={({ nativeEvent }) => {
+          const opacity = Math.min(1, Math.max(0, nativeEvent.contentOffset.y / 18));
+          headerGlassOpacity.setValue(opacity);
+        }}
+        scrollEventThrottle={16}
         ref={screenScrollRef}
         style={styles.scroll}
         showsVerticalScrollIndicator={stage !== 'read'}
         contentContainerStyle={[
           styles.scrollContent,
+          stage !== 'home' && { paddingTop: insets.top + 88 },
           stage === 'observe' && keyboardHeight > 0 && { paddingBottom: keyboardHeight },
           stage === 'understand' && keyboardHeight > 0 && { paddingBottom: keyboardHeight },
           stage === 'respond' && keyboardHeight > 0 && { paddingBottom: keyboardHeight },
@@ -1712,6 +1870,26 @@ const BibleStudyScreen = () => {
       >
         {content()}
       </ScrollView>
+      <View style={[styles.header, stage !== 'home' && { paddingTop: insets.top }]} pointerEvents="box-none">
+        <Animated.View
+          pointerEvents="none"
+          style={[styles.headerGlass, { opacity: headerGlassOpacity }]}
+        >
+          <LinearGradient
+            colors={[
+              'rgba(248, 247, 242, 0.98)',
+              'rgba(248, 247, 242, 0.94)',
+              'rgba(248, 247, 242, 0.72)',
+              'rgba(248, 247, 242, 0.30)',
+              'rgba(248, 247, 242, 0)',
+            ]}
+            locations={[0, 0.52, 0.72, 0.88, 1]}
+            style={StyleSheet.absoluteFill}
+          />
+        </Animated.View>
+        {renderTop()}
+        {renderProgress()}
+      </View>
       {renderFooter() ? (
         <View style={[
           styles.footer,
@@ -1745,6 +1923,17 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingBottom: 120,
+  },
+  header: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
+  },
+  headerGlass: {
+    ...StyleSheet.absoluteFillObject,
+    bottom: -30,
   },
   page: {
     paddingHorizontal: 20,
@@ -1788,7 +1977,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
   },
   homeCloseButton: {
-    right: 20,
+    right: 18,
   },
   homeBackButton: {
     left: 20,
@@ -1990,19 +2179,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: Colors.text,
   },
-  allTopicsButton: {
-    alignSelf: 'center',
-    marginTop: 20,
-    paddingVertical: 10,
-    paddingHorizontal: 24,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: Colors.mediumBorder,
-  },
-  allTopicsText: {
-    fontSize: 14,
-    color: Colors.sage,
-  },
   resumeButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -2029,9 +2205,13 @@ const styles = StyleSheet.create({
   passageRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.lightBorder,
-    paddingVertical: 17,
+    backgroundColor: 'rgba(82, 106, 91, 0.08)',
+    borderWidth: 0.5,
+    borderColor: 'rgba(82, 106, 91, 0.2)',
+    borderRadius: 24,
+    paddingHorizontal: 18,
+    paddingVertical: 15,
+    marginBottom: 12,
   },
   passageReference: {
     fontSize: 17,
@@ -2043,6 +2223,48 @@ const styles = StyleSheet.create({
     lineHeight: 19,
     color: Colors.textGray,
     paddingRight: 12,
+  },
+  passageLoadingState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 180,
+    gap: 12,
+  },
+  passageLoadingText: {
+    fontSize: 13,
+    color: Colors.textGray,
+  },
+  passageErrorState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 220,
+    paddingHorizontal: 24,
+  },
+  passageErrorTitle: {
+    marginTop: 12,
+    fontSize: 16,
+    color: Colors.text,
+  },
+  passageErrorText: {
+    marginTop: 8,
+    fontSize: 13,
+    lineHeight: 20,
+    color: Colors.textGray,
+    textAlign: 'center',
+  },
+  passageRetryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    marginTop: 18,
+    paddingHorizontal: 18,
+    paddingVertical: 11,
+    borderRadius: 22,
+    backgroundColor: Colors.sage,
+  },
+  passageRetryText: {
+    fontSize: 13,
+    color: Colors.hopeWhite,
   },
   curatedNote: {
     fontSize: 11,
@@ -2551,6 +2773,9 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 8,
     alignSelf: 'flex-end',
+  },
+  disabledButton: {
+    opacity: 0.45,
   },
 });
 

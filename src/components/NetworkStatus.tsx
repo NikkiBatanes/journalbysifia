@@ -12,6 +12,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNetworkState } from '../services/network/networkManager';
 import { Colors } from '../theme/colors';
 import { Fonts } from '../theme/fonts';
+import { triggerLightHaptic } from '../utils/haptics';
 
 interface NetworkStatusProps {
   showDetails?: boolean;
@@ -137,7 +138,7 @@ export const NetworkStatus: React.FC<NetworkStatusProps> = ({
             accessibilityRole="button"
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             style={styles.dismissButton}
-            onPress={() => setIsDismissed(true)}
+            onPress={() => { triggerLightHaptic(); setIsDismissed(true); }}
           >
             <Ionicons name="close" size={16} color={Colors.textGray} />
           </TouchableOpacity>

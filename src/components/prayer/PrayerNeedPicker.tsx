@@ -1,9 +1,10 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Alert, Animated, KeyboardAvoidingView, LayoutAnimation, Modal, Platform, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import {Sparkle} from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ThemedText from '../common/ThemedText';
+import StepFadeIn from '../common/StepFadeIn';
 import { Colors } from '../../theme/colors';
 import { getFontFamily } from '../../theme/fonts';
 import { useTheme } from '../../hooks/useTheme';
@@ -26,6 +27,19 @@ const TOPICS = [
 ] as const;
 type Choice = { topic: string; text: string };
 
+function SlideFromRight({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) {
+  const opacity = useRef(new Animated.Value(0)).current;
+  const translateX = useRef(new Animated.Value(18)).current;
+  useEffect(() => {
+    const timer = setTimeout(() => Animated.parallel([
+      Animated.timing(opacity, { toValue: 1, duration: 300, useNativeDriver: true }),
+      Animated.spring(translateX, { toValue: 0, tension: 55, friction: 10, useNativeDriver: true }),
+    ]).start(), delay);
+    return () => clearTimeout(timer);
+  }, [delay, opacity, translateX]);
+  return <Animated.View style={{ opacity, transform: [{ translateX }] }}>{children}</Animated.View>;
+}
+
 const isPresetChoice = (choice: Choice) => TOPICS.some(topic => topic.label === choice.topic && (topic.needs as readonly string[]).includes(choice.text));
 const choiceKey = (choice: Choice) => isPresetChoice(choice) ? `${choice.topic}:${choice.text}` : `${choice.topic}:other`;
 const parseDate = (value?: string) => value ? new Date(`${value.slice(0, 10)}T12:00:00`) : new Date();
@@ -43,7 +57,7 @@ export default function PrayerNeedPicker({ prayer, onClose, onSave, onDelete, re
     text: n.text, topic: (n as typeof n & { topic?: string }).topic || TOPICS.find(t => (t.needs as readonly string[]).includes(n.text))?.label || 'Other',
   })) : [];
   const savedChoices = initialChoices(prayer);
-  const [expanded, setExpanded] = useState<string | null>('Provision');
+  const [expanded, setExpanded] = useState<string | null>(null);
   const [selected, setSelected] = useState<Choice[]>(savedChoices.filter(isPresetChoice));
   const [topicCustom, setTopicCustom] = useState<Record<string, string>>(() => Object.fromEntries(savedChoices.filter(choice => choice.topic !== 'Other' && !isPresetChoice(choice)).map(choice => [choice.topic, choice.text])));
   const [customTopicOpen, setCustomTopicOpen] = useState<string | null>(null);
@@ -63,8 +77,8 @@ export default function PrayerNeedPicker({ prayer, onClose, onSave, onDelete, re
   const showChoices = editing && step === 0;
   const showDetails = editing && step === 1;
   const showReview = editing && step === 2;
-  const title = editing ? step === 0 ? 'What are you waiting on God for?' : step === 1 ? 'Add the details you want to remember' : 'Your prayer need' : 'What are you waiting on God for?';
-  const hint = editing ? step === 0 ? 'Choose the needs on your heart. You can choose more than one.' : step === 1 ? 'Add dates, a prayer, or anything that will help you remember.' : 'Take a moment to review before saving.' : 'The needs you’re bringing to God, one prayer at a time.';
+  const title = editing ? step === 0 ? 'What are you waiting on\nGod for?' : step === 1 ? 'Add the details you want to remember' : 'Your prayer need' : 'What are you waiting on\nGod for?';
+  const hint = editing ? step === 0 ? 'You can choose more than one.' : step === 1 ? 'Add dates, a prayer, or anything that will help you remember.' : 'Take a moment to review before saving.' : 'The needs you’re bringing to God, one prayer at a time.';
   const toggle = (topic: string, text: string) => {
     if (!editing) return;
     triggerLightHaptic();
@@ -134,52 +148,51 @@ export default function PrayerNeedPicker({ prayer, onClose, onSave, onDelete, re
     finally { busy.current = false; setSaving(false); }
   };
   const history: PrayerUpdate[] = Array.isArray(current?.metadata?.prayer_updates) ? [...current!.metadata!.prayer_updates].reverse() : [];
-  return <><Modal visible animationType="slide" onRequestClose={() => !saving && onClose()}>
+  return <><Modal visible animationType="none" onRequestClose={() => !saving && onClose()}>
     <KeyboardAvoidingView style={styles.page} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView ref={scrollRef} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={[styles.content, { paddingTop: insets.top + 8, paddingBottom: insets.bottom + 100 }]}>
-        <View style={styles.focusLabelContainer}><Ionicons name="leaf-outline" size={16} color={Colors.sage} /><ThemedText weight="semiBold" style={styles.focusLabel}>MY PRAYER NEED</ThemedText></View>
+        <StepFadeIn key={`label-${step}`} delay={0}><View style={styles.focusLabelContainer}><Ionicons name="leaf-outline" size={16} color={Colors.sage} /><ThemedText weight="semiBold" style={styles.focusLabel}>MY PRAYER NEED</ThemedText></View></StepFadeIn>
         {current && editing && <TouchableOpacity disabled={saving} style={styles.edit} onPress={() => { triggerLightHaptic(); cancelEditing(); }}><ThemedText style={styles.pillText}>Cancel edit</ThemedText></TouchableOpacity>}
-        <ThemedText weight="bold" style={styles.title}>{title}</ThemedText>
-        <ThemedText style={styles.hint}>{hint}</ThemedText>
-        {showChoices && TOPICS.filter(topic => editing || choices.some(choice => choice.topic === topic.label)).map(topic => {
+        <StepFadeIn key={`title-${step}`} delay={80}><ThemedText weight="bold" style={styles.title}>{title}</ThemedText></StepFadeIn>
+        <StepFadeIn key={`hint-${step}`} delay={140}><ThemedText style={styles.hint}>{hint}</ThemedText></StepFadeIn>
+        {showChoices && <View style={styles.mainChoices}>{(expanded || customInputOpen) && <SlideFromRight delay={80}><TouchableOpacity disabled={saving} accessibilityRole="button" accessibilityLabel="Collapse choices" style={styles.collapsePill} onPress={() => { triggerLightHaptic(); LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut); setExpanded(null); setCustomInputOpen(false); setCustomTopicOpen(null); }}><Ionicons name="chevron-down" size={18} color={Colors.hopeWhite} /></TouchableOpacity></SlideFromRight>}{(customInputOpen ? [] : TOPICS.filter(topic => !expanded || topic.label === expanded)).map((topic, topicIndex) => {
           const open = expanded === topic.label;
-          const otherOpen = customTopicOpen === topic.label;
           const count = choices.filter(choice => choice.topic === topic.label).length;
-          return <View key={topic.label} style={styles.topicSection}>
-            <TouchableOpacity disabled={saving} accessibilityRole="button" accessibilityState={{ expanded: open }} style={[styles.topic, (open || count > 0) && styles.topicActive]} onPress={() => { triggerLightHaptic(); LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut); setExpanded(open ? null : topic.label); }}>
-              <Ionicons name={topic.icon} size={19} color={Colors.sage} /><ThemedText weight="semiBold" style={styles.topicText}>{topic.label}</ThemedText>
-              {count > 0 && <ThemedText style={styles.count}>{count}</ThemedText>}<Ionicons name={open ? 'chevron-up' : 'chevron-down'} size={16} color={Colors.sage} />
-            </TouchableOpacity>
-            {open && <><View style={styles.pills}>{(topic.needs as readonly string[]).filter(text => editing || selected.some(n => n.topic === topic.label && n.text === text)).map(text => {
-              const active = selected.some(n => n.topic === topic.label && n.text === text);
-              return <TouchableOpacity key={text} disabled={saving || !editing} accessibilityRole="checkbox" accessibilityState={{ checked: active }} onPress={() => toggle(topic.label, text)} style={[styles.pill, active && styles.pillActive]}>
-                {active && editing && <Ionicons name="checkmark" size={13} color={Colors.sage} />}<ThemedText style={styles.pillText}>{text}</ThemedText>
-              </TouchableOpacity>;
-            })}{editing && <TouchableOpacity disabled={saving} accessibilityRole="button" accessibilityState={{ expanded: otherOpen }} onPress={() => { triggerLightHaptic(); setCustomTopicOpen(otherOpen ? null : topic.label); }} style={[styles.pill, (!!topicCustom[topic.label]?.trim() || otherOpen) && styles.pillActive]}><ThemedText style={styles.pillText}>Other</ThemedText></TouchableOpacity>}</View>
-            {editing && otherOpen && <TextInput value={topicCustom[topic.label] || ''} onChangeText={text => setTopicCustom(prev => ({ ...prev, [topic.label]: text }))} editable={!saving} multiline autoFocus placeholder={`What else are you waiting on God for in ${topic.label.toLowerCase()}?`} placeholderTextColor={Colors.placeholderText} style={[styles.input, { fontFamily: getFontFamily(currentFont || 'lexend', 'regular') }]} />}</>}
-          </View>;
-        })}
+          return <StepFadeIn key={topic.label} delay={190 + topicIndex * 55}><TouchableOpacity disabled={saving} accessibilityRole="button" accessibilityState={{ expanded: open }} style={[styles.choicePill, open && styles.choicePillActive]} onPress={() => { triggerLightHaptic(); LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut); setCustomInputOpen(false); setExpanded(open ? null : topic.label); }}>
+            <Ionicons name={topic.icon} size={18} color={open ? Colors.hopeWhite : Colors.sage} />
+            <ThemedText weight="semiBold" style={[styles.choicePillText, open && styles.choicePillTextActive]}>{topic.label}</ThemedText>
+            {count > 0 && <View style={[styles.choiceCount, open && styles.choiceCountActive]}><ThemedText style={[styles.choiceCountText, open && styles.choicePillTextActive]}>{count}</ThemedText></View>}
+          </TouchableOpacity></StepFadeIn>;
+        })}{!expanded && <StepFadeIn delay={190 + TOPICS.length * 55}><TouchableOpacity disabled={saving} accessibilityRole="button" accessibilityState={{ expanded: customInputOpen }} style={[styles.choicePill, customInputOpen && styles.choicePillActive]} onPress={() => { triggerLightHaptic(); LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut); setExpanded(null); setCustomInputOpen(open => !open); }}>
+          <Ionicons name="add-circle-outline" size={18} color={customInputOpen ? Colors.hopeWhite : Colors.sage} />
+          <ThemedText weight="semiBold" style={[styles.choicePillText, customInputOpen && styles.choicePillTextActive]}>Something else</ThemedText>
+          {!!custom.trim() && <View style={[styles.choiceCount, customInputOpen && styles.choiceCountActive]}><ThemedText style={[styles.choiceCountText, customInputOpen && styles.choicePillTextActive]}>1</ThemedText></View>}
+        </TouchableOpacity></StepFadeIn>}</View>}
 
-        {showChoices && <View style={styles.topicSection}>
-          <TouchableOpacity disabled={saving} accessibilityRole="button" accessibilityState={{ expanded: customInputOpen }} style={[styles.topic, (customInputOpen || !!custom.trim()) && styles.topicActive]} onPress={() => { triggerLightHaptic(); LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut); setCustomInputOpen(o => !o); }}>
-            <Ionicons name="add-circle-outline" size={19} color={Colors.sage} />
-            <ThemedText weight="semiBold" style={styles.topicText}>Something else</ThemedText>
-            {!!custom.trim() && <ThemedText style={styles.count}>1</ThemedText>}
-            <Ionicons name={customInputOpen ? 'chevron-up' : 'chevron-down'} size={16} color={Colors.sage} />
-          </TouchableOpacity>
-          {customInputOpen && <TextInput value={custom} onChangeText={setCustom} editable={editing && !saving} multiline autoFocus placeholder="Another need on your heart…" placeholderTextColor={Colors.placeholderText} style={[styles.input, { fontFamily: getFontFamily(currentFont || 'lexend', 'regular') }]} />}
-        </View>}
-        {showChoices && choices.length > 0 && <View style={styles.summary}><ThemedText weight="semiBold" style={styles.eyebrow}>ON MY HEART · {choices.length}</ThemedText><View style={styles.pills}>{choices.map(choice => <TouchableOpacity key={`${choice.topic}-${choice.text}`} disabled={saving} accessibilityLabel={`Remove ${choice.text}`} style={[styles.pill, styles.pillActive]} onPress={() => removeChoice(choice)}><ThemedText style={styles.pillText}>{choice.text}</ThemedText><Ionicons name="close" size={12} color={Colors.sage} /></TouchableOpacity>)}</View></View>}
-        {showDetails && choices.length > 0 && <View style={styles.dateSection}>
+        {showChoices && expanded && (() => {
+          const topic = TOPICS.find(item => item.label === expanded);
+          if (!topic) return null;
+          const otherOpen = customTopicOpen === topic.label;
+          return <StepFadeIn key={`open-${topic.label}`} delay={0}><View style={styles.openChoices}><ThemedText weight="semiBold" style={styles.eyebrow}>{topic.label.toUpperCase()}</ThemedText><View style={styles.pills}>{topic.needs.map((text, pillIndex) => {
+            const active = selected.some(item => item.topic === topic.label && item.text === text);
+            return <StepFadeIn key={text} delay={pillIndex * 45}><TouchableOpacity disabled={saving} accessibilityRole="checkbox" accessibilityState={{ checked: active }} onPress={() => toggle(topic.label, text)} style={[styles.choicePill, active && styles.choicePillActive]}>
+              {active && <Ionicons name="checkmark" size={14} color={Colors.hopeWhite} />}<ThemedText style={[styles.choicePillText, active && styles.choicePillTextActive]}>{text}</ThemedText>
+            </TouchableOpacity></StepFadeIn>;
+          })}<StepFadeIn delay={topic.needs.length * 45}><TouchableOpacity disabled={saving} accessibilityRole="button" accessibilityState={{ expanded: otherOpen }} onPress={() => { triggerLightHaptic(); setCustomTopicOpen(otherOpen ? null : topic.label); }} style={[styles.choicePill, (!!topicCustom[topic.label]?.trim() || otherOpen) && styles.choicePillActive]}><ThemedText style={[styles.choicePillText, (!!topicCustom[topic.label]?.trim() || otherOpen) && styles.choicePillTextActive]}>Other</ThemedText></TouchableOpacity></StepFadeIn></View>
+          {otherOpen && <TextInput value={topicCustom[topic.label] || ''} onChangeText={text => setTopicCustom(prev => ({ ...prev, [topic.label]: text }))} editable={!saving} multiline autoFocus placeholder={`What else are you waiting on God for in ${topic.label.toLowerCase()}?`} placeholderTextColor={Colors.placeholderText} style={[styles.input, { fontFamily: getFontFamily(currentFont || 'lexend', 'regular') }]} />}</View></StepFadeIn>;
+        })()}
+        {showChoices && customInputOpen && <StepFadeIn delay={0}><View style={styles.openChoices}><TextInput value={custom} onChangeText={setCustom} editable={!saving} multiline autoFocus placeholder="Another need on your heart…" placeholderTextColor={Colors.placeholderText} style={[styles.input, { fontFamily: getFontFamily(currentFont || 'lexend', 'regular') }]} /></View></StepFadeIn>}
+        {showChoices && choices.length > 0 && <StepFadeIn delay={580}><View style={styles.summary}><ThemedText weight="semiBold" style={styles.eyebrow}>ON MY HEART · {choices.length}</ThemedText><View style={styles.pills}>{choices.map((choice, choiceIndex) => <StepFadeIn key={`${choice.topic}-${choice.text}`} delay={choiceIndex * 40}><TouchableOpacity disabled={saving} accessibilityLabel={`Remove ${choice.text}`} style={[styles.choicePill, styles.choicePillActive]} onPress={() => removeChoice(choice)}><ThemedText style={[styles.choicePillText, styles.choicePillTextActive]}>{choice.text}</ThemedText><Ionicons name="close" size={13} color={Colors.hopeWhite} /></TouchableOpacity></StepFadeIn>)}</View></View></StepFadeIn>}
+        {showDetails && choices.length > 0 && <StepFadeIn delay={200}><View style={styles.dateSection}>
           <ThemedText weight="semiBold" style={styles.eyebrow}>DATES</ThemedText>
           <TouchableOpacity style={styles.dateRow} onPress={() => { triggerLightHaptic(); setDateTarget({ type: 'since' }); }}><View style={styles.dateText}><ThemedText style={styles.topicText}>Praying since</ThemedText><ThemedText style={styles.waiting}>{formatDisplayDate(prayingSince)}</ThemedText></View><Ionicons name="calendar-outline" size={18} color={Colors.sage} /></TouchableOpacity>
           {choices.map(choice => { const key = choiceKey(choice); const expected = expectedDates[key]; return <TouchableOpacity key={`date-${key}`} style={styles.dateRow} onPress={() => { triggerLightHaptic(); setDateTarget({ type: 'expected', key, label: choice.text }); }}><View style={styles.dateText}><ThemedText style={styles.topicText}>{choice.text}</ThemedText><ThemedText style={styles.waiting}>{expected ? `On or before ${formatDisplayDate(expected)}` : 'Add an on or before date (optional)'}</ThemedText></View><Ionicons name="calendar-outline" size={18} color={Colors.sage} /></TouchableOpacity>; })}
-        </View>}
-        {showDetails && <View style={[styles.topicSection, styles.notesSection]}>
+        </View></StepFadeIn>}
+        {showDetails && <StepFadeIn delay={280}><View style={[styles.topicSection, styles.notesSection]}>
           <ThemedText weight="semiBold" style={styles.eyebrow}>NOTES, PRAYER, OR DESCRIPTION</ThemedText>
           <TextInput value={notes} onChangeText={setNotes} onFocus={() => setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 150)} editable={editing && !saving} multiline placeholder="Write notes, a prayer, or a description…" placeholderTextColor={Colors.placeholderText} style={[styles.input, { fontFamily: getFontFamily(currentFont || 'lexend', 'regular') }]} />
-        </View>}
-        {showReview && <View style={styles.reviewCard}><ThemedText weight="semiBold" style={styles.eyebrow}>ON MY HEART · {choices.length}</ThemedText>{choices.map(choice => { const expected = expectedDates[choiceKey(choice)]; return <View key={`review-${choiceKey(choice)}`} style={styles.reviewNeed}><Ionicons name="heart-outline" size={16} color={Colors.sage} /><View style={styles.dateText}><ThemedText weight="semiBold" style={styles.choiceTopic}>{choice.topic === 'Other' ? 'SOMETHING ELSE' : choice.topic.toUpperCase()}</ThemedText><ThemedText style={styles.topicText}>{choice.text}</ThemedText>{expected && <ThemedText style={styles.waiting}>On or before {formatDisplayDate(expected)}</ThemedText>}</View></View>; })}<View style={styles.reviewDivider} /><ThemedText style={styles.waiting}>Praying since {formatDisplayDate(prayingSince)}</ThemedText>{!!notes.trim() && <><ThemedText weight="semiBold" style={[styles.eyebrow, styles.reviewNotesLabel]}>NOTES, PRAYER, OR DESCRIPTION</ThemedText><ThemedText style={styles.reviewNotes}>{notes.trim()}</ThemedText></>}</View>}
+        </View></StepFadeIn>}
+        {showReview && <StepFadeIn delay={200}><View style={styles.reviewCard}><ThemedText weight="semiBold" style={styles.eyebrow}>ON MY HEART · {choices.length}</ThemedText>{choices.map(choice => { const expected = expectedDates[choiceKey(choice)]; return <View key={`review-${choiceKey(choice)}`} style={styles.reviewNeed}><Ionicons name="heart-outline" size={16} color={Colors.sage} /><View style={styles.dateText}><ThemedText weight="semiBold" style={styles.choiceTopic}>{choice.topic === 'Other' ? 'SOMETHING ELSE' : choice.topic.toUpperCase()}</ThemedText><ThemedText style={styles.topicText}>{choice.text}</ThemedText>{expected && <ThemedText style={styles.waiting}>On or before {formatDisplayDate(expected)}</ThemedText>}</View></View>; })}<View style={styles.reviewDivider} /><ThemedText style={styles.waiting}>Praying since {formatDisplayDate(prayingSince)}</ThemedText>{!!notes.trim() && <><ThemedText weight="semiBold" style={[styles.eyebrow, styles.reviewNotesLabel]}>NOTES, PRAYER, OR DESCRIPTION</ThemedText><ThemedText style={styles.reviewNotes}>{notes.trim()}</ThemedText></>}</View></StepFadeIn>}
         {current && !editing && <>
           <ThemedText weight="semiBold" style={[styles.eyebrow, { marginTop: 24 }]}>MY NEEDS</ThemedText>
           <ThemedText style={styles.waiting}>Praying since {formatDisplayDate(current.metadata?.praying_since || current.selected_date)}</ThemedText>
@@ -189,7 +202,7 @@ export default function PrayerNeedPicker({ prayer, onClose, onSave, onDelete, re
           {onDelete && <TouchableOpacity disabled={saving} style={styles.delete} onPress={removePrayer}><Ionicons name="trash-outline" size={22} color={Colors.error} /><ThemedText weight="semiBold" style={styles.deleteText}>Delete this prayer</ThemedText></TouchableOpacity>}
         </>}
         {current && editing && onDelete && <TouchableOpacity disabled={saving} style={styles.delete} onPress={removePrayer}><Ionicons name="trash-outline" size={22} color={Colors.error} /><ThemedText weight="semiBold" style={styles.deleteText}>Delete this prayer</ThemedText></TouchableOpacity>}
-        {!current && <ThemedText style={styles.waiting}>Kept in Still praying, until you mark it answered.</ThemedText>}
+        {!current && <StepFadeIn key={`still-praying-${step}`} delay={showChoices ? 620 : 360}><ThemedText style={[styles.waiting, styles.stillPrayingNote]}>Kept in Still praying, until you mark it answered.</ThemedText></StepFadeIn>}
       </ScrollView>
       {editing && step > 0 && <View style={[styles.topBack, { top: insets.top + 8 }]}><TouchableOpacity disabled={saving} accessibilityLabel="Previous step" hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} activeOpacity={0.7} style={styles.closeTouch} onPress={() => { triggerLightHaptic(); setStep(previous => previous - 1); }}><Ionicons name="chevron-back" size={20} color={Colors.sage} /></TouchableOpacity></View>}
       {current && !editing && <View style={[styles.topEdit, { top: insets.top + 8 }]}><TouchableOpacity disabled={saving} accessibilityLabel="Edit prayer needs" hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} activeOpacity={0.7} style={styles.closeTouch} onPress={() => { triggerLightHaptic(); setEditing(true); }}><Pencil size={16} color={Colors.sage} /></TouchableOpacity></View>}
@@ -215,7 +228,14 @@ const styles = StyleSheet.create({
   hint: { fontSize: 13, lineHeight: 21, textAlign: 'center', color: Colors.textGray, marginTop: 12, marginBottom: 26 },
   topicSection: { marginBottom: 10 }, topic: { flexDirection: 'row', gap: 10, alignItems: 'center', borderWidth: 1, borderColor: Colors.cardBorder, borderRadius: 24, paddingHorizontal: 16, paddingVertical: 13 },
   topicActive: { backgroundColor: Colors.actionBackground, borderColor: Colors.sageMuted }, topicText: { flex: 1, fontSize: 14, color: Colors.sage }, count: { color: Colors.sage, fontSize: 11 },
-  pills: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12, marginBottom: 8 },
+  mainChoices: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 12, marginBottom: 18 },
+  openChoices: { marginTop: 4, marginBottom: 12 },
+  pills: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 12, marginTop: 12, marginBottom: 8 },
+  choicePill: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', alignSelf: 'flex-start', gap: 6, backgroundColor: 'rgba(82, 106, 91, 0.08)', borderWidth: 0.5, borderColor: 'rgba(82, 106, 91, 0.2)', borderRadius: 28, paddingHorizontal: 18, paddingVertical: 14 },
+  choicePillActive: { backgroundColor: Colors.sageMuted, borderColor: Colors.sage }, choicePillText: { fontSize: 15, color: Colors.text }, choicePillTextActive: { color: Colors.hopeWhite },
+  collapsePill: { width: 48, height: 48, alignItems: 'center', justifyContent: 'center', alignSelf: 'flex-start', borderWidth: 0.5, borderColor: Colors.sage, borderRadius: 24, backgroundColor: Colors.sageMuted },
+  choiceCount: { minWidth: 20, height: 20, borderRadius: 10, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 5, backgroundColor: 'rgba(82, 106, 91, 0.12)' },
+  choiceCountActive: { backgroundColor: 'rgba(255, 255, 255, 0.18)' }, choiceCountText: { fontSize: 10, color: Colors.sage },
   pill: { flexDirection: 'row', alignItems: 'center', gap: 5, borderWidth: 1, borderColor: Colors.cardBorder, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 9 },
   pillActive: { backgroundColor: Colors.actionBackground, borderColor: Colors.sageMuted }, pillText: { fontSize: 12, color: Colors.sage },
   trackingRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: Colors.cardBorder },
@@ -225,6 +245,7 @@ const styles = StyleSheet.create({
   dateSection: { marginTop: 20, marginBottom: 10 }, dateRow: { flexDirection: 'row', alignItems: 'center', gap: 10, borderBottomWidth: 1, borderBottomColor: Colors.cardBorder, paddingVertical: 12 }, dateText: { flex: 1 },
   dateOverlay: { ...StyleSheet.absoluteFillObject, justifyContent: 'center', paddingHorizontal: 24, backgroundColor: 'rgba(0,0,0,0.25)', zIndex: 300 }, dateModal: { backgroundColor: Colors.lightBackground, borderRadius: 24, padding: 20 }, dateTitle: { color: Colors.text, fontSize: 16, lineHeight: 23, textAlign: 'center', marginBottom: 8 }, dateDone: { alignItems: 'center', backgroundColor: Colors.sage, borderRadius: 20, paddingVertical: 12, marginTop: 8 }, dateDoneText: { color: Colors.hopeWhite, fontSize: 13 }, clearDate: { alignItems: 'center', paddingVertical: 8 }, clearDateText: { color: Colors.textGray, fontSize: 12 },
   waiting: { fontSize: 11, lineHeight: 18, color: Colors.textGray, marginTop: 8 },
+  stillPrayingNote: { alignSelf: 'stretch', textAlign: 'center', marginTop: 20 },
   delete: { width: '100%', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, marginTop: 30, paddingVertical: 17, backgroundColor: 'rgba(217, 120, 114, 0.1)', borderRadius: 999 }, deleteText: { color: Colors.error, fontSize: 16 },
   floating: { position: 'absolute', right: 20 }, save: { width: 40, height: 40, borderRadius: 20, backgroundColor: Colors.sage, alignItems: 'center', justifyContent: 'center' },
 });

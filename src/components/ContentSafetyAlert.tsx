@@ -1,6 +1,7 @@
 import React from 'react';
 import { Modal, View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 import { Colors } from '../theme/colors';
+import { triggerLightHaptic } from '../utils/haptics';
 
 interface ContentSafetyAlertProps {
   visible: boolean;
@@ -19,12 +20,13 @@ export const ContentSafetyAlert: React.FC<ContentSafetyAlertProps> = ({
   alternatives = [],
   category: _category,
 }) => {
+  const handleClose = () => { triggerLightHaptic(); onClose(); };
   return (
     <Modal
       visible={visible}
       transparent
       animationType="fade"
-      onRequestClose={onClose}
+      onRequestClose={handleClose}
     >
       <View style={styles.overlay}>
         <View style={styles.container}>
@@ -75,7 +77,7 @@ export const ContentSafetyAlert: React.FC<ContentSafetyAlertProps> = ({
           {/* Close Button */}
           <TouchableOpacity
             style={styles.closeButton}
-            onPress={onClose}
+            onPress={handleClose}
           >
             <Text style={styles.closeButtonText}>I Understand</Text>
           </TouchableOpacity>

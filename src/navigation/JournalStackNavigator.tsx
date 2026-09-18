@@ -1,6 +1,5 @@
 // src/navigation/JournalStackNavigator.tsx
 import React from 'react';
-import { Platform } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import JournalScreen from '../screens/JournalScreen';
 import { MomentsScreen } from '../screens/MomentsScreen';
@@ -50,7 +49,10 @@ const JournalStackNavigator: React.FC = () => {
         options={{
           headerShown: false,
           presentation: 'fullScreenModal',
-          animation: 'slide_from_bottom',
+          // A native fade exposes the ivory Journal screen underneath before
+          // the green editor sheet is opaque, producing a full-screen flash.
+          // The editor has its own content entrance animations.
+          animation: 'none',
           gestureEnabled: true,
           // Prevent white iOS UIViewController background from flashing through
           // on app resume before React content is fully re-painted.
@@ -74,7 +76,7 @@ const JournalStackNavigator: React.FC = () => {
         options={{
           headerShown: false,
           presentation: 'fullScreenModal',
-          animation: 'slide_from_bottom',
+          animation: 'none',
           gestureEnabled: true,
           contentStyle: { backgroundColor: '#F6F5EF' },
         }}
@@ -129,7 +131,7 @@ const JournalStackNavigator: React.FC = () => {
         options={{
           headerShown: false,
           presentation: 'fullScreenModal',
-          animation: 'slide_from_bottom',
+          animation: 'none',
           gestureEnabled: true,
           // Prevent white iOS UIViewController background from flashing through
           // on app resume before React content is fully re-painted.
@@ -142,7 +144,7 @@ const JournalStackNavigator: React.FC = () => {
         options={{
           headerShown: false,
           presentation: 'fullScreenModal',
-          animation: 'slide_from_bottom',
+          animation: 'fade',
           gestureEnabled: true,
           contentStyle: { backgroundColor: '#F6F5EF' },
         }}

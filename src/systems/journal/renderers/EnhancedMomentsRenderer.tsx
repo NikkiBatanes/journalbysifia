@@ -613,6 +613,8 @@ const EnhancedMomentsContent: React.FC<EnhancedMomentsRendererProps> = ({
           };
         } else if (item.kind === 'bible_study') {
           plugin = plugins.find(candidate => candidate.id === 'biblestudy');
+        } else if (item.kind === 'scripture_note') {
+          plugin = plugins.find(candidate => candidate.id === 'scripturenote');
         } else if (item.kind === 'sermon') {
           plugin = plugins.find(candidate => candidate.id === 'sermon');
         } else if (item.kind === 'reflection') {
@@ -2487,6 +2489,12 @@ const EnhancedMomentsContent: React.FC<EnhancedMomentsRendererProps> = ({
       const reflectionIds = carouselGroup.map(entry => entry.reflectionId).filter((id): id is string => !!id);
       return <View style={styles.carouselItem}><View style={styles.momentItem}><View style={styles.momentContent}><PluginRenderer plugin={representative.plugin} selectedDate={representative.date} reflectionIds={reflectionIds} refreshKey={refreshKey} viewMode="inline" filters={{ ...(pluginFilters || {}), hideEmptyComponents: true }} navigation={navigation} /></View></View></View>;
     }
+    const isScriptureNoteGroup = carouselGroup?.length > 0 && carouselGroup.every(entry => entry.plugin?.id === 'scripturenote');
+    if (isScriptureNoteGroup) {
+      const representative = carouselGroup[0];
+      const timelineItems = carouselGroup.map(entry => entry.timelineItem).filter((timelineItem): timelineItem is MomentTimelineItem => !!timelineItem);
+      return <View style={styles.carouselItem}><View style={styles.momentItem}><View style={styles.momentContent}><PluginRenderer plugin={representative.plugin} selectedDate={representative.date} timelineItems={timelineItems} refreshKey={refreshKey} viewMode="inline" filters={{ ...(pluginFilters || {}), hideEmptyComponents: true }} navigation={navigation} /></View></View></View>;
+    }
     return (
       <View style={styles.carouselItem}>
         {carouselGroup && carouselGroup.map((entry, i) => (
@@ -2553,6 +2561,9 @@ const EnhancedMomentsContent: React.FC<EnhancedMomentsRendererProps> = ({
     if (filterKeys?.includes('todaysWin')) {active.push("today's win");}
     if (filterKeys?.includes('planCarousel')) {active.push('plans');}
     if (active.length) {parts.push(`in ${active.join(', ')}`);}
+    if (!parts.length && dateRange?.label?.toLowerCase() === 'until today') {
+      return 'You haven’t saved any moments yet.';
+    }
     if (dateRange?.label) {parts.push(`for ${dateRange.label.toLowerCase()}`);}
     const suffix = parts.length ? ` ${parts.join(' ')}` : '';
     return `You don't have any moments${suffix}.`;

@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 
 import ScriptureReaderModal from '../ScriptureReaderModal';
 import ThemedText from '../common/ThemedText';
@@ -19,6 +20,7 @@ const DashboardHeaderScripture: React.FC<DashboardHeaderScriptureProps> = ({ dat
   const now = date ?? new Date();
   const [text, setText] = useState<string | null>(null);
   const [error, setError] = useState(false);
+  const [retry, setRetry] = useState(0);
   const [modalVisible, setModalVisible] = useState(false);
 
   const isEvening = now.getHours() >= 17;
@@ -39,9 +41,22 @@ const DashboardHeaderScripture: React.FC<DashboardHeaderScriptureProps> = ({ dat
         if (mounted) { setError(true); }
       });
     return () => { mounted = false; };
-  }, [scripture.passageReference, bibleVersion]);
+  }, [scripture.passageReference, bibleVersion, retry]);
 
-  if (!text || error) {
+  if (error) {
+    return <TouchableOpacity
+      accessibilityRole="button"
+      accessibilityLabel="Retry loading dashboard Scripture"
+      activeOpacity={0.7}
+      onPress={() => setRetry(value => value + 1)}
+      style={[styles.offline, centered && styles.containerCentered]}
+    >
+      <Ionicons name="cloud-offline-outline" size={16} color={Colors.sageMuted} />
+      <ThemedText style={styles.offlineText}>Scripture unavailable · Tap to retry</ThemedText>
+    </TouchableOpacity>;
+  }
+
+  if (!text) {
     return <View style={styles.placeholder} />;
   }
 
@@ -83,6 +98,19 @@ const styles = StyleSheet.create({
   placeholder: {
     width: '100%',
     minHeight: 50,
+  },
+  offline: {
+    width: '100%',
+    minHeight: 50,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: 6,
+    marginTop: 12,
+  },
+  offlineText: {
+    color: Colors.sageMuted,
+    fontSize: 11,
   },
   container: {
     width: '100%',

@@ -17,7 +17,9 @@ export default function PrayerMomentsCarousel({ prayers, navigation }: { prayers
   const queryClient = useQueryClient();
   const [width, setWidth] = useState(0);
   const viewportWidth = width + 32;
-  const cardWidth = Math.max(0, viewportWidth * 0.76);
+  // Keep the carousel's neighboring-card peek, but make prayer cards only
+  // slightly wider than the previous 76% treatment.
+  const cardWidth = Math.max(0, viewportWidth * 0.84);
   const sideInset = (viewportWidth - cardWidth) / 2;
   const slideSpacing = 12;
   const slideWidth = cardWidth + slideSpacing;
@@ -39,8 +41,7 @@ export default function PrayerMomentsCarousel({ prayers, navigation }: { prayers
       const all = await PrayerApi.getAllPrayers(entry.user_id || 'local');
       for (const linked of all.filter(p => p.id !== entry.id && (p.id === requestId || p.metadata?.original_request_id === requestId))) {
         await PrayerApi.updatePrayer(linked.id, { status: data.status, answered_date: data.answered_date, metadata: {
-          ...linked.metadata, track_answered: data.metadata.track_answered, tracking_status: data.metadata.tracking_status,
-          prayer_needs: data.metadata.prayer_needs, prayer_updates: data.metadata.prayer_updates,
+          ...linked.metadata, ...Object.fromEntries(['track_answered', 'is_active', 'tracking_status', 'answer_history', 'lifecycle_history', 'prayer_needs', 'prayer_updates'].filter(key => data.metadata[key] !== undefined).map(key => [key, data.metadata[key]])),
         } });
       }
     }

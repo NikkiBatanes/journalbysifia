@@ -3,6 +3,7 @@ import {TextInput, TouchableOpacity, View} from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import ThemedText from '../../common/ThemedText';
 import {Colors} from '../../../theme/colors';
+import {triggerLightHaptic} from '../../../utils/haptics';
 import {
   JOURNAL_BLOCKS,
   JournalBlockIcon,
@@ -28,7 +29,7 @@ export const JournalInlineBlock = ({
   registerInput: (input: TextInput | null) => void;
   onChangeText: (value: string) => void;
   onDelete: (keepKeyboard?: boolean) => void;
-  onFocus: () => void;
+  onFocus?: () => void;
   onLayout?: (layout: {y: number; height: number}) => void;
   renderScripture?: () => React.ReactNode;
   configOverride?: JournalBlockConfig;
@@ -81,7 +82,7 @@ export const JournalInlineBlock = ({
           </ThemedText>
         </View>
         <TouchableOpacity
-          onPress={() => onDelete()}
+          onPress={() => {triggerLightHaptic(); onDelete();}}
           hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}>
           <Ionicons
             name="close"

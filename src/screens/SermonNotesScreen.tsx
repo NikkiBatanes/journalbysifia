@@ -236,6 +236,7 @@ const ScriptureLookupInput = ({
 };
 
 const SermonNotesScreen = ({navigation, route}: any) => {
+  const isOnline = useNetworkStore(state => state.isOnline);
   const {width: screenWidth, height: screenHeight} = useWindowDimensions();
   const {user} = useAuth();
   const bibleVersion = useMemo(
@@ -244,7 +245,6 @@ const SermonNotesScreen = ({navigation, route}: any) => {
       'NASB',
     [user],
   );
-  const isOnline = useNetworkStore(state => state.isOnline);
   const {setShowTabBar, collapsedTabBarCenterY, setCollapsedTabBarCenterY} =
     useScroll();
   const insets = useSafeAreaInsets();
@@ -507,6 +507,11 @@ const SermonNotesScreen = ({navigation, route}: any) => {
     useCallback(() => {
       setShowTabBar(true);
       setCollapsedTabBarCenterY(null);
+      return () => {
+        // The pencil tab owns this modal entry point. Reset it for every exit
+        // path, including native swipe/back gestures and save-and-close.
+        DeviceEventEmitter.emit('pencilAddFlowClosed');
+      };
     }, [setShowTabBar, setCollapsedTabBarCenterY]),
   );
 
@@ -600,11 +605,6 @@ const SermonNotesScreen = ({navigation, route}: any) => {
 
   useEffect(() => {
     if (stage !== 2 || mainScriptureRefs.length === 0) {
-      setMainScriptureTexts([]);
-      setScriptureLoading(false);
-      return;
-    }
-    if (!isOnline) {
       setMainScriptureTexts([]);
       setScriptureLoading(false);
       return;
@@ -779,8 +779,8 @@ const SermonNotesScreen = ({navigation, route}: any) => {
     [],
   );
 
-  const goTo = (next: 1 | 2 | 3 | 4 | 5) => {
-    triggerLightHaptic();
+  const goTo = (next: 1 | 2 | 3 | 4 | 5, withHaptic = true) => {
+    if (withHaptic) {triggerLightHaptic();}
     Keyboard.dismiss();
     pageTransitionAnim.stopAnimation();
     pageTransitionAnim.setValue(0);
@@ -797,6 +797,14 @@ const SermonNotesScreen = ({navigation, route}: any) => {
   const closeSessionNotes = () => {
     triggerLightHaptic();
     Keyboard.dismiss();
+    DeviceEventEmitter.emit('pencilAddFlowClosed');
+    if (route?.params?.openedFromPencil) {
+      navigation.reset({
+        index: 0,
+        routes: [{name: 'JournalMoments'}],
+      });
+      return;
+    }
     if (navigation.canGoBack()) {
       navigation.goBack();
       return;
@@ -3104,7 +3112,7 @@ const SermonNotesScreen = ({navigation, route}: any) => {
             activeOpacity={0.7}
             onPress={() => {
               triggerLightHaptic();
-              navigation.goBack();
+              closeSessionNotes();
             }}>
             <ThemedText weight="bold" style={styles.savedPrimaryButtonText}>
               {sessionConfig.viewCopy}
@@ -3151,7 +3159,7 @@ const SermonNotesScreen = ({navigation, route}: any) => {
               },
             ]}>
             <JournalComposerBar
-              onBack={() => runAfterClosingPicker(() => goTo(1))}
+              onBack={() => runAfterClosingPicker(() => goTo(1, false))}
               onWrite={() => runAfterClosingPicker(() => addBlock('text'))}
               onAdd={() => {
                 triggerLightHaptic();

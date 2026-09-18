@@ -21,7 +21,7 @@ import { heartJournalClassificationLabel } from '../types/heartJournal';
 import { resolveSessionNoteType, sessionNoteSearchMetadata, sessionNoteTypeLabel } from '../types/sessionNotes';
 import { adaptSifiaPrayer, adaptSifiaReflection } from '../compatibility/sifiaReadCompatibility';
 
-export type MomentTimelineKind = 'morning' | 'evening' | 'bible_study' | 'sermon' | 'reflection' | 'prayer';
+export type MomentTimelineKind = 'morning' | 'evening' | 'bible_study' | 'scripture_note' | 'sermon' | 'reflection' | 'prayer';
 export type MomentCanonicalSource = 'journal' | 'reflection' | 'prayer';
 export type RoutineSectionKind = 'check_in' | 'psalm' | 'focus' | 'priorities' | 'gratitude' | 'win' | 'proverbs' | 'looking_forward';
 
@@ -166,6 +166,25 @@ export const buildMomentTimeline = ({ journalEntries, reflections, bibleStudies,
     const lines = text(reflection.title, content.observation.text, content.understanding.text, content.response.text, content.prayer.text, content.highlights.map(highlight => highlight.text));
     result.push({ key: `reflection:bible-study:${reflection.id}`, kind: 'bible_study', selectedDate: reflection.selected_date, canonicalSource: 'reflection', canonicalIds: [reflection.id], savedAt: reflection.updated_at, preview: { title: reflection.title || 'Bible Study', lines }, searchText: itemSearchText('Bible Study', lines), reflection, metadata: { serverIds: serverIds([reflection]) }, navigation: { screen: 'BibleStudy', params: { reflectionId: reflection.id, selectedDate: reflection.selected_date } } });
   });
+
+  reflections
+    .filter(entry => !entry.deleted && entry.type === 'scripture' && entry.source === 'scripture_note' && !bibleIds.has(entry.id))
+    .forEach(reflection => {
+      const lines = text(reflection.title, reflection.content, reflection.metadata?.book, reflection.metadata?.chapter_verse);
+      result.push({
+        key: `reflection:scripture-note:${reflection.id}`,
+        kind: 'scripture_note',
+        selectedDate: reflection.selected_date,
+        canonicalSource: 'reflection',
+        canonicalIds: [reflection.id],
+        savedAt: reflection.updated_at,
+        preview: { title: reflection.title || 'Scripture Note', lines },
+        searchText: itemSearchText('Scripture Note', lines),
+        reflection,
+        metadata: { serverIds: serverIds([reflection]) },
+        navigation: { screen: 'ScriptureNoteEditor', params: { reflectionId: reflection.id, selectedDate: reflection.selected_date } },
+      });
+    });
 
   reflections.filter(entry => !entry.deleted && entry.type !== 'scripture' && !bibleIds.has(entry.id)).forEach(reflection => {
     const isSermon = reflection.type === 'sermon' || reflection.source === 'sermon_notes';

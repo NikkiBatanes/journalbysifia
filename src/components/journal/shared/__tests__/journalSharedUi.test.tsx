@@ -53,12 +53,15 @@ describe('shared Journal UI extraction', () => {
     expect(onReflect).toHaveBeenCalledTimes(1);
   });
 
-  it('makes Sermon and Reflection consume the extracted components', () => {
+  it('makes Sermon and Guided Reflection consume the extracted components', () => {
     const sermon = fs.readFileSync(path.resolve(__dirname, '../../../../screens/SermonNotesScreen.tsx'), 'utf8');
-    const reflection = fs.readFileSync(path.resolve(__dirname, '../../ReflectionLogEditor.tsx'), 'utf8');
+    const guided = fs.readFileSync(path.resolve(__dirname, '../../GuidedReflectionExperience.tsx'), 'utf8');
     expect(sermon).toContain('<JournalBlockPickerMenu');
     expect(sermon).toContain('<JournalComposerBar');
     expect(sermon).toContain('<JournalInlineBlock');
-    expect(reflection).toContain('<ReflectionQuestionCard');
+    expect(guided).toContain('<JournalPickerMenu');
+    expect(guided).toContain('<JournalComposerBar');
+    expect(guided).toContain('<JournalInlineBlock');
+    expect(guided).toContain('<ReflectionQuestionCard');
   });
 });

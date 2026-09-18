@@ -38,7 +38,7 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
   const isNavigatingRef = useRef(false);
 
   // Match native splash logo size on both iOS and Android
-  const logoSize = 150;
+  const logoSize = 240;
 
 
   useEffect(() => {
@@ -52,7 +52,7 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
     try {
       StatusBar.setBarStyle('light-content');
       if (Platform.OS === 'android') {
-        StatusBar.setBackgroundColor('#869C7B');
+        StatusBar.setBackgroundColor(Colors.sage);
       }
     } catch (error) {
       logger.error('Error setting status bar:', error as Error);
@@ -562,12 +562,12 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor={'#869C7B'} />
+      <StatusBar barStyle="light-content" backgroundColor={Colors.sage} />
 
       {/* Logo Section */}
       <View style={styles.logoSection}>
         <Image
-          source={require('../../../assets/images/journalbysifia.png')}
+          source={require('../../../assets/images/journalbysifia-splash.png')}
           style={[styles.logoImage, { width: logoSize, height: logoSize }]}
           resizeMode="contain"
         />
@@ -579,7 +579,7 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#869C7B',
+    backgroundColor: Colors.sage,
     justifyContent: 'center',
     alignItems: 'center',
   },

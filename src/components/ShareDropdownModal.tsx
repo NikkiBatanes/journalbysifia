@@ -38,6 +38,7 @@ const ShareDropdownModal: React.FC<ShareDropdownModalProps> = ({
   const insets = useSafeAreaInsets();
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
   const slideAnim = React.useRef(new Animated.Value(50)).current;
+  const handleClose = () => { triggerLightHaptic(); onClose(); };
 
   React.useEffect(() => {
     if (visible) {
@@ -112,12 +113,12 @@ const ShareDropdownModal: React.FC<ShareDropdownModalProps> = ({
       animationType="none"
       statusBarTranslucent={Platform.OS === 'android'}
       navigationBarTranslucent={Platform.OS === 'android'}
-      onRequestClose={onClose}
+      onRequestClose={handleClose}
     >
       <TouchableOpacity
         style={styles.overlay}
         activeOpacity={1}
-        onPress={onClose}
+        onPress={handleClose}
       >
         <Animated.View
           style={[

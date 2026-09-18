@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Alert,
+  ImageBackground,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -40,6 +41,13 @@ const FIRST_STEPS = [
   ['Attend a Bible-believing church', 'Learn, worship, and live in community.'],
   ['Share the Gospel', 'Tell family, friends, and others the good news.'],
 ] as const;
+
+const GOSPEL_BACKGROUNDS: Record<string, number> = {
+  sin: require('../../assets/images/gospel/1.png'),
+  effort: require('../../assets/images/gospel/2.png'),
+  jesus: require('../../assets/images/gospel/3.png'),
+  trust: require('../../assets/images/gospel/4.png'),
+};
 
 const GospelScreen: React.FC<any> = ({ navigation }) => {
   const theme = useTheme();
@@ -192,13 +200,23 @@ const GospelScreen: React.FC<any> = ({ navigation }) => {
     }
   }, [mode, pageIndex, view]);
 
+  const gospelBackground = view === 'player'
+    ? GOSPEL_BACKGROUNDS[GOSPEL_PAGES[pageIndex].id]
+    : undefined;
+
   const Header = () => (
     <View style={styles.header}>
-      <TouchableOpacity onPress={back} style={styles.headerButton} accessibilityRole="button" accessibilityLabel="Go back">
-        <Ionicons name="arrow-back" size={22} color={Colors.text} />
+      <TouchableOpacity
+        onPress={back}
+        style={styles.headerButton}
+        activeOpacity={0.7}
+        hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}
+        accessibilityRole="button"
+        accessibilityLabel={view === 'home' ? 'Close Gospel' : 'Go back'}>
+        <Ionicons name={view === 'home' ? 'close' : 'chevron-back'} size={17} color={Colors.sage} />
       </TouchableOpacity>
       <Text numberOfLines={1} style={[styles.headerTitle, font]}>{headerTitle}</Text>
-      <View style={styles.headerButton} />
+      <View style={styles.headerSpacer} />
     </View>
   );
 
@@ -408,22 +426,31 @@ const GospelScreen: React.FC<any> = ({ navigation }) => {
   };
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
-      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <Header />
-        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-          {renderContent()}
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+    <ImageBackground
+      source={gospelBackground}
+      style={styles.screenBackground}
+      imageStyle={styles.screenBackgroundImage}
+      resizeMode="cover">
+      <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
+        <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+          <Header />
+          <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+            {renderContent()}
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+    </ImageBackground>
   );
 };
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F4F0E7' },
+  safe: { flex: 1, backgroundColor: 'transparent' },
   flex: { flex: 1 },
+  screenBackground: { flex: 1, backgroundColor: '#F4F0E7' },
+  screenBackgroundImage: { opacity: 1 },
   header: { height: 52, marginTop: 80, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 14, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#D8DED8' },
-  headerButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  headerButton: { width: 42, height: 42, borderRadius: 999, backgroundColor: Colors.cardBackground, alignItems: 'center', justifyContent: 'center' },
+  headerSpacer: {width: 42, height: 42},
   headerTitle: { flex: 1, paddingHorizontal: 8, fontSize: 15, fontWeight: '700', color: '#24342C', textAlign: 'center' },
   content: { padding: 22, paddingBottom: 48, maxWidth: 640, width: '100%', alignSelf: 'center' },
   hero: { backgroundColor: '#30483A', padding: 26, borderRadius: 24, marginTop: 12, marginBottom: 18 },

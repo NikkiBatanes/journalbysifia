@@ -40,8 +40,8 @@ export default function PrayerResponseSheet({ request, onClose, onSaved }: { req
         createdRef.current = true;
       }
       if (request.id && !request.id.startsWith('temp-')) {
-        if (!markedRef.current) { await markPrayed.mutateAsync({ id: request.id, isPrayed: true, _userId: user?.id || '', _dateStr: request.selected_date || format(new Date(), 'yyyy-MM-dd') }); markedRef.current = true; }
-        await updatePrayer.mutateAsync({ id: request.id, updates: { metadata: { track_answered: request.metadata?.track_answered !== false } }, _userId: user?.id || '', _dateStr: request.selected_date || format(new Date(), 'yyyy-MM-dd') });
+        if (!markedRef.current) { await markPrayed.mutateAsync({ id: request.id, isPrayed: true, _userId: user?.id || 'local', _dateStr: request.selected_date || format(new Date(), 'yyyy-MM-dd') }); markedRef.current = true; }
+        await updatePrayer.mutateAsync({ id: request.id, updates: { metadata: { track_answered: request.metadata?.track_answered !== false } }, _userId: user?.id || 'local', _dateStr: request.selected_date || format(new Date(), 'yyyy-MM-dd') });
       }
       await clearPrayerDraft(draftKey);
       triggerSuccessHaptic();

@@ -96,7 +96,7 @@ export const BibleStudyReactQuery: React.FC<Props> = ({ selectedDate, refreshKey
                   accessibilityRole="button"
                   accessibilityLabel={`Read ${reference}`}
                 >
-                  <MaterialCommunityIcons name="script-text" size={16} color={Colors.sage} />
+                  <MaterialCommunityIcons name="book-outline" size={16} color={Colors.sage} />
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={event => {

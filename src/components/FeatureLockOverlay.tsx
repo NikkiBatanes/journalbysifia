@@ -4,6 +4,7 @@ import { View, Text, TouchableOpacity, Modal, StyleSheet } from 'react-native';
 // import { useUpgradePrompts } from '../hooks/useTrialAccess'; // Module not found
 import { useNavigation } from '@react-navigation/native';
 import { Colors } from '../theme/colors';
+import { triggerLightHaptic } from '../utils/haptics';
 
 interface FeatureLockOverlayProps {
   visible: boolean;
@@ -22,6 +23,7 @@ export const FeatureLockOverlay: React.FC<FeatureLockOverlayProps> = ({
   const navigation = useNavigation();
 
   const prompt = { title: 'Upgrade Required', message: `Unlock ${feature}`, ctaText: 'Upgrade Now' };
+  const handleClose = () => { triggerLightHaptic(); onClose(); };
 
   const handleUpgrade = () => {
     onClose();
@@ -37,7 +39,7 @@ export const FeatureLockOverlay: React.FC<FeatureLockOverlayProps> = ({
       visible={visible}
       transparent
       animationType="fade"
-      onRequestClose={onClose}
+      onRequestClose={handleClose}
     >
       <View style={styles.overlay}>
         <View style={styles.modal}>
@@ -45,7 +47,7 @@ export const FeatureLockOverlay: React.FC<FeatureLockOverlayProps> = ({
             <View style={styles.iconContainer}>
               <Ionicons name="lock-closed" size={32} color={Colors.wisdomIndigo} />
             </View>
-            <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+            <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
               <Ionicons name="close" size={24} color={Colors.textGray} />
             </TouchableOpacity>
           </View>
@@ -63,7 +65,7 @@ export const FeatureLockOverlay: React.FC<FeatureLockOverlayProps> = ({
             <TouchableOpacity style={styles.upgradeButton} onPress={handleUpgrade}>
               <Text style={styles.upgradeButtonText}>Upgrade Now</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.cancelButton} onPress={onClose}>
+            <TouchableOpacity style={styles.cancelButton} onPress={handleClose}>
               <Text style={styles.cancelButtonText}>Maybe Later</Text>
             </TouchableOpacity>
           </View>

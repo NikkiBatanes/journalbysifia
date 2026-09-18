@@ -4,6 +4,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import {Pencil} from 'lucide-react-native';
 import ThemedText from '../../common/ThemedText';
 import {Colors} from '../../../theme/colors';
+import {triggerLightHaptic} from '../../../utils/haptics';
 import {
   JOURNAL_BLOCKS,
   JournalBlockIcon,
@@ -35,12 +36,6 @@ export const JournalPickerMenu = <T extends string,>({
               translateY: animations[index].interpolate({
                 inputRange: [0, 1],
                 outputRange: [12, 0],
-              }),
-            },
-            {
-              scale: animations[index].interpolate({
-                inputRange: [0, 1],
-                outputRange: [0.94, 1],
               }),
             },
           ],
@@ -150,7 +145,10 @@ export const JournalComposerBar = ({
         accessibilityRole="button"
         accessibilityLabel={backLabel}
         style={[styles.backButton, tone === 'onDark' && styles.backButtonOnDark]}
-        onPress={onBack}>
+        onPress={() => {
+          triggerLightHaptic();
+          onBack();
+        }}>
         <Ionicons
           name="chevron-back"
           size={17}
@@ -179,7 +177,7 @@ export const JournalComposerBar = ({
         disabled={writeDisabled}
         style={[
           styles.writeButton,
-          tone === 'onDark' && styles.actionButtonOnDark,
+          tone === 'onDark' && styles.writeButtonOnDark,
           writeDisabled && styles.disabledButton,
         ]}
         onPress={onWrite}>
@@ -215,8 +213,8 @@ export const JournalComposerBar = ({
             backgroundColor: pickerColorAnim.interpolate({
               inputRange: [0, 1],
               outputRange: [
-                tone === 'onDark' ? 'rgba(255,255,255,0.15)' : Colors.sage,
-                Colors.text,
+                tone === 'onDark' ? '#64796C' : Colors.sage,
+                tone === 'onDark' ? '#64796C' : Colors.text,
               ],
             }),
           },
@@ -344,11 +342,11 @@ const styles = StyleSheet.create({
   },
   writeText: {fontSize: 13, color: Colors.hopeWhite},
   circleButton: {
-    width: 48,
-    height: 48,
+    width: 42,
+    height: 42,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 24,
+    borderRadius: 999,
     backgroundColor: Colors.sage,
     shadowColor: Colors.text,
     shadowOpacity: 0.16,
@@ -357,6 +355,7 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   disabledButton: {opacity: 0.4},
-  backButtonOnDark: {backgroundColor: 'rgba(255,255,255,0.1)'},
-  actionButtonOnDark: {backgroundColor: 'rgba(255,255,255,0.15)'},
+  backButtonOnDark: {backgroundColor: '#64796C'},
+  writeButtonOnDark: {backgroundColor: '#6B7F73'},
+  actionButtonOnDark: {backgroundColor: '#64796C'},
 });

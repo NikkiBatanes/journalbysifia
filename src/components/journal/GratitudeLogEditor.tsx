@@ -197,7 +197,7 @@ const defaultStyles = {
   },
   buttonContainer: {
     position: 'absolute' as const,
-    right: 20,
+    right: 18,
     flexDirection: 'row' as const,
     gap: 12,
   },
@@ -305,7 +305,7 @@ const GratitudeLogEditorInner = (
 
   const hasContent = gratitudeItems.some(item => item.trim() !== '');
   const actionProgress = useRef(new Animated.Value(hasContent ? 1 : 0)).current;
-  const actionTranslateX = actionProgress.interpolate({ inputRange: [0, 1], outputRange: [54, 0] });
+  const actionScale = actionProgress.interpolate({ inputRange: [0, 1], outputRange: [0.8, 1] });
 
   const inputRefs = useRef<(TextInput | null)[]>([]);
   const scrollViewRef = useRef<ScrollView>(null);
@@ -445,8 +445,8 @@ const GratitudeLogEditorInner = (
           >
             <StepFadeIn delay={0}>
               <View style={s.focusLabelContainer}>
-                <Ionicons name="moon" size={16} color={Colors.sage} style={s.labelIcon} />
-                <ThemedText weight="semiBold" style={[s.focusLabel, { color: Colors.sageMuted }]}>EVENING CHECK IN</ThemedText>
+                <Ionicons name="heart-outline" size={16} color={Colors.sage} style={s.labelIcon} />
+                <ThemedText weight="semiBold" style={[s.focusLabel, { color: Colors.sageMuted }]}>GRATITUDE</ThemedText>
               </View>
             </StepFadeIn>
 
@@ -509,7 +509,30 @@ const GratitudeLogEditorInner = (
 
         <View style={s.fabWrapper}>
           <Animated.View style={[s.buttonContainer, { bottom: buttonPosition }]}>
-            <Animated.View style={{ transform: [{ translateX: actionTranslateX }] }}>
+            <Animated.View
+              pointerEvents={hasContent ? 'auto' : 'none'}
+              accessibilityElementsHidden={!hasContent}
+              importantForAccessibility={hasContent ? 'auto' : 'no-hide-descendants'}
+              style={{
+                opacity: actionProgress,
+                transform: [{scale: actionScale}],
+              }}
+            >
+              <TouchableOpacity
+                onPress={handleSave}
+                disabled={!hasContent || isLoading}
+                accessibilityRole="button"
+                accessibilityLabel="Save gratitude"
+                activeOpacity={0.7}
+                style={s.primaryButton}
+              >
+                {isLoading ? (
+                  <ActivityIndicator size="small" color={Colors.hopeWhite} />
+                ) : (
+                  <ThemedText weight="semiBold" style={s.saveButtonText}>Save Gratitude</ThemedText>
+                )}
+              </TouchableOpacity>
+            </Animated.View>
             <TouchableOpacity
               accessibilityRole="button"
               accessibilityLabel="Add gratitude entry"
@@ -519,38 +542,13 @@ const GratitudeLogEditorInner = (
             >
               <Ionicons name="add" size={22} color={Colors.textGray} />
             </TouchableOpacity>
-            </Animated.View>
-            <Animated.View
-              pointerEvents={hasContent ? 'auto' : 'none'}
-              accessibilityElementsHidden={!hasContent}
-              importantForAccessibility={hasContent ? 'auto' : 'no-hide-descendants'}
-              style={{
-                opacity: actionProgress,
-                transform: [{ translateX: actionTranslateX }],
-              }}
-            >
-              <TouchableOpacity
-                onPress={handleSave}
-                disabled={!hasContent || isLoading}
-                accessibilityRole="button"
-                accessibilityLabel="Next"
-                activeOpacity={0.7}
-                style={s.saveButton}
-              >
-                {isLoading ? (
-                  <ActivityIndicator size="small" color={Colors.hopeWhite} />
-                ) : (
-                  <Ionicons name="chevron-forward" size={22} color={Colors.hopeWhite} />
-                )}
-              </TouchableOpacity>
-            </Animated.View>
           </Animated.View>
         </View>
       </KeyboardAvoidingView>
 
       <View style={[s.closeButton, { top: insets.top + 8 }]}>
         <TouchableOpacity
-        onPress={_onCancel}
+        onPress={() => { triggerLightHaptic(); _onCancel(); }}
         style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}
         activeOpacity={0.7}
         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}

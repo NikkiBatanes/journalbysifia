@@ -12,9 +12,11 @@ interface Props {
   gridStyle: StyleProp<ViewStyle>;
   buttonStyle: StyleProp<ViewStyle>;
   textStyle: StyleProp<TextStyle>;
+  animateOnMount?: boolean;
+  entranceDelay?: number;
 }
 
-export default function AnimatedBibleStudyTopics({ suggestions, topics, expanded, reduceMotion, onSelect, gridStyle, buttonStyle, textStyle }: Props) {
+export default function AnimatedBibleStudyTopics({ suggestions, topics, expanded, reduceMotion, onSelect, gridStyle, buttonStyle, textStyle, animateOnMount = false, entranceDelay = 0 }: Props) {
   const height = useRef(new Animated.Value(0)).current;
   const initialized = useRef(false);
   const pillValues = useRef(new Map(topics.map(topic => [topic.id, new Animated.Value(0)]))).current;
@@ -27,11 +29,28 @@ export default function AnimatedBibleStudyTopics({ suggestions, topics, expanded
     let cancelled = false;
     if (!collapsedHeight || !expandedHeight) {return;}
     const target = expanded ? expandedHeight : collapsedHeight;
-    if (!initialized.current || reduceMotion) {
+    if (!initialized.current) {
       initialized.current = true;
       height.setValue(target);
+      if (animateOnMount && expanded && !reduceMotion) {
+        const entranceAnimations = ordered.map(topic => pillValues.get(topic.id)!);
+        entranceAnimations.forEach(value => value.setValue(0));
+        const entrance = Animated.sequence([
+          Animated.delay(entranceDelay),
+          Animated.stagger(38, entranceAnimations.map(value =>
+            Animated.spring(value, {toValue: 1, tension: 90, friction: 12, useNativeDriver: true}),
+          )),
+        ]);
+        entrance.start();
+        return () => entrance.stop();
+      }
       extraAnimations.forEach(value => value.setValue(expanded ? 1 : 0));
-      return;
+      return undefined;
+    }
+    if (reduceMotion) {
+      height.setValue(target);
+      extraAnimations.forEach(value => value.setValue(expanded ? 1 : 0));
+      return undefined;
     }
     extraAnimations.forEach(value => value.stopAnimation());
     if (expanded) {height.setValue(expandedHeight);}
@@ -44,10 +63,10 @@ export default function AnimatedBibleStudyTopics({ suggestions, topics, expanded
       if (finished && !cancelled && !expanded) {height.setValue(collapsedHeight);}
     });
     return () => { cancelled = true; animation.stop(); };
-  }, [collapsedHeight, expandedHeight, expanded, extraAnimations, height, reduceMotion]);
+  }, [animateOnMount, collapsedHeight, entranceDelay, expandedHeight, expanded, extraAnimations, height, reduceMotion]);
   return <Animated.View style={[styles.clip, { height }]}>
     <View style={[gridStyle, styles.measured]} onLayout={event => setExpandedHeight(event.nativeEvent.layout.height)}>
-      {ordered.map((topic, index) => <Animated.View key={topic.id} style={index >= suggestions.length && {
+      {ordered.map((topic, index) => <Animated.View key={topic.id} style={(animateOnMount || index >= suggestions.length) && {
         opacity: pillValues.get(topic.id)!.interpolate({ inputRange: [0, 1], outputRange: [0, 1], extrapolate: 'clamp' }), transform: [
           { translateY: pillValues.get(topic.id)!.interpolate({ inputRange: [0, 1], outputRange: [12, 0] }) },
           { scale: pillValues.get(topic.id)!.interpolate({ inputRange: [0, 1], outputRange: [0.94, 1] }) },

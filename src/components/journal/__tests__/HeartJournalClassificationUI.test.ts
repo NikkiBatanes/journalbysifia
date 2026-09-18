@@ -26,10 +26,17 @@ describe('Heart Journal classification UI contract', () => {
     expect(screenSource).toContain('if (showClassificationChooser)');
   });
 
-  it('offers all seven classifications in a wrapping grid without a horizontal classification scroller', () => {
-    expect(HEART_JOURNAL_CLASSIFICATIONS).toHaveLength(7);
+  it('offers all classifications, including a custom Other choice, in a wrapping grid', () => {
+    expect(HEART_JOURNAL_CLASSIFICATIONS).toHaveLength(8);
+    expect(HEART_JOURNAL_CLASSIFICATIONS).toContainEqual({
+      value: 'other',
+      label: 'Other',
+      description: 'Name your own',
+    });
     expect(screenSource).toContain('testID="heart-journal-classification-grid"');
     expect(screenSource).toContain("flexWrap: 'wrap'");
+    expect(screenSource).toContain('Name your journal type');
+    expect(screenSource).toContain('setJournalClassification(`other:${name}`)');
     expect(editorSource).not.toMatch(/<ScrollView horizontal[^>]*>[\s\S]*HEART_JOURNAL_CLASSIFICATIONS/);
   });
 
@@ -43,6 +50,8 @@ describe('Heart Journal classification UI contract', () => {
     expect(editorSource).toContain('testID="heart-journal-classification-control"');
     expect(editorSource).toContain('setIsClassificationPickerOpen(open => !open)');
     expect(editorSource).toContain('setJournalClassification(item.value)');
+    expect(editorSource).toContain("width: '48.5%'");
+    expect(editorSource).not.toContain("item.value === 'letter' ? '100%'");
   });
 
   it('shows classification only for a direct free-form Heart Journal entry', () => {
@@ -68,14 +77,29 @@ describe('Heart Journal classification UI contract', () => {
       lesson: { title: 'What are you learning?', body: "Write down what you're beginning to see..." },
       idea: { title: 'Name your idea...', body: 'Explore it here...' },
       letter: { title: 'Who or what is this for?', body: 'Write what you want to say...' },
+      other: { title: 'Name this entry...', body: "What's on your heart?" },
     });
     expect(editorSource).toContain('placeholder={titlePlaceholder}');
-    expect(editorSource).toContain('placeholder={bodyPlaceholder}');
+    expect(editorSource).toContain('textPlaceholder={bodyPlaceholder}');
+    expect(editorSource).toContain('freeText: [s.freeText, {fontFamily: fontFamilyRegular}]');
+    expect(editorSource).toContain('captureInput: [s.captureInput, {fontFamily: fontFamilyRegular}]');
+    expect(editorSource).toMatch(/freeText:\s*\{[\s\S]*?minHeight: 44,[\s\S]*?marginBottom: 6/);
+    expect(editorSource).toContain('{paddingBottom: notePickerOpen ? 410 : 180}');
+    expect(editorSource).toContain('editorScrollRef.current?.scrollToEnd({animated: true})');
+    expect(editorSource).toContain('pendingFocusBlockIdRef.current = block.id');
+    expect(editorSource).toContain('blockInputRefs.current.get(blockId)?.focus()');
+    expect(editorSource).toContain('}, 320);');
   });
 
   it('allows a Brain Dump with body content and no title', () => {
     expect(editorSource).toContain("journalClassification === 'brain_dump'");
     expect(editorSource).toContain('(!canSaveWithoutTitle && !newEntry.title.trim())');
+  });
+
+  it('uses the selected classification, including a custom Other name, in the success title', () => {
+    expect(screenSource).toContain("savedClassification === 'notes'");
+    expect(screenSource).toContain('heartJournalClassificationLabel(savedClassification)');
+    expect(screenSource).toContain("title: `${successLabel} ${editingId ? 'Updated' : 'Saved'}`");
   });
 
   it('does not persist the legacy Thoughts display fallback automatically', () => {
@@ -84,6 +108,7 @@ describe('Heart Journal classification UI contract', () => {
   });
 
   it('keeps header icons aligned with their touch targets', () => {
+    expect(editorSource).not.toContain('fill={Colors.sage}');
     expect(editorSource).not.toContain('iconsSlideAnim');
     expect(editorSource).toContain('accessibilityLabel="Write reflection"');
     expect(editorSource).not.toContain('accessibilityLabel="Guided Reflection"');

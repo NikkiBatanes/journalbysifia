@@ -2,10 +2,11 @@
 import React, { useEffect } from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { Feather, Heart, ListTodo, NotebookPen } from 'lucide-react-native';
+import { BookHeart, Feather, Heart, ListTodo, Pencil, Sun } from 'lucide-react-native';
+import Svg, { Line } from 'react-native-svg';
 import { BlurView } from '@react-native-community/blur';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { StyleSheet, Pressable, TouchableOpacity, Animated, Easing, NativeModules, View, Text, Dimensions } from 'react-native';
+import { StyleSheet, Pressable, TouchableOpacity, Animated, Easing, NativeModules, View, Text, Dimensions, DeviceEventEmitter, StatusBar, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useScroll } from '../context/ScrollContext';
 import { getFocusedRouteNameFromRoute, ParamListBase, TabNavigationState } from '@react-navigation/native';
@@ -27,6 +28,7 @@ import { experiencePreferences } from '../services/experiencePreferences';
 import { triggerLightHaptic } from '../utils/haptics';
 import { openPrayerFlow } from './openPrayerFlow';
 import PrayerHandsIcon from '../components/common/PrayerHandsIcon';
+import LiquidGlassView from '../components/common/LiquidGlassView';
 
 const Tab = createBottomTabNavigator();
 
@@ -43,9 +45,10 @@ const PILL_BG = Colors.sage;
 
 // Pill now occupies the full screen width
 const PILL_WIDTH = Dimensions.get('window').width - 32;
-export const PILL_HEIGHT = 56;
-const TAB_CIRCLE_SIZE = 40;
-const CIRCLE_SIZE = 48;
+export const PILL_HEIGHT = 64;
+const TAB_CIRCLE_SIZE = 48;
+const COLLAPSED_WIDTH = 66;
+const COLLAPSED_HEIGHT = 56;
 
 const LABELS: Record<string, string> = {
   Today: 'Today',
@@ -76,9 +79,9 @@ type AddMenuItem = {
 const ADD_MENU_ITEMS: AddMenuItem[] = [
   { icon: { family: 'material', name: 'book-outline' }, title: 'Bible Study', target: 'Journal', params: { screen: 'BibleStudy' } },
   { icon: { family: 'ionicons', name: 'reader-outline' }, title: 'Session Notes', opensSessionMenu: true },
-  { icon: { family: 'lucide', component: NotebookPen }, title: 'Heart Journal', target: 'Journal', params: { screen: 'ReflectionEditor', params: { initialMode: 'free-form', source: 'freeform', openHeart: true } } },
+  { icon: { family: 'lucide', component: BookHeart }, title: 'Heart Journal', target: 'Journal', params: { screen: 'ReflectionEditor', params: { initialMode: 'free-form', source: 'freeform', openHeart: true } } },
   { icon: { family: 'lucide', component: ListTodo }, title: 'To-dos', target: 'TodosWalkthrough' },
-  { icon: { family: 'lucide', component: Heart }, title: 'Gratitude', target: 'Journal', params: { screen: 'JournalMoments' } },
+  { icon: { family: 'lucide', component: Heart }, title: 'Gratitude', target: 'GratitudeWalkthrough' },
   { icon: { family: 'material', name: 'script-text-outline' }, title: 'Scripture Note', target: 'Journal', params: { screen: 'ScriptureNoteEditor' } },
   { icon: { family: 'ionicons', name: 'hand-left-outline' }, title: 'Prayer', opensPrayerMenu: true },
 ];
@@ -96,12 +99,12 @@ const PRAYER_MENU_ITEMS: AddMenuItem[] = [
 // Second-level menu shown when the Session Notes chip is tapped — every option
 // opens the same structured note editor with a different document type.
 const SESSION_MENU_ITEMS: AddMenuItem[] = [
-  { icon: { family: 'ionicons', name: 'reader-outline' }, title: 'Sermon', target: 'Journal', params: { screen: 'SermonNotes', params: { sessionNoteType: 'sermon' } } },
-  { icon: { family: 'ionicons', name: 'megaphone-outline' }, title: 'Conference', target: 'Journal', params: { screen: 'SermonNotes', params: { sessionNoteType: 'conference' } } },
-  { icon: { family: 'ionicons', name: 'mic-outline' }, title: 'Speaking', target: 'Journal', params: { screen: 'SermonNotes', params: { sessionNoteType: 'speaking' } } },
-  { icon: { family: 'ionicons', name: 'people-outline' }, title: 'Meeting', target: 'Journal', params: { screen: 'SermonNotes', params: { sessionNoteType: 'meeting' } } },
-  { icon: { family: 'ionicons', name: 'construct-outline' }, title: 'Workshop', target: 'Journal', params: { screen: 'SermonNotes', params: { sessionNoteType: 'workshop' } } },
-  { icon: { family: 'ionicons', name: 'document-text-outline' }, title: 'Other', target: 'Journal', params: { screen: 'SermonNotes', params: { sessionNoteType: 'other' } } },
+  { icon: { family: 'ionicons', name: 'reader-outline' }, title: 'Sermon', target: 'Journal', params: { screen: 'SermonNotes', params: { sessionNoteType: 'sermon', openedFromPencil: true } } },
+  { icon: { family: 'ionicons', name: 'megaphone-outline' }, title: 'Conference', target: 'Journal', params: { screen: 'SermonNotes', params: { sessionNoteType: 'conference', openedFromPencil: true } } },
+  { icon: { family: 'ionicons', name: 'mic-outline' }, title: 'Speaking', target: 'Journal', params: { screen: 'SermonNotes', params: { sessionNoteType: 'speaking', openedFromPencil: true } } },
+  { icon: { family: 'ionicons', name: 'people-outline' }, title: 'Meeting', target: 'Journal', params: { screen: 'SermonNotes', params: { sessionNoteType: 'meeting', openedFromPencil: true } } },
+  { icon: { family: 'ionicons', name: 'construct-outline' }, title: 'Workshop', target: 'Journal', params: { screen: 'SermonNotes', params: { sessionNoteType: 'workshop', openedFromPencil: true } } },
+  { icon: { family: 'ionicons', name: 'document-text-outline' }, title: 'Other', target: 'Journal', params: { screen: 'SermonNotes', params: { sessionNoteType: 'other', openedFromPencil: true } } },
 ];
 
 const AddMenuItemIcon = ({ icon }: { icon: AddMenuIcon }) => {
@@ -132,6 +135,7 @@ const CustomTabBarComponent = ({
   const insets = useSafeAreaInsets();
   const screenHeight = Dimensions.get('window').height;
   const [showLabels, setShowLabels] = React.useState(experiencePreferences.showTabLabelsEnabled);
+  const [visualActiveIndex, setVisualActiveIndex] = React.useState(state.index);
   const [showAddMenu, setShowAddMenu] = React.useState(false);
   const [addFlowActive, setAddFlowActive] = React.useState(false);
   const [menuMode, setMenuMode] = React.useState<'main' | 'prayer' | 'session'>('main');
@@ -142,41 +146,76 @@ const CustomTabBarComponent = ({
   const addIconRotation = React.useRef(new Animated.Value(0)).current;
   const addIconScale = React.useRef(new Animated.Value(1)).current;
   const addButtonLayout = React.useRef({ x: 0, width: 0 });
-  const pendingAddNavigationRef = React.useRef(false);
   const activeAddRouteIdentityRef = React.useRef<string | null>(null);
+  const addNavigationInFlightRef = React.useRef(false);
 
   // Shared selector geometry lives above the menu handlers/effects that use it.
   const selectorPosition = React.useRef(new Animated.Value(0)).current;
   const selectorScaleX = React.useRef(new Animated.Value(1)).current;
   const selectorScaleY = React.useRef(new Animated.Value(1)).current;
+  const selectorMoveAnimation = React.useRef<Animated.CompositeAnimation | null>(null);
+  const selectorBounceAnimation = React.useRef<Animated.CompositeAnimation | null>(null);
   const tabLayouts = React.useRef<{ x: number; width: number }[]>([]).current;
 
   const updateSelectorPosition = React.useCallback((targetX: number) => {
     if (targetX === undefined || targetX === null) {return;}
-    Animated.parallel([
-      Animated.spring(selectorPosition, {
-        toValue: targetX,
-        tension: 80,
-        friction: 12,
-        useNativeDriver: true,
-      }),
-      Animated.sequence([
-        Animated.parallel([
-          Animated.spring(selectorScaleX, { toValue: 1.15, tension: 200, friction: 8, useNativeDriver: true }),
-          Animated.spring(selectorScaleY, { toValue: 1.05, tension: 200, friction: 8, useNativeDriver: true }),
-        ]),
-        Animated.delay(100),
-        Animated.parallel([
-          Animated.spring(selectorScaleX, { toValue: 1, tension: 180, friction: 10, useNativeDriver: true }),
-          Animated.spring(selectorScaleY, { toValue: 1, tension: 200, friction: 12, useNativeDriver: true }),
-        ]),
+    // A route update can arrive while the press animation is still running.
+    // Reset interrupted scale sequences so the selector can never remain wide.
+    selectorMoveAnimation.current?.stop();
+    selectorBounceAnimation.current?.stop();
+    selectorScaleX.setValue(1);
+    selectorScaleY.setValue(1);
+
+    selectorMoveAnimation.current = Animated.spring(selectorPosition, {
+      toValue: targetX,
+      stiffness: 250,
+      damping: 22,
+      mass: 0.85,
+      useNativeDriver: true,
+    });
+    selectorBounceAnimation.current = Animated.sequence([
+      Animated.parallel([
+        Animated.spring(selectorScaleX, { toValue: 1.12, stiffness: 390, damping: 20, mass: 0.65, useNativeDriver: true }),
+        Animated.spring(selectorScaleY, { toValue: 1.06, stiffness: 390, damping: 20, mass: 0.65, useNativeDriver: true }),
       ]),
-    ]).start();
+      Animated.parallel([
+        Animated.spring(selectorScaleX, { toValue: 1, stiffness: 260, damping: 14, mass: 0.7, useNativeDriver: true }),
+        Animated.spring(selectorScaleY, { toValue: 1, stiffness: 260, damping: 14, mass: 0.7, useNativeDriver: true }),
+      ]),
+    ]);
+
+    selectorMoveAnimation.current.start();
+    selectorBounceAnimation.current.start();
   }, [selectorPosition, selectorScaleX, selectorScaleY]);
+
+  React.useEffect(() => () => {
+    selectorMoveAnimation.current?.stop();
+    selectorBounceAnimation.current?.stop();
+  }, []);
+
+  // iOS composites its clock, signal, and battery above React Native views, so
+  // the full-screen BlurView cannot blur those system-owned glyphs. Fade them
+  // out with the write menu and always restore them when the tab bar unmounts.
+  React.useEffect(() => {
+    StatusBar.setHidden(showAddMenu, 'fade');
+    return () => StatusBar.setHidden(false, 'fade');
+  }, [showAddMenu]);
 
   const addIconRotate = addIconRotation.interpolate({
     inputRange: [0, 1],
     outputRange: ['0deg', '45deg'],
+  });
+  const addPlusTranslateX = addIconRotation.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 7.5],
+  });
+  const addPlusTranslateY = addIconRotation.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 2],
+  });
+  const addPencilTranslateY = addIconRotation.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 7],
   });
 
   React.useEffect(() => {
@@ -195,7 +234,6 @@ const CustomTabBarComponent = ({
         friction: 12,
         useNativeDriver: true,
       }),
-      // Same rotate-to-open as the playbook walkthrough journal trigger
       Animated.timing(addIconRotation, {
         toValue: showAddMenu ? 1 : 0,
         duration: 220,
@@ -284,7 +322,25 @@ const CustomTabBarComponent = ({
     });
   }, [menuItemAnims, menuMode, menuModeTransitioning, menuTitleAnim]);
 
+  const closeAddMenuForNavigation = React.useCallback(() => {
+    // The destination can hide this entire tab bar during the same frame. Do
+    // not leave native-driver animations attached to views being removed.
+    menuAnim.stopAnimation();
+    menuTitleAnim.stopAnimation();
+    menuItemAnims.forEach(animation => animation.stopAnimation());
+    addIconRotation.stopAnimation();
+    addIconScale.stopAnimation();
+    menuAnim.setValue(0);
+    menuTitleAnim.setValue(0);
+    menuItemAnims.forEach(animation => animation.setValue(0));
+    addIconRotation.setValue(0);
+    addIconScale.setValue(1);
+    setShowAddMenu(false);
+    setMenuMode('main');
+  }, [addIconRotation, addIconScale, menuAnim, menuItemAnims, menuTitleAnim]);
+
   const handleAddItem = (item: AddMenuItem) => {
+    if (addNavigationInFlightRef.current) {return;}
     triggerLightHaptic();
     if (item.opensPrayerMenu) {
       transitionMenuMode('prayer');
@@ -294,34 +350,51 @@ const CustomTabBarComponent = ({
       transitionMenuMode('session');
       return;
     }
-    setShowAddMenu(false);
-    setAddFlowActive(true);
-    setMenuMode('main');
-    pendingAddNavigationRef.current = true;
-    if (item.params?.screen === 'BibleStudy') {
-      navigation.navigate('Journal' as any, {
-        screen: 'BibleStudy',
-        params: { openMode: 'create', openRequestId: `${Date.now()}-${Math.random()}`, sessionId: null, reflectionId: null, selectedDate: null },
-      } as any);
-      return;
-    }
-    if (item.params) {
-      navigation.navigate(item.target as any, item.params as any);
-    } else {
-      navigation.navigate(item.target as any);
-    }
+    addNavigationInFlightRef.current = true;
+    closeAddMenuForNavigation();
+    // Only tab-owned editor routes can keep the pencil selected: their route
+    // identity changes again when the editor closes. Root-stack destinations
+    // hide this tab bar and same-route destinations have no close transition
+    // for us to observe, so retaining addFlowActive would make it stick.
+    const nestedDestination = item.target === 'Journal' && item.params?.screen !== 'JournalMoments'
+      ? `Journal:${item.params?.screen}`
+      : null;
+    activeAddRouteIdentityRef.current = nestedDestination;
+    setAddFlowActive(Boolean(nestedDestination));
+    requestAnimationFrame(() => {
+      try {
+        if (item.params?.screen === 'BibleStudy') {
+          navigation.navigate('Journal' as any, {
+            screen: 'BibleStudy',
+            params: { openMode: 'create', openedFromPencil: true, openRequestId: `${Date.now()}-${Math.random()}`, sessionId: null, reflectionId: null, selectedDate: null },
+          } as any);
+        } else if (item.params) {
+          navigation.navigate(item.target as any, item.params as any);
+        } else {
+          navigation.navigate(item.target as any);
+        }
+      } finally {
+        // Root-stack destinations do not change the nested tab route, so the
+        // route-identity effect cannot release this press guard for them.
+        addNavigationInFlightRef.current = false;
+      }
+    });
   };
 
   const handlePrayerItem = (item: AddMenuItem) => {
     triggerLightHaptic();
     setShowAddMenu(false);
-    setAddFlowActive(true);
     setMenuMode('main');
-    pendingAddNavigationRef.current = true;
     if (item.prayerKey === 'need') {
+      activeAddRouteIdentityRef.current = 'Prayer:';
+      setAddFlowActive(true);
       navigation.navigate('Prayer' as any, { openNeedModal: true } as any);
       return;
     }
+    // These walkthroughs live in the root stack, where the tab bar is hidden.
+    // Clear its local selection now so it is correct when MainTabs returns.
+    activeAddRouteIdentityRef.current = null;
+    setAddFlowActive(false);
     const selectedDate = new Date().toISOString();
     if (item.prayerKey === 'acts' || item.prayerKey === 'open') {
       openPrayerFlow(navigation, 'PrayerJournalWalkthrough', {
@@ -336,6 +409,14 @@ const CustomTabBarComponent = ({
       initialPrayerType: item.prayerKey,
     });
   };
+
+  React.useEffect(() => {
+    const subscription = DeviceEventEmitter.addListener('pencilAddFlowClosed', () => {
+      activeAddRouteIdentityRef.current = null;
+      setAddFlowActive(false);
+    });
+    return () => subscription.remove();
+  }, []);
 
   // Move the shared sliding selector under the add button when the menu is open
   React.useEffect(() => {
@@ -355,31 +436,25 @@ const CustomTabBarComponent = ({
     activeNestedRouteName === 'SermonNotes' ||
     activeNestedRouteName === 'SermonNotesDetail';
   const isReflectionEditor = activeNestedRouteName === 'ReflectionEditor';
+  const isScriptureNoteEditor = activeNestedRouteName === 'ScriptureNoteEditor';
   const isBibleStudy = activeNestedRouteName === 'BibleStudy';
   const isReview = activeNestedRouteName === 'Review';
 
-  // Record the route opened from the pencil. Keep the pencil selected while
-  // that destination is active, then restore the real tab when the user backs
-  // out or another navigation action changes the route.
+  // Keep the pencil selected only while its explicitly recorded tab-owned
+  // destination is active, then restore the real tab on back/navigation.
   React.useEffect(() => {
     const routeIdentity = `${currentRouteName}:${activeNestedRouteName || ''}`;
+    addNavigationInFlightRef.current = false;
 
     if (showAddMenu) {
       setShowAddMenu(false);
       setAddFlowActive(false);
       setMenuMode('main');
-      pendingAddNavigationRef.current = false;
       activeAddRouteIdentityRef.current = null;
       return;
     }
 
     if (!addFlowActive) {return;}
-
-    if (pendingAddNavigationRef.current) {
-      pendingAddNavigationRef.current = false;
-      activeAddRouteIdentityRef.current = routeIdentity;
-      return;
-    }
 
     if (
       activeAddRouteIdentityRef.current &&
@@ -392,6 +467,12 @@ const CustomTabBarComponent = ({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentRouteName, activeNestedRouteName]);
 
+  React.useEffect(() => {
+    if (!showAddMenu && !addFlowActive) {
+      setVisualActiveIndex(state.index);
+    }
+  }, [addFlowActive, showAddMenu, state.index]);
+
   // ── Pill visibility: opacity + translateY ────────────────────────────────
   // 0 = hidden below screen, 1 = visible in place
   const pillAnim = React.useRef(new Animated.Value(isReflect ? 0 : 1)).current;
@@ -399,6 +480,8 @@ const CustomTabBarComponent = ({
   // ── Collapse-to-circle: 0 = full pill, 1 = collapsed circle ──────────────
   // Starts collapsed if already on Reflect
   const collapseAnim = React.useRef(new Animated.Value(isReflect ? 1 : 0)).current;
+  const collapsedScale = React.useRef(new Animated.Value(showTabBar ? 0.88 : 1)).current;
+  const [collapsedControlVisible, setCollapsedControlVisible] = React.useState(!showTabBar);
 
   const handleTabLayout = React.useCallback((index: number) => (event: any) => {
     const { x } = event.nativeEvent.layout;
@@ -478,23 +561,44 @@ const CustomTabBarComponent = ({
     if (isReflect) {return;}
 
     if (showTabBar) {
+      setCollapsedControlVisible(false);
+      collapsedScale.stopAnimation();
+      collapsedScale.setValue(0.88);
       // Snap selector to the active tab BEFORE the pill grows so it's already
       // in place when it becomes visible — no sliding artifact.
       const target = tabLayouts[state.index];
       if (target) { selectorPosition.setValue(target.x); }
     }
-    Animated.spring(collapseAnim, {
+    const collapseAnimation = Animated.spring(collapseAnim, {
       toValue: showTabBar ? 0 : 1,
       tension: 75,
       friction: 12,
       useNativeDriver: true,
-    }).start();
+    });
+    if (!showTabBar) {
+      setCollapsedControlVisible(true);
+      collapsedScale.stopAnimation();
+      collapsedScale.setValue(0.35);
+      requestAnimationFrame(() => {
+        Animated.parallel([
+          collapseAnimation,
+          Animated.spring(collapsedScale, {
+            toValue: 1,
+            tension: 75,
+            friction: 12,
+            useNativeDriver: true,
+          }),
+        ]).start();
+      });
+      return;
+    }
+    collapseAnimation.start();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [collapseAnim, isReflect, showTabBar]);
+  }, [collapseAnim, collapsedScale, isReflect, showTabBar]);
 
   const { onTabPress } = React.useContext(TabPressContext);
 
-  if (isSermonNotes || isReflectionEditor || isBibleStudy || isReview) {
+  if (isSermonNotes || isReflectionEditor || isScriptureNoteEditor || isBibleStudy || isReview) {
     return null;
   }
 
@@ -517,13 +621,8 @@ const CustomTabBarComponent = ({
     outputRange: [1, 0],
     extrapolate: 'clamp',
   });
-  const circleOpacity = collapseAnim.interpolate({
-    inputRange: [0.5, 1],
-    outputRange: [0, 1],
-    extrapolate: 'clamp',
-  });
   // Pill shape grows left→right on expand: scaleX from circle ratio → 1, pinned at left edge
-  const CIRCLE_RATIO = CIRCLE_SIZE / PILL_WIDTH;
+  const CIRCLE_RATIO = COLLAPSED_WIDTH / PILL_WIDTH;
   const pillShapeScaleX = collapseAnim.interpolate({
     inputRange: [0, 1],
     outputRange: [1, CIRCLE_RATIO],
@@ -540,12 +639,13 @@ const CustomTabBarComponent = ({
   const INACTIVE_CIRCLE_COLOR = Colors.hopeWhite;
   const circleIcon = (() => {
     const name = state.routes[state.index].name;
-    if (name === 'Today')       { return <Ionicons name="sunny-outline" size={22} color={INACTIVE_CIRCLE_COLOR} />; }
-    if (name === 'Prayer')      { return <PrayerHandsIcon size={22} color={INACTIVE_CIRCLE_COLOR} />; }
-    if (name === 'Journal')     { return <Feather size={22} color={INACTIVE_CIRCLE_COLOR} />; }
-    if (name === 'More')        { return <Ionicons name="ellipsis-horizontal" size={22} color={INACTIVE_CIRCLE_COLOR} />; }
-    return <Ionicons name="apps-outline" size={22} color={INACTIVE_CIRCLE_COLOR} />;
+    if (name === 'Today')       { return <Ionicons name="sunny" size={20} color={INACTIVE_CIRCLE_COLOR} />; }
+    if (name === 'Prayer')      { return <PrayerHandsIcon size={20} color={INACTIVE_CIRCLE_COLOR} />; }
+    if (name === 'Journal')     { return <Feather size={20} color={INACTIVE_CIRCLE_COLOR} />; }
+    if (name === 'More')        { return <Ionicons name="ellipsis-horizontal" size={20} color={INACTIVE_CIRCLE_COLOR} />; }
+    return <Ionicons name="apps-outline" size={20} color={INACTIVE_CIRCLE_COLOR} />;
   })();
+  const collapsedLabel = LABELS[state.routes[state.index].name] ?? state.routes[state.index].name;
 
   return (
     <Animated.View
@@ -583,7 +683,6 @@ const CustomTabBarComponent = ({
           setShowAddMenu(false);
           setAddFlowActive(false);
           setMenuMode('main');
-          pendingAddNavigationRef.current = false;
           activeAddRouteIdentityRef.current = null;
         }}
       />
@@ -602,6 +701,15 @@ const CustomTabBarComponent = ({
         ]}
         pointerEvents={showTabBar ? 'box-none' : 'none'}
       >
+        {Platform.OS === 'ios' ? (
+          <View pointerEvents="none" style={styles.pillGlassBackground}>
+            <LiquidGlassView
+              tintColor="rgba(82, 106, 91, 0.32)"
+              cornerRadius={31}
+              style={StyleSheet.absoluteFill}
+            />
+          </View>
+        ) : null}
         {/* pillInner: shared coordinate system for selector + tabs.
             Selector is absolute here; tabs fill the same space via absoluteFillObject.
             Both use x=0 as origin → onLayout x values align with selector translateX. */}
@@ -612,6 +720,7 @@ const CustomTabBarComponent = ({
               styles.slidingSelector,
               { width: `${100 / (state.routes.length + 1)}%` },
               {
+                opacity: pillContentOpacity,
                 transform: [
                   { translateX: selectorPosition },
                   { scaleX: selectorScaleX },
@@ -619,25 +728,34 @@ const CustomTabBarComponent = ({
                 ],
               },
             ]}
-          />
+          >
+            {Platform.OS === 'ios' ? (
+              <View pointerEvents="none" style={styles.selectorGlassLens}>
+                <LiquidGlassView
+                  tintColor={Colors.sage}
+                  cornerRadius={26}
+                  style={StyleSheet.absoluteFill}
+                />
+              </View>
+            ) : null}
+          </Animated.View>
           {/* Tabs overlay — same bounds as pillInner, fade independently */}
           <Animated.View style={[StyleSheet.absoluteFillObject, { flexDirection: 'row', opacity: pillContentOpacity }]}>
           {state.routes.flatMap((route, index) => {
-            const isFocused = state.index === index;
-            const iconColor = Colors.hopeWhite;
+            const isFocused = !showAddMenu && !addFlowActive && visualActiveIndex === index;
+            const iconColor = isFocused ? Colors.hopeWhite : Colors.sage;
 
             const onPress = () => {
+              setVisualActiveIndex(index);
               setShowAddMenu(false);
               setAddFlowActive(false);
               setMenuMode('main');
-              pendingAddNavigationRef.current = false;
               activeAddRouteIdentityRef.current = null;
               const event = navigation.emit({
                 type: 'tabPress',
                 target: route.key,
                 canPreventDefault: true,
               });
-              updateSelectorPosition(tabLayouts[index]?.x ?? 0);
               onTabPress(route.name);
               if (!event.defaultPrevented) {
                 if (route.name === 'Journal') {
@@ -649,7 +767,9 @@ const CustomTabBarComponent = ({
             };
 
             const icon = (() => {
-              if (route.name === 'Today')       { return <Ionicons name={isFocused ? 'sunny' : 'sunny-outline'} size={20} color={iconColor} />; }
+              if (route.name === 'Today')       { return isFocused
+                ? <Ionicons name="sunny" size={20} color={iconColor} />
+                : <Sun size={20} strokeWidth={2.2} color={iconColor} />; }
               if (route.name === 'Prayer')      { return <PrayerHandsIcon size={20} color={iconColor} />; }
               if (route.name === 'Journal')     { return <Feather size={20} color={iconColor} />; }
               if (route.name === 'More')        { return <Ionicons name={isFocused ? 'ellipsis-horizontal' : 'ellipsis-horizontal-outline'} size={20} color={iconColor} />; }
@@ -692,7 +812,6 @@ const CustomTabBarComponent = ({
                       triggerLightHaptic();
                       const opening = !showAddMenu;
                       if (opening) { setMenuMode('main'); }
-                      pendingAddNavigationRef.current = false;
                       activeAddRouteIdentityRef.current = null;
                       setAddFlowActive(opening);
                       setShowAddMenu(opening);
@@ -700,8 +819,48 @@ const CustomTabBarComponent = ({
                     activeOpacity={0.8}
                     style={styles.pillTabTouchable}
                   >
-                    <Animated.View style={{ transform: [{ rotate: addIconRotate }, { scale: addIconScale }] }}>
-                      <MaterialCommunityIcons name="pencil-plus-outline" size={24} color={Colors.hopeWhite} />
+                    <Animated.View style={{ transform: [{ scale: addIconScale }] }}>
+                      <View style={styles.addIconPair}>
+                        <Animated.View
+                          style={[
+                            styles.addIconPlus,
+                            { transform: [{ translateX: addPlusTranslateX }, { translateY: addPlusTranslateY }, { rotate: addIconRotate }] },
+                          ]}
+                        >
+                          <Svg width={13} height={13} viewBox="0 0 13 13">
+                            <Line
+                              x1="6.5"
+                              y1="1.5"
+                              x2="6.5"
+                              y2="11.5"
+                              stroke={showAddMenu || addFlowActive ? Colors.hopeWhite : Colors.sage}
+                              strokeWidth={1.7}
+                              strokeLinecap="round"
+                            />
+                            <Line
+                              x1="1.5"
+                              y1="6.5"
+                              x2="11.5"
+                              y2="6.5"
+                              stroke={showAddMenu || addFlowActive ? Colors.hopeWhite : Colors.sage}
+                              strokeWidth={1.7}
+                              strokeLinecap="round"
+                            />
+                          </Svg>
+                        </Animated.View>
+                        <Animated.View
+                          style={[
+                            styles.addIconPencil,
+                            { transform: [{ translateY: addPencilTranslateY }, { rotate: addIconRotate }] },
+                          ]}
+                        >
+                          <Pencil
+                            size={20}
+                            strokeWidth={2}
+                            color={showAddMenu || addFlowActive ? Colors.hopeWhite : Colors.sage}
+                          />
+                        </Animated.View>
+                      </View>
                     </Animated.View>
                   </TouchableOpacity>
                 </View>
@@ -763,10 +922,16 @@ const CustomTabBarComponent = ({
       </View>
 
       {/* ── Collapsed circle (fades in from left as pill collapses) ─────── */}
-      <Animated.View
-        style={[styles.collapsedCircle, { opacity: circleOpacity }]}
-        pointerEvents={showTabBar ? 'none' : 'box-none'}
-      >
+      {collapsedControlVisible && !isReflect ? <Animated.View style={[styles.collapsedCircle, { transform: [{ scale: collapsedScale }] }]}>
+        {Platform.OS === 'ios' ? (
+          <View pointerEvents="none" style={styles.collapsedGlassClip}>
+            <LiquidGlassView
+              tintColor={Colors.sage}
+              cornerRadius={26}
+              style={StyleSheet.absoluteFill}
+            />
+          </View>
+        ) : null}
         <TouchableOpacity
           style={styles.collapsedCircleTouchable}
           activeOpacity={0.8}
@@ -776,8 +941,13 @@ const CustomTabBarComponent = ({
           }}
         >
           {circleIcon}
+          {showLabels ? (
+            <Text style={[styles.collapsedLabel, { fontFamily: fontRegular }]}>
+              {collapsedLabel}
+            </Text>
+          ) : null}
         </TouchableOpacity>
-      </Animated.View>
+      </Animated.View> : null}
     </Animated.View>
   );
 };
@@ -911,16 +1081,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     height: PILL_HEIGHT,
-    borderRadius: PILL_HEIGHT / 2,
-    backgroundColor: PILL_BG,
-    borderWidth: 1,
-    borderColor: Colors.sageMuted,
+    borderRadius: 31,
+    backgroundColor: Platform.OS === 'ios' ? 'transparent' : PILL_BG,
+    borderWidth: Platform.OS === 'ios' ? 0 : 1,
+    borderColor: Platform.OS === 'ios' ? 'rgba(255, 255, 255, 0.44)' : Colors.sageMuted,
     paddingHorizontal: 4,
     shadowColor: Colors.darkBackground,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
+    shadowOpacity: Platform.OS === 'ios' ? 0.2 : 0.15,
+    shadowRadius: Platform.OS === 'ios' ? 18 : 12,
     elevation: 8,
+  },
+  pillGlassBackground: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 31,
+    overflow: 'hidden',
   },
   // Shared container — selector and tabs both reference x=0 from here
   pillInner: {
@@ -951,12 +1126,40 @@ const styles = StyleSheet.create({
     position: 'absolute',
     height: TAB_CIRCLE_SIZE,
     borderRadius: TAB_CIRCLE_SIZE / 2,
-    backgroundColor: Colors.sageMuted,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Platform.OS === 'ios' ? 'transparent' : Colors.sageMuted,
+  },
+  selectorGlassLens: {
+    position: 'absolute',
+    top: -4,
+    width: 66,
+    height: 56,
+    borderRadius: 26,
+  },
+  selectorGlassClip: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 26,
+    overflow: 'hidden',
   },
   pillLabel: {
     fontSize: 9.5,
     fontWeight: '500',
     letterSpacing: 0.1,
+  },
+  addIconPair: {
+    width: 28,
+    height: 32,
+  },
+  addIconPlus: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+  },
+  addIconPencil: {
+    position: 'absolute',
+    left: 4,
+    top: 6,
   },
   // Add menu — appears above the tab bar
   addMenuBlur: {
@@ -1041,25 +1244,38 @@ const styles = StyleSheet.create({
   collapsedCircle: {
     position: 'absolute',
     left: 0,
-    top: (PILL_HEIGHT - CIRCLE_SIZE) / 2,
-    width: CIRCLE_SIZE,
-    height: CIRCLE_SIZE,
-    borderRadius: CIRCLE_SIZE / 2,
-    backgroundColor: PILL_BG,
-    borderWidth: 1,
+    top: (PILL_HEIGHT - COLLAPSED_HEIGHT) / 2,
+    width: COLLAPSED_WIDTH,
+    height: COLLAPSED_HEIGHT,
+    borderRadius: 26,
+    backgroundColor: Platform.OS === 'ios' ? 'transparent' : PILL_BG,
+    borderWidth: Platform.OS === 'ios' ? 0 : 1,
     borderColor: Colors.sageMuted,
     shadowColor: Colors.darkBackground,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.18,
-    shadowRadius: 10,
+    shadowOpacity: Platform.OS === 'ios' ? 0.2 : 0.18,
+    shadowRadius: Platform.OS === 'ios' ? 18 : 10,
     elevation: 8,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  collapsedGlassClip: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 26,
+    overflow: 'hidden',
   },
   collapsedCircleTouchable: {
     width: '100%',
     height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
+    gap: 2,
+  },
+  collapsedLabel: {
+    color: Colors.hopeWhite,
+    fontSize: 9.5,
+    lineHeight: 12,
+    fontWeight: '500',
+    letterSpacing: 0.1,
   },
 });

@@ -13,6 +13,7 @@ export const PluginRenderer: React.FC<PluginRenderProps> = ({
   reflectionId,
   reflectionIds,
   timelineItem,
+  timelineItems,
 }) => {
   const Component = plugin.component;
 
@@ -30,6 +31,7 @@ export const PluginRenderer: React.FC<PluginRenderProps> = ({
     ...(reflectionId !== undefined && { reflectionId }),
     ...(reflectionIds !== undefined && { reflectionIds }),
     ...(timelineItem !== undefined && { timelineItem }),
+    ...(timelineItems !== undefined && { timelineItems }),
   };
 
   return (

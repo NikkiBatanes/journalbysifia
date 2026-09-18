@@ -31,8 +31,8 @@ const AppNavigationTheme = {
   ...DarkTheme,
   colors: {
     ...DarkTheme.colors,
-    background: '#869C7B',
-    card: '#869C7B',
+    background: '#526A5B',
+    card: '#526A5B',
   },
 };
 
@@ -425,7 +425,7 @@ function AppWithAuth({
     return (
       <View style={styles.loadingContainer}>
         <Image
-          source={require('./assets/images/journalbysifia.png')}
+          source={require('./assets/images/journalbysifia-splash.png')}
           style={styles.loadingLogo}
           resizeMode="contain"
         />
@@ -463,7 +463,7 @@ function AppWithAuth({
       fallback={
         <View style={styles.loadingContainer}>
           <Image
-            source={require('./assets/images/journalbysifia.png')}
+            source={require('./assets/images/journalbysifia-splash.png')}
             style={styles.loadingLogo}
             resizeMode="contain"
           />
@@ -526,17 +526,17 @@ function AppWithAuth({
 const styles = StyleSheet.create({
   gestureHandler: {
     flex: 1,
-    backgroundColor: '#869C7B',
+    backgroundColor: Colors.sage,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#869C7B',
+    backgroundColor: Colors.sage,
   },
   loadingLogo: {
-    width: 160,
-    height: 160,
+    width: 240,
+    height: 240,
     marginBottom: 16,
   },
 });

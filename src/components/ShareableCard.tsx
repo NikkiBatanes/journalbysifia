@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { View, StyleSheet, Dimensions } from 'react-native';
+import { View, StyleSheet, Dimensions, Image } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import ThemedText from './common/ThemedText';
 import { Colors } from '../theme/colors';
@@ -40,7 +40,11 @@ const ShareableCard: React.FC<ShareableCardProps> = ({ type, text, reference }) 
 
       {/* Header */}
       <View style={styles.header}>
-        <ThemedText weight="bold" style={styles.logo}>siFia</ThemedText>
+        <Image
+          source={require('../../assets/images/journalbysifia.png')}
+          resizeMode="contain"
+          style={styles.logo}
+        />
         <ThemedText weight="medium" style={styles.subtitle}>
           {type === 'scripture' ? "Today's Scripture" : "Today's Affirmation"}
         </ThemedText>
@@ -120,9 +124,8 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   logo: {
-    fontSize: 36,
-    color: Colors.hopeWhite,
-    letterSpacing: 2,
+    width: 72,
+    height: 72,
     marginBottom: 8,
   },
   subtitle: {

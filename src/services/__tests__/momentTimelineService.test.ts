@@ -140,6 +140,18 @@ describe('canonical Moments timeline', () => {
     expect(item.navigation?.params).toMatchObject({ reflectionId: 'study', selectedDate: date });
   });
 
+  it('shows standalone Scripture Notes as their own Moments entries', () => {
+    const note = reflection('scripture-note', 'scripture', 'scripture_note', 'God created everything');
+    const item = build([], [note])[0];
+    expect(item).toMatchObject({
+      key: 'reflection:scripture-note:scripture-note',
+      kind: 'scripture_note',
+      canonicalIds: ['scripture-note'],
+      navigation: { screen: 'ScriptureNoteEditor', params: { reflectionId: 'scripture-note', selectedDate: date } },
+    });
+    expect(item.searchText).toContain('scripture note');
+  });
+
   it('preserves distinct prayers and current status without moving historical date', () => {
     const items = build([], [], [prayer('one'), prayer('two', { status: 'answered', answered_date: '2026-09-17' })]);
     expect(items.map(item => item.key)).toEqual(expect.arrayContaining(['prayer:one', 'prayer:two']));

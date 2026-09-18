@@ -40,6 +40,7 @@ const CARD_HEIGHT = CARD_WIDTH * 1.25;
 const CARD_GAP = 12;
 const CAROUSEL_ITEM_WIDTH = CARD_WIDTH + CARD_GAP;
 const CAROUSEL_SIDE_INSET = (CAROUSEL_VIEWPORT_WIDTH - CAROUSEL_ITEM_WIDTH) / 2;
+const SHARE_ACCENT = Colors.hopeWhite;
 
 type ShareTextAlign = 'left' | 'center' | 'right';
 type ShareTypography = 'classic' | 'modern' | 'script' | 'handwritten';
@@ -291,7 +292,7 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
       if (!canOpenFacebookStories) {
         Alert.alert(
           'Facebook Stories unavailable',
-          'Make sure Facebook is installed, then rebuild siFia so the Facebook Stories configuration is included.'
+          'Make sure Facebook is installed, then rebuild Journal by siFia so the Facebook Stories configuration is included.'
         );
         return;
       }
@@ -311,16 +312,16 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
     recipient: '',
     url: uri,
     type: 'image/png',
-    message: 'A siFia reflection from my Playbook — https://www.sifia.app',
+    message: 'A Journal by siFia reflection from my Playbook — https://www.journalby.sifia.app',
   } as any)), [runShareAction]);
 
   const shareMore = useCallback(() => runShareAction('more', uri => Share.open({
-    title: 'Share your siFia reflection',
-    subject: 'A reflection from siFia',
-    message: 'A siFia reflection from my Playbook — https://www.sifia.app',
+    title: 'Share your Journal by siFia reflection',
+    subject: 'A reflection from Journal by siFia',
+    message: 'A Journal by siFia reflection from my Playbook — https://www.journalby.sifia.app',
     url: uri,
     type: 'image/png',
-    filename: Platform.OS === 'ios' ? 'siFia-reflection.png' : 'siFia-reflection',
+    filename: Platform.OS === 'ios' ? 'journal-by-siFia-reflection.png' : 'journal-by-siFia-reflection',
     failOnCancel: false,
   })), [runShareAction]);
 
@@ -330,8 +331,8 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
     setSharingAction('text');
     try {
       await Share.open({
-        title: 'Share your siFia reflection',
-        subject: 'A reflection from siFia',
+        title: 'Share your Journal by siFia reflection',
+        subject: 'A reflection from Journal by siFia',
         message: text,
         failOnCancel: false,
       });
@@ -356,7 +357,7 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
       return (
         <View style={styles.carouselPage}>
           <View style={[styles.shareCard, styles.templateLoading]}>
-            <ActivityIndicator color={Colors.alertCoral} />
+            <ActivityIndicator color={SHARE_ACCENT} />
           </View>
         </View>
       );
@@ -407,7 +408,7 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
       textAlign,
     };
     const supportingRatio = typography === 'script' ? 0.55 : 0.67;
-    const scriptureRefScale = textColor === Colors.alertCoral ? 0.85 : 1;
+    const scriptureRefScale = textColor === SHARE_ACCENT ? 0.85 : 1;
     const supportingBaseFontSize = Math.max(10, primaryBaseFontSize * supportingRatio * scriptureRefScale);
     const supportingBaseLineHeight = Math.max(14, primaryBaseLineHeight * supportingRatio * scriptureRefScale);
     const supportingTextStyle = {
@@ -436,8 +437,9 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
                 source={require('../../assets/images/journalbysifia.png')}
                 resizeMode="contain"
                 style={styles.watermarkLogo}
+                accessibilityLabel="Journal by siFia logo"
               />
-              <ThemedText weight="medium" style={styles.watermarkUrl}>www.sifia.app</ThemedText>
+              <ThemedText weight="medium" style={styles.watermarkUrl}>www.journalby.sifia.app</ThemedText>
             </>
           </View>
         ) : null}
@@ -547,7 +549,7 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
             style={[styles.editFloatingButton, editorOpen && styles.editFloatingButtonActive]}
           >
             {editorOpen ? (
-              <PencilOff size={18} color={Colors.alertCoral} />
+              <PencilOff size={18} color={SHARE_ACCENT} />
             ) : (
               <Pencil size={18} color={Colors.hopeWhite} />
             )}
@@ -677,7 +679,7 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
                       <MaterialCommunityIcons
                         name={`format-align-${align}`}
                         size={15}
-                        color={textAlign === align ? Colors.alertCoral : 'rgba(255,255,255,0.62)'}
+                        color={textAlign === align ? SHARE_ACCENT : 'rgba(255,255,255,0.62)'}
                       />
                     </TouchableOpacity>
                   ))}
@@ -698,7 +700,7 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
               >
                 <View style={styles.actionIcon}>
                   {sharingAction === action.id ? (
-                    <ActivityIndicator size="small" color={Colors.alertCoral} />
+                    <ActivityIndicator size="small" color={SHARE_ACCENT} />
                   ) : (
                     <Ionicons name={action.icon as any} size={21} color={Colors.hopeWhite} />
                   )}
@@ -714,14 +716,14 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
               onPress={toggleWatermark}
               activeOpacity={0.75}
               accessibilityRole="switch"
-              accessibilityLabel="Show siFia watermark"
+              accessibilityLabel="Show Journal by siFia watermark"
               accessibilityState={{ checked: !!showWatermark }}
             >
               <View style={styles.upgradeIcon}>
-                <Ionicons name="eye-off-outline" size={18} color={Colors.alertCoral} />
+                <Ionicons name="eye-off-outline" size={18} color={SHARE_ACCENT} />
               </View>
               <View style={styles.upgradeCopy}>
-                <ThemedText weight="semiBold" style={styles.upgradeTitle}>siFia watermark</ThemedText>
+                <ThemedText weight="semiBold" style={styles.upgradeTitle}>Journal by siFia watermark</ThemedText>
                 <ThemedText style={styles.upgradeSubtitle}>{showWatermark ? 'Shown on this post' : 'Hidden from this post'}</ThemedText>
               </View>
               <View style={[styles.watermarkSwitch, showWatermark && styles.watermarkSwitchOn]}>
@@ -878,8 +880,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   watermarkLogo: {
-    width: 58,
-    height: 22,
+    width: 32,
+    height: 32,
   },
   watermarkUrl: {
     color: Colors.hopeWhite,
@@ -903,7 +905,7 @@ const styles = StyleSheet.create({
   },
   editFloatingButtonActive: {
     backgroundColor: 'rgba(10,24,46,0.86)',
-    borderColor: 'rgba(255,107,107,0.38)',
+    borderColor: 'rgba(255,254,250,0.38)',
   },
   editorPanel: {
     marginHorizontal: 18,
@@ -927,7 +929,7 @@ const styles = StyleSheet.create({
     borderBottomColor: 'transparent',
   },
   segmentButtonActive: {
-    borderBottomColor: Colors.alertCoral,
+    borderBottomColor: SHARE_ACCENT,
   },
   segmentText: {
     color: 'rgba(255,255,255,0.58)',
@@ -935,7 +937,7 @@ const styles = StyleSheet.create({
     lineHeight: 15,
   },
   segmentTextActive: {
-    color: Colors.alertCoral,
+    color: SHARE_ACCENT,
   },
   editorUtilityRow: {
     flexDirection: 'row',
@@ -965,7 +967,7 @@ const styles = StyleSheet.create({
   sizeSliderFill: {
     height: 4,
     borderRadius: 2,
-    backgroundColor: Colors.alertCoral,
+    backgroundColor: SHARE_ACCENT,
   },
   sizeSliderThumb: {
     position: 'absolute',
@@ -974,7 +976,7 @@ const styles = StyleSheet.create({
     height: 16,
     marginLeft: -8,
     borderRadius: 8,
-    backgroundColor: Colors.alertCoral,
+    backgroundColor: SHARE_ACCENT,
   },
   iconSegments: {
     flexDirection: 'row',
@@ -1030,7 +1032,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.16)',
   },
   watermarkSwitchOn: {
-    backgroundColor: Colors.alertCoral,
+    backgroundColor: SHARE_ACCENT,
   },
   watermarkSwitchThumb: {
     width: 18,
@@ -1041,6 +1043,7 @@ const styles = StyleSheet.create({
   },
   watermarkSwitchThumbOn: {
     transform: [{ translateX: 18 }],
+    backgroundColor: Colors.darkBackground,
   },
   sizeGlyph: {
     color: 'rgba(255,255,255,0.62)',
@@ -1063,6 +1066,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingHorizontal: 14,
+    paddingBottom: 20,
   },
   action: {
     flex: 1,
@@ -1091,6 +1095,7 @@ const styles = StyleSheet.create({
   },
   upgradeReveal: {
     overflow: 'hidden',
+    marginTop: 10,
   },
   upgradeRow: {
     flexDirection: 'row',
@@ -1108,7 +1113,7 @@ const styles = StyleSheet.create({
     borderRadius: 17,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255,107,107,0.12)',
+    backgroundColor: 'rgba(255,254,250,0.12)',
   },
   upgradeCopy: {
     flex: 1,
@@ -1126,7 +1131,7 @@ const styles = StyleSheet.create({
     marginTop: 1,
   },
   growthPill: {
-    backgroundColor: Colors.alertCoral,
+    backgroundColor: SHARE_ACCENT,
     borderRadius: 999,
     paddingHorizontal: 11,
     paddingVertical: 7,

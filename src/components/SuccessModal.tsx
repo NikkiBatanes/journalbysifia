@@ -3,6 +3,7 @@ import { Modal, View, TouchableOpacity, StyleSheet, Animated } from 'react-nativ
 import { Colors } from '../theme/colors';
 import { Fonts } from '../theme';
 import ThemedText from './common/ThemedText';
+import { triggerLightHaptic } from '../utils/haptics';
 
 interface SuccessModalProps {
   visible: boolean;
@@ -23,6 +24,7 @@ const SuccessModal: React.FC<SuccessModalProps> = ({
   onEdit,
   animationDuration = 300,
 }) => {
+  const handleDismiss = () => { triggerLightHaptic(); onDismiss(); };
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
   const scaleAnim = React.useRef(new Animated.Value(0.8)).current;
 
@@ -55,7 +57,7 @@ const SuccessModal: React.FC<SuccessModalProps> = ({
       transparent
       visible={visible}
       animationType="fade"
-      onRequestClose={onDismiss}
+      onRequestClose={handleDismiss}
     >
       <View style={styles.overlay}>
         <Animated.View
@@ -84,7 +86,7 @@ const SuccessModal: React.FC<SuccessModalProps> = ({
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.button, styles.doneButton]}
-              onPress={onDismiss}
+              onPress={handleDismiss}
               activeOpacity={0.8}
             >
               <ThemedText weight="semiBold" style={styles.buttonText}>{buttonText}</ThemedText>

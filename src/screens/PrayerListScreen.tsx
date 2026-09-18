@@ -20,6 +20,7 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import { ChevronDown } from 'lucide-react-native';
 import { endOfWeek, format, startOfWeek } from 'date-fns';
 import { useQueryClient } from '@tanstack/react-query';
+import Animated, {useAnimatedStyle, useSharedValue, withDelay, withSpring} from 'react-native-reanimated';
 
 import ThemedText from '../components/common/ThemedText';
 import PrayerHandsIcon from '../components/common/PrayerHandsIcon';
@@ -40,7 +41,7 @@ import { openPrayerFlow } from '../navigation/openPrayerFlow';
 import PrayerResponseSheet from '../components/prayer/PrayerResponseSheet';
 import PrayerTrackingModal from '../components/prayer/PrayerTrackingModal';
 import PrayerCard, { PrayerHomeEntry } from '../components/journal/PrayerCard';
-import { isTrackedPrayer, trackingStatus, prayerNeeds, answerPrayer, releasePrayer, type PrayerUpdate } from '../utils/prayerTracking';
+import { isTrackedPrayer, isPrayerActive, isPrayerLetGo, hasAnswerHistory, trackingStatus, prayerNeeds, answerPrayer, releasePrayer, type PrayerUpdate } from '../utils/prayerTracking';
 import { getLatestPrayerDraft, PrayerDraft } from '../storage/prayerDraftStorage';
 import { useScroll } from '../context/ScrollContext';
 
@@ -130,6 +131,7 @@ const PrayerListScreen = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const { user, preferences: appPreferences } = useAuth();
+  const prayerUserId = user?.id || 'local';
   const { showTabBar, setShowTabBar } = useScroll();
   const queryClient = useQueryClient();
   const [trackingMode, setTrackingMode] = useState<'update' | 'details'>('update');
@@ -137,9 +139,19 @@ const PrayerListScreen = () => {
   const [creatingNeed, setCreatingNeed] = useState(false);
   const [respondingTo, setRespondingTo] = useState<PrayerHomeEntry | null>(null);
   const answerInFlight = useRef(false);
-  const scrollRef = useRef<ScrollView>(null);
+  const scrollRef = useRef<any>(null);
   const lastScrollYRef = useRef(0);
   const tabBarCollapsedRef = useRef(false);
+  const headerEntrance = useSharedValue(0);
+  const bodyEntrance = useSharedValue(0);
+  const headerEntranceStyle = useAnimatedStyle(() => ({
+    opacity: headerEntrance.value,
+    transform: [{translateY: (1 - headerEntrance.value) * 14}],
+  }));
+  const bodyEntranceStyle = useAnimatedStyle(() => ({
+    opacity: bodyEntrance.value,
+    transform: [{translateY: (1 - bodyEntrance.value) * 20}],
+  }));
   const [answering, setAnswering] = useState(false);
   const createPrayer = useCreatePrayer();
   const deletePrayer = useDeletePrayer();
@@ -168,12 +180,16 @@ const PrayerListScreen = () => {
     lastScrollYRef.current = 0;
     tabBarCollapsedRef.current = false;
     setShowTabBar(true);
+    headerEntrance.value = 0;
+    bodyEntrance.value = 0;
+    headerEntrance.value = withSpring(1, {damping: 14, stiffness: 180});
+    bodyEntrance.value = withDelay(80, withSpring(1, {damping: 14, stiffness: 180}));
 
     return () => {
       tabBarCollapsedRef.current = false;
       setShowTabBar(true);
     };
-  }, [setShowTabBar]));
+  }, [setShowTabBar, headerEntrance, bodyEntrance]));
 
   useEffect(() => {
     if (showTabBar && lastScrollYRef.current > 60) {
@@ -206,6 +222,7 @@ const PrayerListScreen = () => {
   useEffect(() => {
     let timeout: ReturnType<typeof setTimeout> | undefined;
     const subscription = DeviceEventEmitter.addListener('prayerSaved', () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.prayers.allEntries(prayerUserId) });
       setShowSavedConfirmation(true);
       timeout = setTimeout(() => setShowSavedConfirmation(false), 2200);
     });
@@ -214,12 +231,16 @@ const PrayerListScreen = () => {
       subscription.remove();
       if (timeout) {clearTimeout(timeout);}
     };
-  }, []);
+  }, [prayerUserId, queryClient]);
 
-  const { data: prayers = [], isLoading } = useAllPrayerData(user?.id || '');
+  const { data: prayers = [], isLoading, refetch: refetchPrayers } = useAllPrayerData(prayerUserId);
   const updatePrayer = useUpdatePrayer();
   const markPrayed = useMarkPrayerRequestPrayed();
   const groupedPrayers = useMemo(() => groupPrayerEntries(prayers), [prayers]);
+
+  useFocusEffect(useCallback(() => {
+    void refetchPrayers();
+  }, [refetchPrayers]));
 
   const pendingRequests = useMemo(() => groupedPrayers.filter(p => p.is_prayer_request === true && p.prayed !== true && trackingStatus(p) === 'pending'), [groupedPrayers]);
   const prayerNeedEntries = useMemo(() => groupedPrayers.filter(p => p.metadata?.prayer_need === true), [groupedPrayers]);
@@ -256,10 +277,10 @@ const PrayerListScreen = () => {
     let result: PrayerHomeEntry[];
     switch (activeTab) {
       case 'active':
-        result = groupedPrayers.filter(p => isTrackedPrayer(p) && trackingStatus(p) === 'pending' && !(p.is_prayer_request && !p.prayed));
+        result = groupedPrayers.filter(p => isPrayerActive(p) && !(p.is_prayer_request && !p.prayed));
         break;
       case 'released':
-        result = groupedPrayers.filter(p => trackingStatus(p) === 'closed');
+        result = groupedPrayers.filter(isPrayerLetGo);
         break;
       case 'needs':
         result = prayerNeedEntries;
@@ -268,7 +289,7 @@ const PrayerListScreen = () => {
         result = pendingRequests;
         break;
       case 'answered':
-        result = groupedPrayers.filter(p => trackingStatus(p) === 'answered');
+        result = groupedPrayers.filter(hasAnswerHistory);
         break;
       case 'all':
       default:
@@ -370,10 +391,10 @@ const PrayerListScreen = () => {
       await markPrayed.mutateAsync({
         id: target.id,
         isPrayed: true,
-        _userId: user?.id || '',
+        _userId: prayerUserId,
         _dateStr: prayer.selected_date,
       });
-      queryClient.invalidateQueries({ queryKey: queryKeys.prayers.allEntries(user?.id || '') });
+      queryClient.invalidateQueries({ queryKey: queryKeys.prayers.allEntries(prayerUserId) });
       triggerSuccessHaptic();
     } catch (err) {
       Alert.alert('Error', 'Could not mark prayer as prayed.');
@@ -388,11 +409,11 @@ const PrayerListScreen = () => {
     try {
       const target = prayer.groupedEntries?.find(p => p.journal_category === 'supplication') || prayer.groupedEntries?.[0] || prayer;
       const updates = answerPrayer(target, needId);
-      await updatePrayer.mutateAsync({ id: target.id, updates, _userId: user?.id || '', _dateStr: target.selected_date });
+      await updatePrayer.mutateAsync({ id: target.id, updates, _userId: prayerUserId, _dateStr: target.selected_date });
       const requestId = target.is_prayer_request ? target.id : target.metadata?.original_request_id;
       const related = requestId ? prayers.filter(p => p.id !== target.id && (p.id === requestId || p.metadata?.original_request_id === requestId)) : [];
-      for (const linked of related) await updatePrayer.mutateAsync({ id: linked.id, updates: { ...updates, metadata: { ...linked.metadata, track_answered: true, tracking_status: updates.metadata.tracking_status, prayer_needs: updates.metadata.prayer_needs, prayer_updates: updates.metadata.prayer_updates } }, _userId: user?.id || '', _dateStr: linked.selected_date });
-      await queryClient.invalidateQueries({ queryKey: queryKeys.prayers.allEntries(user?.id || '') });
+      for (const linked of related) await updatePrayer.mutateAsync({ id: linked.id, updates: { ...updates, metadata: { ...linked.metadata, ...Object.fromEntries(['track_answered', 'is_active', 'tracking_status', 'answer_history', 'lifecycle_history', 'prayer_needs', 'prayer_updates'].filter(key => (updates.metadata as Record<string, any>)[key] !== undefined).map(key => [key, (updates.metadata as Record<string, any>)[key]])) } }, _userId: prayerUserId, _dateStr: linked.selected_date });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.prayers.allEntries(prayerUserId) });
       triggerSuccessHaptic();
     } catch { Alert.alert('Could not update prayer', 'Please try again.'); }
     finally { answerInFlight.current = false; setAnswering(false); }
@@ -406,11 +427,11 @@ const PrayerListScreen = () => {
     try {
       const target = prayer.groupedEntries?.find(p => p.journal_category === 'supplication') || prayer.groupedEntries?.[0] || prayer;
       const updates = releasePrayer(target);
-      await updatePrayer.mutateAsync({ id: target.id, updates, _userId: user?.id || '', _dateStr: target.selected_date });
+      await updatePrayer.mutateAsync({ id: target.id, updates, _userId: prayerUserId, _dateStr: target.selected_date });
       const requestId = target.is_prayer_request ? target.id : target.metadata?.original_request_id;
       const related = requestId ? prayers.filter(p => p.id !== target.id && (p.id === requestId || p.metadata?.original_request_id === requestId)) : [];
-      for (const linked of related) await updatePrayer.mutateAsync({ id: linked.id, updates: { ...updates, metadata: { ...linked.metadata, tracking_status: updates.metadata.tracking_status, prayer_needs: updates.metadata.prayer_needs, prayer_updates: updates.metadata.prayer_updates } }, _userId: user?.id || '', _dateStr: linked.selected_date });
-      await queryClient.invalidateQueries({ queryKey: queryKeys.prayers.allEntries(user?.id || '') });
+      for (const linked of related) await updatePrayer.mutateAsync({ id: linked.id, updates: { ...updates, metadata: { ...linked.metadata, ...Object.fromEntries(['track_answered', 'is_active', 'tracking_status', 'answer_history', 'lifecycle_history', 'prayer_needs', 'prayer_updates'].filter(key => (updates.metadata as Record<string, any>)[key] !== undefined).map(key => [key, (updates.metadata as Record<string, any>)[key]])) } }, _userId: prayerUserId, _dateStr: linked.selected_date });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.prayers.allEntries(prayerUserId) });
       triggerSuccessHaptic();
     } catch { Alert.alert('Could not update prayer', 'Please try again.'); }
     finally { answerInFlight.current = false; setAnswering(false); }
@@ -421,22 +442,22 @@ const PrayerListScreen = () => {
       const target = trackingPrayer.groupedEntries?.find(p => p.journal_category === 'supplication') || trackingPrayer.groupedEntries?.[0] || trackingPrayer;
       const { content, ...trackingUpdates } = data;
       const updates = { ...trackingUpdates, content };
-      await updatePrayer.mutateAsync({ id: target.id, updates, _userId: user?.id || '', _dateStr: target.selected_date });
+      await updatePrayer.mutateAsync({ id: target.id, updates, _userId: prayerUserId, _dateStr: target.selected_date });
       const requestId = target.is_prayer_request ? target.id : target.metadata?.original_request_id;
       const related = requestId ? prayers.filter(p => p.id !== target.id && (p.id === requestId || p.metadata?.original_request_id === requestId)) : [];
-      for (const linked of related) await updatePrayer.mutateAsync({ id: linked.id, updates: { status: data.status, answered_date: data.answered_date, metadata: { ...linked.metadata, ...Object.fromEntries(['track_answered', 'tracking_status', 'prayer_needs', 'prayer_updates'].filter(key => data.metadata[key] !== undefined).map(key => [key, data.metadata[key]])) } }, _userId: user?.id || '', _dateStr: linked.selected_date });
+      for (const linked of related) await updatePrayer.mutateAsync({ id: linked.id, updates: { status: data.status, answered_date: data.answered_date, metadata: { ...linked.metadata, ...Object.fromEntries(['track_answered', 'is_active', 'tracking_status', 'answer_history', 'lifecycle_history', 'prayer_needs', 'prayer_updates'].filter(key => data.metadata[key] !== undefined).map(key => [key, data.metadata[key]])) } }, _userId: prayerUserId, _dateStr: linked.selected_date });
     } else {
       await createPrayer.mutateAsync({ ...data, user_id: user?.id || 'local', selected_date: format(new Date(), 'yyyy-MM-dd'), prayer_type: 'journal', journal_category: 'supplication', prayed: false, prayer_count: 0 });
     }
-    await queryClient.invalidateQueries({ queryKey: queryKeys.prayers.allEntries(user?.id || '') });
+    await queryClient.invalidateQueries({ queryKey: queryKeys.prayers.allEntries(prayerUserId) });
     DeviceEventEmitter.emit('prayerSaved');
     triggerSuccessHaptic();
   };
 
   const deleteTrackingPrayer = async () => {
     if (!trackingPrayer) return;
-    for (const entry of trackingPrayer.groupedEntries || [trackingPrayer]) await deletePrayer.mutateAsync({ id: entry.id, _userId: user?.id || '', _dateStr: entry.selected_date });
-    await queryClient.invalidateQueries({ queryKey: queryKeys.prayers.allEntries(user?.id || '') });
+    for (const entry of trackingPrayer.groupedEntries || [trackingPrayer]) await deletePrayer.mutateAsync({ id: entry.id, _userId: prayerUserId, _dateStr: entry.selected_date });
+    await queryClient.invalidateQueries({ queryKey: queryKeys.prayers.allEntries(prayerUserId) });
     DeviceEventEmitter.emit('prayer_deleted');
   };
 
@@ -551,9 +572,12 @@ const PrayerListScreen = () => {
 
   return (
     <View style={styles.container}>
-      <View style={[styles.header, {paddingTop: insets.top}]}>
+      <Animated.View style={[styles.header, {paddingTop: insets.top}, headerEntranceStyle]}>
         <View style={styles.headerTopRow}>
-          <ThemedText style={styles.eyebrow}>PRAYERS</ThemedText>
+          <View style={styles.headerLeftRow}>
+            <PrayerHandsIcon size={20} color={Colors.text} />
+            <ThemedText weight="bold" style={styles.headerTitle}>Prayers</ThemedText>
+          </View>
           <View style={styles.headerActions}>
             <TouchableOpacity style={styles.headerControlPill} onPress={() => { triggerLightHaptic(); setTimeframeOpen(true); }}>
               <ThemedText weight="semiBold" style={styles.headerControlText}>{TIMEFRAMES.find(item => item.key === timeframe)?.label}</ThemedText>
@@ -568,7 +592,7 @@ const PrayerListScreen = () => {
             </TouchableOpacity>
           </View>
         </View>
-        <ThemedText weight="bold" style={styles.title}>Return to what you’re praying about.</ThemedText>
+        {!showSearch && <ThemedText style={styles.headerSubtitle}>Your prayers and prayer requests</ThemedText>}
         {showSearch && <View style={styles.searchBar}>
           <Ionicons name="search-outline" size={16} color={Colors.textGray} style={styles.searchIcon} />
           <View style={styles.searchInputWrapper}>
@@ -576,18 +600,25 @@ const PrayerListScreen = () => {
               style={styles.searchInput}
               value={searchQuery}
               onChangeText={setSearchQuery}
-              placeholder="Search prayers, people, needs, or updates"
+              placeholder="Search Prayers..."
               placeholderTextColor={Colors.placeholderText}
+              textAlignVertical="center"
+              autoCapitalize="none"
+              autoCorrect={false}
               returnKeyType="search"
+              keyboardAppearance="light"
             />
           </View>
-          {!!searchQuery && <TouchableOpacity onPress={() => { triggerLightHaptic(); setSearchQuery(''); }} accessibilityLabel="Clear prayer search"><Ionicons name="close-circle" size={18} color={Colors.textGray} /></TouchableOpacity>}
+          {!!searchQuery && <TouchableOpacity onPress={() => { triggerLightHaptic(); setSearchQuery(''); }} style={styles.clearButton} accessibilityLabel="Clear prayer search"><Ionicons name="close-circle" size={16} color={Colors.placeholderText} /></TouchableOpacity>}
         </View>}
-      </View>
-      <ScrollView
+      </Animated.View>
+      <Animated.ScrollView
         ref={scrollRef}
-        style={styles.scroll}
-        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 80 }]}
+        style={[styles.scroll, bodyEntranceStyle]}
+        contentContainerStyle={[
+          styles.content,
+          {paddingBottom: !isLoading && filteredPrayers.length === 0 ? 0 : insets.bottom + 80},
+        ]}
         showsVerticalScrollIndicator={false}
         onScroll={handlePrayerScroll}
         scrollEventThrottle={16}
@@ -637,14 +668,34 @@ const PrayerListScreen = () => {
         </View>
       ) : filteredPrayers.length === 0 ? (
             <View style={styles.empty}>
-              <ThemedText weight="bold" style={styles.emptyTitle}>{searchQuery.trim() ? `No prayers match “${searchQuery.trim()}”.` : activeFilterCount > 0 ? 'No prayers match these filters.' : activeTab === 'needs' ? 'No prayer needs yet.' : activeTab === 'requests' ? 'No requests waiting.' : activeTab === 'answered' ? 'No answered prayers yet.' : activeTab === 'released' ? 'No prayers let go yet.' : 'No prayers yet.'}</ThemedText>
-              <ThemedText style={styles.emptySubtitle}>{searchQuery.trim() || activeFilterCount > 0 ? 'Try another search or clear a filter.' : activeTab === 'needs' ? 'Your personal prayer needs will appear here.' : activeTab === 'requests' ? 'New requests will appear here until you pray for them.' : activeTab === 'released' ? 'Prayers you release from active prayer will remain here.' : 'Your prayers will appear here.'}</ThemedText>
+              <PrayerHandsIcon size={32} color={Colors.textGray} style={styles.emptyIcon} />
+              <ThemedText weight="semiBold" style={styles.emptyTitle}>{searchQuery.trim() ? `No prayers match “${searchQuery.trim()}”.` : activeFilterCount > 0 ? 'No prayers match these filters.' : activeTab === 'needs' ? 'No Prayer Needs Yet' : activeTab === 'requests' ? 'No Requests Waiting' : activeTab === 'answered' ? 'No Answered Prayers Yet' : activeTab === 'released' ? 'No Prayers Let Go Yet' : 'No Prayers Yet'}</ThemedText>
+              <ThemedText style={styles.emptySubtitle}>{searchQuery.trim() || activeFilterCount > 0 ? 'Try another search or clear a filter.' : activeTab === 'needs' ? 'You haven’t saved any prayer needs yet.' : activeTab === 'requests' ? 'You haven’t received any prayer requests yet.' : activeTab === 'answered' ? 'You haven’t marked any prayers as answered yet.' : activeTab === 'released' ? 'You haven’t let go of any prayers yet.' : 'You haven’t saved any prayers yet.'}</ThemedText>
             </View>
       ) : (
             groupedResults.flatMap(section => [
                 <View key={`header-${timeframe}-${section.key}`} style={styles.sectionHeader}>
                   <ThemedText weight="semiBold" numberOfLines={1} style={styles.sectionTitle}>{section.title}</ThemedText>
-                  <ThemedText numberOfLines={1} style={styles.sectionCount}>{section.prayers.length} {section.prayers.length === 1 ? 'prayer' : 'prayers'}</ThemedText>
+                  {(() => {
+                    const requestCount = section.prayers.filter(
+                      prayer => prayer.is_prayer_request === true && prayer.prayed !== true && trackingStatus(prayer) === 'pending'
+                    ).length;
+
+                    return requestCount > 0 ? (
+                      <View
+                        style={styles.sectionRequestBadge}
+                        accessibilityRole="text"
+                        accessibilityLabel={`${requestCount} waiting prayer ${requestCount === 1 ? 'request' : 'requests'}`}
+                      >
+                        <Ionicons name="mail-unread-outline" size={12} color={Colors.alertCoral} />
+                        <ThemedText weight="semiBold" numberOfLines={1} style={styles.sectionRequestBadgeText}>
+                          {requestCount} {requestCount === 1 ? 'request' : 'requests'}
+                        </ThemedText>
+                      </View>
+                    ) : (
+                      <ThemedText numberOfLines={1} style={styles.sectionCount}>{section.prayers.length} {section.prayers.length === 1 ? 'prayer' : 'prayers'}</ThemedText>
+                    );
+                  })()}
                 </View>,
                 ...section.prayers.map(prayer => (
                   <PrayerCard
@@ -664,7 +715,7 @@ const PrayerListScreen = () => {
       )}
       <View style={{ height: 24 }} />
 
-      </ScrollView>
+      </Animated.ScrollView>
       <Modal visible={timeframeOpen} transparent animationType="fade" onRequestClose={() => setTimeframeOpen(false)}>
         <TouchableOpacity style={styles.pickerOverlay} activeOpacity={1} onPress={() => setTimeframeOpen(false)}>
           <TouchableOpacity style={styles.timeframePicker} activeOpacity={1} onPress={() => {}}>
@@ -710,8 +761,8 @@ const PrayerListScreen = () => {
           </TouchableOpacity>
         </TouchableOpacity>
       </Modal>
-      {respondingTo && <PrayerResponseSheet request={respondingTo} onClose={() => setRespondingTo(null)} onSaved={async () => { await queryClient.invalidateQueries({ queryKey: queryKeys.prayers.allEntries(user?.id || '') }); setRespondingTo(null); }} />}
-      {(creatingNeed || trackingPrayer) && <PrayerTrackingModal onDelete={trackingPrayer ? deleteTrackingPrayer : undefined} mode={trackingPrayer ? trackingMode : 'details'} onShowDetails={() => setTrackingMode('details')} prayer={trackingPrayer ? (trackingPrayer.groupedEntries?.find(p => p.journal_category === 'supplication') || trackingPrayer.groupedEntries?.[0] || trackingPrayer) : undefined} onClose={() => { setCreatingNeed(false); setTrackingPrayer(null); }} onSave={saveTracking} />}
+      {respondingTo && <PrayerResponseSheet request={respondingTo} onClose={() => setRespondingTo(null)} onSaved={async () => { await queryClient.invalidateQueries({ queryKey: queryKeys.prayers.allEntries(prayerUserId) }); setRespondingTo(null); }} />}
+      {(creatingNeed || trackingPrayer) && <PrayerTrackingModal onDelete={trackingPrayer ? deleteTrackingPrayer : undefined} mode={trackingPrayer ? trackingMode : 'details'} onShowDetails={() => setTrackingMode('details')} prayer={trackingPrayer ? (trackingPrayer.groupedEntries?.find(p => p.journal_category === 'supplication') || trackingPrayer.groupedEntries?.[0] || trackingPrayer) : undefined} onClose={() => { setCreatingNeed(false); setTrackingPrayer(null); DeviceEventEmitter.emit('pencilAddFlowClosed'); }} onSave={saveTracking} />}
     </View>
   );
 };
@@ -726,6 +777,7 @@ const styles = StyleSheet.create({
     maxWidth: 760,
     width: '100%',
     alignSelf: 'center',
+    flexGrow: 1,
   },
   header: {
     width: '100%',
@@ -733,33 +785,19 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     marginBottom: 0,
     paddingHorizontal: 18,
-    paddingBottom: 12,
+    paddingBottom: 0,
     backgroundColor: Colors.lightBackground,
   },
-  headerTopRow: {flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 14},
-  headerActions: {flexDirection: 'row', alignItems: 'center', gap: 6},
+  headerTopRow: {flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-start', marginTop: 6, marginBottom: 0},
+  headerLeftRow: {flexDirection: 'row', alignItems: 'center', gap: 8},
+  headerTitle: {fontSize: 24, fontFamily: Fonts.bold, color: Colors.text, letterSpacing: 0.5, flex: 0},
+  headerActions: {flexDirection: 'row', alignItems: 'center', gap: 6, marginLeft: 'auto'},
   headerControlPill: {flexDirection: 'row', alignItems: 'center', gap: 5, paddingVertical: 7, paddingHorizontal: 12, borderRadius: 999, backgroundColor: 'rgba(82, 106, 91, 0.08)', borderWidth: 0.5, borderColor: 'rgba(82, 106, 91, 0.2)'},
   headerControlText: {fontSize: 13, fontFamily: Fonts.regular, color: Colors.text},
   headerCircleButton: {width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(82, 106, 91, 0.08)', borderWidth: 0.5, borderColor: 'rgba(82, 106, 91, 0.2)'},
   filterBadge: {position: 'absolute', top: -5, right: -4, minWidth: 16, height: 16, borderRadius: 8, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3, backgroundColor: Colors.alertCoral},
   filterBadgeText: {fontSize: 8, color: Colors.hopeWhite},
-  eyebrow: {
-    color: Colors.sageMuted,
-    fontFamily: Fonts.semiBold,
-    fontSize: 12,
-    lineHeight: 16,
-    letterSpacing: 1.8,
-    marginBottom: 4,
-  },
-  title: {
-    color: Colors.text,
-    fontFamily: Fonts.bold,
-    fontSize: 31,
-    lineHeight: 39,
-    letterSpacing: -0.5,
-    fontWeight: '900',
-    marginTop: 8,
-  },
+  headerSubtitle: {fontSize: 14, color: Colors.textGray, fontFamily: Fonts.regular, marginTop: 4, marginBottom: 8},
   searchBar: {
     height: 42,
     flexDirection: 'row',
@@ -771,12 +809,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.borderLight,
     marginTop: 8,
-    marginBottom: 0,
+    marginBottom: 8,
     marginHorizontal: 0,
   },
   searchIcon: {marginRight: 8},
   searchInputWrapper: {flex: 1, height: '100%', justifyContent: 'center'},
   searchInput: {width: '100%', height: Platform.OS === 'ios' ? 22 : '100%', color: Colors.text, fontFamily: Fonts.regular, fontSize: 15, lineHeight: Platform.OS === 'ios' ? 20 : undefined, padding: 0, margin: 0, includeFontPadding: false, textAlignVertical: 'center'},
+  clearButton: {marginLeft: 8, padding: 4},
   timeframeScroll: {marginHorizontal: -18, marginBottom: 12, flexGrow: 0},
   timeframeRow: {paddingHorizontal: 18, gap: 7},
   timeframePill: {minHeight: 36, justifyContent: 'center', paddingHorizontal: 14, borderRadius: 18, borderWidth: 1, borderColor: Colors.cardBorder, backgroundColor: Colors.cardBackground},
@@ -793,6 +832,8 @@ const styles = StyleSheet.create({
   sectionHeader: {alignSelf: 'stretch', position: 'relative', height: 38, marginHorizontal: -18, marginBottom: 10, borderBottomWidth: 1, borderBottomColor: Colors.borderLight, backgroundColor: Colors.lightBackground},
   sectionTitle: {position: 'absolute', left: 18, right: 108, top: 3, fontSize: 18, lineHeight: 24, color: Colors.text, fontFamily: Fonts.semiBold},
   sectionCount: {position: 'absolute', right: 18, top: 3, fontSize: 12, lineHeight: 24, color: Colors.textGray, fontFamily: Fonts.regular, textAlign: 'right'},
+  sectionRequestBadge: {position: 'absolute', right: 18, top: 2, height: 26, flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, borderRadius: 13, backgroundColor: 'rgba(217, 120, 114, 0.12)', borderWidth: 1, borderColor: 'rgba(217, 120, 114, 0.28)'},
+  sectionRequestBadgeText: {fontSize: 11, lineHeight: 15, color: Colors.alertCoral, letterSpacing: 0.2},
   filterButton: {minHeight: 36, flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 13, borderRadius: 18, borderWidth: 1, borderColor: Colors.cardBorder, backgroundColor: Colors.cardBackground},
   filterButtonActive: {backgroundColor: Colors.sage, borderColor: Colors.sage},
   filterButtonText: {fontSize: 11, color: Colors.sage},
@@ -926,22 +967,26 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   empty: {
-    marginTop: 60,
+    flex: 1,
     alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 32,
   },
   emptyTitle: {
+    fontSize: 18,
+    fontFamily: Fonts.semiBold,
     color: Colors.text,
-    fontSize: 16,
-    marginBottom: 4,
-    fontFamily: Fonts.bold,
-    lineHeight: 22,
+    marginBottom: 8,
+    textAlign: 'center',
   },
   emptySubtitle: {
-    color: Colors.textGray,
     fontSize: 14,
     fontFamily: Fonts.regular,
-    lineHeight: 21,
+    color: Colors.textGray,
     textAlign: 'center',
+  },
+  emptyIcon: {
+    marginBottom: 8,
   },
 });
 

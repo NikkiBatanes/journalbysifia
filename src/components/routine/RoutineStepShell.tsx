@@ -17,6 +17,7 @@ import { Colors } from '../../theme/colors';
 import ThemedText from '../common/ThemedText';
 import StepFadeIn from '../common/StepFadeIn';
 import { useFloatingKeyboardButton } from '../../hooks/useFloatingKeyboardButton';
+import { triggerLightHaptic } from '../../utils/haptics';
 
 interface RoutineStepShellProps {
   step: number;
@@ -97,7 +98,7 @@ const RoutineStepShell: React.FC<RoutineStepShellProps> = ({
         {rightControl}
       {onBack ? (
         <TouchableOpacity
-          onPress={onBack}
+          onPress={() => { triggerLightHaptic(); onBack(); }}
           style={styles.closeButton}
           activeOpacity={0.7}
           accessibilityRole="button"

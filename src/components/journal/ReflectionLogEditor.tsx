@@ -17,15 +17,14 @@ import {
   StatusBar,
   Keyboard,
   Alert,
-  ActivityIndicator,
   Animated,
   Easing,
 } from 'react-native';
 
-import {Pencil, Trash2} from 'lucide-react-native';
+import {Trash2} from 'lucide-react-native';
 import {Colors} from '../../theme/colors';
 // import { GUIDED_PROMPTS } from './reflectionConstants'; // Unused
-import {triggerLightHaptic} from '../../utils/haptics';
+import {triggerLightHaptic, triggerMediumHaptic} from '../../utils/haptics';
 import ThemedText from '../common/ThemedText';
 import {useTheme} from '../../hooks/useTheme';
 import {getFontFamily} from '../../theme/fonts';
@@ -33,14 +32,34 @@ import {useGuidedPromptGating} from '../../hooks/useGuidedPromptGating';
 import PlaybookMetaSection from './PlaybookMetaSection';
 import {
   HEART_JOURNAL_CLASSIFICATIONS,
-  HEART_JOURNAL_WRITING_COPY,
+  heartJournalWritingCopy,
   heartJournalClassificationLabel,
   type HeartJournalClassification,
 } from '../../types/heartJournal';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {useFloatingKeyboardButton} from '../../hooks/useFloatingKeyboardButton';
+import {JournalComposerBar, JournalPickerMenu} from './shared/JournalComposer';
+import {JournalInlineBlock} from './shared/JournalInlineBlock';
+import {JOURNAL_BLOCKS} from './shared/journalBlocks';
+import {
+  GUIDED_NOTE_TYPES,
+  createGuidedNoteId,
+  type GuidedReflectionNote,
+} from '../../types/guidedReflection';
 
 type ViewMode = 'free-form' | 'guided';
+
+const reflectionBlocksToText = (blocks: GuidedReflectionNote[]) =>
+  blocks
+    .map(block => {
+      const text = block.text.trim();
+      const reference = block.reference?.trim();
+      if (block.kind === 'text') return text;
+      const label = JOURNAL_BLOCKS[block.kind].label;
+      return [label, reference, text].filter(Boolean).join('\n');
+    })
+    .filter(Boolean)
+    .join('\n\n');
 
 interface ReflectionLogEditorProps {
   onSave: (entry: {
@@ -52,6 +71,7 @@ interface ReflectionLogEditorProps {
     prompt?: string;
     source?: 'freeform' | 'guided' | 'playbook' | string;
     journalClassification?: HeartJournalClassification;
+    journalBlocks?: GuidedReflectionNote[];
   }) => void;
   onCancel: () => void;
   onDelete?: (id: string) => void;
@@ -70,6 +90,7 @@ interface ReflectionLogEditorProps {
     prompt?: string;
     source?: string;
     journalClassification?: HeartJournalClassification;
+    journalBlocks?: GuidedReflectionNote[];
   };
   initialMode?: ViewMode;
   initialPrompt?: string;
@@ -201,6 +222,35 @@ const fallbackStyles = {
   },
   transparentInput: {},
   entryContentInput: {minHeight: 100, fontSize: 16},
+  freeText: {
+    minHeight: 44,
+    color: Colors.hopeWhite,
+    fontSize: 16,
+    lineHeight: 22,
+    textAlignVertical: 'top',
+    paddingVertical: 6,
+    marginBottom: 6,
+  },
+  capture: {
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.22)',
+    borderRadius: 14,
+    padding: 12,
+    marginBottom: 9,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+  },
+  textCapture: {backgroundColor: 'rgba(255,255,255,0.1)'},
+  scriptureCapture: {backgroundColor: 'rgba(255,255,255,0.12)'},
+  quoteCapture: {backgroundColor: 'rgba(255,255,255,0.1)'},
+  keyCapture: {backgroundColor: 'rgba(255,255,255,0.14)'},
+  rememberCapture: {backgroundColor: 'rgba(255,255,255,0.12)'},
+  questionCapture: {backgroundColor: 'rgba(255,255,255,0.08)'},
+  responseCapture: {backgroundColor: 'rgba(255,255,255,0.14)'},
+  captureHeader: {flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between'},
+  captureLabelRow: {flexDirection: 'row', alignItems: 'center', gap: 6},
+  captureLabel: {fontSize: 10, letterSpacing: 1.2, color: Colors.hopeWhite},
+  captureInput: {minHeight: 54, paddingTop: 9, fontSize: 14, color: Colors.hopeWhite, textAlignVertical: 'top'},
+  scriptureReferenceInline: {minHeight: 38, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.2)'},
   // Split view styles
   splitViewContainer: {
     flexDirection: 'row',
@@ -245,8 +295,8 @@ const fallbackStyles = {
     paddingHorizontal: 24,
     borderRadius: 20,
     minWidth: 120,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
     flexDirection: 'row',
     alignSelf: 'center',
   },
@@ -553,7 +603,6 @@ const ReflectionLogEditor = React.forwardRef<
       subtaskId,
       styles,
       isLoading = false,
-      hidePencilIcon = false,
       stepBody,
       stepExample,
     },
@@ -599,6 +648,11 @@ const ReflectionLogEditor = React.forwardRef<
 
     // Merge styles prop with fallbackStyles
     const s = {...fallbackStyles, ...styles};
+    const blockStyles = {
+      ...s,
+      freeText: [s.freeText, {fontFamily: fontFamilyRegular}],
+      captureInput: [s.captureInput, {fontFamily: fontFamilyRegular}],
+    };
 
     // Prompt selection now lives in GuidedReflectionExperience. This editor
     // only presents the writer for either a free-form entry or a prompt that
@@ -649,6 +703,26 @@ const ReflectionLogEditor = React.forwardRef<
         : '',
       tags: initialEntry.tags || [],
     });
+    const [journalBlocks, setJournalBlocks] = React.useState<GuidedReflectionNote[]>(
+      () =>
+        initialEntry.journalBlocks?.length
+          ? initialEntry.journalBlocks
+          : initialEntry.content
+          ? [{id: createGuidedNoteId(), kind: 'text', text: normalizeIncoming(initialEntry.content)}]
+          : [],
+    );
+    const [notePickerOpen, setNotePickerOpen] = React.useState(false);
+    const notePickerAnimations = useRef(
+      GUIDED_NOTE_TYPES.map(() => new Animated.Value(0)),
+    ).current;
+    const notePlusRotation = useRef(new Animated.Value(0)).current;
+    const notePickerColorAnim = useRef(new Animated.Value(0)).current;
+    const composerActionAnimations = useRef(
+      [0, 1, 2, 3].map(() => new Animated.Value(1)),
+    ).current;
+    const blockInputRefs = useRef(new Map<string, TextInput>());
+    const pendingFocusBlockIdRef = useRef<string | null>(null);
+    const blockFocusRetryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const [selectedPrompt, setSelectedPrompt] = React.useState<string>(() =>
       initialEntry.prompt ||
@@ -700,6 +774,7 @@ const ReflectionLogEditor = React.forwardRef<
     // Refs
     const titleInputRef = useRef<TextInput>(null);
     const contentInputRef = useRef<TextInput>(null);
+    const editorScrollRef = useRef<ScrollView>(null);
 
     // Expose methods to parent component
     useImperativeHandle(ref, () => ({
@@ -792,6 +867,119 @@ const ReflectionLogEditor = React.forwardRef<
       [initialState],
     );
 
+    const commitJournalBlocks = React.useCallback(
+      (nextBlocks: GuidedReflectionNote[]) => {
+        const content = reflectionBlocksToText(nextBlocks);
+        setJournalBlocks(nextBlocks);
+        setNewEntry(current => ({...current, content}));
+        checkForChanges(content, newEntry.title);
+      },
+      [checkForChanges, newEntry.title],
+    );
+
+    const addJournalBlock = React.useCallback(
+      (kind: GuidedReflectionNote['kind']) => {
+        const block = {id: createGuidedNoteId(), kind, text: ''};
+        pendingFocusBlockIdRef.current = block.id;
+        commitJournalBlocks([...journalBlocks, block]);
+      },
+      [commitJournalBlocks, journalBlocks],
+    );
+
+    useEffect(() => {
+      const blockId = pendingFocusBlockIdRef.current;
+      if (!blockId) return;
+      const frame = requestAnimationFrame(() => {
+        blockInputRefs.current.get(blockId)?.focus();
+        editorScrollRef.current?.scrollToEnd({animated: true});
+        if (blockFocusRetryTimerRef.current) {
+          clearTimeout(blockFocusRetryTimerRef.current);
+        }
+        blockFocusRetryTimerRef.current = setTimeout(() => {
+          blockInputRefs.current.get(blockId)?.focus();
+          editorScrollRef.current?.scrollToEnd({animated: true});
+          blockFocusRetryTimerRef.current = null;
+        }, 320);
+        pendingFocusBlockIdRef.current = null;
+      });
+      return () => cancelAnimationFrame(frame);
+    }, [journalBlocks]);
+
+    useEffect(
+      () => () => {
+        if (blockFocusRetryTimerRef.current) {
+          clearTimeout(blockFocusRetryTimerRef.current);
+        }
+      },
+      [],
+    );
+
+    const openNotePicker = () => {
+      Keyboard.dismiss();
+      notePickerAnimations.forEach(animation => {
+        animation.stopAnimation();
+        animation.setValue(0);
+      });
+      setNotePickerOpen(true);
+      setTimeout(() => {
+        Animated.parallel([
+          Animated.timing(notePickerColorAnim, {
+            toValue: 1,
+            duration: 240,
+            easing: Easing.inOut(Easing.ease),
+            useNativeDriver: false,
+          }),
+          Animated.spring(notePlusRotation, {
+            toValue: 1,
+            tension: 90,
+            friction: 12,
+            useNativeDriver: true,
+          }),
+          Animated.stagger(
+            38,
+            [...notePickerAnimations].reverse().map(animation =>
+              Animated.spring(animation, {
+                toValue: 1,
+                tension: 90,
+                friction: 12,
+                useNativeDriver: true,
+              }),
+            ),
+          ),
+        ]).start();
+      }, 80);
+    };
+
+    const closeNotePicker = (onComplete?: () => void) => {
+      Animated.parallel([
+        Animated.timing(notePickerColorAnim, {
+          toValue: 0,
+          duration: 240,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: false,
+        }),
+        Animated.spring(notePlusRotation, {
+          toValue: 0,
+          tension: 90,
+          friction: 12,
+          useNativeDriver: true,
+        }),
+        Animated.stagger(
+          28,
+          notePickerAnimations.map(animation =>
+            Animated.timing(animation, {
+              toValue: 0,
+              duration: 130,
+              useNativeDriver: true,
+            }),
+          ),
+        ),
+      ]).start(() => {
+        setNotePickerOpen(false);
+        onComplete?.();
+      });
+    };
+
     // Helper function to get draft key (unique for each playbook question)
     const getDraftKey = React.useCallback(() => {
       if (source === 'playbook') {
@@ -824,7 +1012,7 @@ const ReflectionLogEditor = React.forwardRef<
             const draftKey = getDraftKey();
             const draft = await AsyncStorage.getItem(draftKey);
             if (draft) {
-              const {content, title} = JSON.parse(draft);
+              const {content, title, journalBlocks: draftBlocks} = JSON.parse(draft);
 
               // Only load draft if there's actual meaningful content
               if ((content && content.trim()) || (title && title.trim())) {
@@ -838,6 +1026,13 @@ const ReflectionLogEditor = React.forwardRef<
                   content: content || prev.content,
                   title: title || prev.title,
                 }));
+                if (Array.isArray(draftBlocks) && draftBlocks.length) {
+                  setJournalBlocks(draftBlocks);
+                } else if (content) {
+                  setJournalBlocks([
+                    {id: createGuidedNoteId(), kind: 'text', text: content},
+                  ]);
+                }
 
                 // Update initial state to the loaded draft so changes are tracked from this point
                 setInitialState({
@@ -911,6 +1106,7 @@ const ReflectionLogEditor = React.forwardRef<
           const draftData = {
             content: newEntry.content,
             title: newEntry.title,
+            journalBlocks,
             // Include playbook metadata if available
             ...(dayNumber !== undefined && {dayNumber}),
             ...(dayTitle && {dayTitle}),
@@ -1120,6 +1316,7 @@ const ReflectionLogEditor = React.forwardRef<
         ...(promptToCheck && {prompt: promptToCheck}),
         ...(source && {source}),
         ...(journalClassification && {journalClassification}),
+        journalBlocks,
         // Include playbook metadata if available
         ...(dayNumber !== undefined && {dayNumber}),
         ...(dayTitle && {dayTitle}),
@@ -1234,7 +1431,7 @@ const ReflectionLogEditor = React.forwardRef<
       ],
     });
     const classificationCopy = journalClassification
-      ? HEART_JOURNAL_WRITING_COPY[journalClassification]
+      ? heartJournalWritingCopy(journalClassification)
       : null;
     const titlePlaceholder =
       classificationCopy?.title || 'Name Your Reflection...';
@@ -1248,7 +1445,7 @@ const ReflectionLogEditor = React.forwardRef<
       isLoading;
 
     // Cancel handler
-    const handleCancel = async () => {
+    const handleCancel = async (withHaptic = true) => {
       // Mark as closing IMMEDIATELY — before anything else — so any auto-focus
       // timers that get scheduled during prop-change re-renders (e.g. source
       // flipping from guided→thoughts after onCancel resets parent state) will
@@ -1256,7 +1453,7 @@ const ReflectionLogEditor = React.forwardRef<
       isClosingRef.current = true;
 
       // Haptic feedback for cancel/close
-      triggerLightHaptic();
+      if (withHaptic) triggerLightHaptic();
       try {
         // Save draft before canceling (only if user made changes)
         if (hasUserMadeChanges) {
@@ -1349,149 +1546,15 @@ const ReflectionLogEditor = React.forwardRef<
             </ThemedText>
           )}
           <Animated.View style={[s.modeToggle, editorHeaderEntranceStyle]}>
-            {/* Show pencil icon for playbook sources (display only), hide for guided when hidePencilIcon is true */}
-            {(source === 'playbook' ||
-              (source === 'guided' && !hidePencilIcon)) && (
-              <View style={s.modeButton} pointerEvents="none">
-                <View>
-                  <Pencil
-                    size={22}
-                    color={Colors.sage}
-                    fill={Colors.sage}
-                    strokeWidth={1.5}
-                  />
-                </View>
-              </View>
-            )}
-            {/* Always show pencil toggle for freeform switching */}
-            {source !== 'playbook' && source !== 'guided' && (
-              <TouchableOpacity
-                style={s.modeButton}
-                accessibilityRole="button"
-                accessibilityLabel="Write reflection"
-                hitSlop={8}
-                onPress={async () => {
-                  // Haptic for switching to free-form mode
-                  triggerLightHaptic();
-
-                  // If already in free-form mode, check if this is actually a guided prompt
-                  if (viewMode === 'free-form') {
-                    // If this is a guided prompt that was opened in free-form mode, convert to true free-form
-                    if (
-                      selectedPrompt ||
-                      (guidedPromptGating.allPrompts || []).includes(
-                        newEntry.title,
-                      )
-                    ) {
-                      // Clear everything to create true free-form mode
-                      setNewEntry(prev => ({
-                        ...prev,
-                        content: '',
-                        title: '',
-                      }));
-                      setSelectedPrompt('');
-
-                      // Focus title input
-                      createManagedTimeout(() => {
-                        titleInputRef.current?.focus();
-                      }, 100);
-                      return;
-                    } else {
-                      if (!newEntry.title.trim()) {
-                        titleInputRef.current?.focus();
-                      } else {
-                        contentInputRef.current?.focus();
-                      }
-                      return;
-                    }
-                  }
-
-                  // If coming from guided mode (based on current viewMode, not selectedPrompt)
-                  const switchingFromGuided = viewMode === 'guided';
-                  if (switchingFromGuided) {
-                    // If there's content, show confirmation
-                    if (newEntry.content.trim()) {
-                      const shouldProceed = await new Promise<boolean>(
-                        resolve => {
-                          Alert.alert(
-                            'Switch to Free-Form Mode',
-                            'Switching to free-form mode will clear your current reflection. Your work will be saved as a draft.',
-                            [
-                              {
-                                text: 'Cancel',
-                                style: 'cancel',
-                                onPress: () => resolve(false),
-                              },
-                              {
-                                text: 'Save Draft',
-                                style: 'default',
-                                onPress: async () => {
-                                  try {
-                                    await saveDraftHelper();
-                                    resolve(true);
-                                  } catch (error) {
-                                    Logger.error(
-                                      'Error saving draft',
-                                      error as Error,
-                                      {component: 'ReflectionLogEditor'},
-                                    );
-                                    resolve(false);
-                                  }
-                                },
-                              },
-                              {
-                                text: 'Discard',
-                                style: 'destructive',
-                                onPress: () => resolve(true),
-                              },
-                            ],
-                          );
-                        },
-                      );
-
-                      if (!shouldProceed) {
-                        return; // User cancelled or saved draft
-                      }
-                    }
-
-                    // Switching from guided to true free-form: clear both title and content
-                    setNewEntry(prev => ({
-                      ...prev,
-                      content: '',
-                      title: '', // Clear title for true free-form mode
-                    }));
-                  }
-
-                  setViewMode('free-form');
-                  // Clear selectedPrompt to create true free-form mode (no gating, no locks)
-                  setSelectedPrompt('');
-
-                  // Also clear the source to prevent title locking
-                  // Note: This is a local state change, doesn't affect the original source prop
-
-                  // Focus the title input for true free-form mode
-                  createManagedTimeout(() => {
-                    titleInputRef.current?.focus();
-                  }, 100);
-                }}>
-                <View>
-                  <Pencil
-                    size={22}
-                    color={
-                      viewMode === 'free-form' && !selectedPrompt
-                        ? Colors.sage
-                        : Colors.trustGrey
-                    }
-                    fill={
-                      viewMode === 'free-form' && !selectedPrompt
-                        ? Colors.sage
-                        : Colors.trustGrey
-                    }
-                    strokeWidth={1.5}
-                  />
-                </View>
-              </TouchableOpacity>
-            )}
+            <TouchableOpacity
+              style={s.headerCloseButton}
+              accessibilityRole="button"
+              accessibilityLabel="Close reflection editor"
+              hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}
+              activeOpacity={0.7}
+              onPress={() => handleCancel()}>
+              <Ionicons name="close" size={17} color={Colors.sage} />
+            </TouchableOpacity>
             {/* Delete icon - only visible in edit mode and when onDelete is provided */}
             {isEditing && onDelete && (
               <TouchableOpacity
@@ -1516,10 +1579,15 @@ const ReflectionLogEditor = React.forwardRef<
             keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
             enabled={Platform.OS === 'ios'}>
           <View style={s.contentCard}>
-            <ScrollView
-              style={s.content}
-              contentContainerStyle={s.scrollContent}
-              keyboardShouldPersistTaps="handled">
+                <ScrollView
+                  ref={editorScrollRef}
+                  style={s.content}
+                  contentContainerStyle={[
+                    s.scrollContent,
+                    {paddingBottom: notePickerOpen ? 410 : 180},
+                  ]}
+                  scrollIndicatorInsets={{bottom: notePickerOpen ? 300 : 120}}
+                  keyboardShouldPersistTaps="handled">
               <Animated.View style={editorContentEntranceStyle}>
                   {isDirectHeartJournal && (
                     <Animated.View style={[{marginBottom: 14}, writerItemEntranceStyle(0)]}>
@@ -1585,7 +1653,8 @@ const ReflectionLogEditor = React.forwardRef<
                           }}>
                           {HEART_JOURNAL_CLASSIFICATIONS.map(item => {
                             const selected =
-                              journalClassification === item.value;
+                              journalClassification === item.value ||
+                              (item.value === 'other' && journalClassification?.startsWith('other:'));
                             return (
                               <TouchableOpacity
                                 key={item.value}
@@ -1598,8 +1667,7 @@ const ReflectionLogEditor = React.forwardRef<
                                   setIsClassificationPickerOpen(false);
                                 }}
                                 style={{
-                                  width:
-                                    item.value === 'letter' ? '100%' : '48.5%',
+                                  width: '48.5%',
                                   minHeight: 42,
                                   borderWidth: 1,
                                   borderColor: selected
@@ -1700,27 +1768,65 @@ const ReflectionLogEditor = React.forwardRef<
                   )}
                   </Animated.View>
 
-                  {/* Simple Text Input */}
                   <Animated.View style={writerItemEntranceStyle(isDirectHeartJournal ? 2 : 1)}>
-                  <TextInput
-                    ref={contentInputRef}
-                    style={[
-                      s.entryInput,
-                      s.entryContentInput,
-                      {fontFamily: fontFamilyRegular},
-                    ]}
-                    placeholder={bodyPlaceholder}
-                    placeholderTextColor="rgba(255, 255, 255, 0.4)"
-                    value={newEntry.content}
-                    onChangeText={text => {
-                      setNewEntry({...newEntry, content: text});
-                      checkForChanges(text, newEntry.title);
-                    }}
-                    multiline
-                    keyboardAppearance="light"
-                    textAlignVertical="top"
-                    autoFocus={!isEditing && source !== 'guided'}
-                  />
+                  {journalBlocks.map((block, index) => {
+                    const updateBlock = (changes: Partial<GuidedReflectionNote>) =>
+                      commitJournalBlocks(
+                        journalBlocks.map(item =>
+                          item.id === block.id ? {...item, ...changes} : item,
+                        ),
+                      );
+                    return (
+                      <JournalInlineBlock
+                        key={block.id}
+                        block={{id: block.id, kind: block.kind, text: block.text}}
+                        configOverride={block.kind === 'text' ? undefined : JOURNAL_BLOCKS[block.kind]}
+                        tone="onDark"
+                        textPlaceholder={bodyPlaceholder}
+                        styles={blockStyles}
+                        registerInput={input => {
+                          if (input) {
+                            blockInputRefs.current.set(block.id, input);
+                            if (index === 0) contentInputRef.current = input;
+                          } else {
+                            blockInputRefs.current.delete(block.id);
+                          }
+                        }}
+                        onChangeText={text => updateBlock({text})}
+                        onDelete={() =>
+                          commitJournalBlocks(
+                            journalBlocks.filter(item => item.id !== block.id),
+                          )
+                        }
+                        renderScripture={
+                          block.kind === 'scripture'
+                            ? () => (
+                                <View>
+                                  <TextInput
+                                    style={[blockStyles.captureInput, s.scriptureReferenceInline]}
+                                    value={block.reference || ''}
+                                    onChangeText={reference => updateBlock({reference})}
+                                    placeholder="Scripture reference"
+                                    placeholderTextColor="rgba(255,255,255,0.45)"
+                                  />
+                                  <TextInput
+                                    ref={input => {
+                                      if (input) blockInputRefs.current.set(block.id, input);
+                                    }}
+                                    style={blockStyles.captureInput}
+                                    value={block.text}
+                                    onChangeText={text => updateBlock({text})}
+                                    placeholder="What stands out to you?"
+                                    placeholderTextColor="rgba(255,255,255,0.45)"
+                                    multiline
+                                  />
+                                </View>
+                              )
+                            : undefined
+                        }
+                      />
+                    );
+                  })}
                   </Animated.View>
                   {(source === 'playbook' ||
                     (playbookTitle &&
@@ -1745,51 +1851,56 @@ const ReflectionLogEditor = React.forwardRef<
           </View>
           </KeyboardAvoidingView>
 
-          {/* Floating writer actions */}
-          {(
-            <Animated.View
-              pointerEvents="box-none"
-              style={[s.fabWrapper, editorActionsEntranceStyle]}>
-              {/* Right Action Buttons */}
-              <Animated.View
-                style={[s.fabContainer, {bottom: fabAnimatedValue}]}>
-                <View style={s.fabRow}>
-                  {/* Cancel FAB */}
-                  <TouchableOpacity
-                    style={[s.fab, s.cancelFab]}
-                    onPress={() => {
-                      triggerLightHaptic();
-                      handleCancel();
-                    }}>
-                    <Ionicons
-                      name="close"
-                      size={17}
-                      color="rgba(255,255,255,0.65)"
-                    />
-                  </TouchableOpacity>
-
-                  {/* Save FAB */}
-                  <TouchableOpacity
-                    style={[s.fab, s.saveFab, saveDisabled && s.fabDisabled]}
-                    disabled={saveDisabled}
-                    onPress={() => {
-                      triggerLightHaptic();
-                      handleSave();
-                    }}>
-                    {isLoading ? (
-                      <ActivityIndicator size={17} color={Colors.hopeWhite} />
-                    ) : (
-                      <Ionicons
-                        name="checkmark"
-                        size={17}
-                        color={Colors.hopeWhite}
-                      />
-                    )}
-                  </TouchableOpacity>
-                </View>
-              </Animated.View>
+          <Animated.View
+            pointerEvents="box-none"
+            style={[s.fabWrapper, editorActionsEntranceStyle]}>
+            <Animated.View style={[{marginHorizontal: 18}, {bottom: fabAnimatedValue}]}>
+              {notePickerOpen && (
+                <JournalPickerMenu
+                  items={GUIDED_NOTE_TYPES.map(item => ({
+                    key: item.kind,
+                    label: item.label,
+                    icon: <Ionicons name={item.icon as any} size={13} color={Colors.sage} />,
+                  }))}
+                  animations={notePickerAnimations}
+                  onSelect={kind => {
+                    triggerMediumHaptic();
+                    closeNotePicker(() => addJournalBlock(kind));
+                  }}
+                />
+              )}
+              <JournalComposerBar
+                onBack={() => {
+                  if (notePickerOpen) closeNotePicker(() => handleCancel(false));
+                  else handleCancel(false);
+                }}
+                onWrite={() => {
+                  triggerLightHaptic();
+                  if (notePickerOpen) closeNotePicker(() => addJournalBlock('text'));
+                  else addJournalBlock('text');
+                }}
+                onAdd={() => {
+                  triggerLightHaptic();
+                  if (notePickerOpen) closeNotePicker();
+                  else openNotePicker();
+                }}
+                onNext={() => {
+                  triggerLightHaptic();
+                  if (notePickerOpen) closeNotePicker(() => handleSave());
+                  else handleSave();
+                }}
+                addOpen={notePickerOpen}
+                plusRotation={notePlusRotation}
+                pickerColorAnim={notePickerColorAnim}
+                actionAnimations={composerActionAnimations}
+                nextIcon={isLoading ? 'hourglass-outline' : 'checkmark'}
+                backLabel="Close reflection"
+                nextLabel="Save reflection"
+                nextDisabled={saveDisabled}
+                tone="onDark"
+              />
             </Animated.View>
-          )}
+          </Animated.View>
         </View>
       </View>
     );

@@ -1,5 +1,5 @@
-import React, { useRef, useState } from 'react';
-import { Alert, Animated, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { AccessibilityInfo, Alert, Animated, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { FileText, Leaf, Pencil, Sparkles, Trash2, X } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { format } from 'date-fns';
@@ -12,6 +12,24 @@ import { Fonts } from '../../theme/fonts';
 import { triggerLightHaptic } from '../../utils/haptics';
 
 const AnimatedScrollView = Animated.createAnimatedComponent(ScrollView);
+
+const DetailReveal = ({children, delay, reduceMotion, style}: {children: React.ReactNode; delay: number; reduceMotion: boolean; style?: any}) => {
+  const value = useRef(new Animated.Value(reduceMotion ? 1 : 0)).current;
+  useEffect(() => {
+    if (reduceMotion) {value.setValue(1); return undefined;}
+    value.setValue(0);
+    const animation = Animated.sequence([
+      Animated.delay(delay),
+      Animated.spring(value, {toValue: 1, tension: 78, friction: 8, useNativeDriver: true}),
+    ]);
+    animation.start();
+    return () => animation.stop();
+  }, [delay, reduceMotion, value]);
+  return <Animated.View style={[style, {opacity: value, transform: [
+    {translateY: value.interpolate({inputRange: [0, 1], outputRange: [16, 0]})},
+    {scale: value.interpolate({inputRange: [0, 1], outputRange: [0.96, 1]})},
+  ]}]}>{children}</Animated.View>;
+};
 
 interface Props {
   reference: string;
@@ -31,17 +49,25 @@ export default function BibleStudyDetailView({ reference, selectedDate, translat
   const headerCollapse = useRef(new Animated.Value(0)).current;
   const [tab, setTab] = useState<'study' | 'response' | 'prayer'>('study');
   const [busy, setBusy] = useState(false);
+  const [reduceMotion, setReduceMotion] = useState(false);
+  useEffect(() => {
+    let active = true;
+    AccessibilityInfo.isReduceMotionEnabled().then(value => {if (active) {setReduceMotion(value);}}).catch(() => {});
+    const subscription = AccessibilityInfo.addEventListener('reduceMotionChanged', setReduceMotion);
+    return () => {active = false; subscription.remove();};
+  }, []);
   const shown = content;
   const [year, month, day] = selectedDate.split('-').map(Number);
   const savedChoices = (choices: string[]) => choices.length ? (
     <View style={styles.savedChoices}>
-      {[...new Set(choices)].map(choice => <View key={choice} style={styles.savedChoice}>
+      {[...new Set(choices)].map((choice, index) => <DetailReveal key={choice} delay={index * 38} reduceMotion={reduceMotion} style={styles.savedChoice}>
         <ThemedText weight="medium" style={styles.savedChoiceText}>{choice}</ThemedText>
-      </View>)}
+      </DetailReveal>)}
     </View>
   ) : null;
   const close = () => {
     if (busy) {return;}
+    triggerLightHaptic();
     onClose();
   };
   const edit = async () => {
@@ -83,28 +109,28 @@ export default function BibleStudyDetailView({ reference, selectedDate, translat
           }
         }}
         contentContainerStyle={{ paddingTop: insets.top + 90, paddingBottom: insets.bottom + 60 }}>
-        <View style={styles.hero}>
+        <DetailReveal delay={20} reduceMotion={reduceMotion} style={styles.hero}>
           <ThemedText style={styles.date}>{format(new Date(year, month - 1, day), year === new Date().getFullYear() ? 'EEE, MMMM d' : 'EEE, MMMM d, yyyy').toUpperCase()}</ThemedText>
           <ThemedText weight="bold" style={styles.eyebrow}>BIBLE STUDY</ThemedText>
           <View style={styles.titleRow}>
             <ThemedText weight="bold" style={styles.title}>{reference}</ThemedText>
             <TouchableOpacity accessibilityRole="button" accessibilityLabel="Read study passage" hitSlop={10}
               onPress={() => { triggerLightHaptic(); setReaderOpen(true); }} style={styles.readerButton}>
-              <MaterialCommunityIcons name="script-text" size={18} color={Colors.sage} />
+              <MaterialCommunityIcons name="book-outline" size={18} color={Colors.sage} />
             </TouchableOpacity>
           </View>
-        </View>
+        </DetailReveal>
         <View style={styles.pills}>
-          {(['study', 'response', 'prayer'] as const).map(key => {
+          {(['study', 'response', 'prayer'] as const).map((key, index) => {
             const Icon = key === 'study' ? FileText : key === 'response' ? Sparkles : Leaf;
-            return <TouchableOpacity key={key} accessibilityRole="tab" accessibilityState={{ selected: tab === key }}
+            return <DetailReveal key={key} delay={100 + index * 45} reduceMotion={reduceMotion} style={styles.pillSlot}><TouchableOpacity accessibilityRole="tab" accessibilityState={{ selected: tab === key }}
               onPress={() => { triggerLightHaptic(); setTab(key); }} style={[styles.pill, tab === key && styles.pillActive]}>
               <Icon size={17} color={tab === key ? Colors.hopeWhite : Colors.sage} />
               <ThemedText weight="medium" style={[styles.pillText, tab === key && styles.pillTextActive]}>{key[0].toUpperCase() + key.slice(1)}</ThemedText>
-            </TouchableOpacity>;
+            </TouchableOpacity></DetailReveal>;
           })}
         </View>
-        <View style={styles.body}>
+        <DetailReveal key={tab} delay={215} reduceMotion={reduceMotion} style={styles.body}>
           {tab === 'study' && <>
             {shown.highlights.length > 0 && <View style={styles.section}>
               <ThemedText weight="bold" style={styles.sectionLabel}>PASSAGES THAT STOOD OUT</ThemedText>
@@ -131,7 +157,7 @@ export default function BibleStudyDetailView({ reference, selectedDate, translat
           {tab === 'prayer' && <>{section('My prayer', 'prayer')}
             {shown.prayer.saveToPrayerJournal && !!shown.prayer.text.trim() && <ThemedText style={styles.status}>Saved to Prayer Journal{shown.prayer.trackAnswered ? ' · Tracking if answered' : ''}</ThemedText>}
           </>}
-        </View>
+        </DetailReveal>
       </AnimatedScrollView>
       <Animated.View
         pointerEvents={headerCollapsed ? 'none' : 'auto'}
@@ -153,7 +179,10 @@ export default function BibleStudyDetailView({ reference, selectedDate, translat
             onPress={() => { triggerLightHaptic(); return edit(); }} style={styles.circle}>
             <Pencil size={20} color={Colors.sage} />
           </TouchableOpacity>
-          <TouchableOpacity accessibilityLabel="Close Bible Study" disabled={busy} onPress={close} style={styles.circle}><X size={20} color={Colors.sage} /></TouchableOpacity>
+          <TouchableOpacity accessibilityRole="button" accessibilityLabel="Close Bible Study" disabled={busy} onPress={close}
+            activeOpacity={0.7} hitSlop={{top: 8, bottom: 8, left: 8, right: 8}} style={styles.closeCircle}>
+            <X size={17} color={Colors.sage} />
+          </TouchableOpacity>
         </View>
       </Animated.View>
       <ScriptureReaderModal visible={readerOpen} passages={[{ reference }]} initialIndex={0} version={translation} onClose={() => setReaderOpen(false)} />
@@ -173,7 +202,9 @@ const styles = StyleSheet.create({
   topBar: { position: 'absolute', top: 0, left: 20, right: 20, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 12 },
   actions: { flexDirection: 'row', gap: 10 },
   circle: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: Colors.cardBorder, backgroundColor: Colors.cardBackground, shadowColor: Colors.text, shadowOpacity: 0.1, shadowRadius: 9, shadowOffset: { width: 0, height: 4 }, elevation: 5 },
+  closeCircle: { width: 42, height: 42, borderRadius: 999, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.cardBackground },
   pills: { flexDirection: 'row', gap: 8, marginHorizontal: 16, paddingVertical: 6 },
+  pillSlot: { flex: 1 },
   pill: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 11, paddingHorizontal: 8, backgroundColor: 'rgba(82,106,91,0.08)', borderRadius: 22, borderWidth: 1, borderColor: 'rgba(82,106,91,0.2)' },
   pillActive: { backgroundColor: Colors.sage, borderColor: Colors.sage },
   pillText: { fontSize: 13, color: Colors.sage },

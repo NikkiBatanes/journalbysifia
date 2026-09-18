@@ -12,6 +12,7 @@ import ThemedText from '../common/ThemedText';
 import { Colors } from '../../theme/colors';
 import { useMomentsPalette } from '../../context/MomentsPaletteContext';
 import { MorningMoment } from '../../storage/morningMomentsStorage';
+import { triggerLightHaptic } from '../../utils/haptics';
 
 export const SavedMorningMoment = ({ moment, viewMode = 'inline' }: { moment: MorningMoment; viewMode?: 'carousel' | 'inline' | 'moments' }) => {
   const momentsPalette = useMomentsPalette();
@@ -130,7 +131,7 @@ export const SavedMorningMoment = ({ moment, viewMode = 'inline' }: { moment: Mo
           </ScrollView>
           <View style={[styles.proverbTopBar, { top: insets.top + 16 }]}>
             <TouchableOpacity onPress={() => { setReflectionOpen(false); handleEdit(); }} style={styles.proverbTopButton} activeOpacity={0.7} accessibilityLabel="Edit" accessibilityRole="button"><Pencil size={20} color={Colors.sage} /></TouchableOpacity>
-            <TouchableOpacity onPress={() => setReflectionOpen(false)} style={styles.proverbTopButton} activeOpacity={0.7} accessibilityLabel="Close" accessibilityRole="button"><X size={20} color={Colors.sage} /></TouchableOpacity>
+            <TouchableOpacity onPress={() => { triggerLightHaptic(); setReflectionOpen(false); }} style={styles.proverbTopButton} activeOpacity={0.7} accessibilityLabel="Close" accessibilityRole="button"><X size={20} color={Colors.sage} /></TouchableOpacity>
           </View>
         </View>
       </Modal>
@@ -144,7 +145,7 @@ export const SavedMorningMoment = ({ moment, viewMode = 'inline' }: { moment: Mo
     </TouchableOpacity>
     <Modal visible={open} animationType="slide" onRequestClose={() => setOpen(false)}>
       <View style={[styles.page, { paddingTop: insets.top + 20 }]}>
-        <TouchableOpacity style={styles.close} onPress={() => setOpen(false)} accessibilityLabel="Close" accessibilityRole="button"><Ionicons name="close" size={20} color={Colors.sage} /></TouchableOpacity>
+        <TouchableOpacity style={styles.close} onPress={() => { triggerLightHaptic(); setOpen(false); }} accessibilityLabel="Close" accessibilityRole="button"><Ionicons name="close" size={20} color={Colors.sage} /></TouchableOpacity>
         <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 30 }}>
           <ThemedText weight="semiBold" style={styles.label}>{moment.title.toUpperCase()}</ThemedText>
           {moment.lines.map((line, index) => <ThemedText key={index} style={index === 0 ? styles.title : styles.answer}>{line}</ThemedText>)}

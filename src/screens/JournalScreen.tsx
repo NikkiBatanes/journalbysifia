@@ -208,7 +208,11 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation, rou
     const params = route?.params as any;
     const targetSection = params?.targetSection;
     const selectedDateParam = params?.selectedDate;
-    const deepLinkKey = JSON.stringify({ targetSection, selectedDateParam });
+    const deepLinkKey = JSON.stringify({
+      targetSection,
+      selectedDateParam,
+      openRequestId: params?.openRequestId,
+    });
 
     if (!targetSection || handledDeepLinkKeyRef.current === deepLinkKey) {
       return;
@@ -264,6 +268,7 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation, rou
 
     navigation.setParams({
       targetSection: undefined,
+      openRequestId: undefined,
       targetPrayerCarouselIndex: undefined,
       targetPrayerId: undefined,
     } as any);
@@ -934,6 +939,7 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation, rou
         onClose={() => {
           setShowGratitudeModal(false);
           setExistingGratitudeEntry(undefined);
+          DeviceEventEmitter.emit('pencilAddFlowClosed');
         }}
       />
 

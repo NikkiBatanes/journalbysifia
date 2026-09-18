@@ -17,6 +17,7 @@ export interface JournalPlugin {
   icon?: string | React.ReactNode;
   savedMorningMoment?: MorningMoment;
   timelineItem?: MomentTimelineItem;
+  timelineItems?: MomentTimelineItem[];
 }
 
 // Optional filters that renderers can pass down to plugin components
@@ -58,4 +59,5 @@ export interface PluginRenderProps {
   reflectionId?: string;
   reflectionIds?: string[];
   timelineItem?: MomentTimelineItem;
+  timelineItems?: MomentTimelineItem[];
 }

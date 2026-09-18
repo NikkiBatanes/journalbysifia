@@ -5,6 +5,7 @@ import {Sparkle} from 'lucide-react-native';
 import { format } from 'date-fns';
 
 import ThemedText from '../common/ThemedText';
+import PrayerHandsIcon from '../common/PrayerHandsIcon';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
 import { useMomentsPalette } from '../../context/MomentsPaletteContext';
@@ -116,7 +117,7 @@ const PrayerCard = ({
         {prayer.metadata?.prayer_need && !momentsPalette && <ThemedText style={styles.needDates}>Praying since {formatStarted(prayer.metadata?.praying_since || prayer.selected_date)}{needs.length === 1 && needs[0].expectedDate ? ` · On or before ${formatStarted(needs[0].expectedDate)}` : ''}</ThemedText>}
         {!!requestContext && (
           <View style={styles.requestContext}>
-            <Ionicons name="mail-unread-outline" size={13} color={Colors.sage} />
+            <Ionicons name="mail-unread-outline" size={12} color={Colors.alertCoral} />
             <ThemedText style={styles.requestContextText} numberOfLines={3}>Prayer request: {requestContext}</ThemedText>
           </View>
         )}
@@ -144,7 +145,7 @@ const PrayerCard = ({
       ) : (
         <View style={styles.cardActions}>
           {!isAnswered && onPrayAgain && <TouchableOpacity style={[styles.actionButton, styles.cardActionButton]} onPress={() => onPrayAgain(prayer)} activeOpacity={0.7}>
-            <Ionicons name="heart-outline" size={14} color={Colors.sage} />
+            <PrayerHandsIcon size={14} color={Colors.sage} />
             <ThemedText weight="semiBold" style={[styles.actionButtonText, styles.cardActionText]} numberOfLines={1}>Pray again</ThemedText>
           </TouchableOpacity>}
           {onManage && <TouchableOpacity style={[styles.actionButton, styles.cardActionButton]} onPress={() => onManage(prayer)} activeOpacity={0.7}>
@@ -198,7 +199,18 @@ const styles = StyleSheet.create({
   castSection: { marginTop: 8 },
   castLabel: { color: Colors.sageMuted, fontSize: 9, lineHeight: 13, letterSpacing: 1.2, marginBottom: 4 },
   castBody: { marginBottom: 8 },
-  requestContext: { flexDirection: 'row', alignItems: 'flex-start', gap: 6, backgroundColor: Colors.actionBackground, borderRadius: 8, padding: 10, marginBottom: 12 },
+  requestContext: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: 'rgba(217, 120, 114, 0.28)',
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    marginBottom: 12,
+  },
   requestContextText: { flex: 1, color: Colors.textGray, fontSize: 13, lineHeight: 18 },
   requestActionContainer: { borderTopWidth: 1, borderTopColor: Colors.cardBorder, marginTop: 4, paddingTop: 12 },
   requestPrayButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 10 },

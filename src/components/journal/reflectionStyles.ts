@@ -5,15 +5,18 @@ import { Fonts } from '../../theme/fonts';
 export const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.hopeWhite,
+    // Paint the editor's dominant sheet color on the very first frame. The
+    // explicit ivory backdrop below preserves the header and rounded corners
+    // without allowing a full-screen light flash during native presentation.
+    backgroundColor: Colors.sage,
   },
   backgroundContainer: {
     position: 'absolute',
-    top: '50%',
+    top: 0,
     left: 0,
     right: 0,
-    bottom: 0,
-    backgroundColor: Colors.sage,
+    height: '50%',
+    backgroundColor: Colors.lightBackground,
   },
   keyboardAvoidingView: {
     flex: 1,
@@ -190,7 +193,7 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingBottom: 0,
     zIndex: 10,
-    backgroundColor: Colors.hopeWhite,
+    backgroundColor: Colors.lightBackground,
   },
   headerRight: {
     flexDirection: 'row',
@@ -212,6 +215,14 @@ export const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 16,
     marginHorizontal: 0,
+  },
+  headerCloseButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 999,
+    backgroundColor: Colors.cardBackground,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   headerSaveButton: {
     backgroundColor: Colors.sage,

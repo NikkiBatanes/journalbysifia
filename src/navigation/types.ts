@@ -75,6 +75,10 @@ export type RootStackParamList = {
     existingEntry?: any;
   } | undefined;
 
+  GratitudeWalkthrough: {
+    selectedDate?: string;
+  } | undefined;
+
   FuturePlanning: {
     selectedDate: string;
     isTomorrow: boolean;

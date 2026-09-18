@@ -526,6 +526,7 @@ const TodosExperience: React.FC<TodosExperienceProps> = ({
   };
 
   const handleClose = () => {
+    triggerLightHaptic();
     if (onClose) {onClose();}
   };
 
@@ -771,7 +772,7 @@ const styles = StyleSheet.create({
   completionButtonContainer: {
     position: 'absolute',
     left: 20,
-    right: 20,
+    right: 18,
     padding: 12,
     borderRadius: 26,
   },
