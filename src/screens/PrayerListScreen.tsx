@@ -20,7 +20,7 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import { ChevronDown } from 'lucide-react-native';
 import { endOfWeek, format, startOfWeek } from 'date-fns';
 import { useQueryClient } from '@tanstack/react-query';
-import Animated, {useAnimatedStyle, useSharedValue, withDelay, withSpring} from 'react-native-reanimated';
+import Animated, {FadeInUp} from 'react-native-reanimated';
 
 import ThemedText from '../components/common/ThemedText';
 import PrayerHandsIcon from '../components/common/PrayerHandsIcon';
@@ -142,16 +142,8 @@ const PrayerListScreen = () => {
   const scrollRef = useRef<any>(null);
   const lastScrollYRef = useRef(0);
   const tabBarCollapsedRef = useRef(false);
-  const headerEntrance = useSharedValue(0);
-  const bodyEntrance = useSharedValue(0);
-  const headerEntranceStyle = useAnimatedStyle(() => ({
-    opacity: headerEntrance.value,
-    transform: [{translateY: (1 - headerEntrance.value) * 14}],
-  }));
-  const bodyEntranceStyle = useAnimatedStyle(() => ({
-    opacity: bodyEntrance.value,
-    transform: [{translateY: (1 - bodyEntrance.value) * 20}],
-  }));
+  const [prayerContentReady, setPrayerContentReady] = useState(false);
+  const [prayerEntranceRun, setPrayerEntranceRun] = useState(0);
   const [answering, setAnswering] = useState(false);
   const createPrayer = useCreatePrayer();
   const deletePrayer = useDeletePrayer();
@@ -175,21 +167,6 @@ const PrayerListScreen = () => {
     });
     return () => { active = false; };
   }, []));
-
-  useFocusEffect(useCallback(() => {
-    lastScrollYRef.current = 0;
-    tabBarCollapsedRef.current = false;
-    setShowTabBar(true);
-    headerEntrance.value = 0;
-    bodyEntrance.value = 0;
-    headerEntrance.value = withSpring(1, {damping: 14, stiffness: 180});
-    bodyEntrance.value = withDelay(80, withSpring(1, {damping: 14, stiffness: 180}));
-
-    return () => {
-      tabBarCollapsedRef.current = false;
-      setShowTabBar(true);
-    };
-  }, [setShowTabBar, headerEntrance, bodyEntrance]));
 
   useEffect(() => {
     if (showTabBar && lastScrollYRef.current > 60) {
@@ -239,8 +216,25 @@ const PrayerListScreen = () => {
   const groupedPrayers = useMemo(() => groupPrayerEntries(prayers), [prayers]);
 
   useFocusEffect(useCallback(() => {
-    void refetchPrayers();
-  }, [refetchPrayers]));
+    let focused = true;
+    setPrayerContentReady(false);
+    lastScrollYRef.current = 0;
+    tabBarCollapsedRef.current = false;
+    setShowTabBar(true);
+
+    void refetchPrayers().finally(() => {
+      if (!focused) {return;}
+      setPrayerEntranceRun(run => run + 1);
+      setPrayerContentReady(true);
+    });
+
+    return () => {
+      focused = false;
+      setPrayerContentReady(false);
+      tabBarCollapsedRef.current = false;
+      setShowTabBar(true);
+    };
+  }, [refetchPrayers, setShowTabBar]));
 
   const pendingRequests = useMemo(() => groupedPrayers.filter(p => p.is_prayer_request === true && p.prayed !== true && trackingStatus(p) === 'pending'), [groupedPrayers]);
   const prayerNeedEntries = useMemo(() => groupedPrayers.filter(p => p.metadata?.prayer_need === true), [groupedPrayers]);
@@ -559,7 +553,7 @@ const PrayerListScreen = () => {
 
   const hasActiveFilterChips = activeTab !== 'all' || selectedTypes.length > 0 || selectedPeople.length > 0 || selectedTopics.length > 0 || sortMode !== 'updated';
   const stickyHeaderIndices = useMemo(() => {
-    if (isLoading || groupedResults.length === 0) return [];
+    if (!prayerContentReady || isLoading || groupedResults.length === 0) return [];
     let childIndex = (showSavedConfirmation ? 1 : 0)
       + (latestDraft ? 1 : 0)
       + (hasActiveFilterChips ? 1 : 0);
@@ -568,11 +562,11 @@ const PrayerListScreen = () => {
       childIndex += 1 + section.prayers.length;
       return index;
     });
-  }, [groupedResults, hasActiveFilterChips, isLoading, latestDraft, showSavedConfirmation]);
+  }, [groupedResults, hasActiveFilterChips, isLoading, latestDraft, prayerContentReady, showSavedConfirmation]);
 
   return (
     <View style={styles.container}>
-      <Animated.View style={[styles.header, {paddingTop: insets.top}, headerEntranceStyle]}>
+      <View style={[styles.header, {paddingTop: insets.top}]}>
         <View style={styles.headerTopRow}>
           <View style={styles.headerLeftRow}>
             <PrayerHandsIcon size={20} color={Colors.text} />
@@ -611,10 +605,10 @@ const PrayerListScreen = () => {
           </View>
           {!!searchQuery && <TouchableOpacity onPress={() => { triggerLightHaptic(); setSearchQuery(''); }} style={styles.clearButton} accessibilityLabel="Clear prayer search"><Ionicons name="close-circle" size={16} color={Colors.placeholderText} /></TouchableOpacity>}
         </View>}
-      </Animated.View>
-      <Animated.ScrollView
+      </View>
+      <ScrollView
         ref={scrollRef}
-        style={[styles.scroll, bodyEntranceStyle]}
+        style={styles.scroll}
         contentContainerStyle={[
           styles.content,
           {paddingBottom: !isLoading && filteredPrayers.length === 0 ? 0 : insets.bottom + 80},
@@ -624,37 +618,46 @@ const PrayerListScreen = () => {
         scrollEventThrottle={16}
         stickyHeaderIndices={stickyHeaderIndices}
       >
-      {showSavedConfirmation && (
-        <View style={styles.savedConfirmation}>
+      {prayerContentReady && showSavedConfirmation && (
+        <Animated.View
+          key={`${prayerEntranceRun}:saved-confirmation`}
+          entering={FadeInUp.springify().damping(14).stiffness(180)}
+          style={styles.savedConfirmation}
+        >
           <Ionicons name="checkmark-circle" size={17} color={Colors.growthGreen} />
           <ThemedText weight="medium" style={styles.savedConfirmationText}>Prayer saved</ThemedText>
-        </View>
+        </Animated.View>
       )}
 
-      {latestDraft && (
-        <TouchableOpacity style={styles.draftCard} onPress={handleContinueDraft} activeOpacity={0.75}>
-          <View style={styles.draftIcon}>
-            <PrayerHandsIcon size={18} color={Colors.sage} />
-          </View>
-          <View style={styles.draftContent}>
-            <ThemedText weight="semiBold" style={styles.draftEyebrow}>CONTINUE WRITING</ThemedText>
-            <ThemedText weight="bold" style={styles.draftTitle}>
-              {latestDraft.type === 'acts'
-                ? 'CAST Prayer'
-                : latestDraft.type === 'open'
-                  ? 'Open Prayer'
-                  : latestDraft.type === 'pray-for-someone'
-                    ? 'Prayer for Someone'
-                    : latestDraft.type === 'prayer-editor'
-                      ? `Prayer for ${latestDraft.data.prayerRequest?.person_name || 'Someone'}`
-                      : 'Prayer Request'}
-            </ThemedText>
-          </View>
-          <Ionicons name="chevron-forward" size={18} color={Colors.sage} />
-        </TouchableOpacity>
+      {prayerContentReady && latestDraft && (
+        <Animated.View
+          key={`${prayerEntranceRun}:draft`}
+          entering={FadeInUp.delay(80).springify().damping(14).stiffness(180)}
+        >
+          <TouchableOpacity style={styles.draftCard} onPress={handleContinueDraft} activeOpacity={0.75}>
+            <View style={styles.draftIcon}>
+              <PrayerHandsIcon size={18} color={Colors.sage} />
+            </View>
+            <View style={styles.draftContent}>
+              <ThemedText weight="semiBold" style={styles.draftEyebrow}>CONTINUE WRITING</ThemedText>
+              <ThemedText weight="bold" style={styles.draftTitle}>
+                {latestDraft.type === 'acts'
+                  ? 'CAST Prayer'
+                  : latestDraft.type === 'open'
+                    ? 'Open Prayer'
+                    : latestDraft.type === 'pray-for-someone'
+                      ? 'Prayer for Someone'
+                      : latestDraft.type === 'prayer-editor'
+                        ? `Prayer for ${latestDraft.data.prayerRequest?.person_name || 'Someone'}`
+                        : 'Prayer Request'}
+              </ThemedText>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={Colors.sage} />
+          </TouchableOpacity>
+        </Animated.View>
       )}
 
-      {hasActiveFilterChips && <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.activeFiltersScroll} contentContainerStyle={styles.activeFiltersRow}>
+      {prayerContentReady && hasActiveFilterChips && <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.activeFiltersScroll} contentContainerStyle={styles.activeFiltersRow}>
         {activeTab !== 'all' && <TouchableOpacity style={styles.activeFilterPill} onPress={() => { triggerLightHaptic(); setActiveTab('all'); }}><ThemedText style={styles.activeFilterText}>{TABS.find(tab => tab.key === activeTab)?.label}</ThemedText><Ionicons name="close" size={13} color={Colors.sage} /></TouchableOpacity>}
         {selectedTypes.map(value => <TouchableOpacity key={value} style={styles.activeFilterPill} onPress={() => toggleSelection(value, selectedTypes, setSelectedTypes)}><ThemedText style={styles.activeFilterText}>{PRAYER_TYPES.find(item => item.key === value)?.label}</ThemedText><Ionicons name="close" size={13} color={Colors.sage} /></TouchableOpacity>)}
         {selectedPeople.map(value => <TouchableOpacity key={value} style={styles.activeFilterPill} onPress={() => toggleSelection(value, selectedPeople, setSelectedPeople)}><ThemedText style={styles.activeFilterText}>{value}</ThemedText><Ionicons name="close" size={13} color={Colors.sage} /></TouchableOpacity>)}
@@ -662,7 +665,7 @@ const PrayerListScreen = () => {
         {sortMode !== 'updated' && <TouchableOpacity style={styles.activeFilterPill} onPress={() => { triggerLightHaptic(); setSortMode('updated'); }}><ThemedText style={styles.activeFilterText}>{SORT_OPTIONS.find(item => item.key === sortMode)?.label}</ThemedText><Ionicons name="close" size={13} color={Colors.sage} /></TouchableOpacity>}
       </ScrollView>}
 
-      {isLoading ? (
+      {!prayerContentReady ? null : isLoading ? (
         <View style={styles.loader}>
           <ActivityIndicator color={Colors.sage} />
         </View>
@@ -673,8 +676,12 @@ const PrayerListScreen = () => {
               <ThemedText style={styles.emptySubtitle}>{searchQuery.trim() || activeFilterCount > 0 ? 'Try another search or clear a filter.' : activeTab === 'needs' ? 'You haven’t saved any prayer needs yet.' : activeTab === 'requests' ? 'You haven’t received any prayer requests yet.' : activeTab === 'answered' ? 'You haven’t marked any prayers as answered yet.' : activeTab === 'released' ? 'You haven’t let go of any prayers yet.' : 'You haven’t saved any prayers yet.'}</ThemedText>
             </View>
       ) : (
-            groupedResults.flatMap(section => [
-                <View key={`header-${timeframe}-${section.key}`} style={styles.sectionHeader}>
+            groupedResults.flatMap((section, sectionIndex) => [
+                <Animated.View
+                  key={`${prayerEntranceRun}:header-${timeframe}-${section.key}`}
+                  entering={FadeInUp.delay(Math.min(sectionIndex * 160, 560)).springify().damping(14).stiffness(180)}
+                  style={styles.sectionHeader}
+                >
                   <ThemedText weight="semiBold" numberOfLines={1} style={styles.sectionTitle}>{section.title}</ThemedText>
                   {(() => {
                     const requestCount = section.prayers.filter(
@@ -696,26 +703,30 @@ const PrayerListScreen = () => {
                       <ThemedText numberOfLines={1} style={styles.sectionCount}>{section.prayers.length} {section.prayers.length === 1 ? 'prayer' : 'prayers'}</ThemedText>
                     );
                   })()}
-                </View>,
-                ...section.prayers.map(prayer => (
-                  <PrayerCard
-                    key={prayer.id}
-                    prayer={prayer}
-                    onPrayAgain={handlePrayAgain}
-                    onEdit={handleEditPrayer}
-                    onManageAnswers={p => { triggerLightHaptic(); setTrackingMode('details'); setTrackingPrayer(p); }}
-                    onManage={p => { triggerLightHaptic(); setTrackingMode(isTrackedPrayer(p) ? 'update' : 'details'); setTrackingPrayer(p); }}
-                    onAnswered={handleAnswered}
-                    onRelease={handleRelease}
-                    answering={answering}
-                    onAddPrayer={handleAddPrayer}
-                  />
+                </Animated.View>,
+                ...section.prayers.map((prayer, prayerIndex) => (
+                  <Animated.View
+                    key={`${prayerEntranceRun}:prayer-${prayer.id}`}
+                    entering={FadeInUp.delay(Math.min((sectionIndex * 2 + prayerIndex + 1) * 80, 640)).springify().damping(14).stiffness(180)}
+                  >
+                    <PrayerCard
+                      prayer={prayer}
+                      onPrayAgain={handlePrayAgain}
+                      onEdit={handleEditPrayer}
+                      onManageAnswers={p => { triggerLightHaptic(); setTrackingMode('details'); setTrackingPrayer(p); }}
+                      onManage={p => { triggerLightHaptic(); setTrackingMode(isTrackedPrayer(p) ? 'update' : 'details'); setTrackingPrayer(p); }}
+                      onAnswered={handleAnswered}
+                      onRelease={handleRelease}
+                      answering={answering}
+                      onAddPrayer={handleAddPrayer}
+                    />
+                  </Animated.View>
                 )),
             ])
       )}
       <View style={{ height: 24 }} />
 
-      </Animated.ScrollView>
+      </ScrollView>
       <Modal visible={timeframeOpen} transparent animationType="fade" onRequestClose={() => setTimeframeOpen(false)}>
         <TouchableOpacity style={styles.pickerOverlay} activeOpacity={1} onPress={() => setTimeframeOpen(false)}>
           <TouchableOpacity style={styles.timeframePicker} activeOpacity={1} onPress={() => {}}>

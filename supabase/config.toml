@@ -67,6 +67,12 @@ enabled = true
 [functions.apple-webhook]
 verify_jwt = false
 
+[functions.gospel-share-public]
+verify_jwt = false
+
+[functions.create-gospel-share]
+verify_jwt = false
+
 [studio]
 enabled = true
 # Port to use for Supabase Studio.

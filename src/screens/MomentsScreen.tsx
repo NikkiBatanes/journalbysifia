@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { View, StyleSheet, RefreshControl, StatusBar, DeviceEventEmitter, TextInput, TouchableOpacity, LayoutAnimation, Platform, UIManager, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Animated, { useAnimatedStyle, useSharedValue, withDelay, withSpring } from 'react-native-reanimated';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { Feather, ChevronDown } from 'lucide-react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -40,18 +39,10 @@ export const MomentsScreen: React.FC = () => {
   const { showTabBar, setShowTabBar } = useScroll();
   const lastScrollYRef = useRef(0);
   const tabBarCollapsedRef = useRef(false);
-  // Focus entrance — same spring feel as Today's staggered FadeInUp, driven by
-  // shared values so the moments list is not remounted on every tab switch.
-  const headerEntrance = useSharedValue(0);
-  const bodyEntrance = useSharedValue(0);
-  const headerEntranceStyle = useAnimatedStyle(() => ({
-    opacity: headerEntrance.value,
-    transform: [{ translateY: (1 - headerEntrance.value) * 14 }],
-  }));
-  const bodyEntranceStyle = useAnimatedStyle(() => ({
-    opacity: bodyEntrance.value,
-    transform: [{ translateY: (1 - bodyEntrance.value) * 20 }],
-  }));
+  const [momentsReady, setMomentsReady] = useState(false);
+  const [momentsEntranceRun, setMomentsEntranceRun] = useState(0);
+  // Moment cards wait for their data and stagger inside the renderer. The
+  // header intentionally remains static.
   // Date filtering state - Default to show all dates up to today (exclude future dates)
   const [selectedDate] = useState(new Date());
   const [selectedRange] = useState<DateRange>({
@@ -79,20 +70,22 @@ export const MomentsScreen: React.FC = () => {
   // Save events may occur while this tab is not mounted or focused.
   // Returning to Moments must rediscover persisted content independently.
   useFocusEffect(React.useCallback(() => {
+    setMomentsReady(false);
     setRefreshKey(previous => previous + 1);
     lastScrollYRef.current = 0;
     tabBarCollapsedRef.current = false;
     setShowTabBar(true);
-    headerEntrance.value = 0;
-    bodyEntrance.value = 0;
-    headerEntrance.value = withSpring(1, { damping: 14, stiffness: 180 });
-    bodyEntrance.value = withDelay(80, withSpring(1, { damping: 14, stiffness: 180 }));
-
     return () => {
+      setMomentsReady(false);
       tabBarCollapsedRef.current = false;
       setShowTabBar(true);
     };
-  }, [setShowTabBar, headerEntrance, bodyEntrance]));
+  }, [setShowTabBar]));
+
+  const handleMomentsReady = React.useCallback(() => {
+    setMomentsEntranceRun(run => run + 1);
+    setMomentsReady(true);
+  }, []);
 
   useEffect(() => {
     if (showTabBar && lastScrollYRef.current > 60) {
@@ -241,7 +234,7 @@ export const MomentsScreen: React.FC = () => {
         translucent={false}
       />
 
-      <Animated.View style={[styles.headerBar, IS_IPAD && styles.headerBarPad, { backgroundColor: Colors.lightBackground }, headerEntranceStyle]}>
+      <View style={[styles.headerBar, IS_IPAD && styles.headerBarPad, { backgroundColor: Colors.lightBackground }]}>
         <View style={[styles.pageInner, IS_IPAD && styles.pageInnerPad]}>
           {/* Row 1: Title with icon left, actions right */}
           <View style={styles.headerTopRow}>
@@ -315,7 +308,7 @@ export const MomentsScreen: React.FC = () => {
           )}
           {!showSearch && <View style={styles.searchBarCollapsedSpacer} />}
         </View>
-      </Animated.View>
+      </View>
 
       {/* GroupingSelect and FilterSelect - rendered off-screen for ref functionality */}
       <View style={{ position: 'absolute', left: -9999, top: -9999 }}>
@@ -336,7 +329,7 @@ export const MomentsScreen: React.FC = () => {
       </View>
 
       {/* Enhanced Moments Renderer - now handles its own scrolling */}
-      <Animated.View style={[{flex: 1}, bodyEntranceStyle]}>
+      <View style={[{ flex: 1 }, !momentsReady && styles.momentsHidden]} pointerEvents={momentsReady ? 'auto' : 'none'}>
         <EnhancedMomentsRenderer
           plugins={plugins}
           navigation={navigation}
@@ -347,6 +340,8 @@ export const MomentsScreen: React.FC = () => {
           prayerAnswerFilter={prayerAnswerFilter}
           filterKeys={activeFilters}
           refreshKey={refreshKey}
+          entranceRun={momentsEntranceRun}
+          onContentReady={handleMomentsReady}
           style={styles.momentsRenderer}
           onScroll={handleMomentsScroll}
           headerComponents={[]}
@@ -359,7 +354,7 @@ export const MomentsScreen: React.FC = () => {
             />
           }
         />
-      </Animated.View>
+      </View>
     </>
   );
 
@@ -557,6 +552,9 @@ const styles = StyleSheet.create({
   momentsRenderer: {
     flex: 1,
     minHeight: 400,
+  },
+  momentsHidden: {
+    opacity: 0,
   },
   filterPanel: {
     paddingHorizontal: 20,

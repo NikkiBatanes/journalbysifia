@@ -7,7 +7,7 @@
   "splash": {
     "image": "./assets/images/journalbysifia-splash.png",
     "resizeMode": "contain",
-    "backgroundColor": "#526A5B"
+    "backgroundColor": "#718476"
   },
   "ios": {
     "supportsTablet": true,
@@ -17,7 +17,7 @@
   "android": {
     "adaptiveIcon": {
       "foregroundImage": "./assets/images/journalbysifia-app-icon-foreground.png",
-      "backgroundColor": "#526A5B"
+      "backgroundColor": "#718476"
     },
     "package": "app.journal.sifia",
     "versionCode": 1

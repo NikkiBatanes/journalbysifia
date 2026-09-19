@@ -17,6 +17,8 @@
 		1EAD0C3167834E3FA012806E /* Poppins-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 69025D5AE32D4F0C9E300580 /* Poppins-Regular.ttf */; };
 		1F7E387BCCE2E9FFF7B12305 /* LiquidGlassViewManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF8F79F8ECACC81C33EBBDF8 /* LiquidGlassViewManager.swift */; };
 		2BBD9FD75C884CA79B676E20 /* NunitoSans-VariableFont_YTLC,opsz,wdth,wght.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 79C4EAB745CB4A43B25C08B1 /* NunitoSans-VariableFont_YTLC,opsz,wdth,wght.ttf */; };
+		2F1A0D000000000000000002 /* today_opening.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 2F1A0D000000000000000001 /* today_opening.mp3 */; };
+		2F1A0D000000000000000004 /* gospel_opening.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 2F1A0D000000000000000003 /* gospel_opening.mp3 */; };
 		427FC447A691C58BB6D3B3CC /* libPods-JournalBySiFia.a in Frameworks */ = {isa = PBXBuildFile; fileRef = B62E77873B8CF9FD8510DFED /* libPods-JournalBySiFia.a */; };
 		5D3BECA3F76C47EA978B5F3D /* Poppins-Medium.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 9D531852859B4AC5BDC9CCE0 /* Poppins-Medium.ttf */; };
 		6D3976B3D62A0BC10B8F2817 /* LiquidGlassViewManager.m in Sources */ = {isa = PBXBuildFile; fileRef = DC8E06AD3847B6FCF573388F /* LiquidGlassViewManager.m */; };
@@ -80,6 +82,8 @@
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = JournalBySiFia/Info.plist; sourceTree = "<group>"; };
 		13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = PrivacyInfo.xcprivacy; path = JournalBySiFia/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		1F2FD5522C744C0FB49EF9BE /* Lora-Medium.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Lora-Medium.ttf"; path = "../assets/fonts/Lora/Lora-Medium.ttf"; sourceTree = "<group>"; };
+		2F1A0D000000000000000001 /* today_opening.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; name = today_opening.mp3; path = JournalBySiFia/Sounds/today_opening.mp3; sourceTree = "<group>"; };
+		2F1A0D000000000000000003 /* gospel_opening.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; name = gospel_opening.mp3; path = JournalBySiFia/Sounds/gospel_opening.mp3; sourceTree = "<group>"; };
 		3FC4D19ABE124930A1FA5919 /* OleoScriptSwashCaps-Regular.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "OleoScriptSwashCaps-Regular.ttf"; path = "../assets/fonts/OleoScriptSwashCaps/OleoScriptSwashCaps-Regular.ttf"; sourceTree = "<group>"; };
 		41BBBFAE4F8542B4BA2367E9 /* DancingScript-Regular.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "DancingScript-Regular.ttf"; path = "../assets/fonts/DancingScript/DancingScript-Regular.ttf"; sourceTree = "<group>"; };
 		43D1FCFBE4BC418F8F1B879C /* Lexend-SemiBold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Lexend-SemiBold.ttf"; path = "../assets/fonts/Lexend/Lexend-SemiBold.ttf"; sourceTree = "<group>"; };
@@ -148,6 +152,8 @@
 		13B07FAE1A68108700A75B9A /* JournalBySiFia */ = {
 			isa = PBXGroup;
 			children = (
+				2F1A0D000000000000000003 /* gospel_opening.mp3 */,
+				2F1A0D000000000000000001 /* today_opening.mp3 */,
 				88DC195F2ECB85910060E257 /* JournalBySiFiaRelease.entitlements */,
 				881ACC642E681F9400D4F304 /* JournalBySiFia.entitlements */,
 				13B07FB51A68108700A75B9A /* Images.xcassets */,
@@ -352,6 +358,8 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				2F1A0D000000000000000004 /* gospel_opening.mp3 in Resources */,
+				2F1A0D000000000000000002 /* today_opening.mp3 in Resources */,
 				81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */,
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
 				7C64DB553D46C3EE68655733 /* PrivacyInfo.xcprivacy in Resources */,

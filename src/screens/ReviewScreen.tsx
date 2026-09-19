@@ -280,6 +280,22 @@ const ReviewScreen: React.FC = () => {
                     </ThemedText>
                   </View>
                 ))}
+              {capture.prayerStats.total > 0 ? (
+                <>
+                  <View style={styles.captureStatRow}>
+                    <ThemedText style={styles.captureStatLabel}>Prayers answered</ThemedText>
+                    <ThemedText weight="semiBold" style={styles.captureStatValue}>
+                      {capture.prayerStats.answered}
+                    </ThemedText>
+                  </View>
+                  <View style={styles.captureStatRow}>
+                    <ThemedText style={styles.captureStatLabel}>Still praying</ThemedText>
+                    <ThemedText weight="semiBold" style={styles.captureStatValue}>
+                      {capture.prayerStats.pending}
+                    </ThemedText>
+                  </View>
+                </>
+              ) : null}
             </View>
           )}
 

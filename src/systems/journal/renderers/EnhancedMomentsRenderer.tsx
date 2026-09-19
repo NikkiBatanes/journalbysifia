@@ -1,6 +1,7 @@
 import React, { useCallback, useMemo, useState, useEffect, useRef } from 'react';
 import { Logger } from '../../../utils/ProductionLogger';
 import { View, StyleSheet, SectionList, RefreshControlProps, TouchableOpacity, DeviceEventEmitter } from 'react-native';
+import Animated, { FadeInUp } from 'react-native-reanimated';
 import { Feather } from 'lucide-react-native';
 import { JournalPlugin } from '../types';
 import { PluginRenderer } from '../PluginRenderer';
@@ -72,6 +73,8 @@ interface EnhancedMomentsRendererProps {
   onAddPress?: () => void;
   navigation?: any;
   onScroll?: (event: any) => void;
+  entranceRun?: number;
+  onContentReady?: () => void;
 }
 
 interface MomentEntry {
@@ -490,6 +493,8 @@ const EnhancedMomentsContent: React.FC<EnhancedMomentsRendererProps> = ({
   onAddPress,
   navigation,
   onScroll,
+  entranceRun = 0,
+  onContentReady,
 }) => {
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';
@@ -654,6 +659,7 @@ const EnhancedMomentsContent: React.FC<EnhancedMomentsRendererProps> = ({
       setRealEntries(localEntries);
       setLoading(false);
       hasLoadedOnce.current = true;
+      onContentReady?.();
       return;
     }
 
@@ -1307,9 +1313,10 @@ const EnhancedMomentsContent: React.FC<EnhancedMomentsRendererProps> = ({
       if (generation === fetchGeneration.current) {
         setLoading(false);
         hasLoadedOnce.current = true;
+        onContentReady?.();
       }
     }
-  }, [user, plugins, refreshKey]);
+  }, [user, plugins, refreshKey, onContentReady]);
 
   // Fetch entries when component mounts or dependencies change
   React.useEffect(() => {
@@ -2612,8 +2619,28 @@ const EnhancedMomentsContent: React.FC<EnhancedMomentsRendererProps> = ({
         ref={sectionListRef}
         key={listKey}
         sections={sectionsWithContent}
-        renderItem={renderCarouselItem}
-        renderSectionHeader={renderSectionHeader}
+        renderItem={(info) => {
+          const sectionIndex = Math.max(0, sectionsWithContent.findIndex(section => section.key === info.section?.key));
+          return (
+            <Animated.View
+              key={`${entranceRun}:${info.section?.key ?? 'section'}:${info.index}`}
+              entering={FadeInUp.delay(Math.min((sectionIndex * 2 + info.index + 1) * 80, 640)).springify().damping(14).stiffness(180)}
+            >
+              {renderCarouselItem(info)}
+            </Animated.View>
+          );
+        }}
+        renderSectionHeader={(info) => {
+          const sectionIndex = Math.max(0, sectionsWithContent.findIndex(section => section.key === info.section?.key));
+          return (
+            <Animated.View
+              key={`${entranceRun}:header:${info.section?.key ?? sectionIndex}`}
+              entering={FadeInUp.delay(Math.min(sectionIndex * 160, 560)).springify().damping(14).stiffness(180)}
+            >
+              {renderSectionHeader(info)}
+            </Animated.View>
+          );
+        }}
         contentContainerStyle={styles.listContent}
         contentInsetAdjustmentBehavior="never"
         automaticallyAdjustContentInsets={false}

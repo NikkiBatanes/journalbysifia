@@ -150,22 +150,57 @@ const ForMeDayScreen: React.FC<any> = ({navigation, route}) => {
   if (!loaded) {
     return <View style={styles.loading} />;
   }
+
+  const preferences: Array<{
+    icon: string;
+    title: string;
+    subtitle: string;
+    key: 'reminderEnabled' | 'showInMoments' | 'includeYearWhenSharing';
+  }> = [
+    {
+      icon: 'notifications-outline',
+      title: 'Annual reminder',
+      subtitle: 'A gentle reminder every year',
+      key: 'reminderEnabled',
+    },
+    {
+      icon: 'journal-outline',
+      title: 'Save reflections',
+      subtitle: 'Keep each year in Moments',
+      key: 'showInMoments',
+    },
+    {
+      icon: 'share-social-outline',
+      title: 'Show anniversary count',
+      subtitle: 'Include the number of years when sharing',
+      key: 'includeYearWhenSharing',
+    },
+  ];
+
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
       <View style={styles.header}>
         <TouchableOpacity
-          style={styles.circle}
-          onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={21} color={Colors.text} />
+          style={styles.headerButton}
+          onPress={() => navigation.goBack()}
+          hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}
+          accessibilityRole="button"
+          accessibilityLabel="Go back">
+          <Ionicons name="chevron-back" size={22} color={Colors.sage} />
         </TouchableOpacity>
-        <ThemedText style={styles.headerTitle}>My For Me Day</ThemedText>
+        <ThemedText style={styles.headerTitle}>
+          {editing ? 'For Me Day settings' : 'My For Me Day'}
+        </ThemedText>
         <TouchableOpacity
-          style={styles.circle}
-          onPress={() => setEditing(value => !value)}>
+          style={styles.headerButton}
+          onPress={() => setEditing(value => !value)}
+          hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}
+          accessibilityRole="button"
+          accessibilityLabel={editing ? 'Close settings' : 'Edit For Me Day'}>
           <Ionicons
             name={editing ? 'close' : 'settings-outline'}
-            size={20}
-            color={Colors.text}
+            size={19}
+            color={Colors.sage}
           />
         </TouchableOpacity>
       </View>
@@ -177,27 +212,26 @@ const ForMeDayScreen: React.FC<any> = ({navigation, route}) => {
           keyboardShouldPersistTaps="handled">
           {editing ? (
             <>
-              <View style={styles.introIcon}>
-                <Ionicons name="sparkles" size={30} color={Colors.hopeWhite} />
-              </View>
-              <ThemedText style={styles.setupTitle}>
-                A day worth remembering.
+              <ThemedText style={styles.eyebrow}>A PERSONAL MILESTONE</ThemedText>
+              <ThemedText style={styles.pageTitle}>Remember the day grace became personal.</ThemedText>
+              <ThemedText style={styles.pageIntro}>
+                Your For Me Day is the day the Gospel became more than a story—it became good news for you.
               </ThemedText>
-              <ThemedText style={styles.setupBody}>
-                Save the day the good news of Jesus became personal to you.
-              </ThemedText>
-              <ThemedText style={styles.label}>YOUR FOR ME DAY</ThemedText>
+
+              <ThemedText style={styles.sectionLabel}>THE DATE</ThemedText>
               <TouchableOpacity
-                style={styles.input}
-                onPress={() => setShowPicker(true)}>
-                <Ionicons
-                  name="calendar-outline"
-                  size={19}
-                  color={Colors.sage}
-                />
-                <ThemedText style={styles.inputText}>
-                  {format(birthdayDate, 'MMMM d, yyyy')}
-                </ThemedText>
+                style={styles.dateCard}
+                onPress={() => setShowPicker(true)}
+                accessibilityRole="button"
+                accessibilityLabel={`For Me Day, ${format(birthdayDate, 'MMMM d, yyyy')}`}>
+                <View style={styles.dateIcon}>
+                  <Ionicons name="calendar-outline" size={21} color={Colors.sage} />
+                </View>
+                <View style={styles.dateCopy}>
+                  <ThemedText style={styles.dateMonth}>{format(birthdayDate, 'MMMM d')}</ThemedText>
+                  <ThemedText style={styles.dateYear}>{format(birthdayDate, 'yyyy')}</ThemedText>
+                </View>
+                <ThemedText style={styles.changeText}>Change</ThemedText>
               </TouchableOpacity>
               {showPicker && (
                 <DateTimePicker
@@ -217,102 +251,90 @@ const ForMeDayScreen: React.FC<any> = ({navigation, route}) => {
                   }}
                 />
               )}
-              <ThemedText style={styles.label}>
-                WHAT HAPPENED THAT DAY? · OPTIONAL
-              </ThemedText>
+              <ThemedText style={styles.sectionLabel}>YOUR STORY · OPTIONAL</ThemedText>
               <TextInput
                 multiline
                 value={settings.originalStory || ''}
                 onChangeText={originalStory =>
                   setSettings(current => ({...current, originalStory}))
                 }
-                placeholder="The Gospel became more than something I knew..."
+                placeholder="What do you remember about that day?"
                 placeholderTextColor={Colors.textGray}
-                style={[styles.input, styles.storyInput]}
+                style={styles.storyInput}
               />
-              {[
-                [
-                  'Remind me every year',
-                  'A gentle notification on this day',
-                  'reminderEnabled',
-                ],
-                [
-                  'Save annual reflections in Moments',
-                  'Build a private anniversary timeline',
-                  'showInMoments',
-                ],
-                [
-                  'Show anniversary count when sharing',
-                  'You choose what leaves the app',
-                  'includeYearWhenSharing',
-                ],
-              ].map(([title, subtitle, key]) => (
-                <View style={styles.toggleRow} key={key}>
-                  <View style={styles.toggleCopy}>
-                    <ThemedText style={styles.toggleTitle}>{title}</ThemedText>
-                    <ThemedText style={styles.toggleSubtitle}>
-                      {subtitle}
-                    </ThemedText>
+              <ThemedText style={styles.sectionLabel}>PREFERENCES</ThemedText>
+              <View style={styles.preferencesCard}>
+                {preferences.map((item, index) => (
+                  <View
+                    style={[
+                      styles.toggleRow,
+                      index < preferences.length - 1 && styles.toggleDivider,
+                    ]}
+                    key={item.key}>
+                    <View style={styles.preferenceIcon}>
+                      <Ionicons name={item.icon as any} size={18} color={Colors.sage} />
+                    </View>
+                    <View style={styles.toggleCopy}>
+                      <ThemedText style={styles.toggleTitle}>{item.title}</ThemedText>
+                      <ThemedText style={styles.toggleSubtitle}>{item.subtitle}</ThemedText>
+                    </View>
+                    <Switch
+                      value={Boolean(settings[item.key])}
+                      onValueChange={value =>
+                        setSettings(current => ({...current, [item.key]: value}))
+                      }
+                      trackColor={{false: Colors.lightGray, true: Colors.sageMuted}}
+                      thumbColor={Colors.hopeWhite}
+                    />
                   </View>
-                  <Switch
-                    value={Boolean(settings[key as keyof typeof settings])}
-                    onValueChange={value =>
-                      setSettings(current => ({...current, [key]: value}))
-                    }
-                    trackColor={{
-                      false: Colors.lightGray,
-                      true: Colors.sageMuted,
-                    }}
-                    thumbColor={Colors.hopeWhite}
-                  />
-                </View>
-              ))}
+                ))}
+              </View>
               <TouchableOpacity style={styles.primary} onPress={saveSettings}>
                 <ThemedText style={styles.primaryText}>
-                  Save My For Me Day
+                  Save changes
                 </ThemedText>
               </TouchableOpacity>
             </>
           ) : (
             <>
+              <ThemedText style={styles.eyebrow}>A PERSONAL MILESTONE</ThemedText>
+              <ThemedText style={styles.pageTitle}>The day grace became personal.</ThemedText>
+              <ThemedText style={styles.pageIntro}>
+                A place to remember how your story with Jesus began—and how He has carried you since.
+              </ThemedText>
               <ViewShot
                 ref={shotRef}
                 options={{format: 'png', quality: 1, result: 'tmpfile'}}
-                style={styles.shareCard}>
-                <View style={styles.shareTop}>
-                  <Image
-                    source={require('../../assets/images/journalbysifia.png')}
-                    resizeMode="contain"
-                    style={styles.shareLogo}
-                  />
-                  <Ionicons
-                    name="sparkles-outline"
-                    size={22}
-                    color={Colors.faithGold}
-                  />
+                style={styles.milestoneCard}>
+                <View style={styles.decorativeOrbOne} />
+                <View style={styles.decorativeOrbTwo} />
+                <View style={styles.milestoneTop}>
+                  <ThemedText style={styles.milestoneKicker}>MY FOR ME DAY</ThemedText>
+                  <Ionicons name="sparkles-outline" size={20} color={Colors.faithGold} />
                 </View>
-                <View style={styles.shareCenter}>
+                <View style={styles.milestoneCenter}>
                   {settings.includeYearWhenSharing && years ? (
                     <>
                       <ThemedText style={styles.yearNumber}>{years}</ThemedText>
                       <ThemedText style={styles.yearLabel}>
-                        {years === 1 ? 'YEAR' : 'YEARS'} OF GRACE
+                        {years === 1 ? 'YEAR OF GRACE' : 'YEARS OF GRACE'}
                       </ThemedText>
                     </>
                   ) : null}
-                  <ThemedText style={styles.shareTitle}>
-                    The Gospel became personal.
-                  </ThemedText>
-                  <ThemedText style={styles.shareBody}>
-                    {'It wasn’t only good news.\nIt was good news for me.'}
-                  </ThemedText>
+                  <View style={styles.goldRule} />
+                  <ThemedText style={styles.milestoneQuote}>“It was good news for me.”</ThemedText>
                 </View>
-                <ThemedText style={styles.shareDate}>
-                  MY FOR ME DAY · {format(birthdayDate, 'MMMM d').toUpperCase()}
-                </ThemedText>
+                <View style={styles.milestoneBottom}>
+                  <ThemedText style={styles.milestoneDate}>{format(birthdayDate, 'MMMM d, yyyy').toUpperCase()}</ThemedText>
+                  <Image source={require('../../assets/images/journalbysifia.png')} resizeMode="contain" style={styles.shareLogo} />
+                </View>
               </ViewShot>
+
+              <View style={styles.sectionHeadingRow}>
+                <ThemedText style={styles.sectionHeading}>Your story</ThemedText>
+                <Ionicons name="book-outline" size={19} color={Colors.sage} />
+              </View>
               <View style={styles.storyCard}>
-                <ThemedText style={styles.label}>YOUR STORY</ThemedText>
                 <ThemedText style={styles.storyText}>
                   {settings.originalStory?.trim() ||
                     'This is the day you chose to remember when the Gospel became personal.'}
@@ -333,7 +355,7 @@ const ForMeDayScreen: React.FC<any> = ({navigation, route}) => {
                         color={Colors.hopeWhite}
                       />
                       <ThemedText style={styles.primaryText}>
-                        Reflect on this year
+                        Write this year’s reflection
                       </ThemedText>
                     </TouchableOpacity>
                   ) : null}
@@ -352,6 +374,7 @@ const ForMeDayScreen: React.FC<any> = ({navigation, route}) => {
                 </>
               ) : (
                 <View style={styles.reflectionCard}>
+                  <ThemedText style={styles.reflectionEyebrow}>THIS YEAR</ThemedText>
                   <ThemedText style={styles.reflectionPrompt}>
                     What does the Gospel being “for me” mean in this season?
                   </ThemedText>
@@ -386,100 +409,129 @@ const styles = StyleSheet.create({
   flex: {flex: 1},
   loading: {flex: 1, backgroundColor: Colors.lightBackground},
   header: {
-    height: 58,
-    paddingHorizontal: 16,
+    height: 56,
+    paddingHorizontal: 12,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  headerTitle: {fontFamily: Fonts.semiBold, fontSize: 15, color: Colors.text},
-  circle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: Colors.cardBackground,
+  headerTitle: {fontFamily: Fonts.semiBold, fontSize: 14, color: Colors.text},
+  headerButton: {
+    width: 44,
+    height: 44,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: Colors.cardBorder,
   },
   content: {
-    padding: 18,
-    paddingBottom: 50,
-    maxWidth: 620,
+    paddingHorizontal: 20,
+    paddingTop: 26,
+    paddingBottom: 56,
+    maxWidth: 680,
     width: '100%',
     alignSelf: 'center',
   },
-  introIcon: {
-    width: 66,
-    height: 66,
-    borderRadius: 33,
-    backgroundColor: Colors.sage,
-    alignItems: 'center',
-    justifyContent: 'center',
-    alignSelf: 'center',
-    marginTop: 12,
+  eyebrow: {
+    fontFamily: Fonts.semiBold,
+    fontSize: 10,
+    letterSpacing: 2.1,
+    color: Colors.sage,
+    marginBottom: 10,
   },
-  setupTitle: {
-    fontFamily: Fonts.lora.semiBold,
-    fontSize: 29,
+  pageTitle: {
+    maxWidth: 520,
+    fontFamily: Fonts.bold,
+    fontSize: 35,
+    lineHeight: 43,
+    letterSpacing: -0.7,
     color: Colors.text,
-    textAlign: 'center',
-    marginTop: 18,
   },
-  setupBody: {
+  pageIntro: {
+    maxWidth: 560,
     fontFamily: Fonts.regular,
     fontSize: 14,
     lineHeight: 22,
     color: Colors.textGray,
-    textAlign: 'center',
-    marginBottom: 26,
+    marginTop: 10,
+    marginBottom: 28,
   },
-  label: {
+  sectionLabel: {
     fontFamily: Fonts.semiBold,
     fontSize: 10,
-    letterSpacing: 1.3,
+    letterSpacing: 1.6,
     color: Colors.sage,
-    marginTop: 16,
-    marginBottom: 7,
+    marginTop: 24,
+    marginBottom: 10,
+    marginLeft: 4,
   },
-  input: {
-    minHeight: 54,
-    borderRadius: 16,
+  dateCard: {
+    minHeight: 78,
+    borderRadius: 20,
     backgroundColor: Colors.cardBackground,
-    borderWidth: 1,
+    borderWidth: StyleSheet.hairlineWidth,
     borderColor: Colors.cardBorder,
-    paddingHorizontal: 15,
+    paddingHorizontal: 16,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+  },
+  dateIcon: {
+    width: 46,
+    height: 46,
+    borderRadius: 14,
+    backgroundColor: Colors.anchorBlueLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dateCopy: {flex: 1, marginLeft: 14},
+  dateMonth: {fontFamily: Fonts.semiBold, fontSize: 16, color: Colors.text},
+  dateYear: {fontFamily: Fonts.regular, fontSize: 12, color: Colors.textGray, marginTop: 2},
+  changeText: {fontFamily: Fonts.medium, fontSize: 12, color: Colors.sage},
+  storyInput: {
+    height: 138,
+    textAlignVertical: 'top',
+    padding: 16,
+    borderRadius: 20,
+    backgroundColor: Colors.cardBackground,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.cardBorder,
     color: Colors.text,
     fontFamily: Fonts.regular,
     fontSize: 14,
+    lineHeight: 22,
   },
-  inputText: {fontFamily: Fonts.regular, fontSize: 14, color: Colors.text},
-  storyInput: {height: 110, textAlignVertical: 'top', paddingTop: 15},
+  preferencesCard: {
+    backgroundColor: Colors.cardBackground,
+    borderRadius: 20,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.cardBorder,
+    overflow: 'hidden',
+  },
   toggleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.cardBackground,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: Colors.cardBorder,
-    padding: 14,
-    marginTop: 10,
+    minHeight: 74,
+    paddingHorizontal: 14,
   },
-  toggleCopy: {flex: 1, paddingRight: 12},
-  toggleTitle: {fontFamily: Fonts.semiBold, fontSize: 13, color: Colors.text},
+  toggleDivider: {borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: Colors.cardBorder},
+  preferenceIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: Colors.anchorBlueLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  toggleCopy: {flex: 1, paddingRight: 8},
+  toggleTitle: {fontFamily: Fonts.semiBold, fontSize: 14, color: Colors.text},
   toggleSubtitle: {
     fontFamily: Fonts.regular,
-    fontSize: 10,
+    fontSize: 11,
     color: Colors.textGray,
     marginTop: 3,
   },
   primary: {
-    minHeight: 54,
-    borderRadius: 18,
+    minHeight: 52,
+    borderRadius: 999,
     backgroundColor: Colors.sage,
     alignItems: 'center',
     justifyContent: 'center',
@@ -495,10 +547,10 @@ const styles = StyleSheet.create({
   },
   secondary: {
     minHeight: 52,
-    borderRadius: 18,
-    backgroundColor: Colors.cardBackground,
+    borderRadius: 999,
+    backgroundColor: 'transparent',
     borderWidth: 1,
-    borderColor: Colors.cardBorder,
+    borderColor: Colors.sage,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
@@ -506,88 +558,131 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   secondaryText: {fontFamily: Fonts.semiBold, fontSize: 13, color: Colors.sage},
-  shareCard: {
-    height: 455,
-    borderRadius: 24,
-    backgroundColor: Colors.modalBlue,
-    padding: 25,
+  milestoneCard: {
+    height: 390,
+    borderRadius: 28,
+    backgroundColor: Colors.sage,
+    padding: 24,
     justifyContent: 'space-between',
     overflow: 'hidden',
   },
-  shareTop: {flexDirection: 'row', justifyContent: 'space-between'},
-  shareLogo: {
-    width: 44,
-    height: 44,
+  decorativeOrbOne: {
+    position: 'absolute',
+    width: 230,
+    height: 230,
+    borderRadius: 115,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.11)',
+    top: -100,
+    right: -70,
   },
-  shareCenter: {alignItems: 'center'},
+  decorativeOrbTwo: {
+    position: 'absolute',
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    bottom: -62,
+    left: -38,
+  },
+  milestoneTop: {flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between'},
+  milestoneKicker: {
+    fontFamily: Fonts.semiBold,
+    fontSize: 10,
+    letterSpacing: 2.2,
+    color: Colors.hopeWhite,
+    opacity: 0.9,
+  },
+  milestoneCenter: {alignItems: 'center'},
   yearNumber: {
     fontFamily: Fonts.lora.semiBold,
-    fontSize: 72,
-    lineHeight: 76,
+    fontSize: 88,
+    lineHeight: 92,
     color: Colors.hopeWhite,
   },
   yearLabel: {
     fontFamily: Fonts.semiBold,
     fontSize: 10,
-    letterSpacing: 2.6,
+    letterSpacing: 2.5,
     color: Colors.faithGold,
   },
-  shareTitle: {
-    fontFamily: Fonts.lora.semiBold,
-    fontSize: 28,
-    lineHeight: 35,
-    textAlign: 'center',
+  goldRule: {width: 28, height: 1, backgroundColor: Colors.faithGold, marginVertical: 20},
+  milestoneQuote: {
+    fontFamily: Fonts.lora.regular,
+    fontSize: 22,
+    lineHeight: 29,
+    fontStyle: 'italic',
     color: Colors.hopeWhite,
-    marginTop: 22,
-  },
-  shareBody: {
-    fontFamily: Fonts.regular,
-    fontSize: 14,
-    lineHeight: 23,
     textAlign: 'center',
-    color: Colors.hopeWhite,
-    opacity: 0.9,
-    marginTop: 12,
   },
-  shareDate: {
+  milestoneBottom: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: 'rgba(255,255,255,0.24)',
+    paddingTop: 14,
+  },
+  milestoneDate: {
     fontFamily: Fonts.semiBold,
     fontSize: 9,
     letterSpacing: 1.4,
-    textAlign: 'center',
     color: Colors.hopeWhite,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255,255,255,.2)',
-    paddingTop: 14,
+    opacity: 0.85,
   },
+  shareLogo: {width: 32, height: 32},
+  sectionHeadingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 30,
+    marginBottom: 10,
+    paddingHorizontal: 2,
+  },
+  sectionHeading: {fontFamily: Fonts.bold, fontSize: 20, color: Colors.text},
   storyCard: {
     backgroundColor: Colors.cardBackground,
-    borderWidth: 1,
+    borderWidth: StyleSheet.hairlineWidth,
     borderColor: Colors.cardBorder,
-    borderRadius: 18,
-    padding: 17,
-    marginTop: 14,
+    borderRadius: 20,
+    padding: 20,
   },
   storyText: {
     fontFamily: Fonts.lora.regular,
-    fontSize: 16,
-    lineHeight: 25,
+    fontSize: 17,
+    lineHeight: 27,
     color: Colors.text,
   },
-  reflectionCard: {marginTop: 16},
+  reflectionCard: {
+    marginTop: 18,
+    backgroundColor: Colors.cardBackground,
+    borderRadius: 22,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.cardBorder,
+    padding: 18,
+  },
+  reflectionEyebrow: {
+    fontFamily: Fonts.semiBold,
+    fontSize: 9,
+    letterSpacing: 1.8,
+    color: Colors.sage,
+    textAlign: 'center',
+    marginBottom: 8,
+  },
   reflectionPrompt: {
     fontFamily: Fonts.lora.semiBold,
-    fontSize: 20,
-    lineHeight: 28,
+    fontSize: 19,
+    lineHeight: 27,
     color: Colors.text,
     textAlign: 'center',
-    marginBottom: 12,
+    marginBottom: 16,
   },
   reflectionInput: {
-    height: 150,
-    backgroundColor: Colors.cardBackground,
-    borderWidth: 1,
+    height: 145,
+    backgroundColor: Colors.lightBackground,
+    borderWidth: StyleSheet.hairlineWidth,
     borderColor: Colors.cardBorder,
-    borderRadius: 18,
+    borderRadius: 16,
     padding: 15,
     textAlignVertical: 'top',
     fontFamily: Fonts.regular,

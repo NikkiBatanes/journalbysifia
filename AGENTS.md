@@ -3,7 +3,7 @@
 ## Sermon Notes
 
 - Main file: `src/screens/SermonNotesScreen.tsx`
-- Session Note types: one shared editor serves Sermon/Conference/Speaking/Meeting/Workshop/Other via additive `metadata.sessionNoteType` (`src/types/sessionNotes.ts`). Legacy records without the field resolve to `sermon` at read time — no migration. Add menu "Session Notes" opens a second-level type picker (same pattern as the Prayer submenu). Distinct from Heart Journal `journalClassification: 'notes'`.
+- Session Note types: one shared editor serves Sermon/Conference/Speaking/Meeting/Workshop/Other via additive `metadata.sessionNoteType` (`src/types/sessionNotes.ts`). Legacy records without the field resolve to `sermon` at read time — no migration. Add menu "Session Notes" opens the editor's type picker directly, matching the Heart Journal entry flow and avoiding a duplicate picker animation. Distinct from Heart Journal `journalClassification: 'notes'`.
 - Common verification: `npx tsc --noEmit` (only known unrelated error in `src/components/dashboard/StreakTracker.tsx`)
 
 ## Review Feature

@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import Animated, { FadeInUp } from 'react-native-reanimated';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
 import ScriptureReaderModal from '../ScriptureReaderModal';
@@ -17,7 +18,7 @@ interface DashboardHeaderScriptureProps {
 }
 
 const DashboardHeaderScripture: React.FC<DashboardHeaderScriptureProps> = ({ date, bibleVersion, previewOffset = 0, centered = false }) => {
-  const now = date ?? new Date();
+  const now = useMemo(() => date ?? new Date(), [date]);
   const [text, setText] = useState<string | null>(null);
   const [error, setError] = useState(false);
   const [retry, setRetry] = useState(0);
@@ -66,10 +67,13 @@ const DashboardHeaderScripture: React.FC<DashboardHeaderScriptureProps> = ({ dat
         activeOpacity={1}
         onPress={() => { setModalVisible(true); }}
         accessibilityRole="button"
-        accessibilityLabel={`Open ${scripture.displayReference} in Scripture Reader`}
-        style={[styles.container, centered && styles.containerCentered]}
+      accessibilityLabel={`Open ${scripture.displayReference} in Scripture Reader`}
+      style={[styles.container, centered && styles.containerCentered]}
       >
-        <View style={[styles.container, centered && styles.containerCentered]}>
+        <Animated.View
+          entering={FadeInUp.duration(650).springify().damping(18).stiffness(120)}
+          style={[styles.verseContent, centered && styles.containerCentered]}
+        >
           <Text
             style={[styles.verse, centered && styles.verseCentered]}
             textBreakStrategy="simple"
@@ -81,7 +85,7 @@ const DashboardHeaderScripture: React.FC<DashboardHeaderScriptureProps> = ({ dat
           <ThemedText weight="semiBold" style={[styles.reference, centered && styles.referenceCentered]} maxFontSizeMultiplier={1.1}>
             {scripture.displayReference.toUpperCase()}
           </ThemedText>
-        </View>
+        </Animated.View>
       </TouchableOpacity>
       <ScriptureReaderModal
         visible={modalVisible}
@@ -97,11 +101,12 @@ const DashboardHeaderScripture: React.FC<DashboardHeaderScriptureProps> = ({ dat
 const styles = StyleSheet.create({
   placeholder: {
     width: '100%',
-    minHeight: 50,
+    height: 112,
+    marginTop: 12,
   },
   offline: {
     width: '100%',
-    minHeight: 50,
+    height: 112,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'flex-end',
@@ -114,9 +119,14 @@ const styles = StyleSheet.create({
   },
   container: {
     width: '100%',
-    minHeight: 50,
+    height: 112,
     alignItems: 'flex-end',
+    justifyContent: 'center',
     marginTop: 12,
+  },
+  verseContent: {
+    width: '100%',
+    alignItems: 'flex-end',
   },
   verse: {
     fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',

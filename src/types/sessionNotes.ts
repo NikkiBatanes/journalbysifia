@@ -34,28 +34,28 @@ const detail = (key: SessionNoteDetailKey, label: string, placeholder: string) =
 
 const SESSION_NOTE_CONFIGS: Record<SessionNoteType, SessionNoteUiConfig> = {
   sermon: {
-    displayLabel: 'Sermon Notes', shortLabel: 'Sermon', titleLabel: 'Sermon title', titlePlaceholder: 'Title of the message...',
+    displayLabel: 'Sermon Notes', shortLabel: 'Sermon', titleLabel: 'Title', titlePlaceholder: 'Title of the message...',
     personLabel: 'Pastor / Speaker', personPlaceholder: 'Pastor name...', details: [detail('event', 'Series', 'The Book of Romans...'), detail('topic', 'Main Scripture', 'Romans 12:1–2...'), detail('location', 'Church / Event', 'Where you heard it...')],
     savedCopy: 'Your sermon notes are saved. Here’s what you captured from the message.', rememberedCopy: 'SERMON REMEMBERED', reflectedCopy: 'Sermon reflected', includesCopy: 'YOUR SERMON NOW INCLUDES', viewCopy: 'View sermon',
   },
   conference: {
-    displayLabel: 'Conference Notes', shortLabel: 'Conference', titleLabel: 'Session title', titlePlaceholder: 'Title of the session...', personLabel: 'Speaker', personPlaceholder: 'Speaker name...',
+    displayLabel: 'Conference Notes', shortLabel: 'Conference', titleLabel: 'Title', titlePlaceholder: 'Title of the session...', personLabel: 'Speaker', personPlaceholder: 'Speaker name...',
     details: [detail('event', 'Conference / Event', 'Conference or event...'), detail('topic', 'Topic / Track', 'Topic or track...'), detail('location', 'Location', 'Location...')], savedCopy: 'Your conference notes are saved. Here’s what you captured.', rememberedCopy: 'CONFERENCE REMEMBERED', reflectedCopy: 'Conference reflected', includesCopy: 'YOUR CONFERENCE NOW INCLUDES', viewCopy: 'View conference notes',
   },
   speaking: {
-    displayLabel: 'Speaking Notes', shortLabel: 'Speaking', titleLabel: 'Talk title', titlePlaceholder: 'Title of the talk...', personLabel: 'Speaker / Presenter', personPlaceholder: 'Speaker or presenter...',
+    displayLabel: 'Speaking Notes', shortLabel: 'Speaking', titleLabel: 'Title', titlePlaceholder: 'Title of the talk...', personLabel: 'Speaker / Presenter', personPlaceholder: 'Speaker or presenter...',
     details: [detail('event', 'Event', 'Event...'), detail('topic', 'Topic / Theme', 'Topic or theme...'), detail('location', 'Location', 'Location...')], savedCopy: 'Your speaking notes are saved. Here’s what you captured.', rememberedCopy: 'TALK REMEMBERED', reflectedCopy: 'Talk reflected', includesCopy: 'YOUR TALK NOW INCLUDES', viewCopy: 'View speaking notes',
   },
   meeting: {
-    displayLabel: 'Meeting Notes', shortLabel: 'Meeting', titleLabel: 'Meeting title', titlePlaceholder: 'Title of the meeting...', personLabel: 'People / Team', personPlaceholder: 'People or team...',
+    displayLabel: 'Meeting Notes', shortLabel: 'Meeting', titleLabel: 'Title', titlePlaceholder: 'Title of the meeting...', personLabel: 'People / Team', personPlaceholder: 'People or team...',
     details: [detail('event', 'Organization / Group', 'Organization or group...'), detail('topic', 'Topic / Agenda', 'Topic or agenda...'), detail('location', 'Location', 'Location...')], savedCopy: 'Your meeting notes are saved. Here’s what you captured.', rememberedCopy: 'MEETING REMEMBERED', reflectedCopy: 'Meeting reflected', includesCopy: 'YOUR MEETING NOW INCLUDES', viewCopy: 'View meeting notes',
   },
   workshop: {
-    displayLabel: 'Workshop Notes', shortLabel: 'Workshop', titleLabel: 'Workshop title', titlePlaceholder: 'Title of the workshop...', personLabel: 'Facilitator / Speaker', personPlaceholder: 'Facilitator or speaker...',
+    displayLabel: 'Workshop Notes', shortLabel: 'Workshop', titleLabel: 'Title', titlePlaceholder: 'Title of the workshop...', personLabel: 'Facilitator / Speaker', personPlaceholder: 'Facilitator or speaker...',
     details: [detail('event', 'Workshop / Event', 'Workshop or event...'), detail('topic', 'Topic / Theme', 'Topic or theme...'), detail('location', 'Location', 'Location...')], savedCopy: 'Your workshop notes are saved. Here’s what you captured.', rememberedCopy: 'WORKSHOP REMEMBERED', reflectedCopy: 'Workshop reflected', includesCopy: 'YOUR WORKSHOP NOW INCLUDES', viewCopy: 'View workshop notes',
   },
   other: {
-    displayLabel: 'Session Notes', shortLabel: 'Session', titleLabel: 'Note title', titlePlaceholder: 'Title of the note...', personLabel: 'Person / Speaker', personPlaceholder: 'Person or speaker...',
+    displayLabel: 'Session Notes', shortLabel: 'Session', titleLabel: 'Title', titlePlaceholder: 'Title of the note...', personLabel: 'Person / Speaker', personPlaceholder: 'Person or speaker...',
     details: [detail('event', 'Event / Context', 'Event or context...'), detail('topic', 'Topic', 'Topic...'), detail('location', 'Location', 'Location...')], savedCopy: 'Your session notes are saved. Here’s what you captured.', rememberedCopy: 'SESSION REMEMBERED', reflectedCopy: 'Session reflected', includesCopy: 'YOUR SESSION NOW INCLUDES', viewCopy: 'View session notes',
   },
 };

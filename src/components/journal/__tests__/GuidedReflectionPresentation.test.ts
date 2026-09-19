@@ -177,6 +177,25 @@ describe('Guided Reflection presentation contract', () => {
     expect(guidedSource).toContain('flexShrink: 1');
   });
 
+  it('lays curated questions out as two natural-height masonry columns', () => {
+    expect(guidedSource).toContain('{[0, 1].map(column => (');
+    expect(guidedSource).toContain('index % 2 === column');
+    expect(guidedSource).toContain('style={styles.questionColumn}');
+    expect(guidedSource).toContain("questionColumn: {flex: 1, minWidth: 0, gap: 10}");
+    expect(guidedSource).not.toMatch(/promptCard:\s*\{[\s\S]*?minHeight: 160/);
+  });
+
+  it('stagger-reveals masonry cards and settles every card at its final position', () => {
+    expect(guidedSource).toContain("section === 'questions' ? 65 : 38");
+    expect(guidedSource).toContain('outputRange: [34, 0]');
+    expect(guidedSource).toContain('outputRange: [0.92, 1]');
+    expect(guidedSource).toContain("tension: section === 'questions' ? 72 : 90");
+    expect(guidedSource).toContain("friction: section === 'questions' ? 7 : 12");
+    expect(guidedSource).toContain('overshootClamping: false');
+    expect(guidedSource).toContain('animations.forEach(animation => animation.setValue(1))');
+    expect(guidedSource).toContain('questionRevealAnims.forEach(animation => {');
+  });
+
   it('keeps the Guided chooser on the Heart Journal cover surface', () => {
     expect(guidedSource).toContain('styles.heartJournalChooser');
     expect(guidedSource).toMatch(/HEART JOURNAL/);
@@ -191,19 +210,26 @@ describe('Guided Reflection presentation contract', () => {
     expect(guidedSource).toContain("chooserSection === 'guided' &&");
     expect(guidedSource).toContain("chooserSection === 'questions' &&");
     expect(guidedSource).toContain('LayoutAnimation.Types.spring');
-    expect(guidedSource).toContain('Animated.stagger(\n      38');
+    expect(guidedSource).toContain("section === 'questions' ? 65 : 38");
     expect(guidedSource).toContain('tension: 90');
     expect(guidedSource).toContain('friction: 12');
     expect(guidedSource).toContain('duration: 130');
     expect(guidedSource).toContain('chooserRevealStyle');
   });
 
-  it('replays entrances after returning and when changing question topics', () => {
+  it('plays the card entrance only when the question section is opened', () => {
     expect(guidedSource).toContain('chooserPageAnim.setValue(0)');
     expect(guidedSource).toContain('[chooserPageAnim, guideRevealAnims, pathId]');
     expect(guidedSource).toContain('changeQuestionTopic');
-    expect(guidedSource).toContain('questionsForTopic(nextTopic)');
-    expect(guidedSource).toContain('setTopicTransitioning(false)');
+    expect(guidedSource).toContain('questionRevealAnims.forEach(animation => {');
+    expect(guidedSource).not.toContain('topicTransitioning');
+    expect(guidedSource).not.toContain('questionsForTopic(nextTopic)');
+    expect(guidedSource).toContain("LAST_QUESTION_TOPIC_KEY = 'heart-journal:last-question-topic'");
+    expect(guidedSource).toContain('useState<GuidedQuestionTopic>(lastQuestionTopic)');
+    expect(guidedSource).toContain('AsyncStorage.getItem(LAST_QUESTION_TOPIC_KEY)');
+    expect(guidedSource).toContain('AsyncStorage.setItem(LAST_QUESTION_TOPIC_KEY, nextTopic)');
+    expect(guidedSource).toContain('questionRevealStyle(questionRevealAnims[index + 1])');
+    expect(guidedSource).toMatch(/const questionRevealStyle = [\s\S]*?transform:/);
   });
 
   it('opens the selected question directly in the guided writer', () => {

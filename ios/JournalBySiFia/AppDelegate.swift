@@ -44,19 +44,23 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
     reactNativeDelegate = delegate
     reactNativeFactory = factory
 
-    window = UIWindow(frame: UIScreen.main.bounds)
-
-    factory.startReactNative(
-      withModuleName: "JournalBySiFia",
-      in: window,
-      launchOptions: launchOptions
-    )
-
     // Register as the notification delegate only. Permission is requested later
     // from the onboarding notification setup screen.
     UNUserNotificationCenter.current().delegate = self
 
     return true
+  }
+
+  func startReactNative(
+    in window: UIWindow,
+    launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
+  ) {
+    self.window = window
+    reactNativeFactory?.startReactNative(
+      withModuleName: "JournalBySiFia",
+      in: window,
+      launchOptions: launchOptions
+    )
   }
 
   // Called when APNs successfully registers the device
@@ -145,6 +149,14 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
     open url: URL,
     options: [UIApplication.OpenURLOptionsKey : Any] = [:]
   ) -> Bool {
+    handleOpenURL(app, url: url, options: options)
+  }
+
+  func handleOpenURL(
+    _ app: UIApplication,
+    url: URL,
+    options: [UIApplication.OpenURLOptionsKey: Any] = [:]
+  ) -> Bool {
     // Let Google Sign-In handle the URL first
     if GIDSignIn.sharedInstance.handle(url) {
       return true
@@ -155,6 +167,40 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
       return true
     }
     return false
+  }
+}
+
+class SceneDelegate: UIResponder, UIWindowSceneDelegate {
+  var window: UIWindow?
+
+  func scene(
+    _ scene: UIScene,
+    willConnectTo session: UISceneSession,
+    options connectionOptions: UIScene.ConnectionOptions
+  ) {
+    guard let windowScene = scene as? UIWindowScene,
+          let appDelegate = UIApplication.shared.delegate as? AppDelegate else {
+      return
+    }
+
+    let window = UIWindow(windowScene: windowScene)
+    self.window = window
+    appDelegate.startReactNative(in: window)
+    window.makeKeyAndVisible()
+  }
+
+  func scene(_ scene: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>) {
+    guard let context = URLContexts.first,
+          let appDelegate = UIApplication.shared.delegate as? AppDelegate else {
+      return
+    }
+
+    let options: [UIApplication.OpenURLOptionsKey: Any] = [
+      .sourceApplication: context.options.sourceApplication as Any,
+      .annotation: context.options.annotation as Any,
+      .openInPlace: context.options.openInPlace
+    ]
+    _ = appDelegate.handleOpenURL(UIApplication.shared, url: context.url, options: options)
   }
 }
 

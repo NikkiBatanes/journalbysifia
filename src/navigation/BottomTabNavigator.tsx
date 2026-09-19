@@ -72,13 +72,12 @@ type AddMenuItem = {
   target?: string;
   params?: { screen: string; params?: Record<string, any> };
   opensPrayerMenu?: boolean;
-  opensSessionMenu?: boolean;
   prayerKey?: PrayerKey;
 };
 
 const ADD_MENU_ITEMS: AddMenuItem[] = [
   { icon: { family: 'material', name: 'book-outline' }, title: 'Bible Study', target: 'Journal', params: { screen: 'BibleStudy' } },
-  { icon: { family: 'ionicons', name: 'reader-outline' }, title: 'Session Notes', opensSessionMenu: true },
+  { icon: { family: 'ionicons', name: 'reader-outline' }, title: 'Session Notes', target: 'Journal', params: { screen: 'SermonNotes', params: { openedFromPencil: true } } },
   { icon: { family: 'lucide', component: BookHeart }, title: 'Heart Journal', target: 'Journal', params: { screen: 'ReflectionEditor', params: { initialMode: 'free-form', source: 'freeform', openHeart: true } } },
   { icon: { family: 'lucide', component: ListTodo }, title: 'To-dos', target: 'TodosWalkthrough' },
   { icon: { family: 'lucide', component: Heart }, title: 'Gratitude', target: 'GratitudeWalkthrough' },
@@ -94,17 +93,6 @@ const PRAYER_MENU_ITEMS: AddMenuItem[] = [
   { icon: { family: 'ionicons', name: 'heart-outline' }, title: 'For Someone', prayerKey: 'pray-for-someone' },
   { icon: { family: 'ionicons', name: 'chatbubble-ellipses-outline' }, title: 'Prayer Request', prayerKey: 'prayer-request' },
   { icon: { family: 'ionicons', name: 'add-circle-outline' }, title: 'Prayer Need', prayerKey: 'need' },
-];
-
-// Second-level menu shown when the Session Notes chip is tapped — every option
-// opens the same structured note editor with a different document type.
-const SESSION_MENU_ITEMS: AddMenuItem[] = [
-  { icon: { family: 'ionicons', name: 'reader-outline' }, title: 'Sermon', target: 'Journal', params: { screen: 'SermonNotes', params: { sessionNoteType: 'sermon', openedFromPencil: true } } },
-  { icon: { family: 'ionicons', name: 'megaphone-outline' }, title: 'Conference', target: 'Journal', params: { screen: 'SermonNotes', params: { sessionNoteType: 'conference', openedFromPencil: true } } },
-  { icon: { family: 'ionicons', name: 'mic-outline' }, title: 'Speaking', target: 'Journal', params: { screen: 'SermonNotes', params: { sessionNoteType: 'speaking', openedFromPencil: true } } },
-  { icon: { family: 'ionicons', name: 'people-outline' }, title: 'Meeting', target: 'Journal', params: { screen: 'SermonNotes', params: { sessionNoteType: 'meeting', openedFromPencil: true } } },
-  { icon: { family: 'ionicons', name: 'construct-outline' }, title: 'Workshop', target: 'Journal', params: { screen: 'SermonNotes', params: { sessionNoteType: 'workshop', openedFromPencil: true } } },
-  { icon: { family: 'ionicons', name: 'document-text-outline' }, title: 'Other', target: 'Journal', params: { screen: 'SermonNotes', params: { sessionNoteType: 'other', openedFromPencil: true } } },
 ];
 
 const AddMenuItemIcon = ({ icon }: { icon: AddMenuIcon }) => {
@@ -138,7 +126,7 @@ const CustomTabBarComponent = ({
   const [visualActiveIndex, setVisualActiveIndex] = React.useState(state.index);
   const [showAddMenu, setShowAddMenu] = React.useState(false);
   const [addFlowActive, setAddFlowActive] = React.useState(false);
-  const [menuMode, setMenuMode] = React.useState<'main' | 'prayer' | 'session'>('main');
+  const [menuMode, setMenuMode] = React.useState<'main' | 'prayer'>('main');
   const [menuModeTransitioning, setMenuModeTransitioning] = React.useState(false);
   const menuAnim = React.useRef(new Animated.Value(0)).current;
   const menuTitleAnim = React.useRef(new Animated.Value(0)).current;
@@ -271,11 +259,11 @@ const CustomTabBarComponent = ({
     ]).start();
   }, [showAddMenu, menuAnim, menuTitleAnim, menuItemAnims, addIconRotation, addIconScale]);
 
-  // Replay the same staggered chip reveal when the menu switches into a
-  // second-level mode (prayer or session notes)
+  // Replay the same staggered chip reveal when the menu switches into the
+  // second-level prayer mode. Session Notes opens its own picker directly.
   React.useLayoutEffect(() => {
     if (!showAddMenu || menuMode === 'main') { return; }
-    const anims = menuItemAnims.slice(0, menuMode === 'prayer' ? PRAYER_MENU_ITEMS.length : SESSION_MENU_ITEMS.length);
+    const anims = menuItemAnims.slice(0, PRAYER_MENU_ITEMS.length);
     menuTitleAnim.stopAnimation();
     menuTitleAnim.setValue(0);
     anims.forEach(anim => {
@@ -295,14 +283,12 @@ const CustomTabBarComponent = ({
     ).start();
   }, [menuMode, showAddMenu, menuTitleAnim, menuItemAnims]);
 
-  const transitionMenuMode = React.useCallback((nextMode: 'prayer' | 'session') => {
+  const transitionMenuMode = React.useCallback((nextMode: 'prayer') => {
     if (menuModeTransitioning || menuMode === nextMode) {return;}
     setMenuModeTransitioning(true);
     const currentCount = menuMode === 'main'
       ? ADD_MENU_ITEMS.length
-      : menuMode === 'prayer'
-        ? PRAYER_MENU_ITEMS.length
-        : SESSION_MENU_ITEMS.length;
+      : PRAYER_MENU_ITEMS.length;
     const outgoing = menuItemAnims.slice(0, currentCount);
     menuTitleAnim.stopAnimation();
     outgoing.forEach(animation => animation.stopAnimation());
@@ -344,10 +330,6 @@ const CustomTabBarComponent = ({
     triggerLightHaptic();
     if (item.opensPrayerMenu) {
       transitionMenuMode('prayer');
-      return;
-    }
-    if (item.opensSessionMenu) {
-      transitionMenuMode('session');
       return;
     }
     addNavigationInFlightRef.current = true;
@@ -447,9 +429,12 @@ const CustomTabBarComponent = ({
     addNavigationInFlightRef.current = false;
 
     if (showAddMenu) {
-      setShowAddMenu(false);
+      // A route can change while the reversed entrance stagger still has
+      // delayed native animations queued. Stop and zero them synchronously;
+      // changing React state alone can let the final (Bible Study) chip run
+      // after the close animation and remain visible on the next screen.
+      closeAddMenuForNavigation();
       setAddFlowActive(false);
-      setMenuMode('main');
       activeAddRouteIdentityRef.current = null;
       return;
     }
@@ -640,7 +625,7 @@ const CustomTabBarComponent = ({
   const circleIcon = (() => {
     const name = state.routes[state.index].name;
     if (name === 'Today')       { return <Ionicons name="sunny" size={20} color={INACTIVE_CIRCLE_COLOR} />; }
-    if (name === 'Prayer')      { return <PrayerHandsIcon size={20} color={INACTIVE_CIRCLE_COLOR} />; }
+    if (name === 'Prayer')      { return <PrayerHandsIcon size={20} color={INACTIVE_CIRCLE_COLOR} strokeWidth={2.2} />; }
     if (name === 'Journal')     { return <Feather size={20} color={INACTIVE_CIRCLE_COLOR} />; }
     if (name === 'More')        { return <Ionicons name="ellipsis-horizontal" size={20} color={INACTIVE_CIRCLE_COLOR} />; }
     return <Ionicons name="apps-outline" size={20} color={INACTIVE_CIRCLE_COLOR} />;
@@ -680,9 +665,8 @@ const CustomTabBarComponent = ({
         ]}
         pointerEvents={showAddMenu ? 'auto' : 'none'}
         onPress={() => {
-          setShowAddMenu(false);
+          closeAddMenuForNavigation();
           setAddFlowActive(false);
-          setMenuMode('main');
           activeAddRouteIdentityRef.current = null;
         }}
       />
@@ -747,9 +731,8 @@ const CustomTabBarComponent = ({
 
             const onPress = () => {
               setVisualActiveIndex(index);
-              setShowAddMenu(false);
+              closeAddMenuForNavigation();
               setAddFlowActive(false);
-              setMenuMode('main');
               activeAddRouteIdentityRef.current = null;
               const event = navigation.emit({
                 type: 'tabPress',
@@ -770,7 +753,7 @@ const CustomTabBarComponent = ({
               if (route.name === 'Today')       { return isFocused
                 ? <Ionicons name="sunny" size={20} color={iconColor} />
                 : <Sun size={20} strokeWidth={2.2} color={iconColor} />; }
-              if (route.name === 'Prayer')      { return <PrayerHandsIcon size={20} color={iconColor} />; }
+              if (route.name === 'Prayer')      { return <PrayerHandsIcon size={20} color={iconColor} strokeWidth={2.2} />; }
               if (route.name === 'Journal')     { return <Feather size={20} color={iconColor} />; }
               if (route.name === 'More')        { return <Ionicons name={isFocused ? 'ellipsis-horizontal' : 'ellipsis-horizontal-outline'} size={20} color={iconColor} />; }
               const iconName = isFocused
@@ -811,10 +794,14 @@ const CustomTabBarComponent = ({
                     onPress={() => {
                       triggerLightHaptic();
                       const opening = !showAddMenu;
-                      if (opening) { setMenuMode('main'); }
+                      if (opening) {
+                        setMenuMode('main');
+                      } else {
+                        closeAddMenuForNavigation();
+                      }
                       activeAddRouteIdentityRef.current = null;
                       setAddFlowActive(opening);
-                      setShowAddMenu(opening);
+                      if (opening) { setShowAddMenu(true); }
                     }}
                     activeOpacity={0.8}
                     style={styles.pillTabTouchable}
@@ -887,12 +874,12 @@ const CustomTabBarComponent = ({
         >
           <View style={styles.addMenuTitlePill}>
             <ThemedText weight="semiBold" style={styles.addMenuTitle}>
-              {menuMode === 'prayer' ? 'How would you like to pray?' : menuMode === 'session' ? 'What are you taking notes for?' : 'What would you like to write?'}
+              {menuMode === 'prayer' ? 'How would you like to pray?' : 'What would you like to write?'}
             </ThemedText>
           </View>
         </Animated.View>
         <View style={styles.addMenuGrid}>
-          {(menuMode === 'prayer' ? PRAYER_MENU_ITEMS : menuMode === 'session' ? SESSION_MENU_ITEMS : ADD_MENU_ITEMS).map((item, index) => (
+          {(menuMode === 'prayer' ? PRAYER_MENU_ITEMS : ADD_MENU_ITEMS).map((item, index) => (
             <Animated.View
               key={item.title}
               style={{

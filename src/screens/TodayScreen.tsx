@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { DeviceEventEmitter, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import Animated, { FadeInUp, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
+import Animated, { Easing, FadeInUp, useAnimatedStyle, useSharedValue, withSequence, withSpring, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -10,6 +10,7 @@ import { differenceInCalendarDays, endOfWeek, format, isAfter, isSameDay, isYest
 
 import WeeklyQuickLook from '../components/dashboard/WeeklyQuickLook';
 import WeeklyReviewCard from '../components/dashboard/WeeklyReviewCard';
+import ReviewOverviewCard from '../components/dashboard/ReviewOverviewCard';
 import PrayerToRevisit from '../components/dashboard/PrayerToRevisit';
 import JournalCalendarStrip from '../components/dashboard/JournalCalendarStrip';
 import DashboardHeaderScripture from '../components/dashboard/DashboardHeaderScripture';
@@ -22,16 +23,19 @@ import { Fonts } from '../theme/fonts';
 import { triggerLightHaptic } from '../utils/haptics';
 import { compareLocalDate, toLocalDateString } from '../utils/date';
 import { getReviewEligibility, type ReviewEligibilityResult } from '../services/reviewEligibilityService';
-import { getLocalReviewsByType, type LocalReviewEntry } from '../storage/reviewStorage';
+import { getLocalReviewsByType, type LocalReviewEntry, type ReviewType } from '../storage/reviewStorage';
 import { getRoutineState, type RoutineState } from '../storage/routineStateStorage';
-import { preloadScripturePassages } from '../services/scriptureReaderService';
 import { getLocalJournalEntries, getLocalJournalSingleton } from '../storage/journalStorage';
 import { getDailyRhythmCardState, getDailyRhythmContentState, type DailyRhythmContentState } from '../services/dailyRhythmCardState';
 import { refreshMorningWidgetSnapshot } from '../services/morningWidgetService';
 import { getDailyLine } from '../data/dailyLines';
+import { playTodayOpeningSound } from '../utils/soundUtils';
+import { seedWeeklyReviewPreviewData } from '../dev/seedPreviewData';
+import { getWeeklyRhythm, type WeeklyRhythm } from '../services/weeklyRhythmService';
 
 const CALENDAR_SHEET_HEIGHT = 60;
 const CALENDAR_SPRING = { damping: 12, stiffness: 185, mass: 0.85 };
+const REVIEW_PREVIEW_ORDER: ReviewType[] = ['weekly', 'monthly', 'quarterly', 'year_end', 'begin_year'];
 
 const SectionHeading = ({ title, detail }: { title: string; detail: string }) => (
   <View style={styles.sectionHeading}>
@@ -53,7 +57,7 @@ const Stagger = ({ children }: { children: React.ReactNode }) => (
     {React.Children.toArray(children).map((child, i) =>
       child != null ? (
         <Animated.View
-          key={i}
+          key={(child as React.ReactElement).key ?? i}
           entering={FadeInUp.delay(i * 80).springify().damping(14).stiffness(180)}
         >
           {child}
@@ -76,9 +80,13 @@ const TodayScreen = () => {
   const [manualDate, setManualDate] = useState(false);
   const [calendarVisible, setCalendarVisible] = useState(false);
   const calendarProgress = useSharedValue(0);
+  const greetingIconScale = useSharedValue(1);
+  const greetingIconRotation = useSharedValue(0);
+  const greetingIconLift = useSharedValue(0);
   const [morningState, setMorningState] = useState<RoutineState | null>(null);
   const [eveningState, setEveningState] = useState<RoutineState | null>(null);
   const [previewEvening, setPreviewEvening] = useState<boolean | null>(null);
+  const [previewReviewType, setPreviewReviewType] = useState<ReviewType | null>(null);
   const [futurePlanParts, setFuturePlanParts] = useState({ focus: false, todos: false });
   const [pastContent, setPastContent] = useState({ morning: false, evening: false });
   const [contentState, setContentState] = useState<DailyRhythmContentState>({
@@ -153,15 +161,51 @@ const TodayScreen = () => {
     return parts.slice(0, 2).join(' ') || 'Friend';
   }, [user, profile]);
 
+  const animateGreetingIcon = useCallback((evening: boolean) => {
+    greetingIconScale.value = withSequence(
+      withTiming(1.22, { duration: 280, easing: Easing.out(Easing.cubic) }),
+      withSpring(1, { damping: 8, stiffness: 170, mass: 0.7 }),
+    );
+    greetingIconLift.value = withSequence(
+      withTiming(-4, { duration: 280, easing: Easing.out(Easing.cubic) }),
+      withSpring(0, { damping: 9, stiffness: 160 }),
+    );
+    greetingIconRotation.value = evening
+      ? withSequence(
+          withTiming(-14, { duration: 260, easing: Easing.out(Easing.cubic) }),
+          withTiming(8, { duration: 300, easing: Easing.inOut(Easing.cubic) }),
+          withSpring(0, { damping: 9, stiffness: 150 }),
+        )
+      : withTiming(360, { duration: 1050, easing: Easing.inOut(Easing.cubic) });
+  }, [greetingIconLift, greetingIconRotation, greetingIconScale]);
+
   useEffect(() => {
-    const createdAt = (user as any)?.created_at;
-    const start = createdAt ? new Date(createdAt) : displayDate;
-    const psalmNumber = (Math.max(0, differenceInCalendarDays(displayDate, start)) % 150) + 1;
-    preloadScripturePassages([
-      `Psalm ${psalmNumber}`,
-      `Proverbs ${displayDate.getDate()}`,
-    ]);
-  }, [displayDate, user]);
+    if (isToday) {
+      let mounted = true;
+      playTodayOpeningSound(() => {
+        if (!mounted) { return; }
+        animateGreetingIcon(isEvening);
+      }).catch(() => {});
+
+      return () => {
+        mounted = false;
+      };
+    }
+  }, [animateGreetingIcon, isEvening, isToday]);
+
+  useEffect(() => {
+    if (__DEV__ && previewEvening !== null) {
+      animateGreetingIcon(previewEvening);
+    }
+  }, [animateGreetingIcon, previewEvening]);
+
+  const greetingIconStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateY: greetingIconLift.value },
+      { scale: greetingIconScale.value },
+      { rotate: `${greetingIconRotation.value}deg` },
+    ],
+  }));
 
   useEffect(() => {
     if (!manualDate && !isSameDay(displayDate, now)) {
@@ -171,21 +215,58 @@ const TodayScreen = () => {
 
   const [eligibility, setEligibility] = useState<ReviewEligibilityResult | null>(null);
   const [weeklyReviews, setWeeklyReviews] = useState<LocalReviewEntry[]>([]);
+  const [seededWeeklyRhythm, setSeededWeeklyRhythm] = useState<WeeklyRhythm | null>(null);
+  const [reviewDataReady, setReviewDataReady] = useState(false);
   const [tick, setTick] = useState(0);
+  const [staggerRun, setStaggerRun] = useState(0);
+  const todayKey = format(now, 'yyyy-MM-dd');
 
   useEffect(() => {
     let active = true;
-    void getReviewEligibility(now, appPreferences?.weekStart || 'monday').then(result => {
-      if (active) setEligibility(result);
-    });
-    getLocalReviewsByType('weekly').then(reviews => {
-      setWeeklyReviews(reviews);
-    });
+    void (async () => {
+      try {
+        // Seed before querying eligibility so a fresh simulator sees the
+        // populated review on its very first Today render.
+        await seedWeeklyReviewPreviewData(appPreferences?.weekStart || 'monday');
+        const [nextEligibility, reviews] = await Promise.all([
+          getReviewEligibility(todayKey, appPreferences?.weekStart || 'monday'),
+          getLocalReviewsByType('weekly'),
+        ]);
+        const weeklyPeriod = nextEligibility.allActive.find(item => item.type === 'weekly')?.period;
+        const verifiedRhythm = weeklyPeriod
+          ? await getWeeklyRhythm(weeklyPeriod.periodStart, weeklyPeriod.periodEnd, todayKey)
+          : null;
+        if (!active) { return; }
+        // Commit both sources together so review cards cannot insert at
+        // different points in the opening stagger.
+        setEligibility(nextEligibility);
+        setWeeklyReviews(reviews);
+        setSeededWeeklyRhythm(verifiedRhythm);
+        setReviewDataReady(true);
+        setStaggerRun(run => run + 1);
+      } catch (error) {
+        if (__DEV__) {console.error('[PreviewData] Today seed/load failed', error);}
+        if (active) {
+          setReviewDataReady(true);
+          setStaggerRun(run => run + 1);
+        }
+      }
+    })();
     return () => { active = false; };
-  }, [tick, appPreferences?.weekStart, format(now, 'yyyy-MM-dd')]);
+  }, [tick, appPreferences?.weekStart, todayKey]);
+
+  useEffect(() => {
+    const subscription = DeviceEventEmitter.addListener('previewDataSeeded', () => {
+      setReviewDataReady(false);
+      setTick(current => current + 1);
+    });
+    return () => subscription.remove();
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
+      // Keep stale cards from flashing before the refreshed stagger mounts.
+      setReviewDataReady(false);
       setTick((t) => t + 1);
       let focused = true;
       let loadVersion = 0;
@@ -243,6 +324,7 @@ const TodayScreen = () => {
 
       return () => {
         focused = false;
+        setReviewDataReady(false);
         saved.remove();
         planSaved.remove();
         clearInterval(timer);
@@ -250,7 +332,7 @@ const TodayScreen = () => {
         tabBarCollapsedRef.current = false;
         setShowTabBar(true);
       };
-    }, [setShowTabBar, displayDate, isFutureDate, selectedDateRelation])
+    }, [setShowTabBar, displayDate, isFutureDate])
   );
 
   useEffect(() => {
@@ -266,6 +348,83 @@ const TodayScreen = () => {
     && review.periodStart === selectedWeekStart
     && review.periodEnd === selectedWeekEnd,
   ) ?? null;
+
+  const previewEligibility = useMemo<ReviewEligibilityResult | null>(() => {
+    if (!__DEV__ || !previewReviewType) { return null; }
+
+    const year = displayDate.getFullYear();
+    const month = displayDate.getMonth();
+    const previewDates: Record<ReviewType, { start: Date; end: Date }> = {
+      weekly: {
+        start: startOfWeek(displayDate, { weekStartsOn }),
+        end: endOfWeek(displayDate, { weekStartsOn }),
+      },
+      monthly: {
+        start: new Date(year, month, 1),
+        end: new Date(year, month + 1, 0),
+      },
+      quarterly: {
+        start: new Date(year, Math.floor(month / 3) * 3, 1),
+        end: new Date(year, Math.floor(month / 3) * 3 + 3, 0),
+      },
+      year_end: {
+        start: new Date(year, 0, 1),
+        end: new Date(year, 11, 31),
+      },
+      begin_year: {
+        start: new Date(year, 0, 1),
+        end: new Date(year, 0, 14),
+      },
+    };
+    const dates = previewDates[previewReviewType];
+    const periodStart = format(dates.start, 'yyyy-MM-dd');
+    const periodEnd = format(dates.end, 'yyyy-MM-dd');
+    const previewMemories = previewReviewType === 'begin_year' ? [] : [
+      { kind: 'prayer' as const, id: 'preview-prayer', selectedDate: periodEnd },
+      { kind: 'gratitude' as const, id: 'preview-gratitude', selectedDate: periodEnd },
+      { kind: 'win' as const, id: 'preview-win', selectedDate: periodEnd },
+      { kind: 'scripture' as const, id: 'preview-scripture', selectedDate: periodEnd },
+      { kind: 'reflection' as const, id: 'preview-reflection', selectedDate: periodEnd },
+    ];
+    const previewAnswers: Record<string, string> = previewReviewType === 'begin_year'
+      ? {
+          begin_year_priority_1: 'Walk closely with God',
+          begin_year_priority_2: 'Make room for family',
+          posture: 'Open-handed',
+          scripture_begin: 'Proverbs 3:5–6',
+          faithfulness_begin: 'Be present in ordinary days',
+          surrender: 'The outcomes I cannot control',
+        }
+      : previewReviewType === 'quarterly'
+        ? { quarter_priority_1: 'Protect what matters', quarter_priority_2: 'Finish faithfully' }
+        : previewReviewType === 'year_end'
+          ? { carry: 'God was faithful through every season.' }
+          : { next_month_priority_1: 'Begin with prayer', next_month_priority_2: 'Stay present' };
+    const preview = {
+      type: previewReviewType,
+      period: {
+        type: previewReviewType,
+        periodStart,
+        periodEnd,
+        availableFrom: periodStart,
+        availableUntil: null,
+      },
+      review: {
+        id: `preview-${previewReviewType}`,
+        type: previewReviewType,
+        periodStart,
+        periodEnd,
+        status: 'draft' as const,
+        memorableItems: previewMemories,
+        answers: previewAnswers,
+        createdAt: new Date(0).toISOString(),
+        updatedAt: new Date(0).toISOString(),
+      },
+    };
+    return { main: preview, alsoReady: [], allActive: [preview] };
+  }, [displayDate, previewReviewType, weekStartsOn]);
+
+  const displayedEligibility = previewEligibility ?? eligibility;
 
   const handleScroll = useCallback((event: any) => {
     const y = Math.max(0, event.nativeEvent.contentOffset.y);
@@ -300,8 +459,8 @@ const TodayScreen = () => {
   }));
 
   const reviewCard = useMemo(() => {
-    if (!eligibility?.main) {return null;}
-    const main = eligibility.main;
+    if (!displayedEligibility?.main) {return null;}
+    const main = displayedEligibility.main;
     if (main.review.status === 'completed') {return null;}
 
     if (main.type === 'weekly') {
@@ -310,7 +469,8 @@ const TodayScreen = () => {
         periodStart={main.period.periodStart}
         periodEnd={main.period.periodEnd}
         started={main.review.memorableItems.length > 0 || Object.values(main.review.answers).some(answer => answer.trim().length > 0)}
-        alsoReady={eligibility.alsoReady.map(item => item.type.replace('_', ' ')).join(', ')}
+        seededRhythm={seededWeeklyRhythm}
+        alsoReady={displayedEligibility.alsoReady.map(item => item.type.replace('_', ' ')).join(', ')}
         onBegin={() => (navigation as any).navigate('Journal', {
           screen: 'Review',
           params: { type: 'weekly', periodStart: main.period.periodStart, periodEnd: main.period.periodEnd },
@@ -318,39 +478,29 @@ const TodayScreen = () => {
       />;
     }
 
-    const typeLabel = main.type.replace('_', ' ');
     const periodStart = new Date(main.period.periodStart);
     const periodEnd = new Date(main.period.periodEnd);
     const month = periodStart.toLocaleString('default', { month: 'short' }).toUpperCase();
-    const periodText = `${month} ${periodStart.getDate()}–${periodEnd.getDate()}`;
+    const sameYear = periodStart.getFullYear() === periodEnd.getFullYear();
+    const sameMonth = sameYear && periodStart.getMonth() === periodEnd.getMonth();
+    const periodText = sameMonth
+      ? `${month} ${periodStart.getDate()}–${periodEnd.getDate()}, ${periodEnd.getFullYear()}`
+      : `${format(periodStart, 'MMM d, yyyy')}–${format(periodEnd, 'MMM d, yyyy')}`;
 
     return (
-      <TouchableOpacity
-        style={[styles.card, styles.reviewCard]}
-        onPress={() => {
-          triggerLightHaptic();
+      <ReviewOverviewCard
+        review={main.review}
+        periodLabel={periodText}
+        alsoReady={displayedEligibility.alsoReady.map(item => item.type.replace('_', ' ')).join(', ')}
+        onBegin={() => {
           (navigation as any).navigate('Journal', {
             screen: 'Review',
             params: { type: main.type, periodStart: main.period.periodStart, periodEnd: main.period.periodEnd },
           });
         }}
-        activeOpacity={0.7}>
-        <View style={styles.reviewHeader}>
-          <ThemedText style={styles.reviewEyebrow}>TIME TO LOOK BACK</ThemedText>
-          <Ionicons name="chevron-forward" size={20} color={Colors.sage} />
-        </View>
-        <ThemedText weight="bold" style={styles.reviewTitle}>
-          {typeLabel.toUpperCase()} REVIEW
-        </ThemedText>
-        <ThemedText style={styles.reviewPeriod}>{periodText}</ThemedText>
-        {eligibility.alsoReady.length > 0 ? (
-          <ThemedText style={styles.reviewAlso}>
-            Also ready: {eligibility.alsoReady.map(a => a.type.replace('_', ' ')).join(', ')}
-          </ThemedText>
-        ) : null}
-      </TouchableOpacity>
+      />
     );
-  }, [eligibility, navigation]);
+  }, [displayedEligibility, navigation, seededWeeklyRhythm]);
 
   return (
     <View style={styles.safeArea}>
@@ -403,11 +553,13 @@ const TodayScreen = () => {
             <ThemedText style={styles.greeting}>{greetingText},</ThemedText>
             <View style={styles.nameRow}>
               <ThemedText style={styles.name}>{firstName}.</ThemedText>
-              {isEvening ? (
-                <Moon size={24} color={Colors.sage} strokeWidth={1.6} />
-              ) : (
-                <Sun size={24} color={Colors.sage} strokeWidth={1.6} />
-              )}
+              <Animated.View style={greetingIconStyle}>
+                {isEvening ? (
+                  <Moon size={24} color={Colors.sage} strokeWidth={1.6} />
+                ) : (
+                  <Sun size={24} color={Colors.sage} strokeWidth={1.6} />
+                )}
+              </Animated.View>
             </View>
             {isToday ? (
               <ThemedText style={styles.subtitle}>{dailyLine.text}</ThemedText>
@@ -422,11 +574,12 @@ const TodayScreen = () => {
 
         {dateContext === 'today' ? <ForMeDayCard /> : null}
 
-        <Stagger key={tick}>
-        {dateContext === 'today' ? reviewCard : null}
+        {reviewDataReady ? <Stagger key={staggerRun}>
+        {dateContext === 'today' ? <React.Fragment key="review-card">{reviewCard}</React.Fragment> : null}
 
-        <SectionHeading title={rhythmTitle} detail={rhythmDetail} />
+        <SectionHeading key="rhythm-heading" title={rhythmTitle} detail={rhythmDetail} />
         <TouchableOpacity
+          key="rhythm-card"
           style={[styles.card, styles.morningCard]}
           activeOpacity={0.85}
           accessibilityRole="button"
@@ -516,6 +669,7 @@ const TodayScreen = () => {
 
         {__DEV__ && (
           <TouchableOpacity
+            key="period-preview"
             style={styles.routinePreviewButton}
             accessibilityRole="button"
             accessibilityLabel={isEvening ? 'Preview morning check-in' : 'Preview evening reflection at 5 PM'}
@@ -525,10 +679,33 @@ const TodayScreen = () => {
           </TouchableOpacity>
         )}
 
-        <SectionHeading title="A QUICK LOOK" detail={weekLabel} />
-        <WeeklyQuickLook start={format(startOfWeek(displayDate, { weekStartsOn }), 'yyyy-MM-dd')} end={format(endOfWeek(displayDate, { weekStartsOn }), 'yyyy-MM-dd')} />
+        {__DEV__ && (
+          <TouchableOpacity
+            key="review-preview"
+            style={styles.routinePreviewButton}
+            accessibilityRole="button"
+            accessibilityLabel="Preview review cards"
+            onPress={() => {
+              triggerLightHaptic();
+              setPreviewReviewType(current => {
+                if (current === null) { return REVIEW_PREVIEW_ORDER[0]; }
+                const nextIndex = REVIEW_PREVIEW_ORDER.indexOf(current) + 1;
+                return nextIndex < REVIEW_PREVIEW_ORDER.length ? REVIEW_PREVIEW_ORDER[nextIndex] : null;
+              });
+            }}
+          >
+            <ThemedText style={styles.routinePreviewText}>
+              {previewReviewType
+                ? `Preview: ${previewReviewType.replace('_', ' ')}`
+                : 'Preview reviews'}
+            </ThemedText>
+          </TouchableOpacity>
+        )}
 
-        {selectedWeeklyReview ? <>
+        <SectionHeading key="quick-look-heading" title="A QUICK LOOK" detail={weekLabel} />
+        <WeeklyQuickLook key="quick-look-card" start={format(startOfWeek(displayDate, { weekStartsOn }), 'yyyy-MM-dd')} end={format(endOfWeek(displayDate, { weekStartsOn }), 'yyyy-MM-dd')} />
+
+        {selectedWeeklyReview ? <React.Fragment key="weekly-review-memory">
         <SectionHeading title="YOUR RHYTHM" detail="for this season" />
           <TouchableOpacity
             style={[styles.card, styles.weeklyPreviewCard]}
@@ -562,9 +739,9 @@ const TodayScreen = () => {
             ) : null}
             <ThemedText style={styles.textLink}>Look back into this week →</ThemedText>
           </TouchableOpacity>
-        </> : null}
+        </React.Fragment> : null}
 
-        {!isFutureDate && <>
+        {!isFutureDate && <React.Fragment key="journal-section">
         <SectionHeading title="JOURNAL" detail="write anytime" />
         <TouchableOpacity
           style={[styles.card, styles.rowCard]}
@@ -642,9 +819,9 @@ const TodayScreen = () => {
             <ThemedText style={styles.meta}>Read, notice, and go deeper.</ThemedText>
           </TouchableOpacity>
         </View>
-        </>}
+        </React.Fragment>}
 
-        {dateContext === 'today' && <>
+        {dateContext === 'today' && <React.Fragment key="prayer-section">
         <SectionHeading title="PRAYER" detail="bring it before God" />
         <TouchableOpacity
           style={[styles.card, styles.rowCard]}
@@ -660,9 +837,10 @@ const TodayScreen = () => {
           <Ionicons name="chevron-forward" size={24} color={Colors.chevronColor} />
         </TouchableOpacity>
         <PrayerToRevisit />
-        </>}
+        </React.Fragment>}
 
         {!isFutureDate && <TouchableOpacity
+          key="write-anything"
           style={styles.writeButton}
           activeOpacity={0.8}
           accessibilityRole="button"
@@ -683,9 +861,9 @@ const TodayScreen = () => {
           <Pencil size={16} color={Colors.hopeWhite} style={{ marginRight: 8 }} />
           <ThemedText weight="bold" style={styles.writeButtonText}>Write anything</ThemedText>
         </TouchableOpacity>}
-        <ThemedText style={styles.closing}>Nothing on Today has to be completed.</ThemedText>
+        <ThemedText key="closing" style={styles.closing}>Nothing on Today has to be completed.</ThemedText>
 
-        </Stagger>
+        </Stagger> : null}
       </ScrollView>
     </View>
   );

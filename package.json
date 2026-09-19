@@ -10,6 +10,7 @@
     "lint": "eslint .",
     "start": "react-native start",
     "test": "jest",
+    "build:gospel-web": "bash scripts/build-gospel-share-web.sh",
     "postinstall": "patch-package",
     "fix-testflight": "bash scripts/fix-third-party-components.sh"
   },

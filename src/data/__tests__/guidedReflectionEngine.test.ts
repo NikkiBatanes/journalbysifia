@@ -54,8 +54,14 @@ describe('Guided Reflection V1 authored engine', () => {
   });
 
   it('retains every legacy prompt and filters vertical questions by horizontal topic', () => {
-    expect(GUIDED_QUESTION_TOPICS).toEqual(['With God', 'My Heart', 'Relationships', 'Decisions', 'Growth', 'Work & Gifts']);
+    expect(GUIDED_QUESTION_TOPICS).toEqual([
+      'With God', 'My Heart', 'Relationships', 'Decisions', 'Growth', 'Work & Gifts',
+      'Finances', 'Business', 'Home', 'Family', 'Health', 'Rest & Rhythms',
+    ]);
     expect(GUIDED_QUESTION_LIBRARY.map(item => item.prompt)).toEqual(GUIDED_PROMPTS);
-    GUIDED_QUESTION_TOPICS.forEach(topic => expect(questionsForTopic(topic).every(item => item.topic === topic)).toBe(true));
+    GUIDED_QUESTION_TOPICS.forEach(topic => {
+      expect(questionsForTopic(topic).length).toBeGreaterThanOrEqual(5);
+      expect(questionsForTopic(topic).every(item => item.topic === topic)).toBe(true);
+    });
   });
 });

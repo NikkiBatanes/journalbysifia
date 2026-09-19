@@ -19,6 +19,8 @@ import {
   Image,
   AppState,
   AppStateStatus,
+  Linking,
+  DeviceEventEmitter,
 } from 'react-native';
 
 import {
@@ -37,6 +39,7 @@ const AppNavigationTheme = {
 };
 
 import {Colors} from './src/theme/colors';
+import {gospelShareService} from './src/services/gospelShareService';
 import {ThemeProvider} from './src/theme/ThemeContext';
 import RootStackNavigator from './src/navigation/RootStackNavigator';
 
@@ -73,6 +76,9 @@ import {
   clearLoginFlowRedirect,
   getPostAuthRedirect,
 } from './src/utils/postAuthRedirect';
+import {
+  seedJournalPreviewData,
+} from './src/dev/seedPreviewData';
 
 // Hide debug notifications
 LogBox.ignoreLogs(['Warning: ...']); // Ignore specific warnings if needed
@@ -137,6 +143,20 @@ function App(): React.JSX.Element {
   useEffect(() => {
     initializeMetaAppEvents();
     experiencePreferences.loadOnce();
+    Promise.allSettled([seedJournalPreviewData()])
+      .then(results => {
+        const seeded = results.some(result => result.status === 'fulfilled' && result.value);
+        if (seeded) {
+          queryClient.invalidateQueries();
+          DeviceEventEmitter.emit('previewDataSeeded');
+        }
+        results.forEach(result => {
+          if (result.status === 'rejected') {
+            console.error('[PreviewData] Unable to create preview records', result.reason);
+          }
+        });
+      })
+      .catch(() => {});
   }, []);
 
   // Vector icon fonts are automatically bundled by RNVectorIcons pod
@@ -180,6 +200,17 @@ function AppWithAuth({
   const lastHandledLoginRedirectRef = React.useRef<string | null>(null);
   // Journal first-launch flag (local, auth-independent). null = not loaded yet.
   const [journalOnboarded, setJournalOnboarded] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    const claimFromUrl = (url: string | null) => {
+      const match = url?.match(/^sifia:\/\/gospel\/claim\/([^/?#]+)/i);
+      if (!match) return;
+      gospelShareService.claimResponse(match[1]).catch(() => {});
+    };
+    Linking.getInitialURL().then(claimFromUrl).catch(() => {});
+    const subscription = Linking.addEventListener('url', event => claimFromUrl(event.url));
+    return () => subscription.remove();
+  }, []);
 
   // Linking configuration for deep links - MUST be before any early returns
   // Only enable linking when authenticated to prevent interference with logout
@@ -532,7 +563,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: Colors.sage,
+    backgroundColor: Colors.sageMuted,
   },
   loadingLogo: {
     width: 240,

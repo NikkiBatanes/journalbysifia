@@ -6,6 +6,7 @@ import ThemedText from '../common/ThemedText';
 import { Colors } from '../../theme/colors';
 import { triggerLightHaptic } from '../../utils/haptics';
 import { useWeeklyRhythm } from '../../hooks/useWeeklyRhythm';
+import { type WeeklyRhythm } from '../../services/weeklyRhythmService';
 
 interface Props {
   periodStart: string;
@@ -13,10 +14,12 @@ interface Props {
   onBegin: () => void;
   alsoReady?: string;
   started?: boolean;
+  seededRhythm?: WeeklyRhythm | null;
 }
 
-const WeeklyReviewCard = ({ periodStart, periodEnd, onBegin, alsoReady, started = false }: Props) => {
-  const rhythm = useWeeklyRhythm(periodStart, periodEnd);
+const WeeklyReviewCard = ({ periodStart, periodEnd, onBegin, alsoReady, started = false, seededRhythm }: Props) => {
+  const liveRhythm = useWeeklyRhythm(periodStart, periodEnd);
+  const rhythm = seededRhythm ?? liveRhythm;
   const start = parseISO(periodStart);
   const end = parseISO(periodEnd);
   const periodLabel = `${format(start, 'MMM d')}–${format(end, start.getMonth() === end.getMonth() ? 'd' : 'MMM d')}`;
@@ -30,7 +33,7 @@ const WeeklyReviewCard = ({ periodStart, periodEnd, onBegin, alsoReady, started 
           <ThemedText style={styles.period}>{periodLabel}</ThemedText>
           <TouchableOpacity style={styles.begin} accessibilityRole="button" activeOpacity={0.8} onPress={() => { triggerLightHaptic(); onBegin(); }}>
             <ThemedText weight="semiBold" style={styles.beginText}>{started ? 'Continue your week' : 'Explore your week'}</ThemedText>
-            <ArrowRight size={16} color={Colors.sage} />
+            <ArrowRight size={16} color={Colors.hopeWhite} />
           </TouchableOpacity>
         </View>
         <View style={styles.stats}>
@@ -67,8 +70,8 @@ const styles = StyleSheet.create({
   title: { color: Colors.hopeWhite, fontSize: 24, lineHeight: 32, marginTop: 14 },
   description: { color: Colors.hopeWhite, fontSize: 12, lineHeight: 19, marginTop: 12 },
   period: { color: Colors.hopeWhite, opacity: 0.85, fontSize: 12, lineHeight: 19, marginTop: 3 },
-  begin: { alignSelf: 'flex-start', backgroundColor: Colors.hopeWhite, borderRadius: 23, paddingVertical: 11, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 17 },
-  beginText: { color: Colors.sage, fontSize: 10, flexShrink: 1 },
+  begin: { alignSelf: 'flex-start', backgroundColor: 'rgba(255,255,255,0.15)', borderColor: 'rgba(255,255,255,0.3)', borderWidth: 1, borderRadius: 20, paddingVertical: 12, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: 17 },
+  beginText: { color: Colors.hopeWhite, fontSize: 12, flexShrink: 1 },
   stats: { flex: 1, minWidth: 0, borderLeftWidth: 1, borderLeftColor: 'rgba(255,255,255,0.3)', paddingLeft: 16 },
   statsEyebrow: { color: Colors.hopeWhite, opacity: 0.85, fontSize: 9, lineHeight: 15, letterSpacing: 1 },
   daysRow: { flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: 8 },

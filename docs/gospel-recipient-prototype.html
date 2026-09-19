@@ -1,0 +1,662 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>The Gospel — shared through Journal by SiFia</title>
+  <meta name="description" content="A private, pressure-free walkthrough of the Gospel, shared through Journal by SiFia." />
+  <meta name="theme-color" content="#e8eee8" />
+  <meta name="robots" content="noindex, nofollow, noarchive" />
+  <style>
+    :root {
+      --ink: #24342c;
+      --muted: #68756e;
+      --sage: #607967;
+      --sage-dark: #30483a;
+      --ivory: #fffdf8;
+      --line: rgba(48, 72, 58, .13);
+      --gold: #c69b55;
+      --shadow: 0 18px 55px rgba(19, 37, 27, .15);
+    }
+    * { box-sizing: border-box; }
+    html, body { width: 100%; min-height: 100%; }
+    body {
+      margin: 0;
+      background: #e8eee8;
+      color: var(--ink);
+      font-family: "Lexend", Inter, ui-sans-serif, system-ui, -apple-system, sans-serif;
+    }
+    button, input { font: inherit; }
+    button:focus-visible, input:focus-visible { outline: 3px solid rgba(96,121,103,.4); outline-offset: 3px; }
+    .stage { width: 100%; min-height: 100vh; min-height: 100dvh; background: var(--ivory); }
+    .phone {
+      position: relative;
+      width: 100%;
+      height: 100vh;
+      height: 100dvh;
+      overflow: hidden;
+      background: var(--ivory);
+    }
+    .screen {
+      position: absolute;
+      inset: 0;
+      display: none;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      padding: calc(82px + env(safe-area-inset-top)) max(22px, calc((100vw - 520px) / 2)) max(32px, env(safe-area-inset-bottom));
+      background: var(--ivory) center / cover no-repeat;
+      animation: enter .42s cubic-bezier(.22,.8,.32,1) both;
+    }
+    .screen.active { display: flex; flex-direction: column; }
+    .screen > * { position: relative; z-index: 1; max-width: 520px; margin-left: auto; margin-right: auto; }
+    .screen::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background: linear-gradient(180deg, rgba(255,253,248,.20) 0%, rgba(255,253,248,.02) 35%, rgba(255,253,248,.16) 100%);
+    }
+    @keyframes enter {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .floating {
+      position: absolute;
+      z-index: 20;
+      top: 0;
+      left: 0;
+      right: 0;
+      min-height: calc(72px + env(safe-area-inset-top));
+      padding: calc(16px + env(safe-area-inset-top)) max(18px, calc((100vw - 560px) / 2)) 14px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      pointer-events: none;
+      background: linear-gradient(180deg, rgba(255,253,248,.82), rgba(255,253,248,0));
+    }
+    .icon-button {
+      width: 42px;
+      height: 42px;
+      border: 0;
+      border-radius: 50%;
+      background: rgba(255,253,248,.92);
+      color: var(--sage);
+      box-shadow: 0 7px 18px rgba(19,37,27,.08);
+      backdrop-filter: blur(10px);
+      pointer-events: auto;
+      cursor: pointer;
+    }
+    .progress { flex: 1; height: 6px; overflow: hidden; border-radius: 9px; background: rgba(48,72,58,.15); }
+    .progress > i { display: block; width: 0; height: 100%; border-radius: inherit; background: var(--sage); transition: width .35s ease; }
+    .eyebrow { margin: 8px 0 12px; color: var(--sage); font-size: 11px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; }
+    h1 { margin: 0; font-size: clamp(30px, 8vw, 39px); line-height: 1.12; letter-spacing: -.035em; }
+    h2 { margin: 0; font-size: 28px; line-height: 1.2; letter-spacing: -.025em; }
+    p { color: var(--muted); font-size: 15px; line-height: 1.65; }
+    .serif { font-family: Georgia, "Times New Roman", serif; }
+    .italic { font-style: italic; }
+    .bottom { margin-top: auto; padding-top: 28px; }
+    .surface {
+      padding: 20px;
+      border-radius: 24px;
+      background: rgba(255,253,248,.92);
+      box-shadow: var(--shadow);
+    }
+    .privacy { display: flex; gap: 11px; align-items: flex-start; margin-top: 22px; padding: 14px 15px; border-radius: 18px; background: rgba(96,121,103,.1); }
+    .privacy svg { flex: 0 0 auto; margin-top: 2px; }
+    .privacy p { margin: 0; font-size: 12px; line-height: 1.55; }
+    .button {
+      position: relative;
+      width: 100%;
+      min-height: 54px;
+      margin-top: 14px;
+      padding: 0 54px 0 22px;
+      border: 0;
+      border-radius: 999px;
+      background: var(--sage);
+      color: white;
+      font-weight: 800;
+      cursor: pointer;
+      box-shadow: 0 11px 28px rgba(48,72,58,.2);
+    }
+    .button .arrow { position: absolute; right: 22px; }
+    .button.quiet { padding: 0 22px; background: rgba(255,253,248,.84); color: var(--sage-dark); box-shadow: var(--shadow); }
+    .button:disabled { cursor: not-allowed; opacity: .48; box-shadow: none; }
+    .shared-by { display: inline-flex; align-items: center; gap: 8px; margin-bottom: 24px; color: var(--sage); font-size: 12px; font-weight: 700; }
+    .avatar { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: var(--sage); color: white; }
+    .truth-grid { display: grid; gap: 12px; margin-top: 22px; }
+    .truth { padding: 17px; border-radius: 22px; background: rgba(255,253,248,.9); box-shadow: var(--shadow); }
+    .truth b { display: block; margin-bottom: 5px; color: var(--sage-dark); }
+    .truth p { margin: 0; font-family: Georgia, serif; font-style: italic; font-size: 14px; }
+    .choices { display: grid; gap: 10px; margin-top: 18px; }
+    .choice {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      width: 100%;
+      padding: 16px;
+      border: 0;
+      border-radius: 22px;
+      background: rgba(255,253,248,.92);
+      color: var(--ink);
+      text-align: left;
+      box-shadow: var(--shadow);
+      cursor: pointer;
+    }
+    .choice.selected { background: #dfe9e1; }
+    .radio { width: 18px; height: 18px; border: 2px solid #9aaba0; border-radius: 50%; }
+    .choice.selected .radio { border: 5px solid var(--sage); }
+    .preview { margin-top: 18px; }
+    .preview-label { margin-bottom: 8px; color: var(--sage); font-size: 10px; font-weight: 800; letter-spacing: .14em; }
+    .preview blockquote { margin: 0; color: var(--ink); font-family: Georgia, serif; font-size: 19px; font-style: italic; line-height: 1.45; }
+    .consent-row { display: flex; gap: 10px; margin-top: 16px; color: var(--muted); font-size: 12px; line-height: 1.5; }
+    .consent-row input { width: 18px; height: 18px; accent-color: var(--sage); }
+    .name-input { width: 100%; box-sizing: border-box; border: 1px solid #d8e0d9; border-radius: 13px; padding: 12px; margin-top: 13px; font: inherit; color: var(--ink); background: #fffdfa; }
+    .app-mark { display: grid; place-items: center; width: 72px; height: 72px; margin-bottom: 22px; border-radius: 23px; background: var(--sage-dark); color: white; font-family: Georgia, serif; font-size: 31px; font-style: italic; box-shadow: var(--shadow); }
+    .features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 20px; }
+    .feature { padding: 13px 8px; border-radius: 18px; background: rgba(255,253,248,.85); color: var(--sage-dark); font-size: 11px; font-weight: 700; text-align: center; box-shadow: 0 9px 26px rgba(19,37,27,.08); }
+    .fine { margin: 12px 0 0; color: var(--muted); font-size: 11px; line-height: 1.5; text-align: center; }
+    .scripture { margin: 18px 0 0; color: var(--sage-dark); font-family: Georgia, serif; font-size: 17px; font-style: italic; line-height: 1.55; }
+    .reference { margin-top: 8px; color: var(--sage); font-size: 10px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+    .point-list { display: grid; gap: 11px; margin-top: 22px; }
+    .point { display: flex; gap: 12px; padding: 16px; border-radius: 21px; background: rgba(255,253,248,.9); box-shadow: var(--shadow); }
+    .point-mark { display: grid; place-items: center; flex: 0 0 30px; width: 30px; height: 30px; border-radius: 50%; background: #dfe9e1; color: var(--sage-dark); font-weight: 800; }
+    .point p { margin: 3px 0 0; font-size: 13px; line-height: 1.5; }
+    .formula { margin-top: 18px; padding: 18px; border-radius: 22px; background: rgba(255,253,248,.92); box-shadow: var(--shadow); color: var(--sage-dark); font-size: 16px; font-weight: 800; line-height: 1.5; text-align: center; }
+    .status { display: none; min-height: 100%; padding: 40px 26px; align-items: center; justify-content: center; text-align: center; background: var(--ivory); }
+    .status.active { display: flex; flex-direction: column; }
+    .status .app-mark { margin: 0 auto 22px; }
+    .error-message { min-height: 19px; margin: 10px 0 0; color: #9a4337; font-size: 12px; text-align: center; }
+    .formula-choice { display: block; }
+    .formula-choice strong { display: block; color: var(--sage-dark); font-family: Georgia, serif; font-size: 18px; }
+    .formula-choice small { display: block; margin-top: 7px; color: var(--muted); line-height: 1.45; }
+    .formula-choice.correct { background: #dfe9e1; }
+    .formula-choice.wrong { background: #f5dfd9; }
+    .center { text-align: center; }
+    .assurance-card { margin-top: 10px; }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <main class="stage">
+    <section class="phone" aria-label="The Gospel">
+      <div class="status active" id="loadingState" role="status">
+        <div class="app-mark">S</div>
+        <h2>Opening your private invitation…</h2>
+        <p>Please wait a moment.</p>
+      </div>
+      <div class="status" id="unavailableState" role="alert">
+        <div class="app-mark">S</div>
+        <p class="eyebrow">Link unavailable</p>
+        <h2>This private Gospel link is no longer available.</h2>
+        <p>It may have expired or been withdrawn. You can ask the person who sent it to share a new link.</p>
+        <button class="button" id="visitSiFia">Visit SiFia</button>
+      </div>
+      <div class="floating" id="navigation" hidden>
+        <button class="icon-button" id="back" aria-label="Go back">‹</button>
+        <div class="progress" aria-hidden="true"><i id="progress"></i></div>
+        <button class="icon-button" id="close" aria-label="Close">×</button>
+      </div>
+
+      <article class="screen" data-screen="0">
+        <div class="shared-by"><span class="avatar" id="senderInitial">N</span> <span><span id="senderName">Nikki</span> shared this with you</span></div>
+        <p class="eyebrow">A private invitation</p>
+        <h1>You can explore this at your own pace.</h1>
+        <p>There is no pressure to respond to Nikki. This short experience explains the Gospel and gives you space to decide what you believe.</p>
+        <div class="privacy">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#607967" stroke-width="2"><rect x="4" y="10" width="16" height="11" rx="3"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+          <p>Your reading activity and private answers are not visible to the sender. You decide whether to share your final response.</p>
+        </div>
+        <div class="bottom">
+          <button class="button next">Begin privately <span class="arrow">→</span></button>
+          <p class="fine">No Journal by SiFia account is required.</p>
+        </div>
+      </article>
+
+      <article class="screen center" data-screen="intro" style="background-image:url('/assets/images/gospel/9.png')">
+        <p class="eyebrow">Begin here</p>
+        <h1>What is the best decision you’ve made in your life?</h1>
+        <p>Some decisions are simple. Some are significant. Some change the direction of our lives.</p>
+        <div class="surface bottom">
+          <p class="scripture">The Gospel speaks to a decision with <strong>eternal</strong> significance.</p>
+          <button class="button next">Begin <span class="arrow">→</span></button>
+        </div>
+      </article>
+
+      <article class="screen" data-screen="1" style="background-image:url('/assets/images/gospel/11.png')">
+        <p class="eyebrow">Truth 1</p>
+        <h1>God loves you and desires that you…</h1>
+        <p>His desire for you includes both:</p>
+        <div class="truth-grid bottom">
+          <div class="truth"><b>Have eternal life with Him</b><p>For God loved the world so much that he gave his only Son, so that everyone who believes in him may not perish but have eternal life.</p><p class="reference">John 3:16</p></div>
+          <div class="truth"><b>Have an abundant and meaningful life with Him</b><p>Jesus said He came that we might have life in all its fullness.</p><p class="reference">John 10:10</p></div>
+          <button class="button next">But there is a problem <span class="arrow">→</span></button>
+        </div>
+      </article>
+
+      <article class="screen" data-screen="2" style="background-image:url('/assets/images/gospel/1.png')">
+        <p class="eyebrow">Truth 2</p>
+        <h1>We have a sin problem that separates us from God.</h1>
+        <div class="surface bottom">
+          <p class="scripture">“Everyone has sinned and is far away from God’s saving presence.”</p>
+          <p class="reference">Romans 3:23</p>
+          <button class="button next">Continue <span class="arrow">→</span></button>
+        </div>
+      </article>
+
+      <article class="screen" data-screen="3" style="background-image:url('/assets/images/gospel/1.png')">
+        <p class="eyebrow">Our problem</p>
+        <h1>The penalty of sin is death.</h1>
+        <div class="surface bottom">
+          <p class="scripture">“For sin pays its wage—death;”</p>
+          <p class="reference">Romans 6:23a</p>
+          <button class="button next">Kinds of death <span class="arrow">→</span></button>
+        </div>
+      </article>
+
+      <article class="screen" data-screen="death-kinds" style="background-image:url('/assets/images/gospel/12.png')">
+        <p class="eyebrow">The consequence</p>
+        <h1>The Bible talks about different kinds of <span class="serif italic">death.</span></h1>
+        <div class="truth-grid bottom">
+          <div class="truth"><b>Physical death</b><p>Everyone must die once, and after that be judged by God.</p><p class="reference">Hebrews 9:27</p></div>
+          <div class="truth"><b>Spiritual death — eternal separation from God</b><p>But cowards, traitors, perverts, murderers, the immoral, those who practice magic, those who worship idols, and all liars—the place for them is the lake burning with fire and sulfur, which is the second death.</p><p class="reference">Revelation 21:8</p></div>
+          <button class="button next">Is there a solution? <span class="arrow">→</span></button>
+        </div>
+      </article>
+
+      <article class="screen" data-screen="4" style="background-image:url('/assets/images/gospel/7.png')">
+        <p class="eyebrow">Our efforts</p>
+        <h1>Can we make ourselves right with God?</h1>
+        <p>Religion, good works, and good morals cannot pay the penalty for sin or erase our guilt.</p>
+        <div class="point-list">
+          <div class="point"><span class="point-mark">1</span><div><b>Religion</b><p>Religious activity cannot become our salvation.</p></div></div>
+          <div class="point"><span class="point-mark">2</span><div><b>Good works</b><p>Our good deeds cannot erase our guilt.</p></div></div>
+          <div class="point"><span class="point-mark">3</span><div><b>Good morals</b><p>Trying to be moral cannot make us right with God.</p></div></div>
+        </div>
+        <div class="bottom"><button class="button next">See God’s solution <span class="arrow">→</span></button></div>
+      </article>
+
+      <article class="screen" data-screen="5" style="background-image:url('/assets/images/gospel/3.png')">
+        <p class="eyebrow">Truth 3</p>
+        <h1>Jesus Christ is God’s only way to eternal life.</h1>
+        <p>He completely paid the penalty for our sins.</p>
+        <div class="surface bottom">
+          <p class="scripture">“For Christ died for sins once and for all, a good man on behalf of sinners, in order to lead you to God.”</p>
+          <p class="reference">1 Peter 3:18</p>
+          <button class="button next">Continue <span class="arrow">→</span></button>
+        </div>
+      </article>
+
+      <article class="screen center" data-screen="6" style="background-image:url('/assets/images/gospel/3.png')">
+        <h1>He is the <span class="serif italic">only way.</span></h1>
+        <div class="surface bottom">
+          <p class="scripture">In John 14:6, Jesus answered him, “I am the way, the truth, and the life; no one goes to the Father except by me.”</p>
+          <p class="reference">John 14:6</p>
+          <button class="button next">Continue <span class="arrow">→</span></button>
+        </div>
+      </article>
+
+      <article class="screen" data-screen="risen" style="background-image:url('/assets/images/gospel/3.png')">
+        <h1><span class="serif italic">Jesus rose</span> from the dead.</h1>
+        <p>His resurrection proves that He is the Son of God, the Messiah, the only Savior.</p>
+        <div class="surface bottom">
+          <p class="scripture">It is about his Son, our Lord Jesus Christ: as to his humanity, he was born a descendant of David; as to his divine holiness, he was shown with great power to be the Son of God by being raised from death.</p>
+          <p class="reference">Romans 1:3–4</p>
+          <button class="button next">What does this mean for me? <span class="arrow">→</span></button>
+        </div>
+      </article>
+
+      <article class="screen" data-screen="7" style="background-image:url('/assets/images/gospel/3.png')">
+        <p class="eyebrow">Truth 4</p>
+        <h1>We must place our faith in Jesus Christ to save us.</h1>
+        <p>Merely knowing what Christ has done is not enough.</p>
+        <div class="surface bottom">
+          <p class="scripture">“For it is by God’s grace that you have been saved through faith. It is not the result of your own efforts, but God’s gift.”</p>
+          <p class="reference">Ephesians 2:8–9</p>
+          <button class="button next">Continue <span class="arrow">→</span></button>
+        </div>
+      </article>
+
+      <article class="screen" data-screen="8" style="background-image:url('/assets/images/gospel/5.png')">
+        <h1>We are saved by God’s grace through faith in Jesus Christ <span class="serif italic">alone.</span></h1>
+        <div class="bottom"><button class="button next">Continue <span class="arrow">→</span></button></div>
+      </article>
+
+      <article class="screen center" data-screen="understanding" style="background-image:url('/assets/images/gospel/5.png')">
+        <p class="eyebrow">Think about it</p>
+        <h1>Which one is true?</h1>
+        <div class="choices" id="salvationChoices">
+          <button class="choice formula-choice" data-correct="false"><strong>Faith in Jesus + good works = salvation</strong><small>Choose this answer to check it.</small></button>
+          <button class="choice formula-choice" data-correct="true"><strong>Faith in Jesus + nothing from us = salvation → leading to good works</strong><small>Choose this answer to check it.</small></button>
+        </div>
+        <p class="error-message" id="salvationFeedback" role="status"></p>
+        <div class="bottom">
+          <p class="scripture">Good works are not the means to salvation. They are evidence of a life changed by faith.</p>
+          <button class="button next" id="salvationNext" disabled>Continue <span class="arrow">→</span></button>
+        </div>
+      </article>
+
+      <article class="screen" data-screen="9" style="background-image:url('/assets/images/gospel/5.png')">
+        <p class="eyebrow">Responding</p>
+        <h1>What does trusting Jesus look like?</h1>
+        <div class="point-list">
+          <div class="point"><span class="point-mark">1</span><div><b>Turn from sin</b><p>Be willing to turn away from sin.</p></div></div>
+          <div class="point"><span class="point-mark">2</span><div><b>Trust Jesus</b><p>Trust Him for your forgiveness.</p></div></div>
+          <div class="point"><span class="point-mark">3</span><div><b>Receive His gift</b><p>Receive God’s free gift of eternal life in Christ.</p></div></div>
+        </div>
+        <div class="bottom"><button class="button next">Consider your response <span class="arrow">→</span></button></div>
+      </article>
+
+      <article class="screen center" data-screen="promise" style="background-image:url('/assets/images/gospel/8.png')">
+        <p class="eyebrow">God’s promise</p>
+        <h1>You can know today that you have eternal life.</h1>
+        <h2 class="serif italic">When you trust in Jesus.</h2>
+        <div class="surface bottom">
+          <p class="scripture">The testimony is this: God has given us eternal life, and this life has its source in his Son. Whoever has the Son has this life; whoever does not have the Son of God does not have life.</p>
+          <p class="reference">1 John 5:11–12</p>
+          <button class="button next">What does this mean for me? <span class="arrow">→</span></button>
+        </div>
+      </article>
+
+      <article class="screen" data-screen="10" style="background-image:url('/assets/images/gospel/5.png')">
+        <p class="eyebrow">This is personal</p>
+        <p>This will determine your eternal destiny.</p>
+        <h2>Are you willing to trust and follow <span class="serif italic">Jesus as your Lord and Savior?</span></h2>
+        <div class="choices bottom" id="responseChoices">
+          <button class="choice" data-code="trusted_jesus_today" data-value="I want to trust and follow Jesus."><span class="radio"></span>I want to trust and follow Jesus.</button>
+          <button class="choice" data-code="has_questions" data-value="I have questions."><span class="radio"></span>I have questions.</button>
+          <button class="choice" data-code="not_ready" data-value="I’m not ready yet."><span class="radio"></span>I’m not ready yet.</button>
+          <button class="choice" data-code="already_follows_jesus" data-value="I already trust and follow Jesus."><span class="radio"></span>I already trust and follow Jesus.</button>
+          <button class="button next" id="responseNext" disabled>Continue <span class="arrow">→</span></button>
+        </div>
+      </article>
+
+      <article class="screen center" data-screen="prayer" style="background-image:url('/assets/images/gospel/8.png')">
+        <p class="eyebrow">Pray this in faith</p>
+        <h1>Talk to Jesus.</h1>
+        <p>Prayer doesn’t earn salvation. It can express the faith, repentance, and surrender of your heart.</p>
+        <div class="surface bottom">
+          <p class="scripture">Lord Jesus,<br>thank You so much for loving me. I confess that I have sinned against you. Thank You for dying on the cross for my sins.<br><br>Today, I put my trust in You as my Lord and Savior. I accept Your free gift of eternal life and <strong>I surrender my life to You.</strong><br><br>Thank You for forgiving my sins. From this day on, <strong>I choose to follow You.</strong><br><br>Amen.</p>
+          <button class="button next">I trust Jesus today <span class="arrow">→</span></button>
+        </div>
+      </article>
+
+      <article class="screen center" data-screen="assurance-intro" style="background-image:url('/assets/images/gospel/8.png')">
+        <div class="app-mark">☀</div>
+        <h1>Your eternal life with God begins today.</h1>
+        <div class="surface bottom">
+          <p class="scripture">I am writing this to you so that you may know that you have eternal life—you that believe in the Son of God.</p>
+          <p class="reference">1 John 5:13</p>
+          <button class="button next">Continue <span class="arrow">→</span></button>
+        </div>
+      </article>
+
+      <article class="screen center" data-screen="assurance" style="background-image:url('/assets/images/gospel/8.png')">
+        <div class="app-mark">☀</div>
+        <h1>Your eternal life with God begins today.</h1>
+        <div class="bottom">
+          <div class="surface assurance-card"><b>Forgiven</b><p>All of your sins are paid for and forgiven.</p><p class="scripture">“I will not remember their sins and evil deeds any longer.”</p><p class="reference">Hebrews 10:17</p></div>
+          <div class="surface assurance-card"><b>New life</b><p>You are a new person in God’s eyes. A new life has begun for you.</p><p class="reference">2 Corinthians 5:17</p></div>
+          <div class="surface assurance-card"><b>Child of God</b><p>You became a child of God.</p><p class="reference">John 1:12</p></div>
+          <button class="button next">Continue <span class="arrow">→</span></button>
+        </div>
+      </article>
+
+      <article class="screen" data-screen="next-steps" style="background-image:url('/assets/images/gospel/8.png')">
+        <h1>You now have a very <span class="serif italic">personal and permanent</span> relationship with the Lord Jesus Christ.</h1>
+        <p>To grow in your relationship with Him:</p>
+        <div class="point-list">
+          <div class="point"><span class="point-mark">1</span><div><b>Pray to Him every day</b><p>This is how we talk to God.</p></div></div>
+          <div class="point"><span class="point-mark">2</span><div><b>Read the Bible</b><p>This is how God talks to you. Begin with the Gospel of John.</p></div></div>
+          <div class="point"><span class="point-mark">3</span><div><b>Join a discipleship group</b><p>Grow alongside other believers.</p></div></div>
+          <div class="point"><span class="point-mark">4</span><div><b>Attend a Bible-believing church</b><p>Learn, worship, and live in community.</p></div></div>
+          <div class="point"><span class="point-mark">5</span><div><b>Share the Gospel</b><p>Tell family, friends, and others the good news.</p></div></div>
+        </div>
+        <div class="bottom"><button class="button next">Continue <span class="arrow">→</span></button></div>
+      </article>
+
+      <article class="screen center" data-screen="birthday" style="background-image:url('/assets/images/gospel/8.png')">
+        <p class="eyebrow">Today</p>
+        <h1>I trusted in Jesus to be my Lord and Savior.</h1>
+        <p class="scripture">I accepted His free gift of eternal life. From now on, I will follow Jesus for the rest of my life.</p>
+        <div class="surface bottom">
+          <p>Save this date as a personal reminder of your commitment.</p>
+          <p class="reference" id="spiritualBirthday"></p>
+          <button class="button" data-target="consent">Continue <span class="arrow">→</span></button>
+        </div>
+      </article>
+
+      <article class="screen center" data-screen="other-response" style="background-image:url('/assets/images/gospel/8.png')">
+        <p class="eyebrow">Thank you for answering</p>
+        <h1 id="otherResponseTitle">Your questions matter.</h1>
+        <p id="otherResponseBody">You can keep exploring what the Bible says about Jesus before making a decision.</p>
+        <div class="surface bottom"><p>No pressure to manufacture a response. You can ask questions, read Scripture, talk with the person who shared this with you, and return whenever you want.</p><button class="button" data-target="consent">Continue <span class="arrow">→</span></button></div>
+      </article>
+
+      <article class="screen" id="consentScreen" data-screen="11" style="background-image:url('/assets/images/gospel/8.png')">
+        <p class="eyebrow">Your response is yours</p>
+        <h2>Would you like to share your response with <span data-sender-name>Nikki</span>?</h2>
+        <p>Keeping it private will not notify the sender. Sharing it sends only the response shown below—not your reading progress or other activity.</p>
+        <div class="surface preview">
+          <div class="preview-label"><span data-sender-name>Nikki</span> WILL SEE</div>
+          <blockquote id="responsePreview">“I want to trust and follow Jesus.”</blockquote>
+          <input id="responderName" class="name-input" maxlength="80" autocomplete="name" placeholder="Your name (optional)" />
+          <label class="consent-row"><input id="shareName" type="checkbox" /> Include my name with this response.</label>
+          <label class="consent-row"><input id="consent" type="checkbox" /> I understand that this response will be shared with <span data-sender-name>Nikki</span>.</label>
+        </div>
+        <div class="bottom">
+          <button class="button" id="shareResponse">Share my response <span class="arrow">→</span></button>
+          <button class="button quiet" id="keepPrivate">Keep my response private</button>
+          <p class="error-message" id="responseError" role="alert"></p>
+        </div>
+      </article>
+
+      <article class="screen" id="confirmationScreen" data-screen="12" style="background-image:url('/assets/images/gospel/8.png')">
+        <p class="eyebrow" id="confirmationEyebrow">Response shared</p>
+        <h1 id="confirmationTitle"><span data-sender-name>Nikki</span> can now see the response you chose to share.</h1>
+        <p id="confirmationBody">Nothing else from your Gospel experience was shared.</p>
+        <div class="privacy"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#607967" stroke-width="2"><path d="m5 12 4 4L19 6"/></svg><p>You remain in control. SiFia will never share private reading activity with the sender.</p></div>
+        <div class="bottom"><button class="button" id="continueInApp" hidden>Save this in Journal by SiFia <span class="arrow">↗</span></button><button class="button next">Continue <span class="arrow">→</span></button></div>
+      </article>
+
+      <article class="screen" data-screen="13" style="background-image:url('/assets/images/gospel/10.png')">
+        <div class="app-mark">S</div>
+        <p class="eyebrow">Continue growing</p>
+        <h1>A private place to grow in your relationship with God.</h1>
+        <p>Journal by SiFia can help you pray, read Scripture, reflect, and remember what God is doing in your life.</p>
+        <div class="features"><div class="feature">Pray</div><div class="feature">Read</div><div class="feature">Reflect</div></div>
+        <div class="bottom">
+          <button class="button" id="getApp">Get Journal by SiFia <span class="arrow">↗</span></button>
+          <button class="button quiet" id="finish">Maybe later</button>
+          <p class="fine">Installing the app is optional and is not reported to the sender.</p>
+        </div>
+      </article>
+    </section>
+  </main>
+
+  <script>
+    const screens = [...document.querySelectorAll('.screen')];
+    const progress = document.querySelector('#progress');
+    const back = document.querySelector('#back');
+    let index = 0;
+    let response = '';
+    let responseCode = '';
+    let shared = false;
+    let claimUrl = '';
+    let senderName = 'the sender';
+    const navigationHistory = [];
+    const loadingState = document.querySelector('#loadingState');
+    const unavailableState = document.querySelector('#unavailableState');
+    const navigation = document.querySelector('#navigation');
+    const confirmationScreen = document.querySelector('#confirmationScreen');
+    const consentScreen = document.querySelector('#consentScreen');
+    const api = 'https://aesmrjinczhknchlrsmt.supabase.co/functions/v1/gospel-share-public';
+    const pathParts = location.pathname.split('/').filter(Boolean);
+    const gospelIndex = pathParts.indexOf('gospel');
+    const token = gospelIndex >= 0 ? pathParts[gospelIndex + 1] || '' : '';
+
+    async function callApi(payload) {
+      const request = await fetch(api, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, ...payload }),
+      });
+      const result = await request.json().catch(() => ({}));
+      if (!request.ok) throw new Error(result.error || 'Unable to connect');
+      return result;
+    }
+
+    async function resolveShare() {
+      if (!token) {
+        showUnavailable();
+        return;
+      }
+      try {
+        const result = await callApi({ action: 'resolve' });
+        senderName = result.senderDisplayName || 'the sender';
+        document.querySelector('#senderName').textContent = senderName;
+        document.querySelector('#senderInitial').textContent = senderName.charAt(0).toUpperCase();
+        document.querySelectorAll('[data-sender-name]').forEach(element => {
+          element.textContent = senderName;
+        });
+        loadingState.classList.remove('active');
+        navigation.hidden = false;
+        show(0, false);
+      } catch (error) {
+        showUnavailable();
+      }
+    }
+
+    function showUnavailable() {
+      loadingState.classList.remove('active');
+      unavailableState.classList.add('active');
+      navigation.hidden = true;
+      screens.forEach(screen => screen.classList.remove('active'));
+    }
+
+    function show(next, remember = true) {
+      const target = Math.max(0, Math.min(screens.length - 1, next));
+      if (remember && screens[index]?.classList.contains('active') && target !== index) navigationHistory.push(index);
+      index = target;
+      screens.forEach((screen, i) => screen.classList.toggle('active', i === index));
+      progress.style.width = `${((index + 1) / screens.length) * 100}%`;
+      back.style.visibility = index === 0 ? 'hidden' : 'visible';
+      screens[index].scrollTop = 0;
+      const heading = screens[index].querySelector('h1, h2');
+      if (heading) {
+        heading.setAttribute('tabindex', '-1');
+        heading.focus({ preventScroll: true });
+      }
+    }
+
+    document.querySelectorAll('.next').forEach(button => button.addEventListener('click', () => {
+      if (button.id === 'responseNext' || button.id === 'salvationNext') return;
+      show(index + 1);
+    }));
+    document.querySelectorAll('[data-target="consent"]').forEach(button => button.addEventListener('click', () => show(screens.indexOf(consentScreen))));
+    back.addEventListener('click', () => {
+      const previous = navigationHistory.pop();
+      show(previous ?? Math.max(0, index - 1), false);
+    });
+    document.querySelector('#close').addEventListener('click', () => {
+      if (index === 0) {
+        window.close();
+        if (!window.closed) location.href = 'https://sifia.app';
+        return;
+      }
+      navigationHistory.length = 0;
+      show(0, false);
+    });
+
+    document.querySelectorAll('.choice').forEach(choice => choice.addEventListener('click', () => {
+      if (choice.closest('#salvationChoices')) return;
+      document.querySelectorAll('.choice').forEach(item => item.classList.remove('selected'));
+      choice.classList.add('selected');
+      response = choice.dataset.value;
+      responseCode = choice.dataset.code;
+      document.querySelector('#responsePreview').textContent = `“${response}”`;
+      document.querySelector('#responseNext').disabled = false;
+    }));
+
+    document.querySelectorAll('#salvationChoices .choice').forEach(choice => choice.addEventListener('click', () => {
+      document.querySelectorAll('#salvationChoices .choice').forEach(item => item.classList.remove('selected', 'correct', 'wrong'));
+      const correct = choice.dataset.correct === 'true';
+      choice.classList.add('selected', correct ? 'correct' : 'wrong');
+      choice.querySelector('small').textContent = correct
+        ? 'Yes—that’s the Gospel. Salvation is God’s gift, received by faith alone.'
+        : 'Not quite—good works follow salvation; they do not earn it.';
+      document.querySelector('#salvationFeedback').textContent = correct ? 'That’s the Gospel.' : 'Try the other answer.';
+      document.querySelector('#salvationNext').disabled = !correct;
+    }));
+    document.querySelector('#salvationNext').addEventListener('click', () => show(index + 1));
+
+    document.querySelector('#responseNext').addEventListener('click', () => {
+      if (!responseCode) return;
+      if (responseCode === 'trusted_jesus_today') {
+        show(screens.findIndex(screen => screen.dataset.screen === 'prayer'));
+        return;
+      }
+      const responseCopy = {
+        has_questions: ['Your questions matter.', 'You can keep exploring what the Bible says about Jesus before making a decision.'],
+        not_ready: ['You can take your time.', 'You do not need to manufacture a response. Keep seeking, asking questions, and returning to what Jesus said.'],
+        already_follows_jesus: ['Keep following Jesus.', 'Let this Gospel remind you of the grace you have already received and the good news you can share.'],
+      }[responseCode];
+      document.querySelector('#otherResponseTitle').textContent = responseCopy[0];
+      document.querySelector('#otherResponseBody').textContent = responseCopy[1];
+      show(screens.findIndex(screen => screen.dataset.screen === 'other-response'));
+    });
+
+    document.querySelector('#spiritualBirthday').textContent = new Intl.DateTimeFormat('en-US', { month: 'long', day: 'numeric', year: 'numeric' }).format(new Date());
+
+    document.querySelector('#shareResponse').addEventListener('click', async () => {
+      const shareButton = document.querySelector('#shareResponse');
+      const responseError = document.querySelector('#responseError');
+      responseError.textContent = '';
+      if (!document.querySelector('#consent').checked) {
+        responseError.textContent = 'Please confirm that you want to share this response.';
+        return;
+      }
+      shareButton.disabled = true;
+      shareButton.firstChild.textContent = 'Sharing… ';
+      try {
+        const result = await callApi({ action: 'respond', response: responseCode, consent: true, responderName: document.querySelector('#responderName').value, shareName: document.querySelector('#shareName').checked });
+        claimUrl = result.claimUrl || '';
+      } catch (error) {
+        responseError.textContent = error.message || 'Unable to share right now. Please try again.';
+        shareButton.disabled = false;
+        shareButton.firstChild.textContent = 'Share my response ';
+        return;
+      }
+      shared = true;
+      document.querySelector('#confirmationEyebrow').textContent = 'Response shared';
+      document.querySelector('#confirmationTitle').textContent = `${senderName} can now see the response you chose to share.`;
+      document.querySelector('#confirmationBody').textContent = 'Nothing else from your Gospel experience was shared.';
+      const continueInApp = document.querySelector('#continueInApp');
+      continueInApp.hidden = !claimUrl;
+      show(screens.indexOf(confirmationScreen));
+    });
+
+    document.querySelector('#keepPrivate').addEventListener('click', () => {
+      shared = false;
+      document.querySelector('#confirmationEyebrow').textContent = 'Kept private';
+      document.querySelector('#confirmationTitle').textContent = 'Your response remains private.';
+      document.querySelector('#confirmationBody').textContent = `${senderName} will not receive a response notification.`;
+      show(screens.indexOf(confirmationScreen));
+    });
+
+    document.querySelector('#getApp').addEventListener('click', () => {
+      const isAndroid = /Android/i.test(navigator.userAgent);
+      location.href = isAndroid
+        ? 'https://play.google.com/store/apps/details?id=app.journal.sifia'
+        : 'https://apps.apple.com/us/app/sifia/id6751785713';
+    });
+    document.querySelector('#continueInApp').addEventListener('click', () => {
+      if (claimUrl) location.href = claimUrl;
+    });
+    document.querySelector('#finish').addEventListener('click', () => show(0));
+    document.querySelector('#visitSiFia').addEventListener('click', () => { location.href = 'https://sifia.app'; });
+    resolveShare();
+  </script>
+</body>
+</html>

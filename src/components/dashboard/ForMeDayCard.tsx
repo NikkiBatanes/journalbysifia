@@ -1,5 +1,5 @@
-import React, {useCallback, useState} from 'react';
-import {StyleSheet, TouchableOpacity, View} from 'react-native';
+import React, {useCallback, useEffect, useRef, useState} from 'react';
+import {Animated, Easing, StyleSheet, TouchableOpacity, View} from 'react-native';
 import {useFocusEffect, useNavigation} from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import ThemedText from '../common/ThemedText';
@@ -19,6 +19,8 @@ import {triggerLightHaptic} from '../../utils/haptics';
 const ForMeDayCard = () => {
   const navigation = useNavigation<any>();
   const [settings, setSettings] = useState<ForMeDaySettings | null>(null);
+  const entrance = useRef(new Animated.Value(0)).current;
+  const sparkle = useRef(new Animated.Value(0)).current;
   useFocusEffect(
     useCallback(() => {
       let active = true;
@@ -35,12 +37,31 @@ const ForMeDayCard = () => {
       };
     }, []),
   );
-  if (!settings || !isForMeDay(settings.spiritualBirthday)) {
+  const active = Boolean(settings && isForMeDay(settings.spiritualBirthday));
+  useEffect(() => {
+    if (!active) {return;}
+    entrance.setValue(0);
+    sparkle.setValue(0);
+    const animation = Animated.parallel([
+      Animated.spring(entrance, {toValue: 1, tension: 42, friction: 8, overshootClamping: true, useNativeDriver: true}),
+      Animated.timing(sparkle, {toValue: 1, duration: 900, easing: Easing.out(Easing.cubic), useNativeDriver: true}),
+    ]);
+    animation.start();
+    return () => animation.stop();
+  }, [active, entrance, sparkle]);
+  if (!settings || !active) {
     return null;
   }
   const years = getForMeDayYears(settings.spiritualBirthday);
   return (
-    <TouchableOpacity
+    <Animated.View style={{
+      opacity: entrance,
+      transform: [
+        {translateY: entrance.interpolate({inputRange: [0, 1], outputRange: [14, 0]})},
+        {scale: entrance.interpolate({inputRange: [0, 1], outputRange: [0.97, 1]})},
+      ],
+    }}>
+      <TouchableOpacity
       style={styles.card}
       activeOpacity={0.86}
       onPress={() => {
@@ -53,7 +74,9 @@ const ForMeDayCard = () => {
         <ThemedText style={styles.eyebrow}>
           ✦ YOUR SPIRITUAL BIRTHDAY
         </ThemedText>
-        <Ionicons name="sparkles-outline" size={22} color={Colors.faithGold} />
+        <Animated.View style={{transform: [{rotate: sparkle.interpolate({inputRange: [0, 1], outputRange: ['-28deg', '0deg']})}, {scale: sparkle.interpolate({inputRange: [0, 1], outputRange: [0.45, 1]})}]}}>
+          <Ionicons name="sparkles-outline" size={22} color={Colors.faithGold} />
+        </Animated.View>
       </View>
       <ThemedText style={styles.title}>Happy For Me Day.</ThemedText>
       <ThemedText style={styles.body}>
@@ -68,7 +91,8 @@ const ForMeDayCard = () => {
         <ThemedText style={styles.actionText}>Remember this day</ThemedText>
         <Ionicons name="arrow-forward" size={16} color={Colors.hopeWhite} />
       </View>
-    </TouchableOpacity>
+      </TouchableOpacity>
+    </Animated.View>
   );
 };
 

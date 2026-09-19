@@ -44,6 +44,21 @@ interface TodayFocusData {
   priorities: PriorityItem[];
 }
 
+const normalizePriority = (value: unknown, index: number): PriorityItem => {
+  if (typeof value === 'string') {
+    return {id: `legacy_priority_${index + 1}`, text: value, completed: false};
+  }
+  if (value && typeof value === 'object') {
+    const priority = value as Partial<PriorityItem>;
+    return {
+      id: typeof priority.id === 'string' && priority.id ? priority.id : `priority_${index + 1}`,
+      text: typeof priority.text === 'string' ? priority.text : '',
+      completed: priority.completed === true,
+    };
+  }
+  return {id: `priority_${index + 1}`, text: '', completed: false};
+};
+
 interface TodaysFocusProps {
   selectedDate?: Date;
   refreshKey?: number;
@@ -116,7 +131,9 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
     const result = existingEntry ? (() => {
       try {
         const parsedContent = typeof existingEntry.content === 'string' ? JSON.parse(existingEntry.content) : existingEntry.content;
-        const existingPriorities = parsedContent.priorities || [];
+        const existingPriorities = Array.isArray(parsedContent?.priorities)
+          ? parsedContent.priorities.map(normalizePriority)
+          : [];
 
         // Ensure we always have exactly 3 priorities with unique IDs
         const priorities: PriorityItem[] = [];
@@ -141,8 +158,10 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
         }
 
         return {
-          focus: parsedContent.focus || '',
-          personalText: parsedContent.personalText || '',
+          focus: typeof parsedContent?.focus === 'string'
+            ? parsedContent.focus
+            : typeof parsedContent?.category === 'string' ? parsedContent.category : '',
+          personalText: typeof parsedContent?.personalText === 'string' ? parsedContent.personalText : '',
           priorities,
         };
       } catch (parseError) {

@@ -264,6 +264,7 @@ const SermonNotesScreen = ({navigation, route}: any) => {
     [key: string]: {y: number; height: number; absolute?: boolean};
   }>({});
   const editorLayout = useRef<{y: number} | null>(null);
+  const sessionFormLayout = useRef<{y: number} | null>(null);
   const detailsLayout = useRef<{y: number} | null>(null);
   const blockInputRefs = useRef(new Map<string, TextInput>());
   const pendingFocusBlockIdRef = useRef<string | null>(null);
@@ -290,6 +291,7 @@ const SermonNotesScreen = ({navigation, route}: any) => {
   const savedCheckCircleAnim = useRef(new Animated.Value(0)).current;
   const pageTransitionAnim = useRef(new Animated.Value(0)).current;
   const sessionHeaderAnim = useRef(new Animated.Value(0)).current;
+  const sessionFormAnim = useRef(new Animated.Value(0)).current;
   const sessionTypePillAnims = useRef(
     SESSION_NOTE_TYPES.map(() => new Animated.Value(0)),
   ).current;
@@ -553,16 +555,16 @@ const SermonNotesScreen = ({navigation, route}: any) => {
   }, [pageTransitionAnim, reflectionStep, stage]);
 
   const resetSessionTypePills = useCallback(() => {
-    [sessionHeaderAnim, ...sessionTypePillAnims].forEach(animation => {
+    [sessionHeaderAnim, ...sessionTypePillAnims, sessionFormAnim].forEach(animation => {
       animation.stopAnimation();
       animation.setValue(0);
     });
-  }, [sessionHeaderAnim, sessionTypePillAnims]);
+  }, [sessionFormAnim, sessionHeaderAnim, sessionTypePillAnims]);
 
   const playSessionTypePills = useCallback(() => {
     Animated.stagger(
-      55,
-      [sessionHeaderAnim, ...sessionTypePillAnims].map(animation =>
+      38,
+      [sessionHeaderAnim, ...sessionTypePillAnims, sessionFormAnim].map(animation =>
         Animated.spring(animation, {
           toValue: 1,
           tension: 90,
@@ -570,37 +572,39 @@ const SermonNotesScreen = ({navigation, route}: any) => {
           useNativeDriver: true,
         }),
       ),
-    ).start();
-  }, [sessionHeaderAnim, sessionTypePillAnims]);
+    ).start(({finished}) => {
+      if (finished) {
+        titleInputRef.current?.focus();
+      }
+    });
+  }, [sessionFormAnim, sessionHeaderAnim, sessionTypePillAnims]);
 
+  // Use the same entrance lifecycle as Heart Journal. The animated opacity is
+  // applied to wrapper views below, never to TouchableOpacity itself.
   useFocusEffect(
     useCallback(() => {
       resetSessionTypePills();
       let played = false;
       const playOnce = () => {
-        if (played) {
-          return;
-        }
+        if (played) {return;}
         played = true;
         playSessionTypePills();
       };
       const unsubscribe = (navigation as any).addListener?.(
         'transitionEnd',
         (event: any) => {
-          if (!event?.data?.closing) {
-            playOnce();
-          }
+          if (!event?.data?.closing) {playOnce();}
         },
       );
       const fallback = setTimeout(playOnce, 450);
       return () => {
         clearTimeout(fallback);
         unsubscribe?.();
-        [sessionHeaderAnim, ...sessionTypePillAnims].forEach(animation =>
+        [sessionHeaderAnim, ...sessionTypePillAnims, sessionFormAnim].forEach(animation =>
           animation.stopAnimation(),
         );
       };
-    }, [navigation, playSessionTypePills, resetSessionTypePills, sessionHeaderAnim, sessionTypePillAnims]),
+    }, [navigation, playSessionTypePills, resetSessionTypePills, sessionFormAnim, sessionHeaderAnim, sessionTypePillAnims]),
   );
 
   useEffect(() => {
@@ -799,10 +803,10 @@ const SermonNotesScreen = ({navigation, route}: any) => {
     Keyboard.dismiss();
     DeviceEventEmitter.emit('pencilAddFlowClosed');
     if (route?.params?.openedFromPencil) {
-      navigation.reset({
-        index: 0,
-        routes: [{name: 'JournalMoments'}],
-      });
+      // Keep Moments mounted while closing. Resetting the whole stack tears
+      // down and rebuilds the screen in one frame, which produces a visible
+      // flash as the keyboard and pencil-flow state are dismissed.
+      (navigation as any).popTo('JournalMoments');
       return;
     }
     if (navigation.canGoBack()) {
@@ -2278,55 +2282,80 @@ const SermonNotesScreen = ({navigation, route}: any) => {
                 </ThemedText>
               </Animated.View>
 
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.typePickerContent}
-                style={styles.typePickerScroll}>
+              <View style={styles.typePickerContent}>
                 {SESSION_NOTE_TYPES.map((item, index) => {
                   const selected = item.value === sessionNoteType;
                   return (
-                    <AnimatedTouchableOpacity
+                    <Animated.View
                       key={item.value}
-                      style={[
-                        styles.typePill,
-                        selected && styles.typePillSelected,
-                        {
-                          opacity: sessionTypePillAnims[index],
-                          transform: [
-                            {
-                              translateY: sessionTypePillAnims[index].interpolate({
-                                inputRange: [0, 1],
-                                outputRange: [12, 0],
-                              }),
-                            },
-                            {
-                              scale: sessionTypePillAnims[index].interpolate({
-                                inputRange: [0, 1],
-                                outputRange: [0.94, 1],
-                              }),
-                            },
-                          ],
-                        },
-                      ]}
-                      onPress={() => {
-                        triggerLightHaptic();
-                        changeSessionNoteType(item.value);
-                      }}
-                      activeOpacity={0.75}
-                      accessibilityRole="button"
-                      accessibilityState={{selected}}
-                      accessibilityLabel={`${item.label} notes`}>
-                      <ThemedText
-                        weight="semiBold"
-                        style={[styles.typePillText, selected && styles.typePillTextSelected]}>
-                        {item.label}
-                      </ThemedText>
-                    </AnimatedTouchableOpacity>
+                      style={{
+                        opacity: sessionTypePillAnims[index],
+                        transform: [
+                          {
+                            translateY: sessionTypePillAnims[index].interpolate({
+                              inputRange: [0, 1],
+                              outputRange: [12, 0],
+                            }),
+                          },
+                          {
+                            scale: sessionTypePillAnims[index].interpolate({
+                              inputRange: [0, 1],
+                              outputRange: [0.96, 1],
+                            }),
+                          },
+                        ],
+                      }}>
+                      <TouchableOpacity
+                        style={[styles.typePill, selected && styles.typePillSelected]}
+                        onPress={() => {
+                          triggerLightHaptic();
+                          changeSessionNoteType(item.value);
+                        }}
+                        activeOpacity={0.75}
+                        accessibilityRole="button"
+                        accessibilityState={{selected}}
+                        accessibilityLabel={`${item.label} notes`}>
+                        <ThemedText
+                          weight="semiBold"
+                          style={[styles.typePillText, selected && styles.typePillTextSelected]}>
+                          {item.label}
+                        </ThemedText>
+                      </TouchableOpacity>
+                    </Animated.View>
                   );
                 })}
-              </ScrollView>
+              </View>
 
+              <Animated.View
+                onLayout={e => {
+                  const base = e.nativeEvent.layout.y;
+                  sessionFormLayout.current = {y: base};
+                  (['title', 'speaker'] as const).forEach(key => {
+                    const layout = inputLayouts.current[key];
+                    if (layout && !layout.absolute) {
+                      layout.y += base;
+                      layout.absolute = true;
+                    }
+                  });
+                  setInputLayoutVersion(v => v + 1);
+                }}
+                style={{
+                  opacity: sessionFormAnim,
+                  transform: [
+                    {
+                      translateY: sessionFormAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [12, 0],
+                      }),
+                    },
+                    {
+                      scale: sessionFormAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0.98, 1],
+                      }),
+                    },
+                  ],
+                }}>
               <ThemedText weight="bold" style={styles.formSectionLabel}>
                 {sessionNoteTypeLabel(sessionNoteType).toUpperCase()}
               </ThemedText>
@@ -2346,7 +2375,8 @@ const SermonNotesScreen = ({navigation, route}: any) => {
                 onSubmitEditing={() => speakerInputRef.current?.focus()}
                 onLayout={e => {
                   const {y, height} = e.nativeEvent.layout;
-                  inputLayouts.current.title = {y, height, absolute: true};
+                  const base = sessionFormLayout.current?.y || 0;
+                  inputLayouts.current.title = {y: base + y, height, absolute: base !== 0};
                 }}
                 onFocus={() => setFocusedInput('title')}
               />
@@ -2372,7 +2402,8 @@ const SermonNotesScreen = ({navigation, route}: any) => {
                 }}
                 onLayout={e => {
                   const {y, height} = e.nativeEvent.layout;
-                  inputLayouts.current.speaker = {y, height, absolute: true};
+                  const base = sessionFormLayout.current?.y || 0;
+                  inputLayouts.current.speaker = {y: base + y, height, absolute: base !== 0};
                 }}
                 onFocus={() => setFocusedInput('speaker')}
               />
@@ -2399,7 +2430,7 @@ const SermonNotesScreen = ({navigation, route}: any) => {
               {showDetails && (
                 <View
                   onLayout={e => {
-                    const base = e.nativeEvent.layout.y;
+                    const base = (sessionFormLayout.current?.y || 0) + e.nativeEvent.layout.y;
                     detailsLayout.current = {y: base};
                     (['series', 'mainScripture', 'church'] as const).forEach(
                       key => {
@@ -2558,6 +2589,7 @@ const SermonNotesScreen = ({navigation, route}: any) => {
                   />
                 </View>
               )}
+              </Animated.View>
             </>
           )}
 
@@ -3369,31 +3401,30 @@ const styles = StyleSheet.create({
     maxWidth: 320,
     textAlign: 'center',
   },
-  typePickerScroll: {
-    marginHorizontal: -22,
-    marginBottom: 30,
-    height: 40,
-    flexGrow: 0,
-  },
   typePickerContent: {
-    paddingHorizontal: 22,
-    gap: 8,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
     alignItems: 'center',
+    gap: 12,
+    marginTop: 18,
+    marginBottom: 36,
   },
   typePill: {
-    minHeight: 40,
+    minHeight: 48,
     justifyContent: 'center',
-    paddingHorizontal: 17,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: Colors.cardBorder,
-    backgroundColor: Colors.lightBackground,
+    paddingVertical: 14,
+    paddingHorizontal: 18,
+    borderRadius: 28,
+    borderWidth: 0.5,
+    borderColor: 'rgba(82, 106, 91, 0.2)',
+    backgroundColor: 'rgba(82, 106, 91, 0.08)',
   },
   typePillSelected: {
     borderColor: Colors.sage,
-    backgroundColor: Colors.sage,
+    backgroundColor: Colors.sageMuted,
   },
-  typePillText: {fontSize: 12, color: Colors.sage},
+  typePillText: {fontSize: 15, color: Colors.text},
   typePillTextSelected: {color: Colors.hopeWhite},
   formSectionLabel: {
     fontSize: 10,

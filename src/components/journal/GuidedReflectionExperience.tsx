@@ -1,4 +1,5 @@
 import React, {useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   Alert,
   Animated,
@@ -75,6 +76,9 @@ interface Props {
   }) => Promise<boolean | void> | boolean | void;
 }
 
+const LAST_QUESTION_TOPIC_KEY = 'heart-journal:last-question-topic';
+let lastQuestionTopic: GuidedQuestionTopic = 'With God';
+
 const answerHasValue = (answer: GuidedStepAnswer) =>
   Boolean(
     answer.text?.trim() ||
@@ -115,8 +119,7 @@ const GuidedReflectionExperience: React.FC<Props> = ({
         )
       : 0,
   );
-  const [topic, setTopic] = useState<GuidedQuestionTopic>('With God');
-  const [topicTransitioning, setTopicTransitioning] = useState(false);
+  const [topic, setTopic] = useState<GuidedQuestionTopic>(lastQuestionTopic);
   const [chooserSection, setChooserSection] = useState<'guided' | 'questions'>('guided');
   const [chooserTransitioning, setChooserTransitioning] = useState(false);
   const [journeyTransitioning, setJourneyTransitioning] = useState(false);
@@ -161,6 +164,24 @@ const GuidedReflectionExperience: React.FC<Props> = ({
     if (noteFocusFrameRef.current !== null) cancelAnimationFrame(noteFocusFrameRef.current);
     if (noteFocusTimerRef.current) clearTimeout(noteFocusTimerRef.current);
     if (noteFocusRetryTimerRef.current) clearTimeout(noteFocusRetryTimerRef.current);
+  }, []);
+  useEffect(() => {
+    let active = true;
+    AsyncStorage.getItem(LAST_QUESTION_TOPIC_KEY)
+      .then(savedTopic => {
+        if (
+          active &&
+          savedTopic &&
+          GUIDED_QUESTION_TOPICS.includes(savedTopic as GuidedQuestionTopic)
+        ) {
+          lastQuestionTopic = savedTopic as GuidedQuestionTopic;
+          setTopic(lastQuestionTopic);
+        }
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
   }, []);
   const chooserAnimations = (section: 'guided' | 'questions') =>
     section === 'guided'
@@ -259,16 +280,18 @@ const GuidedReflectionExperience: React.FC<Props> = ({
       animation.setValue(0);
     });
     Animated.stagger(
-      38,
+      section === 'questions' ? 65 : 38,
       animations.map(animation =>
         Animated.spring(animation, {
           toValue: 1,
-          tension: 90,
-          friction: 12,
+          tension: section === 'questions' ? 72 : 90,
+          friction: section === 'questions' ? 7 : 12,
+          overshootClamping: false,
           useNativeDriver: true,
         }),
       ),
     ).start(() => {
+      animations.forEach(animation => animation.setValue(1));
       requestAnimationFrame(() => setChooserTransitioning(false));
     });
   };
@@ -279,6 +302,24 @@ const GuidedReflectionExperience: React.FC<Props> = ({
         translateY: animation.interpolate({
           inputRange: [0, 1],
           outputRange: [12, 0],
+        }),
+      },
+    ],
+  });
+  // Keep visibility independent from the animation value so an interrupted
+  // spring can never leave a card faded out.
+  const questionRevealStyle = (animation: Animated.Value) => ({
+    transform: [
+      {
+        translateY: animation.interpolate({
+          inputRange: [0, 1],
+          outputRange: [34, 0],
+        }),
+      },
+      {
+        scale: animation.interpolate({
+          inputRange: [0, 1],
+          outputRange: [0.92, 1],
         }),
       },
     ],
@@ -315,43 +356,14 @@ const GuidedReflectionExperience: React.FC<Props> = ({
   }, [chooserPageAnim, guideRevealAnims, pathId]);
   const changeQuestionTopic = (nextTopic: GuidedQuestionTopic) => {
     triggerLightHaptic();
-    if (nextTopic === topic || topicTransitioning) {return;}
-    setTopicTransitioning(true);
-    const outgoing = questionRevealAnims.slice(1, questionsForTopic(topic).length + 1);
-    outgoing.forEach(animation => animation.stopAnimation());
-    Animated.stagger(
-      28,
-      [...outgoing].reverse().map(animation =>
-        Animated.timing(animation, {
-          toValue: 0,
-          duration: 130,
-          easing: Easing.inOut(Easing.ease),
-          useNativeDriver: true,
-        }),
-      ),
-    ).start(() => {
-      const incoming = questionRevealAnims.slice(1, questionsForTopic(nextTopic).length + 1);
-      incoming.forEach(animation => {
-        animation.stopAnimation();
-        animation.setValue(0);
-      });
-      requestAnimationFrame(() => {
-        setTopic(nextTopic);
-        Animated.stagger(
-          38,
-          incoming.map(animation =>
-            Animated.spring(animation, {
-              toValue: 1,
-              tension: 90,
-              friction: 12,
-              useNativeDriver: true,
-            }),
-          ),
-        ).start(() => {
-          requestAnimationFrame(() => setTopicTransitioning(false));
-        });
-      });
+    if (nextTopic === topic) {return;}
+    questionRevealAnims.forEach(animation => {
+      animation.stopAnimation();
+      animation.setValue(1);
     });
+    lastQuestionTopic = nextTopic;
+    setTopic(nextTopic);
+    void AsyncStorage.setItem(LAST_QUESTION_TOPIC_KEY, nextTopic).catch(() => undefined);
   };
   const expandChooserSection = (section: 'guided' | 'questions') => {
     triggerLightHaptic();
@@ -782,8 +794,11 @@ const GuidedReflectionExperience: React.FC<Props> = ({
           {chooserSection === 'questions' && (
             <View>
               <Animated.View style={chooserRevealStyle(questionRevealAnims[0])}>
-                <ThemedText style={styles.chooserQuestionHeading}>
-                  What would you like to reflect on?
+                <ThemedText weight="semiBold" style={styles.chooserQuestionHeading}>
+                  Curated questions
+                </ThemedText>
+                <ThemedText style={styles.chooserQuestionSupport}>
+                  Choose a part of life, then a question to sit with.
                 </ThemedText>
                 <ScrollView
                   horizontal
@@ -809,20 +824,29 @@ const GuidedReflectionExperience: React.FC<Props> = ({
                 </ScrollView>
               </Animated.View>
               <View style={styles.questions}>
-                {questionsForTopic(topic).map((question, index) => (
-                  <Animated.View
-                    key={question.id}
-                    style={[styles.questionRevealItem, chooserRevealStyle(questionRevealAnims[index + 1])]}
-                  >
-                    <ReflectionQuestionCard
-                      question={question.prompt}
-                      onReflect={() => {
-                        triggerLightHaptic();
-                        onSelectQuestion(question.prompt);
-                      }}
-                      styles={styles}
-                    />
-                  </Animated.View>
+                {[0, 1].map(column => (
+                  <View key={column} style={styles.questionColumn}>
+                    {questionsForTopic(topic)
+                      .map((question, index) => ({question, index}))
+                      .filter(({index}) => index % 2 === column)
+                      .map(({question, index}) => (
+                        <Animated.View
+                          key={question.id}
+                          style={[
+                            styles.questionRevealItem,
+                            questionRevealStyle(questionRevealAnims[index + 1]),
+                          ]}>
+                          <ReflectionQuestionCard
+                            question={question.prompt}
+                            onReflect={() => {
+                              triggerLightHaptic();
+                              onSelectQuestion(question.prompt);
+                            }}
+                            styles={styles}
+                          />
+                        </Animated.View>
+                      ))}
+                  </View>
                 ))}
               </View>
             </View>
@@ -1660,7 +1684,14 @@ const styles = StyleSheet.create({
   chooserQuestionHeading: {
     color: Colors.hopeWhite,
     fontSize: 17,
-    marginBottom: 12,
+    marginBottom: 4,
+    textAlign: 'center',
+  },
+  chooserQuestionSupport: {
+    color: 'rgba(255, 255, 255, 0.66)',
+    fontSize: 13,
+    lineHeight: 19,
+    marginBottom: 14,
     textAlign: 'center',
   },
   chooserTopic: {
@@ -1679,7 +1710,6 @@ const styles = StyleSheet.create({
   chooserTopicTextSelected: {color: Colors.hopeWhite},
   promptCard: {
     width: '100%',
-    minHeight: 160,
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderRadius: 30,
     padding: 18,
@@ -1730,10 +1760,8 @@ const styles = StyleSheet.create({
   },
   lockIconContainer: {},
   questionRevealItem: {
-    width: '48%',
-    maxWidth: '48%',
+    width: '100%',
     minWidth: 0,
-    flexGrow: 0,
     flexShrink: 1,
   },
   header: {
@@ -1917,7 +1945,8 @@ const styles = StyleSheet.create({
   topicSelected: {backgroundColor: Colors.sage, borderColor: Colors.sage},
   topicText: {color: Colors.sage, fontSize: 12},
   topicTextSelected: {color: Colors.hopeWhite},
-  questions: {flexDirection: 'row', flexWrap: 'wrap', gap: 10},
+  questions: {flexDirection: 'row', alignItems: 'flex-start', gap: 10},
+  questionColumn: {flex: 1, minWidth: 0, gap: 10},
   questionCard: {
     width: '48%',
     minHeight: 190,

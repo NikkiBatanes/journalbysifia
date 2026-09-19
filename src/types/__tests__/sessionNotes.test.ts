@@ -65,12 +65,12 @@ describe('Session Note types', () => {
   });
 
   it.each([
-    ['sermon', 'Sermon title', 'Pastor / Speaker', ['Series', 'Main Scripture', 'Church / Event']],
-    ['conference', 'Session title', 'Speaker', ['Conference / Event', 'Topic / Track', 'Location']],
-    ['speaking', 'Talk title', 'Speaker / Presenter', ['Event', 'Topic / Theme', 'Location']],
-    ['meeting', 'Meeting title', 'People / Team', ['Organization / Group', 'Topic / Agenda', 'Location']],
-    ['workshop', 'Workshop title', 'Facilitator / Speaker', ['Workshop / Event', 'Topic / Theme', 'Location']],
-    ['other', 'Note title', 'Person / Speaker', ['Event / Context', 'Topic', 'Location']],
+    ['sermon', 'Title', 'Pastor / Speaker', ['Series', 'Main Scripture', 'Church / Event']],
+    ['conference', 'Title', 'Speaker', ['Conference / Event', 'Topic / Track', 'Location']],
+    ['speaking', 'Title', 'Speaker / Presenter', ['Event', 'Topic / Theme', 'Location']],
+    ['meeting', 'Title', 'People / Team', ['Organization / Group', 'Topic / Agenda', 'Location']],
+    ['workshop', 'Title', 'Facilitator / Speaker', ['Workshop / Event', 'Topic / Theme', 'Location']],
+    ['other', 'Title', 'Person / Speaker', ['Event / Context', 'Topic', 'Location']],
   ] as const)('provides semantic UI config for %s', (type, titleLabel, personLabel, details) => {
     const config = getSessionNoteConfig(type);
     expect(config.titleLabel).toBe(titleLabel);

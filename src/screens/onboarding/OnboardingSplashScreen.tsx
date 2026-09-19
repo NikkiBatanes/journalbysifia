@@ -562,7 +562,7 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor={Colors.sage} />
+      <StatusBar barStyle="light-content" backgroundColor={Colors.sageMuted} />
 
       {/* Logo Section */}
       <View style={styles.logoSection}>
@@ -579,7 +579,7 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.sage,
+    backgroundColor: Colors.sageMuted,
     justifyContent: 'center',
     alignItems: 'center',
   },

@@ -1,6 +1,6 @@
 import Sound from 'react-native-sound';
 import { Platform } from 'react-native';
-import { isSoundsEnabled } from '../services/experiencePreferences';
+import { experiencePreferences, isSoundsEnabled } from '../services/experiencePreferences';
 
 // Sound file paths and loading logic
 const loadSound = (): Sound | null => {
@@ -34,6 +34,7 @@ const loadSound = (): Sound | null => {
 };
 
 let sound: Sound | null = null;
+let hasPlayedTodayOpening = false;
 
 export const initSound = () => {
   if (!isSoundsEnabled()) { return null; }
@@ -83,4 +84,51 @@ export const releaseSound = () => {
     sound.release();
     sound = null;
   }
+};
+
+/**
+ * Plays the short Today-screen welcome cue at most once per app session.
+ * `onPlaybackStart` lets the Today header begin its opening animation on the
+ * same frame that audio playback is requested.
+ */
+export const playTodayOpeningSound = async (onPlaybackStart?: () => void) => {
+  if (hasPlayedTodayOpening) { return; }
+
+  await experiencePreferences.loadOnce();
+  if (!isSoundsEnabled() || hasPlayedTodayOpening) { return; }
+  hasPlayedTodayOpening = true;
+
+  // Ambient honours the iOS silent switch and mixes politely with other audio.
+  Sound.setCategory('Ambient', true);
+  const fileName = Platform.OS === 'android' ? 'today_opening' : 'today_opening.mp3';
+  const openingSound = new Sound(fileName, Sound.MAIN_BUNDLE, (error) => {
+    if (error) {
+      // Permit another attempt if loading was interrupted during app startup.
+      hasPlayedTodayOpening = false;
+      openingSound.release();
+      return;
+    }
+
+    openingSound.setVolume(0.62);
+    onPlaybackStart?.();
+    openingSound.play(() => openingSound.release());
+  });
+};
+
+/** Plays the brief welcome cue whenever the Gospel experience opens. */
+export const playGospelOpeningSound = async () => {
+  await experiencePreferences.loadOnce();
+  if (!isSoundsEnabled()) { return; }
+
+  Sound.setCategory('Ambient', true);
+  const fileName = Platform.OS === 'android' ? 'gospel_opening' : 'gospel_opening.mp3';
+  const openingSound = new Sound(fileName, Sound.MAIN_BUNDLE, (error) => {
+    if (error) {
+      openingSound.release();
+      return;
+    }
+
+    openingSound.setVolume(0.68);
+    openingSound.play(() => openingSound.release());
+  });
 };

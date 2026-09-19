@@ -37,7 +37,7 @@ describe('main navigation pencil state', () => {
 
   it('keeps pencil selected after choosing an item and clears it on normal tabs', () => {
     expect(source).toContain('setAddFlowActive(Boolean(nestedDestination))');
-    expect(source).toMatch(/const onPress = \(\) => \{\s*setShowAddMenu\(false\);\s*setAddFlowActive\(false\)/);
+    expect(source).toMatch(/const onPress = \(\) => \{[\s\S]*?closeAddMenuForNavigation\(\);\s*setAddFlowActive\(false\)/);
   });
 
   it('does not leave the pencil selected for root-stack or same-route actions', () => {
@@ -52,6 +52,11 @@ describe('main navigation pencil state', () => {
     expect(source).toContain('menuItemAnims.forEach(animation => animation.stopAnimation())');
     expect(source).toContain('requestAnimationFrame(() => {');
     expect(source).toMatch(/finally \{[\s\S]*?addNavigationInFlightRef\.current = false/);
+  });
+
+  it('stops pending add-menu animations before normal tab navigation', () => {
+    expect(source).toMatch(/const onPress = \(\) => \{[\s\S]*?closeAddMenuForNavigation\(\);[\s\S]*?navigation\.emit/);
+    expect(source).toMatch(/if \(showAddMenu\) \{[\s\S]*?closeAddMenuForNavigation\(\);/);
   });
 
   it('resets the pencil selector whenever Sermon Notes closes or loses focus', () => {
@@ -132,8 +137,10 @@ describe('main navigation pencil state', () => {
   it('opens Session Notes without a slide and gives Bible Study the Heart Journal fade', () => {
     expect(journalStackSource).toMatch(/name="SermonNotes"[\s\S]*?animation: 'none'/);
     expect(journalStackSource).toMatch(/name="BibleStudy"[\s\S]*?animation: 'fade'/);
+    expect(source).toContain("title: 'Session Notes', target: 'Journal', params: { screen: 'SermonNotes'");
+    expect(source).not.toContain('opensSessionMenu');
     expect(source).toContain("openedFromPencil: true");
-    expect(sermonSource).toMatch(/openedFromPencil[\s\S]*?reset\(\{[\s\S]*?name: 'JournalMoments'/);
+    expect(sermonSource).toMatch(/openedFromPencil[\s\S]*?popTo\('JournalMoments'\)/);
     expect(bibleStudySource).toMatch(/openedFromPencil[\s\S]*?popTo\('JournalMoments'\)/);
   });
 
@@ -197,7 +204,7 @@ describe('main navigation pencil state', () => {
 
   it('clears pencil selection when its menu is dismissed without choosing', () => {
     expect(source).toContain('setAddFlowActive(opening)');
-    expect(source).toMatch(/onPress=\{\(\) => \{\s*setShowAddMenu\(false\);\s*setAddFlowActive\(false\)/);
+    expect(source).toMatch(/styles\.addMenuDismissLayer[\s\S]*?onPress=\{\(\) => \{\s*closeAddMenuForNavigation\(\);\s*setAddFlowActive\(false\)/);
   });
 
   it('uses a blur instead of dimming the screen behind the pencil menu', () => {
