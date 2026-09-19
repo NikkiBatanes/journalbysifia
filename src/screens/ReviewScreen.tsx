@@ -31,6 +31,7 @@ import {
   type ReviewType,
   type LocalReviewEntry,
   type ReviewMemorableItem,
+  type ReviewPrayerSnapshotItem,
   getOrCreateLocalReviewForPeriod,
   updateLocalReview,
 } from '../storage/reviewStorage';
@@ -134,7 +135,7 @@ const ReviewScreen: React.FC = () => {
       periodEnd: end,
     });
 
-    const captured = await getReviewCapture(start, end);
+    const captured = await getReviewCapture(start, end, type);
 
     setReview(existing);
     setReviewType(type);
@@ -150,7 +151,7 @@ const ReviewScreen: React.FC = () => {
   }, [loadReview]);
 
   const saveReview = useCallback(
-    async (patch: Partial<Pick<LocalReviewEntry, 'answers' | 'memorableItems' | 'status' | 'completedAt'>>) => {
+    async (patch: Partial<Pick<LocalReviewEntry, 'answers' | 'memorableItems' | 'prayerSnapshot' | 'status' | 'completedAt'>>) => {
       if (!review) {return;}
       const updated = {
         ...review,
@@ -165,9 +166,12 @@ const ReviewScreen: React.FC = () => {
 
   useEffect(() => {
     if (stage === stageCount && review && review.status !== 'completed') {
-      saveReview({ status: 'completed', completedAt: new Date().toISOString() });
+      const prayerSnapshot: ReviewPrayerSnapshotItem[] = (capture?.items || [])
+        .filter(item => item.kind === 'prayer' && item.prayerEventType && item.prayerId)
+        .map(item => ({ id: item.id, prayerId: item.prayerId!, needId: item.needId, requestId: item.requestId, eventType: item.prayerEventType!, eventDate: item.selectedDate, title: item.title, subtitle: item.subtitle || 'Prayer', text: item.text }));
+      saveReview({ status: 'completed', completedAt: new Date().toISOString(), prayerSnapshot });
     }
-  }, [stage, stageCount, review, saveReview]);
+  }, [stage, stageCount, review, capture, saveReview]);
 
   const goTo = useCallback(
     (next: ReviewStage) => {
@@ -580,7 +584,7 @@ const ReviewScreen: React.FC = () => {
             </View>
             <View style={styles.summaryRow}>
               <ThemedText weight="semiBold" style={styles.summaryKey}>
-                Prayers answered
+                Answers recorded
               </ThemedText>
               <ThemedText style={styles.summaryValue}>
                 {capture?.prayerStats.answered ?? 0} prayer

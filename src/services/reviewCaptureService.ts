@@ -5,10 +5,11 @@ import {
   getLocalJournalSingleton,
   type LocalJournalContentType,
 } from '../storage/journalStorage';
-import { getLocalPrayers } from '../storage/prayerStorage';
 import { safeJsonParse } from '../utils/safeJsonParse';
-import { type ReviewMemorableItem } from '../storage/reviewStorage';
+import { type ReviewMemorableItem, type ReviewType } from '../storage/reviewStorage';
 import { resolveSessionNoteType, sessionNoteTypeLabel } from '../types/sessionNotes';
+import { PrayerApi } from './api/prayerApi';
+import { derivePrayerReview, type PrayerReviewEventType } from './prayerReviewService';
 
 const REFLECTION_TYPES = ['sermon', 'scripture', 'free', 'guided', 'playbook'] as const;
 
@@ -30,6 +31,10 @@ export interface ReviewCaptureItem {
   text?: string;
   selectedDate: string;
   answered?: boolean;
+  prayerEventType?: PrayerReviewEventType;
+  prayerId?: string;
+  needId?: string;
+  requestId?: string;
 }
 
 export interface ReviewCapture {
@@ -195,25 +200,10 @@ const classifyJournal = (entry: {
   };
 };
 
-const classifyPrayer = (entry: {
-  id: string;
-  title?: string;
-  content: string;
-  status?: 'pending' | 'answered';
-  selected_date: string;
-}): ReviewCaptureItem => ({
-  id: entry.id,
-  kind: 'prayer',
-  title: entry.title?.trim() || firstLine(entry.content, 50) || 'Prayer',
-  subtitle: entry.status === 'answered' ? 'Answered' : 'Praying',
-  text: entry.content,
-  selectedDate: entry.selected_date,
-  answered: entry.status === 'answered',
-});
-
 export const getReviewCapture = async (
   periodStart: string,
   periodEnd: string,
+  reviewType: ReviewType = 'weekly',
 ): Promise<ReviewCapture> => {
   const start = parseYMD(periodStart);
   const end = parseYMD(periodEnd);
@@ -267,17 +257,29 @@ export const getReviewCapture = async (
       }
     }
 
-    const prayers = await getLocalPrayers(date);
-    for (const p of prayers) {
-      const item = classifyPrayer(p);
-      items.push(item);
-      summary.prayer += 1;
-      totalPrayers += 1;
-      if (item.answered) {
-        answeredPrayers += 1;
-      }
-    }
   }
+
+  const prayerReview = derivePrayerReview(
+    await PrayerApi.getAllPrayers('local'), periodStart, periodEnd, reviewType,
+  );
+  for (const event of prayerReview.items) {
+    items.push({
+      id: event.id,
+      kind: 'prayer',
+      title: event.title,
+      subtitle: event.subtitle,
+      text: event.text,
+      selectedDate: event.eventDate,
+      answered: event.eventType === 'answer_recorded' || event.eventType === 'need_answer_recorded',
+      prayerEventType: event.eventType,
+      prayerId: event.prayerId,
+      needId: event.needId,
+      requestId: event.requestId,
+    });
+    summary.prayer += 1;
+  }
+  answeredPrayers = (prayerReview.counts.answer_recorded || 0) + (prayerReview.counts.need_answer_recorded || 0);
+  totalPrayers = summary.prayer;
 
   return {
     periodStart,
@@ -287,7 +289,7 @@ export const getReviewCapture = async (
     prayerStats: {
       total: totalPrayers,
       answered: answeredPrayers,
-      pending: totalPrayers - answeredPrayers,
+      pending: prayerReview.counts.still_carrying || 0,
     },
   };
 };

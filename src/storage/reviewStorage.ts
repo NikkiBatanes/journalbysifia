@@ -45,6 +45,18 @@ export interface ReviewMemorableItem {
   selectedDate: string; // YYYY-MM-DD
 }
 
+export interface ReviewPrayerSnapshotItem {
+  id: string;
+  prayerId: string;
+  needId?: string;
+  requestId?: string;
+  eventType: string;
+  eventDate: string;
+  title: string;
+  subtitle: string;
+  text?: string;
+}
+
 export interface ReviewAnswers {
   [beat: string]: string;
 }
@@ -56,6 +68,8 @@ export interface LocalReviewEntry {
   periodEnd: string; // YYYY-MM-DD
   status: ReviewStatus;
   memorableItems: ReviewMemorableItem[];
+  /** Additive V2 snapshot. Legacy reviews omit it and remain valid. */
+  prayerSnapshot?: ReviewPrayerSnapshotItem[];
   answers: ReviewAnswers;
   createdAt: string;
   updatedAt: string;
@@ -199,6 +213,7 @@ export const completeLocalReview = async (
   entry: LocalReviewEntry,
   answers?: ReviewAnswers,
   memorableItems?: ReviewMemorableItem[],
+  prayerSnapshot?: ReviewPrayerSnapshotItem[],
 ): Promise<LocalReviewEntry> => {
   const now = new Date().toISOString();
   const updated: LocalReviewEntry = {
@@ -208,6 +223,7 @@ export const completeLocalReview = async (
     updatedAt: now,
     answers: answers ?? entry.answers,
     memorableItems: memorableItems ?? entry.memorableItems,
+    prayerSnapshot: prayerSnapshot ?? entry.prayerSnapshot,
   };
   return updateLocalReview(updated);
 };
