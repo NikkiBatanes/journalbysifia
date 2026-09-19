@@ -1,10 +1,8 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, DeviceEventEmitter, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useQueryClient } from '@tanstack/react-query';
-import { differenceInCalendarDays, formatDistanceToNowStrict, format } from 'date-fns';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import {Sparkle} from 'lucide-react-native';
 import ThemedText from '../common/ThemedText';
 import PrayerHandsIcon from '../common/PrayerHandsIcon';
 import PrayerTrackingModal from '../prayer/PrayerTrackingModal';
@@ -12,104 +10,84 @@ import type { PrayerChanges } from '../prayer/PrayerDetails';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { useAllPrayerData } from '../../services/hooks/usePrayerData';
 import { PrayerApi } from '../../services/api/prayerApi';
-import { selectPrayerRevisit, revisitCandidates, type PrayerRevisit } from '../../services/prayerRevisitService';
-import { answerPrayer, prayerNeeds } from '../../utils/prayerTracking';
+import { getPrayerIntelligenceCandidates, selectPrayerIntelligenceCandidate, type PrayerIntelligenceCandidate } from '../../services/prayerIntelligenceService';
+import { dismissPrayerResurfacing, getPrayerResurfacingState, recordPrayerResurfaced } from '../../storage/prayerResurfacingStorage';
+import { answerPrayer, continuePrayer, prayerNeeds, releasePrayer } from '../../utils/prayerTracking';
 import { triggerLightHaptic, triggerSuccessHaptic } from '../../utils/haptics';
 import { Colors } from '../../theme/colors';
 
+const labels = { return: 'RETURN', check_in: 'CHECK IN', follow_up: 'FOLLOW UP', remember: 'REMEMBER', celebrate: 'CELEBRATE' } as const;
+const headings = { return: 'A prayer to return to', check_in: 'How is this prayer now?', follow_up: 'A request to follow up', remember: 'Something you wrote', celebrate: 'A prayer you marked Answered' } as const;
+
 export default function PrayerToRevisit() {
-  const { user } = useAuth();
-  const userId = user?.id || 'local';
-  const queryClient = useQueryClient();
-  const { data: prayers, refetch } = useAllPrayerData(userId);
-  const [today, setToday] = useState(() => new Date());
-  const [selection, setSelection] = useState<PrayerRevisit | null>(null);
-  const [mode, setMode] = useState<'details' | 'update' | null>(null);
-  const [saving, setSaving] = useState(false);
-  const busy = useRef(false);
+  const { user } = useAuth(); const userId = user?.id || 'local';
+  const queryClient = useQueryClient(); const { data: prayers, refetch } = useAllPrayerData(userId);
+  const [candidate, setCandidate] = useState<PrayerIntelligenceCandidate | null>(null);
+  const [available, setAvailable] = useState<PrayerIntelligenceCandidate[]>([]);
+  const [mode, setMode] = useState<'details' | 'update' | null>(null); const [saving, setSaving] = useState(false);
   const generation = useRef(0);
-  useFocusEffect(useCallback(() => {
-    setToday(new Date()); void refetch();
-    const timer = setInterval(() => setToday(new Date()), 60000);
-    return () => clearInterval(timer);
-  }, [refetch]));
+  useFocusEffect(useCallback(() => { void refetch(); }, [refetch]));
   useEffect(() => {
-    const saved = DeviceEventEmitter.addListener('prayerSaved', () => { void refetch(); });
-    const deleted = DeviceEventEmitter.addListener('prayer_deleted', () => { void refetch(); });
+    const saved = DeviceEventEmitter.addListener('prayerSaved', () => void refetch());
+    const deleted = DeviceEventEmitter.addListener('prayer_deleted', () => void refetch());
     return () => { saved.remove(); deleted.remove(); };
   }, [refetch]);
-  const day = format(today, 'yyyy-MM-dd');
   useEffect(() => {
-    if (!prayers || mode) return;
-    const version = ++generation.current;
-    void selectPrayerRevisit(userId, prayers, today).then(item => {
-      if (version === generation.current) setSelection(item);
-    }).catch(() => { if (version === generation.current) setSelection(null); });
+    if (!prayers || mode) return; const version = ++generation.current;
+    void getPrayerResurfacingState(userId).then(state => {
+      const list = getPrayerIntelligenceCandidates(prayers, new Date(), state.items);
+      const selected = selectPrayerIntelligenceCandidate(list, state.recentIds);
+      if (version !== generation.current) return;
+      setAvailable(list); setCandidate(selected);
+      if (selected) void recordPrayerResurfaced(userId, selected);
+    });
     return () => { generation.current++; };
-  }, [prayers, userId, day, mode]);
-  const candidateCount = useMemo(() => revisitCandidates(prayers || [], day).length, [prayers, day]);
-  const prayer = prayers?.find(p => p.id === selection?.prayerId);
-  const need = prayer && selection?.needId ? prayerNeeds(prayer).find(n => n.id === selection.needId) : undefined;
+  }, [prayers, userId, mode]);
+  const prayer = prayers?.find(item => item.id === candidate?.prayerId);
+  const need = prayer && candidate?.needId ? prayerNeeds(prayer).find(item => item.id === candidate.needId) : undefined;
   const refresh = async () => { await queryClient.invalidateQueries({ queryKey: ['prayers'] }); DeviceEventEmitter.emit('prayerSaved'); };
   const persist = async (data: PrayerChanges) => {
-    if (!prayer) return;
-    await PrayerApi.updatePrayer(prayer.id, data);
-    const requestId = prayer.metadata?.original_request_id;
-    if (requestId) {
-      const related = await PrayerApi.getAllPrayers(userId);
-      for (const linked of related.filter(p => p.id !== prayer.id && (p.id === requestId || p.metadata?.original_request_id === requestId))) {
-        await PrayerApi.updatePrayer(linked.id, { status: data.status, answered_date: data.answered_date, metadata: {
-          ...linked.metadata, ...Object.fromEntries(['track_answered', 'is_active', 'tracking_status', 'answer_history', 'lifecycle_history', 'prayer_needs', 'prayer_updates'].filter(key => data.metadata[key] !== undefined).map(key => [key, data.metadata[key]])),
-        } });
-      }
+    if (!prayer) return; await PrayerApi.updatePrayer(prayer.id, data);
+    const requestId = prayer.is_prayer_request ? prayer.id : prayer.metadata?.original_request_id;
+    if (requestId) for (const linked of (prayers || []).filter(item => item.id !== prayer.id && (item.id === requestId || item.metadata?.original_request_id === requestId))) {
+      await PrayerApi.updatePrayer(linked.id, { status: data.status, answered_date: data.answered_date, metadata: { ...linked.metadata, ...Object.fromEntries(['track_answered', 'is_active', 'tracking_status', 'answer_history', 'lifecycle_history', 'prayer_needs', 'prayer_updates'].filter(key => data.metadata[key] !== undefined).map(key => [key, data.metadata[key]])) } });
     }
     triggerSuccessHaptic(); await refresh();
   };
-  const action = async (answered: boolean) => {
-    if (!prayer || busy.current) return;
-    triggerLightHaptic(); busy.current = true; setSaving(true);
+  const lifecycle = async (kind: 'pray' | 'continue' | 'answer' | 'release') => {
+    if (!prayer || saving) return; setSaving(true); triggerLightHaptic();
     try {
-      if (answered) await persist({ content: prayer.content, ...answerPrayer(prayer, selection?.needId) });
-      else {
-        const stamp = new Date().toISOString();
-        await PrayerApi.updatePrayer(prayer.id, { prayed: true, prayer_count: (prayer.prayer_count ?? (prayer.prayed ? 1 : 0)) + 1, last_prayed_at: stamp,
-          metadata: { ...prayer.metadata, ...(selection?.needId ? { need_last_prayed: { ...prayer.metadata?.need_last_prayed, [selection.needId]: stamp } } : {}) } });
-        triggerSuccessHaptic(); await refresh();
-      }
-    } catch { Alert.alert('Could not update prayer', 'Please try again.'); }
-    finally { busy.current = false; setSaving(false); }
+      if (kind === 'pray') { const stamp = new Date().toISOString(); await PrayerApi.updatePrayer(prayer.id, { prayed: true, prayer_count: (prayer.prayer_count ?? (prayer.prayed ? 1 : 0)) + 1, last_prayed_at: stamp, metadata: { ...prayer.metadata, ...(candidate?.needId ? { need_last_prayed: { ...prayer.metadata?.need_last_prayed, [candidate.needId]: stamp } } : {}) } }); await refresh(); }
+      else await persist({ content: prayer.content, ...(kind === 'continue' ? continuePrayer(prayer, candidate?.needId) : kind === 'answer' ? answerPrayer(prayer, candidate?.needId) : releasePrayer(prayer)) });
+    } catch { Alert.alert('Could not update prayer', 'Please try again.'); } finally { setSaving(false); }
   };
-  if (!prayer || !selection) return null;
-  const last = selection.needId ? prayer.metadata?.need_last_prayed?.[selection.needId] : prayer.last_prayed_at;
-  const prayedToday = last && format(new Date(last), 'yyyy-MM-dd') === day;
-  const elapsed = last ? Math.max(0, differenceInCalendarDays(today, new Date(last))) : null;
-  const label = prayedToday ? 'Prayed today' : elapsed === null ? 'Still praying' : elapsed === 1 ? 'Last prayed yesterday' : `Last prayed ${elapsed} days ago`;
-  const title = need?.text || prayer.person_name || (prayer.metadata?.prayer_style === 'cast' ? 'Your CAST supplication' : prayer.content.split('\n')[0]);
+  const showAnother = () => {
+    if (!candidate) return; const next = selectPrayerIntelligenceCandidate(available.filter(item => item.id !== candidate.id));
+    setCandidate(next); if (next) void recordPrayerResurfaced(userId, next);
+  };
+  const notNow = () => { if (!candidate) return; triggerLightHaptic(); void dismissPrayerResurfacing(userId, candidate).then(showAnother); };
+  if (!candidate || !prayer) return null;
+  const title = need?.text || prayer.person_name || prayer.content.split('\n')[0];
+  const action = (text: string, onPress: () => void, icon?: boolean) => <TouchableOpacity disabled={saving} style={styles.button} onPress={onPress}>{icon && <PrayerHandsIcon size={13} color={Colors.sage} />}<ThemedText numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} style={styles.buttonText}>{text}</ThemedText></TouchableOpacity>;
   return <View style={styles.card}>
-    <View style={styles.header}>
-      <ThemedText weight="semiBold" style={styles.label}>A PRAYER TO REVISIT</ThemedText>
-      <ThemedText style={styles.savedDate}>{formatDistanceToNowStrict(new Date(prayer.created_at), { addSuffix: true })}</ThemedText>
-    </View>
+    <ThemedText weight="semiBold" style={styles.label}>{labels[candidate.purpose]}</ThemedText>
     <TouchableOpacity disabled={saving} accessibilityLabel={`View prayer: ${title}`} onPress={() => { triggerLightHaptic(); setMode('details'); }}>
-      <View style={styles.row}><Ionicons name="leaf-outline" size={24} color={Colors.sage} /><View style={{ flex: 1 }}><ThemedText weight="semiBold" numberOfLines={2} style={styles.title}>{title}</ThemedText><ThemedText style={styles.meta}>{label}</ThemedText></View></View>
-      {!need && <ThemedText numberOfLines={3} style={styles.preview}>{prayer.content}</ThemedText>}
+      <View style={styles.row}><Ionicons name={candidate.purpose === 'celebrate' ? 'sparkles-outline' : 'leaf-outline'} size={24} color={Colors.sage} /><View style={{ flex: 1 }}><ThemedText weight="semiBold" style={styles.heading}>{headings[candidate.purpose]}</ThemedText><ThemedText numberOfLines={2} style={styles.title}>{title}</ThemedText><ThemedText style={styles.meta}>{candidate.displayContext}{candidate.prayerCount ? ` · Returned ${candidate.prayerCount} ${candidate.prayerCount === 1 ? 'time' : 'times'}` : ''}</ThemedText></View></View>
     </TouchableOpacity>
     <View style={styles.actions}>
-      <TouchableOpacity disabled={saving || !!prayedToday} style={styles.button} onPress={() => { void action(false); }}><PrayerHandsIcon size={13} color={Colors.sage} /><ThemedText numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75} style={styles.buttonText}>{prayedToday ? 'Prayed today' : 'Pray again'}</ThemedText></TouchableOpacity>
-      <TouchableOpacity disabled={saving} style={styles.button} onPress={() => { triggerLightHaptic(); setMode('update'); }}><ThemedText numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75} style={styles.buttonText}>Update</ThemedText></TouchableOpacity>
-      <TouchableOpacity disabled={saving} style={styles.button} onPress={() => { void action(true); }}><Sparkle size={13} color={Colors.sage} strokeWidth={1.8} /><ThemedText numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75} style={styles.buttonText}>Mark answered</ThemedText></TouchableOpacity>
+      {(candidate.purpose === 'return' || candidate.purpose === 'follow_up') && action(prayer.prayed ? 'Pray again' : 'Pray now', () => void lifecycle('pray'), true)}
+      {candidate.purpose === 'check_in' && action('Still praying', () => void lifecycle('continue'), true)}
+      {candidate.purpose === 'remember' && action('Keep praying', () => void lifecycle('continue'), true)}
+      {candidate.purpose !== 'celebrate' && action(candidate.purpose === 'follow_up' ? 'Add follow-up' : 'Add update', () => { triggerLightHaptic(); setMode('update'); })}
+      {(candidate.purpose === 'return' || candidate.purpose === 'check_in' || candidate.purpose === 'follow_up') && action('Record answer', () => void lifecycle('answer'))}
+      {candidate.purpose === 'celebrate' && action('Read', () => setMode('details'))}
     </View>
-    {candidateCount > 1 && <TouchableOpacity disabled={saving} style={{ alignSelf: 'center', marginTop: 14 }} onPress={() => {
-      triggerLightHaptic(); const version = ++generation.current;
-      void selectPrayerRevisit(userId, prayers!, today, selection).then(item => { if (version === generation.current) setSelection(item); }).catch(() => Alert.alert('Could not load another prayer', 'Please try again.'));
-    }}><ThemedText style={styles.meta}>Another prayer</ThemedText></TouchableOpacity>}
-    {mode && <PrayerTrackingModal key={prayer.id} prayer={prayer} mode={mode} initialNeedId={selection.needId} onShowDetails={() => setMode('details')} onSave={persist} onClose={() => setMode(null)} />}
+    <View style={styles.secondary}>{available.length > 1 && <TouchableOpacity onPress={showAnother}><ThemedText style={styles.meta}>Show another</ThemedText></TouchableOpacity>}<TouchableOpacity onPress={notNow}><ThemedText style={styles.meta}>Not now</ThemedText></TouchableOpacity></View>
+    {mode && <PrayerTrackingModal key={prayer.id} prayer={prayer} mode={mode} initialNeedId={candidate.needId} onShowDetails={() => setMode('details')} onSave={persist} onClose={() => setMode(null)} />}
   </View>;
 }
 const styles = StyleSheet.create({
-  card: { backgroundColor: Colors.hopeWhite, borderWidth: 1, borderColor: Colors.cardBorder, borderRadius: 24, padding: 20, marginBottom: 16 },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 }, savedDate: { color: Colors.textGray, fontSize: 10, lineHeight: 15 },
-  label: { color: Colors.sage, fontSize: 10, letterSpacing: 1.5 }, row: { flexDirection: 'row', alignItems: 'center', gap: 14, marginTop: 18 },
-  title: { color: Colors.text, fontSize: 15, lineHeight: 22 }, meta: { color: Colors.textGray, fontSize: 11, lineHeight: 18 }, preview: { color: Colors.textGray, fontSize: 13, lineHeight: 21, marginTop: 12 },
-  actions: { flexDirection: 'row', gap: 6, marginTop: 18 }, button: { flex: 1, minWidth: 0, flexDirection: 'row', gap: 4, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: Colors.cardBorder, borderRadius: 20, paddingVertical: 9, paddingHorizontal: 7 }, buttonText: { color: Colors.sage, fontSize: 11 },
+  card: { backgroundColor: Colors.hopeWhite, borderWidth: 1, borderColor: Colors.cardBorder, borderRadius: 24, padding: 20, marginBottom: 16 }, label: { color: Colors.sage, fontSize: 10, letterSpacing: 1.5 }, row: { flexDirection: 'row', alignItems: 'center', gap: 14, marginTop: 16 },
+  heading: { color: Colors.text, fontSize: 15, lineHeight: 22 }, title: { color: Colors.textGray, fontSize: 13, lineHeight: 20, marginTop: 2 }, meta: { color: Colors.textGray, fontSize: 11, lineHeight: 18 }, actions: { flexDirection: 'row', gap: 6, marginTop: 18 },
+  button: { flex: 1, minWidth: 0, flexDirection: 'row', gap: 4, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: Colors.cardBorder, borderRadius: 20, paddingVertical: 9, paddingHorizontal: 6 }, buttonText: { color: Colors.sage, fontSize: 11 }, secondary: { flexDirection: 'row', justifyContent: 'center', gap: 26, marginTop: 14 },
 });
