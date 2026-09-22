@@ -40,9 +40,12 @@ import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {useFloatingKeyboardButton} from '../../hooks/useFloatingKeyboardButton';
 import {JournalComposerBar, JournalPickerMenu} from './shared/JournalComposer';
 import {JournalInlineBlock} from './shared/JournalInlineBlock';
+import JournalTextInput from './shared/JournalTextInput';
 import {ScriptureLookupInput} from './shared/ScriptureLookupInput';
 import {JournalTableBlock} from './shared/JournalTableBlock';
 import {JournalListBlock} from './shared/JournalListBlock';
+import JournalColumnBlock from './shared/JournalColumnBlock';
+import JournalNestedBlockEditor from './shared/JournalNestedBlockEditor';
 import DraggableJournalBlock from './shared/DraggableJournalBlock';
 import {
   reorderJournalBlock,
@@ -50,12 +53,15 @@ import {
 } from './shared/journalBlockOperations';
 import ReflectionSpecialBlock from './ReflectionSpecialBlock';
 import SavedReflectionBlocks from './SavedReflectionBlocks';
+import {styles as reflectionEditorStyles} from './reflectionStyles';
 import {
   formatJournalAttribution,
   hasMeaningfulJournalBlock,
   JOURNAL_BLOCK_GAP,
   JOURNAL_BLOCKS,
+  JournalBlockIcon,
   prepareJournalBlocksForSave,
+  type JournalBlock,
 } from './shared/journalBlocks';
 import {
   REFLECTION_NOTE_TYPES,
@@ -77,6 +83,7 @@ const reflectionBlocksToText = (blocks: GuidedReflectionNote[]) =>
         block.kind === 'quote'
           ? formatJournalAttribution(block.secondary?.trim())
           : block.secondary?.trim();
+      if (block.kind === 'column') return '';
       if (block.kind === 'table') {
         return (block.tableRows || [])
           .map(row => row.map(cell => cell.trim()).join('\t'))
@@ -125,6 +132,7 @@ interface ReflectionLogEditorProps {
     journalBlocks?: GuidedReflectionNote[];
   }) => void;
   onCancel: () => void;
+  onBackToChooser?: () => void;
   onDelete?: (id: string) => void;
   onUpdateJournalBlocks?: (blocks: GuidedReflectionNote[]) => Promise<void>;
   onUpgradeRequired?: () => void; // Callback to close modal before navigating to upgrade
@@ -567,18 +575,6 @@ const fallbackStyles = {
     borderRadius: 16,
     marginHorizontal: 0,
   },
-  editorHeaderActions: {
-    padding: 0,
-    gap: 0,
-  },
-  headerDeleteButton: {
-    width: 42,
-    height: 42,
-    borderRadius: 999,
-    marginRight: 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   activeModeButton: {
     backgroundColor: 'rgba(82, 106, 91, 0.12)',
   },
@@ -669,6 +665,7 @@ const ReflectionLogEditor = React.forwardRef<
     {
       onSave,
       onCancel,
+      onBackToChooser,
       onDelete,
       onUpdateJournalBlocks,
       onUpgradeRequired: _onUpgradeRequired,
@@ -741,7 +738,7 @@ const ReflectionLogEditor = React.forwardRef<
     const guidedPromptGating = useGuidedPromptGating({context: 'inApp'});
 
     // Merge styles prop with fallbackStyles
-    const s = {...fallbackStyles, ...styles};
+    const s = {...fallbackStyles, ...reflectionEditorStyles, ...styles};
     const blockStyles = {
       ...s,
       freeText: [s.freeText, {fontFamily: fontFamilyRegular}],
@@ -823,6 +820,10 @@ const ReflectionLogEditor = React.forwardRef<
     const [selectedBlockId, setSelectedBlockId] = React.useState<string | null>(
       null,
     );
+    const [columnTarget, setColumnTarget] = React.useState<{
+      columnId: string;
+      side: 'left' | 'right';
+    } | null>(null);
     const [dragPreview, setDragPreview] = React.useState<{
       blockId: string;
       fromIndex: number;
@@ -832,10 +833,15 @@ const ReflectionLogEditor = React.forwardRef<
     const pendingFocusBlockIdRef = useRef<string | null>(null);
     const pendingFocusShouldScrollEndRef = useRef(true);
     const blockFocusRetryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const focusBlockInput = React.useCallback((blockId: string) => {
+      blockInputRefs.current.get(blockId)?.focus();
+    }, []);
 
     const [selectedPrompt, setSelectedPrompt] = React.useState<string>(() =>
       initialEntry.prompt ||
-      (source === 'guided' ? initialPrompt || initialTitle || '' : ''),
+      (source === 'guided' || source === 'guided_prompt'
+        ? initialPrompt || initialTitle || ''
+        : ''),
     );
     const [journalClassification, setJournalClassification] = React.useState<
       HeartJournalClassification | undefined
@@ -987,23 +993,77 @@ const ReflectionLogEditor = React.forwardRef<
     );
 
     const addJournalBlock = React.useCallback(
-      (kind: GuidedReflectionNote['kind'], extra: Partial<GuidedReflectionNote> = {}) => {
+      (
+        kind: GuidedReflectionNote['kind'],
+        extra: Partial<GuidedReflectionNote> = {},
+        explicitColumnTarget?: {columnId: string; side: 'left' | 'right'} | null,
+      ) => {
+        const selectedBlock = selectedBlockId
+          ? journalBlocks.find(item => item.id === selectedBlockId)
+          : undefined;
+        const requestedDestination = explicitColumnTarget ||
+          (selectedBlock?.parentColumnId && selectedBlock.columnSide
+            ? {
+                columnId: selectedBlock.parentColumnId,
+                side: selectedBlock.columnSide,
+              }
+            : columnTarget);
+        if (
+          requestedDestination &&
+          (kind === 'column' || kind === 'table')
+        ) {
+          return;
+        }
+        const destination = requestedDestination;
         const block: GuidedReflectionNote = {
           id: createGuidedNoteId(),
           kind,
           text: '',
           ...(kind === 'table'
-            ? {tableRows: [['', ''], ['', '']], tableEditing: true}
+            ? {
+                tableRows: [['', ''], ['', '']],
+                tableCellAlignments: [
+                  ['left', 'left'],
+                  ['left', 'left'],
+                ] as Array<Array<'left' | 'center' | 'right'>>,
+                tableEditing: true,
+              }
             : {}),
           ...(kind === 'bullets' || kind === 'numbered'
             ? {points: ['']}
             : {}),
+          ...(destination
+            ? {
+                parentColumnId: destination.columnId,
+                columnSide: destination.side,
+              }
+            : {}),
           ...extra,
         };
         pendingFocusBlockIdRef.current = block.id;
-        const selectedIndex = selectedBlockId
+        let selectedIndex = selectedBlockId
           ? journalBlocks.findIndex(item => item.id === selectedBlockId)
           : -1;
+        if (destination && selectedBlock?.parentColumnId !== destination.columnId) {
+          selectedIndex = -1;
+        }
+        if (destination && selectedIndex < 0) {
+          for (let index = journalBlocks.length - 1; index >= 0; index -= 1) {
+            const item = journalBlocks[index];
+            if (
+              item.parentColumnId === destination.columnId &&
+              item.columnSide === destination.side
+            ) {
+              selectedIndex = index;
+              break;
+            }
+          }
+          if (selectedIndex < 0) {
+            selectedIndex = journalBlocks.findIndex(
+              item => item.id === destination.columnId,
+            );
+          }
+        }
         const nextBlocks = [...journalBlocks];
         if (selectedIndex >= 0) {
           nextBlocks.splice(selectedIndex + 1, 0, block);
@@ -1013,10 +1073,15 @@ const ReflectionLogEditor = React.forwardRef<
           nextBlocks.push(block);
           pendingFocusShouldScrollEndRef.current = true;
         }
+        setColumnTarget(
+          kind === 'column'
+            ? {columnId: block.id, side: 'left'}
+            : destination || null,
+        );
         setSelectedBlockId(block.id);
         commitJournalBlocks(nextBlocks);
       },
-      [commitJournalBlocks, journalBlocks, selectedBlockId],
+      [columnTarget, commitJournalBlocks, journalBlocks, selectedBlockId],
     );
 
     const insertActionAfter = React.useCallback(
@@ -1041,7 +1106,7 @@ const ReflectionLogEditor = React.forwardRef<
       const blockId = pendingFocusBlockIdRef.current;
       if (!blockId) return;
       const frame = requestAnimationFrame(() => {
-        blockInputRefs.current.get(blockId)?.focus();
+        focusBlockInput(blockId);
         const layout = journalBlockLayoutsRef.current.get(blockId);
         if (layout && !pendingFocusShouldScrollEndRef.current) {
           editorScrollRef.current?.scrollTo({
@@ -1055,14 +1120,14 @@ const ReflectionLogEditor = React.forwardRef<
           clearTimeout(blockFocusRetryTimerRef.current);
         }
         blockFocusRetryTimerRef.current = setTimeout(() => {
-          blockInputRefs.current.get(blockId)?.focus();
+          focusBlockInput(blockId);
           editorScrollRef.current?.scrollToEnd({animated: true});
           blockFocusRetryTimerRef.current = null;
         }, 320);
         pendingFocusBlockIdRef.current = null;
       });
       return () => cancelAnimationFrame(frame);
-    }, [journalBlocks]);
+    }, [focusBlockInput, journalBlocks]);
 
     const handleDragJournalBlockStart = React.useCallback(
       (blockId: string) => {
@@ -1210,11 +1275,13 @@ const ReflectionLogEditor = React.forwardRef<
 
       // Fallback key for other sources - use date string instead of timestamp for consistency
       const currentDate = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
-      const sourceType = source
+      const sourceType = journalClassification
+        ? `heart_journal_${journalClassification.replace(/[^a-zA-Z0-9]/g, '_')}`
+        : source
         ? source.replace(/[^a-zA-Z0-9]/g, '_')
         : 'freeform';
       return `@reflection_editor_draft_${sourceType}_${currentDate}`;
-    }, [source, dayNumber, questionNumber, playbookTitle, subtaskId]);
+    }, [source, dayNumber, journalClassification, questionNumber, playbookTitle, subtaskId]);
 
     // Load draft when component mounts (only for new entries, not when editing)
     useEffect(() => {
@@ -1366,7 +1433,9 @@ const ReflectionLogEditor = React.forwardRef<
       const allGuidedPrompts = guidedPromptGating.allPrompts || [];
       if (
         guidedPrompt &&
-        (source === 'guided' || allGuidedPrompts.includes(guidedPrompt)) &&
+        (source === 'guided' ||
+          source === 'guided_prompt' ||
+          allGuidedPrompts.includes(guidedPrompt)) &&
         isMountedRef.current
       ) {
         setSelectedPrompt(guidedPrompt);
@@ -1414,7 +1483,7 @@ const ReflectionLogEditor = React.forwardRef<
       // transition. Focus its response field explicitly once it is mounted.
       if (
         !isEditing &&
-        source === 'guided' &&
+        (source === 'guided' || source === 'guided_prompt') &&
         (initialPrompt || selectedPrompt)
       ) {
         createManagedTimeout(() => {
@@ -1662,7 +1731,10 @@ const ReflectionLogEditor = React.forwardRef<
       isLoading;
 
     // Cancel handler
-    const handleCancel = async (withHaptic = true) => {
+    const handleCancel = async (
+      withHaptic = true,
+      onComplete: () => void = onCancel,
+    ) => {
       // Mark as closing IMMEDIATELY — before anything else — so any auto-focus
       // timers that get scheduled during prop-change re-renders (e.g. source
       // flipping from guided→thoughts after onCancel resets parent state) will
@@ -1697,17 +1769,17 @@ const ReflectionLogEditor = React.forwardRef<
           // Give the keyboard hide animation a head start before the modal
           // starts its own close animation
           setTimeout(() => {
-            onCancel();
+            onComplete();
           }, 200);
         } else {
-          onCancel();
+          onComplete();
         }
       } catch (error) {
         clearAllTimeouts();
         Keyboard.dismiss();
         titleInputRef.current?.blur();
         contentInputRef.current?.blur();
-        onCancel();
+        onComplete();
       }
     };
 
@@ -1757,6 +1829,19 @@ const ReflectionLogEditor = React.forwardRef<
       }
     };
 
+    const handleReorderSavedBlocks = async (nextBlocks: JournalBlock[]) => {
+      const previousBlocks = journalBlocks;
+      const reorderedBlocks = nextBlocks as GuidedReflectionNote[];
+      triggerLightHaptic();
+      setJournalBlocks(reorderedBlocks);
+      try {
+        await onUpdateJournalBlocks?.(reorderedBlocks);
+      } catch {
+        setJournalBlocks(previousBlocks);
+        Alert.alert('Could not move note', 'Please try again.');
+      }
+    };
+
     if (isEditing && !isEditMode) {
       const visibleBlocks = prepareJournalBlocksForSave(journalBlocks);
       const classificationLabel = heartJournalClassificationLabel(
@@ -1772,9 +1857,9 @@ const ReflectionLogEditor = React.forwardRef<
                 {dateString}
               </ThemedText>
             )}
-            <View style={[s.modeToggle, styles.editorHeaderActions]}>
+            <View style={s.headerActions}>
               <TouchableOpacity
-                style={s.headerDeleteButton}
+                style={s.headerPlainButton}
                 accessibilityRole="button"
                 accessibilityLabel="Edit reflection"
                 hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}
@@ -1852,6 +1937,7 @@ const ReflectionLogEditor = React.forwardRef<
                     blocks={visibleBlocks}
                     onDark
                     onToggleAction={handleToggleSavedAction}
+                    onReorderBlocks={handleReorderSavedBlocks}
                   />
                   {(source === 'playbook' ||
                     (playbookTitle &&
@@ -1899,11 +1985,11 @@ const ReflectionLogEditor = React.forwardRef<
               {dateString}
             </ThemedText>
           )}
-          <Animated.View style={[s.modeToggle, styles.editorHeaderActions, editorHeaderEntranceStyle]}>
+          <Animated.View style={[s.headerActions, editorHeaderEntranceStyle]}>
             {/* Delete icon - only visible in edit mode and when onDelete is provided */}
             {isEditing && onDelete && (
               <TouchableOpacity
-                style={s.headerDeleteButton}
+                style={s.headerPlainButton}
                 accessibilityRole="button"
                 accessibilityLabel="Delete reflection"
                 hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}
@@ -2107,10 +2193,8 @@ const ReflectionLogEditor = React.forwardRef<
                     </View>
                   ) : (
                     <View style={s.titleWithLockContainer}>
-                      <TextInput
+                      <JournalTextInput
                         ref={titleInputRef}
-                        selectionColor={Colors.hopeWhite}
-                        cursorColor={Colors.hopeWhite}
                         style={[
                           s.entryInput,
                           s.titleInput,
@@ -2147,14 +2231,18 @@ const ReflectionLogEditor = React.forwardRef<
                   </Animated.View>
 
                   <Animated.View style={writerItemEntranceStyle(isDirectHeartJournal ? 2 : 1)}>
-                  {journalBlocks.map((block, index) => {
+                  {journalBlocks.filter(block => !block.parentColumnId).map(block => {
+                    const index = journalBlocks.findIndex(item => item.id === block.id);
                     const updateBlock = (changes: Partial<GuidedReflectionNote>) =>
                       commitJournalBlocks(
                         journalBlocks.map(item =>
                           item.id === block.id ? {...item, ...changes} : item,
                         ),
                       );
-                    const selectBlock = () => setSelectedBlockId(block.id);
+                    const selectBlock = () => {
+                      setSelectedBlockId(block.id);
+                      setColumnTarget(null);
+                    };
                     const wrapBlock = (content: React.ReactNode) => (
                       <DraggableJournalBlock
                         key={block.id}
@@ -2191,6 +2279,80 @@ const ReflectionLogEditor = React.forwardRef<
                         {content}
                       </DraggableJournalBlock>
                     );
+                    if (block.kind === 'column') {
+                      const nestedBlocks = journalBlocks.filter(
+                        item => item.parentColumnId === block.id,
+                      );
+                      const renderNestedBlock = (nestedBlock: JournalBlock) => (
+                        <JournalNestedBlockEditor
+                          key={nestedBlock.id}
+                          block={nestedBlock}
+                          tone="onDark"
+                          onFocus={() => {
+                            setSelectedBlockId(nestedBlock.id);
+                            if (nestedBlock.columnSide) {
+                              setColumnTarget({
+                                columnId: block.id,
+                                side: nestedBlock.columnSide,
+                              });
+                            }
+                          }}
+                          onChange={changes =>
+                            commitJournalBlocks(
+                              journalBlocks.map(item =>
+                                item.id === nestedBlock.id
+                                  ? {
+                                      ...item,
+                                      ...(changes as Partial<GuidedReflectionNote>),
+                                    }
+                                  : item,
+                              ),
+                            )
+                          }
+                          onDelete={() =>
+                            commitJournalBlocks(
+                              journalBlocks.filter(
+                                item => item.id !== nestedBlock.id,
+                              ),
+                            )
+                          }
+                          registerInput={input => {
+                            if (input) blockInputRefs.current.set(nestedBlock.id, input);
+                            else blockInputRefs.current.delete(nestedBlock.id);
+                          }}
+                        />
+                      );
+                      return wrapBlock(
+                        <JournalColumnBlock
+                          leftBlocks={nestedBlocks.filter(
+                            item => item.columnSide === 'left',
+                          ) as JournalBlock[]}
+                          rightBlocks={nestedBlocks.filter(
+                            item => item.columnSide === 'right',
+                          ) as JournalBlock[]}
+                          activeSide={
+                            columnTarget?.columnId === block.id
+                              ? columnTarget.side
+                              : null
+                          }
+                          tone="onDark"
+                          renderBlock={renderNestedBlock}
+                          onSelectSide={side => {
+                            setSelectedBlockId(block.id);
+                            setColumnTarget({columnId: block.id, side});
+                          }}
+                          onDelete={() =>
+                            commitJournalBlocks(
+                              journalBlocks.filter(
+                                item =>
+                                  item.id !== block.id &&
+                                  item.parentColumnId !== block.id,
+                              ),
+                            )
+                          }
+                        />,
+                      );
+                    }
                     if (block.kind === 'bullets' || block.kind === 'numbered') {
                       return wrapBlock(
                         <JournalListBlock
@@ -2217,10 +2379,21 @@ const ReflectionLogEditor = React.forwardRef<
                       return wrapBlock(
                         <JournalTableBlock
                           rows={block.tableRows}
+                          cellAlignments={block.tableCellAlignments}
                           editing={block.tableEditing}
                           tone="onDark"
                           onFocus={selectBlock}
-                          onChangeRows={tableRows => updateBlock({tableRows})}
+                          onChangeRows={(tableRows, tableCellAlignments) =>
+                            updateBlock({
+                              tableRows,
+                              ...(tableCellAlignments
+                                ? {tableCellAlignments}
+                                : {}),
+                            })
+                          }
+                          onChangeCellAlignments={tableCellAlignments =>
+                            updateBlock({tableCellAlignments})
+                          }
                           onChangeEditing={tableEditing => updateBlock({tableEditing})}
                           onDelete={() =>
                             commitJournalBlocks(
@@ -2343,11 +2516,27 @@ const ReflectionLogEditor = React.forwardRef<
             <Animated.View style={[{marginHorizontal: 18}, {bottom: fabAnimatedValue}]}>
               {notePickerOpen && (
                 <JournalPickerMenu
-                  items={REFLECTION_NOTE_TYPES.map(item => ({
-                    key: item.kind,
-                    label: item.label,
-                    icon: <Ionicons name={item.icon as any} size={13} color={Colors.sage} />,
-                  }))}
+                  items={REFLECTION_NOTE_TYPES
+                    .filter(
+                      item =>
+                        !columnTarget ||
+                        (item.kind !== 'column' && item.kind !== 'table'),
+                    )
+                    .map(item => ({
+                      key: item.kind,
+                      label: item.label,
+                      icon: (
+                        <JournalBlockIcon
+                          config={
+                            JOURNAL_BLOCKS[
+                              item.kind as keyof typeof JOURNAL_BLOCKS
+                            ]
+                          }
+                          size={16}
+                          color={Colors.sage}
+                        />
+                      ),
+                    }))}
                   animations={notePickerAnimations}
                   onSelect={async kind => {
                     triggerMediumHaptic();
@@ -2367,8 +2556,9 @@ const ReflectionLogEditor = React.forwardRef<
               )}
               <JournalComposerBar
                 onBack={() => {
-                  if (notePickerOpen) closeNotePicker(() => handleCancel(false));
-                  else handleCancel(false);
+                  const destination = onBackToChooser || onCancel;
+                  if (notePickerOpen) closeNotePicker(() => handleCancel(false, destination));
+                  else handleCancel(false, destination);
                 }}
                 onWrite={() => {
                   triggerLightHaptic();
@@ -2390,7 +2580,7 @@ const ReflectionLogEditor = React.forwardRef<
                 pickerColorAnim={notePickerColorAnim}
                 actionAnimations={composerActionAnimations}
                 nextIcon={isLoading ? 'hourglass-outline' : 'checkmark'}
-                backLabel="Close reflection"
+                backLabel={onBackToChooser ? 'Back to Heart Journal' : 'Close reflection'}
                 nextLabel="Save reflection"
                 nextDisabled={saveDisabled}
                 tone="onDark"

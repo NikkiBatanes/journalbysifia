@@ -45,4 +45,3 @@ export const clearJournalDevelopmentDataOnce = async (): Promise<number> => {
   await AsyncStorage.setItem(EMPTY_START_MARKER, new Date().toISOString());
   return contentKeys.length;
 };
-

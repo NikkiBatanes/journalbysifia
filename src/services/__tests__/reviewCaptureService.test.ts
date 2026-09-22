@@ -96,9 +96,12 @@ it('retains distinct presentation types for thoughts, guided reflections, Bible 
   expect(classifyReflection({
     id: 'guided', type: 'guided', source: 'guided', title: 'Where is God inviting trust?', selected_date: '2026-09-17',
     content: JSON.stringify({format: 'guided_reflection_v1', pathId: 'trust', pathTitle: 'Trust', currentStepId: 'notice', completed: true, answers: [{stepId: 'notice', text: 'Release the outcome.', notes: []}]}),
-  })).toMatchObject({kind: 'reflection', presentation: 'guided_reflection', text: 'Release the outcome.'});
+  })).toMatchObject({kind: 'reflection', presentation: 'guided_reflection', title: 'Where is God inviting trust?', detail: 'Trust', text: 'Release the outcome.'});
   expect(classifyReflection({
     id: 'prompt', type: 'guided', source: 'guided_prompt', title: 'Where can you receive rest?', content: 'I can stop measuring the day by output.', selected_date: '2026-09-17',
+  })).toMatchObject({kind: 'reflection', presentation: 'guided_reflection', subtitle: 'Guided prompt'});
+  expect(classifyReflection({
+    id: 'legacy-prompt', type: 'guided', title: 'What are you carrying?', content: 'A deadline I cannot control.', selected_date: '2026-09-17',
   })).toMatchObject({kind: 'reflection', presentation: 'guided_reflection', subtitle: 'Guided prompt'});
   expect(classifyReflection({
     id: 'chosen-question', type: 'guided', source: 'guided', title: 'Where have I noticed God at work?',
@@ -120,6 +123,27 @@ it('retains distinct presentation types for thoughts, guided reflections, Bible 
     content: JSON.stringify({blocks: [{kind: 'key', text: 'Choose the next faithful priority.'}]}),
     metadata: {sessionNoteType: 'meeting', sessionNoteDetails: {meeting: {person: 'Product team', event: 'Weekly planning'}}},
   })).toMatchObject({kind: 'sermon', presentation: 'session_note', subtitle: 'Meeting Notes', detail: 'Weekly planning · Product team', text: 'Choose the next faithful priority.'});
+});
+
+it('preserves structured Heart Journal blocks for rich Weekly Review previews', () => {
+  const journalBlocks = [
+    {id: 'photo', kind: 'photo' as const, text: 'A meaningful afternoon', uri: 'file:///journal/photo.jpg'},
+    {id: 'table', kind: 'table' as const, text: '', tableRows: [['Prayer', 'Answer'], ['Peace', 'Waiting']]},
+  ];
+
+  expect(classifyReflection({
+    id: 'rich-journal',
+    type: 'free',
+    source: 'freeform',
+    title: 'What I want to remember',
+    content: 'A meaningful afternoon',
+    selected_date: '2026-09-17',
+    metadata: {journalClassification: 'thoughts', journalBlocks},
+  })).toMatchObject({
+    kind: 'reflection',
+    presentation: 'heart_journal',
+    journalBlocks,
+  });
 });
 
 it('reads modern Gratitude lists and Today Win payloads without flattening them into generic Journal cards', async () => {

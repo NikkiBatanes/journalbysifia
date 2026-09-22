@@ -24,27 +24,54 @@ const NativeLiquidGlassView = hasNativeLiquidGlass
     (liquidGlassRuntime.__sifiaLiquidGlassView = requireNativeComponent<LiquidGlassViewProps>('LiquidGlassView'))
   : null;
 
-const LiquidGlassView = ({ tintColor, cornerRadius, fadesToTransparent = false, ...props }: LiquidGlassViewProps) => NativeLiquidGlassView ? (
+const LiquidGlassView = ({ tintColor, cornerRadius, fadesToTransparent = false, style, ...props }: LiquidGlassViewProps) => NativeLiquidGlassView ? (
   <NativeLiquidGlassView
     {...props}
     tintColor={tintColor}
     cornerRadius={cornerRadius}
     fadesToTransparent={fadesToTransparent}
-    style={[styles.transparent, props.style]}
+    style={[styles.transparent, style]}
   />
 ) : Platform.OS === 'ios' ? (
-  <BlurView
+  <View
     {...props}
-    blurType="ultraThinMaterialLight"
-    blurAmount={24}
-    style={[styles.transparent, tintColor ? { backgroundColor: tintColor } : null, cornerRadius ? { borderRadius: cornerRadius } : null, props.style]}
-  />
+    style={[
+      styles.fallbackClip,
+      cornerRadius ? { borderRadius: cornerRadius } : null,
+      style,
+    ]}
+  >
+    <BlurView
+      pointerEvents="none"
+      blurType="thinMaterialLight"
+      blurAmount={32}
+      reducedTransparencyFallbackColor="rgba(248, 247, 242, 0.92)"
+      style={StyleSheet.absoluteFill}
+    />
+    {tintColor ? <View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: tintColor }]} /> : null}
+    <View
+      pointerEvents="none"
+      style={[
+        styles.fallbackHighlight,
+        cornerRadius ? { borderRadius: cornerRadius } : null,
+      ]}
+    />
+  </View>
 ) : (
-  <View {...props} style={[styles.transparent, props.style]} />
+  <View {...props} style={[styles.transparent, style]} />
 );
 
 const styles = StyleSheet.create({
   transparent: { backgroundColor: 'transparent' },
+  fallbackClip: {
+    backgroundColor: 'transparent',
+    overflow: 'hidden',
+  },
+  fallbackHighlight: {
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(255, 255, 255, 0.62)',
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+  },
 });
 
 export default LiquidGlassView;

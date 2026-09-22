@@ -83,7 +83,7 @@ export const JournalBlockPickerMenu = <T extends keyof typeof JOURNAL_BLOCKS>({
       icon: (
         <JournalBlockIcon
           config={JOURNAL_BLOCKS[kind]}
-          size={13}
+          size={16}
           color={Colors.sage}
         />
       ),
@@ -274,12 +274,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    minHeight: 34,
-    paddingLeft: 5,
-    paddingRight: 12,
+    minHeight: 48,
+    paddingLeft: 8,
+    paddingRight: 18,
     borderWidth: 1,
     borderColor: Colors.sage,
-    borderRadius: 17,
+    borderRadius: 28,
     backgroundColor: Colors.cardBackground,
     shadowColor: Colors.text,
     shadowOpacity: 0.1,
@@ -288,14 +288,14 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   floatingToolIcon: {
-    width: 24,
-    height: 24,
+    width: 28,
+    height: 28,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 12,
+    borderRadius: 14,
     backgroundColor: Colors.anchorBlueLight,
   },
-  floatingToolText: {fontSize: 10, letterSpacing: 0.7, color: Colors.text},
+  floatingToolText: {fontSize: 15, color: Colors.text},
   floatingToolOnDark: {
     borderColor: 'rgba(255,255,255,0.3)',
     backgroundColor: 'rgba(255,255,255,0.15)',

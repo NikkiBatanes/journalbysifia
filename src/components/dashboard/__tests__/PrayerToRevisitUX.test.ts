@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 
 const source = fs.readFileSync(path.resolve(__dirname, '../PrayerToRevisit.tsx'), 'utf8');
+const todaySource = fs.readFileSync(path.resolve(__dirname, '../../../screens/TodayScreen.tsx'), 'utf8');
 const presentationSource = fs.readFileSync(path.resolve(__dirname, '../PrayerIntelligenceCardPresentation.tsx'), 'utf8');
 const trackingSource = fs.readFileSync(path.resolve(__dirname, '../../prayer/PrayerTrackingModal.tsx'), 'utf8');
 const activitySource = fs.readFileSync(path.resolve(__dirname, '../../../services/prayerActivityService.ts'), 'utf8');
@@ -10,6 +11,17 @@ const requestsScreenSource = fs.readFileSync(path.resolve(__dirname, '../../../s
 const peopleWalkthroughSource = fs.readFileSync(path.resolve(__dirname, '../../../screens/PrayersForPeopleWalkthroughScreen.tsx'), 'utf8');
 
 describe('Today Prayer intelligence presentation', () => {
+  it('shows the Prayer heading only when a prayer card is available', () => {
+    expect(todaySource).toContain('<PrayerToRevisit header={<SectionHeading title="PRAYER" detail="bring it before God" />} />');
+    expect(source).toContain('if (!candidate || !prayer) return null');
+    expect(source).toContain('{header}');
+  });
+
+  it('does not show the redundant Today writing prompt or completion copy', () => {
+    expect(todaySource).not.toContain('Write anything');
+    expect(todaySource).not.toContain('Nothing on Today has to be completed.');
+  });
+
   it('does not expose queue-processing actions', () => {
     expect(source + presentationSource).not.toContain('Show another');
     expect(source + presentationSource).not.toContain('Not now');

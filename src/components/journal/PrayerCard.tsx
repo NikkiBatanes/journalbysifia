@@ -184,9 +184,10 @@ const PrayerCard = ({
 
 const styles = StyleSheet.create({
   card: {
+    width: '100%',
     backgroundColor: Colors.cardBackground,
     borderColor: Colors.inputBorder,
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderRadius: 24,
     padding: 20,
     marginBottom: 12,

@@ -21,7 +21,7 @@ describe('Journal has no reachable Playbook generation entry point', () => {
     'navigation/BottomTabNavigator.tsx',
     'navigation/JournalStackNavigator.tsx',
     'screens/TodayScreen.tsx',
-    'screens/JournalScreen.tsx',
+    'screens/MomentsScreen.tsx',
     'screens/PrayerListScreen.tsx',
   ])('%s does not navigate to generation', file => expectNoGenerationNavigation(read(file)));
 

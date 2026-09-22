@@ -24,11 +24,14 @@ import LinearGradient from 'react-native-linear-gradient';
 import { format } from 'date-fns';
 
 import ThemedText from '../components/common/ThemedText';
+import HeaderBackButton from '../components/common/HeaderBackButton';
 import ScriptureReaderModal from '../components/ScriptureReaderModal';
 import BibleStudyDetailView from '../components/journal/BibleStudyDetailView';
 import AnimatedBibleStudyTopics from '../components/journal/AnimatedBibleStudyTopics';
 import { Colors } from '../theme/colors';
 import { Fonts, FontFamily, getFontFamily } from '../theme/fonts';
+import { useAuth } from '../context/IndustryStandardAuthContext';
+import { claimFaithfulRhythmCelebration, FAITHFUL_RHYTHM_UPDATED } from '../services/faithfulRhythmService';
 import { triggerLightHaptic } from '../utils/haptics';
 import { getScripturePassage, preloadScripturePassages } from '../services/scriptureReaderService';
 import { BIBLE_STUDY_TOPICS, BibleStudyTopic } from '../data/bibleStudyTopics';
@@ -271,6 +274,7 @@ const Card = ({
 const BibleStudyScreen = () => {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
+  const {preferences} = useAuth();
   const route = useRoute<any>();
   const creatingStudy = route.params?.openMode === 'create';
   const requestedSelectedDate = route.params?.selectedDate as string | undefined;
@@ -675,10 +679,20 @@ const BibleStudyScreen = () => {
 
       setSession(updated);
       setStage(next);
+      if (next === 'saved') {
+        DeviceEventEmitter.emit(FAITHFUL_RHYTHM_UPDATED, {rhythm: 'bible_study', selectedDate: updated.selected_date});
+        if (await claimFaithfulRhythmCelebration('bible_study', updated.selected_date, preferences?.weekStart || 'monday')) {
+          (navigation as any).navigate('StreakPlan', {
+            rhythm: 'bible_study',
+            source: 'bible_study_complete',
+            returnTo: 'moments',
+          });
+        }
+      }
     } catch (error) {
       console.warn('Bible Study save error:', error);
     }
-  }, [session, buildContent, stage]);
+  }, [session, buildContent, stage, navigation, preferences?.weekStart]);
 
   const back = useCallback(() => {
     if (stage === 'home' || stage === 'saved' || stage === 'detail') {
@@ -795,14 +809,10 @@ const BibleStudyScreen = () => {
   const renderTop = () => stage === 'home' ? (
     <View style={[styles.homeTop, { top: insets.top + 8 }]} pointerEvents="box-none">
       {selectedTopic ? (
-        <TouchableOpacity
+        <HeaderBackButton
           onPress={() => setSelectedTopic(null)}
           style={[styles.homeNavButton, styles.homeBackButton]}
-          activeOpacity={0.7}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-        >
-          <Ionicons name="chevron-back" size={20} color={Colors.sage} />
-        </TouchableOpacity>
+        />
       ) : null}
       <TouchableOpacity
         accessibilityLabel="Close Bible Study"
@@ -822,9 +832,7 @@ const BibleStudyScreen = () => {
       {stage === 'saved' ? (
         <View style={styles.topIcon} />
       ) : (
-        <TouchableOpacity onPress={back} style={styles.topIcon} activeOpacity={0.7}>
-          <Ionicons name="chevron-back" size={28} color={Colors.text} />
-        </TouchableOpacity>
+        <HeaderBackButton onPress={back} color={Colors.text} />
       )}
       {topTitle ? (
         <View style={styles.topTitleRow}>

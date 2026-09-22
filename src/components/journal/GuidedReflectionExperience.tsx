@@ -1,4 +1,11 @@
-import React, {useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   Alert,
@@ -15,18 +22,39 @@ import {
   View,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import {BookHeart} from 'lucide-react-native';
+import {BookHeart, Pencil} from 'lucide-react-native';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {useFloatingKeyboardButton} from '../../hooks/useFloatingKeyboardButton';
 import ScriptureReaderModal from '../ScriptureReaderModal';
+import HeaderBackButton from '../common/HeaderBackButton';
 import ThemedText from '../common/ThemedText';
 import {ReflectionQuestionCard} from './shared/ReflectionQuestionCard';
 import {JournalComposerBar, JournalPickerMenu} from './shared/JournalComposer';
 import {JournalInlineBlock} from './shared/JournalInlineBlock';
-import {JOURNAL_BLOCKS, type JournalBlockConfig} from './shared/journalBlocks';
+import JournalTextInput from './shared/JournalTextInput';
+import {JournalListBlock} from './shared/JournalListBlock';
+import {JournalTableBlock} from './shared/JournalTableBlock';
+import JournalColumnBlock from './shared/JournalColumnBlock';
+import JournalNestedBlockEditor from './shared/JournalNestedBlockEditor';
+import DraggableJournalBlock from './shared/DraggableJournalBlock';
+import {
+  reorderJournalBlock,
+  resolveJournalBlockDropIndex,
+} from './shared/journalBlockOperations';
+import ReflectionSpecialBlock from './ReflectionSpecialBlock';
+import SavedReflectionBlocks from './SavedReflectionBlocks';
+import {styles as reflectionEditorStyles} from './reflectionStyles';
+import {
+  JOURNAL_BLOCKS,
+  JournalBlockIcon,
+  prepareJournalBlocksForSave,
+  type JournalBlock,
+  type JournalBlockConfig,
+} from './shared/journalBlocks';
 import {Colors} from '../../theme/colors';
 import {Fonts} from '../../theme/fonts';
 import {triggerLightHaptic, triggerMediumHaptic} from '../../utils/haptics';
+import {pickImageLocal} from '../../services/avatarService';
 import {
   GUIDED_REFLECTION_PATHS,
   getGuidedReflectionPath,
@@ -42,7 +70,7 @@ import {
   saveGuidedReflectionDraft,
 } from '../../storage/guidedReflectionDraftStorage';
 import {
-  GUIDED_NOTE_TYPES,
+  REFLECTION_NOTE_TYPES,
   GUIDED_REFLECTION_FORMAT,
   createGuidedNoteId,
   emptyGuidedAnswer,
@@ -73,6 +101,7 @@ interface Props {
     source: 'guided';
     prompt: string;
     guidedJourney: GuidedReflectionPayload;
+    journalBlocks: GuidedReflectionNote[];
   }) => Promise<boolean | void> | boolean | void;
 }
 
@@ -85,7 +114,7 @@ const answerHasValue = (answer: GuidedStepAnswer) =>
       answer.optionalText?.trim() ||
       answer.selected?.length ||
       Object.values(answer.fields || {}).some(Boolean) ||
-      answer.notes.length,
+      prepareJournalBlocksForSave(answer.notes).length,
   );
 
 const GuidedReflectionExperience: React.FC<Props> = ({
@@ -99,7 +128,8 @@ const GuidedReflectionExperience: React.FC<Props> = ({
   onSave,
 }) => {
   const insets = useSafeAreaInsets();
-  const {bottom: composerBottom} = useFloatingKeyboardButton(insets.bottom);
+  const {bottom: composerBottom, keyboardHeight} =
+    useFloatingKeyboardButton(insets.bottom);
   const restored = useMemo(
     () => parseGuidedReflection(existingContent),
     [existingContent],
@@ -136,7 +166,7 @@ const GuidedReflectionExperience: React.FC<Props> = ({
   const [optionalOpen, setOptionalOpen] = useState(false);
   const [notePickerOpen, setNotePickerOpen] = useState(false);
   const notePickerAnimations = useRef(
-    GUIDED_NOTE_TYPES.map(() => new Animated.Value(0)),
+    REFLECTION_NOTE_TYPES.map(() => new Animated.Value(0)),
   ).current;
   const notePlusRotation = useRef(new Animated.Value(0)).current;
   const notePickerColorAnim = useRef(new Animated.Value(0)).current;
@@ -147,24 +177,54 @@ const GuidedReflectionExperience: React.FC<Props> = ({
     [0, 1, 2, 3].map(() => new Animated.Value(0)),
   ).current;
   const [noteKind, setNoteKind] = useState<
-    (typeof GUIDED_NOTE_TYPES)[number]['kind'] | null
+    (typeof REFLECTION_NOTE_TYPES)[number]['kind'] | null
   >(null);
+  const [columnTarget, setColumnTarget] = useState<{
+    columnId: string;
+    side: 'left' | 'right';
+  } | null>(null);
   const [noteText, setNoteText] = useState('');
   const [noteReference, setNoteReference] = useState('');
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [scriptureOpen, setScriptureOpen] = useState(false);
   const [showSavedView, setShowSavedView] = useState(Boolean(restored));
+  const [editingSavedJourney, setEditingSavedJourney] = useState(false);
+  const [titleEditing, setTitleEditing] = useState(false);
+  const [titleDraft, setTitleDraft] = useState(restored?.entryTitle || '');
+  const [titleSaving, setTitleSaving] = useState(false);
+  const savedPayloadRef = useRef<GuidedReflectionPayload | null>(restored);
   const primaryInputRef = useRef<TextInput>(null);
   const journeyScrollRef = useRef<ScrollView>(null);
   const noteInputRefs = useRef(new Map<string, TextInput>());
+  const noteLayoutsRef = useRef(new Map<string, {y: number; height: number}>());
+  const inlineNotesLayoutRef = useRef<{y: number; height: number} | null>(null);
+  const pendingFocusNoteIdRef = useRef<string | null>(null);
+  const pendingFocusShouldScrollEndRef = useRef(true);
+  const keepScrollAtEndRef = useRef(false);
+  const keepAtEndTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null);
+  const [dragPreview, setDragPreview] = useState<{
+    blockId: string;
+    fromIndex: number;
+    targetIndex: number;
+    blockHeight: number;
+  } | null>(null);
+  const focusNoteInput = useCallback((id: string) => {
+    noteInputRefs.current.get(id)?.focus();
+  }, []);
   const noteFocusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const noteFocusRetryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const noteFocusFrameRef = useRef<number | null>(null);
   useEffect(() => () => {
     if (noteFocusFrameRef.current !== null) cancelAnimationFrame(noteFocusFrameRef.current);
     if (noteFocusTimerRef.current) clearTimeout(noteFocusTimerRef.current);
-    if (noteFocusRetryTimerRef.current) clearTimeout(noteFocusRetryTimerRef.current);
+    if (keepAtEndTimerRef.current) clearTimeout(keepAtEndTimerRef.current);
   }, []);
+  useEffect(() => {
+    if (restored) {
+      savedPayloadRef.current = restored;
+      setTitleDraft(restored.entryTitle || '');
+    }
+  }, [restored]);
   useEffect(() => {
     let active = true;
     AsyncStorage.getItem(LAST_QUESTION_TOPIC_KEY)
@@ -410,6 +470,42 @@ const GuidedReflectionExperience: React.FC<Props> = ({
     if (onCloseJourney) onCloseJourney();
     else setPathId('');
   };
+  const restoredStepIndex = () => {
+    const savedPayload = savedPayloadRef.current || restored;
+    return savedPayload && path
+      ? Math.max(
+          0,
+          path.steps.findIndex(step => step.id === savedPayload.currentStepId),
+        )
+      : 0;
+  };
+  const editSavedJourney = () => {
+    triggerLightHaptic();
+    if (savedPayloadRef.current) {
+      setPayload(savedPayloadRef.current);
+    }
+    setEditingSavedJourney(true);
+    setOptionalOpen(false);
+    setNotePickerOpen(false);
+    setColumnTarget(null);
+    setStepIndex(0);
+    setShowSavedView(false);
+  };
+  const continueSavedJourney = () => {
+    triggerLightHaptic();
+    setEditingSavedJourney(false);
+    setStepIndex(restoredStepIndex());
+    setShowSavedView(false);
+  };
+  const returnToSavedJourney = () => {
+    triggerLightHaptic();
+    if (savedPayloadRef.current) {
+      setPayload(savedPayloadRef.current);
+      setStepIndex(restoredStepIndex());
+    }
+    setEditingSavedJourney(false);
+    setShowSavedView(true);
+  };
   const goToJourneyStep = (nextIndex: number) => {
     if (journeyTransitioning || nextIndex === stepIndex) {return;}
     setJourneyTransitioning(true);
@@ -421,6 +517,7 @@ const GuidedReflectionExperience: React.FC<Props> = ({
       useNativeDriver: true,
     }).start(() => {
       requestAnimationFrame(() => {
+        setColumnTarget(null);
         setStepIndex(nextIndex);
         setJourneyTransitioning(false);
       });
@@ -465,15 +562,30 @@ const GuidedReflectionExperience: React.FC<Props> = ({
   }, [payload, selectedDate]);
 
   const step = path?.steps[stepIndex];
+  const mindSpaceOptions = useMemo(() => {
+    if (path?.id !== 'mind-feels-full' || !payload) {return [];}
+    const spaceAnswer = payload.answers.find(item => item.stepId === 'space');
+    if (!spaceAnswer?.selected?.length) {return [];}
+    const somethingElseText = spaceAnswer.notes.find(
+      note => note.anchorId === 'mind-feels-full:space:something-else',
+    )?.text.trim() || spaceAnswer.optionalText?.trim();
+    return spaceAnswer.selected.map(option =>
+      option === 'Something else' ? somethingElseText || 'Something else' : option,
+    );
+  }, [path?.id, payload]);
+  const skipHeaviestStep = mindSpaceOptions.length === 1;
+  const journeyStepCount = path
+    ? path.steps.length - (skipHeaviestStep ? 1 : 0)
+    : 0;
+  const journeyStepPosition = skipHeaviestStep && stepIndex > 1
+    ? stepIndex
+    : stepIndex + 1;
   const renderedStep = useMemo(() => {
-    if (!step || step.id !== 'heaviest' || !payload) {
+    if (!step || step.id !== 'heaviest' || !mindSpaceOptions.length) {
       return step;
     }
-    const selectedSpace = payload.answers.find(
-      item => item.stepId === 'space',
-    )?.selected;
-    return selectedSpace?.length ? {...step, options: selectedSpace} : step;
-  }, [payload, step]);
+    return {...step, options: mindSpaceOptions};
+  }, [mindSpaceOptions, step]);
   const answer =
     payload && step
       ? payload.answers.find(item => item.stepId === step.id) ||
@@ -484,6 +596,11 @@ const GuidedReflectionExperience: React.FC<Props> = ({
       setPayload({...payload, currentStepId: step.id});
     }
   }, [payload, step]);
+  useEffect(() => {
+    setSelectedNoteId(null);
+    setDragPreview(null);
+    noteLayoutsRef.current.clear();
+  }, [step?.id]);
   const updateAnswer = (changes: Partial<GuidedStepAnswer>) => {
     if (!payload || !step || !answer) {
       return;
@@ -497,15 +614,145 @@ const GuidedReflectionExperience: React.FC<Props> = ({
       ),
     });
   };
+  const topLevelNotes = answer?.notes.filter(note => !note.parentColumnId) || [];
+  useEffect(() => {
+    const noteId = pendingFocusNoteIdRef.current;
+    if (!noteId) {return;}
+
+    const scrollToPendingNote = () => {
+      if (pendingFocusShouldScrollEndRef.current) {
+        journeyScrollRef.current?.scrollToEnd({animated: true});
+        return;
+      }
+      const pendingNote = answer?.notes.find(note => note.id === noteId);
+      const layout = noteLayoutsRef.current.get(
+        pendingNote?.parentColumnId || noteId,
+      );
+      const notesLayout = inlineNotesLayoutRef.current;
+      if (layout && notesLayout) {
+        journeyScrollRef.current?.scrollTo({
+          y: Math.max(0, notesLayout.y + layout.y - 20),
+          animated: true,
+        });
+      } else {
+        journeyScrollRef.current?.scrollToEnd({animated: true});
+      }
+    };
+
+    if (noteFocusFrameRef.current !== null) {
+      cancelAnimationFrame(noteFocusFrameRef.current);
+    }
+    noteFocusFrameRef.current = requestAnimationFrame(() => {
+      noteFocusFrameRef.current = null;
+      focusNoteInput(noteId);
+      scrollToPendingNote();
+      if (noteFocusTimerRef.current) clearTimeout(noteFocusTimerRef.current);
+      noteFocusTimerRef.current = setTimeout(() => {
+        noteFocusTimerRef.current = null;
+        focusNoteInput(noteId);
+        scrollToPendingNote();
+      }, 320);
+      pendingFocusNoteIdRef.current = null;
+    });
+  }, [answer?.notes, answer?.selected, focusNoteInput]);
+
+  const queueInlineNoteFocus = (
+    note: GuidedReflectionNote,
+    shouldScrollToEnd: boolean,
+  ) => {
+    pendingFocusNoteIdRef.current = note.id;
+    pendingFocusShouldScrollEndRef.current = shouldScrollToEnd;
+    keepScrollAtEndRef.current = shouldScrollToEnd;
+    if (keepAtEndTimerRef.current) {
+      clearTimeout(keepAtEndTimerRef.current);
+    }
+    keepAtEndTimerRef.current = setTimeout(() => {
+      keepScrollAtEndRef.current = false;
+      keepAtEndTimerRef.current = null;
+    }, 2500);
+    setSelectedNoteId(note.id);
+  };
+  const handleDragNoteStart = (blockId: string) => {
+    const fromIndex = topLevelNotes.findIndex(note => note.id === blockId);
+    const layout = noteLayoutsRef.current.get(blockId);
+    if (fromIndex < 0 || !layout) {return;}
+    setDragPreview({
+      blockId,
+      fromIndex,
+      targetIndex: fromIndex,
+      blockHeight: layout.height,
+    });
+  };
+  const handleDragNoteMove = (blockId: string, deltaY: number) => {
+    const targetIndex = resolveJournalBlockDropIndex(
+      topLevelNotes,
+      noteLayoutsRef.current,
+      blockId,
+      deltaY,
+    );
+    setDragPreview(current =>
+      !current || current.blockId !== blockId || current.targetIndex === targetIndex
+        ? current
+        : {...current, targetIndex},
+    );
+  };
+  const handleDragNoteEnd = (blockId: string, deltaY: number) => {
+    const targetIndex = resolveJournalBlockDropIndex(
+      topLevelNotes,
+      noteLayoutsRef.current,
+      blockId,
+      deltaY,
+    );
+    setDragPreview(null);
+    const reordered = reorderJournalBlock(topLevelNotes, blockId, targetIndex);
+    if (reordered === topLevelNotes || !answer) {return;}
+    const topLevelIds = new Set(reordered.map(note => note.id));
+    const reorderedNotes = reordered.flatMap(note => [
+      note,
+      ...answer.notes.filter(child => child.parentColumnId === note.id),
+    ]);
+    updateAnswer({
+      notes: [
+        ...reorderedNotes,
+        ...answer.notes.filter(
+          note => note.parentColumnId && !topLevelIds.has(note.parentColumnId),
+        ),
+      ],
+    });
+    setSelectedNoteId(blockId);
+  };
   const toggleSelection = (value: string, multiple: boolean) => {
     const selected = answer?.selected || [];
-    updateAnswer({
-      selected: multiple
-        ? selected.includes(value)
-          ? selected.filter(item => item !== value)
-          : [...selected, value]
-        : [value],
-    });
+    const alreadySelected = selected.includes(value);
+    const nextSelected = multiple
+      ? alreadySelected
+        ? selected.filter(item => item !== value)
+        : [...selected, value]
+      : [value];
+    const somethingElseAnchor =
+      path?.id === 'mind-feels-full' &&
+      (step?.id === 'space' || step?.id === 'need') &&
+      value === 'Something else'
+        ? `mind-feels-full:${step.id}:something-else`
+        : null;
+    if (somethingElseAnchor && !alreadySelected) {
+      const existingWrite = answer?.notes.find(
+        note => note.anchorId === somethingElseAnchor,
+      );
+      if (existingWrite) {
+        queueInlineNoteFocus(existingWrite, false);
+        updateAnswer({selected: nextSelected});
+      } else {
+        appendInlineNote(
+          'text',
+          {anchorId: somethingElseAnchor},
+          null,
+          {selected: nextSelected},
+        );
+      }
+      return;
+    }
+    updateAnswer({selected: nextSelected});
   };
   const addNote = () => {
     if (!noteKind || !noteText.trim() || !answer) {
@@ -607,42 +854,90 @@ const GuidedReflectionExperience: React.FC<Props> = ({
     setNotePickerOpen(false);
   };
   const appendInlineNote = (
-    kind: (typeof GUIDED_NOTE_TYPES)[number]['kind'],
+    kind: (typeof REFLECTION_NOTE_TYPES)[number]['kind'] | 'text',
+    extra: Partial<GuidedReflectionNote> = {},
+    explicitColumnTarget?: {columnId: string; side: 'left' | 'right'} | null,
+    answerChanges: Partial<GuidedStepAnswer> = {},
   ) => {
     if (!answer) {return;}
+    const requestedDestination = explicitColumnTarget || columnTarget;
+    if (
+      requestedDestination &&
+      (kind === 'column' || kind === 'table')
+    ) {
+      return;
+    }
     const id = createGuidedNoteId();
     const note: GuidedReflectionNote = {
       id,
       kind,
       text: '',
+      ...(kind === 'action' ? {completed: false} : {}),
+      ...(kind === 'bullets' || kind === 'numbered'
+        ? {points: ['']}
+        : {}),
+      ...(kind === 'table'
+        ? {
+            tableRows: [['', ''], ['', '']],
+            tableCellAlignments: [
+              ['left', 'left'],
+              ['left', 'left'],
+            ] as Array<Array<'left' | 'center' | 'right'>>,
+            tableEditing: true,
+          }
+        : {}),
+      ...(requestedDestination
+        ? {
+            parentColumnId: requestedDestination.columnId,
+            columnSide: requestedDestination.side,
+          }
+        : {}),
+      ...extra,
     };
-    updateAnswer({notes: [...answer.notes, note]});
-    if (noteFocusFrameRef.current !== null) cancelAnimationFrame(noteFocusFrameRef.current);
-    noteFocusFrameRef.current = requestAnimationFrame(() => {
-      noteFocusFrameRef.current = null;
-      noteInputRefs.current.get(id)?.focus();
-      journeyScrollRef.current?.scrollToEnd({animated: true});
-      if (noteFocusTimerRef.current) clearTimeout(noteFocusTimerRef.current);
-      noteFocusTimerRef.current = setTimeout(() => {
-        noteFocusTimerRef.current = null;
-        noteInputRefs.current.get(id)?.focus();
-      }, 80);
-      if (noteFocusRetryTimerRef.current) clearTimeout(noteFocusRetryTimerRef.current);
-      noteFocusRetryTimerRef.current = setTimeout(() => {
-        noteFocusRetryTimerRef.current = null;
-        noteInputRefs.current.get(id)?.focus();
-        journeyScrollRef.current?.scrollToEnd({animated: true});
-      }, 320);
-    });
+    queueInlineNoteFocus(note, !requestedDestination);
+    updateAnswer({...answerChanges, notes: [...answer.notes, note]});
+    setColumnTarget(
+      kind === 'column'
+        ? {columnId: id, side: 'left'}
+        : requestedDestination || null,
+    );
   };
-  const beginNote = (kind: (typeof GUIDED_NOTE_TYPES)[number]['kind']) => {
+  const beginNote = (kind: (typeof REFLECTION_NOTE_TYPES)[number]['kind']) => {
     triggerMediumHaptic();
+    if (kind === 'photo') {
+      closeNotePicker(async () => {
+        try {
+          const photo = await pickImageLocal();
+          if (photo) appendInlineNote('photo', {uri: photo.uri});
+        } catch {
+          Alert.alert('Could not add photo', 'Please try choosing your photo again.');
+        }
+      });
+      return;
+    }
     closeNotePicker(() => appendInlineNote(kind));
   };
   const beginWrite = () => {
     triggerLightHaptic();
     if (notePickerOpen) closeNotePicker(() => appendInlineNote('text'));
     else appendInlineNote('text');
+  };
+  const persistJourney = async (nextPayload: GuidedReflectionPayload) => {
+    if (!path) {return false;}
+    const saved = await onSave({
+      title: nextPayload.entryTitle?.trim() || path.title,
+      content: serializeGuidedReflection(nextPayload),
+      type: 'guided',
+      source: 'guided',
+      prompt: path.title,
+      guidedJourney: nextPayload,
+      journalBlocks: nextPayload.answers.flatMap(item => item.notes),
+    });
+    if (saved === false) {return false;}
+    savedPayloadRef.current = nextPayload;
+    setPayload(nextPayload);
+    await clearGuidedReflectionDraft(selectedDate, path.id);
+    return true;
   };
   const saveJourney = async (completed: boolean) => {
     if (!payload || !path || !step) {
@@ -653,25 +948,55 @@ const GuidedReflectionExperience: React.FC<Props> = ({
       currentStepId: step.id,
       stoppedAtStepId: completed ? undefined : step.id,
       completed,
+      answers: payload.answers.map(item => ({
+        ...item,
+        notes: prepareJournalBlocksForSave(item.notes),
+      })),
     };
     try {
-      const saved = await onSave({
-        title: path.title,
-        content: serializeGuidedReflection(finalPayload),
-        type: 'guided',
-        source: 'guided',
-        prompt: path.title,
-        guidedJourney: finalPayload,
-      });
-      if (saved !== false) {
-        await clearGuidedReflectionDraft(selectedDate, path.id);
-      }
+      await persistJourney(finalPayload);
     } catch {
       Alert.alert(
         'Could not save',
         'Your reflection is still saved as a draft. Please try again.',
       );
     }
+  };
+  const saveJourneyTitle = async () => {
+    if (!payload || !path || titleSaving) {return;}
+    const nextTitle = titleDraft.trim();
+    const nextPayload: GuidedReflectionPayload = {
+      ...payload,
+      entryTitle: nextTitle && nextTitle !== path.title ? nextTitle : undefined,
+    };
+    setTitleSaving(true);
+    try {
+      const saved = await persistJourney(nextPayload);
+      if (saved) {
+        setTitleDraft(nextPayload.entryTitle || '');
+        setTitleEditing(false);
+      }
+    } catch {
+      Alert.alert('Could not rename', 'Please try changing the title again.');
+    } finally {
+      setTitleSaving(false);
+    }
+  };
+  const saveActiveJourneyTitle = async () => {
+    if (!payload || !path || titleSaving) {return;}
+    if (restored) {
+      await saveJourneyTitle();
+      return;
+    }
+    const nextTitle = titleDraft.trim();
+    const nextPayload: GuidedReflectionPayload = {
+      ...payload,
+      entryTitle: nextTitle && nextTitle !== path.title ? nextTitle : undefined,
+    };
+    setPayload(nextPayload);
+    setTitleDraft(nextPayload.entryTitle || path.title);
+    setTitleEditing(false);
+    Keyboard.dismiss();
   };
 
   const openGuidedPath = async (selectedPath: (typeof GUIDED_REFLECTION_PATHS)[number]) => {
@@ -700,6 +1025,8 @@ const GuidedReflectionExperience: React.FC<Props> = ({
         selectedPath.steps.findIndex(item => item.id === nextPayload.currentStepId),
       ),
     );
+    setTitleDraft(nextPayload.entryTitle?.trim() || selectedPath.title);
+    setTitleEditing(false);
     setPayload(nextPayload);
     setPathId(selectedPath.id);
   };
@@ -863,16 +1190,13 @@ const GuidedReflectionExperience: React.FC<Props> = ({
     return (
       <View style={styles.screen}>
         <View style={styles.header}>
-          <TouchableOpacity
+          <HeaderBackButton
             onPress={() => {
               triggerLightHaptic();
               setOptionalOpen(false);
             }}
-            accessibilityRole="button"
             accessibilityLabel="Back to reflection"
-            style={styles.close}>
-            <Ionicons name="chevron-back" size={20} color={Colors.sage} />
-          </TouchableOpacity>
+          />
           <ThemedText style={styles.headerTitle}>{path.title}</ThemedText>
           <TouchableOpacity
             onPress={closeJourney}
@@ -886,7 +1210,7 @@ const GuidedReflectionExperience: React.FC<Props> = ({
           <View
             style={[
               styles.progressFill,
-              {width: `${((stepIndex + 1) / path.steps.length) * 100}%`},
+              {width: `${(journeyStepPosition / journeyStepCount) * 100}%`},
             ]}
           />
         </View>
@@ -894,7 +1218,7 @@ const GuidedReflectionExperience: React.FC<Props> = ({
           <ThemedText style={styles.eyebrow}>
             {step.optionalWrite.prompt}
           </ThemedText>
-          <TextInput
+          <JournalTextInput
             ref={primaryInputRef}
             autoFocus
             multiline
@@ -922,7 +1246,7 @@ const GuidedReflectionExperience: React.FC<Props> = ({
     );
   }
   if (noteKind) {
-    const noteConfig = GUIDED_NOTE_TYPES.find(item => item.kind === noteKind);
+    const noteConfig = REFLECTION_NOTE_TYPES.find(item => item.kind === noteKind);
     const placeholder =
       noteKind === 'quote'
         ? 'Write the words you want to remember…'
@@ -940,16 +1264,13 @@ const GuidedReflectionExperience: React.FC<Props> = ({
     return (
       <View style={styles.screen}>
         <View style={styles.header}>
-          <TouchableOpacity
+          <HeaderBackButton
             onPress={() => {
               triggerLightHaptic();
               closeNoteEditor();
             }}
-            accessibilityRole="button"
             accessibilityLabel="Back to reflection"
-            style={styles.close}>
-            <Ionicons name="chevron-back" size={20} color={Colors.sage} />
-          </TouchableOpacity>
+          />
           <ThemedText style={styles.headerTitle}>{path.title}</ThemedText>
           <TouchableOpacity
             onPress={closeJourney}
@@ -971,7 +1292,7 @@ const GuidedReflectionExperience: React.FC<Props> = ({
             </ThemedText>
           </View>
           {(noteKind === 'scripture' || noteKind === 'quote') && (
-            <TextInput
+            <JournalTextInput
               style={styles.referenceInput}
               value={noteReference}
               onChangeText={setNoteReference}
@@ -983,7 +1304,7 @@ const GuidedReflectionExperience: React.FC<Props> = ({
               placeholderTextColor={Colors.textGray}
             />
           )}
-          <TextInput
+          <JournalTextInput
             ref={primaryInputRef}
             autoFocus
             multiline
@@ -1028,26 +1349,102 @@ const GuidedReflectionExperience: React.FC<Props> = ({
     return (
       <View style={styles.journeyScreen}>
         <View style={styles.journeyHeaderBackdrop} />
-        <View style={styles.journeyHeader}>
-          <ThemedText weight="bold" style={styles.journeyDate}>{journeyDate}</ThemedText>
-          <View style={styles.journeyHeaderActions}>
-          <TouchableOpacity
-            onPress={closeJourney}
-            accessibilityRole="button"
-            accessibilityLabel="Close"
-            style={styles.journeyHeaderButton}>
-            <Ionicons name="close" size={17} color={Colors.sage} />
-          </TouchableOpacity>
+        <View style={reflectionEditorStyles.header}>
+          <ThemedText weight="bold" style={reflectionEditorStyles.title}>{journeyDate}</ThemedText>
+          <View style={reflectionEditorStyles.headerActions}>
+            <TouchableOpacity
+              onPress={editSavedJourney}
+              accessibilityRole="button"
+              accessibilityLabel="Edit guided reflection"
+              hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}
+              activeOpacity={0.7}
+              style={reflectionEditorStyles.headerPlainButton}>
+              <Pencil size={20} color={Colors.sage} strokeWidth={1.7} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={closeJourney}
+              accessibilityRole="button"
+              accessibilityLabel="Close"
+              style={reflectionEditorStyles.headerCloseButton}>
+              <Ionicons name="close" size={17} color={Colors.sage} />
+            </TouchableOpacity>
           </View>
         </View>
-        <View style={styles.journeySheet}>
+        <View style={reflectionEditorStyles.contentCard}>
         <ScrollView
           contentContainerStyle={styles.savedJourneyContent}
           showsVerticalScrollIndicator={false}>
           <ThemedText style={styles.savedJourneyEyebrow}>GUIDED REFLECTION</ThemedText>
-          <ThemedText weight="bold" style={styles.savedJourneyTitle}>
-            {path.title}
-          </ThemedText>
+          {titleEditing ? (
+            <View style={styles.savedTitleEditor}>
+              <ThemedText style={styles.savedTitleEditorLabel}>JOURNAL TITLE</ThemedText>
+              <JournalTextInput
+                autoFocus
+                value={titleDraft}
+                onChangeText={setTitleDraft}
+                placeholder={path.title}
+                placeholderTextColor="rgba(255,255,255,0.45)"
+                maxLength={120}
+                style={styles.savedTitleInput}
+                accessibilityLabel="Guided reflection title"
+              />
+              <View style={styles.savedTitleActions}>
+                <TouchableOpacity
+                  accessibilityRole="button"
+                  accessibilityLabel="Cancel title change"
+                  onPress={() => {
+                    triggerLightHaptic();
+                    setTitleDraft(payload.entryTitle || '');
+                    setTitleEditing(false);
+                  }}
+                  style={styles.savedTitleAction}>
+                  <Ionicons name="close" size={18} color={Colors.hopeWhite} />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  accessibilityRole="button"
+                  accessibilityLabel="Save title"
+                  disabled={titleSaving || isSaving}
+                  onPress={() => {
+                    triggerLightHaptic();
+                    void saveJourneyTitle();
+                  }}
+                  style={[
+                    styles.savedTitleAction,
+                    styles.savedTitleSaveAction,
+                    (titleSaving || isSaving) && styles.savedTitleActionDisabled,
+                  ]}>
+                  <Ionicons name="checkmark" size={18} color={Colors.hopeWhite} />
+                </TouchableOpacity>
+              </View>
+            </View>
+          ) : (
+            <>
+              <View style={[
+                styles.savedTitleRow,
+                !payload.entryTitle?.trim() && styles.savedTitleRowSolo,
+              ]}>
+                <ThemedText weight="bold" style={styles.savedJourneyTitle}>
+                  {payload.entryTitle?.trim() || path.title}
+                </ThemedText>
+                <TouchableOpacity
+                  accessibilityRole="button"
+                  accessibilityLabel="Rename guided reflection"
+                  onPress={() => {
+                    triggerLightHaptic();
+                    setTitleDraft(payload.entryTitle?.trim() || path.title);
+                    setTitleEditing(true);
+                  }}
+                  style={styles.savedRenameAction}>
+                  <ThemedText weight="semiBold" style={styles.savedRenameText}>Rename</ThemedText>
+                </TouchableOpacity>
+              </View>
+              {payload.entryTitle?.trim() ? (
+                <ThemedText style={styles.savedJourneyPath}>
+                  GUIDED PATH · {path.title}
+                </ThemedText>
+              ) : null}
+            </>
+          )}
           {path.steps.map(savedStep => {
             const savedAnswer = payload.answers.find(
               item => item.stepId === savedStep.id,
@@ -1108,40 +1505,17 @@ const GuidedReflectionExperience: React.FC<Props> = ({
                     </ThemedText>
                   </View>
                 ) : null}
-                {savedAnswer.notes.filter(note => note.text.trim() || note.reference?.trim() || note.secondary?.trim()).map(note => (
-                  <View key={note.id} style={styles.savedJourneyNote}>
-                    <View style={{flex: 1}}>
-                      <ThemedText style={styles.savedJourneyNoteKind}>
-                        {GUIDED_NOTE_TYPES.find(
-                          item => item.kind === note.kind,
-                        )?.label?.toUpperCase()}
-                      </ThemedText>
-                      <ThemedText style={styles.savedJourneyNoteText}>
-                        {note.text}
-                      </ThemedText>
-                      {note.reference ? (
-                        <ThemedText style={styles.savedJourneySupport}>
-                          {note.reference}
-                        </ThemedText>
-                      ) : null}
-                      {note.secondary ? (
-                        <ThemedText style={styles.savedJourneySupport}>
-                          {note.secondary}
-                        </ThemedText>
-                      ) : null}
-                    </View>
-                  </View>
-                ))}
+                <SavedReflectionBlocks
+                  blocks={prepareJournalBlocksForSave(savedAnswer.notes)}
+                  onDark
+                />
               </View>
             );
           })}
           {!payload.completed ? (
             <TouchableOpacity
               style={styles.continueReflection}
-              onPress={() => {
-                triggerLightHaptic();
-                setShowSavedView(false);
-              }}
+              onPress={continueSavedJourney}
               accessibilityRole="button">
               <ThemedText style={styles.continueText}>
                 Continue reflection →
@@ -1156,11 +1530,25 @@ const GuidedReflectionExperience: React.FC<Props> = ({
   const atLastStep = stepIndex === path.steps.length - 1;
   const canContinue = !step.required || answerHasValue(answer);
   const canWrite = true;
+  const goToNextJourneyStep = () => {
+    if (stepIndex === 0 && skipHeaviestStep) {
+      const heaviestStepId = path.steps[1].id;
+      setPayload({
+        ...payload,
+        answers: payload.answers.map(item =>
+          item.stepId === heaviestStepId
+            ? {...item, selected: [mindSpaceOptions[0]]}
+            : item,
+        ),
+      });
+      goToJourneyStep(2);
+      return;
+    }
+    atLastStep ? saveJourney(true) : goToJourneyStep(stepIndex + 1);
+  };
   const renderInlineNotes = () =>
-    answer.notes
-      .map(note => {
-        const noteIndex = answer.notes.findIndex(item => item.id === note.id);
-        const noteType = GUIDED_NOTE_TYPES.find(item => item.kind === note.kind);
+    topLevelNotes.map((note, noteIndex) => {
+        const noteType = REFLECTION_NOTE_TYPES.find(item => item.kind === note.kind);
         const config: JournalBlockConfig =
           note.kind === 'text'
             ? {
@@ -1176,8 +1564,185 @@ const GuidedReflectionExperience: React.FC<Props> = ({
               item.id === note.id ? {...item, ...changes} : item,
             ),
           });
-        return (
-          <NoteEntrance key={note.id} delay={noteIndex * 55}>
+        const deleteNote = () =>
+          updateAnswer({
+            notes: answer.notes.filter(
+              item => item.id !== note.id && item.parentColumnId !== note.id,
+            ),
+          });
+        const wrapNote = (content: React.ReactNode) => (
+          <DraggableJournalBlock
+            key={note.id}
+            blockId={note.id}
+            tone="onDark"
+            selected={selectedNoteId === note.id}
+            shiftY={(() => {
+              if (!dragPreview || dragPreview.blockId === note.id) {return 0;}
+              if (
+                dragPreview.targetIndex > dragPreview.fromIndex &&
+                noteIndex > dragPreview.fromIndex &&
+                noteIndex <= dragPreview.targetIndex
+              ) {
+                return -dragPreview.blockHeight;
+              }
+              if (
+                dragPreview.targetIndex < dragPreview.fromIndex &&
+                noteIndex >= dragPreview.targetIndex &&
+                noteIndex < dragPreview.fromIndex
+              ) {
+                return dragPreview.blockHeight;
+              }
+              return 0;
+            })()}
+            onSelect={() => {
+              setSelectedNoteId(note.id);
+              setColumnTarget(null);
+            }}
+            onLayout={layout => noteLayoutsRef.current.set(note.id, layout)}
+            onDragStart={handleDragNoteStart}
+            onDragMove={handleDragNoteMove}
+            onDragEnd={handleDragNoteEnd}>
+            <NoteEntrance delay={noteIndex * 55}>{content}</NoteEntrance>
+          </DraggableJournalBlock>
+        );
+
+        if (note.kind === 'column') {
+          const nestedNotes = answer.notes.filter(
+            item => item.parentColumnId === note.id,
+          );
+          const renderNestedNote = (nestedNote: JournalBlock) => (
+            <JournalNestedBlockEditor
+              key={nestedNote.id}
+              block={nestedNote}
+              tone="onDark"
+              onFocus={() => {
+                setSelectedNoteId(nestedNote.id);
+                if (nestedNote.columnSide) {
+                  setColumnTarget({
+                    columnId: note.id,
+                    side: nestedNote.columnSide,
+                  });
+                }
+              }}
+              onChange={changes =>
+                updateAnswer({
+                  notes: answer.notes.map(item =>
+                    item.id === nestedNote.id
+                      ? {...item, ...(changes as Partial<GuidedReflectionNote>)}
+                      : item,
+                  ),
+                })
+              }
+              onDelete={() =>
+                updateAnswer({
+                  notes: answer.notes.filter(item => item.id !== nestedNote.id),
+                })
+              }
+              registerInput={input => {
+                if (input) noteInputRefs.current.set(nestedNote.id, input);
+                else noteInputRefs.current.delete(nestedNote.id);
+              }}
+            />
+          );
+          return wrapNote(
+              <JournalColumnBlock
+                leftBlocks={nestedNotes.filter(
+                  item => item.columnSide === 'left',
+                ) as JournalBlock[]}
+                rightBlocks={nestedNotes.filter(
+                  item => item.columnSide === 'right',
+                ) as JournalBlock[]}
+                activeSide={
+                  columnTarget?.columnId === note.id ? columnTarget.side : null
+                }
+                tone="onDark"
+                renderBlock={renderNestedNote}
+                onSelectSide={side => {
+                  setSelectedNoteId(note.id);
+                  setColumnTarget({columnId: note.id, side});
+                }}
+                onDelete={deleteNote}
+              />,
+          );
+        }
+
+        if (note.kind === 'bullets' || note.kind === 'numbered') {
+          return wrapNote(
+              <JournalListBlock
+                kind={note.kind}
+                title={note.text}
+                points={note.points}
+                tone="onDark"
+                onFocus={() => {
+                  setSelectedNoteId(note.id);
+                  setColumnTarget(null);
+                }}
+                onChangeTitle={text => updateNote({text})}
+                onChangePoints={points => updateNote({points})}
+                onDelete={deleteNote}
+                registerInput={input => {
+                  if (input) noteInputRefs.current.set(note.id, input);
+                  else noteInputRefs.current.delete(note.id);
+                }}
+              />,
+          );
+        }
+
+        if (note.kind === 'table') {
+          return wrapNote(
+              <JournalTableBlock
+                rows={note.tableRows}
+                cellAlignments={note.tableCellAlignments}
+                editing={note.tableEditing}
+                tone="onDark"
+                onFocus={() => {
+                  setSelectedNoteId(note.id);
+                  setColumnTarget(null);
+                }}
+                onChangeRows={(tableRows, tableCellAlignments) =>
+                  updateNote({
+                    tableRows,
+                    ...(tableCellAlignments ? {tableCellAlignments} : {}),
+                  })
+                }
+                onChangeCellAlignments={tableCellAlignments =>
+                  updateNote({tableCellAlignments})
+                }
+                onChangeEditing={tableEditing => updateNote({tableEditing})}
+                onDelete={deleteNote}
+                registerInput={input => {
+                  if (input) noteInputRefs.current.set(note.id, input);
+                  else noteInputRefs.current.delete(note.id);
+                }}
+              />,
+          );
+        }
+
+        if (['section', 'action', 'photo', 'voice'].includes(note.kind)) {
+          return wrapNote(
+              <ReflectionSpecialBlock
+                block={note}
+                tone="onDark"
+                onFocus={() => {
+                  setSelectedNoteId(note.id);
+                  setColumnTarget(null);
+                }}
+                onChange={changes => updateNote(changes)}
+                onDelete={deleteNote}
+                onCreateNextAction={
+                  note.kind === 'action'
+                    ? () => appendInlineNote('action')
+                    : undefined
+                }
+                registerInput={input => {
+                  if (input) noteInputRefs.current.set(note.id, input);
+                  else noteInputRefs.current.delete(note.id);
+                }}
+              />,
+          );
+        }
+
+        return wrapNote(
           <JournalInlineBlock
             block={{id: note.id, kind: note.kind, text: note.text, secondary: note.secondary}}
             configOverride={note.kind === 'text' ? undefined : config}
@@ -1190,17 +1755,19 @@ const GuidedReflectionExperience: React.FC<Props> = ({
             }}
             onChangeText={text => updateNote({text})}
             onChangeSecondary={secondary => updateNote({secondary})}
+            onFocus={() => {
+              setSelectedNoteId(note.id);
+              setColumnTarget(null);
+            }}
             onDelete={keepKeyboard => {
               if (keepKeyboard !== false) triggerLightHaptic();
-              updateAnswer({
-                notes: answer.notes.filter(item => item.id !== note.id),
-              });
+              deleteNote();
             }}
             renderScripture={
               note.kind === 'scripture'
                 ? () => (
                     <View>
-                      <TextInput
+                      <JournalTextInput
                         ref={input => {
                           if (input) noteInputRefs.current.set(note.id, input);
                           else noteInputRefs.current.delete(note.id);
@@ -1211,7 +1778,7 @@ const GuidedReflectionExperience: React.FC<Props> = ({
                         placeholder="Scripture reference"
                         placeholderTextColor="rgba(255,255,255,0.45)"
                       />
-                      <TextInput
+                      <JournalTextInput
                         style={styles.captureInput}
                         value={note.text}
                         onChangeText={text => updateNote({text})}
@@ -1223,36 +1790,111 @@ const GuidedReflectionExperience: React.FC<Props> = ({
                   )
                 : undefined
             }
-          />
-          </NoteEntrance>
+          />,
         );
       });
   return (
     <View style={styles.journeyScreen}>
       <View style={styles.journeyHeaderBackdrop} />
-      <View style={styles.journeyHeader}>
-        <ThemedText weight="bold" style={styles.journeyDate}>{journeyDate}</ThemedText>
-        <Animated.View style={[styles.journeyHeaderActions, journeyHeaderActionEntranceStyle]}>
+      <View style={reflectionEditorStyles.header}>
+        <ThemedText weight="bold" style={reflectionEditorStyles.title}>{journeyDate}</ThemedText>
+        <Animated.View style={[reflectionEditorStyles.headerActions, journeyHeaderActionEntranceStyle]}>
           <TouchableOpacity
             onPress={closeJourney}
             accessibilityRole="button"
             accessibilityLabel="Close"
-            style={styles.journeyHeaderButton}>
+            style={reflectionEditorStyles.headerCloseButton}>
             <Ionicons name="close" size={17} color={Colors.sage} />
           </TouchableOpacity>
         </Animated.View>
       </View>
-      <View style={styles.journeySheet}>
+      <View style={reflectionEditorStyles.contentCard}>
       <Animated.View style={[{flex: 1}, journeyContentEntranceStyle]}>
         <View style={styles.journeyContext}>
-          <ThemedText weight="semiBold" style={styles.journeyPathTitle}>{path.title}</ThemedText>
-          <ThemedText style={styles.journeyStepCount}>{stepIndex + 1} of {path.steps.length}</ThemedText>
+          <View style={styles.journeyTitleArea}>
+            {titleEditing ? (
+              <View style={styles.journeyTitleEditor}>
+                <ThemedText style={styles.journeyTitleEditorLabel}>
+                  JOURNAL TITLE
+                </ThemedText>
+                <JournalTextInput
+                  autoFocus
+                  selectTextOnFocus
+                  value={titleDraft}
+                  onChangeText={setTitleDraft}
+                  onSubmitEditing={() => void saveActiveJourneyTitle()}
+                  placeholder={path.title}
+                  placeholderTextColor="rgba(255,255,255,0.45)"
+                  returnKeyType="done"
+                  maxLength={120}
+                  style={styles.journeyTitleInput}
+                  accessibilityLabel="Guided reflection title"
+                />
+                <View style={styles.journeyTitleActions}>
+                  <TouchableOpacity
+                    accessibilityRole="button"
+                    accessibilityLabel="Cancel title change"
+                    onPress={() => {
+                      triggerLightHaptic();
+                      setTitleDraft(payload.entryTitle?.trim() || path.title);
+                      setTitleEditing(false);
+                      Keyboard.dismiss();
+                    }}
+                    style={styles.journeyTitleAction}>
+                    <Ionicons name="close" size={17} color={Colors.hopeWhite} />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    accessibilityRole="button"
+                    accessibilityLabel="Save title"
+                    disabled={titleSaving || isSaving}
+                    onPress={() => {
+                      triggerLightHaptic();
+                      void saveActiveJourneyTitle();
+                    }}
+                    style={[
+                      styles.journeyTitleAction,
+                      styles.journeyTitleSaveAction,
+                      (titleSaving || isSaving) && styles.savedTitleActionDisabled,
+                    ]}>
+                    <Ionicons name="checkmark" size={17} color={Colors.hopeWhite} />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ) : (
+              <>
+                <View style={styles.journeyTitleRow}>
+                  <ThemedText weight="semiBold" style={styles.journeyPathTitle}>
+                    {payload.entryTitle?.trim() || path.title}
+                  </ThemedText>
+                  <TouchableOpacity
+                    accessibilityRole="button"
+                    accessibilityLabel="Rename guided reflection"
+                    onPress={() => {
+                      triggerLightHaptic();
+                      setTitleDraft(payload.entryTitle?.trim() || path.title);
+                      setTitleEditing(true);
+                    }}
+                    style={styles.journeyRenameAction}>
+                    <ThemedText weight="semiBold" style={styles.journeyRenameText}>
+                      Rename
+                    </ThemedText>
+                  </TouchableOpacity>
+                </View>
+                {payload.entryTitle?.trim() ? (
+                  <ThemedText style={styles.journeyPathLabel}>
+                    GUIDED PATH · {path.title}
+                  </ThemedText>
+                ) : null}
+              </>
+            )}
+          </View>
+          <ThemedText style={styles.journeyStepCount}>{journeyStepPosition} of {journeyStepCount}</ThemedText>
         </View>
         <View style={styles.journeyProgress}>
           <View
             style={[
               styles.journeyProgressFill,
-              {width: `${((stepIndex + 1) / path.steps.length) * 100}%`},
+              {width: `${(journeyStepPosition / journeyStepCount) * 100}%`},
             ]}
           />
         </View>
@@ -1261,10 +1903,18 @@ const GuidedReflectionExperience: React.FC<Props> = ({
           contentContainerStyle={[
             styles.stepContent,
             notePickerOpen && styles.stepContentWithNotePicker,
+            keyboardHeight > 0 && {
+              paddingBottom: keyboardHeight + 80,
+            },
           ]}
           scrollIndicatorInsets={{bottom: notePickerOpen ? 300 : 120}}
           keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}>
+          showsVerticalScrollIndicator={false}
+          onContentSizeChange={() => {
+            if (keepScrollAtEndRef.current) {
+              journeyScrollRef.current?.scrollToEnd({animated: true});
+            }
+          }}>
         <ThemedText style={styles.journeyEyebrow}>{step.eyebrow}</ThemedText>
         <ThemedText weight="bold" style={styles.journeyPrompt}>
           {step.prompt}
@@ -1299,7 +1949,15 @@ const GuidedReflectionExperience: React.FC<Props> = ({
             </View>
           </View>
         ) : null}
-        {renderInlineNotes()}
+        {answer.notes.some(note => !note.parentColumnId) ? (
+          <View
+            style={styles.inlineNotes}
+            onLayout={event => {
+              inlineNotesLayoutRef.current = event.nativeEvent.layout;
+            }}>
+            {renderInlineNotes()}
+          </View>
+        ) : null}
         </ScrollView>
       </Animated.View>
       </View>
@@ -1311,17 +1969,27 @@ const GuidedReflectionExperience: React.FC<Props> = ({
         ]}>
         {notePickerOpen && (
           <JournalPickerMenu
-            items={GUIDED_NOTE_TYPES.map(item => ({
-              key: item.kind,
-              label: item.label,
-              icon: (
-                <Ionicons
-                  name={item.icon as any}
-                  size={13}
-                  color={Colors.sage}
-                />
-              ),
-            }))}
+            items={REFLECTION_NOTE_TYPES
+              .filter(
+                item =>
+                  !columnTarget ||
+                  (item.kind !== 'column' && item.kind !== 'table'),
+              )
+              .map(item => ({
+                key: item.kind,
+                label: item.label,
+                icon: (
+                  <JournalBlockIcon
+                    config={
+                      JOURNAL_BLOCKS[
+                        item.kind as keyof typeof JOURNAL_BLOCKS
+                      ]
+                    }
+                    size={16}
+                    color={Colors.sage}
+                  />
+                ),
+              }))}
             animations={notePickerAnimations}
             onSelect={beginNote}
           />
@@ -1342,7 +2010,15 @@ const GuidedReflectionExperience: React.FC<Props> = ({
           <JournalComposerBar
           onBack={() =>
             {
-              stepIndex > 0 ? goToJourneyStep(stepIndex - 1) : setPathId('');
+              if (stepIndex > 0) {
+                goToJourneyStep(skipHeaviestStep && stepIndex === 2 ? 0 : stepIndex - 1);
+              } else if (restored) {
+                editingSavedJourney
+                  ? returnToSavedJourney()
+                  : setShowSavedView(true);
+              } else {
+                setPathId('');
+              }
             }
           }
             onWrite={beginWrite}
@@ -1353,7 +2029,7 @@ const GuidedReflectionExperience: React.FC<Props> = ({
             }}
             onNext={() => {
               triggerLightHaptic();
-              atLastStep ? saveJourney(true) : goToJourneyStep(stepIndex + 1);
+              goToNextJourneyStep();
             }}
             addOpen={notePickerOpen}
             plusRotation={notePlusRotation}
@@ -1550,42 +2226,72 @@ const styles = StyleSheet.create({
     height: '50%',
     backgroundColor: Colors.lightBackground,
   },
-  journeyHeader: {
-    paddingTop: 50,
-    paddingHorizontal: 16,
-    paddingBottom: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: Colors.lightBackground,
-  },
-  journeyDate: {color: Colors.sage, fontSize: 18},
-  journeyHeaderActions: {flexDirection: 'row', alignItems: 'center', gap: 6},
-  journeyHeaderButton: {
-    width: 42,
-    height: 42,
-    borderRadius: 999,
-    backgroundColor: Colors.cardBackground,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  journeySheet: {
-    flex: 1,
-    backgroundColor: Colors.sage,
-    borderTopLeftRadius: 30,
-    borderTopRightRadius: 30,
-    overflow: 'hidden',
-  },
   journeyContext: {
     paddingHorizontal: 24,
     paddingTop: 20,
     paddingBottom: 12,
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
   },
-  journeyPathTitle: {color: Colors.hopeWhite, fontSize: 14},
-  journeyStepCount: {color: 'rgba(255,255,255,0.62)', fontSize: 11},
+  journeyTitleArea: {flex: 1, minWidth: 0, paddingRight: 14},
+  journeyTitleRow: {flexDirection: 'row', alignItems: 'center', gap: 10},
+  journeyPathTitle: {color: Colors.hopeWhite, fontSize: 14, flexShrink: 1},
+  journeyRenameAction: {
+    minHeight: 28,
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+  },
+  journeyRenameText: {
+    color: 'rgba(255,255,255,0.76)',
+    fontSize: 11,
+  },
+  journeyPathLabel: {
+    color: 'rgba(255,255,255,0.56)',
+    fontFamily: Fonts.semiBold,
+    fontSize: 9,
+    letterSpacing: 1.1,
+    marginTop: 4,
+  },
+  journeyTitleEditor: {paddingBottom: 2},
+  journeyTitleEditorLabel: {
+    color: 'rgba(255,255,255,0.62)',
+    fontFamily: Fonts.semiBold,
+    fontSize: 9,
+    letterSpacing: 1.2,
+    marginBottom: 5,
+  },
+  journeyTitleInput: {
+    color: Colors.hopeWhite,
+    fontFamily: Fonts.semiBold,
+    fontSize: 17,
+    lineHeight: 23,
+    paddingVertical: 5,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.32)',
+  },
+  journeyTitleActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 7,
+    marginTop: 9,
+  },
+  journeyTitleAction: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.28)',
+  },
+  journeyTitleSaveAction: {backgroundColor: 'rgba(255,255,255,0.14)'},
+  journeyTitleActionText: {color: Colors.hopeWhite, fontSize: 11},
+  journeyStepCount: {
+    color: 'rgba(255,255,255,0.62)',
+    fontSize: 11,
+    lineHeight: 20,
+  },
   journeyProgress: {height: 2, backgroundColor: 'rgba(255,255,255,0.18)'},
   journeyProgressFill: {height: 2, backgroundColor: Colors.hopeWhite},
   journeyEyebrow: {
@@ -1807,7 +2513,70 @@ const styles = StyleSheet.create({
     color: Colors.hopeWhite,
     fontSize: 30,
     lineHeight: 38,
+    flex: 1,
+  },
+  savedTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    marginBottom: 8,
+  },
+  savedTitleRowSolo: {marginBottom: 30},
+  savedRenameAction: {
+    minHeight: 38,
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+  },
+  savedRenameText: {
+    color: 'rgba(255,255,255,0.78)',
+    fontSize: 12,
+  },
+  savedJourneyPath: {
+    color: 'rgba(255,255,255,0.62)',
+    fontFamily: Fonts.semiBold,
+    fontSize: 10,
+    letterSpacing: 1.4,
     marginBottom: 30,
+  },
+  savedTitleEditor: {marginBottom: 30},
+  savedTitleEditorLabel: {
+    color: 'rgba(255,255,255,0.62)',
+    fontFamily: Fonts.semiBold,
+    fontSize: 10,
+    letterSpacing: 1.4,
+    marginBottom: 8,
+  },
+  savedTitleInput: {
+    color: Colors.hopeWhite,
+    fontFamily: Fonts.bold,
+    fontSize: 26,
+    lineHeight: 34,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.32)',
+  },
+  savedTitleActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 8,
+    marginTop: 12,
+  },
+  savedTitleAction: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.3)',
+  },
+  savedTitleSaveAction: {
+    backgroundColor: 'rgba(255,255,255,0.14)',
+  },
+  savedTitleActionDisabled: {opacity: 0.5},
+  savedTitleActionText: {
+    color: Colors.hopeWhite,
+    fontSize: 12,
   },
   savedJourneyLabel: {
     color: 'rgba(255,255,255,0.62)',
@@ -2026,6 +2795,7 @@ const styles = StyleSheet.create({
   optionTextSelected: {color: Colors.hopeWhite},
   fields: {gap: 5},
   secondaryArea: {marginTop: 18},
+  inlineNotes: {marginTop: 18},
   optionalPreview: {
     borderLeftWidth: 2,
     borderLeftColor: Colors.sage,

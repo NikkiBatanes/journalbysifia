@@ -7,7 +7,7 @@ import ScriptureReaderModal from '../ScriptureReaderModal';
 import ThemedText from '../common/ThemedText';
 import { Colors } from '../../theme/colors';
 
-import { getScripturePassage } from '../../services/scriptureReaderService';
+import { getCachedScripturePassage, getScripturePassage, preloadScripturePassages } from '../../services/scriptureReaderService';
 import { getDashboardHeaderScripture } from '../../data/dashboardHeaderScriptures';
 
 interface DashboardHeaderScriptureProps {
@@ -19,8 +19,8 @@ interface DashboardHeaderScriptureProps {
 
 const DashboardHeaderScripture: React.FC<DashboardHeaderScriptureProps> = ({ date, bibleVersion, previewOffset = 0, centered = false }) => {
   const now = useMemo(() => date ?? new Date(), [date]);
-  const [text, setText] = useState<string | null>(null);
-  const [error, setError] = useState(false);
+  const [loaded, setLoaded] = useState<{ key: string; text: string } | null>(null);
+  const [failedKey, setFailedKey] = useState<string | null>(null);
   const [retry, setRetry] = useState(0);
   const [modalVisible, setModalVisible] = useState(false);
 
@@ -29,20 +29,40 @@ const DashboardHeaderScripture: React.FC<DashboardHeaderScriptureProps> = ({ dat
     () => getDashboardHeaderScripture(now, isEvening, previewOffset),
     [now, isEvening, previewOffset],
   );
+  const requestKey = `${bibleVersion}:${scripture.passageReference}`;
+  const text = getCachedScripturePassage(scripture.passageReference, bibleVersion)?.text
+    ?? (loaded?.key === requestKey ? loaded.text : null);
+  const error = failedKey === requestKey && !text;
 
   useEffect(() => {
     let mounted = true;
-    setText(null);
-    setError(false);
+    setFailedKey(null);
+    if (getCachedScripturePassage(scripture.passageReference, bibleVersion)) { return; }
     getScripturePassage(scripture.passageReference, bibleVersion)
       .then(result => {
-        if (mounted) { setText(result.text); }
+        if (mounted) { setLoaded({ key: requestKey, text: result.text }); }
       })
       .catch(() => {
-        if (mounted) { setError(true); }
+        if (mounted) { setFailedKey(requestKey); }
       });
     return () => { mounted = false; };
-  }, [scripture.passageReference, bibleVersion, retry]);
+  }, [scripture.passageReference, bibleVersion, requestKey, retry]);
+
+  useEffect(() => {
+    if (!text) { return; }
+    // Warm the next daily passages only after the visible verse is ready.
+    const timer = setTimeout(() => {
+      const tomorrow = new Date(now);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const references = [
+        getDashboardHeaderScripture(now, !isEvening).passageReference,
+        getDashboardHeaderScripture(tomorrow, false).passageReference,
+        getDashboardHeaderScripture(tomorrow, true).passageReference,
+      ];
+      void preloadScripturePassages([...new Set(references)], bibleVersion);
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [text, now, isEvening, bibleVersion]);
 
   if (error) {
     return <TouchableOpacity
@@ -67,11 +87,11 @@ const DashboardHeaderScripture: React.FC<DashboardHeaderScriptureProps> = ({ dat
         activeOpacity={1}
         onPress={() => { setModalVisible(true); }}
         accessibilityRole="button"
-      accessibilityLabel={`Open ${scripture.displayReference} in Scripture Reader`}
-      style={[styles.container, centered && styles.containerCentered]}
+        accessibilityLabel={`Open ${scripture.displayReference} in Scripture Reader`}
+        style={[styles.container, centered && styles.containerCentered]}
       >
         <Animated.View
-          entering={FadeInUp.duration(650).springify().damping(18).stiffness(120)}
+          entering={FadeInUp.springify().damping(18).stiffness(120)}
           style={[styles.verseContent, centered && styles.containerCentered]}
         >
           <Text
@@ -87,13 +107,13 @@ const DashboardHeaderScripture: React.FC<DashboardHeaderScriptureProps> = ({ dat
           </ThemedText>
         </Animated.View>
       </TouchableOpacity>
-      <ScriptureReaderModal
+      {modalVisible && <ScriptureReaderModal
         visible={modalVisible}
         passages={[{ reference: scripture.passageReference }]}
         initialIndex={0}
         version={bibleVersion}
         onClose={() => { setModalVisible(false); }}
-      />
+      />}
     </>
   );
 };
@@ -106,7 +126,7 @@ const styles = StyleSheet.create({
   },
   offline: {
     width: '100%',
-    height: 112,
+    minHeight: 112,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'flex-end',
@@ -114,12 +134,13 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   offlineText: {
+    flexShrink: 1,
     color: Colors.sageMuted,
     fontSize: 11,
   },
   container: {
     width: '100%',
-    height: 112,
+    minHeight: 112,
     alignItems: 'flex-end',
     justifyContent: 'center',
     marginTop: 12,

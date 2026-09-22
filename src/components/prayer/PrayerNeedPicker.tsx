@@ -4,6 +4,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import {Sparkle} from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ThemedText from '../common/ThemedText';
+import HeaderBackButton from '../common/HeaderBackButton';
 import StepFadeIn from '../common/StepFadeIn';
 import { Colors } from '../../theme/colors';
 import { getFontFamily } from '../../theme/fonts';
@@ -218,7 +219,7 @@ export default function PrayerNeedPicker({ prayer, selectedNeedId, onClose, onSa
         {current && editing && onDelete && <TouchableOpacity disabled={saving} style={styles.delete} onPress={removePrayer}><Ionicons name="trash-outline" size={22} color={Colors.error} /><ThemedText weight="semiBold" style={styles.deleteText}>Delete this prayer</ThemedText></TouchableOpacity>}
         {!current && <StepFadeIn key={`still-praying-${step}`} delay={showChoices ? 620 : 360}><ThemedText style={[styles.waiting, styles.stillPrayingNote]}>Kept in Still praying, until you mark it answered.</ThemedText></StepFadeIn>}
       </ScrollView>
-      {editing && step > 0 && <View style={[styles.topBack, { top: insets.top + 8 }]}><TouchableOpacity disabled={saving} accessibilityLabel="Previous step" hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} activeOpacity={0.7} style={styles.closeTouch} onPress={() => { triggerLightHaptic(); setStep(previous => previous - 1); }}><Ionicons name="chevron-back" size={20} color={Colors.sage} /></TouchableOpacity></View>}
+      {editing && step > 0 && <HeaderBackButton disabled={saving} accessibilityLabel="Previous step" style={[styles.topBack, { top: insets.top + 8 }]} onPress={() => { triggerLightHaptic(); setStep(previous => previous - 1); }} />}
       {current && !editing && <View style={[styles.topEdit, { top: insets.top + 8 }]}><TouchableOpacity disabled={saving} accessibilityLabel="Edit prayer needs" hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} activeOpacity={0.7} style={styles.closeTouch} onPress={() => { triggerLightHaptic(); setEditing(true); }}><Pencil size={16} color={Colors.sage} /></TouchableOpacity></View>}
       <View style={[styles.close, { top: insets.top + 8 }]}><TouchableOpacity disabled={saving} accessibilityLabel="Close" hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} activeOpacity={0.7} style={styles.closeTouch} onPress={() => { triggerLightHaptic(); onClose(); }}><Ionicons name="close" size={17} color={Colors.sage} /></TouchableOpacity></View>
     </KeyboardAvoidingView>

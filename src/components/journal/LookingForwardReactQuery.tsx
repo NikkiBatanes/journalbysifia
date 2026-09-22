@@ -543,7 +543,7 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
       onExpand={onExpand}
     >
       {displayEntry && !shouldShowAddingMode && !editingItemId ? (
-        <View style={[styles.completionCard, isPalette && { backgroundColor: Colors.cardBackground }]}>
+        <View style={[styles.completionCard, isPalette && styles.completionCardMoments]}>
           {displayEntry.text.trim() && (
             <View style={styles.completionSection}>
               <ThemedText style={[styles.completionSectionText, { color: isPalette ? Colors.text : Colors.hopeWhite }]}>{displayEntry.text}</ThemedText>
@@ -882,6 +882,10 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: Colors.inputBorder,
     width: '100%',
+  },
+  completionCardMoments: {
+    backgroundColor: Colors.cardBackground,
+    borderWidth: 1,
   },
   completionHeader: {
     flexDirection: 'row',

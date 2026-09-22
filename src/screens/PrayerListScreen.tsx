@@ -44,6 +44,7 @@ import PrayerCard, { PrayerHomeEntry } from '../components/journal/PrayerCard';
 import { isTrackedPrayer, isPrayerActive, isPrayerLetGo, hasAnswerHistory, trackingStatus, prayerNeeds, answerPrayer, releasePrayer, type PrayerUpdate } from '../utils/prayerTracking';
 import { getLatestPrayerDraft, PrayerDraft } from '../storage/prayerDraftStorage';
 import { useScroll } from '../context/ScrollContext';
+import {useExpandTabBarOnScrollEnd} from '../hooks/useExpandTabBarOnScrollEnd';
 
 type PrayerTab = 'active' | 'released' | 'needs' | 'requests' | 'answered' | 'all';
 type PrayerTimeframe = 'day' | 'week' | 'month';
@@ -142,6 +143,16 @@ const PrayerListScreen = () => {
   const scrollRef = useRef<any>(null);
   const lastScrollYRef = useRef(0);
   const tabBarCollapsedRef = useRef(false);
+  const expandTabBar = useCallback(() => {
+    tabBarCollapsedRef.current = false;
+    setShowTabBar(true);
+  }, [setShowTabBar]);
+  const {
+    cancelPendingTabBarExpand,
+    handleTabBarMomentumScrollBegin,
+    handleTabBarMomentumScrollEnd,
+    handleTabBarScrollEndDrag,
+  } = useExpandTabBarOnScrollEnd(expandTabBar);
   const [prayerContentReady, setPrayerContentReady] = useState(false);
   const [prayerEntranceRun, setPrayerEntranceRun] = useState(0);
   const [answering, setAnswering] = useState(false);
@@ -175,6 +186,7 @@ const PrayerListScreen = () => {
   }, [showTabBar]);
 
   const handlePrayerScroll = useCallback((event: any) => {
+    cancelPendingTabBarExpand();
     const y = Math.max(0, event.nativeEvent.contentOffset.y);
     const isScrollingUp = y < lastScrollYRef.current;
     lastScrollYRef.current = y;
@@ -186,7 +198,7 @@ const PrayerListScreen = () => {
       tabBarCollapsedRef.current = false;
       setShowTabBar(true);
     }
-  }, [setShowTabBar]);
+  }, [cancelPendingTabBarExpand, setShowTabBar]);
 
   // The bottom-nav add menu's "Prayer Need" action lands here with this param
   useFocusEffect(useCallback(() => {
@@ -195,6 +207,14 @@ const PrayerListScreen = () => {
       navigation.setParams({ openNeedModal: undefined });
     }
   }, [navigation, route.params?.openNeedModal]));
+
+  useFocusEffect(useCallback(() => {
+    const requestedTab = route.params?.initialTab as PrayerTab | undefined;
+    if (!requestedTab || !TABS.some(tab => tab.key === requestedTab)) {return;}
+
+    setActiveTab(requestedTab);
+    navigation.setParams({initialTab: undefined});
+  }, [navigation, route.params?.initialTab]));
 
   useEffect(() => {
     let timeout: ReturnType<typeof setTimeout> | undefined;
@@ -215,6 +235,21 @@ const PrayerListScreen = () => {
   const markPrayed = useMarkPrayerRequestPrayed();
   const groupedPrayers = useMemo(() => groupPrayerEntries(prayers), [prayers]);
 
+  useEffect(() => {
+    const targetPrayerId = route.params?.targetPrayerId as string | undefined;
+    if (!targetPrayerId || isLoading) {return;}
+
+    const targetPrayer = groupedPrayers.find(prayer => (
+      prayer.id === targetPrayerId
+      || prayer.groupedEntries?.some(entry => entry.id === targetPrayerId)
+    ));
+    if (targetPrayer) {
+      setTrackingMode('details');
+      setTrackingPrayer(targetPrayer);
+    }
+    navigation.setParams({targetPrayerId: undefined});
+  }, [groupedPrayers, isLoading, navigation, route.params?.targetPrayerId]);
+
   useFocusEffect(useCallback(() => {
     let focused = true;
     setPrayerContentReady(false);
@@ -229,12 +264,13 @@ const PrayerListScreen = () => {
     });
 
     return () => {
+      cancelPendingTabBarExpand();
       focused = false;
       setPrayerContentReady(false);
       tabBarCollapsedRef.current = false;
       setShowTabBar(true);
     };
-  }, [refetchPrayers, setShowTabBar]));
+  }, [cancelPendingTabBarExpand, refetchPrayers, setShowTabBar]));
 
   const pendingRequests = useMemo(() => groupedPrayers.filter(p => p.is_prayer_request === true && p.prayed !== true && trackingStatus(p) === 'pending'), [groupedPrayers]);
   const prayerNeedEntries = useMemo(() => groupedPrayers.filter(p => p.metadata?.prayer_need === true), [groupedPrayers]);
@@ -615,6 +651,9 @@ const PrayerListScreen = () => {
         ]}
         showsVerticalScrollIndicator={false}
         onScroll={handlePrayerScroll}
+        onScrollEndDrag={handleTabBarScrollEndDrag}
+        onMomentumScrollBegin={handleTabBarMomentumScrollBegin}
+        onMomentumScrollEnd={handleTabBarMomentumScrollEnd}
         scrollEventThrottle={16}
         stickyHeaderIndices={stickyHeaderIndices}
       >

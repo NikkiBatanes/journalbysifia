@@ -520,7 +520,7 @@ const JournalOnboardingScreen: React.FC = () => {
           <View>
             <ThemedText style={styles.eyebrow}>LET’S MAKE IT YOURS</ThemedText>
             <ThemedText weight="bold" style={styles.title}>What should your journal call you?</ThemedText>
-            <ThemedText style={styles.bodyText}>Your birth date helps keep prompts and guidance appropriate for your season of life.</ThemedText>
+            <ThemedText style={styles.bodyText}>Add your name and birth date to complete your journal profile.</ThemedText>
             <View style={styles.form}>
               <View>
                 <ThemedText weight="semiBold" style={styles.fieldLabel}>First name</ThemedText>
@@ -702,11 +702,13 @@ const JournalOnboardingScreen: React.FC = () => {
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
       <StatusBar barStyle="dark-content" backgroundColor={Colors.lightBackground} />
       <KeyboardAvoidingView style={styles.keyboardView} behavior={Platform.OS === 'ios' ? 'padding' : undefined} {...swipeResponder.panHandlers}>
-        <View style={styles.header}>
-          <View style={styles.progressTrack} accessibilityRole="progressbar" accessibilityValue={{min: 1, max: TOTAL_STEPS, now: stepIndex + 1}}>
-            <View style={[styles.progressFill, {width: `${((stepIndex + 1) / TOTAL_STEPS) * 100}%`}]} />
+        {stepIndex > 0 ? (
+          <View style={styles.header}>
+            <View style={styles.progressTrack} accessibilityRole="progressbar" accessibilityValue={{min: 1, max: TOTAL_STEPS - 1, now: stepIndex}}>
+              <View style={[styles.progressFill, {width: `${(stepIndex / (TOTAL_STEPS - 1)) * 100}%`}]} />
+            </View>
           </View>
-        </View>
+        ) : null}
         <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
           {renderStep()}
         </ScrollView>

@@ -34,6 +34,7 @@ import { getFontFamily } from '../theme/fonts';
 import { triggerLightHaptic, triggerSuccessHaptic } from '../utils/haptics';
 import { Logger } from '../utils/ProductionLogger';
 import ThemedText from './common/ThemedText';
+import ForMeDayShareCard, {MILESTONE_LAYOUTS, MILESTONE_PALETTES, type ForMeDayShareData, type MilestoneLayout, type MilestonePalette} from './ForMeDayShareCard';
 
 const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get('window');
 const CAROUSEL_VIEWPORT_WIDTH = Math.min(SCREEN_WIDTH, 480);
@@ -93,16 +94,17 @@ const PHOTO_TEMPLATES: ImageSourcePropType[] = [
 interface ShareTemplate {
   id: string;
   image?: ImageSourcePropType;
+  palette?: MilestonePalette;
 }
 
-const buildTemplates = (): ShareTemplate[] => {
+const buildTemplates = (milestone = false): ShareTemplate[] => {
   const shuffled = [...PHOTO_TEMPLATES];
   for (let i = shuffled.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
   }
   return [
-    { id: 'anchor-blue' },
+    ...(milestone ? MILESTONE_PALETTES.map(palette => ({id: palette.id, palette})) : [{ id: 'anchor-blue' }]),
     ...shuffled.map((image, index) => ({ id: `photo-${index + 1}`, image })),
   ];
 };
@@ -125,14 +127,40 @@ export interface MorningSummaryShareData {
   reminder: string;
 }
 
+type StreakShareDayState = 'completed' | 'missed' | 'today' | 'future';
+type StreakShareWeekday = 'Sunday' | 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday' | 'Saturday';
+
+export interface StreakSummaryShareData {
+  routine?: 'morning' | 'evening' | 'heart_journal' | 'prayer' | 'bible_study' | 'session_notes' | 'reviews';
+  rhythmLabel?: string;
+  iconName?: string;
+  title: string;
+  message: string;
+  weekStart: StreakShareWeekday;
+  dayStates: StreakShareDayState[];
+  dayLabels?: string[];
+}
+
+const STREAK_WEEK_ORDER: Record<StreakShareWeekday, string[]> = {
+  Sunday: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+  Monday: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+  Tuesday: ['Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun', 'Mon'],
+  Wednesday: ['Wed', 'Thu', 'Fri', 'Sat', 'Sun', 'Mon', 'Tue'],
+  Thursday: ['Thu', 'Fri', 'Sat', 'Sun', 'Mon', 'Tue', 'Wed'],
+  Friday: ['Fri', 'Sat', 'Sun', 'Mon', 'Tue', 'Wed', 'Thu'],
+  Saturday: ['Sat', 'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri'],
+};
+
 interface TruthToCarryShareComposerProps {
   visible: boolean;
   text: string;
   textColor?: string;
   lineHeightMultiplier?: number;
   noSplit?: boolean;
-  variant?: 'text' | 'morning-summary';
+  variant?: 'text' | 'morning-summary' | 'streak' | 'for-me-day';
   morningSummary?: MorningSummaryShareData;
+  streakSummary?: StreakSummaryShareData;
+  milestone?: ForMeDayShareData;
   onClose: () => void;
 }
 
@@ -155,6 +183,8 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
   noSplit,
   variant = 'text',
   morningSummary,
+  streakSummary,
+  milestone,
   onClose,
 }) => {
   const insets = useSafeAreaInsets();
@@ -167,7 +197,7 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
   const storyCardRefs = useRef<Array<ViewShot | null>>([]);
   const carouselRef = useRef<FlatList<ShareTemplate>>(null);
   const sizeSliderWidth = useRef(112);
-  const [templates, setTemplates] = useState<ShareTemplate[]>(buildTemplates);
+  const [templates, setTemplates] = useState<ShareTemplate[]>(() => buildTemplates(variant === 'for-me-day'));
   const [selectedIndex, setSelectedIndex] = useState(0);
   const lastScrollHapticIndex = useRef(0);
   const [showWatermark, setShowWatermark] = useState<boolean | null>(true);
@@ -176,6 +206,7 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
   const [textAlign, setTextAlign] = useState<ShareTextAlign>('center');
   const [editorOpen, setEditorOpen] = useState(false);
   const [sharingAction, setSharingAction] = useState<string | null>(null);
+  const [milestoneLayout, setMilestoneLayout] = useState<MilestoneLayout>('keepsake');
 
   const openComposer = useCallback(() => {
     closing.current = false;
@@ -191,7 +222,8 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
   useEffect(() => {
     if (!visible) { return; }
 
-    setTemplates(buildTemplates());
+    setTemplates(buildTemplates(variant === 'for-me-day'));
+    setMilestoneLayout('keepsake');
     setSelectedIndex(0);
     lastScrollHapticIndex.current = 0;
     setShowWatermark(null);
@@ -205,7 +237,7 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
     editorAnim.setValue(0);
     requestAnimationFrame(() => carouselRef.current?.scrollToOffset({ offset: 0, animated: false }));
 
-  }, [editorAnim, textScaleAnim, visible]);
+  }, [editorAnim, textScaleAnim, variant, visible]);
 
   const toggleWatermark = useCallback(() => {
     if (showWatermark === null) { return; }
@@ -361,22 +393,34 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
     recipient: '',
     url: uri,
     type: 'image/png',
-    message: variant === 'morning-summary'
+    message: variant === 'for-me-day' ? 'My For Me Day — Journal by siFia — https://www.journalby.sifia.app' : variant === 'morning-summary'
       ? 'My morning with Journal by siFia — https://www.journalby.sifia.app'
-      : 'A Journal by siFia reflection from my Playbook — https://www.journalby.sifia.app',
+      : variant === 'streak'
+        ? 'My rhythm with Journal by siFia — https://www.journalby.sifia.app'
+        : 'A Journal by siFia reflection from my Playbook — https://www.journalby.sifia.app',
   } as any)), [runShareAction, variant]);
 
   const shareMore = useCallback(() => runShareAction('more', uri => Share.open({
-    title: variant === 'morning-summary' ? 'Share your Journal by siFia morning' : 'Share your Journal by siFia reflection',
-    subject: variant === 'morning-summary' ? 'My morning with Journal by siFia' : 'A reflection from Journal by siFia',
-    message: variant === 'morning-summary'
+    title: variant === 'for-me-day' ? 'Share your For Me Day' : variant === 'morning-summary'
+      ? 'Share your Journal by siFia morning'
+      : variant === 'streak'
+        ? 'Share your Journal by siFia streak'
+        : 'Share your Journal by siFia reflection',
+    subject: variant === 'for-me-day' ? 'My For Me Day' : variant === 'morning-summary'
+      ? 'My morning with Journal by siFia'
+      : variant === 'streak'
+        ? 'My rhythm with Journal by siFia'
+        : 'A reflection from Journal by siFia',
+    message: variant === 'for-me-day' ? 'My For Me Day — Journal by siFia — https://www.journalby.sifia.app' : variant === 'morning-summary'
       ? 'My morning with Journal by siFia — https://www.journalby.sifia.app'
-      : 'A Journal by siFia reflection from my Playbook — https://www.journalby.sifia.app',
+      : variant === 'streak'
+        ? 'My rhythm with Journal by siFia — https://www.journalby.sifia.app'
+        : 'A Journal by siFia reflection from my Playbook — https://www.journalby.sifia.app',
     url: uri,
     type: 'image/png',
     filename: Platform.OS === 'ios'
-      ? `journal-by-siFia-${variant === 'morning-summary' ? 'morning' : 'reflection'}.png`
-      : `journal-by-siFia-${variant === 'morning-summary' ? 'morning' : 'reflection'}`,
+      ? `journal-by-siFia-${variant === 'for-me-day' ? 'for-me-day' : variant === 'morning-summary' ? 'morning' : variant === 'streak' ? 'streak' : 'reflection'}.png`
+      : `journal-by-siFia-${variant === 'for-me-day' ? 'for-me-day' : variant === 'morning-summary' ? 'morning' : variant === 'streak' ? 'streak' : 'reflection'}`,
     failOnCancel: false,
   })), [runShareAction, variant]);
 
@@ -386,8 +430,16 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
     setSharingAction('text');
     try {
       await Share.open({
-        title: variant === 'morning-summary' ? 'Share your Journal by siFia morning' : 'Share your Journal by siFia reflection',
-        subject: variant === 'morning-summary' ? 'My morning with Journal by siFia' : 'A reflection from Journal by siFia',
+        title: variant === 'for-me-day' ? 'Share your For Me Day' : variant === 'morning-summary'
+          ? 'Share your Journal by siFia morning'
+          : variant === 'streak'
+            ? 'Share your Journal by siFia streak'
+            : 'Share your Journal by siFia reflection',
+        subject: variant === 'for-me-day' ? 'My For Me Day' : variant === 'morning-summary'
+          ? 'My morning with Journal by siFia'
+          : variant === 'streak'
+            ? 'My rhythm with Journal by siFia'
+            : 'A reflection from Journal by siFia',
         message: text,
         failOnCancel: false,
       });
@@ -473,6 +525,45 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
       textAlign,
     };
 
+    if (variant === 'for-me-day' && milestone) {
+      const renderMilestone = (height = CARD_HEIGHT) => (
+        <ForMeDayShareCard
+          data={milestone}
+          width={CARD_WIDTH}
+          height={height}
+          palette={item.palette}
+          image={item.image}
+          layout={milestoneLayout}
+          showBranding={!!showWatermark}
+          titleFont={typographyStyle.primary}
+          bodyFont={typographyStyle.supporting}
+          titleScale={textScaleAnim}
+          textAlign={textAlign}
+        />
+      );
+      return (
+        <View style={styles.carouselPage}>
+          <View style={styles.shareCard}>{renderMilestone()}</View>
+          <View accessible={false} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+            <ViewShot
+              ref={ref => { cardRefs.current[index] = ref; }}
+              options={{format: 'png', quality: 1, result: 'tmpfile', fileName: 'journal-post-share'}}
+              style={styles.postCaptureCard}
+            >
+              <View style={styles.postCaptureContent}>{renderMilestone()}</View>
+            </ViewShot>
+            <ViewShot
+              ref={ref => { storyCardRefs.current[index] = ref; }}
+              options={{format: 'png', quality: 1, result: 'tmpfile', fileName: 'journal-story-share'}}
+              style={styles.storyCaptureCard}
+            >
+              <View style={styles.storyCaptureContent}>{renderMilestone(STORY_CARD_HEIGHT)}</View>
+            </ViewShot>
+          </View>
+        </View>
+      );
+    }
+
     const watermark = showWatermark ? (
       <View style={styles.watermarkRow}>
         <Image
@@ -484,6 +575,12 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
         <ThemedText style={styles.watermarkUrl}>www.journalby.sifia.app</ThemedText>
       </View>
     ) : null;
+    const streakDays = streakSummary
+      ? STREAK_WEEK_ORDER[streakSummary.weekStart].map((label, dayIndex) => ({
+          label: streakSummary.dayLabels?.[dayIndex] || label,
+          state: streakSummary.dayStates[dayIndex] || 'future',
+        }))
+      : [];
 
     const renderContent = (includeWatermark = true) => variant === 'morning-summary' && morningSummary ? (
       <View style={styles.morningCardContent}>
@@ -559,6 +656,49 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
           <View style={styles.morningAsYouGo}>
             <ThemedText weight="semiBold" style={styles.morningEyebrow}>AS YOU GO</ThemedText>
             <ThemedText weight="bold" style={styles.morningReminder}>{morningSummary.reminder}</ThemedText>
+          </View>
+        </View>
+        {includeWatermark ? watermark : null}
+      </View>
+    ) : variant === 'streak' && streakSummary ? (
+      <View style={styles.streakCardContent}>
+        <View style={styles.streakPage} accessibilityLabel={`${streakSummary.title} share card`}>
+          <View style={styles.streakShareIcon}>
+            <Ionicons
+              name={streakSummary.iconName || (streakSummary.routine === 'morning' ? 'sunny-outline' : streakSummary.routine === 'evening' ? 'moon-outline' : 'checkmark-outline')}
+              size={28}
+              color={Colors.sage}
+              accessibilityLabel={`${streakSummary.routine || 'faithful'} rhythm icon`}
+            />
+          </View>
+          <ThemedText weight="semiBold" style={styles.streakEyebrow}>
+            {streakSummary.rhythmLabel || (streakSummary.routine === 'morning'
+              ? 'MORNING RHYTHM COMPLETE'
+              : streakSummary.routine === 'evening'
+                ? 'EVENING RHYTHM COMPLETE'
+                : 'FAITHFUL RHYTHM')}
+          </ThemedText>
+          <ThemedText weight="bold" style={styles.streakShareTitle}>{streakSummary.title}</ThemedText>
+          <ThemedText style={styles.streakShareMessage}>{streakSummary.message}</ThemedText>
+          <View style={styles.streakWeekRow}>
+            {streakDays.map((day, dayIndex) => (
+              <View key={`${day.label}-${dayIndex}`} style={styles.streakDay}>
+                <ThemedText style={styles.streakDayLabel}>{day.label}</ThemedText>
+                <View
+                  style={[
+                    styles.streakDayMarker,
+                    day.state === 'completed' && styles.streakDayCompleted,
+                    day.state === 'today' && styles.streakDayToday,
+                    day.state === 'missed' && styles.streakDayMissed,
+                    day.state === 'future' && styles.streakDayFuture,
+                  ]}
+                >
+                  {day.state === 'completed' ? (
+                    <Ionicons name="checkmark" size={11} color={Colors.hopeWhite} />
+                  ) : null}
+                </View>
+              </View>
+            ))}
           </View>
         </View>
         {includeWatermark ? watermark : null}
@@ -643,7 +783,7 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
         </View>
       </View>
     );
-  }, [showWatermark, text, textAlign, typography, textColor, lineHeightMultiplier, noSplit, textScaleAnim, variant, morningSummary]);
+  }, [showWatermark, text, textAlign, typography, textColor, lineHeightMultiplier, noSplit, textScaleAnim, variant, morningSummary, streakSummary, milestone, milestoneLayout]);
 
   const shareActions = [
     { id: 'instagram', label: 'Instagram', icon: 'logo-instagram', onPress: shareToInstagram },
@@ -697,7 +837,9 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
         >
           <View style={styles.header}>
             <View>
-              <ThemedText weight="bold" style={styles.title}>{variant === 'morning-summary' ? 'Share your morning' : 'Share your reflection'}</ThemedText>
+              <ThemedText weight="bold" style={styles.title}>
+                {variant === 'for-me-day' ? 'Share your For Me Day' : variant === 'morning-summary' ? 'Share your morning' : variant === 'streak' ? 'Share your streak' : 'Share your reflection'}
+              </ThemedText>
               <ThemedText style={styles.subtitle}>Choose a template</ThemedText>
             </View>
             <TouchableOpacity style={styles.closeButton} onPress={() => closeComposer()} accessibilityLabel="Close share composer">
@@ -712,7 +854,7 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
             bounces={false}
           >
           <View style={styles.carouselWrap}>
-          {variant === 'text' ? (
+          {variant === 'text' || variant === 'for-me-day' ? (
             <TouchableOpacity
               accessibilityRole="button"
               accessibilityLabel={editorOpen ? 'Close post editor' : 'Edit post style'}
@@ -761,13 +903,45 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
           />
           </View>
 
+          {variant === 'for-me-day' && <>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.milestoneChoices}>
+              {MILESTONE_PALETTES.map((palette, index) => <TouchableOpacity
+                key={palette.id}
+                accessibilityRole="button"
+                accessibilityLabel={`Use ${palette.label} background`}
+                accessibilityState={{selected: selectedIndex === index}}
+                style={[styles.milestoneChoice, selectedIndex === index && styles.segmentButtonActive]}
+                onPress={() => {
+                  setSelectedIndex(index);
+                  carouselRef.current?.scrollToOffset({offset: CAROUSEL_ITEM_WIDTH * index, animated: true});
+                  triggerLightHaptic();
+                }}
+              >
+                <View style={[styles.milestoneSwatch, {backgroundColor: palette.background}]} />
+                <ThemedText style={styles.segmentText}>{palette.label}</ThemedText>
+              </TouchableOpacity>)}
+            </ScrollView>
+            <View style={styles.milestoneLayouts}>
+              {MILESTONE_LAYOUTS.map(option => <TouchableOpacity
+                key={option.id}
+                accessibilityRole="button"
+                accessibilityLabel={`Use ${option.label} card style`}
+                accessibilityState={{selected: milestoneLayout === option.id}}
+                style={[styles.segmentButton, milestoneLayout === option.id && styles.segmentButtonActive]}
+                onPress={() => { setMilestoneLayout(option.id); triggerLightHaptic(); }}
+              >
+                <ThemedText style={[styles.segmentText, milestoneLayout === option.id && styles.segmentTextActive]}>{option.label}</ThemedText>
+              </TouchableOpacity>)}
+            </View>
+          </>}
+
           <Animated.View
             pointerEvents={editorOpen ? 'auto' : 'none'}
             accessibilityElementsHidden={!editorOpen}
             importantForAccessibility={editorOpen ? 'auto' : 'no-hide-descendants'}
             style={[
               styles.editorPanel,
-              variant !== 'text' && styles.hidden,
+              variant !== 'text' && variant !== 'for-me-day' && styles.hidden,
               {
                 maxHeight: editorAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 120] }),
                 marginBottom: editorAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 18] }),
@@ -806,7 +980,7 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
                 <View
                   accessible
                   accessibilityRole="adjustable"
-                  accessibilityLabel="Text size"
+                  accessibilityLabel={variant === 'for-me-day' ? 'Heading size' : 'Text size'}
                   accessibilityValue={{
                     min: Math.round(MIN_TEXT_SCALE * 100),
                     max: Math.round(MAX_TEXT_SCALE * 100),
@@ -914,6 +1088,10 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
 };
 
 const styles = StyleSheet.create({
+  milestoneChoices: {paddingHorizontal: 24, gap: 8, paddingBottom: 12},
+  milestoneChoice: {flexDirection: 'row', alignItems: 'center', gap: 6, padding: 8, borderRadius: 14},
+  milestoneSwatch: {width: 20, height: 20, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)'},
+  milestoneLayouts: {flexDirection: 'row', marginHorizontal: 24, marginBottom: 16, padding: 4, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.06)'},
   overlay: {
     flex: 1,
     justifyContent: 'flex-end',
@@ -1248,6 +1426,90 @@ const styles = StyleSheet.create({
     lineHeight: 13,
     textAlign: 'center',
     marginTop: 3,
+  },
+  streakCardContent: {
+    flex: 1,
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 10,
+  },
+  streakPage: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.lightBackground,
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 18,
+  },
+  streakShareIcon: {
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.anchorBlueLight,
+    marginBottom: 16,
+  },
+  streakEyebrow: {
+    color: Colors.sageMuted,
+    fontSize: 7,
+    lineHeight: 10,
+    letterSpacing: 1.1,
+    textAlign: 'center',
+    marginBottom: 7,
+  },
+  streakShareTitle: {
+    color: Colors.text,
+    fontSize: 21,
+    lineHeight: 27,
+    textAlign: 'center',
+  },
+  streakShareMessage: {
+    color: Colors.textGray,
+    fontSize: 10,
+    lineHeight: 15,
+    textAlign: 'center',
+    marginTop: 8,
+  },
+  streakWeekRow: {
+    width: '100%',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 22,
+  },
+  streakDay: {
+    alignItems: 'center',
+    gap: 5,
+  },
+  streakDayLabel: {
+    color: Colors.textGray,
+    fontSize: 7,
+    lineHeight: 10,
+  },
+  streakDayMarker: {
+    width: 23,
+    height: 23,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  streakDayCompleted: {
+    backgroundColor: Colors.sage,
+  },
+  streakDayToday: {
+    backgroundColor: Colors.anchorBlueLight,
+    borderColor: Colors.sage,
+    borderWidth: 1,
+  },
+  streakDayMissed: {
+    backgroundColor: 'transparent',
+    borderColor: Colors.cardBorder,
+    borderWidth: 1,
+  },
+  streakDayFuture: {
+    backgroundColor: Colors.anchorBlueLight,
+    opacity: 0.55,
   },
   hidden: {
     display: 'none',

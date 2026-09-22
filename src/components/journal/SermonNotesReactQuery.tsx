@@ -14,6 +14,7 @@ import { useMomentsPalette } from '../../context/MomentsPaletteContext';
 import { preloadScripturePassages } from '../../services/scriptureReaderService';
 import { ViewMode } from '../../systems/journal/types';
 import { getSessionNoteContext, resolveSessionNoteType, sessionNoteTypeLabel } from '../../types/sessionNotes';
+import type {JournalTableCellAlignments} from './shared/journalBlocks';
 
 interface SermonNotesProps {
   selectedDate: Date;
@@ -30,6 +31,7 @@ interface SermonBlock {
   note?: string;
   points?: string[];
   tableRows?: string[][];
+  tableCellAlignments?: JournalTableCellAlignments;
   uri?: string;
 }
 
@@ -304,7 +306,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   momentsContainer: {
-    paddingHorizontal: 22,
+    paddingHorizontal: 0,
   },
   card: {
     backgroundColor: Colors.hopeWhite,

@@ -91,7 +91,7 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
     personalText: { ...baseStyles.personalText, color: Colors.textGray },
     prioritiesTitle: { ...baseStyles.prioritiesTitle, color: Colors.sage },
     priorityText: { ...baseStyles.priorityText, color: Colors.text },
-    priorityItemWrapper: { ...baseStyles.priorityItemWrapper, backgroundColor: Colors.cardBackground },
+    priorityItemWrapper: { ...baseStyles.priorityItemWrapper, backgroundColor: Colors.cardBackground, borderWidth: 1 },
   } : baseStyles, [momentsPalette]);
   const internalNavigation = useNavigation<NavigationProp<any>>();
   const nav = navigation ?? internalNavigation;

@@ -19,28 +19,29 @@ import LiquidGlassView from '../components/common/LiquidGlassView';
 import ThemedText from '../components/common/ThemedText';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { useScroll } from '../context/ScrollContext';
+import {useExpandTabBarOnScrollEnd} from '../hooks/useExpandTabBarOnScrollEnd';
 import { Colors } from '../theme/colors';
 import { Fonts } from '../theme/fonts';
 import { triggerLightHaptic } from '../utils/haptics';
 import { compareLocalDate, toLocalDateString } from '../utils/date';
 import { navigateFromRoot } from '../utils/navigationHelpers';
-import { getReviewEligibility, type ReviewEligibilityResult } from '../services/reviewEligibilityService';
-import { getLocalReviewsByType, type LocalReviewEntry, type ReviewType } from '../storage/reviewStorage';
+import { useTodayReviewData } from '../hooks/useTodayReviewData';
+import { type ReviewType } from '../storage/reviewStorage';
 import { getRoutineState, type RoutineState } from '../storage/routineStateStorage';
 import { getLocalJournalEntries, getLocalJournalSingleton } from '../storage/journalStorage';
 import { getDailyRhythmCardState, getDailyRhythmContentState, type DailyRhythmContentState } from '../services/dailyRhythmCardState';
 import { refreshMorningWidgetSnapshot } from '../services/morningWidgetService';
 import { getDailyLine } from '../data/dailyLines';
 import { playTodayOpeningSound } from '../utils/soundUtils';
-import { getWeeklyRhythm, type WeeklyRhythm } from '../services/weeklyRhythmService';
-import {getActiveReviewQAContext, getReviewQAEligibilityOptions, type ActiveReviewQAContext} from '../dev/reviews/reviewQALoader';
 import {getReviewQAScenario} from '../dev/reviews/reviewQAFixtures';
+import {gospelStorage, type ForMeDaySettings} from '../storage/gospelStorage';
+import {isForMeDay, scheduleForMeDayReminder} from '../services/forMeDayService';
 
 const CALENDAR_SHEET_HEIGHT = 60;
 const CALENDAR_SPRING = { damping: 12, stiffness: 185, mass: 0.85 };
 
-const SectionHeading = ({ title, detail }: { title: string; detail: string }) => (
-  <View style={styles.sectionHeading}>
+const SectionHeading = ({ title, detail, compactTop = false }: { title: string; detail: string; compactTop?: boolean }) => (
+  <View style={[styles.sectionHeading, compactTop && styles.sectionHeadingCompact]}>
     <ThemedText style={styles.eyebrow}>{title}</ThemedText>
     <ThemedText style={styles.sectionDetail}>{detail}</ThemedText>
   </View>
@@ -54,13 +55,13 @@ const IconTile = ({ icon, family = 'ion' }: { icon: string; family?: 'ion' | 'ma
   </View>
 );
 
-const Stagger = ({ children }: { children: React.ReactNode }) => (
+const Stagger = ({ children, prioritizeFirst = false }: { children: React.ReactNode; prioritizeFirst?: boolean }) => (
   <View style={{ width: '100%' }}>
     {React.Children.toArray(children).map((child, i) =>
       child != null ? (
         <Animated.View
           key={(child as React.ReactElement).key ?? i}
-          entering={FadeInUp.delay(i * 80).springify().damping(14).stiffness(180)}
+          entering={FadeInUp.delay(prioritizeFirst && i > 0 ? 220 + Math.min((i - 1) * 30, 120) : Math.min(i * 30, 120)).springify().damping(14).stiffness(180)}
         >
           {child}
         </Animated.View>
@@ -77,6 +78,16 @@ const TodayScreen = () => {
   const scrollRef = useRef<ScrollView>(null);
   const lastScrollYRef = useRef(0);
   const tabBarCollapsedRef = useRef(false);
+  const expandTabBar = useCallback(() => {
+    tabBarCollapsedRef.current = false;
+    setShowTabBar(true);
+  }, [setShowTabBar]);
+  const {
+    cancelPendingTabBarExpand,
+    handleTabBarMomentumScrollBegin,
+    handleTabBarMomentumScrollEnd,
+    handleTabBarScrollEndDrag,
+  } = useExpandTabBarOnScrollEnd(expandTabBar);
   const [now, setNow] = useState(() => new Date());
   const [displayDate, setDisplayDate] = useState(() => now);
   const [manualDate, setManualDate] = useState(false);
@@ -89,7 +100,6 @@ const TodayScreen = () => {
   const [morningState, setMorningState] = useState<RoutineState | null>(null);
   const [eveningState, setEveningState] = useState<RoutineState | null>(null);
   const [previewEvening, setPreviewEvening] = useState<boolean | null>(null);
-  const [reviewQAContext, setReviewQAContext] = useState<ActiveReviewQAContext | null>(null);
   const [futurePlanParts, setFuturePlanParts] = useState({ focus: false, todos: false });
   const [pastContent, setPastContent] = useState({ morning: false, evening: false });
   const [contentState, setContentState] = useState<DailyRhythmContentState>({
@@ -216,55 +226,30 @@ const TodayScreen = () => {
     }
   }, [now, manualDate, displayDate]);
 
-  const [eligibility, setEligibility] = useState<ReviewEligibilityResult | null>(null);
-  const [weeklyReviews, setWeeklyReviews] = useState<LocalReviewEntry[]>([]);
-  const [seededWeeklyRhythm, setSeededWeeklyRhythm] = useState<WeeklyRhythm | null>(null);
-  const [reviewDataReady, setReviewDataReady] = useState(false);
   const [tick, setTick] = useState(0);
-  const [staggerRun, setStaggerRun] = useState(0);
   const todayKey = format(now, 'yyyy-MM-dd');
+  const { eligibility, weeklyReviews, reviewQAContext } = useTodayReviewData(
+    todayKey, appPreferences?.weekStart || 'monday', tick,
+  );
+  const [forMeDaySettings, setForMeDaySettings] = useState<ForMeDaySettings | null | undefined>(undefined);
+  const showForMeDay = dateContext === 'today' && Boolean(forMeDaySettings && isForMeDay(forMeDaySettings.spiritualBirthday));
 
-  useEffect(() => {
+  useFocusEffect(useCallback(() => {
     let active = true;
-    void (async () => {
-      try {
-        const qaContext = __DEV__ ? await getActiveReviewQAContext() : null;
-        const eligibilityAnchor = qaContext?.referenceDate ?? todayKey;
-        const [nextEligibility, reviews] = await Promise.all([
-          getReviewEligibility(
-            eligibilityAnchor,
-            appPreferences?.weekStart || 'monday',
-            qaContext ? getReviewQAEligibilityOptions(qaContext) : undefined,
-          ),
-          getLocalReviewsByType('weekly'),
-        ]);
-        const weeklyPeriod = nextEligibility.allActive.find(item => item.type === 'weekly')?.period;
-        const verifiedRhythm = weeklyPeriod
-          ? await getWeeklyRhythm(weeklyPeriod.periodStart, weeklyPeriod.periodEnd, eligibilityAnchor)
-          : null;
-        if (!active) { return; }
-        // Commit both sources together so review cards cannot insert at
-        // different points in the opening stagger.
-        setEligibility(nextEligibility);
-        setReviewQAContext(qaContext);
-        setWeeklyReviews(reviews);
-        setSeededWeeklyRhythm(verifiedRhythm);
-        setReviewDataReady(true);
-        setStaggerRun(run => run + 1);
-      } catch (error) {
-        if (__DEV__) {console.error('[PreviewData] Today seed/load failed', error);}
-        if (active) {
-          setReviewDataReady(true);
-          setStaggerRun(run => run + 1);
-        }
+    gospelStorage.getForMeDaySettings().then(settings => {
+      if (!active) { return; }
+      setForMeDaySettings(settings);
+      if (settings?.reminderEnabled) {
+        scheduleForMeDayReminder(settings).catch(() => {});
       }
-    })();
+    }).catch(() => {
+      if (active) { setForMeDaySettings(current => current ?? null); }
+    });
     return () => { active = false; };
-  }, [tick, appPreferences?.weekStart, todayKey]);
+  }, [todayKey, tick]));
 
   useEffect(() => {
     const subscription = DeviceEventEmitter.addListener('previewDataSeeded', () => {
-      setReviewDataReady(false);
       setTick(current => current + 1);
     });
     return () => subscription.remove();
@@ -272,8 +257,7 @@ const TodayScreen = () => {
 
   useFocusEffect(
     useCallback(() => {
-      // Keep stale cards from flashing before the refreshed stagger mounts.
-      setReviewDataReady(false);
+      // Keep the last rendered cards visible while local data refreshes.
       setTick((t) => t + 1);
       let focused = true;
       let loadVersion = 0;
@@ -331,8 +315,8 @@ const TodayScreen = () => {
       setShowTabBar(true);
 
       return () => {
+        cancelPendingTabBarExpand();
         focused = false;
-        setReviewDataReady(false);
         saved.remove();
         planSaved.remove();
         clearInterval(timer);
@@ -340,7 +324,7 @@ const TodayScreen = () => {
         tabBarCollapsedRef.current = false;
         setShowTabBar(true);
       };
-    }, [setShowTabBar, displayDate, isFutureDate, statusBarBlurProgress])
+    }, [cancelPendingTabBarExpand, setShowTabBar, displayDate, isFutureDate, statusBarBlurProgress])
   );
 
   useEffect(() => {
@@ -365,6 +349,7 @@ const TodayScreen = () => {
   const displayedEligibility = eligibility;
 
   const handleScroll = useCallback((event: any) => {
+    cancelPendingTabBarExpand();
     const y = Math.max(0, event.nativeEvent.contentOffset.y);
     const isScrollingUp = y < lastScrollYRef.current;
     lastScrollYRef.current = y;
@@ -382,7 +367,7 @@ const TodayScreen = () => {
       tabBarCollapsedRef.current = false;
       setShowTabBar(true);
     }
-  }, [setShowTabBar, calendarVisible, calendarProgress, statusBarBlurProgress]);
+  }, [cancelPendingTabBarExpand, setShowTabBar, calendarVisible, calendarProgress, statusBarBlurProgress]);
 
   const toggleCalendar = useCallback(() => {
     triggerLightHaptic();
@@ -410,7 +395,7 @@ const TodayScreen = () => {
         periodStart={main.period.periodStart}
         periodEnd={main.period.periodEnd}
         started={main.state === 'in_progress'}
-        seededRhythm={seededWeeklyRhythm}
+        referenceDate={reviewQAContext?.referenceDate ?? todayKey}
         alsoReady={displayedEligibility.alsoReady.map(item => item.type.replace('_', ' ')).join(', ')}
         onBegin={() => (navigation as any).navigate('Journal', {
           screen: 'Review',
@@ -442,7 +427,7 @@ const TodayScreen = () => {
         }}
       />
     );
-  }, [displayedEligibility, navigation, seededWeeklyRhythm]);
+  }, [displayedEligibility, navigation, reviewQAContext?.referenceDate, todayKey]);
 
   return (
     <View style={styles.safeArea}>
@@ -453,6 +438,9 @@ const TodayScreen = () => {
         contentContainerStyle={[styles.content, { paddingTop: insets.top, paddingBottom: insets.bottom + 80 }]}
         showsVerticalScrollIndicator={false}
         onScroll={handleScroll}
+        onScrollEndDrag={handleTabBarScrollEndDrag}
+        onMomentumScrollBegin={handleTabBarMomentumScrollBegin}
+        onMomentumScrollEnd={handleTabBarMomentumScrollEnd}
         scrollEventThrottle={16}
       >
         <View style={styles.headerColumn}>
@@ -528,16 +516,16 @@ const TodayScreen = () => {
           />
         </View>
 
-        {reviewDataReady && dateContext === 'today' && reviewCard ? (
-          <Animated.View key={`review-hero-${staggerRun}`} entering={FadeInUp.springify().damping(14).stiffness(180)}>
-            {reviewCard}
-          </Animated.View>
-        ) : null}
-
-        {dateContext === 'today' ? <ForMeDayCard /> : null}
-
-        {reviewDataReady ? <Stagger key={staggerRun}>
-        <SectionHeading key="rhythm-heading" title={rhythmTitle} detail={rhythmDetail} />
+        {/* Resolve the birthday before mounting the sequence so it cannot pop in after the other cards. */}
+        {forMeDaySettings !== undefined && <Stagger prioritizeFirst={showForMeDay}>
+        {showForMeDay && forMeDaySettings ? <ForMeDayCard key="for-me-day" settings={forMeDaySettings} /> : null}
+        {dateContext === 'today' && reviewCard ? <React.Fragment key="review-card">{reviewCard}</React.Fragment> : null}
+        <SectionHeading
+          key="rhythm-heading"
+          title={rhythmTitle}
+          detail={rhythmDetail}
+          compactTop={!showForMeDay && !(dateContext === 'today' && reviewCard)}
+        />
         <TouchableOpacity
           key="rhythm-card"
           style={[styles.card, styles.morningCard]}
@@ -783,35 +771,10 @@ const TodayScreen = () => {
         </React.Fragment>}
 
         {dateContext === 'today' && <React.Fragment key="prayer-section">
-        <SectionHeading title="PRAYER" detail="bring it before God" />
-        <PrayerToRevisit />
+        <PrayerToRevisit header={<SectionHeading title="PRAYER" detail="bring it before God" />} />
         </React.Fragment>}
 
-        {!isFutureDate && <TouchableOpacity
-          key="write-anything"
-          style={styles.writeButton}
-          activeOpacity={0.8}
-          accessibilityRole="button"
-          accessibilityLabel="Write anything"
-          onPress={() => {
-            triggerLightHaptic();
-            (navigation as any).navigate('Journal', {
-              screen: 'ReflectionEditor',
-              params: {
-                selectedDate: toLocalDateString(displayDate),
-                initialMode: 'free-form',
-                source: 'freeform',
-                fromCarousel: true,
-                returnTo: 'Today',
-              },
-            });
-          }}>
-          <Pencil size={16} color={Colors.hopeWhite} style={{ marginRight: 8 }} />
-          <ThemedText weight="bold" style={styles.writeButtonText}>Write anything</ThemedText>
-        </TouchableOpacity>}
-        <ThemedText key="closing" style={styles.closing}>Nothing on Today has to be completed.</ThemedText>
-
-        </Stagger> : null}
+        </Stagger>}
       </ScrollView>
       <Animated.View
         pointerEvents="none"
@@ -846,6 +809,7 @@ const styles = StyleSheet.create({
   headerGreeting: { width: '100%', alignItems: 'flex-start' },
   calendarSheet: { width: '100%', backgroundColor: Colors.hopeWhite, borderRadius: 22, overflow: 'hidden' },
   sectionHeading: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, marginTop: 24, marginBottom: 10, paddingHorizontal: 2 },
+  sectionHeadingCompact: { marginTop: 0 },
   eyebrow: { color: Colors.text, fontFamily: Fonts.bold, fontSize: 12, lineHeight: 16, letterSpacing: 2 },
   sectionDetail: { color: Colors.textGray, fontFamily: Fonts.regular, fontSize: 12, lineHeight: 17, textAlign: 'right' },
   card: { backgroundColor: Colors.cardBackground, borderColor: Colors.cardBorder, borderWidth: 1, borderRadius: 22, padding: 18, shadowColor: Colors.darkBackground, shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.04, shadowRadius: 12, elevation: 2 },
@@ -902,9 +866,6 @@ const styles = StyleSheet.create({
   chips: { flexDirection: 'row', gap: 8, marginTop: 18 },
   chip: { borderWidth: 1, borderColor: Colors.cardBorder, borderRadius: 20, paddingHorizontal: 14, paddingVertical: 9 },
   chipText: { color: Colors.sage, fontFamily: Fonts.semiBold, fontSize: 12 },
-  writeButton: { height: 58, borderRadius: 20, backgroundColor: Colors.sage, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 20 },
-  writeButtonText: { color: Colors.hopeWhite, fontFamily: Fonts.semiBold, fontSize: 17 },
-  closing: { color: Colors.textGray, fontFamily: Fonts.regular, fontSize: 12, textAlign: 'center', marginTop: 12 },
   reviewCard: { backgroundColor: Colors.sage, borderColor: Colors.sage, marginBottom: 4 },
   reviewHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   reviewEyebrow: { color: Colors.hopeWhite, fontFamily: Fonts.semiBold, fontSize: 11, letterSpacing: 1.5, opacity: 0.9 },

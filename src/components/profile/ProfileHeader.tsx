@@ -5,16 +5,8 @@ import { Pencil as LuPencil } from 'lucide-react-native';
 import { Colors } from '../../theme/colors';
 import { useTheme } from '../../theme/ThemeContext';
 
-export interface ProfileStatsLite {
-  faithPoints: number;
-  level: number;
-  // Optional extras for top-row chips
-  badgesCount?: number;
-}
-
 interface Props {
   user: any | null;
-  stats: ProfileStatsLite | null;
   onEditPress?: () => void;
   onEditAvatar?: () => void;
 }

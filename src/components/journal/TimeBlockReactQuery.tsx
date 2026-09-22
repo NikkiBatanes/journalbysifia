@@ -2320,14 +2320,14 @@ const styles = StyleSheet.create({
   timeBlockCardInline: {
     borderRadius: 24,
     backgroundColor: Colors.sage,
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: Colors.inputBorder,
     paddingVertical: 12,
   },
   timeBlockCardMoments: {
     borderRadius: 24,
     backgroundColor: Colors.sage,
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: Colors.inputBorder,
     paddingVertical: 12,
   },

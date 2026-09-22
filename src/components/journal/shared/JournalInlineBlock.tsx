@@ -2,6 +2,7 @@ import React from 'react';
 import {TextInput, TouchableOpacity, View} from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import ThemedText from '../../common/ThemedText';
+import JournalTextInput from './JournalTextInput';
 import {Colors} from '../../../theme/colors';
 import {triggerLightHaptic} from '../../../utils/haptics';
 import {useTheme} from '../../../hooks/useTheme';
@@ -46,13 +47,13 @@ export const JournalInlineBlock = ({
     currentFont || 'lexend',
     'regular',
   );
+  const accent = tone === 'onDark' ? Colors.hopeWhite : Colors.sage;
 
   if (block.kind === 'text' && !configOverride) {
     return (
-      <TextInput
+      <JournalTextInput
         ref={registerInput}
-        selectionColor={tone === 'onDark' ? Colors.hopeWhite : Colors.sage}
-        cursorColor={tone === 'onDark' ? Colors.hopeWhite : Colors.sage}
+        accentColor={accent}
         style={styles.freeText}
         multiline
         placeholder={textPlaceholder}
@@ -111,10 +112,9 @@ export const JournalInlineBlock = ({
         renderScripture?.()
       ) : (
         <>
-          <TextInput
+          <JournalTextInput
             ref={registerInput}
-            selectionColor={tone === 'onDark' ? Colors.hopeWhite : Colors.sage}
-            cursorColor={tone === 'onDark' ? Colors.hopeWhite : Colors.sage}
+            accentColor={accent}
             style={[
               styles.captureInput,
               block.kind === 'quote' && styles.serifInput,
@@ -131,9 +131,8 @@ export const JournalInlineBlock = ({
             autoCorrect
           />
           {block.kind === 'quote' && onChangeSecondary && (
-            <TextInput
-              selectionColor={tone === 'onDark' ? Colors.hopeWhite : Colors.sage}
-              cursorColor={tone === 'onDark' ? Colors.hopeWhite : Colors.sage}
+            <JournalTextInput
+              accentColor={accent}
               style={[
                 styles.secondaryInput,
                 {fontFamily: attributionFontFamily},

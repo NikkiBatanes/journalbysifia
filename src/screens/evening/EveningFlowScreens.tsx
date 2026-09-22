@@ -751,7 +751,11 @@ export const EveningClosingScreen: React.FC = () => {
 
     DeviceEventEmitter.emit('reflection_saved', { type: 'evening_complete', date: dateStr });
 
-    exitEveningFlow(navigation, 'Moments');
+    navigation.navigate('StreakPlan', {
+      rhythm: 'evening',
+      source: 'evening_routine_complete',
+      returnTo: 'moments',
+    });
   };
 
   return (

@@ -262,7 +262,7 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
       onExpand={onExpand}
     >
       {displayWin ? (
-        <View style={[styles.completionCard, isPalette && { backgroundColor: Colors.cardBackground }]}>
+        <View style={[styles.completionCard, isPalette && styles.completionCardMoments]}>
           <View style={styles.completionHeader}>
             {viewMode === 'inline' && (
               <View style={styles.completionIconContainer}>
@@ -434,6 +434,10 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: Colors.inputBorder,
     width: '100%',
+  },
+  completionCardMoments: {
+    backgroundColor: Colors.cardBackground,
+    borderWidth: 1,
   },
   completionHeader: {
     flexDirection: 'row',

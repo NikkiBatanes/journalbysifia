@@ -1,0 +1,117 @@
+diff --git a/node_modules/react-native/React/CoreModules/RCTLogBox.mm b/node_modules/react-native/React/CoreModules/RCTLogBox.mm
+--- a/node_modules/react-native/React/CoreModules/RCTLogBox.mm
++++ b/node_modules/react-native/React/CoreModules/RCTLogBox.mm
+@@ -10,6 +10,7 @@
+ #import <FBReactNativeSpec/FBReactNativeSpec.h>
+ #import <React/RCTBridge.h>
+ #import <React/RCTBridgeModule.h>
++#import <React/RCTInvalidating.h>
+ #import <React/RCTLog.h>
+ #import <React/RCTRedBoxSetEnabled.h>
+ #import <React/RCTSurface.h>
+@@ -17,7 +18,7 @@
+ 
+ #if RCT_DEV_MENU
+ 
+-@interface RCTLogBox () <NativeLogBoxSpec, RCTBridgeModule>
++@interface RCTLogBox () <NativeLogBoxSpec, RCTBridgeModule, RCTInvalidating>
+ @end
+ 
+ @implementation RCTLogBox {
+@@ -73,17 +74,17 @@
+ 
+ RCT_EXPORT_METHOD(hide)
+ {
+-  if (RCTRedBoxGetEnabled()) {
+-    __weak RCTLogBox *weakSelf = self;
+-    dispatch_async(dispatch_get_main_queue(), ^{
+-      __strong RCTLogBox *strongSelf = weakSelf;
+-      if (!strongSelf) {
+-        return;
+-      }
+-      [strongSelf->_view setHidden:YES];
+-      strongSelf->_view = nil;
+-    });
+-  }
++  // Keep the module and its window alive until main-thread cleanup completes,
++  // including when a reload invalidates the module with LogBox still visible.
++  dispatch_async(dispatch_get_main_queue(), ^{
++    [self->_view hide];
++    self->_view = nil;
++  });
++}
++
++- (void)invalidate
++{
++  [self hide];
+ }
+ 
+ - (std::shared_ptr<facebook::react::TurboModule>)getTurboModule:
+diff --git a/node_modules/react-native/React/CoreModules/RCTLogBoxView.h b/node_modules/react-native/React/CoreModules/RCTLogBoxView.h
+--- a/node_modules/react-native/React/CoreModules/RCTLogBoxView.h
++++ b/node_modules/react-native/React/CoreModules/RCTLogBoxView.h
+@@ -20,5 +20,6 @@
+ - (instancetype)initWithWindow:(UIWindow *)window surfacePresenter:(id<RCTSurfacePresenterStub>)surfacePresenter;
+ 
+ - (void)show;
++- (void)hide;
+ 
+ @end
+diff --git a/node_modules/react-native/React/CoreModules/RCTLogBoxView.mm b/node_modules/react-native/React/CoreModules/RCTLogBoxView.mm
+--- a/node_modules/react-native/React/CoreModules/RCTLogBoxView.mm
++++ b/node_modules/react-native/React/CoreModules/RCTLogBoxView.mm
+@@ -13,6 +13,7 @@
+ 
+ @implementation RCTLogBoxView {
+   RCTSurface *_surface;
++  __weak UIWindow *_previousKeyWindow;
+ }
+ 
+ - (instancetype)initWithFrame:(CGRect)frame
+@@ -38,6 +39,7 @@
+   RCTErrorNewArchitectureValidation(RCTNotAllowedInFabricWithoutLegacy, @"RCTLogBoxView", nil);
+ 
+   self = [super initWithWindowScene:window.windowScene];
++  _previousKeyWindow = window;
+ 
+   self.windowLevel = UIWindowLevelStatusBar - 1;
+   self.backgroundColor = [UIColor clearColor];
+@@ -56,6 +58,7 @@
+ - (instancetype)initWithWindow:(UIWindow *)window surfacePresenter:(id<RCTSurfacePresenterStub>)surfacePresenter
+ {
+   self = [super initWithWindowScene:window.windowScene];
++  _previousKeyWindow = window;
+ 
+   id<RCTSurfaceProtocol> surface = [surfacePresenter createFabricSurfaceForModuleName:@"LogBox" initialProperties:@{}];
+   [surface start];
+@@ -73,9 +76,17 @@
+   [_surface setSize:self.frame.size];
+ }
+ 
+-- (void)dealloc
++- (void)hide
+ {
+-  [RCTSharedApplication().delegate.window makeKeyWindow];
++  // Restore the responder chain while this window is still alive. Doing this
++  // in dealloc can make UIKit weak-reference a deallocating RCTLogBoxView.
++  BOOL wasKeyWindow = self.isKeyWindow;
++  [self endEditing:YES];
++  [self resignFirstResponder];
++  self.hidden = YES;
++  if (wasKeyWindow) {
++    [_previousKeyWindow makeKeyWindow];
++  }
+ }
+ 
+ - (void)show
+diff --git a/node_modules/react-native/React/Fabric/Mounting/ComponentViews/TextInput/RCTTextInputUtils.mm b/node_modules/react-native/React/Fabric/Mounting/ComponentViews/TextInput/RCTTextInputUtils.mm
+--- a/node_modules/react-native/React/Fabric/Mounting/ComponentViews/TextInput/RCTTextInputUtils.mm
++++ b/node_modules/react-native/React/Fabric/Mounting/ComponentViews/TextInput/RCTTextInputUtils.mm
+@@ -25,6 +25,7 @@ void RCTCopyBackedTextInput(
+   toTextInput.attributedText = RCTSanitizeAttributedString(fromTextInput.attributedText);
+   toTextInput.placeholder = fromTextInput.placeholder;
+   toTextInput.placeholderColor = fromTextInput.placeholderColor;
++  toTextInput.tintColor = fromTextInput.tintColor;
+   toTextInput.textContainerInset = fromTextInput.textContainerInset;
+   toTextInput.inputAccessoryView = fromTextInput.inputAccessoryView;
+   toTextInput.textInputDelegate = fromTextInput.textInputDelegate;

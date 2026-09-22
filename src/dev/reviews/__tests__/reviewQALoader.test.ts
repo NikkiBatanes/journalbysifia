@@ -2,7 +2,7 @@ import {clearReviewQAData,getActiveReviewQAContext,getReviewQAEligibilityOptions
 import {getReviewCapture} from '../../../services/reviewCaptureService';
 import {getLocalReviewForPeriod} from '../../../storage/reviewStorage';
 import {GUIDED_PROMPTS} from '../../../components/journal/reflectionConstants';
-import {REFLECTION_NOTE_TYPES} from '../../../types/guidedReflection';
+import {REFLECTION_NOTE_TYPES, parseGuidedReflection} from '../../../types/guidedReflection';
 
 const mockData=new Map<string,string>();
 jest.mock('@react-native-async-storage/async-storage',()=>({getItem:jest.fn(async(key:string)=>mockData.get(key)??null),setItem:jest.fn(async(key:string,value:string)=>{mockData.set(key,value);}),getAllKeys:jest.fn(async()=>[...mockData.keys()]),multiGet:jest.fn(async(keys:string[])=>keys.map(key=>[key,mockData.get(key)??null])),multiRemove:jest.fn(async(keys:string[])=>keys.forEach(key=>mockData.delete(key))),removeItem:jest.fn(async(key:string)=>mockData.delete(key))}));
@@ -22,13 +22,13 @@ describe('Review QA loader isolation',()=>{
     expect([...mockData.keys()].filter(key=>key.startsWith('journal_local_singleton:today_win:'))).toHaveLength(7);
     expect([...mockData.keys()].filter(key=>key.startsWith('journal_local_singleton:looking_forward:'))).toHaveLength(7);
     expect([...mockData.keys()].filter(key=>key.startsWith('reflection_local:free:'))).toHaveLength(17);
-    expect([...mockData.keys()].filter(key=>key.startsWith('reflection_local:guided:'))).toHaveLength(4);
+    expect([...mockData.keys()].filter(key=>key.startsWith('reflection_local:guided:'))).toHaveLength(14);
     expect([...mockData.keys()].filter(key=>key.startsWith('journal_local:todo:2026-09-14:'))).toHaveLength(7);
     expect([...mockData.keys()].filter(key=>key.startsWith('routine_state:morning:'))).toHaveLength(7);
     expect([...mockData.keys()].some(key=>key.startsWith('prayer_local:'))).toBe(false);
     expect([...mockData.keys()].filter(key=>key.startsWith('routine_state:evening:'))).toHaveLength(7);
     expect([...mockData.keys()].some(key=>key.startsWith('review_local:'))).toBe(false);
-    expect(JSON.parse(mockData.get('dev-review-v2:manifest')!).datasetVersion).toBe('weekly-routines-heart-journal-blocks-v6');
+    expect(JSON.parse(mockData.get('dev-review-v2:manifest')!).datasetVersion).toBe('weekly-routines-heart-journal-guided-v7');
     const monday=JSON.parse(mockData.get('journal_local_singleton:morning_check_in:2026-09-14')!);
     expect(JSON.parse(monday.content)).toMatchObject({feeling:'Hopeful',underneathIt:expect.any(String)});
     const mondayPsalm=JSON.parse(mockData.get('reflection_local:scripture:2026-09-14:dev-review-v2:weekly:morning-psalm:2026-09-14')!);
@@ -69,13 +69,16 @@ describe('Review QA loader isolation',()=>{
     expect(structuredEntries).toHaveLength(3);
     expect(new Set(structuredEntries.map(entry=>entry.metadata.journalClassification))).toEqual(new Set(['notes','thoughts','brain_dump']));
     expect(new Set(structuredEntries.flatMap(entry=>entry.metadata.journalBlocks.map((block:any)=>block.kind)))).toEqual(
-      new Set(['text',...REFLECTION_NOTE_TYPES.map(item=>item.kind)]),
+      new Set(['text',...REFLECTION_NOTE_TYPES.filter(item=>item.kind!=='column').map(item=>item.kind)]),
     );
     expect(structuredEntries.flatMap(entry=>entry.metadata.journalBlocks).find((block:any)=>block.kind==='photo')?.uri).toBeTruthy();
     expect(structuredEntries.flatMap(entry=>entry.metadata.journalBlocks).find((block:any)=>block.kind==='voice')?.uri).toBeTruthy();
-    const chosenQuestionEntries=[...mockData.entries()]
+    const guidedEntries=[...mockData.entries()]
       .filter(([key])=>key.startsWith('reflection_local:guided:'))
       .map(([,value])=>JSON.parse(value));
+    const chosenQuestionEntries=guidedEntries.filter(entry=>entry.metadata.guidedJourney===undefined);
+    const structuredGuidedEntries=guidedEntries.filter(entry=>entry.metadata.guidedJourney!==undefined);
+    expect(chosenQuestionEntries).toHaveLength(4);
     expect(chosenQuestionEntries.every(entry=>
       entry.type==='guided'
       &&entry.source==='guided'
@@ -90,6 +93,20 @@ describe('Review QA loader isolation',()=>{
     expect(chosenQuestionEntries.map(entry=>entry.metadata.questionTopic)).toEqual([
       'With God','My Heart','Health','Rest & Rhythms',
     ]);
+    expect(structuredGuidedEntries).toHaveLength(10);
+    expect(structuredGuidedEntries.every(entry=>
+      entry.id.startsWith('dev-review-v2:weekly:guided-reflection:')
+      &&entry.type==='guided'
+      &&entry.source==='guided'
+      &&parseGuidedReflection(entry.content)?.pathId===entry.metadata.guidedJourney.pathId
+      &&entry.metadata.journalBlocks.length===entry.metadata.guidedJourney.answers.flatMap((answer:any)=>answer.notes).length
+    )).toBe(true);
+    expect(new Set(structuredGuidedEntries.map(entry=>entry.metadata.guidedJourney.pathId))).toEqual(new Set([
+      'mind-feels-full','something-bothering-me','decision-to-make',
+    ]));
+    expect(new Set(structuredGuidedEntries.flatMap(entry=>entry.metadata.journalBlocks.map((block:any)=>block.kind)))).toEqual(
+      new Set(['text',...REFLECTION_NOTE_TYPES.map(item=>item.kind)]),
+    );
     expect(getReviewCapture).toHaveBeenCalledWith('2026-09-14','2026-09-20','weekly');
   });
   it('exposes Weekly-only eligibility for the loaded Monday-start scenario',async()=>{

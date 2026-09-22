@@ -17,6 +17,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Colors } from '../../theme/colors';
+import HeaderBackButton from '../common/HeaderBackButton';
 import ThemedText from '../common/ThemedText';
 
 interface UserProfile {
@@ -362,9 +363,7 @@ const PersonalizedPreview: React.FC<Props> = ({ userProfile, onContinue, onBack 
   <SafeAreaView style={styles.container}>
     {/* Header */}
     <View style={styles.header}>
-      <TouchableOpacity onPress={onBack} style={styles.backButton}>
-        <Ionicons name="chevron-back" size={24} color={Colors.sage} />
-      </TouchableOpacity>
+      <HeaderBackButton onPress={onBack} style={styles.backButton} />
       <ThemedText weight="bold" style={styles.headerTitle}>Your Journey</ThemedText>
     </View>
 
@@ -427,7 +426,6 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
   },
   backButton: {
-    padding: 8,
     marginRight: 16,
   },
   headerTitle: {

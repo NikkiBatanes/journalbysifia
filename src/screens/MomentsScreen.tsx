@@ -21,6 +21,7 @@ import { getAllBibleStudySessions } from '../storage/bibleStudyStorage';
 import { getAllLocalReflectionsByType } from '../storage/reflectionStorage';
 import { getSavedBibleStudyReflections, parseSavedBibleStudy } from '../storage/bibleStudyMomentsStorage';
 import { useScroll } from '../context/ScrollContext';
+import {useExpandTabBarOnScrollEnd} from '../hooks/useExpandTabBarOnScrollEnd';
 
 // Enable LayoutAnimation on Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -39,6 +40,16 @@ export const MomentsScreen: React.FC = () => {
   const { showTabBar, setShowTabBar } = useScroll();
   const lastScrollYRef = useRef(0);
   const tabBarCollapsedRef = useRef(false);
+  const expandTabBar = React.useCallback(() => {
+    tabBarCollapsedRef.current = false;
+    setShowTabBar(true);
+  }, [setShowTabBar]);
+  const {
+    cancelPendingTabBarExpand,
+    handleTabBarMomentumScrollBegin,
+    handleTabBarMomentumScrollEnd,
+    handleTabBarScrollEndDrag,
+  } = useExpandTabBarOnScrollEnd(expandTabBar);
   const [momentsReady, setMomentsReady] = useState(false);
   const [momentsEntranceRun, setMomentsEntranceRun] = useState(0);
   // Moment cards wait for their data and stagger inside the renderer. The
@@ -71,19 +82,21 @@ export const MomentsScreen: React.FC = () => {
   // Returning to Moments must rediscover persisted content independently.
   useFocusEffect(React.useCallback(() => {
     setMomentsReady(false);
+    // Animate once per visit, not after every save or background refresh.
+    setMomentsEntranceRun(run => run + 1);
     setRefreshKey(previous => previous + 1);
     lastScrollYRef.current = 0;
     tabBarCollapsedRef.current = false;
     setShowTabBar(true);
     return () => {
+      cancelPendingTabBarExpand();
       setMomentsReady(false);
       tabBarCollapsedRef.current = false;
       setShowTabBar(true);
     };
-  }, [setShowTabBar]));
+  }, [cancelPendingTabBarExpand, setShowTabBar]));
 
   const handleMomentsReady = React.useCallback(() => {
-    setMomentsEntranceRun(run => run + 1);
     setMomentsReady(true);
   }, []);
 
@@ -94,6 +107,7 @@ export const MomentsScreen: React.FC = () => {
   }, [showTabBar]);
 
   const handleMomentsScroll = React.useCallback((event: any) => {
+    cancelPendingTabBarExpand();
     const y = Math.max(0, event.nativeEvent.contentOffset.y);
     const isScrollingUp = y < lastScrollYRef.current;
     lastScrollYRef.current = y;
@@ -105,7 +119,7 @@ export const MomentsScreen: React.FC = () => {
       tabBarCollapsedRef.current = false;
       setShowTabBar(true);
     }
-  }, [setShowTabBar]);
+  }, [cancelPendingTabBarExpand, setShowTabBar]);
 
   // Search and filter modal visibility
   const [showSearch, setShowSearch] = useState(false);
@@ -344,6 +358,9 @@ export const MomentsScreen: React.FC = () => {
           onContentReady={handleMomentsReady}
           style={styles.momentsRenderer}
           onScroll={handleMomentsScroll}
+          onScrollEndDrag={handleTabBarScrollEndDrag}
+          onMomentumScrollBegin={handleTabBarMomentumScrollBegin}
+          onMomentumScrollEnd={handleTabBarMomentumScrollEnd}
           headerComponents={[]}
           refreshControl={
             <RefreshControl

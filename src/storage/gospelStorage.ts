@@ -15,6 +15,7 @@ export type GospelPerson = {
   id: string;
   displayName: string;
   note?: string;
+  prayerStartedAt?: string;
   createdAt: string;
   updatedAt: string;
 };
@@ -54,7 +55,14 @@ const parseArray = (value: string | null): GospelPerson[] => {
   }
   try {
     const parsed = JSON.parse(value);
-    return Array.isArray(parsed) ? parsed : [];
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+    return parsed.map(person => ({
+      ...person,
+      // Existing records already hold the correct historical date here.
+      prayerStartedAt: person?.prayerStartedAt || person?.createdAt,
+    }));
   } catch {
     return [];
   }
@@ -114,6 +122,7 @@ export const gospelStorage = {
         .slice(2, 8)}`,
       displayName: displayName.trim() || 'Someone',
       note: note?.trim() || undefined,
+      prayerStartedAt: now,
       createdAt: now,
       updatedAt: now,
     };

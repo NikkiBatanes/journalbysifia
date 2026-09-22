@@ -36,7 +36,7 @@ const formatLocalDate = (date: string | Date): string => {
 
 const ROUTINE_STATE_PREFIX = 'routine_state';
 
-type RoutineType = 'morning' | 'evening';
+export type RoutineType = 'morning' | 'evening';
 type ContentDomain = 'journal' | 'prayer' | 'reflection';
 
 export interface ContentRef {
@@ -149,6 +149,31 @@ export const getRoutineState = async (
   const raw = await AsyncStorage.getItem(key);
   if (!raw) {return null;}
   return safeJsonParse<RoutineState>(raw, { fallback: null });
+};
+
+/**
+ * Returns the canonical local routine history used by rhythm summaries.
+ * Routine content remains in its own stores; these records only describe
+ * progress and completion for a local calendar day.
+ */
+export const getAllRoutineStates = async (
+  routine?: RoutineType,
+): Promise<RoutineState[]> => {
+  const prefix = routine
+    ? `${ROUTINE_STATE_PREFIX}:${routine}:`
+    : `${ROUTINE_STATE_PREFIX}:`;
+  const keys = (await AsyncStorage.getAllKeys()).filter(key => key.startsWith(prefix));
+  if (!keys.length) {return [];}
+
+  const rows = await AsyncStorage.multiGet(keys);
+  return rows
+    .map(([, raw]) => raw ? safeJsonParse<RoutineState>(raw, { fallback: null }) : null)
+    .filter((state): state is RoutineState => Boolean(
+      state
+      && (state.routine === 'morning' || state.routine === 'evening')
+      && /^\d{4}-\d{2}-\d{2}$/.test(state.selected_date),
+    ))
+    .sort((a, b) => a.selected_date.localeCompare(b.selected_date));
 };
 
 export const deleteRoutineState = async (

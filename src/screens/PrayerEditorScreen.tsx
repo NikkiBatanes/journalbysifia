@@ -1,19 +1,22 @@
 import React from 'react';
+import {DeviceEventEmitter} from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import PrayerResponseSheet from '../components/prayer/PrayerResponseSheet';
-import { useAuth } from '../context/IndustryStandardAuthContext';
-import { visibleStreakService } from '../services/visibleStreakService';
+import {claimFaithfulRhythmCelebration, FAITHFUL_RHYTHM_UPDATED} from '../services/faithfulRhythmService';
 import { exitPrayerFlow } from '../navigation/exitPrayerFlow';
 
 type PrayerEditorRoutes = {
   PrayerEditor: { prayerRequest: { person_name: string; content: string; id: string; user_id: string; selected_date: string } };
 };
 export default function PrayerEditorScreen({ route, navigation }: NativeStackScreenProps<PrayerEditorRoutes, 'PrayerEditor'>) {
-  const { user } = useAuth();
   const saved = async () => {
-    if (user?.id && await visibleStreakService.shouldShowCelebration(user.id, 'prayer_for_now')) {
-      await visibleStreakService.markShownToday(user.id);
-      (navigation as any).navigate('StreakPlan', { userId: user.id, source: 'prayer_for_now', dismissRouteCount: 2 });
+    DeviceEventEmitter.emit(FAITHFUL_RHYTHM_UPDATED, {rhythm: 'prayer', selectedDate: route.params.prayerRequest.selected_date});
+    if (await claimFaithfulRhythmCelebration('prayer', route.params.prayerRequest.selected_date)) {
+      (navigation as any).navigate('StreakPlan', {
+        rhythm: 'prayer',
+        source: 'prayer_for_now',
+        returnTo: 'prayer',
+      });
       return;
     }
     exitPrayerFlow(navigation as any);

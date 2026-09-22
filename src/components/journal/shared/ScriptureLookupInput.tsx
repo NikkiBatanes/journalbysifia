@@ -9,6 +9,7 @@ import {
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import {BibleCopyrightModal} from '../../BibleCopyrightModal';
 import ThemedText from '../../common/ThemedText';
+import JournalTextInput from './JournalTextInput';
 import {
   getScripturePassage,
   type ScriptureReaderResult,
@@ -99,7 +100,7 @@ export const ScriptureLookupInput = ({
   return (
     <>
       <View style={sharedStyles.lookupRow}>
-        <TextInput
+        <JournalTextInput
           ref={registerInput}
           style={[style, sharedStyles.lookupInput]}
           multiline={multiline}
@@ -107,8 +108,7 @@ export const ScriptureLookupInput = ({
           placeholderTextColor={
             onDark ? 'rgba(255,255,255,0.45)' : Colors.textGray
           }
-          selectionColor={accent}
-          cursorColor={accent}
+          accentColor={accent}
           value={value}
           onChangeText={onChange}
           onFocus={onFocus}

@@ -1,7 +1,7 @@
 import { GUIDED_REFLECTION_PATHS } from '../guidedReflectionPaths';
 import { GUIDED_PROMPTS } from '../../components/journal/reflectionConstants';
 import { GUIDED_QUESTION_LIBRARY, GUIDED_QUESTION_TOPICS, guidedQuestionTopicForPrompt, questionsForTopic } from '../guidedReflectionQuestions';
-import { GUIDED_NOTE_TYPES, GUIDED_REFLECTION_FORMAT, emptyGuidedAnswer, parseGuidedReflection, serializeGuidedReflection, type GuidedReflectionPayload } from '../../types/guidedReflection';
+import { GUIDED_NOTE_TYPES, GUIDED_REFLECTION_FORMAT, emptyGuidedAnswer, guidedEntryKind, guidedEntrySource, parseGuidedReflection, serializeGuidedReflection, type GuidedReflectionPayload } from '../../types/guidedReflection';
 import fs from 'fs';
 import pathModule from 'path';
 import { GENERIC_JOURNAL_BLOCK_KINDS } from '../../components/journal/shared/journalBlocks';
@@ -22,7 +22,7 @@ describe('Guided Reflection V1 authored engine', () => {
 
   it('covers supported interaction serialization including selections, writing, scripture, fields, and ordered notes', () => {
     const payload: GuidedReflectionPayload = {
-      format: GUIDED_REFLECTION_FORMAT, pathId: 'mind-feels-full', pathTitle: 'My mind feels full', currentStepId: 'scripture', completed: false,
+      format: GUIDED_REFLECTION_FORMAT, pathId: 'mind-feels-full', pathTitle: 'My mind feels full', entryTitle: 'What I need to release before Friday', currentStepId: 'scripture', completed: false,
       answers: [
         { ...emptyGuidedAnswer('space'), selected: ['Work', 'Money'], optionalText: 'Both feel urgent.' },
         { stepId: 'discern', fields: { mine: 'Send the invoice', entrust: 'The outcome' }, notes: [
@@ -33,10 +33,40 @@ describe('Guided Reflection V1 authored engine', () => {
       ],
     };
     expect(parseGuidedReflection(serializeGuidedReflection(payload))).toEqual(payload);
+    expect(parseGuidedReflection(serializeGuidedReflection(payload))?.pathTitle).toBe('My mind feels full');
+    expect(parseGuidedReflection(serializeGuidedReflection(payload))?.entryTitle).toBe('What I need to release before Friday');
     expect(parseGuidedReflection('legacy plain response')).toBeNull();
   });
 
+  it('keeps Guided Prompts distinct from structured Guided Reflections', () => {
+    const journey: GuidedReflectionPayload = {
+      format: GUIDED_REFLECTION_FORMAT,
+      pathId: 'mind-feels-full',
+      pathTitle: 'My mind feels full',
+      currentStepId: 'space',
+      completed: false,
+      answers: [{...emptyGuidedAnswer('space'), selected: ['Work']}],
+    };
+
+    expect(guidedEntryKind({type: 'guided', source: 'guided_prompt', content: 'A response'})).toBe('prompt');
+    expect(guidedEntryKind({type: 'guided', content: 'A legacy prompt response'})).toBe('prompt');
+    expect(guidedEntryKind({type: 'guided', source: 'guided', content: 'A chosen-question response'})).toBe('reflection');
+    expect(guidedEntryKind({type: 'guided', source: 'guided', prompt: 'Where do you need peace?', content: 'A chosen-question response'})).toBe('prompt');
+    expect(guidedEntryKind({type: 'guided', source: 'guided', question_topic: 'With God', content: 'A chosen-question response'})).toBe('prompt');
+    expect(guidedEntryKind({type: 'guided', content: serializeGuidedReflection(journey)})).toBe('reflection');
+    expect(guidedEntrySource({type: 'guided', source: 'guided_prompt'})).toBe('guided_prompt');
+    expect(guidedEntrySource({type: 'guided', source: 'guided'})).toBe('guided');
+    expect(guidedEntrySource({type: 'guided', source: 'guided', prompt: 'What feels heavy?'})).toBe('guided_prompt');
+  });
+
   it('contains the authored content required by each path', () => {
+    expect(path('mind-feels-full').steps.find(step => step.id === 'space')?.options).toEqual(expect.arrayContaining(['School', 'Deadlines']));
+    expect(path('mind-feels-full').steps.find(step => step.id === 'attention')?.prompt).toBe('What needs your attention here?');
+    expect(path('mind-feels-full').steps.find(step => step.id === 'discern')?.prompt).toBe('What is yours to carry, and what can you leave with God?');
+    expect(path('mind-feels-full').steps.find(step => step.id === 'need')).toMatchObject({
+      prompt: 'As you bring this to God, what are you asking Him for?',
+      options: expect.arrayContaining(['Something else']),
+    });
     expect(path('mind-feels-full').steps.find(step => step.id === 'scripture')?.scripture?.reference).toBe('Matthew 6:31–34');
     expect(path('something-bothering-me').steps.find(step => step.id === 'stir')?.options).toContain('Disappointment');
     expect(path('something-bothering-me').steps.find(step => step.id === 'needed')?.options).toContain('Set a boundary');

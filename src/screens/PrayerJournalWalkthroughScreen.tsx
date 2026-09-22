@@ -36,7 +36,7 @@ import { isToday, isYesterday, startOfDay } from 'date-fns';
 import PlaybookMetaSection from '../components/journal/PlaybookMetaSection';
 import NewSuccessModal from '../components/NewSuccessModal';
 import { useSuccessModal } from '../hooks/useSuccessModal';
-import { visibleStreakService } from '../services/visibleStreakService';
+import { claimFaithfulRhythmCelebration, FAITHFUL_RHYTHM_UPDATED } from '../services/faithfulRhythmService';
 import { clearPrayerDraft, getPrayerDraft, getPrayerDraftKey, savePrayerDraft } from '../storage/prayerDraftStorage';
 
 import type { RootStackParamList } from '../navigation/types';
@@ -1369,17 +1369,12 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
             {
               name: 'MainTabs' as any,
               params: {
-                screen: 'Journal',
-                params: {
-                  screen: 'JournalMain',
-                  params: fromNotificationAnsweredCheck ? {
-                    selectedDate: selectedDateStr,
-                    targetSection: 'prayer',
-                    targetPrayerCarouselIndex: initialPrayerType === 'open' ? 0 : 0,
-                    targetPrayerId: editingPrayerId,
-                  } : {
-                    selectedDate: selectedDateStr,
-                  },
+                screen: 'Prayer',
+                params: fromNotificationAnsweredCheck ? {
+                  selectedDate: selectedDateStr,
+                  targetPrayerId: editingPrayerId,
+                } : {
+                  selectedDate: selectedDateStr,
                 },
               },
             },
@@ -1564,10 +1559,10 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
       const prayerActivityType = selectedPath?.id === 'acts' ? 'prayer_journal_acts' : 'prayer_journal_open';
       const shouldCheckPrayerStreak = !fromPlaybook || playbookStatus === 'completed';
       let navigatedToStreak = false;
-      if (shouldCheckPrayerStreak) {
-        const shouldShowStreak = await visibleStreakService.shouldShowCelebration(user?.id ?? 'local', prayerActivityType);
+      if (shouldCheckPrayerStreak && !isEditing) {
+        DeviceEventEmitter.emit(FAITHFUL_RHYTHM_UPDATED, {rhythm: 'prayer', selectedDate: dateStr});
+        const shouldShowStreak = await claimFaithfulRhythmCelebration('prayer', dateStr);
         if (shouldShowStreak) {
-          await visibleStreakService.markShownToday(user?.id ?? 'local');
           if (fromPlaybook) {
             DeviceEventEmitter.emit('playbookPrayerSaved', {
               playbookId,
@@ -1578,7 +1573,7 @@ const PrayerJournalWalkthroughScreen: React.FC<Props> = ({ route, navigation }) 
             });
           }
           (navigation as any).navigate('StreakPlan', {
-            userId: user?.id ?? 'local',
+            rhythm: 'prayer',
             source: prayerActivityType,
             dismissRouteCount: 2,
           });

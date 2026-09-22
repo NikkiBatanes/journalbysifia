@@ -15,14 +15,19 @@ import NewSuccessModal from '../components/NewSuccessModal';
 import { useSuccessModal } from '../hooks/useSuccessModal';
 import { triggerLightHaptic } from '../utils/haptics';
 import { useEditModeSafe } from '../systems/journal/context/EditModeContext';
-import { visibleStreakService } from '../services/visibleStreakService';
+import { claimFaithfulRhythmCelebration, FAITHFUL_RHYTHM_UPDATED } from '../services/faithfulRhythmService';
 import { findLocalReflection } from '../storage/reflectionStorage';
 import ThemedText from '../components/common/ThemedText';
-import ThemedTextInput from '../components/common/ThemedTextInput';
+import JournalTextInput from '../components/journal/shared/JournalTextInput';
 import { HEART_JOURNAL_CLASSIFICATIONS, heartJournalClassificationLabel, type HeartJournalClassification } from '../types/heartJournal';
 import { Colors } from '../theme/colors';
 import GuidedReflectionExperience from '../components/journal/GuidedReflectionExperience';
-import { parseGuidedReflection, type GuidedReflectionNote } from '../types/guidedReflection';
+import {
+  guidedEntryKind,
+  guidedEntrySource,
+  parseGuidedReflection,
+  type GuidedReflectionNote,
+} from '../types/guidedReflection';
 import {guidedQuestionTopicForPrompt} from '../data/guidedReflectionQuestions';
 
 interface RouteParams {
@@ -204,15 +209,30 @@ const ReflectionEditorScreen: React.FC = () => {
   }, [params.existingReflection, params.reflectionId]);
 
   const editorRef = useRef<ReflectionLogEditorRef>(null);
+  const canReturnToHeartJournalChooser = Boolean(
+    params.openHeart && !editingId && params.initialMode !== 'guided',
+  );
+  const returnToHeartJournalChooser = useCallback(() => {
+    Keyboard.dismiss();
+    setJournalClassification(undefined);
+    setGuidedFromChooser(false);
+    setNamingOtherClassification(false);
+    setOtherClassificationName('');
+    setSingleGuidedPrompt('');
+    setSingleGuidedTopic('');
+  }, []);
 
   // Close the editor and, when a returnTo route was provided, switch the
   // parent (tab) navigator back to that screen (e.g. 'Today').
   const closeEditor = useCallback(() => {
+    if (canReturnToHeartJournalChooser) {
+      returnToHeartJournalChooser();
+    }
     navigation.goBack();
     if (params.returnTo) {
       (navigation.getParent() as any)?.navigate?.(params.returnTo);
     }
-  }, [navigation, params.returnTo]);
+  }, [canReturnToHeartJournalChooser, navigation, params.returnTo, returnToHeartJournalChooser]);
 
   // Success modal handlers
   const successModal = useSuccessModal(
@@ -252,7 +272,20 @@ const ReflectionEditorScreen: React.FC = () => {
       const normalizedType = rawType === 'free-form' ? 'free' : rawType;
 
       // Determine the source
-      const determinedSource = normalizedType === 'guided' ? 'guided' : (entryData.source || (normalizedType === 'free' ? 'freeform' : undefined));
+      const determinedSource = normalizedType === 'guided'
+        ? guidedEntrySource({
+            type: normalizedType,
+          source: entryData.source ?? existingReflection?.source,
+          content: entryData.content,
+          prompt: entryData.prompt || existingReflection?.prompt || params.initialPrompt,
+          question_topic:
+            entryData.questionTopic
+            || existingReflection?.metadata?.questionTopic
+            || singleGuidedTopic,
+          guided_journey: entryData.guidedJourney,
+            metadata: existingReflection?.metadata,
+          }) || 'guided'
+        : (entryData.source || (normalizedType === 'free' ? 'freeform' : undefined));
 
       // Build save data
       const saveData = {
@@ -307,19 +340,20 @@ const ReflectionEditorScreen: React.FC = () => {
         }, user.id);
       }
 
-      // For new reflections only, check if a streak celebration should show.
-      // If so, the streak screen IS the celebration — skip the success modal.
-      if (!editingId && user) {
-        const shouldShowStreak = await visibleStreakService.shouldShowCelebration(user.id, 'reflection_saved');
+      // A new Heart Journal entry counts once. Guided journeys count only
+      // when completed; their intermediate draft saves do not build a streak.
+      const completesHeartJournal = normalizedType !== 'guided' || entryData.guidedJourney?.completed === true;
+      if (!editingId && completesHeartJournal) {
+        DeviceEventEmitter.emit(FAITHFUL_RHYTHM_UPDATED, {rhythm: 'heart_journal', selectedDate: dateStr});
+        const shouldShowStreak = await claimFaithfulRhythmCelebration('heart_journal', dateStr);
         if (shouldShowStreak) {
           if (globalEditMode?.isGlobalEditMode) {
             globalEditMode.setGlobalEditMode(false);
           }
-          await visibleStreakService.markShownToday(user.id);
           (navigation as any).navigate('StreakPlan', {
-            userId: user.id,
-            source: 'reflection_saved',
-            returnTo: 'journal',
+            rhythm: 'heart_journal',
+            source: 'heart_journal_complete',
+            returnTo: 'moments',
             dismissRouteCount: 2,
           });
           return;
@@ -334,7 +368,7 @@ const ReflectionEditorScreen: React.FC = () => {
         ? 'Note'
         : heartJournalClassificationLabel(savedClassification);
       const successLabel = normalizedType === 'guided'
-        ? 'Guided Reflection'
+        ? determinedSource === 'guided_prompt' ? 'Guided Prompt' : 'Guided Reflection'
         : classificationLabel || 'Reflection';
       setTimeout(() => {
         successModal.showSuccess({
@@ -406,6 +440,9 @@ const ReflectionEditorScreen: React.FC = () => {
     || singleGuidedTopic
     || guidedQuestionTopicForPrompt(legacyGuidedPrompt)
     || undefined;
+  const existingGuidedKind = guidedEntryKind(existingReflection);
+  const usesGuidedPromptEditor = existingGuidedKind === 'prompt'
+    || (!structuredJourney && Boolean(legacyGuidedPrompt));
   // A persisted structured journey must always reopen in its purpose-built
   // saved view. Journal cards also pass its title as `initialPrompt`; treating
   // that as a legacy single-question reflection exposed serialized JSON in
@@ -462,10 +499,8 @@ const ReflectionEditorScreen: React.FC = () => {
         {namingOtherClassification && (
           <View style={{ marginTop: 20 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-              <ThemedTextInput
+              <JournalTextInput themed
                 autoFocus
-                selectionColor={Colors.hopeWhite}
-                cursorColor={Colors.hopeWhite}
                 value={otherClassificationName}
                 onChangeText={setOtherClassificationName}
                 placeholder="Name your journal type... e.g. Dream"
@@ -534,6 +569,7 @@ const ReflectionEditorScreen: React.FC = () => {
           ref={editorRef}
           onSave={handleSave}
           onCancel={handleCancel}
+          onBackToChooser={canReturnToHeartJournalChooser ? returnToHeartJournalChooser : undefined}
           onDelete={editingId ? handleDelete : undefined}
           onUpdateJournalBlocks={handleUpdateJournalBlocks}
           entryId={editingId || undefined}
@@ -542,7 +578,9 @@ const ReflectionEditorScreen: React.FC = () => {
             content: existingReflection.content,
             tags: existingReflection.tags || [],
             type: (existingReflection.type === 'guided' ? 'guided' : 'free-form') as 'free-form' | 'guided',
-            source: existingReflection.source,
+            source: usesGuidedPromptEditor
+              ? 'guided_prompt'
+              : existingReflection.source,
             prompt: existingReflection.prompt || existingReflection.metadata?.prompt,
             questionTopic: guidedQuestionTopic,
             journalClassification: existingReflection.metadata?.journalClassification || existingReflection.journal_classification,
@@ -552,7 +590,9 @@ const ReflectionEditorScreen: React.FC = () => {
             content: '',
             tags: [],
             type: guidedMode ? 'guided' : 'free-form',
-            source: guidedMode ? 'guided' : (params.source || 'freeform'),
+            source: usesGuidedPromptEditor
+              ? 'guided_prompt'
+              : guidedMode ? 'guided' : (params.source || 'freeform'),
             prompt: legacyGuidedPrompt || '',
             journalClassification,
           }}
@@ -561,7 +601,9 @@ const ReflectionEditorScreen: React.FC = () => {
           guidedQuestionTopic={guidedQuestionTopic}
           initialTitle={params.initialTitle || legacyGuidedPrompt || ''}
           lockTitle={params.lockTitle || false}
-          source={existingReflection?.source || (guidedMode ? 'guided' : (params.source || 'freeform'))}
+          source={usesGuidedPromptEditor
+            ? 'guided_prompt'
+            : existingReflection?.source || (guidedMode ? 'guided' : (params.source || 'freeform'))}
           initialJournalClassification={journalClassification || existingReflection?.metadata?.journalClassification || existingReflection?.journal_classification}
           playbookTitle={params.playbookTitle}
           dayNumber={params.dayNumber}

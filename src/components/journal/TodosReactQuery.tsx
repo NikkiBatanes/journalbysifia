@@ -87,7 +87,7 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
   const styles = useMemo(() => momentsPalette ? {
     ...baseStyles,
     todoText: { ...baseStyles.todoText, color: Colors.text },
-    todoItemWrapper: { ...baseStyles.todoItemWrapper, backgroundColor: Colors.cardBackground },
+    todoItemWrapper: { ...baseStyles.todoItemWrapper, backgroundColor: Colors.cardBackground, borderWidth: 1 },
     showMoreButton: { ...baseStyles.showMoreButton, backgroundColor: 'rgba(82, 106, 91, 0.1)' },
     showMoreText: { ...baseStyles.showMoreText, color: Colors.sage },
     saveButton: { ...baseStyles.saveButton, backgroundColor: Colors.sage },

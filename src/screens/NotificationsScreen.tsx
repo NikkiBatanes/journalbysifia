@@ -14,6 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors } from '../theme/colors';
+import HeaderBackButton from '../components/common/HeaderBackButton';
 import ThemedText from '../components/common/ThemedText';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { useNotificationBadge } from '../hooks/useNotificationBadge';
@@ -796,12 +797,10 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
       )}
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
+        <HeaderBackButton
+          color={Colors.hopeWhite}
           onPress={() => { triggerLightHaptic(); navigation.goBack(); }}
-        >
-          <Ionicons name="chevron-back" size={24} color={Colors.hopeWhite} />
-        </TouchableOpacity>
+        />
         <ThemedText weight="bold" style={styles.headerTitle}>
           Notifications
         </ThemedText>

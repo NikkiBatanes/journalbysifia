@@ -48,8 +48,9 @@ export const JournalCard: React.FC<JournalCardProps> = ({
   const momentsPalette = useMomentsPalette();
   const styles = React.useMemo(() => momentsPalette ? {
     ...baseStyles,
-    card: { ...baseStyles.card, backgroundColor: Colors.hopeWhite, borderColor: Colors.cardBorder },
+    card: { ...baseStyles.card, backgroundColor: Colors.hopeWhite, borderColor: Colors.cardBorder, paddingHorizontal: 0 },
     cardInline: { ...baseStyles.cardInline, backgroundColor: 'transparent' },
+    content: { ...baseStyles.content, paddingHorizontal: 0 },
     title: { ...baseStyles.title, color: Colors.sage },
     subtitle: { ...baseStyles.subtitle, color: Colors.textGray },
   } : baseStyles, [momentsPalette]);

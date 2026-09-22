@@ -3,6 +3,7 @@ import {StyleSheet, TextInput, TouchableOpacity, View} from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
 import ThemedText from '../../common/ThemedText';
+import JournalTextInput from './JournalTextInput';
 import {useTheme} from '../../../hooks/useTheme';
 import {getFontFamily} from '../../../theme/fonts';
 import {Colors} from '../../../theme/colors';
@@ -79,7 +80,7 @@ export const JournalListBlock = ({
       <View style={styles.header}>
         <View style={styles.labelRow}>
           <JournalBlockIcon config={config} size={14} color={accent} />
-          <TextInput
+          <JournalTextInput
             ref={registerInput}
             value={title || ''}
             onChangeText={onChangeTitle}
@@ -87,8 +88,7 @@ export const JournalListBlock = ({
             onSubmitEditing={() => inputs.current.get(0)?.focus()}
             placeholder="Add a title…"
             placeholderTextColor={muted}
-            selectionColor={accent}
-            cursorColor={accent}
+            accentColor={accent}
             returnKeyType="next"
             style={[
               styles.titleInput,
@@ -111,7 +111,7 @@ export const JournalListBlock = ({
           <ThemedText weight="semiBold" style={[styles.marker, {color: accent}]}>
             {kind === 'numbered' ? `${index + 1}.` : '•'}
           </ThemedText>
-          <TextInput
+          <JournalTextInput
             ref={input => {
               if (input) {
                 inputs.current.set(index, input);
@@ -130,8 +130,7 @@ export const JournalListBlock = ({
             onFocus={onFocus}
             placeholder="List item"
             placeholderTextColor={muted}
-            selectionColor={accent}
-            cursorColor={accent}
+            accentColor={accent}
             returnKeyType="next"
             submitBehavior="submit"
             multiline

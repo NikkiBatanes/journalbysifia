@@ -28,7 +28,11 @@ import { triggerLightHaptic } from '../../utils/haptics';
 import { useScroll } from '../../context/ScrollContext';
 import { useMomentsPalette } from '../../context/MomentsPaletteContext';
 import { heartJournalClassificationLabel, type HeartJournalClassification } from '../../types/heartJournal';
-import { parseGuidedReflection, type GuidedReflectionNote } from '../../types/guidedReflection';
+import {
+  guidedEntryKind,
+  parseGuidedReflection,
+  type GuidedReflectionNote,
+} from '../../types/guidedReflection';
 import SavedReflectionBlocks from './SavedReflectionBlocks';
 
 // Define styles at the top to avoid hoisting issues
@@ -278,7 +282,9 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     fontWeight: '500',
     letterSpacing: 0.15,
-    width: '100%',
+    // Use the card's inner width so long titles wrap inside its padding.
+    alignSelf: 'stretch',
+    minWidth: 0,
   },
   normalTitleText: {
     fontStyle: 'normal',
@@ -296,7 +302,7 @@ const styles = StyleSheet.create({
   },
   entryCardPalette: {
     backgroundColor: Colors.cardBackground,
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: Colors.inputBorder,
   },
   guidedPromptContainerPalette: {
@@ -305,17 +311,51 @@ const styles = StyleSheet.create({
   guidedPromptTextPalette: {
     color: Colors.sage,
   },
-  guidedTopicSection: {
-    marginTop: 4,
-    marginBottom: 12,
+  guidedStackedPromptContainer: {
+    alignItems: 'flex-start',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.14)',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
   },
-  guidedTopicValue: {
-    color: 'rgba(255, 255, 255, 0.68)',
-    fontSize: 13,
-    lineHeight: 18,
+  guidedStackedPromptContainerPalette: {
+    borderColor: 'rgba(82,106,91,0.18)',
+  },
+  guidedPathLabel: {
+    marginTop: 2,
+    color: Colors.hopeWhite,
+    fontSize: 12,
+    lineHeight: 16,
     fontFamily: Fonts.medium,
   },
-  guidedTopicValuePalette: {
+  guidedPathLabelPalette: {
+    color: Colors.text,
+  },
+  guidedSelections: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 7,
+    marginBottom: 14,
+  },
+  guidedSelectionPill: {
+    borderRadius: 16,
+    paddingHorizontal: 11,
+    paddingVertical: 7,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+  },
+  guidedSelectionPillPalette: {
+    backgroundColor: 'rgba(82,106,91,0.1)',
+    borderColor: 'rgba(82,106,91,0.2)',
+  },
+  guidedSelectionText: {
+    color: Colors.hopeWhite,
+    fontSize: 12,
+    lineHeight: 16,
+  },
+  guidedSelectionTextPalette: {
     color: Colors.sage,
   },
   playbookPromptContainerPalette: {
@@ -942,7 +982,21 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
     );
   };
 
-  const renderEntryCard = (entry: ReflectionLogEntry) => (
+  const renderEntryCard = (entry: ReflectionLogEntry) => {
+    const guidedJourney = entry.type === 'guided'
+      ? parseGuidedReflection(entry.content)
+      : null;
+    const guidedTitle = guidedJourney
+      ? entry.title || guidedJourney.entryTitle || guidedJourney.pathTitle
+      : entry.prompt || entry.title || (guidedEntryKind(entry) === 'prompt' ? 'Guided Prompt' : 'Guided Reflection');
+    const guidedContext = guidedJourney && guidedTitle !== guidedJourney.pathTitle
+      ? guidedJourney.pathTitle
+      : entry.question_topic;
+    const guidedSelections = guidedJourney
+      ? Array.from(new Set(guidedJourney.answers.flatMap(answer => answer.selected || [])))
+      : [];
+
+    return (
     <TouchableOpacity
       key={entry.id}
       style={[
@@ -966,10 +1020,31 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
         </View>
       ) : entry.type === 'guided' ? (
         <View style={styles.guidedPromptRow}>
-          <View style={[styles.guidedPromptContainer, momentsPalette && styles.guidedPromptContainerPalette]}>
-            <ThemedText style={[styles.guidedPromptText, momentsPalette && styles.guidedPromptTextPalette]}>
-              GUIDED REFLECTION
+          <View
+            style={[
+              styles.guidedPromptContainer,
+              styles.guidedStackedPromptContainer,
+              momentsPalette && styles.guidedPromptContainerPalette,
+              momentsPalette && styles.guidedStackedPromptContainerPalette,
+            ]}>
+            <ThemedText
+              style={[
+                styles.guidedPromptText,
+                momentsPalette && styles.guidedPromptTextPalette,
+              ]}>
+              {guidedEntryKind(entry) === 'prompt' ? 'GUIDED PROMPT' : 'GUIDED REFLECTION'}
             </ThemedText>
+            {!!guidedContext && (
+              <ThemedText
+                accessibilityLabel={`${guidedJourney ? 'Guided reflection path' : 'Guided reflection topic'}: ${guidedContext}`}
+                numberOfLines={2}
+                style={[
+                  styles.guidedPathLabel,
+                  momentsPalette && styles.guidedPathLabelPalette,
+                ]}>
+                {guidedContext}
+              </ThemedText>
+            )}
           </View>
           <ThemedText style={styles.timeText}>
             {new Date(entry.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
@@ -988,17 +1063,33 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
 
       {entry.type === 'guided' ? (
         <>
-          {!!entry.question_topic && (
-            <View style={styles.guidedTopicSection}>
-              <ThemedText style={[styles.guidedTopicValue, momentsPalette && styles.guidedTopicValuePalette]}>
-                {entry.question_topic}
-              </ThemedText>
-            </View>
-          )}
-          <ThemedText style={[styles.promptCardText, momentsPalette && styles.promptCardTextPalette]}>{entry.prompt || entry.title || 'Guided Reflection'}</ThemedText>
+          <ThemedText style={[styles.promptCardText, momentsPalette && styles.promptCardTextPalette]}>
+            {guidedTitle}
+          </ThemedText>
         </>
       ) : entry.title ? (
         <ThemedText style={[styles.promptCardText, styles.normalTitleText, momentsPalette && styles.promptCardTextPalette]}>{entry.title}</ThemedText>
+      ) : null}
+
+      {guidedSelections.length ? (
+        <View style={styles.guidedSelections}>
+          {guidedSelections.map(selection => (
+            <View
+              key={selection}
+              style={[
+                styles.guidedSelectionPill,
+                momentsPalette && styles.guidedSelectionPillPalette,
+              ]}>
+              <ThemedText
+                style={[
+                  styles.guidedSelectionText,
+                  momentsPalette && styles.guidedSelectionTextPalette,
+                ]}>
+                {selection}
+              </ThemedText>
+            </View>
+          ))}
+        </View>
       ) : null}
 
       {entry.journal_blocks?.length ? (
@@ -1016,7 +1107,6 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
             const journey = entry.type === 'guided' ? parseGuidedReflection(entry.content) : null;
             if (!journey) {return typeof entry.content === 'string' ? normalizeIncoming(entry.content) : JSON.stringify(entry.content);}
             return journey.answers.flatMap(answer => [
-              ...(answer.selected || []),
               answer.text || '',
               answer.optionalText || '',
               ...Object.values(answer.fields || {}),
@@ -1028,7 +1118,8 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
 
       {/* Removed lower right tags - only show upper left type tags (FREE FORM, PLAYBOOK, GUIDED PROMPT) */}
     </TouchableOpacity>
-  );
+    );
+  };
 
   // Handle errors silently - no annoying alerts
   React.useEffect(() => {

@@ -26,6 +26,7 @@ import { Colors } from '../theme/colors';
 import { Fonts } from '../theme/fonts';
 import { useTheme } from '../theme/ThemeContext';
 import { useScreenStatusBar } from '../hooks/useScreenStatusBar';
+import HeaderBackButton from '../components/common/HeaderBackButton';
 import { triggerLightHaptic, triggerSuccessHaptic } from '../utils/haptics';
 import { scheduleForMeDayReminder } from '../services/forMeDayService';
 import { toLocalDateString } from '../utils/date';
@@ -33,8 +34,9 @@ import { playGospelOpeningSound } from '../utils/soundUtils';
 import PrayerHandsIcon from '../components/common/PrayerHandsIcon';
 import { gospelShareService, GospelShareLink, SharedGospelResponse } from '../services/gospelShareService';
 
-type ViewName = 'home' | 'mode' | 'listen' | 'player' | 'promise' | 'response' | 'prayer' | 'assurance-intro' | 'assurance' | 'birthday' | 'next-steps' | 'other' | 'people' | 'add-person' | 'send' | 'shared-responses';
+type ViewName = 'home' | 'mode' | 'listen' | 'player' | 'promise' | 'response' | 'prayer' | 'assurance-intro' | 'assurance' | 'birthday' | 'next-steps' | 'other' | 'people' | 'add-person-name' | 'add-person-prayer' | 'send' | 'shared-responses';
 type Mode = 'app_self' | 'app_together';
+type ResponseFilter = 'all' | 'praying' | 'others';
 
 const RESPONSE_OPTIONS: Array<{ value: GospelResponse; label: string }> = [
   { value: 'trusted_jesus_today', label: 'Yes. I want to trust and follow Jesus.' },
@@ -100,6 +102,28 @@ const GOSPEL_BACKGROUNDS: Record<string, number> = {
 };
 
 const GOSPEL_BACKGROUND_SOURCES = Object.values(GOSPEL_BACKGROUNDS);
+
+const GOSPEL_SHARE_PROMPTS = [
+  'They have questions',
+  'They’re open to talk',
+  'Invite them for coffee',
+  'Share my story',
+  'Send the Gospel link',
+  'Pray for an opportunity',
+] as const;
+
+const formatPrayerStartedAt = (person: GospelPerson): string | null => {
+  const value = person.prayerStartedAt || person.createdAt;
+  if (!value) {return null;}
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {return null;}
+  return date.toLocaleDateString('en-US', {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    ...(date.getFullYear() === new Date().getFullYear() ? {} : {year: 'numeric'}),
+  }).toUpperCase();
+};
 
 const StaggeredItem = ({ children, delay, animationKey, reduceMotion, pushToBottom, fade }: { children: React.ReactNode; delay: number; animationKey: string; reduceMotion: boolean; pushToBottom: boolean; fade: boolean }) => {
   const motion = useRef(new Animated.Value(reduceMotion ? 1 : 0)).current;
@@ -195,10 +219,15 @@ const GospelScreen: React.FC<any> = ({ navigation }) => {
   const [people, setPeople] = useState<GospelPerson[]>([]);
   const [personName, setPersonName] = useState('');
   const [personNote, setPersonNote] = useState('');
+  const [selectedSharePrompts, setSelectedSharePrompts] = useState<string[]>([]);
   const [sharedResponses, setSharedResponses] = useState<SharedGospelResponse[]>([]);
   const [loadingSharedResponses, setLoadingSharedResponses] = useState(false);
   const [sharingGospel, setSharingGospel] = useState(false);
-  const preparedShareLink = useRef<Promise<GospelShareLink> | null>(null);
+  const [recipientId, setRecipientId] = useState<string | undefined>();
+  const [lockedRecipientId, setLockedRecipientId] = useState<string | undefined>();
+  const [responseFilter, setResponseFilter] = useState<ResponseFilter>('all');
+  const preparedShareLinks = useRef(new Map<string | undefined, Promise<GospelShareLink>>());
+  const shareInProgress = useRef(false);
   const leafBloom = useRef(new Animated.Value(0)).current;
   const birdFlight = useRef(new Animated.Value(0)).current;
   const birthdayReveal = useRef(new Animated.Value(0)).current;
@@ -303,17 +332,18 @@ const GospelScreen: React.FC<any> = ({ navigation }) => {
   useEffect(() => { loadPeople(); }, [loadPeople]);
   useEffect(() => { setPickedChoice(null); }, [pageIndex, view]);
 
-  const prepareShareLink = useCallback(() => {
-    if (preparedShareLink.current) {
-      return preparedShareLink.current;
+  const prepareShareLink = useCallback((personId?: string) => {
+    const cached = preparedShareLinks.current.get(personId);
+    if (cached) {
+      return cached;
     }
 
-    const request = gospelShareService.createLink();
-    preparedShareLink.current = request;
+    const request = gospelShareService.createLink(personId);
+    preparedShareLinks.current.set(personId, request);
     request.catch(() => {
       // Allow the Share button to retry after a failed background request.
-      if (preparedShareLink.current === request) {
-        preparedShareLink.current = null;
+      if (preparedShareLinks.current.get(personId) === request) {
+        preparedShareLinks.current.delete(personId);
       }
     });
     return request;
@@ -323,9 +353,15 @@ const GospelScreen: React.FC<any> = ({ navigation }) => {
     if (view === 'send') {
       // Link creation needs a network round trip. Start it while the person is
       // reading this screen so the native share sheet can open immediately.
-      prepareShareLink();
+      prepareShareLink(recipientId);
     }
-  }, [prepareShareLink, view]);
+  }, [prepareShareLink, recipientId, view]);
+
+  const openSend = (personId?: string) => {
+    setRecipientId(personId);
+    setLockedRecipientId(personId);
+    go('send');
+  };
 
   const startPlayer = (selectedMode: Mode) => {
     setMode(selectedMode);
@@ -375,20 +411,25 @@ const GospelScreen: React.FC<any> = ({ navigation }) => {
       Alert.alert('Add a name or initial', 'This can be as simple as one initial.');
       return;
     }
-    await gospelStorage.addPerson(personName, personNote);
+    const note = [...selectedSharePrompts, personNote.trim()]
+      .filter(Boolean)
+      .join(' · ');
+    await gospelStorage.addPerson(personName, note);
     setPersonName('');
     setPersonNote('');
+    setSelectedSharePrompts([]);
     await loadPeople();
     try { triggerSuccessHaptic(); } catch {}
-    setHistory(current => current.slice(0, -1));
+    setHistory(current => current.slice(0, -2));
     setView('people');
   };
 
   const shareGospel = async () => {
-    if (sharingGospel) {return;}
+    if (shareInProgress.current) {return;}
+    shareInProgress.current = true;
     setSharingGospel(true);
     try {
-      const link = await prepareShareLink();
+      const link = await prepareShareLink(recipientId);
       const result = await Share.share({
         title: 'The Gospel',
         message: `Hey, I wanted to share this with you. It's a short walkthrough of the Gospel you can read whenever you're ready. No pressure to respond to me. ${link.url}`,
@@ -397,17 +438,19 @@ const GospelScreen: React.FC<any> = ({ navigation }) => {
       if (result.action === Share.sharedAction) {
         // Each recipient needs a separate link because a link accepts one
         // private response. Prepare the next one outside the next button tap.
-        preparedShareLink.current = null;
-        prepareShareLink();
+        preparedShareLinks.current.delete(recipientId);
+        prepareShareLink(recipientId);
       }
     } catch {
       Alert.alert('Unable to create a private link', 'Check your connection and make sure you are signed in, then try again.');
     } finally {
+      shareInProgress.current = false;
       setSharingGospel(false);
     }
   };
 
-  const openSharedResponses = async () => {
+  const openSharedResponses = async (filter: ResponseFilter = 'all') => {
+    setResponseFilter(filter);
     go('shared-responses');
     setLoadingSharedResponses(true);
     try {
@@ -454,15 +497,9 @@ const GospelScreen: React.FC<any> = ({ navigation }) => {
   const Header = () => (
     <View pointerEvents="box-none" style={[styles.header, { paddingTop: insets.top + 8 }]}>
       {view === 'home' ? <View style={styles.headerPlaceholder} /> : (
-        <TouchableOpacity
+        <HeaderBackButton
           onPress={withLightHaptic(back)}
-          style={styles.headerButton}
-          activeOpacity={0.7}
-          hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}
-          accessibilityRole="button"
-          accessibilityLabel="Go back">
-          <Ionicons name="chevron-back" size={17} color={Colors.sage} />
-        </TouchableOpacity>
+        />
       )}
       <View pointerEvents="none" style={styles.headerCenterSpacer}>
         {gospelProgress > 0 ? (
@@ -556,9 +593,9 @@ const GospelScreen: React.FC<any> = ({ navigation }) => {
         </View>
         <Card icon="heart-outline" title="Go through the Gospel" body="Read it yourself or walk through it with someone beside you." onPress={() => go('mode')} />
         <Card icon="people-outline" title="People I'm praying for" body="Remember people, conversations, and follow-up." onPress={() => go('people')} />
-        <Card icon="heart-outline" title="Shared responses" body="See only responses people chose to share with you." onPress={openSharedResponses} />
+        <Card icon="heart-outline" title="Shared responses" body="See only responses people chose to share with you." onPress={() => openSharedResponses()} />
         <View style={styles.divider} />
-        <Card icon="paper-plane-outline" title="Send the Gospel" body="Let someone read it privately on their own device." onPress={() => go('send')} />
+        <Card icon="paper-plane-outline" title="Send the Gospel" body="Let someone read it privately on their own device." onPress={() => openSend()} />
         <Text style={[styles.privacy, font]}>No spiritual response is required to access or share the Gospel.</Text>
       </>;
     }
@@ -973,22 +1010,40 @@ const GospelScreen: React.FC<any> = ({ navigation }) => {
 
     if (view === 'people') {
       return <>
-        <Text style={[styles.eyebrow, font]}>GOSPEL TRACK</Text>
-        <Text style={[styles.title, font]}>Pray. Share. Follow up.</Text>
-        <Text style={[styles.body, font]}>This is about remembering people, not collecting conversion numbers.</Text>
-        <Card icon="person-add-outline" title="Add someone to pray for" body="Name or initial · private to you" onPress={() => go('add-person')} />
-        {people.map(person => <View key={person.id} style={styles.personCard}>
-          <View style={styles.personInitial}><Text style={[styles.personInitialText, font]}>{person.displayName.charAt(0).toUpperCase()}</Text></View>
-          <View style={styles.flex}><Text style={[styles.cardTitle, font]}>{person.displayName}</Text><Text style={[styles.cardBody, font]}>{person.note || 'Someone you want to remember in prayer.'}</Text></View>
-          <TouchableOpacity accessibilityLabel={`Pray for ${person.displayName}`} onPress={withLightHaptic(() => navigation.navigate('PrayersForPeopleWalkthrough', { initialPersonName: person.displayName, initialPrayerType: 'pray-for-someone' }))} style={styles.prayButton}>
-            <Ionicons name="heart-outline" size={19} color={Colors.sage} />
-          </TouchableOpacity>
-        </View>)}
+        <View style={styles.walkthroughLabel}>
+          <Ionicons name="paper-plane-outline" size={16} color={Colors.sage} />
+          <Text style={[styles.walkthroughEyebrow, font]}>GOSPEL TRACK</Text>
+        </View>
+        <Text style={[styles.walkthroughTitle, font]}>Pray. Share. Follow up.</Text>
+        <Text style={[styles.walkthroughDescription, font]}>Keep track of the people you are praying will know Christ, then share the Gospel and follow up with care.</Text>
+        <Card icon="person-add-outline" title="Add someone to pray for" body="Pray for them and prepare to share the Gospel" onPress={() => go('add-person-name')} />
+        {people.map(person => {
+          const prayerStartedAt = formatPrayerStartedAt(person);
+          return <View key={person.id} style={styles.personCard}>
+            <View style={styles.personInitial}><Text style={[styles.personInitialText, font]}>{person.displayName.charAt(0).toUpperCase()}</Text></View>
+            <View style={styles.flex}>
+              <Text style={[styles.cardTitle, font]}>{person.displayName}</Text>
+              <Text style={[styles.cardBody, font]}>{person.note || 'Praying that they will know Christ and for an opportunity to share the Gospel.'}</Text>
+              {prayerStartedAt ? <Text style={[styles.personHistoryText, font]}>Began praying · {prayerStartedAt}</Text> : null}
+            </View>
+            <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Pray for ${person.displayName}`} onPress={withLightHaptic(() => navigation.navigate('PrayersForPeopleWalkthrough', { initialPersonName: person.displayName, initialPrayerType: 'pray-for-someone' }))} style={styles.prayButton}>
+              <PrayerHandsIcon size={20} color={Colors.sage} strokeWidth={2.2} />
+            </TouchableOpacity>
+            <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Send the Gospel to ${person.displayName}`} onPress={withLightHaptic(() => openSend(person.id))} style={styles.prayButton}>
+              <Ionicons name="paper-plane-outline" size={19} color={Colors.sage} />
+            </TouchableOpacity>
+          </View>;
+        })}
         {!people.length ? <Text style={[styles.emptyText, font]}>No one added yet. Names stay on this device and are private to you.</Text> : null}
       </>;
     }
 
     if (view === 'shared-responses') {
+      const peopleById = new Map(people.map(person => [person.id, person]));
+      const visibleResponses = sharedResponses.filter(item => {
+        const isPraying = peopleById.has(item.gospel_share_links.person_id || '');
+        return responseFilter === 'all' || (responseFilter === 'praying' ? isPraying : !isPraying);
+      });
       const responseLabels: Record<SharedGospelResponse['response'], string> = {
         trusted_jesus_today: 'I want to trust and follow Jesus.',
         has_questions: 'I have questions.',
@@ -999,40 +1054,156 @@ const GospelScreen: React.FC<any> = ({ navigation }) => {
         <Text style={[styles.eyebrow, font]}>SHARED WITH YOU</Text>
         <Text style={[styles.title, font]}>Responses</Text>
         <Text style={[styles.body, font]}>Only answers people chose to share appear here. Their reading activity stays private.</Text>
+        <View style={styles.filterRow}>
+          {([['all', 'Everyone'], ['praying', "People I'm praying for"], ['others', 'Other recipients']] as const).map(([value, label]) => (
+            <TouchableOpacity
+              key={value}
+              accessibilityRole="button"
+              accessibilityLabel={label}
+              accessibilityState={{ selected: responseFilter === value }}
+              activeOpacity={0.75}
+              onPress={withLightHaptic(() => setResponseFilter(value))}
+              style={[styles.filterPill, responseFilter === value && styles.filterPillActive]}>
+              <Text style={[styles.filterPillText, responseFilter === value && styles.filterPillTextActive, font]}>{label}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
         {loadingSharedResponses ? <Text style={[styles.emptyText, font]}>Loading responses…</Text> : null}
-        {!loadingSharedResponses && !sharedResponses.length ? <Text style={[styles.emptyText, font]}>No responses have been shared with you yet.</Text> : null}
-        {sharedResponses.map(item => <View key={item.id} style={styles.sharedResponseCard}>
-          <Ionicons name="heart-outline" size={21} color={Colors.sage} />
-          <View style={styles.flex}>
-            {item.responder_name ? <Text style={[styles.sharedResponseName, font]}>{item.responder_name}</Text> : null}
-            <Text style={[styles.sharedResponseText, font]}>{responseLabels[item.response]}</Text>
-            {item.spiritual_birthday ? <Text style={[styles.sharedResponseBirthday, font]}>Spiritual birthday · {new Date(`${item.spiritual_birthday}T12:00:00`).toLocaleDateString()}</Text> : null}
-            <Text style={[styles.sharedResponseDate, font]}>{new Date(item.consented_at).toLocaleDateString()}</Text>
+        {!loadingSharedResponses && !visibleResponses.length ? (
+          <View style={styles.responsesEmptyState} accessibilityRole="summary">
+            <Ionicons testID="shared-responses-empty-icon" name="chatbubbles-outline" size={32} color={Colors.textGray} style={styles.responsesEmptyIcon} />
+            <Text style={[styles.responsesEmptyTitle, font]}>No Responses Yet</Text>
           </View>
-        </View>)}
+        ) : null}
+        {!loadingSharedResponses && visibleResponses.map(item => {
+          const person = peopleById.get(item.gospel_share_links.person_id || '');
+          return <View key={item.id} style={styles.sharedResponseCard}>
+            <Ionicons name="heart-outline" size={21} color={Colors.sage} />
+            <View style={styles.flex}>
+              <Text style={[styles.sharedResponseName, font]}>{person?.displayName || item.responder_name || 'Someone'}</Text>
+              {person && item.responder_name && item.responder_name !== person.displayName ? <Text style={[styles.cardBody, font]}>Shared as {item.responder_name}</Text> : null}
+              <Text style={[styles.sharedResponseText, font]}>{responseLabels[item.response]}</Text>
+              {item.optional_message ? <Text style={[styles.cardBody, font]}>{item.optional_message}</Text> : null}
+              {item.spiritual_birthday ? <Text style={[styles.sharedResponseBirthday, font]}>Spiritual birthday · {new Date(`${item.spiritual_birthday}T12:00:00`).toLocaleDateString()}</Text> : null}
+              <Text style={[styles.sharedResponseDate, font]}>{new Date(item.consented_at).toLocaleDateString()}</Text>
+            </View>
+          </View>;
+        })}
       </>;
     }
 
-    if (view === 'add-person') {
+    if (view === 'add-person-name') {
       return <>
-        <Text style={[styles.eyebrowCenter, font]}>PRIVATE TO YOU</Text>
-        <Text style={[styles.title, styles.center, font]}>Who do you want to remember?</Text>
-        <TextInput value={personName} onChangeText={setPersonName} placeholder="Name or initial" placeholderTextColor="#7A857F" style={[styles.input, font]} autoFocus />
-        <TextInput value={personNote} onChangeText={setPersonNote} placeholder="Optional note or prayer prompt" placeholderTextColor="#7A857F" style={[styles.input, styles.noteInput, font]} multiline />
-        <Action label="Add to Gospel Track" onPress={addPerson} />
+        <View style={styles.walkthroughLabel}>
+          <PrayerHandsIcon size={16} color={Colors.sage} />
+          <Text style={[styles.walkthroughEyebrow, font]}>PRAY & SHARE</Text>
+        </View>
+        <Text style={[styles.walkthroughTitle, font]}>Who do you want to share the Gospel with?</Text>
+        <Text style={[styles.walkthroughDescription, font]}>Begin by praying that they will come to know Christ.</Text>
+        <TextInput
+          accessibilityLabel="Name or initial"
+          value={personName}
+          onChangeText={setPersonName}
+          placeholder="Enter their name..."
+          placeholderTextColor="#7A857F"
+          style={[styles.walkthroughInput, font]}
+          autoFocus
+          keyboardAppearance="light"
+          returnKeyType="next"
+          onSubmitEditing={() => personName.trim() && go('add-person-prayer')}
+        />
+        {personName.trim() ? (
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel="Continue"
+            onPress={withLightHaptic(() => go('add-person-prayer'))}
+            style={styles.walkthroughNextButton}>
+            <Ionicons name="chevron-forward" size={24} color={Colors.hopeWhite} />
+          </TouchableOpacity>
+        ) : null}
       </>;
     }
+
+    if (view === 'add-person-prayer') {
+      return <>
+        <View style={styles.walkthroughLabel}>
+          <PrayerHandsIcon size={16} color={Colors.sage} />
+          <Text style={[styles.walkthroughEyebrow, font]}>PRAY & SHARE</Text>
+        </View>
+        <Text style={[styles.walkthroughTitle, font]}>As you pray for {personName.trim()}, what would help you share the Gospel with them?</Text>
+        <Text style={[styles.walkthroughDescription, font]}>Choose anything that fits, or add your own note.</Text>
+        <View style={styles.sharePromptPills}>
+          {GOSPEL_SHARE_PROMPTS.map(prompt => {
+            const selected = selectedSharePrompts.includes(prompt);
+            return (
+              <TouchableOpacity
+                key={prompt}
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: selected }}
+                activeOpacity={0.75}
+                onPress={withLightHaptic(() => setSelectedSharePrompts(current => current.includes(prompt)
+                  ? current.filter(item => item !== prompt)
+                  : [...current, prompt]))}
+                style={[styles.filterPill, selected && styles.filterPillActive]}>
+                {selected ? <Ionicons name="checkmark" size={14} color={Colors.hopeWhite} /> : null}
+                <Text style={[styles.filterPillText, selected && styles.filterPillTextActive, font]}>{prompt}</Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+        <TextInput
+          accessibilityLabel={`Optional note about ${personName.trim()}`}
+          value={personNote}
+          onChangeText={setPersonNote}
+          placeholder="Add your own note (optional)..."
+          placeholderTextColor="#7A857F"
+          style={[styles.walkthroughInput, styles.walkthroughMultilineInput, font]}
+          multiline
+          textAlignVertical="top"
+          keyboardAppearance="light"
+        />
+        <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel={`Add ${personName.trim()} to people I'm praying for`}
+          onPress={withLightHaptic(() => { void addPerson(); })}
+          style={styles.walkthroughNextButton}>
+          <Ionicons name="checkmark" size={24} color={Colors.hopeWhite} />
+        </TouchableOpacity>
+      </>;
+    }
+
+    const lockedRecipient = lockedRecipientId
+      ? people.find(person => person.id === lockedRecipientId)
+      : undefined;
+    const recipientOptions = lockedRecipient
+      ? [{id: lockedRecipient.id as string | undefined, label: lockedRecipient.displayName}]
+      : [...people.map(person => ({id: person.id as string | undefined, label: person.displayName})), {id: undefined, label: 'Someone else'}];
 
     return <>
-      <Text style={[styles.eyebrowCenter, font]}>SHARE PRIVATELY</Text>
-      <Text style={[styles.title, styles.center, font]}>Send the good news to someone.</Text>
-      <Text style={[styles.body, styles.center, font]}>They can go through the Gospel privately, on their own device, at their own pace.</Text>
+      <View style={styles.walkthroughLabel}>
+        <Ionicons name="paper-plane-outline" size={16} color={Colors.sage} />
+        <Text style={[styles.walkthroughEyebrow, font]}>SHARE PRIVATELY</Text>
+      </View>
+      <Text style={[styles.walkthroughTitle, font]}>Send the good news to someone.</Text>
+      <Text style={[styles.walkthroughDescription, font]}>They can go through the Gospel privately, on their own device, at their own pace.</Text>
       <Card icon="paper-plane-outline" title="Gospel link" body="No Journal account is required to read it." />
+      <Text style={[styles.cardTitle, font]}>Who are you sending it to?</Text>
+      <Text style={[styles.cardBody, styles.recipientHelp, font]}>{lockedRecipient
+        ? `This private Gospel link will be connected to ${lockedRecipient.displayName}.`
+        : "Choose someone you're praying for to keep their shared response with their name, or send to someone else."}</Text>
+      {recipientOptions.map(option => (
+        <TouchableOpacity key={option.id || 'other-recipient'} accessibilityRole="radio" accessibilityLabel={option.label} accessibilityState={{ checked: recipientId === option.id, disabled: sharingGospel || !!lockedRecipient }} disabled={sharingGospel || !!lockedRecipient} onPress={withLightHaptic(() => setRecipientId(option.id))} style={[styles.choice, recipientId === option.id && styles.choiceSelected]}>
+          <View style={[styles.radio, recipientId === option.id && styles.radioSelected]} />
+          <Text style={[styles.choiceText, font]}>{option.label}</Text>
+        </TouchableOpacity>
+      ))}
       <View style={styles.note}><Text style={[styles.noteText, font]}>Their reading activity and private response are never visible to you. They can choose whether to share their final response with you.</Text></View>
       <Action label={sharingGospel ? 'Preparing link…' : 'Share the Gospel'} onPress={shareGospel} trailingIcon="paper-plane-outline" disabled={sharingGospel} />
       <Action label="Go through it together instead" onPress={() => startPlayer('app_together')} secondary />
     </>;
   };
+
+  const isPrayShareWalkthrough = view === 'people' || view === 'add-person-name' || view === 'add-person-prayer' || view === 'send';
 
   return (
     <ImageBackground
@@ -1053,8 +1224,16 @@ const GospelScreen: React.FC<any> = ({ navigation }) => {
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}>
-          <View style={[styles.scrollHeaderSpacer, { paddingTop: insets.top + 8 }]} />
-          <Animated.View style={[styles.content, { paddingBottom: Math.max(insets.bottom + 32, 48) }, (view === 'player' || view === 'promise' || view === 'response' || view === 'prayer' || view === 'assurance-intro' || view === 'assurance' || view === 'birthday' || view === 'next-steps') && styles.playerContent]}>
+          {!isPrayShareWalkthrough ? <View style={[styles.scrollHeaderSpacer, { paddingTop: insets.top + 8 }]} /> : null}
+          <Animated.View style={[
+            styles.content,
+            isPrayShareWalkthrough && styles.walkthroughContent,
+            {
+              paddingTop: isPrayShareWalkthrough ? insets.top + 8 : 52,
+              paddingBottom: Math.max(insets.bottom + 32, 48),
+            },
+            (view === 'player' || view === 'promise' || view === 'response' || view === 'prayer' || view === 'assurance-intro' || view === 'assurance' || view === 'birthday' || view === 'next-steps') && styles.playerContent,
+          ]}>
             <StaggeredPage animationKey={staggerKey} reduceMotion={reduceMotion || (view === 'player' && GOSPEL_PAGES[pageIndex].id === 'risen')}>{renderContent()}</StaggeredPage>
           </Animated.View>
         </ScrollView>
@@ -1087,6 +1266,7 @@ const styles = StyleSheet.create({
   scrollHeaderSpacer: { minHeight: 58, paddingBottom: 8 },
   scrollContent: { flexGrow: 1 },
   content: { flexGrow: 1, padding: 22, paddingTop: 52, paddingBottom: 48, maxWidth: 640, width: '100%', alignSelf: 'center' },
+  walkthroughContent: { paddingHorizontal: 24 },
   playerContent: { flexGrow: 1 },
   playerAction: { marginTop: 'auto', paddingTop: 24 },
   hero: { backgroundColor: '#30483A', padding: 26, borderRadius: 24, marginTop: 12, marginBottom: 18 },
@@ -1280,17 +1460,33 @@ const styles = StyleSheet.create({
   readingStepStrong: { color: '#30483A', fontWeight: '700' },
   sectionTop: { marginTop: 32 },
   personCard: { ...ivorySurface, flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 24, padding: 14, marginBottom: 10 },
+  filterRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 12 },
+  filterPill: { flexDirection: 'row', gap: 6, alignSelf: 'flex-start', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(82, 106, 91, 0.08)', borderWidth: 0.5, borderColor: 'rgba(82, 106, 91, 0.2)', borderRadius: 28, paddingHorizontal: 18, paddingVertical: 14 },
+  filterPillActive: { backgroundColor: Colors.sageMuted, borderColor: Colors.sage },
+  filterPillText: { color: Colors.text, fontSize: 15, lineHeight: 20 },
+  filterPillTextActive: { color: Colors.hopeWhite },
+  recipientHelp: { marginTop: 6, marginBottom: 14 },
   personInitial: { width: 42, height: 42, borderRadius: 21, backgroundColor: '#E5ECE5', alignItems: 'center', justifyContent: 'center' },
   personInitialText: { color: '#526A59', fontWeight: '800', fontSize: 17 },
+  personHistoryText: { color: '#718078', fontSize: 11, lineHeight: 16, fontWeight: '600', marginTop: 6 },
   sharedResponseCard: { ...ivorySurface, flexDirection: 'row', gap: 13, alignItems: 'flex-start', borderRadius: 18, padding: 16, marginTop: 12 },
   sharedResponseName: { color: '#30483A', fontSize: 16, lineHeight: 21, fontWeight: '800', marginBottom: 2 },
   sharedResponseText: { color: '#213329', fontSize: 16, lineHeight: 23, fontWeight: '600' },
   sharedResponseBirthday: { color: '#526A59', fontSize: 12, lineHeight: 17, fontWeight: '700', marginTop: 6 },
   sharedResponseDate: { color: '#718078', fontSize: 12, marginTop: 5 },
+  responsesEmptyState: { flex: 1, minHeight: 180, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 32, paddingVertical: 40 },
+  responsesEmptyIcon: { marginBottom: 8 },
+  responsesEmptyTitle: { color: Colors.text, fontSize: 18, lineHeight: 24, fontWeight: '600', textAlign: 'center' },
   prayButton: { width: 42, height: 42, borderRadius: 21, borderWidth: 1, borderColor: '#C9D4CB', alignItems: 'center', justifyContent: 'center' },
   emptyText: { color: '#6F7D75', textAlign: 'center', lineHeight: 21, paddingVertical: 22 },
-  input: { ...ivorySurface, borderRadius: 24, paddingHorizontal: 16, paddingVertical: 14, fontSize: 16, color: '#24342C', marginBottom: 12 },
-  noteInput: { minHeight: 110, textAlignVertical: 'top' },
+  walkthroughLabel: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 32, marginBottom: 8 },
+  walkthroughEyebrow: { color: Colors.sageMuted, fontSize: 11, fontWeight: '700', letterSpacing: 1 },
+  walkthroughTitle: { color: Colors.text, fontSize: 24, lineHeight: 32, fontWeight: '700', textAlign: 'center', marginBottom: 8 },
+  walkthroughDescription: { color: Colors.textGray, fontSize: 16, lineHeight: 24, textAlign: 'center', marginBottom: 24 },
+  sharePromptPills: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 10, marginBottom: 12 },
+  walkthroughInput: { backgroundColor: 'transparent', paddingHorizontal: 0, paddingVertical: 16, minHeight: 56, color: '#24342C', fontSize: 18 },
+  walkthroughMultilineInput: { minHeight: 150 },
+  walkthroughNextButton: { alignSelf: 'flex-end', width: 40, height: 40, borderRadius: 20, backgroundColor: Colors.sage, alignItems: 'center', justifyContent: 'center', marginTop: 'auto', shadowColor: '#29342E', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 4 },
 });
 
 export default GospelScreen;

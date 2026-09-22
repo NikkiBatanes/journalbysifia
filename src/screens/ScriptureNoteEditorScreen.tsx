@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Alert,
   Animated,
+  DeviceEventEmitter,
   Easing,
   Keyboard,
   KeyboardAvoidingView,
@@ -37,6 +38,7 @@ import { toLocalDateString } from '../utils/date';
 import { triggerLightHaptic, triggerMediumHaptic } from '../utils/haptics';
 import { useSuccessModal } from '../hooks/useSuccessModal';
 import { Logger } from '../utils/ProductionLogger';
+import { claimFaithfulRhythmCelebration, FAITHFUL_RHYTHM_UPDATED } from '../services/faithfulRhythmService';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFloatingKeyboardButton } from '../hooks/useFloatingKeyboardButton';
 import { JournalComposerBar, JournalPickerMenu } from '../components/journal/shared/JournalComposer';
@@ -410,6 +412,19 @@ const ScriptureNoteEditorScreen: React.FC = () => {
           selected_date: dateStr,
           metadata: { book, reference: trimmedReference, chapter_verse: chapterVerse, version: resolvedVerse?.version || params.version || 'NASB', journalBlocks },
         });
+      }
+
+      if (!editingId) {
+        DeviceEventEmitter.emit(FAITHFUL_RHYTHM_UPDATED, {rhythm: 'heart_journal', selectedDate: dateStr});
+        if (await claimFaithfulRhythmCelebration('heart_journal', dateStr)) {
+          setIsSaving(false);
+          (navigation as any).navigate('StreakPlan', {
+            rhythm: 'heart_journal',
+            source: 'scripture_note_complete',
+            returnTo: 'moments',
+          });
+          return;
+        }
       }
 
       setTimeout(() => {

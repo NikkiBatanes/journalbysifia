@@ -18,6 +18,11 @@ function toCacheKey(reference: string, version: string): string {
   return `${version.toUpperCase()}:${reference.toLowerCase().replace(/\s+/g, '')}`;
 }
 
+/** Synchronous access for screens that should render a warm passage immediately. */
+export function getCachedScripturePassage(reference: string, version = 'NASB'): ScriptureReaderResult | null {
+  return passageCache.get(toCacheKey(reference, version)) ?? null;
+}
+
 async function getStoredPassage(key: string): Promise<ScriptureReaderResult | null> {
   try {
     const stored = await AsyncStorage.getItem(`scripture-passage:${key}`);
@@ -80,7 +85,8 @@ export async function getScripturePassage(
     };
 
     passageCache.set(cacheKey, result);
-    await storePassage(cacheKey, result);
+    // Disk persistence must not delay displaying an already downloaded passage.
+    void storePassage(cacheKey, result);
     return result;
   })();
 

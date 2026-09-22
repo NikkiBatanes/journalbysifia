@@ -1,9 +1,9 @@
-import React, {useCallback, useEffect, useRef, useState} from 'react';
+import React, {useCallback, useEffect, useState} from 'react';
 import {
   Alert,
   DeviceEventEmitter,
   KeyboardAvoidingView,
-  Image,
+  Dimensions,
   Platform,
   ScrollView,
   StyleSheet,
@@ -13,12 +13,14 @@ import {
   View,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import {SafeAreaView} from 'react-native-safe-area-context';
+import {SafeAreaView, useSafeAreaInsets} from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import Share from 'react-native-share';
-import ViewShot from 'react-native-view-shot';
+import {Pencil} from 'lucide-react-native';
+import ShareComposer from '../components/TruthToCarryShareComposer';
+import ForMeDayShareCard, {getForMeDayShareText, type ForMeDayShareData} from '../components/ForMeDayShareCard';
 import {format} from 'date-fns';
 import ThemedText from '../components/common/ThemedText';
+import HeaderBackButton from '../components/common/HeaderBackButton';
 import {Colors} from '../theme/colors';
 import {Fonts} from '../theme/fonts';
 import {gospelStorage, type ForMeDaySettings} from '../storage/gospelStorage';
@@ -55,6 +57,7 @@ const ordinal = (value: number): string => {
 };
 
 const ForMeDayScreen: React.FC<any> = ({navigation, route}) => {
+  const insets = useSafeAreaInsets();
   const [settings, setSettings] = useState<Omit<ForMeDaySettings, 'updatedAt'>>(
     defaults(),
   );
@@ -63,8 +66,8 @@ const ForMeDayScreen: React.FC<any> = ({navigation, route}) => {
   const [showPicker, setShowPicker] = useState(false);
   const [reflection, setReflection] = useState('');
   const [showReflection, setShowReflection] = useState(false);
-  const [sharing, setSharing] = useState(false);
-  const shotRef = useRef<ViewShot>(null);
+  const [shareComposerOpen, setShareComposerOpen] = useState(false);
+  const [sharePreviewWidth, setSharePreviewWidth] = useState(Dimensions.get('window').width - 44);
 
   useEffect(() => {
     gospelStorage.getForMeDaySettings().then(value => {
@@ -79,6 +82,7 @@ const ForMeDayScreen: React.FC<any> = ({navigation, route}) => {
 
   const birthdayDate = new Date(`${settings.spiritualBirthday}T12:00:00`);
   const years = getForMeDayYears(settings.spiritualBirthday);
+  const isFirstDay = settings.spiritualBirthday === format(new Date(), 'yyyy-MM-dd');
 
   const saveSettings = useCallback(async () => {
     const saved = await gospelStorage.saveForMeDaySettings(settings);
@@ -119,33 +123,15 @@ const ForMeDayScreen: React.FC<any> = ({navigation, route}) => {
     );
   }, [reflection, settings.spiritualBirthday, years]);
 
-  const shareCard = useCallback(async () => {
-    if (!shotRef.current?.capture || sharing) {
-      return;
-    }
-    setSharing(true);
-    try {
-      const uri = await shotRef.current.capture();
-      await Share.open({
-        title: 'My For Me Day',
-        message:
-          'The Gospel became personal. It was good news for me. — Journal by siFia',
-        url: uri.startsWith('file://') ? uri : `file://${uri}`,
-        type: 'image/png',
-        failOnCancel: false,
-      });
-    } catch (error: any) {
-      if (
-        !String(error?.message || '')
-          .toLowerCase()
-          .includes('cancel')
-      ) {
-        Alert.alert('Unable to share', 'Please try again.');
-      }
-    } finally {
-      setSharing(false);
-    }
-  }, [sharing]);
+  const milestone: ForMeDayShareData = {
+    title: isFirstDay ? 'Today, I begin\nmy life with Jesus.' : 'My life with Jesus\nbegan here.',
+    occasion: isFirstDay
+      ? 'A NEW BEGINNING'
+      : settings.includeYearWhenSharing && years
+        ? `${years} ${years === 1 ? 'YEAR' : 'YEARS'} OF FOLLOWING JESUS`
+        : 'A BEGINNING WORTH CELEBRATING',
+    date: format(birthdayDate, 'MMMM d, yyyy'),
+  };
 
   if (!loaded) {
     return <View style={styles.loading} />;
@@ -178,16 +164,11 @@ const ForMeDayScreen: React.FC<any> = ({navigation, route}) => {
   ];
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.headerButton}
+    <SafeAreaView style={styles.safe} edges={['left', 'right', 'bottom']}>
+      <View style={[styles.header, {paddingTop: insets.top + 10}]}>
+        <HeaderBackButton
           onPress={() => navigation.goBack()}
-          hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}
-          accessibilityRole="button"
-          accessibilityLabel="Go back">
-          <Ionicons name="chevron-back" size={22} color={Colors.sage} />
-        </TouchableOpacity>
+        />
         <ThemedText style={styles.headerTitle}>My For Me Day</ThemedText>
         <TouchableOpacity
           style={styles.headerButton}
@@ -196,7 +177,7 @@ const ForMeDayScreen: React.FC<any> = ({navigation, route}) => {
           accessibilityRole="button"
           accessibilityLabel={editing ? 'Save settings' : 'Edit For Me Day'}>
           {editing ? (
-            <ThemedText style={styles.headerSave}>Save</ThemedText>
+            <Ionicons name="checkmark" size={21} color={Colors.sage} />
           ) : (
             <Ionicons name="settings-outline" size={19} color={Colors.sage} />
           )}
@@ -210,16 +191,21 @@ const ForMeDayScreen: React.FC<any> = ({navigation, route}) => {
           keyboardShouldPersistTaps="handled">
           {editing ? (
             <>
-              <View style={styles.settingsIntro}>
-                <View style={styles.settingsIntroIcon}>
-                  <Ionicons name="sparkles-outline" size={20} color={Colors.sage} />
-                </View>
-                <View style={styles.settingsIntroCopy}>
-                  <ThemedText style={styles.settingsIntroTitle}>Remember your spiritual birthday</ThemedText>
-                  <ThemedText style={styles.settingsIntroBody}>
-                    The day the Gospel became personal to you.
+              <View style={styles.settingsHero}>
+                <View style={styles.settingsHeroTop}>
+                  <View style={styles.settingsHeroIcon}>
+                    <Ionicons name="gift-outline" size={20} color={Colors.faithGold} />
+                  </View>
+                  <ThemedText style={styles.settingsHeroEyebrow}>
+                    MY FOR ME DAY
                   </ThemedText>
                 </View>
+                <ThemedText style={styles.settingsHeroTitle}>
+                  Your spiritual birthday
+                </ThemedText>
+                <ThemedText style={styles.settingsHeroBody}>
+                  The day you accepted Jesus as your Lord and Savior and committed your life to following Him.
+                </ThemedText>
               </View>
 
               <ThemedText style={styles.sectionLabel}>THE DATE</ThemedText>
@@ -296,38 +282,20 @@ const ForMeDayScreen: React.FC<any> = ({navigation, route}) => {
             </>
           ) : (
             <>
-              <ThemedText style={styles.eyebrow}>A PERSONAL MILESTONE</ThemedText>
-              <ThemedText style={styles.pageTitle}>The day grace became personal.</ThemedText>
-              <ThemedText style={styles.pageIntro}>
-                A place to remember how your story with Jesus began—and how He has carried you since.
+              <ThemedText style={styles.eyebrow}>YOUR SPIRITUAL BIRTHDAY</ThemedText>
+              <ThemedText weight="bold" style={styles.pageTitle}>
+                {isFirstDay
+                  ? 'Today, you committed your life to Jesus.'
+                  : 'Remember the day you committed your life to Jesus.'}
               </ThemedText>
-              <ViewShot
-                ref={shotRef}
-                options={{format: 'png', quality: 1, result: 'tmpfile'}}
-                style={styles.milestoneCard}>
-                <View style={styles.decorativeOrbOne} />
-                <View style={styles.decorativeOrbTwo} />
-                <View style={styles.milestoneTop}>
-                  <ThemedText style={styles.milestoneKicker}>MY FOR ME DAY</ThemedText>
-                  <Ionicons name="sparkles-outline" size={20} color={Colors.faithGold} />
-                </View>
-                <View style={styles.milestoneCenter}>
-                  {settings.includeYearWhenSharing && years ? (
-                    <>
-                      <ThemedText style={styles.yearNumber}>{years}</ThemedText>
-                      <ThemedText style={styles.yearLabel}>
-                        {years === 1 ? 'YEAR OF GRACE' : 'YEARS OF GRACE'}
-                      </ThemedText>
-                    </>
-                  ) : null}
-                  <View style={styles.goldRule} />
-                  <ThemedText style={styles.milestoneQuote}>“It was good news for me.”</ThemedText>
-                </View>
-                <View style={styles.milestoneBottom}>
-                  <ThemedText style={styles.milestoneDate}>{format(birthdayDate, 'MMMM d, yyyy').toUpperCase()}</ThemedText>
-                  <Image source={require('../../assets/images/journalbysifia.png')} resizeMode="contain" style={styles.shareLogo} />
-                </View>
-              </ViewShot>
+              <ThemedText style={styles.pageIntro}>
+                {isFirstDay
+                  ? 'Celebrate this beginning. You have accepted Him as Lord and Savior and begun following Him.'
+                  : 'Celebrate the day you accepted Him as Lord and Savior and began following Him.'}
+              </ThemedText>
+              <View style={styles.milestonePreview} onLayout={event => setSharePreviewWidth(event.nativeEvent.layout.width)}>
+                <ForMeDayShareCard data={milestone} width={sharePreviewWidth} />
+              </View>
 
               <View style={styles.sectionHeadingRow}>
                 <ThemedText style={styles.sectionHeading}>Your story</ThemedText>
@@ -336,7 +304,7 @@ const ForMeDayScreen: React.FC<any> = ({navigation, route}) => {
               <View style={styles.storyCard}>
                 <ThemedText style={styles.storyText}>
                   {settings.originalStory?.trim() ||
-                    'This is the day you chose to remember when the Gospel became personal.'}
+                    'This is the day you accepted Jesus as your Lord and Savior and committed your life to following Him.'}
                 </ThemedText>
               </View>
               {!showReflection ? (
@@ -348,34 +316,36 @@ const ForMeDayScreen: React.FC<any> = ({navigation, route}) => {
                         triggerLightHaptic();
                         setShowReflection(true);
                       }}>
-                      <Ionicons
-                        name="create-outline"
+                      <Pencil
                         size={18}
                         color={Colors.hopeWhite}
+                        strokeWidth={1.8}
                       />
                       <ThemedText style={styles.primaryText}>
-                        Write this year’s reflection
+                        {isFirstDay ? 'Write about today' : 'Write this year’s reflection'}
                       </ThemedText>
                     </TouchableOpacity>
                   ) : null}
                   <TouchableOpacity
                     style={styles.secondary}
-                    onPress={shareCard}>
+                    onPress={() => { triggerLightHaptic(); setShareComposerOpen(true); }}>
                     <Ionicons
-                      name="share-outline"
+                      name="paper-plane-outline"
                       size={18}
                       color={Colors.sage}
                     />
                     <ThemedText style={styles.secondaryText}>
-                      {sharing ? 'Preparing…' : 'Share this milestone'}
+                      Share this milestone
                     </ThemedText>
                   </TouchableOpacity>
                 </>
               ) : (
                 <View style={styles.reflectionCard}>
-                  <ThemedText style={styles.reflectionEyebrow}>THIS YEAR</ThemedText>
+                  <ThemedText style={styles.reflectionEyebrow}>{isFirstDay ? 'TODAY' : 'THIS YEAR'}</ThemedText>
                   <ThemedText style={styles.reflectionPrompt}>
-                    What does the Gospel being “for me” mean in this season?
+                    {isFirstDay
+                      ? 'What is on your heart as you begin following Jesus today?'
+                      : 'How is Jesus leading you as you continue to follow Him?'}
                   </ThemedText>
                   <TextInput
                     multiline
@@ -399,6 +369,13 @@ const ForMeDayScreen: React.FC<any> = ({navigation, route}) => {
           )}
         </ScrollView>
       </KeyboardAvoidingView>
+      {shareComposerOpen && <ShareComposer
+        visible
+        variant="for-me-day"
+        milestone={milestone}
+        text={getForMeDayShareText(milestone)}
+        onClose={() => setShareComposerOpen(false)}
+      />}
     </SafeAreaView>
   );
 };
@@ -408,51 +385,76 @@ const styles = StyleSheet.create({
   flex: {flex: 1},
   loading: {flex: 1, backgroundColor: Colors.lightBackground},
   header: {
-    minHeight: 56,
-    paddingHorizontal: 16,
+    minHeight: 60,
+    paddingHorizontal: 22,
+    paddingBottom: 8,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: Colors.hopeWhite,
+    backgroundColor: Colors.lightBackground,
   },
-  headerTitle: {fontFamily: Fonts.bold, fontSize: 18, color: Colors.text},
+  headerTitle: {fontFamily: Fonts.semiBold, fontSize: 16, color: Colors.text},
   headerButton: {
-    width: 44,
-    height: 44,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: Colors.hopeWhite,
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: Colors.modalBlue,
+    shadowOffset: {width: 0, height: 5},
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 2,
   },
-  headerSave: {fontFamily: Fonts.semiBold, fontSize: 14, color: Colors.sage},
   content: {
-    paddingHorizontal: 12,
-    paddingTop: 18,
-    paddingBottom: 48,
-    maxWidth: 680,
+    paddingHorizontal: 22,
+    paddingTop: 14,
+    paddingBottom: 56,
+    maxWidth: 640,
     width: '100%',
     alignSelf: 'center',
   },
-  settingsIntro: {
+  settingsHero: {
+    backgroundColor: Colors.modalBlue,
+    borderRadius: 24,
+    padding: 24,
+    marginBottom: 2,
+  },
+  settingsHeroTop: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.hopeWhite,
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    marginBottom: 4,
+    gap: 10,
+    marginBottom: 18,
   },
-  settingsIntroIcon: {
-    width: 40,
-    height: 40,
+  settingsHeroIcon: {
+    width: 36,
+    height: 36,
     borderRadius: 12,
-    backgroundColor: Colors.anchorBlueLight,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.lightBorder,
+    backgroundColor: 'rgba(255,254,250,0.10)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  settingsIntroCopy: {flex: 1, marginLeft: 12},
-  settingsIntroTitle: {fontFamily: Fonts.semiBold, fontSize: 15, color: Colors.text},
-  settingsIntroBody: {fontFamily: Fonts.regular, fontSize: 12, color: Colors.textGray, marginTop: 3},
+  settingsHeroEyebrow: {
+    color: Colors.faithGold,
+    fontFamily: Fonts.semiBold,
+    fontSize: 10,
+    letterSpacing: 1.8,
+  },
+  settingsHeroTitle: {
+    color: Colors.hopeWhite,
+    fontFamily: Fonts.bold,
+    fontSize: 28,
+    lineHeight: 35,
+  },
+  settingsHeroBody: {
+    color: Colors.hopeWhite,
+    fontFamily: Fonts.regular,
+    fontSize: 14,
+    lineHeight: 22,
+    opacity: 0.84,
+    marginTop: 10,
+  },
   eyebrow: {
     fontFamily: Fonts.semiBold,
     fontSize: 10,
@@ -479,26 +481,30 @@ const styles = StyleSheet.create({
   },
   sectionLabel: {
     fontFamily: Fonts.semiBold,
-    fontSize: 12,
-    letterSpacing: 0.6,
+    fontSize: 11,
+    letterSpacing: 1.1,
     color: Colors.textGray,
-    marginTop: 18,
-    marginBottom: 8,
-    marginLeft: 20,
+    marginTop: 24,
+    marginBottom: 10,
+    marginLeft: 2,
   },
   dateCard: {
-    minHeight: 64,
-    borderRadius: 20,
+    minHeight: 72,
+    borderRadius: 24,
     backgroundColor: Colors.hopeWhite,
-    borderWidth: 0,
-    paddingHorizontal: 16,
+    paddingHorizontal: 18,
     flexDirection: 'row',
     alignItems: 'center',
+    shadowColor: Colors.modalBlue,
+    shadowOffset: {width: 0, height: 8},
+    shadowOpacity: 0.07,
+    shadowRadius: 18,
+    elevation: 2,
   },
   dateIcon: {
-    width: 34,
-    height: 34,
-    borderRadius: 9,
+    width: 42,
+    height: 42,
+    borderRadius: 13,
     backgroundColor: Colors.anchorBlueLight,
     alignItems: 'center',
     justifyContent: 'center',
@@ -508,40 +514,46 @@ const styles = StyleSheet.create({
   dateYear: {fontFamily: Fonts.regular, fontSize: 11, color: Colors.textGray, marginTop: 2},
   changeText: {fontFamily: Fonts.medium, fontSize: 12, color: Colors.sage},
   storyInput: {
-    height: 120,
+    minHeight: 132,
     textAlignVertical: 'top',
-    padding: 16,
-    borderRadius: 20,
+    padding: 18,
+    borderRadius: 24,
     backgroundColor: Colors.hopeWhite,
-    borderWidth: 0,
     color: Colors.text,
     fontFamily: Fonts.regular,
     fontSize: 14,
     lineHeight: 22,
+    shadowColor: Colors.modalBlue,
+    shadowOffset: {width: 0, height: 8},
+    shadowOpacity: 0.07,
+    shadowRadius: 18,
+    elevation: 2,
   },
   preferencesCard: {
     backgroundColor: Colors.hopeWhite,
-    borderRadius: 20,
-    borderWidth: 0,
+    borderRadius: 24,
     overflow: 'hidden',
+    shadowColor: Colors.modalBlue,
+    shadowOffset: {width: 0, height: 8},
+    shadowOpacity: 0.07,
+    shadowRadius: 18,
+    elevation: 2,
   },
   toggleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    minHeight: 68,
-    paddingHorizontal: 16,
+    minHeight: 74,
+    paddingHorizontal: 17,
   },
   toggleDivider: {borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: Colors.cardBorder},
   preferenceIcon: {
-    width: 28,
-    height: 28,
-    borderRadius: 8,
+    width: 38,
+    height: 38,
+    borderRadius: 12,
     backgroundColor: Colors.anchorBlueLight,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.lightBorder,
-    marginRight: 10,
+    marginRight: 12,
   },
   toggleCopy: {flex: 1, paddingRight: 8},
   toggleTitle: {fontFamily: Fonts.regular, fontSize: 15, color: Colors.text},
@@ -559,7 +571,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     flexDirection: 'row',
     gap: 8,
-    marginTop: 18,
+    marginTop: 20,
     paddingHorizontal: 18,
   },
   primaryText: {
@@ -580,94 +592,25 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   secondaryText: {fontFamily: Fonts.semiBold, fontSize: 13, color: Colors.sage},
-  milestoneCard: {
-    height: 390,
-    borderRadius: 28,
-    backgroundColor: Colors.sage,
-    padding: 24,
-    justifyContent: 'space-between',
-    overflow: 'hidden',
-  },
-  decorativeOrbOne: {
-    position: 'absolute',
-    width: 230,
-    height: 230,
-    borderRadius: 115,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.11)',
-    top: -100,
-    right: -70,
-  },
-  decorativeOrbTwo: {
-    position: 'absolute',
-    width: 150,
-    height: 150,
-    borderRadius: 75,
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    bottom: -62,
-    left: -38,
-  },
-  milestoneTop: {flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between'},
-  milestoneKicker: {
-    fontFamily: Fonts.semiBold,
-    fontSize: 10,
-    letterSpacing: 2.2,
-    color: Colors.hopeWhite,
-    opacity: 0.9,
-  },
-  milestoneCenter: {alignItems: 'center'},
-  yearNumber: {
-    fontFamily: Fonts.lora.semiBold,
-    fontSize: 88,
-    lineHeight: 92,
-    color: Colors.hopeWhite,
-  },
-  yearLabel: {
-    fontFamily: Fonts.semiBold,
-    fontSize: 10,
-    letterSpacing: 2.5,
-    color: Colors.faithGold,
-  },
-  goldRule: {width: 28, height: 1, backgroundColor: Colors.faithGold, marginVertical: 20},
-  milestoneQuote: {
-    fontFamily: Fonts.lora.regular,
-    fontSize: 22,
-    lineHeight: 29,
-    fontStyle: 'italic',
-    color: Colors.hopeWhite,
-    textAlign: 'center',
-  },
-  milestoneBottom: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    justifyContent: 'space-between',
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: 'rgba(255,255,255,0.24)',
-    paddingTop: 14,
-  },
-  milestoneDate: {
-    fontFamily: Fonts.semiBold,
-    fontSize: 9,
-    letterSpacing: 1.4,
-    color: Colors.hopeWhite,
-    opacity: 0.85,
-  },
-  shareLogo: {width: 32, height: 32},
+  milestonePreview: {borderRadius: 24, overflow: 'hidden'},
   sectionHeadingRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginTop: 30,
-    marginBottom: 10,
+    marginTop: 28,
+    marginBottom: 12,
     paddingHorizontal: 2,
   },
   sectionHeading: {fontFamily: Fonts.bold, fontSize: 20, color: Colors.text},
   storyCard: {
     backgroundColor: Colors.cardBackground,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.cardBorder,
-    borderRadius: 20,
+    borderRadius: 24,
     padding: 20,
+    shadowColor: Colors.modalBlue,
+    shadowOffset: {width: 0, height: 8},
+    shadowOpacity: 0.07,
+    shadowRadius: 18,
+    elevation: 2,
   },
   storyText: {
     fontFamily: Fonts.lora.regular,
@@ -678,10 +621,13 @@ const styles = StyleSheet.create({
   reflectionCard: {
     marginTop: 18,
     backgroundColor: Colors.cardBackground,
-    borderRadius: 22,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.cardBorder,
-    padding: 18,
+    borderRadius: 24,
+    padding: 20,
+    shadowColor: Colors.modalBlue,
+    shadowOffset: {width: 0, height: 8},
+    shadowOpacity: 0.07,
+    shadowRadius: 18,
+    elevation: 2,
   },
   reflectionEyebrow: {
     fontFamily: Fonts.semiBold,

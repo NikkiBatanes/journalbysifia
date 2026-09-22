@@ -7,7 +7,9 @@ import React, {
   useState,
 } from 'react';
 import {
+  AccessibilityInfo,
   Animated,
+  DeviceEventEmitter,
   findNodeHandle,
   Keyboard,
   PanResponder,
@@ -20,11 +22,13 @@ import {
   TouchableOpacity,
   useWindowDimensions,
   View,
+  type ViewProps,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import HeaderBackButton from '../components/common/HeaderBackButton';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import FontAwesome6 from 'react-native-vector-icons/FontAwesome6';
 import Entypo from 'react-native-vector-icons/Entypo';
@@ -32,6 +36,7 @@ import {BookHeart} from 'lucide-react-native';
 import LinearGradient from 'react-native-linear-gradient';
 
 import ThemedText from '../components/common/ThemedText';
+import SavedReflectionBlocks from '../components/journal/SavedReflectionBlocks';
 import ProverbVerseExcerpt from '../components/scripture/ProverbVerseExcerpt';
 import PrayerHandsIcon from '../components/common/PrayerHandsIcon';
 import { Colors } from '../theme/colors';
@@ -61,6 +66,7 @@ import {getWeeklyRhythm, type WeeklyRhythm} from '../services/weeklyRhythmServic
 import {getWeeklyCheckInFeelings, type WeeklyCheckInFeeling} from '../services/weeklyFeelingService';
 import {getReviewCoverSummary} from '../services/reviewCoverSummaryService';
 import {useFloatingKeyboardButton} from '../hooks/useFloatingKeyboardButton';
+import {claimFaithfulRhythmCelebration, FAITHFUL_RHYTHM_UPDATED} from '../services/faithfulRhythmService';
 
 const AnimatedTouchableOpacity =
   Animated.createAnimatedComponent(TouchableOpacity);
@@ -73,6 +79,113 @@ const BotanicalMark = () => (
     <Ionicons name="leaf-outline" size={19} color={Colors.text} style={styles.botanicalLeafRight} />
   </View>
 );
+
+const REVIEW_STAGE_STAGGER_MS = 52;
+
+type StaggeredReviewStageProps = ViewProps & {
+  animationKey: string;
+  enabled: boolean;
+};
+
+/**
+ * Reveals the major blocks on each Weekly Review page in sequence. The bounce
+ * comes from scale so the page never appears to travel up from the bottom.
+ */
+const StaggeredReviewStage = ({
+  animationKey,
+  children,
+  enabled,
+  style,
+  ...viewProps
+}: StaggeredReviewStageProps) => {
+  const items = React.Children.toArray(children);
+  const itemCount = items.length;
+  const animatedItems = useMemo(
+    () => Array.from({length: itemCount}, (_, index) => ({
+      key: `${animationKey}-${index}`,
+      value: new Animated.Value(enabled ? 0 : 1),
+    })),
+    [animationKey, enabled, itemCount],
+  );
+
+  useEffect(() => {
+    let active = true;
+    let frame: number | null = null;
+    let entrance: Animated.CompositeAnimation | null = null;
+
+    animatedItems.forEach(({value}) => {
+      value.stopAnimation();
+      value.setValue(enabled ? 0 : 1);
+    });
+
+    if (!enabled) {
+      return () => {
+        active = false;
+      };
+    }
+
+    AccessibilityInfo.isReduceMotionEnabled()
+      .then(reduceMotion => {
+        if (!active) {return;}
+        if (reduceMotion) {
+          animatedItems.forEach(({value}) => value.setValue(1));
+          return;
+        }
+
+        entrance = Animated.stagger(
+          REVIEW_STAGE_STAGGER_MS,
+          animatedItems.map(({value}) => Animated.spring(value, {
+            toValue: 1,
+            stiffness: 240,
+            damping: 15,
+            mass: 0.72,
+            useNativeDriver: true,
+          })),
+        );
+        frame = requestAnimationFrame(() => entrance?.start());
+      })
+      .catch(() => {
+        if (active) {
+          animatedItems.forEach(({value}) => value.setValue(1));
+        }
+      });
+
+    return () => {
+      active = false;
+      if (frame !== null) {cancelAnimationFrame(frame);}
+      entrance?.stop();
+      animatedItems.forEach(({value}) => value.stopAnimation());
+    };
+  }, [animatedItems, enabled]);
+
+  return (
+    <View {...viewProps} style={style}>
+      {items.map((item, index) => {
+        const animatedItem = animatedItems[index];
+        const progress = animatedItem.value;
+        return (
+          <Animated.View
+            key={animatedItem.key}
+            style={{
+              opacity: progress.interpolate({
+                inputRange: [0, 1],
+                outputRange: [0, 1],
+                extrapolate: 'clamp',
+              }),
+              transform: [{
+                scale: progress.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0.965, 1],
+                }),
+              }],
+            }}>
+            {item}
+          </Animated.View>
+        );
+      })}
+    </View>
+  );
+};
 
 type ReviewStage = number;
 
@@ -222,6 +335,7 @@ const HEART_JOURNAL_COUNT_LABELS: Record<string, [string, string]> = {
   Lesson: ['lesson', 'lessons'],
   Idea: ['idea', 'ideas'],
   Letter: ['letter', 'letters'],
+  'Guided prompt': ['guided prompt', 'guided prompts'],
   'Guided reflection': ['guided reflection', 'guided reflections'],
 };
 
@@ -451,6 +565,8 @@ const WeeklyMomentCard = ({
       : item.presentation === 'devotional_reflection' ? 'DEVOTIONAL REFLECTION'
         : item.presentation === 'playbook_reflection' ? 'PLAYBOOK REFLECTION'
         : (item.subtitle || 'Thoughts').toUpperCase();
+    const bodyLineLimit = item.presentation === 'guided_reflection' ? 2 : 3;
+    const hasJournalBlocks = Boolean(item.journalBlocks?.length);
     return shell(<>
       <View style={styles.momentMetaRow}>
         <View style={[styles.reflectionBadge, item.presentation === 'guided_reflection' && styles.guidedBadge]}><ThemedText weight="semiBold" style={styles.reflectionBadgeText}>{label}</ThemedText></View>
@@ -460,9 +576,16 @@ const WeeklyMomentCard = ({
         <ThemedText weight="medium" style={styles.guidedLifeAreaValue}>{item.lifeArea}</ThemedText>
       </View>}
       <ThemedText weight="medium" style={styles.reflectionTitle} numberOfLines={2}>{item.title}</ThemedText>
-      {item.presentation !== 'guided_reflection' && !!item.detail && <ThemedText style={styles.reflectionDetail} numberOfLines={1}>{item.detail}</ThemedText>}
-      {!!distinctBody && <ThemedText style={styles.reflectionBody} numberOfLines={4}>{distinctBody}</ThemedText>}
-    </>);
+      {!!item.detail && item.detail.trim().toLocaleLowerCase() !== item.title.trim().toLocaleLowerCase()
+        && <ThemedText style={styles.reflectionDetail} numberOfLines={1}>{item.detail}</ThemedText>}
+      {hasJournalBlocks ? (
+        <View pointerEvents="none" style={styles.reflectionBlocksPreview}>
+          <SavedReflectionBlocks blocks={item.journalBlocks!} compact />
+        </View>
+      ) : !!distinctBody && (
+        <ThemedText style={styles.reflectionBody} numberOfLines={bodyLineLimit}>{distinctBody}</ThemedText>
+      )}
+    </>, styles.heartJournalReviewCard);
   }
 
   if (item.presentation === 'morning_check_in') {
@@ -634,6 +757,7 @@ const ReviewScreen: React.FC = () => {
   const {height: screenHeight, width: screenWidth} = useWindowDimensions();
   const scrollRef = useRef<ScrollView>(null);
   const customFeelingInputRef = useRef<TextInput>(null);
+  const completingReviewRef = useRef<string | null>(null);
 
   const revealCustomFeelingInput = useCallback(() => {
     const inputHandle = customFeelingInputRef.current
@@ -765,20 +889,35 @@ const ReviewScreen: React.FC = () => {
 
   useEffect(() => {
     if (stage === stageCount && review && review.status !== 'completed') {
+      const completionKey = `${review.type}:${review.id}`;
+      if (completingReviewRef.current === completionKey) {return;}
+      completingReviewRef.current = completionKey;
       const prayerSnapshot: ReviewPrayerSnapshotItem[] = (capture?.items || [])
         .filter(item => item.kind === 'prayer' && item.prayerEventType && item.prayerId)
         .map(item => ({ id: item.id, prayerId: item.prayerId!, needId: item.needId, requestId: item.requestId, eventType: item.prayerEventType!, eventDate: item.selectedDate, title: item.title, subtitle: item.subtitle || 'Prayer', text: item.text }));
-      saveReview({ status: 'completed', completedAt: new Date().toISOString(), prayerSnapshot });
+      const completeReview = async () => {
+        await saveReview({ status: 'completed', completedAt: new Date().toISOString(), prayerSnapshot });
+        DeviceEventEmitter.emit(FAITHFUL_RHYTHM_UPDATED, {rhythm: 'reviews', selectedDate: review.periodEnd});
+        if (await claimFaithfulRhythmCelebration('reviews', review.periodEnd, weekStart)) {
+          navigation.navigate('StreakPlan', {
+            rhythm: 'reviews',
+            source: 'review_complete',
+          });
+        }
+      };
+      completeReview().catch(() => {
+        completingReviewRef.current = null;
+      });
     }
-  }, [stage, stageCount, review, capture, saveReview]);
+  }, [stage, stageCount, review, capture, saveReview, navigation, weekStart]);
 
   const goTo = useCallback(
     (next: ReviewStage) => {
       if (next < 1 || next > stageCount) {return;}
       triggerLightHaptic();
       Keyboard.dismiss();
+      scrollRef.current?.scrollTo({y: 0, animated: false});
       setStage(next);
-      scrollRef.current?.scrollTo({ y: 0, animated: true });
     },
     [stageCount],
   );
@@ -891,7 +1030,10 @@ const ReviewScreen: React.FC = () => {
       const eyebrow = current.eyebrow ?? `${reviewType.replace('_', ' ').toUpperCase()} REVIEW`;
       if(reviewType==='weekly'){
         const denseSummary = weeklyCoverSummary.length > 12;
-        return <View style={[styles.stage,styles.weeklyCoverStage,{minHeight:Math.max(0,screenHeight-topInset-insets.bottom-64)}]}>
+        return <StaggeredReviewStage
+          animationKey={current.key}
+          enabled
+          style={[styles.stage,styles.weeklyCoverStage,{minHeight:Math.max(0,screenHeight-topInset-insets.bottom-64)}]}>
           <View style={styles.weeklyCoverHero}>
             <BotanicalMark />
             <ThemedText weight="semiBold" style={styles.weeklyCoverEyebrow}>WEEKLY REVIEW</ThemedText>
@@ -935,7 +1077,7 @@ const ReviewScreen: React.FC = () => {
           <TouchableOpacity style={[styles.primaryButton,styles.weeklyBeginButton]} onPress={()=>goTo(2)} activeOpacity={0.8}>
             <ThemedText weight="bold" style={styles.weeklyBeginText}>{hasSavedProgress?'Continue':'Begin'}</ThemedText>
           </TouchableOpacity>
-        </View>;
+        </StaggeredReviewStage>;
       }
       return (
         <View style={styles.stage}>
@@ -1019,7 +1161,10 @@ const ReviewScreen: React.FC = () => {
         ].filter(group => group.items.length > 0);
         const carouselCardWidth = Math.min(310, Math.max(240, screenWidth - 76));
         return (
-          <View style={[styles.stage, styles.weeklyCapturedStage]}>
+          <StaggeredReviewStage
+            animationKey={current.key}
+            enabled
+            style={[styles.stage, styles.weeklyCapturedStage]}>
             <View style={styles.weeklyCapturedHeading}>
               <View style={styles.feelingsLabelRow}>
                 <Ionicons name="leaf-outline" size={15} color={Colors.sage}/>
@@ -1050,7 +1195,10 @@ const ReviewScreen: React.FC = () => {
                   decelerationRate="fast"
                   snapToInterval={carouselCardWidth + 12}
                   disableIntervalMomentum
-                  contentContainerStyle={styles.weeklyMomentCarousel}>
+                  contentContainerStyle={[
+                    styles.weeklyMomentCarousel,
+                    group.presentation === 'heart_journal' && styles.weeklyHeartJournalCarousel,
+                  ]}>
                   {(group.presentation === 'todo'
                     ? [...new Set(group.items.map(todo => todo.selectedDate))].map(selectedDate => {
                       const relatedItems = group.items.filter(todo => todo.selectedDate === selectedDate);
@@ -1082,7 +1230,7 @@ const ReviewScreen: React.FC = () => {
               </View>
             )}
 
-          </View>
+          </StaggeredReviewStage>
         );
       }
       return (
@@ -1173,7 +1321,10 @@ const ReviewScreen: React.FC = () => {
           customFeelingInputRef.current?.focus();
         });
       };
-      return <View style={[styles.stage,styles.feelingsStage,{minHeight:Math.max(580,screenHeight-topInset-insets.bottom-64)}]}>
+      return <StaggeredReviewStage
+        animationKey={current.key}
+        enabled
+        style={[styles.stage,styles.feelingsStage,{minHeight:Math.max(580,screenHeight-topInset-insets.bottom-64)}]}>
         <View style={styles.feelingsHeading}>
           <View style={styles.feelingsLabelRow}>
             <Ionicons name="leaf-outline" size={15} color={Colors.sage}/>
@@ -1227,12 +1378,12 @@ const ReviewScreen: React.FC = () => {
           onFocus={()=>requestAnimationFrame(revealCustomFeelingInput)}
           accessibilityLabel="Write it in your own words"
         />:null}
-      </View>;
+      </StaggeredReviewStage>;
     }
 
     if (current.kind === 'remembered') {
       return (
-        <View style={styles.stage}>
+        <StaggeredReviewStage animationKey={current.key} enabled={reviewType === 'weekly'} style={styles.stage}>
           <ThemedText weight="bold" style={styles.title}>
             {current.title}
           </ThemedText>
@@ -1260,13 +1411,13 @@ const ReviewScreen: React.FC = () => {
                 </View>
               </View>
             ))}
-        </View>
+        </StaggeredReviewStage>
       );
     }
 
     if (current.kind === 'question') {
       return (
-        <View style={styles.stage}>
+        <StaggeredReviewStage animationKey={current.key} enabled={reviewType === 'weekly'} style={styles.stage}>
           <View style={styles.labelRow}>
             {current.icon && <Ionicons name={current.icon as any} size={16} color={Colors.sage} />}
             <ThemedText weight="semiBold" style={styles.label}>
@@ -1285,13 +1436,13 @@ const ReviewScreen: React.FC = () => {
             placeholderTextColor={Colors.textGray}
             textAlignVertical="top"
           />
-        </View>
+        </StaggeredReviewStage>
       );
     }
 
     if (current.kind === 'priorities') {
       return (
-        <View style={styles.stage}>
+        <StaggeredReviewStage animationKey={current.key} enabled={reviewType === 'weekly'} style={styles.stage}>
           <View style={styles.labelRow}>
             {current.icon && <Ionicons name={current.icon as any} size={16} color={Colors.sage} />}
             <ThemedText weight="semiBold" style={styles.label}>
@@ -1314,13 +1465,13 @@ const ReviewScreen: React.FC = () => {
               placeholderTextColor={Colors.textGray}
             />
           ))}
-        </View>
+        </StaggeredReviewStage>
       );
     }
 
     if (current.kind === 'transition') {
       return (
-        <View style={styles.stage}>
+        <StaggeredReviewStage animationKey={current.key} enabled={reviewType === 'weekly'} style={styles.stage}>
           <View style={styles.labelRow}>
             {current.icon && <Ionicons name={current.icon as any} size={16} color={Colors.sage} />}
             <ThemedText weight="semiBold" style={styles.label}>
@@ -1333,7 +1484,7 @@ const ReviewScreen: React.FC = () => {
           <ThemedText style={styles.subtitle}>
             {current.subtitle}
           </ThemedText>
-        </View>
+        </StaggeredReviewStage>
       );
     }
 
@@ -1544,7 +1695,7 @@ const ReviewScreen: React.FC = () => {
         );
 
       return (
-        <View style={styles.stage}>
+        <StaggeredReviewStage animationKey={current.key} enabled={reviewType === 'weekly'} style={styles.stage}>
           <View style={styles.labelRow}>
             {current.icon && <Ionicons name={current.icon as any} size={16} color={Colors.sage} />}
             <ThemedText weight="semiBold" style={styles.label}>
@@ -1570,7 +1721,7 @@ const ReviewScreen: React.FC = () => {
               Done
             </ThemedText>
           </TouchableOpacity>
-        </View>
+        </StaggeredReviewStage>
       );
     }
 
@@ -1608,15 +1759,12 @@ const ReviewScreen: React.FC = () => {
         </View>
       )}
 
-      <TouchableOpacity
+      <HeaderBackButton
         style={[styles.backButton, { top: topInset + 8 }]}
         onPress={() => stage > 1 ? goTo(stage - 1) : navigation.goBack()}
-        activeOpacity={0.7}
-        hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}
-        accessibilityRole="button"
-        accessibilityLabel={stage > 1 ? 'Previous review step' : 'Back'}>
-        <Ionicons name="chevron-back" size={22} color={Colors.text} />
-      </TouchableOpacity>
+        accessibilityLabel={stage > 1 ? 'Previous review step' : 'Back'}
+        color={Colors.text}
+      />
 
       <TouchableOpacity
         style={[styles.closeButton, { top: topInset + 8 }]}
@@ -2050,7 +2198,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: 'rgba(82, 106, 91, 0.08)',
     borderColor: 'rgba(82, 106, 91, 0.2)',
-    borderWidth: 0.5,
+    borderWidth: 1,
     borderRadius: 28,
   },
   feelingPillSelected: {
@@ -2192,6 +2340,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 22,
     gap: 12,
   },
+  weeklyHeartJournalCarousel: {
+    alignItems: 'flex-start',
+  },
   weeklyMomentCarouselViewport: {
     marginHorizontal: -22,
   },
@@ -2201,13 +2352,16 @@ const styles = StyleSheet.create({
     paddingTop: 22,
     backgroundColor: Colors.cardBackground,
     borderRadius: 24,
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: Colors.inputBorder,
     overflow: 'hidden',
   },
   momentTypeCardSelected: {
     borderColor: Colors.sage,
     backgroundColor: 'rgba(82, 106, 91, 0.06)',
+  },
+  heartJournalReviewCard: {
+    alignSelf: 'flex-start',
   },
   momentRemember: {
     position: 'absolute',
@@ -2288,6 +2442,10 @@ const styles = StyleSheet.create({
     paddingLeft: 14,
     borderLeftWidth: 2,
     borderLeftColor: Colors.borderLight,
+    flexShrink: 1,
+  },
+  reflectionBlocksPreview: {
+    marginTop: 2,
   },
   prayerReviewCard: {
     backgroundColor: Colors.cardBackground,

@@ -9,18 +9,24 @@ import {
 import Sound from 'react-native-sound';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
-import type {GuidedReflectionNote} from '../../types/guidedReflection';
 import {Colors} from '../../theme/colors';
 import {Fonts} from '../../theme/fonts';
 import ThemedText from '../common/ThemedText';
 import {
   formatJournalAttribution,
-  hasMeaningfulJournalBlock,
+  getJournalTableCellAlignment,
   JOURNAL_BLOCK_GAP,
   JOURNAL_BLOCKS,
   JournalBlockIcon,
+  prepareJournalBlocksForSave,
+  type JournalBlock,
 } from './shared/journalBlocks';
 import ExpandableJournalPhoto from './shared/ExpandableJournalPhoto';
+import DraggableJournalBlock from './shared/DraggableJournalBlock';
+import {
+  reorderJournalBlock,
+  resolveJournalBlockDropIndex,
+} from './shared/journalBlockOperations';
 
 const formatDuration = (millis = 0) => {
   const seconds = Math.max(0, Math.round(millis / 1000));
@@ -31,7 +37,7 @@ const SavedVoiceNote = ({
   block,
   onDark,
 }: {
-  block: GuidedReflectionNote;
+  block: JournalBlock;
   onDark: boolean;
 }) => {
   const soundRef = useRef<Sound | null>(null);
@@ -118,26 +124,34 @@ const SavedVoiceNote = ({
   );
 };
 
-const hasBlockContent = (block: GuidedReflectionNote) =>
-  hasMeaningfulJournalBlock(block);
-
 export const SavedReflectionBlocks = ({
   blocks,
   onDark = false,
   compact = false,
   onToggleAction,
+  onReorderBlocks,
 }: {
-  blocks: GuidedReflectionNote[];
+  blocks: JournalBlock[];
   onDark?: boolean;
   compact?: boolean;
   onToggleAction?: (blockId: string) => void;
+  onReorderBlocks?: (blocks: JournalBlock[]) => void | Promise<void>;
 }) => {
+  const blockLayoutsRef = useRef(new Map<string, {y: number; height: number}>());
+  const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
+  const [dragPreview, setDragPreview] = useState<{
+    blockId: string;
+    fromIndex: number;
+    targetIndex: number;
+    blockHeight: number;
+  } | null>(null);
   const foreground = onDark ? Colors.hopeWhite : Colors.text;
   const muted = onDark ? 'rgba(255,255,255,0.68)' : Colors.textGray;
   const accent = onDark ? Colors.hopeWhite : Colors.sage;
   const border = onDark ? 'rgba(255,255,255,0.24)' : Colors.cardBorder;
   const surface = onDark ? 'rgba(255,255,255,0.06)' : Colors.cardBackground;
-  const allVisibleBlocks = blocks.filter(hasBlockContent);
+  const preparedBlocks = prepareJournalBlocksForSave(blocks);
+  const allVisibleBlocks = preparedBlocks.filter(block => !block.parentColumnId);
   const visibleBlocks = (() => {
     if (!compact || allVisibleBlocks.length <= 3) {
       return allVisibleBlocks;
@@ -154,10 +168,62 @@ export const SavedReflectionBlocks = ({
     return preview;
   })();
   const hiddenBlockCount = allVisibleBlocks.length - visibleBlocks.length;
+  const canReorder = !compact && Boolean(onReorderBlocks);
 
-  return (
-    <View style={styles.list}>
-      {visibleBlocks.map(block => {
+  const handleDragStart = (blockId: string) => {
+    const fromIndex = allVisibleBlocks.findIndex(block => block.id === blockId);
+    const layout = blockLayoutsRef.current.get(blockId);
+    if (fromIndex < 0 || !layout) {return;}
+    setDragPreview({
+      blockId,
+      fromIndex,
+      targetIndex: fromIndex,
+      blockHeight: layout.height,
+    });
+  };
+
+  const handleDragMove = (blockId: string, deltaY: number) => {
+    const targetIndex = resolveJournalBlockDropIndex(
+      allVisibleBlocks,
+      blockLayoutsRef.current,
+      blockId,
+      deltaY,
+    );
+    setDragPreview(current =>
+      !current || current.blockId !== blockId || current.targetIndex === targetIndex
+        ? current
+        : {...current, targetIndex},
+    );
+  };
+
+  const handleDragEnd = (blockId: string, deltaY: number) => {
+    const targetIndex = resolveJournalBlockDropIndex(
+      allVisibleBlocks,
+      blockLayoutsRef.current,
+      blockId,
+      deltaY,
+    );
+    setDragPreview(null);
+    const reorderedParents = reorderJournalBlock(
+      allVisibleBlocks,
+      blockId,
+      targetIndex,
+    );
+    if (reorderedParents === allVisibleBlocks) {return;}
+
+    const parentIds = new Set(reorderedParents.map(block => block.id));
+    const reorderedBlocks = reorderedParents.flatMap(parent => [
+      parent,
+      ...preparedBlocks.filter(child => child.parentColumnId === parent.id),
+    ]);
+    const orphanedChildren = preparedBlocks.filter(
+      child => child.parentColumnId && !parentIds.has(child.parentColumnId),
+    );
+    setSelectedBlockId(blockId);
+    onReorderBlocks?.([...reorderedBlocks, ...orphanedChildren]);
+  };
+
+  const renderedBlocks = visibleBlocks.map(block => {
         if (block.kind === 'text') {
           return (
             <ThemedText
@@ -251,6 +317,43 @@ export const SavedReflectionBlocks = ({
             </View>
           );
         }
+        if (block.kind === 'column') {
+          const nestedBlocks = preparedBlocks.filter(
+            child => child.parentColumnId === block.id,
+          );
+          const withoutParent = (child: JournalBlock): JournalBlock => ({
+            ...child,
+            parentColumnId: undefined,
+            columnSide: undefined,
+          });
+          const leftBlocks = nestedBlocks
+            .filter(child => child.columnSide === 'left')
+            .map(withoutParent);
+          const rightBlocks = nestedBlocks
+            .filter(child => child.columnSide === 'right')
+            .map(withoutParent);
+          return (
+            <View key={block.id} style={styles.savedColumns}>
+              <View style={styles.savedColumn}>
+                <SavedReflectionBlocks
+                  blocks={leftBlocks}
+                  onDark={onDark}
+                  compact={compact}
+                  onToggleAction={onToggleAction}
+                />
+              </View>
+              <View style={[styles.savedColumnDivider, {backgroundColor: border}]} />
+              <View style={styles.savedColumn}>
+                <SavedReflectionBlocks
+                  blocks={rightBlocks}
+                  onDark={onDark}
+                  compact={compact}
+                  onToggleAction={onToggleAction}
+                />
+              </View>
+            </View>
+          );
+        }
         if (block.kind === 'photo') {
           return (
             <View key={block.id} style={styles.photoBlock}>
@@ -274,36 +377,46 @@ export const SavedReflectionBlocks = ({
           return <SavedVoiceNote key={block.id} block={block} onDark={onDark} />;
         }
         if (block.kind === 'table') {
+          const tableRows = block.tableRows || [];
+          const columnCount = tableRows[0]?.length || 0;
+          const fitsWidth = (columnCount === 2 || columnCount === 3) &&
+            tableRows.every(row => row.length === columnCount);
+          const fittedCellStyle = fitsWidth && {width: `${100 / columnCount}%` as const};
           return (
-            <View key={block.id} style={[styles.standardBlock, {borderColor: border, backgroundColor: surface}]}>
-              <View style={styles.labelRow}>
-                <JournalBlockIcon config={JOURNAL_BLOCKS.table} size={14} color={accent} />
-                <ThemedText weight="bold" style={[styles.label, {color: accent}]}>TABLE</ThemedText>
+            <ScrollView
+              key={block.id}
+              horizontal
+              scrollEnabled={!fitsWidth}
+              contentContainerStyle={fitsWidth && styles.fullWidthTable}
+              showsHorizontalScrollIndicator={false}>
+              <View style={fitsWidth && styles.fullWidthTable}>
+                {(compact ? tableRows.slice(0, 3) : tableRows).map((row, rowIndex) => (
+                  <View key={`${block.id}-row-${rowIndex}`} style={styles.tableRow}>
+                    {row.map((cell, columnIndex) => (
+                      <ThemedText
+                        key={`${block.id}-${rowIndex}-${columnIndex}`}
+                        weight={rowIndex === 0 ? 'bold' : 'regular'}
+                        style={[
+                          styles.tableCell,
+                          fittedCellStyle,
+                          {
+                            color: foreground,
+                            borderColor: border,
+                            textAlign: getJournalTableCellAlignment(
+                              block.tableCellAlignments,
+                              rowIndex,
+                              columnIndex,
+                            ),
+                          },
+                          rowIndex === 0 && {backgroundColor: onDark ? 'rgba(220,232,222,0.14)' : Colors.anchorBlueLight},
+                        ]}>
+                        {cell}
+                      </ThemedText>
+                    ))}
+                  </View>
+                ))}
               </View>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                <View>
-                  {(compact
-                    ? (block.tableRows || []).slice(0, 3)
-                    : block.tableRows || []
-                  ).map((row, rowIndex) => (
-                    <View key={`${block.id}-row-${rowIndex}`} style={styles.tableRow}>
-                      {row.map((cell, columnIndex) => (
-                        <ThemedText
-                          key={`${block.id}-${rowIndex}-${columnIndex}`}
-                          weight={rowIndex === 0 ? 'bold' : 'regular'}
-                          style={[
-                            styles.tableCell,
-                            {color: foreground, borderColor: border},
-                            rowIndex === 0 && {backgroundColor: onDark ? 'rgba(220,232,222,0.14)' : Colors.anchorBlueLight},
-                          ]}>
-                          {cell}
-                        </ThemedText>
-                      ))}
-                    </View>
-                  ))}
-                </View>
-              </ScrollView>
-            </View>
+            </ScrollView>
           );
         }
 
@@ -338,10 +451,55 @@ export const SavedReflectionBlocks = ({
             )}
           </View>
         );
-      })}
+      });
+
+  const displayedBlocks = canReorder
+    ? renderedBlocks.map((content, index) => {
+        const block = visibleBlocks[index];
+        const shiftY = (() => {
+          if (!dragPreview || dragPreview.blockId === block.id) {
+            return 0;
+          }
+          if (
+            dragPreview.targetIndex > dragPreview.fromIndex &&
+            index > dragPreview.fromIndex &&
+            index <= dragPreview.targetIndex
+          ) {
+            return -dragPreview.blockHeight;
+          }
+          if (
+            dragPreview.targetIndex < dragPreview.fromIndex &&
+            index >= dragPreview.targetIndex &&
+            index < dragPreview.fromIndex
+          ) {
+            return dragPreview.blockHeight;
+          }
+          return 0;
+        })();
+        return (
+          <DraggableJournalBlock
+            key={block.id}
+            blockId={block.id}
+            selected={selectedBlockId === block.id}
+            tone={onDark ? 'onDark' : 'default'}
+            shiftY={shiftY}
+            onSelect={() => setSelectedBlockId(block.id)}
+            onLayout={layout => blockLayoutsRef.current.set(block.id, layout)}
+            onDragStart={handleDragStart}
+            onDragMove={handleDragMove}
+            onDragEnd={handleDragEnd}>
+            {content}
+          </DraggableJournalBlock>
+        );
+      })
+    : renderedBlocks;
+
+  return (
+    <View style={styles.list}>
+      {displayedBlocks}
       {hiddenBlockCount > 0 && (
         <ThemedText style={[styles.moreText, {color: muted}]}>
-          {hiddenBlockCount} more {hiddenBlockCount === 1 ? 'item' : 'items'}
+          {hiddenBlockCount} more {hiddenBlockCount === 1 ? 'note' : 'notes'}
         </ThemedText>
       )}
     </View>
@@ -389,8 +547,16 @@ const styles = StyleSheet.create({
   quoteText: {fontFamily: Fonts.lora.regular, fontSize: 16, lineHeight: 24},
   secondaryText: {fontSize: 12, lineHeight: 18, marginTop: 6},
   tableRow: {flexDirection: 'row'},
+  fullWidthTable: {width: '100%'},
   tableCell: {width: 120, minHeight: 34, paddingHorizontal: 6, paddingVertical: 6, borderWidth: 0.5, fontSize: 12, lineHeight: 17},
   moreText: {fontSize: 11, lineHeight: 16, textAlign: 'right'},
+  savedColumns: {flexDirection: 'row', alignItems: 'stretch', gap: 8},
+  savedColumnDivider: {width: 1},
+  savedColumn: {
+    flex: 1,
+    minWidth: 0,
+    padding: 8,
+  },
 });
 
 export default SavedReflectionBlocks;

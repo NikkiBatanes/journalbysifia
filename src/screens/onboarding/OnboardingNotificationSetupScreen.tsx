@@ -82,13 +82,6 @@ const OnboardingNotificationSetupScreen = () => {
 
   const [notificationSettings, setNotificationSettings] = useState<NotificationSetting[]>([
     {
-      id: 'playbooks',
-      title: 'Playbooks',
-      description: 'Gentle reminders for the steps and invitations in your playbooks',
-      icon: 'albums-outline',
-      enabled: true,
-    },
-    {
       id: 'journal_reminders',
       title: 'Journal Reminders',
       description: 'Occasional nudges to pause, reflect, and write',
@@ -104,7 +97,7 @@ const OnboardingNotificationSetupScreen = () => {
     },
     {
       id: 'progress_updates',
-      title: 'Progress Updates',
+      title: 'Rhythm Updates',
       description: 'Quiet celebrations of growth and faithfulness',
       icon: 'trending-up-outline',
       enabled: true,
@@ -173,10 +166,14 @@ const OnboardingNotificationSetupScreen = () => {
               user_id: user.id,
               notification_type: 'user_preferences', // Required field
               prayer_reminders: enabledSettings.prayer_reminders || false,
-              playbook_steps: enabledSettings.playbooks || false,
+              // Compatibility column retained disabled until the deployed
+              // notification schema is migrated.
+              playbook_steps: false,
               journal_prompts: enabledSettings.journal_reminders || false,
               milestone_celebrations: enabledSettings.progress_updates || false,
-              streak_alerts: enabledSettings.progress_updates || false,
+              // Legacy streak-risk notifications use pressure-based copy and
+              // remain disabled while Faithful Rhythm reminders are rebuilt.
+              streak_alerts: false,
               prayer_requests: enabledSettings.prayer_request_alerts || false,
               prayer_request_alerts: enabledSettings.prayer_request_alerts || false,
               timezone: deviceTimezone,

@@ -7,6 +7,10 @@ import { JournalPlugin } from '../../types';
 import PrayerMomentsCarousel from '../../../../components/moments/PrayerMomentsCarousel';
 import { PrayerApi } from '../../../../services/api/prayerApi';
 
+jest.mock('react-native-reanimated', () => {
+  const animation = { delay: () => animation, springify: () => animation, damping: () => animation, stiffness: () => animation };
+  return { __esModule: true, default: { View: require('react-native').View }, FadeInUp: animation };
+});
 jest.mock('../../../../context/IndustryStandardAuthContext', () => ({ useAuth: () => ({ user: null }) }));
 jest.mock('../../../../hooks/useTheme', () => ({ useTheme: () => ({ currentFont: 'lexend' }) }));
 jest.mock('../../../../utils/haptics', () => ({ triggerLightHaptic: jest.fn() }));

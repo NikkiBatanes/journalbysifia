@@ -208,7 +208,11 @@ const MorningClosingScreen = () => {
     }
 
     DeviceEventEmitter.emit('reflection_saved', { type: 'morning_complete', date: dateStr });
-    exitEveningFlow(navigation, 'Moments');
+    navigation.navigate('StreakPlan', {
+      rhythm: 'morning',
+      source: 'morning_routine_complete',
+      returnTo: 'moments',
+    });
   };
 
   return (

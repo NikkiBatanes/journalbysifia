@@ -4,13 +4,23 @@ import { supabase } from './supabaseClient';
 import { gospelStorage, GospelResponse } from '../storage/gospelStorage';
 
 const GOSPEL_SHARE_OWNER_KEY = '@sifia/gospel-share-owner-key';
+let ownerKeyRequest: Promise<string> | null = null;
 
-const getOwnerKey = async () => {
+const loadOwnerKey = async () => {
   const existing = await AsyncStorage.getItem(GOSPEL_SHARE_OWNER_KEY);
   if (existing) return existing;
   const ownerKey = `${uuidv4()}-${uuidv4()}`;
   await AsyncStorage.setItem(GOSPEL_SHARE_OWNER_KEY, ownerKey);
   return ownerKey;
+};
+
+const getOwnerKey = (): Promise<string> => {
+  // Recipient changes can prepare several links at once. They must all use
+  // the same persisted owner key, including on the first share from a device.
+  if (!ownerKeyRequest) {
+    ownerKeyRequest = loadOwnerKey().finally(() => { ownerKeyRequest = null; });
+  }
+  return ownerKeyRequest;
 };
 
 export interface GospelShareLink {

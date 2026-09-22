@@ -88,7 +88,7 @@ export const ScriptureNoteReactQuery: React.FC<Props> = ({ timelineItem, timelin
 
 const styles = StyleSheet.create({
   section: {
-    marginHorizontal: 22,
+    marginHorizontal: 0,
     gap: 12,
   },
   sectionTitle: {
@@ -103,7 +103,7 @@ const styles = StyleSheet.create({
     padding: 20,
     borderRadius: 24,
     backgroundColor: Colors.cardBackground,
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: Colors.inputBorder,
   },
   reference: {

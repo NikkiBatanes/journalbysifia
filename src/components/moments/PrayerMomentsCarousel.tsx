@@ -16,11 +16,7 @@ import { prayerMomentType } from '../../utils/prayerMoments';
 export default function PrayerMomentsCarousel({ prayers, navigation }: { prayers: PrayerHomeEntry[]; navigation?: any }) {
   const queryClient = useQueryClient();
   const [width, setWidth] = useState(0);
-  const viewportWidth = width + 32;
-  // Keep the carousel's neighboring-card peek, but make prayer cards only
-  // slightly wider than the previous 76% treatment.
-  const cardWidth = Math.max(0, viewportWidth * 0.84);
-  const sideInset = (viewportWidth - cardWidth) / 2;
+  const cardWidth = width;
   const slideSpacing = 12;
   const slideWidth = cardWidth + slideSpacing;
   const [selected, setSelected] = useState<PrayerHomeEntry | null>(null);
@@ -82,7 +78,7 @@ export default function PrayerMomentsCarousel({ prayers, navigation }: { prayers
   };
   return <View onLayout={event => setWidth(event.nativeEvent.layout.width)}>
     <View style={{ alignItems: 'center', marginBottom: 12 }}><ThemedText weight="semiBold" style={{ fontSize: 11, letterSpacing: 1.5, color: Colors.sage, textAlign: 'center' }}>{prayerMomentType(prayers[0]).toUpperCase()}</ThemedText></View>
-    {width > 0 && <ScrollView style={{ marginHorizontal: -16, width: viewportWidth }} horizontal snapToOffsets={prayers.map((_, i) => i * slideWidth)} decelerationRate="fast" disableIntervalMomentum contentContainerStyle={{ paddingHorizontal: sideInset }} showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled" bounces={false}>
+    {width > 0 && <ScrollView style={{ width }} horizontal snapToOffsets={prayers.map((_, i) => i * slideWidth)} decelerationRate="fast" disableIntervalMomentum showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled" bounces={false}>
       {prayers.map((p, i) => <View key={p.id} style={{ width: cardWidth, marginRight: i < prayers.length - 1 ? slideSpacing : 0 }}><PrayerCard prayer={p} answering={busy} onEdit={edit} onManage={p => manage(p, 'update')} onManageAnswers={p => manage(p, 'details')} onAnswered={(p, id) => { void answer(p, id); }} onRelease={p => { void release(p); }} onAddPrayer={p => { triggerLightHaptic(); setResponding(p); }} onPrayAgain={p => { void prayAgain(p); }} /></View>)}
     </ScrollView>}
     {selected && <PrayerTrackingModal prayer={target(selected)} mode={mode} onShowDetails={() => setMode('details')} onSave={save} onClose={() => setSelected(null)} />}

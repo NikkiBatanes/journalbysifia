@@ -5,13 +5,13 @@ import {
   StyleSheet,
   TextInput,
   TouchableOpacity,
-  useWindowDimensions,
   View,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
 import ThemedText from '../../common/ThemedText';
+import JournalTextInput from './JournalTextInput';
 import {Colors} from '../../../theme/colors';
 import {Fonts} from '../../../theme/fonts';
 import {triggerLightHaptic} from '../../../utils/haptics';
@@ -19,6 +19,9 @@ import {
   JOURNAL_BLOCK_GAP,
   JOURNAL_BLOCKS,
   JournalBlockIcon,
+  resolveJournalTableCellAlignments,
+  type JournalTableAlignment,
+  type JournalTableCellAlignments,
 } from './journalBlocks';
 
 const EMPTY_TABLE = [
@@ -28,8 +31,10 @@ const EMPTY_TABLE = [
 
 export const JournalTableBlock = ({
   rows,
+  cellAlignments,
   editing,
   onChangeRows,
+  onChangeCellAlignments,
   onChangeEditing,
   onDelete,
   registerInput,
@@ -37,16 +42,40 @@ export const JournalTableBlock = ({
   tone = 'default',
 }: {
   rows?: string[][];
+  cellAlignments?: JournalTableCellAlignments;
   editing?: boolean;
-  onChangeRows: (rows: string[][]) => void;
+  onChangeRows: (
+    rows: string[][],
+    cellAlignments?: JournalTableAlignment[][],
+  ) => void;
+  onChangeCellAlignments: (alignments: JournalTableAlignment[][]) => void;
   onChangeEditing: (editing: boolean) => void;
   onDelete: () => void;
   registerInput?: (input: TextInput | null) => void;
   onFocus?: () => void;
   tone?: 'default' | 'onDark';
 }) => {
-  const {width: screenWidth} = useWindowDimensions();
   const tableRows = rows?.length ? rows : EMPTY_TABLE;
+  const columnCount = tableRows[0].length;
+  const [activeCell, setActiveCell] = React.useState({
+    rowIndex: 0,
+    columnIndex: 0,
+  });
+  const selectedRowIndex = Math.min(
+    activeCell.rowIndex,
+    Math.max(tableRows.length - 1, 0),
+  );
+  const selectedColumnIndex = Math.min(
+    activeCell.columnIndex,
+    Math.max((tableRows[selectedRowIndex]?.length || 1) - 1, 0),
+  );
+  const resolvedAlignments = resolveJournalTableCellAlignments(
+    tableRows,
+    cellAlignments,
+  );
+  const fitsWidth = (columnCount === 2 || columnCount === 3) &&
+    tableRows.every(row => row.length === columnCount);
+  const fittedCellStyle = fitsWidth && {width: `${100 / columnCount}%` as const};
   const onDark = tone === 'onDark';
   const foreground = onDark ? Colors.hopeWhite : Colors.text;
   const muted = onDark ? 'rgba(255,255,255,0.65)' : Colors.textGray;
@@ -56,11 +85,21 @@ export const JournalTableBlock = ({
   const headerSurface = onDark
     ? 'rgba(220,232,222,0.14)'
     : Colors.anchorBlueLight;
+  const activeAlignmentSurface = onDark
+    ? 'rgba(255,255,255,0.14)'
+    : Colors.anchorBlueLight;
 
   const updateCell = (rowIndex: number, columnIndex: number, value: string) => {
     const nextRows = tableRows.map(row => [...row]);
     nextRows[rowIndex][columnIndex] = value;
     onChangeRows(nextRows);
+  };
+
+  const updateCellAlignment = (alignment: JournalTableAlignment) => {
+    const nextAlignments = resolvedAlignments.map(row => [...row]);
+    nextAlignments[selectedRowIndex][selectedColumnIndex] = alignment;
+    triggerLightHaptic();
+    onChangeCellAlignments(nextAlignments);
   };
 
   return (
@@ -94,13 +133,17 @@ export const JournalTableBlock = ({
             horizontal
             style={styles.horizontalScroll}
             keyboardShouldPersistTaps="handled"
+            scrollEnabled={!fitsWidth}
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.editingGrid}>
-            <View>
+            contentContainerStyle={[
+              styles.editingGrid,
+              fitsWidth && styles.fullWidthGrid,
+            ]}>
+            <View style={fitsWidth && styles.fullWidthGrid}>
               {tableRows.map((row, rowIndex) => (
                 <View key={rowIndex} style={styles.row}>
                   {row.map((cell, columnIndex) => (
-                    <TextInput
+                    <JournalTextInput
                       key={columnIndex}
                       ref={input => {
                         if (rowIndex === 0 && columnIndex === 0) {
@@ -114,24 +157,54 @@ export const JournalTableBlock = ({
                           borderColor: border,
                           backgroundColor:
                             rowIndex === 0 ? headerSurface : 'transparent',
+                          textAlign:
+                            resolvedAlignments[rowIndex][columnIndex],
                         },
-                        row.length === 2 && {width: (screenWidth - 92) / 2},
+                        fittedCellStyle,
                         rowIndex === 0 && styles.headerCell,
                       ]}
                       placeholder={rowIndex === 0 ? 'Heading' : ''}
                       placeholderTextColor={muted}
+                      accentColor={accent}
                       value={cell}
                       multiline
                       onChangeText={value =>
                         updateCell(rowIndex, columnIndex, value)
                       }
-                      onFocus={onFocus}
+                      onFocus={() => {
+                        setActiveCell({rowIndex, columnIndex});
+                        onFocus?.();
+                      }}
                     />
                   ))}
                 </View>
               ))}
             </View>
           </ScrollView>
+          <View style={styles.alignmentRow}>
+            <ThemedText weight="bold" style={[styles.alignmentLabel, {color: muted}]}>
+              CELL {selectedRowIndex + 1}, {selectedColumnIndex + 1}
+            </ThemedText>
+            <View style={styles.alignmentActions}>
+              {(['left', 'center', 'right'] as const).map(alignment => {
+                const selected =
+                  resolvedAlignments[selectedRowIndex][selectedColumnIndex] ===
+                  alignment;
+                return (
+                  <TableAction
+                    key={alignment}
+                    icon={`format-align-${alignment}`}
+                    label={`Align cell row ${selectedRowIndex + 1} column ${selectedColumnIndex + 1} ${alignment}`}
+                    color={accent}
+                    borderColor={selected ? accent : border}
+                    backgroundColor={selected ? activeAlignmentSurface : surface}
+                    selected={selected}
+                    onPress={() => updateCellAlignment(alignment)}
+                  />
+                );
+              })}
+            </View>
+          </View>
           <View style={styles.structureActions}>
             <TableAction
               icon="table-row-plus-after"
@@ -139,12 +212,17 @@ export const JournalTableBlock = ({
               color={accent}
               borderColor={border}
               backgroundColor={surface}
-              onPress={() =>
-                onChangeRows([
-                  ...tableRows,
-                  Array(tableRows[0]?.length || 2).fill(''),
-                ])
-              }
+              onPress={() => {
+                triggerLightHaptic();
+                const emptyRow = Array(tableRows[0]?.length || 2).fill('');
+                const rowAlignments = Array(
+                  tableRows[0]?.length || 2,
+                ).fill('left');
+                onChangeRows(
+                  [...tableRows, emptyRow],
+                  [...resolvedAlignments, rowAlignments],
+                );
+              }}
             />
             <TableAction
               icon="table-column-plus-after"
@@ -152,7 +230,13 @@ export const JournalTableBlock = ({
               color={accent}
               borderColor={border}
               backgroundColor={surface}
-              onPress={() => onChangeRows(tableRows.map(row => [...row, '']))}
+              onPress={() => {
+                triggerLightHaptic();
+                onChangeRows(
+                  tableRows.map(row => [...row, '']),
+                  resolvedAlignments.map(row => [...row, 'left']),
+                );
+              }}
             />
             {tableRows.length > 2 && (
               <TableAction
@@ -161,7 +245,13 @@ export const JournalTableBlock = ({
                 color={Colors.alertCoral}
                 borderColor={border}
                 backgroundColor={surface}
-                onPress={() => onChangeRows(tableRows.slice(0, -1))}
+                onPress={() => {
+                  triggerLightHaptic();
+                  onChangeRows(
+                    tableRows.slice(0, -1),
+                    resolvedAlignments.slice(0, -1),
+                  );
+                }}
               />
             )}
             {(tableRows[0]?.length || 0) > 2 && (
@@ -171,27 +261,34 @@ export const JournalTableBlock = ({
                 color={Colors.alertCoral}
                 borderColor={border}
                 backgroundColor={surface}
-                onPress={() =>
-                  onChangeRows(tableRows.map(row => row.slice(0, -1)))
-                }
+                onPress={() => {
+                  triggerLightHaptic();
+                  onChangeRows(
+                    tableRows.map(row => row.slice(0, -1)),
+                    resolvedAlignments.map(row => row.slice(0, -1)),
+                  );
+                }}
               />
             )}
           </View>
           <TouchableOpacity
-            style={[styles.saveButton, {backgroundColor: accent}]}
+            accessibilityRole="button"
+            accessibilityLabel="Save table"
+            style={[
+              styles.saveButton,
+              {
+                borderColor: onDark ? 'rgba(255,255,255,0.28)' : border,
+                backgroundColor: onDark
+                  ? 'rgba(255,255,255,0.14)'
+                  : Colors.anchorBlueLight,
+              },
+            ]}
             onPress={() => {
               triggerLightHaptic();
               Keyboard.dismiss();
               onChangeEditing(false);
             }}>
-            <ThemedText
-              weight="bold"
-              style={[
-                styles.saveButtonText,
-                {color: onDark ? Colors.sage : Colors.hopeWhite},
-              ]}>
-              Save table
-            </ThemedText>
+            <Ionicons name="checkmark" size={17} color={accent} />
           </TouchableOpacity>
         </>
       ) : (
@@ -203,10 +300,13 @@ export const JournalTableBlock = ({
           <ScrollView
             horizontal
             style={styles.horizontalScroll}
-            scrollEnabled
+            scrollEnabled={!fitsWidth}
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.savedGrid}>
-            <View>
+            contentContainerStyle={[
+              styles.savedGrid,
+              fitsWidth && styles.fullWidthGrid,
+            ]}>
+            <View style={fitsWidth && styles.fullWidthGrid}>
               {tableRows.map((row, rowIndex) => (
                 <View key={rowIndex} style={styles.row}>
                   {row.map((cell, columnIndex) => (
@@ -220,8 +320,10 @@ export const JournalTableBlock = ({
                           borderColor: border,
                           backgroundColor:
                             rowIndex === 0 ? headerSurface : 'transparent',
+                          textAlign:
+                            resolvedAlignments[rowIndex][columnIndex],
                         },
-                        row.length === 2 && {width: (screenWidth - 92) / 2},
+                        fittedCellStyle,
                       ]}>
                       {cell}
                     </ThemedText>
@@ -242,6 +344,7 @@ const TableAction = ({
   color,
   borderColor,
   backgroundColor,
+  selected,
   onPress,
 }: {
   icon: string;
@@ -249,13 +352,15 @@ const TableAction = ({
   color: string;
   borderColor: string;
   backgroundColor: string;
+  selected?: boolean;
   onPress: () => void;
 }) => (
   <TouchableOpacity
     style={[styles.structureAction, {borderColor, backgroundColor}]}
     onPress={onPress}
     accessibilityRole="button"
-    accessibilityLabel={label}>
+    accessibilityLabel={label}
+    accessibilityState={selected === undefined ? undefined : {selected}}>
     <MaterialCommunityIcons name={icon as any} size={18} color={color} />
   </TouchableOpacity>
 );
@@ -275,14 +380,14 @@ const styles = StyleSheet.create({
   captureLabelRow: {flexDirection: 'row', alignItems: 'center', gap: 6},
   captureLabel: {fontSize: 10, letterSpacing: 1.2},
   horizontalScroll: {marginHorizontal: -12},
-  editingGrid: {flexGrow: 1, justifyContent: 'center', paddingTop: 14},
+  editingGrid: {flexGrow: 1, paddingTop: 14},
   savedGrid: {
     flexGrow: 1,
-    justifyContent: 'center',
     paddingTop: 9,
     paddingBottom: 3,
   },
   row: {flexDirection: 'row'},
+  fullWidthGrid: {width: '100%'},
   editingCell: {
     width: 126,
     minHeight: 48,
@@ -305,6 +410,14 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 17,
   },
+  alignmentRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 9,
+  },
+  alignmentLabel: {fontSize: 9, letterSpacing: 0.8},
+  alignmentActions: {flexDirection: 'row', alignItems: 'center', gap: 7},
   structureActions: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -322,10 +435,12 @@ const styles = StyleSheet.create({
   },
   saveButton: {
     alignSelf: 'flex-end',
+    width: 32,
+    height: 32,
     marginTop: 11,
-    paddingHorizontal: 15,
-    paddingVertical: 9,
-    borderRadius: 18,
+    borderWidth: 1,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  saveButtonText: {fontSize: 11},
 });

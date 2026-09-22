@@ -191,7 +191,7 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     paddingTop: 50,
     paddingHorizontal: 16,
-    paddingBottom: 0,
+    paddingBottom: 10,
     zIndex: 10,
     backgroundColor: Colors.lightBackground,
   },
@@ -199,6 +199,19 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 0,
+  },
+  headerPlainButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 999,
+    marginRight: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   headerButton: {
     padding: 8,

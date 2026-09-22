@@ -12,7 +12,6 @@ import MorningFlowStackNavigator from './MorningFlowStackNavigator';
 import EveningFlowStackNavigator from './EveningFlowStackNavigator';
 import PlaybookDetailScreen from '../screens/PlaybookDetailGuided';
 import PlaybookWalkthroughScreen from '../screens/PlaybookWalkthroughScreen';
-import JournalScreen from '../screens/JournalScreen';
 import TodaysFocusWalkthroughScreen from '../screens/TodaysFocusWalkthroughScreen';
 import TomorrowInHisHandsWalkthroughScreen from '../screens/TomorrowInHisHandsWalkthroughScreen';
 import TodosWalkthroughScreen from '../screens/TodosWalkthroughScreen';
@@ -24,6 +23,7 @@ import PrayersForPeopleWalkthroughScreen from '../screens/PrayersForPeopleWalkth
 import PrayerEditorScreen from '../screens/PrayerEditorScreen';
 import UnifiedPrayerSelectionScreen from '../screens/UnifiedPrayerSelectionScreen';
 import StreakPlanScreen from '../screens/StreakPlanScreen';
+import FaithfulRhythmsScreen from '../screens/FaithfulRhythmsScreen';
 import StreakPlanTestDashboard from '../screens/StreakPlanTestDashboard';
 import ActionStepsProviderWrapper from '../context/ActionStepsProviderWrapper';
 // import { useAuth } from '../context/IndustryStandardAuthContext'; // Unused after removing ProfileImage
@@ -374,9 +374,19 @@ export default function RootStackNavigator({
         options={{
           headerShown: false,
           presentation: 'fullScreenModal',
-          animation: 'slide_from_bottom',
+          animation: 'fade',
           gestureEnabled: false,
-          contentStyle: { backgroundColor: Colors.sage },
+          contentStyle: { backgroundColor: Colors.lightBackground },
+        }}
+      />
+      <Stack.Screen
+        name="FaithfulRhythms"
+        component={FaithfulRhythmsScreen as React.ComponentType}
+        options={{
+          headerShown: false,
+          presentation: 'card',
+          animation: 'slide_from_right',
+          contentStyle: {backgroundColor: Colors.lightBackground},
         }}
       />
 
@@ -484,12 +494,6 @@ export default function RootStackNavigator({
               gestureEnabled: false,
             }}
           />
-          <Stack.Screen
-            name="Journal"
-            component={JournalScreen as React.ComponentType}
-            options={{ headerShown: false }}
-          />
-
           {/* Today's Focus Walkthrough */}
           <Stack.Screen
             name="TodaysFocusWalkthrough"

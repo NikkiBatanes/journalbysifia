@@ -9,7 +9,11 @@ import { safeJsonParse } from '../utils/safeJsonParse';
 import { type ReviewMemorableItem, type ReviewType } from '../storage/reviewStorage';
 import { resolveSessionNoteType, sessionNoteTypeLabel } from '../types/sessionNotes';
 import { heartJournalClassificationLabel } from '../types/heartJournal';
-import { parseGuidedReflection } from '../types/guidedReflection';
+import {
+  guidedEntryKind,
+  parseGuidedReflection,
+  type GuidedReflectionNote,
+} from '../types/guidedReflection';
 import {guidedQuestionTopicForPrompt} from '../data/guidedReflectionQuestions';
 import { PrayerApi } from './api/prayerApi';
 import { derivePrayerReview, type PrayerReviewEventType } from './prayerReviewService';
@@ -63,6 +67,8 @@ export interface ReviewCaptureItem {
   detail?: string;
   /** The life area chosen before answering a single Guided Reflection question. */
   lifeArea?: string;
+  /** Structured Heart Journal content retained for the same rich preview used in Moments. */
+  journalBlocks?: GuidedReflectionNote[];
   scriptureText?: string;
   feelingIcon?: string;
   feelingIconType?: 'ionicons' | 'material' | 'fontawesome';
@@ -171,6 +177,10 @@ export const classifyReflection = (
   let passageRead: boolean | undefined;
   let wisdomItems: ReviewCaptureItem['wisdomItems'];
   let wisdomResponse = '';
+  const storedJournalBlocks = entry.metadata?.journalBlocks;
+  const journalBlocks = Array.isArray(storedJournalBlocks)
+    ? storedJournalBlocks as GuidedReflectionNote[]
+    : undefined;
 
   if (entry.type === 'sermon') {
     kind = 'sermon';
@@ -245,7 +255,7 @@ export const classifyReflection = (
   } else if (entry.type === 'guided' || entry.source === 'guided' || entry.source === 'guided_prompt') {
     kind = 'reflection';
     presentation = 'guided_reflection';
-    subtitle = entry.source === 'guided_prompt' ? 'Guided prompt' : 'Guided reflection';
+    subtitle = guidedEntryKind(entry) === 'prompt' ? 'Guided prompt' : 'Guided reflection';
     const journey = parseGuidedReflection(entry.content);
     if (journey) {
       detail = journey.pathTitle;
@@ -273,6 +283,7 @@ export const classifyReflection = (
     presentation,
     detail: detail || undefined,
     lifeArea: lifeArea || undefined,
+    journalBlocks,
     passageRead,
     wisdomItems,
     wisdomResponse: wisdomResponse || undefined,

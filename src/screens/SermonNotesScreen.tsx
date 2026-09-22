@@ -23,7 +23,6 @@ import {SafeAreaView, useSafeAreaInsets} from 'react-native-safe-area-context';
 import {useFocusEffect} from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import {BlurView} from '@react-native-community/blur';
 import {Pencil, Sparkles} from 'lucide-react-native';
 
 import {BibleCopyrightModal} from '../components/BibleCopyrightModal';
@@ -44,6 +43,11 @@ import {
   type ScriptureReaderResult,
 } from '../services/scriptureReaderService';
 import {useNetworkStore} from '../services/network/networkManager';
+import {
+  claimFaithfulRhythmCelebration,
+  FAITHFUL_RHYTHM_UPDATED,
+  getFaithfulRhythmsSnapshot,
+} from '../services/faithfulRhythmService';
 import {Colors} from '../theme/colors';
 import {Fonts} from '../theme/fonts';
 import {toLocalDateString} from '../utils/date';
@@ -56,6 +60,7 @@ import {
   JournalBlockIcon,
   createJournalBlock,
   formatJournalAttribution,
+  getJournalTableCellAlignment,
   hasMeaningfulJournalBlock,
   JOURNAL_BLOCK_GAP,
   prepareJournalBlocksForSave,
@@ -65,6 +70,7 @@ import {
   type JournalLanguageDetail,
   type JournalLanguageKind,
   type JournalOutlineStyle,
+  type JournalTableCellAlignments,
 } from '../components/journal/shared/journalBlocks';
 import {
   JournalBlockPickerMenu,
@@ -74,6 +80,7 @@ import {JournalInlineBlock} from '../components/journal/shared/JournalInlineBloc
 import {ScriptureLookupInput} from '../components/journal/shared/ScriptureLookupInput';
 import {JournalTableBlock} from '../components/journal/shared/JournalTableBlock';
 import {JournalListBlock} from '../components/journal/shared/JournalListBlock';
+import JournalColumnBlock from '../components/journal/shared/JournalColumnBlock';
 import DraggableJournalBlock from '../components/journal/shared/DraggableJournalBlock';
 import ReflectionSpecialBlock from '../components/journal/ReflectionSpecialBlock';
 import {pickImageLocal} from '../services/avatarService';
@@ -149,7 +156,7 @@ const sessionBlockToHtml = (block: NoteBlock) => {
     const rows = (block.tableRows || [])
       .map(
         (row, rowIndex) =>
-          `<tr>${row.map(cell => `<${rowIndex === 0 ? 'th' : 'td'} style="border:1px solid #D9DED9;padding:6px;text-align:left;">${escapeHtml(cell)}</${rowIndex === 0 ? 'th' : 'td'}>`).join('')}</tr>`,
+          `<tr>${row.map((cell, columnIndex) => `<${rowIndex === 0 ? 'th' : 'td'} style="border:1px solid #D9DED9;padding:6px;text-align:${getJournalTableCellAlignment(block.tableCellAlignments, rowIndex, columnIndex)};">${escapeHtml(cell)}</${rowIndex === 0 ? 'th' : 'td'}>`).join('')}</tr>`,
       )
       .join('');
     return `<table style="width:100%;border-collapse:collapse;margin:0 0 16px;font-size:12px;">${rows}</table>`;
@@ -190,7 +197,7 @@ const sessionBlockToHtml = (block: NoteBlock) => {
 const SermonNotesScreen = ({navigation, route}: any) => {
   const isOnline = useNetworkStore(state => state.isOnline);
   const {height: screenHeight} = useWindowDimensions();
-  const {user} = useAuth();
+  const {user, preferences} = useAuth();
   const bibleVersion = useMemo(
     () =>
       (user as any)?.user_metadata?.preferences?.content?.bibleVersion ||
@@ -269,6 +276,10 @@ const SermonNotesScreen = ({navigation, route}: any) => {
   const [showMore, setShowMore] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [focusedInput, setFocusedInput] = useState<string | null>(null);
+  const [columnTarget, setColumnTarget] = useState<{
+    columnId: string;
+    side: 'left' | 'right';
+  } | null>(null);
   const [dragPreview, setDragPreview] = useState<{
     blockId: string;
     fromIndex: number;
@@ -805,9 +816,23 @@ const SermonNotesScreen = ({navigation, route}: any) => {
   const handleExportPDF = useCallback(async () => {
     triggerLightHaptic();
     try {
-      const blockHtml = blocks
-        .filter(hasBlockContent)
-        .map(sessionBlockToHtml)
+      const exportBlocks = prepareJournalBlocksForSave(blocks);
+      const blockHtml = exportBlocks
+        .filter(block => !block.parentColumnId)
+        .map(block => {
+          if (block.kind !== 'column') {
+            return sessionBlockToHtml(block);
+          }
+          const nested = exportBlocks.filter(
+            child => child.parentColumnId === block.id,
+          );
+          const sideHtml = (side: 'left' | 'right') =>
+            nested
+              .filter(child => child.columnSide === side)
+              .map(sessionBlockToHtml)
+              .join('');
+          return `<div style="display:flex;gap:12px;align-items:flex-start;margin:0 0 16px;"><div style="flex:1;min-width:0;padding:10px;border:1px solid #D9DED9;border-radius:12px;">${sideHtml('left')}</div><div style="flex:1;min-width:0;padding:10px;border:1px solid #D9DED9;border-radius:12px;">${sideHtml('right')}</div></div>`;
+        })
         .join('');
 
       const html = `
@@ -1026,11 +1051,39 @@ const SermonNotesScreen = ({navigation, route}: any) => {
     });
   };
 
-  const addBlock = (kind: BlockKind, extra: Partial<NoteBlock> = {}) => {
+  const addBlock = (
+    kind: BlockKind,
+    extra: Partial<NoteBlock> = {},
+    explicitColumnTarget?: {columnId: string; side: 'left' | 'right'} | null,
+  ) => {
     triggerLightHaptic();
-    const insertionAfterId = blocks.some(block => block.id === focusedInput)
-      ? focusedInput
-      : null;
+    const focusedBlock = blocks.find(block => block.id === focusedInput);
+    const requestedDestination = explicitColumnTarget ||
+      (focusedBlock?.parentColumnId && focusedBlock.columnSide
+        ? {
+            columnId: focusedBlock.parentColumnId,
+            side: focusedBlock.columnSide,
+          }
+        : columnTarget);
+    if (
+      requestedDestination &&
+      (kind === 'column' || kind === 'table')
+    ) {
+      return;
+    }
+    const destination = requestedDestination;
+    let insertionAfterId = focusedBlock?.id || null;
+    if (destination && focusedBlock?.parentColumnId !== destination.columnId) {
+      insertionAfterId = null;
+    }
+    if (destination && !insertionAfterId) {
+      const lastNestedBlock = [...blocks].reverse().find(
+        block =>
+          block.parentColumnId === destination.columnId &&
+          block.columnSide === destination.side,
+      );
+      insertionAfterId = lastNestedBlock?.id || destination.columnId;
+    }
     const insertionIndex = insertionAfterId
       ? blocks.findIndex(block => block.id === insertionAfterId)
       : -1;
@@ -1044,9 +1097,23 @@ const SermonNotesScreen = ({navigation, route}: any) => {
       keepScrollAtEndRef.current = false;
       keepAtEndTimerRef.current = null;
     }, 2500);
-    const selectedBlock = {...newBlock(kind), ...extra};
+    const selectedBlock = {
+      ...newBlock(kind),
+      ...(destination
+        ? {
+            parentColumnId: destination.columnId,
+            columnSide: destination.side,
+          }
+        : {}),
+      ...extra,
+    };
     pendingFocusBlockIdRef.current = selectedBlock.id;
     pendingFocusShouldScrollEndRef.current = shouldScrollToEnd;
+    setColumnTarget(
+      kind === 'column'
+        ? {columnId: selectedBlock.id, side: 'left'}
+        : destination || null,
+    );
     setFocusedInput(selectedBlock.id);
     setBlocks(current => {
       const inserted = insertJournalBlock(
@@ -1055,7 +1122,7 @@ const SermonNotesScreen = ({navigation, route}: any) => {
         selectedBlock.id,
         insertionAfterId,
       );
-      return updateJournalBlock(inserted.blocks, selectedBlock.id, extra);
+      return updateJournalBlock(inserted.blocks, selectedBlock.id, selectedBlock);
     });
   };
 
@@ -1119,11 +1186,26 @@ const SermonNotesScreen = ({navigation, route}: any) => {
   };
 
   const insertActionAfter = (index: number) => {
-    const block = newBlock('action');
+    const sourceBlock = blocks[index];
+    const block = {
+      ...newBlock('action'),
+      ...(sourceBlock?.parentColumnId && sourceBlock.columnSide
+        ? {
+            parentColumnId: sourceBlock.parentColumnId,
+            columnSide: sourceBlock.columnSide,
+          }
+        : {}),
+    };
     const nextBlocks = [...blocks];
     nextBlocks.splice(index + 1, 0, block);
     pendingFocusBlockIdRef.current = block.id;
     pendingFocusShouldScrollEndRef.current = index === blocks.length - 1;
+    if (block.parentColumnId && block.columnSide) {
+      setColumnTarget({
+        columnId: block.parentColumnId,
+        side: block.columnSide,
+      });
+    }
     setFocusedInput(block.id);
     setBlocks(nextBlocks);
   };
@@ -1189,9 +1271,32 @@ const SermonNotesScreen = ({navigation, route}: any) => {
     );
   };
 
-  const updateTableRows = (id: string, tableRows: string[][]) => {
+  const updateTableRows = (
+    id: string,
+    tableRows: string[][],
+    tableCellAlignments?: JournalTableCellAlignments,
+  ) => {
     setBlocks(current =>
-      current.map(block => (block.id === id ? {...block, tableRows} : block)),
+      current.map(block =>
+        block.id === id
+          ? {
+              ...block,
+              tableRows,
+              ...(tableCellAlignments ? {tableCellAlignments} : {}),
+            }
+          : block,
+      ),
+    );
+  };
+
+  const updateTableCellAlignments = (
+    id: string,
+    tableCellAlignments: JournalTableCellAlignments,
+  ) => {
+    setBlocks(current =>
+      current.map(block =>
+        block.id === id ? {...block, tableCellAlignments} : block,
+      ),
     );
   };
 
@@ -1360,6 +1465,41 @@ const SermonNotesScreen = ({navigation, route}: any) => {
         setSaved(true);
       }
       DeviceEventEmitter.emit('sermon_saved');
+      if (markComplete && previousMetadata.is_complete !== true) {
+        try {
+          DeviceEventEmitter.emit(FAITHFUL_RHYTHM_UPDATED, {rhythm: 'heart_journal', selectedDate});
+
+          const [selectedYear, selectedMonth, selectedDay] = selectedDate.split('-').map(Number);
+          const completedDate = new Date(selectedYear, selectedMonth - 1, selectedDay);
+          const isSundaySermon = sessionNoteType === 'sermon' && completedDate.getDay() === 0;
+          const sermonRhythm = isSundaySermon
+            ? (await getFaithfulRhythmsSnapshot(preferences?.weekStart || 'monday', completedDate)).session_notes
+            : null;
+          const completedEverySundayThisMonth = Boolean(
+            sermonRhythm?.days.length
+            && sermonRhythm.days.every(day => day.status === 'complete'),
+          );
+
+          if (
+            completedEverySundayThisMonth
+            && await claimFaithfulRhythmCelebration('session_notes', selectedDate, preferences?.weekStart || 'monday')
+          ) {
+            navigation.navigate('StreakPlan', {
+              rhythm: 'session_notes',
+              source: 'sunday_sermon_month_complete',
+              returnTo: 'moments',
+            });
+          } else if (await claimFaithfulRhythmCelebration('heart_journal', selectedDate)) {
+            navigation.navigate('StreakPlan', {
+              rhythm: 'heart_journal',
+              source: 'session_notes_complete',
+              returnTo: 'moments',
+            });
+          }
+        } catch (rhythmError) {
+          console.error('Failed to update faithful rhythms after saving Session Notes:', rhythmError);
+        }
+      }
       setIsSaving(false);
       return true;
     } catch (error) {
@@ -1374,6 +1514,52 @@ const SermonNotesScreen = ({navigation, route}: any) => {
   };
 
   const renderBlock = (block: NoteBlock, blockIndex: number) => {
+    if (block.kind === 'column') {
+      const nestedBlocks = blocks.filter(
+        item => item.parentColumnId === block.id,
+      );
+      const renderNestedBlock = (nestedBlock: NoteBlock) => (
+        <View
+          key={nestedBlock.id}
+          onTouchStart={() => {
+            setFocusedInput(nestedBlock.id);
+            if (nestedBlock.columnSide) {
+              setColumnTarget({
+                columnId: block.id,
+                side: nestedBlock.columnSide,
+              });
+            }
+          }}>
+          {renderBlock(
+            nestedBlock,
+            blocks.findIndex(item => item.id === nestedBlock.id),
+          )}
+        </View>
+      );
+      return (
+        <JournalColumnBlock
+          key={block.id}
+          leftBlocks={nestedBlocks.filter(item => item.columnSide === 'left')}
+          rightBlocks={nestedBlocks.filter(item => item.columnSide === 'right')}
+          activeSide={
+            columnTarget?.columnId === block.id ? columnTarget.side : null
+          }
+          renderBlock={renderNestedBlock}
+          onSelectSide={side => {
+            setFocusedInput(block.id);
+            setColumnTarget({columnId: block.id, side});
+          }}
+          onDelete={() =>
+            setBlocks(current =>
+              current.filter(
+                item =>
+                  item.id !== block.id && item.parentColumnId !== block.id,
+              ),
+            )
+          }
+        />
+      );
+    }
     if (block.kind === 'bullets' || block.kind === 'numbered') {
       return (
         <JournalListBlock
@@ -1521,8 +1707,14 @@ const SermonNotesScreen = ({navigation, route}: any) => {
         <JournalTableBlock
           key={block.id}
           rows={block.tableRows}
+          cellAlignments={block.tableCellAlignments}
           editing={block.tableEditing}
-          onChangeRows={tableRows => updateTableRows(block.id, tableRows)}
+          onChangeRows={(tableRows, tableCellAlignments) =>
+            updateTableRows(block.id, tableRows, tableCellAlignments)
+          }
+          onChangeCellAlignments={tableCellAlignments =>
+            updateTableCellAlignments(block.id, tableCellAlignments)
+          }
           onChangeEditing={tableEditing =>
             setTableEditing(block.id, tableEditing)
           }
@@ -2706,7 +2898,9 @@ const SermonNotesScreen = ({navigation, route}: any) => {
                 onLayout={e => {
                   editorLayout.current = {y: e.nativeEvent.layout.y};
                 }}>
-                {blocks.map((block, index) => (
+                {blocks.filter(block => !block.parentColumnId).map(block => {
+                  const index = blocks.findIndex(item => item.id === block.id);
+                  return (
                   <DraggableJournalBlock
                     key={block.id}
                     blockId={block.id}
@@ -2731,7 +2925,10 @@ const SermonNotesScreen = ({navigation, route}: any) => {
                       }
                       return 0;
                     })()}
-                    onSelect={() => setFocusedInput(block.id)}
+                    onSelect={() => {
+                      setFocusedInput(block.id);
+                      setColumnTarget(null);
+                    }}
                     onLayout={layout =>
                       blockLayoutsRef.current.set(block.id, layout)
                     }
@@ -2740,7 +2937,8 @@ const SermonNotesScreen = ({navigation, route}: any) => {
                     onDragEnd={handleDragBlock}>
                     {renderBlock(block, index)}
                   </DraggableJournalBlock>
-                ))}
+                  );
+                })}
               </View>
             </>
           )}
@@ -2942,21 +3140,6 @@ const SermonNotesScreen = ({navigation, route}: any) => {
             })()}
         </ScrollView>
       </Animated.View>
-      {showMore &&
-        (Platform.OS === 'ios' ? (
-          <BlurView
-            style={[StyleSheet.absoluteFill, {zIndex: 25}]}
-            pointerEvents="none"
-            blurType="dark"
-            blurAmount={10}
-            reducedTransparencyFallbackColor="rgba(0,0,0,0.5)"
-          />
-        ) : (
-          <View
-            style={[StyleSheet.absoluteFill, styles.androidBlur, {zIndex: 25}]}
-            pointerEvents="none"
-          />
-        ))}
       {stage === 1 && title.trim().length > 0 && (
         <AnimatedTouchableOpacity
           activeOpacity={0.7}
@@ -3160,7 +3343,10 @@ const SermonNotesScreen = ({navigation, route}: any) => {
               nestedScrollEnabled
               showsVerticalScrollIndicator={false}>
               <JournalBlockPickerMenu
-                kinds={CAPTURE_KINDS}
+                kinds={CAPTURE_KINDS.filter(
+                  kind =>
+                    !columnTarget || (kind !== 'column' && kind !== 'table'),
+                )}
                 animations={pillAnimations}
                 onSelect={selectCaptureKind}
               />
@@ -3486,7 +3672,6 @@ const styles = StyleSheet.create({
     paddingVertical: 9,
   },
   toolText: {fontSize: 11, color: Colors.sage},
-  androidBlur: {backgroundColor: 'rgba(0, 0, 0, 0.5)'},
   floatingComposer: {
     position: 'absolute',
     left: 18,
@@ -3859,10 +4044,9 @@ const styles = StyleSheet.create({
   },
   openLinkText: {fontSize: 11, color: Colors.sage},
   // Also used by the read-only Session Notes detail screen.
-  savedTableHorizontalScroll: {marginHorizontal: -12},
+  savedTableHorizontalScroll: {marginBottom: JOURNAL_BLOCK_GAP},
   savedTableGrid: {
     flexGrow: 1,
-    justifyContent: 'center',
     paddingTop: 9,
     paddingBottom: 3,
   },

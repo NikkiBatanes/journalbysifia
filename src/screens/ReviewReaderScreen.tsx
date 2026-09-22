@@ -1,8 +1,9 @@
 import React, {useCallback, useMemo, useState} from 'react';
-import {Platform, ScrollView, StatusBar, StyleSheet, TouchableOpacity, View} from 'react-native';
+import {Platform, ScrollView, StatusBar, StyleSheet, View} from 'react-native';
 import {SafeAreaView, useSafeAreaInsets} from 'react-native-safe-area-context';
 import {useFocusEffect, useNavigation, useRoute} from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import HeaderBackButton from '../components/common/HeaderBackButton';
 import ThemedText from '../components/common/ThemedText';
 import {Colors} from '../theme/colors';
 import {Fonts} from '../theme/fonts';
@@ -27,7 +28,7 @@ const ReviewReaderScreen: React.FC = () => {
   if (!review) return <SafeAreaView style={[styles.safeArea, {paddingTop: topInset}]} edges={['left', 'right']} />;
   return <SafeAreaView style={[styles.safeArea, {paddingTop: topInset}]} edges={['left', 'right']}>
     <StatusBar barStyle="dark-content" backgroundColor={Colors.lightBackground} translucent={false} />
-    <View style={styles.header}><TouchableOpacity style={styles.headerButton} onPress={() => navigation.goBack()} accessibilityLabel="Go back"><Ionicons name="arrow-back" size={22} color={Colors.text} /></TouchableOpacity><ThemedText weight="semiBold" style={styles.headerTitle}>{formatReviewPeriod(review)}</ThemedText><View style={styles.headerButton} /></View>
+    <View style={styles.header}><HeaderBackButton onPress={() => navigation.goBack()} color={Colors.text} /><ThemedText weight="semiBold" style={styles.headerTitle}>{formatReviewPeriod(review)}</ThemedText><View style={styles.headerButton} /></View>
     <ScrollView contentContainerStyle={[styles.content,{paddingBottom:insets.bottom + 32}]} showsVerticalScrollIndicator={false}>
       <ThemedText weight="semiBold" style={styles.eyebrow}>{review.type.replace('_',' ').toUpperCase()} REVIEW</ThemedText><ThemedText weight="bold" style={styles.title}>{formatReviewPeriod(review)}</ThemedText><ThemedText style={styles.subtitle}>A chapter from the life you lived.</ThemedText><View style={styles.rule} />
       <View style={styles.sectionHeading}><Ionicons name="leaf-outline" size={23} color={Colors.sage} /><View><ThemedText weight="bold" style={styles.sectionTitle}>Your reflection</ThemedText><ThemedText style={styles.sectionSubtitle}>What you noticed and chose to carry.</ThemedText></View></View>

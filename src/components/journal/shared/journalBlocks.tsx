@@ -11,6 +11,7 @@ export type JournalBlockKind =
   | 'action'
   | 'bullets'
   | 'numbered'
+  | 'column'
   | 'photo'
   | 'voice'
   | 'scripture'
@@ -31,6 +32,10 @@ export type JournalBlockKind =
   | 'prayer'
   | 'book';
 export type JournalOutlineStyle = 'numbered' | 'acronym' | 'simple';
+export type JournalTableAlignment = 'left' | 'center' | 'right';
+export type JournalTableCellAlignments =
+  | JournalTableAlignment[][]
+  | JournalTableAlignment[];
 export type JournalHistoryType =
   | 'era'
   | 'place'
@@ -63,10 +68,13 @@ export interface JournalBlock {
   meaning?: string;
   origin?: string;
   tableRows?: string[][];
+  tableCellAlignments?: JournalTableCellAlignments;
   tableEditing?: boolean;
   uri?: string;
   durationMillis?: number;
   completed?: boolean;
+  parentColumnId?: string;
+  columnSide?: 'left' | 'right';
 }
 
 export interface JournalBlockConfig {
@@ -78,6 +86,7 @@ export interface JournalBlockConfig {
 }
 
 export type JournalBlockContent = {
+  id?: string;
   kind: string;
   text?: string;
   secondary?: string;
@@ -89,7 +98,10 @@ export type JournalBlockContent = {
   origin?: string;
   points?: string[];
   tableRows?: string[][];
+  tableCellAlignments?: JournalTableCellAlignments;
   uri?: string;
+  parentColumnId?: string;
+  columnSide?: 'left' | 'right';
 };
 
 export const hasMeaningfulJournalBlock = (block: JournalBlockContent) =>
@@ -109,8 +121,8 @@ export const hasMeaningfulJournalBlock = (block: JournalBlockContent) =>
 
 export const prepareJournalBlocksForSave = <T extends JournalBlockContent>(
   blocks: T[],
-): T[] =>
-  blocks
+): T[] => {
+  const sanitized = blocks
     .map(block => {
       if (block.kind !== 'bullets' && block.kind !== 'numbered') {
         return block;
@@ -119,8 +131,21 @@ export const prepareJournalBlocksForSave = <T extends JournalBlockContent>(
         ...block,
         points: (block.points || []).filter(point => point.trim()),
       } as T;
-    })
-    .filter(block => hasMeaningfulJournalBlock(block));
+    });
+  const meaningfulChildren = sanitized.filter(
+    block => block.kind !== 'column' && hasMeaningfulJournalBlock(block),
+  );
+  const populatedColumnIds = new Set(
+    meaningfulChildren
+      .map(block => block.parentColumnId)
+      .filter((id): id is string => Boolean(id)),
+  );
+  return sanitized.filter(block =>
+    block.kind === 'column'
+      ? Boolean(block.id && populatedColumnIds.has(block.id))
+      : hasMeaningfulJournalBlock(block),
+  );
+};
 
 export const formatJournalAttribution = (value = '') => {
   if (!value) {
@@ -128,6 +153,33 @@ export const formatJournalAttribution = (value = '') => {
   }
   return value.startsWith('—') ? value : `— ${value}`;
 };
+
+export const getJournalTableCellAlignment = (
+  alignments: JournalTableCellAlignments | undefined,
+  rowIndex: number,
+  columnIndex: number,
+): JournalTableAlignment => {
+  const alignmentOrRow = alignments?.[rowIndex];
+  if (Array.isArray(alignmentOrRow)) {
+    return alignmentOrRow[columnIndex] || 'left';
+  }
+
+  // Tables saved before per-cell alignment stored one value per column.
+  const legacyColumnAlignment = alignments?.[columnIndex];
+  return typeof legacyColumnAlignment === 'string'
+    ? legacyColumnAlignment
+    : 'left';
+};
+
+export const resolveJournalTableCellAlignments = (
+  rows: string[][],
+  alignments?: JournalTableCellAlignments,
+): JournalTableAlignment[][] =>
+  rows.map((row, rowIndex) =>
+    row.map((_, columnIndex) =>
+      getJournalTableCellAlignment(alignments, rowIndex, columnIndex),
+    ),
+  );
 
 export const JOURNAL_BLOCKS: Record<
   Exclude<JournalBlockKind, 'text'>,
@@ -156,6 +208,13 @@ export const JOURNAL_BLOCKS: Record<
     action: 'Numbered',
     placeholder: 'List item',
     icon: 'list-circle-outline',
+  },
+  column: {
+    label: 'COLUMN',
+    action: 'Column',
+    placeholder: '',
+    icon: 'view-column-outline',
+    iconFamily: 'MaterialCommunityIcons',
   },
   photo: {
     label: 'PHOTO',
@@ -279,6 +338,7 @@ export const SERMON_BLOCK_KINDS = [
   'action',
   'bullets',
   'numbered',
+  'column',
   'photo',
   'voice',
   'character',
@@ -337,6 +397,10 @@ export const createJournalBlock = (
           ['', ''],
           ['', ''],
         ],
+        tableCellAlignments: [
+          ['left', 'left'],
+          ['left', 'left'],
+        ] as JournalTableAlignment[][],
         tableEditing: true,
       }
     : {}),

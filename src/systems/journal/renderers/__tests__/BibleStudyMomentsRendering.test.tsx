@@ -6,6 +6,10 @@ import { getCanonicalMomentTimeline } from '../../../../services/momentTimelineS
 import { JournalPlugin } from '../../types';
 import { PluginRenderer } from '../../PluginRenderer';
 
+jest.mock('react-native-reanimated', () => {
+  const animation = { delay: () => animation, springify: () => animation, damping: () => animation, stiffness: () => animation };
+  return { __esModule: true, default: { View: require('react-native').View }, FadeInUp: animation };
+});
 jest.mock('../../../../context/IndustryStandardAuthContext', () => ({ useAuth: () => ({ user: null }) }));
 jest.mock('../../../../hooks/useTheme', () => ({ useTheme: () => ({ currentFont: 'lexend' }) }));
 jest.mock('../../../../utils/haptics', () => ({ triggerLightHaptic: jest.fn() }));

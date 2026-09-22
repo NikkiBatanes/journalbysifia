@@ -1,10 +1,15 @@
 # Journal by siFia — Project Notes
 
+## Moments scrolling
+
+- Confirmed September 22, 2026: sticky date headers reported inner `y=0` to VirtualizedList, corrupting spacing and causing jumps between dates. Keep `MomentsStickyHeader` wired into the renderer and date headers free of entrance transforms.
+- Diagnosis, implementation, tests, and the related pending siFia issue: [Moments scroll fix](docs/moments-sticky-header-scroll-fix.md). Recheck the adapter's internal RN contract on upgrades.
+
 ## Sermon Notes
 
 - Main file: `src/screens/SermonNotesScreen.tsx`
 - Session Note types: one shared editor serves Sermon/Conference/Speaking/Meeting/Workshop/Other via additive `metadata.sessionNoteType` (`src/types/sessionNotes.ts`). Legacy records without the field resolve to `sermon` at read time — no migration. Add menu "Session Notes" opens the editor's type picker directly, matching the Heart Journal entry flow and avoiding a duplicate picker animation. Distinct from Heart Journal `journalClassification: 'notes'`.
-- Common verification: `npx tsc --noEmit` (only known unrelated error in `src/components/dashboard/StreakTracker.tsx`)
+- Common verification: `npx tsc --noEmit`
 
 ## Review Feature
 

@@ -29,7 +29,7 @@ export const SavedMorningMoment = ({ moment, viewMode = 'inline' }: { moment: Mo
   if (moment.pluginId === 'morningcheckin') {
     return <>
       <JournalCard title="MORNING CHECK-IN" variant="inline" viewMode={viewMode}>
-        <View style={styles.proverbContent}>
+        <View style={[styles.proverbContent, momentsPalette && styles.momentsCardBorder]}>
           <ThemedText style={styles.feelingLabel}>HOW YOU FELT</ThemedText>
           <View style={styles.feelingRow}>
             {moment.feelingIconType === 'material'
@@ -88,7 +88,7 @@ export const SavedMorningMoment = ({ moment, viewMode = 'inline' }: { moment: Mo
           <ThemedText style={styles.readStatus}>{moment.markedRead ? 'Passage read' : 'Reading in progress'}</ThemedText>
         </View>
         {!!observationText && (
-          <View style={styles.observations}>
+          <View style={[styles.observations, momentsPalette && styles.momentsCardBorder]}>
             <ThemedText style={styles.feelingLabel}>WHAT YOU SAW ABOUT GOD</ThemedText>
             {(moment.observations || []).filter(text => text.trim()).map((text, index) => (
               <ThemedText key={index} weight="semiBold" style={[styles.feeling, styles.centered, styles.observationText]}>{text}</ThemedText>
@@ -117,7 +117,7 @@ export const SavedMorningMoment = ({ moment, viewMode = 'inline' }: { moment: Mo
     return <>
       <TouchableOpacity style={styles.proverbCard} onPress={() => setReflectionOpen(true)} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel={`View reflection for ${moment.title}`}>
         <JournalCard title="EVENING PROVERBS" subtitle={proverbDate} variant="inline" viewMode={viewMode} showAddButton onAdd={handleEdit}>
-          <View style={styles.proverbContent}>
+          <View style={[styles.proverbContent, momentsPalette && styles.momentsCardBorder]}>
             <TouchableOpacity onPress={() => setOpen(true)} style={[styles.feelingRow, styles.passageRow]} accessibilityRole="button" accessibilityLabel={`Read ${moment.title}`}>
               <ThemedText weight="semiBold" style={styles.passageTitle}>{moment.title}</ThemedText>
               <MaterialCommunityIcons name="script-text" size={16} color={Colors.sage} />
@@ -235,6 +235,7 @@ const styles = StyleSheet.create({
   viewAllText: { color: Colors.sage, fontSize: 12 },
   wisdomShowMore: { alignSelf: 'center', flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 12, paddingVertical: 8 },
   observations: { marginTop: 16, backgroundColor: Colors.cardBackground, borderWidth: 1.5, borderColor: Colors.inputBorder, borderRadius: 24, padding: 20 },
+  momentsCardBorder: { borderWidth: 1 },
   observationText: { marginTop: 6 },
   divider: { height: 1, backgroundColor: Colors.cardBorder, marginVertical: 16 },
   feelingLabel: { color: Colors.sage, fontSize: 10, letterSpacing: 1.5, textAlign: 'center', marginBottom: 8 },

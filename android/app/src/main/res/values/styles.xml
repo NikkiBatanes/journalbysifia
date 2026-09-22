@@ -4,6 +4,14 @@
     <style name="AppTheme" parent="Theme.AppCompat.DayNight.NoActionBar">
         <!-- Customize your theme here. -->
         <item name="android:editTextBackground">@drawable/rn_edit_text_material</item>
+        <item name="editTextStyle">@style/SifiaEditText</item>
+        <item name="android:editTextStyle">@style/SifiaEditText</item>
+    </style>
+
+    <style name="SifiaEditText" parent="Widget.AppCompat.EditText">
+        <!-- Android 9 has no supported cursor tint API. Match the field's text
+             color there; values-v29 provides a tintable drawable on Android 10+. -->
+        <item name="android:textCursorDrawable">@null</item>
     </style>
 
     <!-- Splash screen theme matching onboarding splash -->

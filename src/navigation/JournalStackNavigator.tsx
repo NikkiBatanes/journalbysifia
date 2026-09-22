@@ -1,7 +1,6 @@
 // src/navigation/JournalStackNavigator.tsx
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import JournalScreen from '../screens/JournalScreen';
 import { MomentsScreen } from '../screens/MomentsScreen';
 import TimeBlockEditorScreen from '../screens/TimeBlockEditorScreen';
 import ReflectionEditorScreen from '../screens/ReflectionEditorScreen';
@@ -22,7 +21,6 @@ const Stack = createNativeStackNavigator();
 const JournalStackNavigator: React.FC = () => {
   return (
     <Stack.Navigator initialRouteName="JournalMoments" screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="JournalMain" component={JournalScreen as React.ComponentType} />
       <Stack.Screen
         name="JournalMoments"
         component={MomentsScreen as React.ComponentType}
@@ -52,7 +50,7 @@ const JournalStackNavigator: React.FC = () => {
         options={{
           headerShown: false,
           presentation: 'fullScreenModal',
-          // A native fade exposes the ivory Journal screen underneath before
+          // A native fade exposes the ivory Moments screen underneath before
           // the green editor sheet is opaque, producing a full-screen flash.
           // The editor has its own content entrance animations.
           animation: 'none',
@@ -90,7 +88,7 @@ const JournalStackNavigator: React.FC = () => {
         options={{
           headerShown: false,
           presentation: 'fullScreenModal',
-          animation: 'slide_from_bottom',
+          animation: 'fade',
           gestureEnabled: true,
           contentStyle: { backgroundColor: '#F6F5EF' },
         }}

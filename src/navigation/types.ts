@@ -54,9 +54,6 @@ export type RootStackParamList = {
     initialActionIndex?: number;
     fromNotification?: boolean;
   };
-  // Journal screen
-  Journal: undefined;
-
   // Today's Focus Walkthrough
   TodaysFocusWalkthrough: {
     selectedDate?: string;
@@ -170,8 +167,11 @@ export type RootStackParamList = {
     source?: string;
     onboarding?: boolean;
     dismissRouteCount?: number;
-    returnTo?: 'journal';
+    rhythm?: import('../services/faithfulRhythmService').FaithfulRhythmId;
+    returnTo?: 'moments' | 'prayer';
   } | undefined;
+
+  FaithfulRhythms: undefined;
 
   // Admin Dashboard
   AdminDashboard: undefined;
@@ -183,7 +183,12 @@ export type RootStackParamList = {
 export type BottomTabParamList = {
   Today: undefined;
   Journal: undefined;
-  Prayer: undefined;
+  Prayer: {
+    initialTab?: 'all' | 'active' | 'released' | 'needs' | 'requests' | 'answered';
+    targetPrayerId?: string;
+    selectedDate?: string;
+    openNeedModal?: boolean;
+  } | undefined;
   More: undefined;
 };
 

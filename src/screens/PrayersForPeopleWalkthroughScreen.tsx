@@ -40,7 +40,7 @@ import { clearPrayerDraft, getPrayerDraft, getPrayerDraftKey, savePrayerDraft } 
 
 import type { RootStackParamList } from '../navigation/types';
 import { exitPrayerFlow } from '../navigation/exitPrayerFlow';
-import { visibleStreakService } from '../services/visibleStreakService';
+import { claimFaithfulRhythmCelebration, FAITHFUL_RHYTHM_UPDATED } from '../services/faithfulRhythmService';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'PrayersForPeopleWalkthrough'>;
 
@@ -1170,17 +1170,12 @@ const PrayersForPeopleWalkthroughScreen: React.FC<Props> = ({ navigation, route 
             {
               name: 'MainTabs' as any,
               params: {
-                screen: 'Journal',
-                params: {
-                  screen: 'JournalMain',
-                  params: fromNotification ? {
-                    selectedDate: route.params?.selectedDate,
-                    targetSection: 'prayer',
-                    targetPrayerCarouselIndex: 2,
-                    targetPrayerId: editingPrayerId,
-                  } : {
-                    selectedDate: route.params?.selectedDate,
-                  },
+                screen: 'Prayer',
+                params: fromNotification ? {
+                  selectedDate: route.params?.selectedDate,
+                  targetPrayerId: editingPrayerId,
+                } : {
+                  selectedDate: route.params?.selectedDate,
                 },
               },
             },
@@ -1335,10 +1330,10 @@ const PrayersForPeopleWalkthroughScreen: React.FC<Props> = ({ navigation, route 
       // When opened from faithful actions (fromPlaybook), only trigger if the
       // playbook is already completed — not mid-walkthrough.
       const shouldCheckPeopleStreak = selectedType?.id === 'pray-for-someone' && (!fromPlaybook || playbookStatus === 'completed');
-      if (shouldCheckPeopleStreak && user?.id) {
-        const shouldShowStreak = await visibleStreakService.shouldShowCelebration(user.id, 'prayer_saved');
+      if (shouldCheckPeopleStreak && !editingPrayerId) {
+        DeviceEventEmitter.emit(FAITHFUL_RHYTHM_UPDATED, {rhythm: 'prayer', selectedDate: dateStr});
+        const shouldShowStreak = await claimFaithfulRhythmCelebration('prayer', dateStr);
         if (shouldShowStreak) {
-          await visibleStreakService.markShownToday(user.id);
           if (fromPlaybook) {
             navigation.pop(2);
             setTimeout(() => {
@@ -1352,7 +1347,7 @@ const PrayersForPeopleWalkthroughScreen: React.FC<Props> = ({ navigation, route 
             }, 300);
           }
           (navigation as any).navigate('StreakPlan', {
-            userId: user.id,
+            rhythm: 'prayer',
             source: 'prayer_saved',
             dismissRouteCount: fromPlaybook ? 1 : 2,
           });

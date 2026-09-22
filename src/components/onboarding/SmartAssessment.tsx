@@ -17,6 +17,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Colors } from '../../theme/colors';
+import HeaderBackButton from '../common/HeaderBackButton';
 
 // const { width: _width } = Dimensions.get('window');
 
@@ -492,9 +493,7 @@ const SmartAssessment: React.FC<Props> = ({ onComplete, onBack }) => {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={onBack} style={styles.backButton}>
-          <Ionicons name="chevron-back" size={24} color={Colors.sage} />
-        </TouchableOpacity>
+        <HeaderBackButton onPress={onBack} style={styles.backButton} />
 
         <View style={styles.progressContainer}>
           <View style={styles.progressBar}>
@@ -537,7 +536,6 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
   },
   backButton: {
-    padding: 8,
     marginRight: 16,
   },
   progressContainer: {

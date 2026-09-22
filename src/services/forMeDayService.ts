@@ -70,7 +70,7 @@ export const scheduleForMeDayReminder = async (
       id: `for-me-day-${format(next, 'yyyy')}`,
       title: 'Today is your For Me Day ✦',
       message:
-        'Take a moment to remember when grace became personal—and how God has carried you since.',
+        'Celebrate the day you accepted Jesus as your Lord and Savior and began following Him.',
       priority: 'high',
       data: {type: 'for_me_day', deep_link: 'sifia://for-me-day'},
     },

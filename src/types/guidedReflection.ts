@@ -1,7 +1,7 @@
 export const GUIDED_REFLECTION_FORMAT = 'guided_reflection_v1' as const;
 
 export type GuidedInteractionType = 'write' | 'single_select' | 'multi_select' | 'paired_write' | 'options' | 'scripture_reflection';
-export type GuidedNoteKind = 'text' | 'section' | 'action' | 'bullets' | 'numbered' | 'table' | 'photo' | 'voice' | 'scripture' | 'quote' | 'key' | 'remember' | 'question' | 'response';
+export type GuidedNoteKind = 'text' | 'section' | 'action' | 'bullets' | 'numbered' | 'column' | 'table' | 'photo' | 'voice' | 'scripture' | 'quote' | 'key' | 'remember' | 'question' | 'response';
 
 export interface GuidedReflectionNote {
   id: string;
@@ -18,7 +18,12 @@ export interface GuidedReflectionNote {
   completed?: boolean;
   points?: string[];
   tableRows?: string[][];
+  tableCellAlignments?:
+    | Array<Array<'left' | 'center' | 'right'>>
+    | Array<'left' | 'center' | 'right'>;
   tableEditing?: boolean;
+  parentColumnId?: string;
+  columnSide?: 'left' | 'right';
 }
 
 export interface GuidedReflectionStepDefinition {
@@ -54,6 +59,8 @@ export interface GuidedReflectionPayload {
   format: typeof GUIDED_REFLECTION_FORMAT;
   pathId: string;
   pathTitle: string;
+  /** Optional journal-facing title; pathTitle always retains the authored path name. */
+  entryTitle?: string;
   currentStepId: string;
   stoppedAtStepId?: string;
   completed: boolean;
@@ -69,11 +76,22 @@ export const GUIDED_NOTE_TYPES: ReadonlyArray<{ kind: GuidedNoteKind; label: str
   { kind: 'response', label: 'Response', icon: 'arrow-forward-outline' },
 ];
 
-export const REFLECTION_NOTE_TYPES: ReadonlyArray<{ kind: GuidedNoteKind; label: string; icon: string }> = [
+export const REFLECTION_NOTE_TYPES: ReadonlyArray<{
+  kind: GuidedNoteKind;
+  label: string;
+  icon: string;
+  iconFamily?: 'Ionicons' | 'MaterialCommunityIcons';
+}> = [
   { kind: 'section', label: 'Section', icon: 'text-outline' },
   { kind: 'action', label: 'Action', icon: 'checkbox-outline' },
   { kind: 'bullets', label: 'Bullets', icon: 'list-outline' },
   { kind: 'numbered', label: 'Numbered', icon: 'list-circle-outline' },
+  {
+    kind: 'column',
+    label: 'Column',
+    icon: 'view-column-outline',
+    iconFamily: 'MaterialCommunityIcons',
+  },
   { kind: 'table', label: 'Table', icon: 'grid-outline' },
   { kind: 'photo', label: 'Photo', icon: 'image-outline' },
   { kind: 'voice', label: 'Voice Note', icon: 'mic-outline' },
@@ -93,4 +111,59 @@ export const parseGuidedReflection = (content: unknown): GuidedReflectionPayload
   } catch {
     return null;
   }
+};
+
+export type GuidedEntryKind = 'prompt' | 'reflection';
+
+type GuidedEntryIdentity = {
+  type?: unknown;
+  source?: unknown;
+  content?: unknown;
+  prompt?: unknown;
+  question_topic?: unknown;
+  guided_journey?: unknown;
+  metadata?: Record<string, unknown>;
+};
+
+/**
+ * Guided Prompts and Guided Reflections share the historical `guided` type.
+ * Their source is the canonical discriminator. Prompt/topic fields recover
+ * question-based entries that older editor flows incorrectly saved with the
+ * generic `guided` source. A missing source with plain content is treated as
+ * a Guided Prompt for records saved by the legacy prompt modal.
+ */
+export const guidedEntryKind = (
+  entry: GuidedEntryIdentity | null | undefined,
+): GuidedEntryKind | null => {
+  if (!entry) {return null;}
+  const source = typeof entry.source === 'string' ? entry.source : '';
+  const metadata = entry.metadata || {};
+  const structuredJourney = entry.guided_journey
+    || metadata.guidedJourney
+    || metadata.guided_journey
+    || parseGuidedReflection(entry.content);
+  const hasPromptIdentity = Boolean(
+    entry.prompt
+      || entry.question_topic
+      || metadata.prompt
+      || metadata.questionTopic
+      || metadata.question_topic,
+  );
+
+  if (structuredJourney) {return 'reflection';}
+  if (source === 'guided_prompt') {return 'prompt';}
+  if (source === 'guided' && hasPromptIdentity) {return 'prompt';}
+  if (source === 'guided') {return 'reflection';}
+  return entry.type === 'guided' ? 'prompt' : null;
+};
+
+export const guidedEntrySource = (
+  entry: GuidedEntryIdentity | null | undefined,
+): 'guided_prompt' | 'guided' | undefined => {
+  const kind = guidedEntryKind(entry);
+  return kind === 'prompt'
+    ? 'guided_prompt'
+    : kind === 'reflection'
+      ? 'guided'
+      : undefined;
 };

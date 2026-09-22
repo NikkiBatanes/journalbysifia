@@ -11,7 +11,7 @@ import {
 import Sound from 'react-native-sound';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import ThemedText from '../common/ThemedText';
-import ThemedTextInput from '../common/ThemedTextInput';
+import JournalTextInput from './shared/JournalTextInput';
 import {Colors} from '../../theme/colors';
 import {getFontFamily} from '../../theme/fonts';
 import {useTheme} from '../../hooks/useTheme';
@@ -159,7 +159,7 @@ export default function ReflectionSpecialBlock({
     return (
       <View onTouchStart={onFocus} style={{flexDirection: 'row', alignItems: 'center', gap: 9, paddingVertical: 15, marginBottom: JOURNAL_BLOCK_GAP}}>
         <View style={{width: 4, height: 30, borderRadius: 2, backgroundColor: accent}} />
-        <ThemedTextInput ref={registerInput} selectionColor={accent} cursorColor={accent} value={block.text} onChangeText={text => onChange({text})}
+        <JournalTextInput themed ref={registerInput} accentColor={accent} value={block.text} onChangeText={text => onChange({text})}
           placeholder="Section title" placeholderTextColor={onDark ? 'rgba(255,255,255,0.45)' : Colors.textGray}
           style={{flex: 1, color: foreground, fontFamily: sectionFontFamily, fontSize: 18, paddingVertical: 6}} />
         <TouchableOpacity onPress={remove}><Ionicons name="close" size={17} color={muted} /></TouchableOpacity>
@@ -179,7 +179,7 @@ export default function ReflectionSpecialBlock({
         <TouchableOpacity onPress={remove} style={{position: 'absolute', right: 10, top: 10, width: 30, height: 30, borderRadius: 15, backgroundColor: 'rgba(0,0,0,0.55)', alignItems: 'center', justifyContent: 'center'}}>
           <Ionicons name="close" size={18} color={Colors.hopeWhite} />
         </TouchableOpacity>
-        <ThemedTextInput ref={registerInput} selectionColor={accent} cursorColor={accent} value={block.text} onChangeText={text => onChange({text})}
+        <JournalTextInput themed ref={registerInput} accentColor={accent} value={block.text} onChangeText={text => onChange({text})}
           placeholder="Add a caption…" placeholderTextColor={onDark ? 'rgba(255,255,255,0.45)' : Colors.textGray}
           style={{color: foreground, fontSize: 14, paddingVertical: 10}} />
       </View>
@@ -211,10 +211,9 @@ export default function ReflectionSpecialBlock({
             )}
           </View>
         </TouchableOpacity>
-        <ThemedTextInput
+        <JournalTextInput themed
           ref={registerInput}
-          selectionColor={accent}
-          cursorColor={accent}
+          accentColor={accent}
           value={block.text}
           onChangeText={text => onChange({text})}
           onSubmitEditing={() => onCreateNextAction?.()}
@@ -240,7 +239,7 @@ export default function ReflectionSpecialBlock({
         </View>
         <TouchableOpacity onPress={remove}><Ionicons name="close" size={17} color={muted} /></TouchableOpacity>
       </View>
-      {!!block.uri && <ThemedTextInput ref={registerInput} selectionColor={accent} cursorColor={accent} value={block.text} onChangeText={text => onChange({text})} placeholder="Add a note…" placeholderTextColor={onDark ? 'rgba(255,255,255,0.45)' : Colors.textGray} style={{color: foreground, paddingTop: 12}} />}
+      {!!block.uri && <JournalTextInput themed ref={registerInput} accentColor={accent} value={block.text} onChangeText={text => onChange({text})} placeholder="Add a note…" placeholderTextColor={onDark ? 'rgba(255,255,255,0.45)' : Colors.textGray} style={{color: foreground, paddingTop: 12}} />}
     </View>
   );
 }

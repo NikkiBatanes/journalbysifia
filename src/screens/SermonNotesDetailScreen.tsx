@@ -30,8 +30,18 @@ import ScriptureReaderModal from '../components/ScriptureReaderModal';
 import { BLOCKS, BlockIcon, SermonNotesStyles } from './SermonNotesScreen';
 import { getSessionNoteConfig, getSessionNoteContext, resolveSessionNoteType, sessionNoteTypeLabel } from '../types/sessionNotes';
 import SavedReflectionBlocks from '../components/journal/SavedReflectionBlocks';
-import type {GuidedReflectionNote} from '../types/guidedReflection';
-import {formatJournalAttribution} from '../components/journal/shared/journalBlocks';
+import {
+  formatJournalAttribution,
+  getJournalTableCellAlignment,
+  prepareJournalBlocksForSave,
+  type JournalBlock,
+  type JournalTableCellAlignments,
+} from '../components/journal/shared/journalBlocks';
+import DraggableJournalBlock from '../components/journal/shared/DraggableJournalBlock';
+import {
+  reorderJournalBlock,
+  resolveJournalBlockDropIndex,
+} from '../components/journal/shared/journalBlockOperations';
 
 type NoteBlock = {
   id: string;
@@ -51,9 +61,12 @@ type NoteBlock = {
   meaning?: string;
   origin?: string;
   tableRows?: string[][];
+  tableCellAlignments?: JournalTableCellAlignments;
   uri?: string;
   durationMillis?: number;
   completed?: boolean;
+  parentColumnId?: string;
+  columnSide?: 'left' | 'right';
 };
 
 const hasNoteBlockContent = (block: NoteBlock) =>
@@ -100,7 +113,17 @@ const SermonNotesDetailScreen: React.FC = () => {
   const [contentY, setContentY] = useState(0);
   const [tabsFloating, setTabsFloating] = useState(false);
   const [scrollEnabled, setScrollEnabled] = useState(true);
+  const [selectedSavedBlockId, setSelectedSavedBlockId] = useState<string | null>(null);
+  const [savedDragPreview, setSavedDragPreview] = useState<{
+    blockId: string;
+    fromIndex: number;
+    targetIndex: number;
+    blockHeight: number;
+  } | null>(null);
   const scrollViewRef = useRef<any>(null);
+  const savedBlockLayoutsRef = useRef(
+    new Map<string, {y: number; height: number}>(),
+  );
   const snapStarted = useRef(false);
   const snapAnimation = useRef<Animated.CompositeAnimation | null>(null);
   const snapOffset = useRef(new Animated.Value(0)).current;
@@ -155,6 +178,10 @@ const SermonNotesDetailScreen: React.FC = () => {
     return parsed || { blocks: [] };
   }, [entry]);
   const blocks = useMemo(() => content?.blocks || [], [content]);
+  const preparedBlocks = useMemo(
+    () => prepareJournalBlocksForSave(blocks as JournalBlock[]) as NoteBlock[],
+    [blocks],
+  );
 
   const dateStr = useMemo(() => {
     const raw = entry?.selected_date || selectedDate;
@@ -202,14 +229,25 @@ const SermonNotesDetailScreen: React.FC = () => {
 
   const reflectionKinds = useMemo(() => ['question', 'reflection_question', 'remember', 'revisit', 'response'], []);
   const notesBlocks = useMemo(() => {
-    return blocks.filter((b: NoteBlock) => hasNoteBlockContent(b) && !reflectionKinds.includes(b.kind) && b.kind !== 'prayer');
-  }, [blocks, reflectionKinds]);
+    return preparedBlocks.filter(
+      (b: NoteBlock) =>
+        !b.parentColumnId &&
+        (b.kind === 'column' || hasNoteBlockContent(b)) &&
+        !reflectionKinds.includes(b.kind) &&
+        b.kind !== 'prayer',
+    );
+  }, [preparedBlocks, reflectionKinds]);
   const reflectionBlocks = useMemo(() => {
-    return blocks.filter((b: NoteBlock) => hasNoteBlockContent(b) && reflectionKinds.includes(b.kind));
-  }, [blocks, reflectionKinds]);
+    return preparedBlocks.filter((b: NoteBlock) => !b.parentColumnId && hasNoteBlockContent(b) && reflectionKinds.includes(b.kind));
+  }, [preparedBlocks, reflectionKinds]);
   const prayerBlocks = useMemo(() => {
-    return blocks.filter((b: NoteBlock) => hasNoteBlockContent(b) && b.kind === 'prayer');
-  }, [blocks]);
+    return preparedBlocks.filter((b: NoteBlock) => !b.parentColumnId && hasNoteBlockContent(b) && b.kind === 'prayer');
+  }, [preparedBlocks]);
+  const activeSavedBlocks = activeTab === 'notes'
+    ? notesBlocks
+    : activeTab === 'reflection'
+    ? reflectionBlocks
+    : prayerBlocks;
   const reflectionQuestions = useMemo(() => {
     return [
       { key: 'notice', question: 'What stayed with you?' },
@@ -268,7 +306,106 @@ const SermonNotesDetailScreen: React.FC = () => {
     }
   };
 
+  const persistReorderedSavedBlocks = async (
+    reorderedTabBlocks: NoteBlock[],
+  ) => {
+    if (!entry) {return;}
+    const previousEntry = entry;
+    const reorderedIds = new Set(reorderedTabBlocks.map(block => block.id));
+    let reorderedIndex = 0;
+    const topLevelBlocks = preparedBlocks.filter(block => !block.parentColumnId);
+    const reorderedTopLevel = topLevelBlocks.map(block =>
+      reorderedIds.has(block.id)
+        ? reorderedTabBlocks[reorderedIndex++]
+        : block,
+    );
+    const parentIds = new Set(reorderedTopLevel.map(block => block.id));
+    const nextBlocks = reorderedTopLevel.flatMap(parent => [
+      parent,
+      ...preparedBlocks.filter(child => child.parentColumnId === parent.id),
+    ]);
+    nextBlocks.push(
+      ...preparedBlocks.filter(
+        child => child.parentColumnId && !parentIds.has(child.parentColumnId),
+      ),
+    );
+    const optimisticEntry = {
+      ...entry,
+      content: JSON.stringify({...content, blocks: nextBlocks}),
+    };
+    triggerLightHaptic();
+    setEntry(optimisticEntry);
+    try {
+      const updatedEntry = await updateLocalReflection(optimisticEntry);
+      setEntry(updatedEntry);
+      DeviceEventEmitter.emit('sermon_saved', {
+        reflectionId: updatedEntry.id,
+        type: 'blocks_reordered',
+        selectedDate: updatedEntry.selected_date,
+      });
+    } catch {
+      setEntry(previousEntry);
+      Alert.alert('Could not move note', 'Please try again.');
+    }
+  };
+
+  const handleSavedDragStart = (blockId: string) => {
+    const fromIndex = activeSavedBlocks.findIndex(block => block.id === blockId);
+    const layout = savedBlockLayoutsRef.current.get(blockId);
+    if (fromIndex < 0 || !layout) {return;}
+    setSavedDragPreview({
+      blockId,
+      fromIndex,
+      targetIndex: fromIndex,
+      blockHeight: layout.height,
+    });
+  };
+
+  const handleSavedDragMove = (blockId: string, deltaY: number) => {
+    const targetIndex = resolveJournalBlockDropIndex(
+      activeSavedBlocks,
+      savedBlockLayoutsRef.current,
+      blockId,
+      deltaY,
+    );
+    setSavedDragPreview(current =>
+      !current || current.blockId !== blockId || current.targetIndex === targetIndex
+        ? current
+        : {...current, targetIndex},
+    );
+  };
+
+  const handleSavedDragEnd = (blockId: string, deltaY: number) => {
+    const targetIndex = resolveJournalBlockDropIndex(
+      activeSavedBlocks,
+      savedBlockLayoutsRef.current,
+      blockId,
+      deltaY,
+    );
+    setSavedDragPreview(null);
+    const reorderedBlocks = reorderJournalBlock(
+      activeSavedBlocks,
+      blockId,
+      targetIndex,
+    );
+    if (reorderedBlocks === activeSavedBlocks) {return;}
+    setSelectedSavedBlockId(blockId);
+    persistReorderedSavedBlocks(reorderedBlocks);
+  };
+
   const renderNoteBlock = (block: NoteBlock) => {
+    if (block.kind === 'column') {
+      const nestedBlocks = preparedBlocks.filter(
+        child => child.parentColumnId === block.id,
+      );
+      return (
+        <SavedReflectionBlocks
+          key={block.id}
+          blocks={[block, ...nestedBlocks] as JournalBlock[]}
+          onToggleAction={handleToggleSavedAction}
+        />
+      );
+    }
     if (
       ['section', 'action', 'bullets', 'numbered', 'photo', 'voice'].includes(
         block.kind,
@@ -277,7 +414,7 @@ const SermonNotesDetailScreen: React.FC = () => {
       return (
         <SavedReflectionBlocks
           key={block.id}
-          blocks={[block as GuidedReflectionNote]}
+          blocks={[block as JournalBlock]}
           onToggleAction={handleToggleSavedAction}
         />
       );
@@ -332,15 +469,24 @@ const SermonNotesDetailScreen: React.FC = () => {
               ))}
             </>
           );
-        case 'table':
+        case 'table': {
+          const tableRows = block.tableRows || [];
+          const columnCount = tableRows[0]?.length || 0;
+          const fitsWidth = (columnCount === 2 || columnCount === 3) &&
+            tableRows.every(row => row.length === columnCount);
+          const fittedCellStyle = fitsWidth && {width: `${100 / columnCount}%` as const};
           return (
             <ScrollView
               horizontal
+              scrollEnabled={!fitsWidth}
               showsHorizontalScrollIndicator={false}
               style={SermonNotesStyles.savedTableHorizontalScroll}
-              contentContainerStyle={SermonNotesStyles.savedTableGrid}>
-              <View>
-                {(block.tableRows || []).map((row, rowIndex) => (
+              contentContainerStyle={[
+                SermonNotesStyles.savedTableGrid,
+                fitsWidth && styles.fullWidthTable,
+              ]}>
+              <View style={fitsWidth && styles.fullWidthTable}>
+                {tableRows.map((row, rowIndex) => (
                   <View key={rowIndex} style={SermonNotesStyles.savedTableRow}>
                     {row.map((cell, columnIndex) => (
                       <ThemedText
@@ -348,6 +494,14 @@ const SermonNotesDetailScreen: React.FC = () => {
                         weight={rowIndex === 0 ? 'bold' : 'regular'}
                         style={[
                           SermonNotesStyles.savedTableCell,
+                          fittedCellStyle,
+                          {
+                            textAlign: getJournalTableCellAlignment(
+                              block.tableCellAlignments,
+                              rowIndex,
+                              columnIndex,
+                            ),
+                          },
                           rowIndex === 0 && SermonNotesStyles.savedTableHeaderCell,
                         ]}>
                         {cell}
@@ -358,6 +512,7 @@ const SermonNotesDetailScreen: React.FC = () => {
               </View>
             </ScrollView>
           );
+        }
         case 'history':
           return (
             <View>
@@ -492,6 +647,10 @@ const SermonNotesDetailScreen: React.FC = () => {
       }
     };
 
+    if (block.kind === 'table') {
+      return <React.Fragment key={block.id}>{renderContent()}</React.Fragment>;
+    }
+
     return (
       <View
         key={block.id}
@@ -510,6 +669,44 @@ const SermonNotesDetailScreen: React.FC = () => {
       </View>
     );
   };
+
+  const renderMovableBlocks = (tabBlocks: NoteBlock[]) =>
+    tabBlocks.map((block, index) => {
+      const shiftY = (() => {
+        if (!savedDragPreview || savedDragPreview.blockId === block.id) {
+          return 0;
+        }
+        if (
+          savedDragPreview.targetIndex > savedDragPreview.fromIndex &&
+          index > savedDragPreview.fromIndex &&
+          index <= savedDragPreview.targetIndex
+        ) {
+          return -savedDragPreview.blockHeight;
+        }
+        if (
+          savedDragPreview.targetIndex < savedDragPreview.fromIndex &&
+          index >= savedDragPreview.targetIndex &&
+          index < savedDragPreview.fromIndex
+        ) {
+          return savedDragPreview.blockHeight;
+        }
+        return 0;
+      })();
+      return (
+        <DraggableJournalBlock
+          key={block.id}
+          blockId={block.id}
+          selected={selectedSavedBlockId === block.id}
+          shiftY={shiftY}
+          onSelect={() => setSelectedSavedBlockId(block.id)}
+          onLayout={layout => savedBlockLayoutsRef.current.set(block.id, layout)}
+          onDragStart={handleSavedDragStart}
+          onDragMove={handleSavedDragMove}
+          onDragEnd={handleSavedDragEnd}>
+          {renderNoteBlock(block)}
+        </DraggableJournalBlock>
+      );
+    });
 
   const handleDelete = () => {
     triggerLightHaptic();
@@ -780,7 +977,7 @@ const SermonNotesDetailScreen: React.FC = () => {
                 <ThemedText weight="bold" style={SermonNotesStyles.sermonEyebrow}>
                   MY NOTES
                 </ThemedText>
-                {notesBlocks.map(renderNoteBlock)}
+                {renderMovableBlocks(notesBlocks)}
               </>
             ) : (
               <ThemedText style={styles.emptyTab}>No notes saved.</ThemedText>
@@ -804,7 +1001,7 @@ const SermonNotesDetailScreen: React.FC = () => {
                     {index < reflectionQuestions.length - 1 && <View style={SermonNotesStyles.divider} />}
                   </View>
                 ))}
-                {reflectionBlocks.map(renderNoteBlock)}
+                {renderMovableBlocks(reflectionBlocks)}
               </>
             ) : (
               <ThemedText style={styles.emptyTab}>No reflection saved.</ThemedText>
@@ -828,7 +1025,7 @@ const SermonNotesDetailScreen: React.FC = () => {
                     {index < prayerQuestions.length - 1 && <View style={SermonNotesStyles.divider} />}
                   </View>
                 ))}
-                {prayerBlocks.map(renderNoteBlock)}
+                {renderMovableBlocks(prayerBlocks)}
               </>
             ) : (
               <ThemedText style={styles.emptyTab}>No prayer saved.</ThemedText>
@@ -896,6 +1093,7 @@ const SermonNotesDetailScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
+  fullWidthTable: {width: '100%'},
   screen: {
     flex: 1,
     backgroundColor: Colors.lightBackground,

@@ -146,7 +146,7 @@ export const BibleStudyReactQuery: React.FC<Props> = ({ selectedDate, refreshKey
 
 const styles = StyleSheet.create({
   container: { gap: 8 },
-  momentsContainer: { paddingHorizontal: 22 },
+  momentsContainer: { paddingHorizontal: 0 },
   card: { backgroundColor: Colors.hopeWhite, borderRadius: 24, borderWidth: 1, borderColor: Colors.cardBorder, padding: 20, shadowColor: '#29342E', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.04, shadowRadius: 12, elevation: 2 },
   momentsCard: { backgroundColor: Colors.cardBackground, shadowOpacity: 0, elevation: 0 },
   header: { alignItems: 'center', justifyContent: 'center', marginBottom: 16 },

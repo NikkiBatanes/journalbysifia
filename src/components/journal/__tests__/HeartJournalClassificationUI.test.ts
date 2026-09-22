@@ -11,6 +11,8 @@ const readSource = (relativePath: string) =>
 describe('Heart Journal classification UI contract', () => {
   const screenSource = readSource('screens/ReflectionEditorScreen.tsx');
   const editorSource = readSource('components/journal/ReflectionLogEditor.tsx');
+  const composerSource = readSource('components/journal/shared/JournalComposer.tsx');
+  const androidThemeSource = readSource('../android/app/src/main/res/values/styles.xml');
 
   it('animates the chooser and its transition into Guided Reflection', () => {
     expect(screenSource).toContain('classificationRevealAnims');
@@ -26,6 +28,16 @@ describe('Heart Journal classification UI contract', () => {
     expect(screenSource).toContain('if (showClassificationChooser)');
   });
 
+  it('returns new entries to the main chooser and clears a sticky classification on close', () => {
+    expect(screenSource).toContain('const canReturnToHeartJournalChooser = Boolean(');
+    expect(screenSource).toContain('const returnToHeartJournalChooser = useCallback(() => {');
+    expect(screenSource).toMatch(/returnToHeartJournalChooser[\s\S]*?setJournalClassification\(undefined\)/);
+    expect(screenSource).toContain('onBackToChooser={canReturnToHeartJournalChooser ? returnToHeartJournalChooser : undefined}');
+    expect(editorSource).toContain('const destination = onBackToChooser || onCancel');
+    expect(editorSource).toContain("backLabel={onBackToChooser ? 'Back to Heart Journal' : 'Close reflection'}");
+    expect(editorSource).toContain('`heart_journal_${journalClassification.replace');
+  });
+
   it('offers all classifications, including a custom Other choice, in a wrapping grid', () => {
     expect(HEART_JOURNAL_CLASSIFICATIONS).toHaveLength(8);
     expect(HEART_JOURNAL_CLASSIFICATIONS).toContainEqual({
@@ -38,6 +50,11 @@ describe('Heart Journal classification UI contract', () => {
     expect(screenSource).toContain('Name your journal type');
     expect(screenSource).toContain('setJournalClassification(`other:${name}`)');
     expect(editorSource).not.toMatch(/<ScrollView horizontal[^>]*>[\s\S]*HEART_JOURNAL_CLASSIFICATIONS/);
+  });
+
+  it('keeps the custom Other input caret ivory, including the Android 9 native fallback', () => {
+    expect(screenSource).toContain('<JournalTextInput themed');
+    expect(androidThemeSource).toContain('<item name="android:textCursorDrawable">@null</item>');
   });
 
   it('keeps Guided Reflection separate from the seven classifications', () => {
@@ -83,7 +100,7 @@ describe('Heart Journal classification UI contract', () => {
     expect(editorSource).toContain('textPlaceholder={bodyPlaceholder}');
     expect(editorSource).toContain('freeText: [s.freeText, {fontFamily: fontFamilyRegular}]');
     expect(editorSource).toContain('captureInput: [s.captureInput, {fontFamily: fontFamilyRegular}]');
-    expect(editorSource).toMatch(/freeText:\s*\{[\s\S]*?minHeight: 44,[\s\S]*?marginBottom: 6/);
+    expect(editorSource).toMatch(/freeText:\s*\{[\s\S]*?minHeight: 44,[\s\S]*?marginBottom: JOURNAL_BLOCK_GAP/);
     expect(editorSource).toContain('{paddingBottom: notePickerOpen ? 410 : 180}');
     expect(editorSource).toContain('editorScrollRef.current?.scrollToEnd({animated: true})');
     expect(editorSource).toContain('pendingFocusBlockIdRef.current = block.id');
@@ -110,7 +127,7 @@ describe('Heart Journal classification UI contract', () => {
   it('keeps header icons aligned with their touch targets', () => {
     expect(editorSource).not.toContain('fill={Colors.sage}');
     expect(editorSource).not.toContain('iconsSlideAnim');
-    expect(editorSource).toContain('accessibilityLabel="Write reflection"');
+    expect(composerSource).toContain('accessibilityLabel="Write"');
     expect(editorSource).not.toContain('accessibilityLabel="Guided Reflection"');
     expect(editorSource).toContain('accessibilityLabel="Delete reflection"');
   });

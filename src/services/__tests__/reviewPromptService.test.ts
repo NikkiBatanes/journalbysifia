@@ -42,7 +42,7 @@ describe('reviewPromptService', () => {
   it('opens the Play Store review page with the native Android package id', async () => {
     await expect(openStoreReview({ triggerSource: 'manual_profile_button' })).resolves.toBe(true);
 
-    expect(Linking.openURL).toHaveBeenCalledWith('market://details?id=app.sifia.com');
+    expect(Linking.openURL).toHaveBeenCalledWith('market://details?id=app.journal.sifia');
   });
 
   it('falls back to the Play Store web URL when the market URL fails', async () => {
@@ -52,10 +52,10 @@ describe('reviewPromptService', () => {
 
     await expect(openStoreReview({ triggerSource: 'manual_profile_button' })).resolves.toBe(true);
 
-    expect(Linking.openURL).toHaveBeenNthCalledWith(1, 'market://details?id=app.sifia.com');
+    expect(Linking.openURL).toHaveBeenNthCalledWith(1, 'market://details?id=app.journal.sifia');
     expect(Linking.openURL).toHaveBeenNthCalledWith(
       2,
-      'https://play.google.com/store/apps/details?id=app.sifia.com'
+      'https://play.google.com/store/apps/details?id=app.journal.sifia'
     );
   });
 
@@ -120,7 +120,7 @@ describe('reviewPromptService', () => {
 
     await expect(requestReview({ triggerSource: 'playbook_complete' })).resolves.toBe(true);
 
-    expect(Linking.openURL).toHaveBeenCalledWith('market://details?id=app.sifia.com');
+    expect(Linking.openURL).toHaveBeenCalledWith('market://details?id=app.journal.sifia');
     expect(AsyncStorage.setItem).toHaveBeenCalledWith('review:lastPromptAt', expect.any(String));
   });
 });

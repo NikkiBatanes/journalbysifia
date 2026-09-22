@@ -1,0 +1,7 @@
+<resources>
+    <style name="SifiaEditText" parent="Widget.AppCompat.EditText">
+        <!-- A null drawable makes React Native's cursorColor setter a no-op.
+             Use a real drawable so each field can supply its own caret color. -->
+        <item name="android:textCursorDrawable">@drawable/sifia_text_cursor</item>
+    </style>
+</resources>

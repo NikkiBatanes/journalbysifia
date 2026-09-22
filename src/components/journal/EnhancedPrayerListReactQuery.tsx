@@ -12,6 +12,7 @@ import {
   Platform,
   TextInput,
   StatusBar,
+  DeviceEventEmitter,
 } from 'react-native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Colors } from '../../theme/colors';
@@ -34,7 +35,7 @@ import { PeoplePrayerModal } from '../modals/PeoplePrayerModal';
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '../../services/queryKeys';
 import { faithPointsService } from '../../services/faithPointsService';
-import { visibleStreakService } from '../../services/visibleStreakService';
+import { claimFaithfulRhythmCelebration, FAITHFUL_RHYTHM_UPDATED } from '../../services/faithfulRhythmService';
 import type { RootStackParamList } from '../../navigation/types';
 
 // Use the API interface directly
@@ -197,6 +198,7 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
     }
 
     setIsSaving(true);
+    let shouldShowPrayerStreak = false;
     try {
       if (editingPrayerId) {
         // Update existing prayer
@@ -246,6 +248,8 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
         };
 
         await createPrayerMutation.mutateAsync(prayerData);
+        DeviceEventEmitter.emit(FAITHFUL_RHYTHM_UPDATED, {rhythm: 'prayer', selectedDate: dateStr});
+        shouldShowPrayerStreak = await claimFaithfulRhythmCelebration('prayer', dateStr);
 
         if (user?.id) {
           const activityKey: Parameters<typeof faithPointsService.awardPoints>[1] =
@@ -258,18 +262,6 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
               person_name: prayerData.person_name,
               is_prayer_request: prayerData.is_prayer_request,
               selected_date: dateStr,
-            })
-            .then(async () => {
-              if (activityKey === 'prayer_list_request_added') {
-                const shouldShowStreak = await visibleStreakService.shouldShowCelebration(user.id, 'prayer_list_request_added');
-                if (shouldShowStreak && navigation) {
-                  await visibleStreakService.markShownToday(user.id);
-                  (navigation as any).navigate('StreakPlan', {
-                    userId: user.id,
-                    source: 'prayer_list_request_added',
-                  });
-                }
-              }
             })
             .catch(catchError => {
               Logger.warn('[EnhancedPrayerListReactQuery] Failed to award prayer list faith points', { component: 'EnhancedPrayerListReactQuery', data: catchError });
@@ -291,6 +283,13 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
       // Exit global edit mode if in inline view
       if (globalEditMode?.isGlobalEditMode && viewMode === 'inline') {
         globalEditMode.setGlobalEditMode(false);
+      }
+      if (shouldShowPrayerStreak && navigation) {
+        (navigation as any).navigate('StreakPlan', {
+          rhythm: 'prayer',
+          source: 'prayer_list_saved',
+          returnTo: 'prayer',
+        });
       }
     } catch (err) {
       Logger.error('Error saving prayer', err as Error, { component: 'EnhancedPrayerListReactQuery' });

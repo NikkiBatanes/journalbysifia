@@ -1,11 +1,15 @@
 import React from 'react';
-import { View } from 'react-native';
+import { SectionList, View } from 'react-native';
 import TestRenderer, { act } from 'react-test-renderer';
 import { EnhancedMomentsRenderer } from '../EnhancedMomentsRenderer';
 import { getCanonicalMomentTimeline } from '../../../../services/momentTimelineService';
 import { JournalPlugin } from '../../types';
 import { PluginRenderer } from '../../PluginRenderer';
 
+jest.mock('react-native-reanimated', () => {
+  const animation = { delay: () => animation, springify: () => animation, damping: () => animation, stiffness: () => animation };
+  return { __esModule: true, default: { View: require('react-native').View }, FadeInUp: animation };
+});
 jest.mock('../../../../context/IndustryStandardAuthContext', () => ({ useAuth: () => ({ user: null }) }));
 jest.mock('../../../../hooks/useTheme', () => ({ useTheme: () => ({ currentFont: 'lexend' }) }));
 jest.mock('../../../../utils/haptics', () => ({ triggerLightHaptic: jest.fn() }));
@@ -42,5 +46,29 @@ it('removes only duplicate canonical timeline identity', async () => {
   await act(async () => { renderer = TestRenderer.create(render()); });
   expect(renderer.root.findAllByType(PluginRenderer)).toHaveLength(1);
   expect(renderer.root.findByType(PluginRenderer).props.reflectionIds).toEqual(['a', 'b']);
+  await act(async () => renderer.unmount());
+});
+
+it('keeps the list and existing date cards mounted when refresh discovers another date', async () => {
+  loadTimeline.mockResolvedValue([reflection('a')]);
+  const renderRange = (refreshKey: number) => <EnhancedMomentsRenderer plugins={plugins} refreshKey={refreshKey}
+    groupBy="date" sortBy="newest" searchQuery=""
+    dateRange={{ startDate: new Date(2026, 8, 1), endDate: new Date(2026, 8, 30), label: 'September' }} />;
+  let renderer!: TestRenderer.ReactTestRenderer;
+  await act(async () => { renderer = TestRenderer.create(renderRange(0)); });
+  const list = renderer.root.findByType(SectionList).instance;
+  const card = renderer.root.findByType(PluginRenderer);
+  const scrollToLocation = jest.spyOn(list, 'scrollToLocation');
+  await act(async () => { jest.runOnlyPendingTimers(); });
+  scrollToLocation.mockClear();
+
+  loadTimeline.mockResolvedValue([reflection('a'), { ...reflection('b'), selectedDate: '2026-09-16' }]);
+  await act(async () => { renderer.update(renderRange(1)); });
+  await act(async () => { jest.runOnlyPendingTimers(); });
+
+  expect(renderer.root.findByType(SectionList).instance === list).toBe(true);
+  expect(renderer.root.findAllByType(PluginRenderer).find(node => node.props.reflectionIds.includes('a')) === card).toBe(true);
+  expect(scrollToLocation).not.toHaveBeenCalled();
+  expect(renderer.root.findAllByType(PluginRenderer)).toHaveLength(2);
   await act(async () => renderer.unmount());
 });

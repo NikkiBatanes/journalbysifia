@@ -24,8 +24,9 @@ import {
   Image,
   Keyboard,
 } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useRoute } from '@react-navigation/native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import HeaderBackButton from '../components/common/HeaderBackButton';
 import { experiencePreferences } from '../services/experiencePreferences';
 import { initSound, releaseSound } from '../utils/soundUtils';
 import { supabase } from '../services/supabaseClient';
@@ -34,13 +35,11 @@ import { useAuth } from '../context/IndustryStandardAuthContext';
 import { withErrorBoundary } from '../components/ErrorBoundary/withErrorBoundary';
 import { userApi } from '../services/userApi';
 import ProfileHeader from '../components/profile/ProfileHeader';
-import StreakTracker from '../components/dashboard/StreakTracker';
+import FaithfulRhythmsCard from '../components/dashboard/FaithfulRhythmsCard';
 import { pickImageLocal, uploadAvatar } from '../services/avatarService';
-import { faithPointsEvents, FAITH_POINTS_EVENTS } from '../services/faithPointsEvents';
 import { accountDeletionService } from '../services/accountDeletionService';
-import BadgesModal from '../components/BadgesModal';
 import PlatformPageSheetModal from '../components/common/PlatformPageSheetModal';
-import { UserProgress, UserPreferences } from '../types/auth';
+import { UserPreferences } from '../types/auth';
 import { Colors } from '../theme/colors';
 import { useTheme } from '../theme/ThemeContext';
 import { notificationManagementService, NotificationPreferences } from '../services/notificationManagementService';
@@ -54,7 +53,6 @@ import { navigateFromRoot } from '../utils/navigationHelpers';
 import { openStoreReview } from '../services/reviewPromptService';
 import { replaceStoredUserNameInPlaybooks } from '../services/supabaseApiNormalized';
 import { useQueryClient } from '@tanstack/react-query';
-import { faithPointsService } from '../services/faithPointsService';
 
 const { width } = Dimensions.get('window');
 
@@ -70,24 +68,18 @@ interface Props {
   navigation: any;
 }
 
-interface ProfileStats {
-  faithPoints: number;
-  level: number;
-  totalBadges: number;
-  goalsCompleted: number;
-  prayerSessions: number;
-  journalEntries: number;
-}
-
 const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
   const { user, signOut, updatePreferences, preferences: savedPreferences, profile: savedProfile, updateProfile } = useAuth();
   const queryClient = useQueryClient();
   const insets = useSafeAreaInsets();
+  const route = useRoute();
+  const isMoreTab = route.name === 'More';
+  const isAndroidSheet = Platform.OS === 'android' && !isMoreTab;
   const theme = useTheme();
   const font = useMemo(() => ({ fontFamily: theme.fontFamily }), [theme.fontFamily]);
-  // Android presents this route as a dimmed sheet, so the status bar sits above
-  // the white profile header. iOS keeps the native page sheet header treatment.
-  useScreenStatusBar(Platform.OS === 'android' ? 'light' : 'dark', Platform.OS === 'android' ? 'transparent' : Colors.hopeWhite);
+  // More scrolls beneath the status bar; the separate Android profile modal
+  // uses light status-bar text over its dimmed backdrop.
+  useScreenStatusBar(isAndroidSheet ? 'light' : 'dark', isMoreTab || isAndroidSheet ? 'transparent' : Colors.hopeWhite);
   const androidBackdropOpacity = useRef(new Animated.Value(0)).current;
   const androidSheetTranslateY = useRef(new Animated.Value(Dimensions.get('window').height)).current;
   const androidDismissedRef = useRef(false);
@@ -173,7 +165,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
   }, [entryAnimations]);
 
   useEffect(() => {
-    if (Platform.OS !== 'android') {
+    if (!isAndroidSheet) {
       return;
     }
 
@@ -195,10 +187,10 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
         useNativeDriver: true,
       }),
     ]).start();
-  }, [androidBackdropOpacity, androidSheetTranslateY]);
+  }, [androidBackdropOpacity, androidSheetTranslateY, isAndroidSheet]);
 
   const dismissAndroidRoute = useCallback(() => {
-    if (Platform.OS !== 'android') {
+    if (!isAndroidSheet) {
       navigation.goBack();
       return;
     }
@@ -225,7 +217,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
     ]).start(() => {
       navigation.goBack();
     });
-  }, [androidBackdropOpacity, androidSheetTranslateY, navigation]);
+  }, [androidBackdropOpacity, androidSheetTranslateY, isAndroidSheet, navigation]);
 
   // POST-LAUNCH: Family subscription hook
   // const {
@@ -233,8 +225,6 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
   //   createFamilyGroup,
   // } = useFamilySubscription();
   // TODO: Add updateProfile and updatePreferences to IndustryStandardAuthContext
-  const [_userProgress, setUserProgress] = useState<UserProgress | null>(null);
-  const [profileStats, setProfileStats] = useState<ProfileStats | null>(null);
   // Form states
   const [profileForm, setProfileForm] = useState({
     firstName: (user as any)?.firstName || savedProfile?.first_name || '',
@@ -289,8 +279,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
     const fallback = savedProfile?.full_name || (user as any)?.email || 'U';
     const name = [first, last].filter(Boolean).join(' ') || fallback;
     return String(name).trim().charAt(0).toUpperCase();
-  }, [profileForm, user]);
-  const [_loading, setLoading] = useState(true);
+  }, [profileForm, savedProfile?.first_name, savedProfile?.full_name, savedProfile?.last_name, user]);
   const [refreshing, setRefreshing] = useState(false);
 
   // Modal states
@@ -299,7 +288,6 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
   const [showInlineYearPicker, setShowInlineYearPicker] = useState(false);
   const [systemPermissionsModal, setSystemPermissionsModal] = useState(false);
-  const [badgesModalVisible, setBadgesModalVisible] = useState(false);
   const [tempBirthDate, setTempBirthDate] = useState<Date>(() => {
     const birthDateStr = savedProfile?.birth_date || (profileForm as any)?.birthDate;
     if (birthDateStr) {
@@ -437,7 +425,8 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
 
         const defaultPrefs = {
           user_id: user.id,
-          playbook_steps: true,
+          playbook_steps: false,
+          streak_alerts: false,
           prayer_request_alerts: false,
           prayer_requests: false,
           created_at: new Date().toISOString(),
@@ -468,56 +457,8 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
   }, [user?.id]);
 
   const loadProfileData = useCallback(async () => {
-    if (!user?.id) {
-      setLoading(false);
-      return;
-    }
-
-    try {
-      setLoading(true);
-
-      // Retroactively catch up badges that were missed by older code
-      // (First Steps from onboarding, Seeker from profile creation).
-      try {
-        await faithPointsService.retroactivelyAwardFirstSteps(user.id);
-        await faithPointsService.retroactivelyAwardSeeker(user.id);
-      } catch {
-        /* Non-blocking: don't let badge catch-up break profile loading */
-      }
-
-      // Parallel loading for better performance
-      const [progressResponse, statsResponse] = await Promise.allSettled([
-        userApi.getUserProgress(user.id),
-        userApi.getProfileStats(user.id),
-      ]);
-
-      // Process results with proper null checks
-      if (progressResponse.status === 'fulfilled' && progressResponse.value.success && progressResponse.value.data) {
-        setUserProgress(progressResponse.value.data);
-      }
-
-      if (statsResponse.status === 'fulfilled' && statsResponse.value.success && statsResponse.value.data) {
-        setProfileStats(statsResponse.value.data);
-      }
-
-      // Badge data loading removed - badges section not currently displayed
-
-      // Load notification preferences separately to avoid blocking
-      loadNotificationPreferences().catch(error => {
-        Logger.error('Failed to load notification preferences', error as Error, {
-      component: 'UserProfileScreen',
-    });
-      });
-
-    } catch (_error) {
-      Logger.error('Failed to load profile data', _error as Error, {
-      component: 'UserProfileScreen',
-    });
-      Alert.alert('Error', 'Failed to load profile data');
-    } finally {
-      setLoading(false);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (!user?.id) {return;}
+    await loadNotificationPreferences();
   }, [user?.id, loadNotificationPreferences]);
 
   // Personalization toggles
@@ -582,7 +523,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
   });
 
   useEffect(() => {
-    if (savedPreferences) setPreferences(prev => ({ ...prev, ...savedPreferences }));
+    if (savedPreferences) {setPreferences(prev => ({ ...prev, ...savedPreferences }));}
   }, [savedPreferences]);
 
   // Load persisted experience preferences on mount (defaults are ON)
@@ -990,36 +931,6 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
     loadProfileData();
   }, [loadProfileData]);
 
-  // Listen for faith points updates - optimized to prevent multiple calls
-  useEffect(() => {
-    let refreshTimeout: NodeJS.Timeout;
-
-    const handlePointsUpdate = (_data?: any) => {
-      // Clear any existing timeout to prevent multiple calls
-      if (refreshTimeout) {
-        clearTimeout(refreshTimeout);
-      }
-
-      // Single delayed refresh instead of multiple calls
-      refreshTimeout = setTimeout(() => {
-        loadProfileData();
-      }, 500);
-    };
-
-    faithPointsEvents.on(FAITH_POINTS_EVENTS.POINTS_UPDATED, handlePointsUpdate);
-    faithPointsEvents.on(FAITH_POINTS_EVENTS.LEVEL_UP, handlePointsUpdate);
-    faithPointsEvents.on(FAITH_POINTS_EVENTS.BADGE_UNLOCKED, handlePointsUpdate);
-
-    return () => {
-      if (refreshTimeout) {
-        clearTimeout(refreshTimeout);
-      }
-      faithPointsEvents.off(FAITH_POINTS_EVENTS.POINTS_UPDATED, handlePointsUpdate);
-      faithPointsEvents.off(FAITH_POINTS_EVENTS.LEVEL_UP, handlePointsUpdate);
-      faithPointsEvents.off(FAITH_POINTS_EVENTS.BADGE_UNLOCKED, handlePointsUpdate);
-    };
-  }, [loadProfileData]);
-
   // Sync profile form with user data
   useEffect(() => {
     if (savedProfile) {
@@ -1281,12 +1192,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
     try {
       try { triggerLightHaptic(); } catch {}
 
-      // Set loading state to prevent UI interactions during logout
-      setLoading(true);
-
-      // Clear local state before logout to prevent stale data
-      setUserProgress(null);
-      setProfileStats(null);
+      // Clear local preference state before logout to prevent stale data.
       setNotificationPrefs(null);
 
       await signOut();
@@ -1295,7 +1201,6 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
       Logger.error('❌ Logout failed', _error as Error, {
       component: 'UserProfileScreen',
     });
-      setLoading(false); // Reset loading state on error
       Alert.alert('Logout Failed', 'Unable to logout. Please try again.');
     }
   };
@@ -1303,11 +1208,6 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
   const renderProfileHeader = () => (
     <ProfileHeader
       user={user}
-      stats={{
-        faithPoints: profileStats?.faithPoints ?? 0,
-        level: profileStats?.level ?? 1,
-        badgesCount: profileStats?.totalBadges ?? 0,
-      }}
       onEditPress={() => { try { triggerLightHaptic(); } catch {} setEditProfileModal(true); }}
       onEditAvatar={handleEditAvatar}
     />
@@ -1716,7 +1616,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           </View>
           <View style={styles.featureMenuCopy}>
             <Text style={[styles.featureMenuTitle, font]}>My For Me Day</Text>
-            <Text style={[styles.featureMenuSubtitle, font]}>Remember your spiritual birthday</Text>
+            <Text style={[styles.featureMenuSubtitle, font]}>Your spiritual birthday with Jesus</Text>
           </View>
           <Ionicons name="chevron-forward" size={20} color={theme.colors.chevronColor} />
         </TouchableOpacity>
@@ -1798,9 +1698,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
         style={styles.modalContainer}
       >
         <View style={styles.modalHeader}>
-          <TouchableOpacity onPress={() => { try { triggerLightHaptic(); } catch {} setEditProfileModal(false); }} accessibilityRole="button" accessibilityLabel="Go back">
-            <Ionicons name="chevron-back" size={24} color={Colors.sage} />
-          </TouchableOpacity>
+          <HeaderBackButton onPress={() => { try { triggerLightHaptic(); } catch {} setEditProfileModal(false); }} />
           <Text style={[styles.modalTitle, font]}>Edit Profile</Text>
           <TouchableOpacity onPress={() => { try { triggerLightHaptic(); } catch {} handleUpdateProfile(); }}>
             <Text style={[styles.saveText, font]}>Save</Text>
@@ -2276,9 +2174,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
     >
       <SafeAreaView style={styles.modalContainer}>
         <View style={styles.modalHeader}>
-          <TouchableOpacity onPress={() => { try { triggerLightHaptic(); } catch {} setSettingsModal(false); }}>
-            <Ionicons name="chevron-back" size={24} color={Colors.hopeWhite} />
-          </TouchableOpacity>
+          <HeaderBackButton color={Colors.hopeWhite} onPress={() => { try { triggerLightHaptic(); } catch {} setSettingsModal(false); }} />
           <Text style={[styles.modalTitle, font]}>Notifications</Text>
           <View style={styles.headerSpacer} />
         </View>
@@ -2313,24 +2209,6 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           </View>
 
           <View style={styles.settingGroup}>
-            <View style={styles.settingItem}>
-              <Text style={[styles.settingLabel, font]}>Playbook Reminders</Text>
-              <TouchableOpacity
-                onPress={() => updatePref('playbook_steps', !(notificationPrefs?.playbook_steps ?? false))}
-                style={styles.switchContainer}
-              >
-                <View style={[
-                  styles.switchTrack,
-                  (notificationPrefs?.playbook_steps ?? false) ? styles.switchTrackActive : styles.switchTrackInactive,
-                ]}>
-                  <View style={[
-                    styles.switchThumb,
-                    { transform: [{ translateX: (notificationPrefs?.playbook_steps ?? false) ? 20 : 0 }] },
-                  ]} />
-                </View>
-              </TouchableOpacity>
-            </View>
-
             <View style={styles.settingItem}>
               <Text style={[styles.settingLabel, font]}>Prayer Reminders</Text>
               <TouchableOpacity
@@ -2389,25 +2267,6 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
             </View>
 
             <View style={styles.settingItem}>
-              <Text style={[styles.settingLabel, font]}>Streak Alerts</Text>
-              <TouchableOpacity
-                onPress={() => updatePref('streak_alerts', !(notificationPrefs?.streak_alerts ?? false))}
-                disabled={!notificationPrefs}
-                style={styles.switchContainer}
-              >
-                <View style={[
-                  styles.switchTrack,
-                  (notificationPrefs?.streak_alerts ?? false) ? styles.switchTrackActive : styles.switchTrackInactive,
-                ]}>
-                  <View style={[
-                    styles.switchThumb,
-                    { transform: [{ translateX: (notificationPrefs?.streak_alerts ?? false) ? 20 : 0 }] },
-                  ]} />
-                </View>
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.settingItem}>
               <Text style={[styles.settingLabel, font]}>Prayer Request Alerts</Text>
               <TouchableOpacity
                 onPress={() => updatePref('prayer_request_alerts', !(notificationPrefs?.prayer_request_alerts ?? false))}
@@ -2440,9 +2299,18 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
         <ScrollView
           style={styles.scrollView}
           contentInsetAdjustmentBehavior="never"
-          contentContainerStyle={[styles.scrollContent, { paddingBottom: (insets?.bottom || 0) + 50 }]}
+          contentContainerStyle={[
+            styles.scrollContent,
+            // Keep notch clearance inside the content so it scrolls away.
+            isMoreTab && { paddingTop: insets.top + 18 },
+            { paddingBottom: insets.bottom + (isMoreTab ? 80 : 50) },
+          ]}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              progressViewOffset={isMoreTab ? insets.top : 0}
+            />
           }
           showsVerticalScrollIndicator={false}
         >
@@ -2450,12 +2318,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
             {renderProfileHeader()}
           </View>)}
           {renderEntry(1, <View style={styles.streakSection}>
-            <StreakTracker
-              showProfileStats
-              faithPoints={profileStats?.faithPoints ?? 0}
-              badgesCount={profileStats?.totalBadges ?? 0}
-              onBadgesPress={() => { try { triggerLightHaptic(); } catch {} setBadgesModalVisible(true); }}
-            />
+            <FaithfulRhythmsCard variant="profile" />
           </View>)}
           {renderEntry(2, renderGospelSection())}
           {renderEntry(3, renderReflectionSection())}
@@ -2481,14 +2344,10 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
       {renderReportBugModal()}
       {renderFeatureModal()}
 
-      <BadgesModal
-        visible={badgesModalVisible}
-        onClose={() => setBadgesModalVisible(false)}
-      />
     </>
   );
 
-  if (Platform.OS === 'android') {
+  if (isAndroidSheet) {
     return (
       <View style={styles.androidModalRoot}>
         <Animated.View
@@ -2521,7 +2380,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
 
   return (
     <SafeAreaView
-      edges={['top']}
+      edges={isMoreTab ? ['left', 'right'] : ['top']}
       style={[
         styles.container,
         { backgroundColor: theme.colors.lightBackground },
@@ -2582,12 +2441,8 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
     marginHorizontal: 12,
     marginBottom: 20,
-    backgroundColor: Colors.hopeWhite,
-    borderRadius: 20,
-    overflow: 'hidden',
   },
   headerWrapper: {
-    // extra space so the header isn't cut by the notch
     position: 'relative',
     zIndex: 20,
     overflow: 'visible',

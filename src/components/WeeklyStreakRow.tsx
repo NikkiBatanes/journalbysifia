@@ -15,6 +15,8 @@ export type DayState = 'completed' | 'missed' | 'today' | 'future';
 interface WeeklyStreakRowProps {
   weekStart?: 'Sunday' | 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday' | 'Saturday';
   dayStates: DayState[];
+  dayLabels?: string[];
+  appearance?: 'dark' | 'light';
 }
 
 const DAY_LABELS: Record<string, string> = {
@@ -47,16 +49,18 @@ const WEEK_ORDER: Record<string, string[]> = {
   Saturday: ['Saturday', 'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
 };
 
-const WeeklyStreakRow: React.FC<WeeklyStreakRowProps> = ({ weekStart = 'Sunday', dayStates }) => {
+const WeeklyStreakRow: React.FC<WeeklyStreakRowProps> = ({ weekStart = 'Sunday', dayStates, dayLabels, appearance = 'dark' }) => {
   const theme = useTheme();
   const font = { fontFamily: theme.fontFamily };
 
   const orderedDays = WEEK_ORDER[weekStart] || WEEK_ORDER.Sunday;
+  const visibleDayCount = dayLabels?.length || orderedDays.length;
+  const visibleDays = orderedDays.slice(0, visibleDayCount);
 
   // Create animated values for each day (stable across renders)
   const scaleAnims = useMemo(
-    () => orderedDays.map(() => new Animated.Value(0)),
-    [orderedDays]
+    () => Array.from({length: visibleDayCount}, () => new Animated.Value(0)),
+    [visibleDayCount]
   );
 
   // Trigger staggered spring animations when dayStates loads
@@ -79,10 +83,10 @@ const WeeklyStreakRow: React.FC<WeeklyStreakRowProps> = ({ weekStart = 'Sunday',
   if (!dayStates || dayStates.length === 0) {
     return (
       <View style={styles.container}>
-        {orderedDays.map((day) => (
+        {visibleDays.map((day) => (
           <View key={day} style={styles.dayContainer}>
-            <View style={[styles.dayCircle, styles.futureCircle]} />
-            <Text style={[styles.dayLabel, font, styles.futureLabel]}>{FULL_DAY_LABELS[day]}</Text>
+            <View style={[styles.dayCircle, styles.futureCircle, appearance === 'light' && styles.futureCircleLight]} />
+            <Text style={[styles.dayLabel, font, styles.futureLabel, appearance === 'light' && styles.futureLabelLight]}>{FULL_DAY_LABELS[day]}</Text>
           </View>
         ))}
       </View>
@@ -91,16 +95,16 @@ const WeeklyStreakRow: React.FC<WeeklyStreakRowProps> = ({ weekStart = 'Sunday',
 
   return (
     <View style={styles.container}>
-      {orderedDays.map((day, index) => {
+      {visibleDays.map((day, index) => {
         const state = dayStates[index] || 'future';
-        const label = FULL_DAY_LABELS[day] || DAY_LABELS[day];
+        const label = dayLabels?.[index] || FULL_DAY_LABELS[day] || DAY_LABELS[day];
 
         return (
-          <Animated.View key={day} style={styles.dayContainer}>
+          <Animated.View key={`${day}:${index}`} style={styles.dayContainer}>
             <Animated.View
               style={[
                 styles.dayCircle,
-                getDayCircleStyle(state),
+                getDayCircleStyle(state, appearance),
                 {
                   transform: [
                     {
@@ -114,10 +118,10 @@ const WeeklyStreakRow: React.FC<WeeklyStreakRowProps> = ({ weekStart = 'Sunday',
               ]}
             >
               {state === 'completed' && (
-                <Ionicons name="sparkles" size={12} color={Colors.hopeWhite} />
+                <Ionicons name="checkmark" size={14} color={Colors.hopeWhite} />
               )}
             </Animated.View>
-            <Text style={[styles.dayLabel, font, getDayLabelStyle(state)]}>{label}</Text>
+            <Text style={[styles.dayLabel, font, getDayLabelStyle(state, appearance)]}>{label}</Text>
           </Animated.View>
         );
       })}
@@ -125,31 +129,33 @@ const WeeklyStreakRow: React.FC<WeeklyStreakRowProps> = ({ weekStart = 'Sunday',
   );
 };
 
-const getDayCircleStyle = (state: DayState) => {
+const getDayCircleStyle = (state: DayState, appearance: 'dark' | 'light') => {
+  const lightStyle = appearance === 'light';
   switch (state) {
     case 'completed':
-      return styles.completedCircle;
+      return [styles.completedCircle, lightStyle && styles.completedCircleLight];
     case 'missed':
-      return styles.missedCircle;
+      return [styles.missedCircle, lightStyle && styles.missedCircleLight];
     case 'today':
-      return styles.todayCircle;
+      return [styles.todayCircle, lightStyle && styles.todayCircleLight];
     case 'future':
     default:
-      return styles.futureCircle;
+      return [styles.futureCircle, lightStyle && styles.futureCircleLight];
   }
 };
 
-const getDayLabelStyle = (state: DayState) => {
+const getDayLabelStyle = (state: DayState, appearance: 'dark' | 'light') => {
+  const lightStyle = appearance === 'light';
   switch (state) {
     case 'completed':
-      return styles.completedLabel;
+      return [styles.completedLabel, lightStyle && styles.completedLabelLight];
     case 'missed':
-      return styles.missedLabel;
+      return [styles.missedLabel, lightStyle && styles.missedLabelLight];
     case 'today':
-      return styles.todayLabel;
+      return [styles.todayLabel, lightStyle && styles.todayLabelLight];
     case 'future':
     default:
-      return styles.futureLabel;
+      return [styles.futureLabel, lightStyle && styles.futureLabelLight];
   }
 };
 
@@ -185,6 +191,23 @@ const styles = StyleSheet.create({
   futureCircle: {
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
   },
+  completedCircleLight: {
+    backgroundColor: Colors.sage,
+  },
+  missedCircleLight: {
+    backgroundColor: 'transparent',
+    borderColor: Colors.cardBorder,
+    borderWidth: 1,
+  },
+  todayCircleLight: {
+    backgroundColor: Colors.anchorBlueLight,
+    borderColor: Colors.sage,
+    borderWidth: 1,
+  },
+  futureCircleLight: {
+    backgroundColor: Colors.anchorBlueLight,
+    opacity: 0.55,
+  },
   dayLabel: {
     fontSize: 11,
     fontWeight: '500',
@@ -205,6 +228,20 @@ const styles = StyleSheet.create({
   futureLabel: {
     color: Colors.hopeWhite,
     opacity: 0.15,
+  },
+  completedLabelLight: {
+    color: Colors.text,
+  },
+  missedLabelLight: {
+    color: Colors.textGray,
+    opacity: 0.55,
+  },
+  todayLabelLight: {
+    color: Colors.sage,
+  },
+  futureLabelLight: {
+    color: Colors.textGray,
+    opacity: 0.45,
   },
 });
 

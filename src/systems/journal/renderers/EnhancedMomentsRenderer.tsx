@@ -21,11 +21,11 @@ import { useAuth } from '../../../context/IndustryStandardAuthContext';
 import { triggerLightHaptic } from '../../../utils/haptics';
 import MomentsSkeleton from '../../../components/SkeletonLoader/MomentsSkeleton';
 import PrayerMomentsCarousel from '../../../components/moments/PrayerMomentsCarousel';
+import { MomentsStickyHeader } from '../../../components/moments/MomentsStickyHeader';
 import type { PrayerHomeEntry } from '../../../components/journal/PrayerCard';
 import type { PluginFilters } from '../types';
 import type { FilterKey } from '../../../components/moments/FilterSelect';
 import { adaptSifiaPrayer, adaptSifiaReflection } from '../../../compatibility/sifiaReadCompatibility';
-import { getMomentsListStructureKey, hasMomentsListStructureChanged } from '../../../utils/momentsListIdentity';
 import {matchesMomentCategoryFilter, narrowRoutineMomentToFilters} from '../../../services/momentFilterService';
 
 // Removed unused screenWidth variable
@@ -74,6 +74,9 @@ interface EnhancedMomentsRendererProps {
   onAddPress?: () => void;
   navigation?: any;
   onScroll?: (event: any) => void;
+  onScrollEndDrag?: (event: any) => void;
+  onMomentumScrollBegin?: (event: any) => void;
+  onMomentumScrollEnd?: (event: any) => void;
   entranceRun?: number;
   onContentReady?: () => void;
 }
@@ -292,7 +295,10 @@ const createStyles = (fonts: any) => StyleSheet.create({
   },
   momentItem: {
     flexDirection: 'row',
-    paddingHorizontal: 16,
+    width: '100%',
+    maxWidth: 760,
+    alignSelf: 'center',
+    paddingHorizontal: 18,
     paddingVertical: 12,
   },
   timelineIndicator: {
@@ -405,7 +411,7 @@ const createStyles = (fonts: any) => StyleSheet.create({
   },
   // Week nested UI styles
   weekCardContainer: {
-    marginHorizontal: 16,
+    marginHorizontal: 18,
     marginTop: 12,
     marginBottom: 8,
     backgroundColor: Colors.cardBackground,
@@ -494,6 +500,9 @@ const EnhancedMomentsContent: React.FC<EnhancedMomentsRendererProps> = ({
   onAddPress,
   navigation,
   onScroll,
+  onScrollEndDrag,
+  onMomentumScrollBegin,
+  onMomentumScrollEnd,
   entranceRun = 0,
   onContentReady,
 }) => {
@@ -1022,7 +1031,7 @@ const EnhancedMomentsContent: React.FC<EnhancedMomentsRendererProps> = ({
               const typeStr = (reflection.type || '').toString().toLowerCase();
               const sourceStr = (reflection.source || '').toString().toLowerCase();
               const allowedType = typeStr === '' || ['free', 'freeform', 'free-form', 'guided', 'playbook', 'devotional', 'thought', 'thoughts', 'reflection'].includes(typeStr);
-              const allowedSource = sourceStr === '' || ['freeform', 'free-form', 'guided', 'playbook', 'devotional', 'thought', 'thoughts', 'reflection'].includes(sourceStr);
+              const allowedSource = sourceStr === '' || ['freeform', 'free-form', 'guided', 'guided_prompt', 'playbook', 'devotional', 'thought', 'thoughts', 'reflection'].includes(sourceStr);
 
               // Check if reflection has content (string or object)
               const hasUserContent = reflection.content &&
@@ -2538,21 +2547,21 @@ const EnhancedMomentsContent: React.FC<EnhancedMomentsRendererProps> = ({
   };
   // (moved sectionsWithContent useMemo above)
 
-  // Ensure scroll resets when structure changes (e.g., expand/collapse year/month/week or switch views/filters)
+  // Reset for explicit navigation/filter changes, never for dates discovered
+  // by a refresh. Local and cloud results can arrive in separate batches.
   const sectionListRef = useRef<SectionList<any>>(null);
-  const listKey = useMemo(
-    () => getMomentsListStructureKey(groupBy, sectionsWithContent.map((s: any) => s?.key)),
-    [groupBy, sectionsWithContent]
-  );
-  const previousListKeyRef = useRef<string | null>(null);
+  const viewKey = JSON.stringify([
+    groupBy, sortBy, searchQuery, prayerAnswerFilter, filterKeys,
+    dateRange.startDate.getTime(), dateRange.endDate.getTime(), dateRange.label,
+    expandedWeeks, expandedMonths, expandedYears,
+  ]);
+  const previousViewKeyRef = useRef(viewKey);
   const hasFirstListItem = sectionsWithContent.length > 0
     && Array.isArray(sectionsWithContent[0]?.data)
     && sectionsWithContent[0].data.length > 0;
   useEffect(() => {
-    if (!hasMomentsListStructureChanged(previousListKeyRef.current, listKey)) {return;}
-    previousListKeyRef.current = listKey;
-    // Reset only when persistent list identity changes. Content updates rebuild
-    // section objects but keep the same key and must preserve the viewport.
+    if (previousViewKeyRef.current === viewKey) {return;}
+    previousViewKeyRef.current = viewKey;
     requestAnimationFrame(() => {
       try {
         if (hasFirstListItem) {
@@ -2566,7 +2575,7 @@ const EnhancedMomentsContent: React.FC<EnhancedMomentsRendererProps> = ({
         (sectionListRef.current as any)?.getScrollResponder?.()?.scrollTo?.({ y: 0, animated: false });
       }
     });
-  }, [listKey, hasFirstListItem, sectionsWithContent]);
+  }, [viewKey, hasFirstListItem]);
 
   // Context-aware empty subtitle
   const emptySubtitleText = useMemo(() => {
@@ -2640,7 +2649,7 @@ const EnhancedMomentsContent: React.FC<EnhancedMomentsRendererProps> = ({
     <View style={[styles.container, style]}>
       <SectionList
         ref={sectionListRef}
-        key={listKey}
+        key={groupBy}
         sections={sectionsWithContent}
         renderItem={(info) => {
           const sectionIndex = Math.max(0, sectionsWithContent.findIndex(section => section.key === info.section?.key));
@@ -2653,17 +2662,10 @@ const EnhancedMomentsContent: React.FC<EnhancedMomentsRendererProps> = ({
             </Animated.View>
           );
         }}
-        renderSectionHeader={(info) => {
-          const sectionIndex = Math.max(0, sectionsWithContent.findIndex(section => section.key === info.section?.key));
-          return (
-            <Animated.View
-              key={`${entranceRun}:header:${info.section?.key ?? sectionIndex}`}
-              entering={FadeInUp.delay(Math.min(sectionIndex * 160, 560)).springify().damping(14).stiffness(180)}
-            >
-              {renderSectionHeader(info)}
-            </Animated.View>
-          );
-        }}
+        // Sticky dates must stay at their measured position, including when
+        // virtualization remounts a header while scrolling back through dates.
+        renderSectionHeader={renderSectionHeader}
+        StickyHeaderComponent={MomentsStickyHeader}
         contentContainerStyle={styles.listContent}
         contentInsetAdjustmentBehavior="never"
         automaticallyAdjustContentInsets={false}
@@ -2722,6 +2724,9 @@ const EnhancedMomentsContent: React.FC<EnhancedMomentsRendererProps> = ({
         }}
         showsVerticalScrollIndicator={false}
         onScroll={onScroll}
+        onScrollEndDrag={onScrollEndDrag}
+        onMomentumScrollBegin={onMomentumScrollBegin}
+        onMomentumScrollEnd={onMomentumScrollEnd}
         scrollEventThrottle={16}
         stickySectionHeadersEnabled={true}
         ListHeaderComponent={

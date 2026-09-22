@@ -11,7 +11,7 @@ const required = <T>(value: T | null): T => { if (!value) throw new Error('QA re
 const weekly = getWeeklyPeriodFor(0, REVIEW_QA_WEEKLY_REFERENCE_DATE);
 
 export const REVIEW_QA_SCENARIOS: ReviewQADefinition[] = [
-  {id:'weekly',title:'Weekly Review',status:'MORNING FLOW · 7 CHECK-INS',type:'weekly',period:weekly,density:'rich',referenceDate:REVIEW_QA_WEEKLY_REFERENCE_DATE},
+  {id:'weekly',title:'Weekly Review',status:'FULL WEEK · 10 GUIDED',type:'weekly',period:weekly,density:'rich',referenceDate:REVIEW_QA_WEEKLY_REFERENCE_DATE},
 ];
 
 export const getReviewQAScenario = (id: ReviewQAScenario) => required(REVIEW_QA_SCENARIOS.find(item => item.id === id) ?? null);

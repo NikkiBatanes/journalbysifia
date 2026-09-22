@@ -158,7 +158,7 @@ export const DraggableJournalBlock = ({
             style={styles.handleTouchTarget}>
             <Ionicons
               name="reorder-three-outline"
-              size={19}
+              size={16}
               color={tone === 'onDark' ? Colors.hopeWhite : Colors.sage}
               style={styles.handleIcon}
             />
@@ -182,7 +182,7 @@ const styles = StyleSheet.create({
   },
   handleTouchTarget: {
     position: 'absolute',
-    left: -34,
+    left: -26,
     top: 2,
     zIndex: 60,
     width: 34,

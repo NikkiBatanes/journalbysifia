@@ -21,6 +21,7 @@ import { Colors } from '../theme/colors';
 import { triggerLightHaptic } from '../utils/haptics';
 import { adminDashboardService, DashboardMetrics } from '../services/adminDashboardService';
 import ThemedText from '../components/common/ThemedText';
+import HeaderBackButton from '../components/common/HeaderBackButton';
 import { Logger } from '../utils/ProductionLogger';
 
 const ADMIN_EMAILS = ['nikki.batanes@sifia.app', 'nikkibatanes@gmail.com', 'bynikkib@gmail.com', 'pzgttqh2gh@privaterelay.appleid.com'];
@@ -1901,16 +1902,14 @@ export default function AdminDashboardScreen({ navigation }: Props) {
       {(activeTab === 'trials' || activeTab === 'paid' || activeTab === 'issues') && (
         <>
         <View style={[styles.stickyHeader, { paddingTop: insets.top + 12 }]}>
-          <TouchableOpacity
+          <HeaderBackButton
             onPress={() => {
               triggerLightHaptic();
               setActiveTab('overview');
             }}
             style={styles.backButton}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="chevron-back" size={28} color={Colors.hopeWhite} />
-          </TouchableOpacity>
+            color={Colors.hopeWhite}
+          />
           <View style={styles.stickyHeaderContent}>
             <ThemedText weight="semiBold" style={styles.stickyHeaderTitle}>
               {activeTab === 'paid' ? 'Paid Subscribers' : activeTab === 'trials' ? 'Active Trials' : 'Issues'}

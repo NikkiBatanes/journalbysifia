@@ -18,7 +18,7 @@ import { prayerNeeds } from '../../utils/prayerTracking';
 import { triggerLightHaptic, triggerSuccessHaptic } from '../../utils/haptics';
 import { openPrayerFlow } from '../../navigation/openPrayerFlow';
 
-export default function PrayerToRevisit() {
+export default function PrayerToRevisit({ header }: { header?: React.ReactNode }) {
   const { user } = useAuth(); const userId = user?.id || 'local';
   const navigation = useNavigation<any>();
   const queryClient = useQueryClient(); const { data: prayers, refetch } = useAllPrayerData(userId);
@@ -77,6 +77,7 @@ export default function PrayerToRevisit() {
   const requestJourney = prayer && candidate.sourceType === 'request' ? getPrayerRequestJourneyPresentation(prayer, request, linkedPrayer) : undefined;
   const primary = candidate.purpose === 'return' ? () => void prayAgain() : candidate.purpose === 'check_in' ? openUpdate : requestJourney?.state === 'request' && request ? () => navigateToPrayForSomeone(request) : openDetails;
   return <>
+    {header}
     <PrayerIntelligenceCardPresentation candidate={candidate} prayer={prayer} request={request} linkedPrayer={linkedPrayer} need={need} disabled={saving} onPrimary={primary} onView={openDetails} />
     {mode && <PrayerTrackingModal key={prayer.id} prayer={prayer} mode={mode} initialNeedId={candidate.needId} onPrayNow={openPrayForSomeone} onShowDetails={() => setMode('details')} onSave={persist} onClose={() => setMode(null)} />}
   </>;

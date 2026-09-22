@@ -6,11 +6,16 @@ export const useFloatingKeyboardButton = (bottomInset: number) => {
   const { height } = useWindowDimensions();
   const bottom = useRef(new Animated.Value(bottomInset + 20)).current;
   const [keyboardVisible, setKeyboardVisible] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
   useEffect(() => {
-    const move = (keyboardHeight: number, duration: number) => {
-      setKeyboardVisible(keyboardHeight > 0);
+    const move = (nextKeyboardHeight: number, duration: number) => {
+      setKeyboardVisible(nextKeyboardHeight > 0);
+      setKeyboardHeight(nextKeyboardHeight);
       Animated.timing(bottom, {
-        toValue: keyboardHeight > 0 ? keyboardHeight + 16 : bottomInset + 20,
+        toValue:
+          nextKeyboardHeight > 0
+            ? nextKeyboardHeight + 16
+            : bottomInset + 20,
         duration,
         easing: Easing.out(Easing.cubic),
         useNativeDriver: false,
@@ -25,5 +30,5 @@ export const useFloatingKeyboardButton = (bottomInset: number) => {
     if (metrics) { move(Math.max(0, height - metrics.screenY), 0); }
     return () => { show.remove(); hide.remove(); bottom.stopAnimation(); };
   }, [bottom, bottomInset, height]);
-  return { bottom, keyboardVisible };
+  return { bottom, keyboardVisible, keyboardHeight };
 };

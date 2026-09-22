@@ -213,29 +213,16 @@ class NotificationDeepLinkService {
         this.navigationRef.current.navigate('TomorrowInHisHandsWalkthrough', { selectedDate });
         return;
       case 'gratitude':
-        this.navigationRef.current.navigate('MainTabs', {
-          screen: 'Journal',
-          params: {
-            screen: 'JournalMain',
-            params: {
-              targetSection: 'gratitude',
-              selectedDate,
-            },
-          },
-        });
+        this.navigationRef.current.navigate('GratitudeWalkthrough', { selectedDate });
         return;
       case 'prayer':
         // Handle tab parameter for prayer requests
         if (query.tab === 'requests') {
           this.navigationRef.current.navigate('MainTabs', {
-            screen: 'Journal',
+            screen: 'Prayer',
             params: {
-              screen: 'JournalMain',
-              params: {
-                targetSection: 'prayer',
-                openPrayerRequestsTab: true,
-                selectedDate,
-              },
+              initialTab: 'requests',
+              selectedDate,
             },
           });
         } else {
@@ -292,9 +279,7 @@ class NotificationDeepLinkService {
         this.navigationRef.current.navigate('MainTabs', {
           screen: 'Journal',
           params: {
-            targetSection: target,
-            ...query,
-            selectedDate,
+            screen: 'JournalMoments',
           },
         });
     }
@@ -505,14 +490,14 @@ class NotificationDeepLinkService {
             }
           }
           this.navigationRef.current.navigate('MainTabs', {
-            screen: 'Journal',
+            screen: 'Prayer',
             params: {
-              targetSection: 'prayer',
               targetPrayerId: id,
+              selectedDate: this.getSelectedDateParam(query),
               ...query,
             },
           });
-          Logger.info('Navigated to Journal for prayer', {
+          Logger.info('Navigated to Prayers', {
             component: 'notificationDeepLinkService',
             prayerId: id,
           });
@@ -595,11 +580,7 @@ class NotificationDeepLinkService {
           this.navigationRef.current.navigate('MainTabs', {
             screen: 'Journal',
             params: {
-              screen: 'JournalMain',
-              params: {
-                targetSection: 'moments',
-                ...query,
-              },
+              screen: 'JournalMoments',
             },
           });
           Logger.info('Navigated to Moments', {
@@ -614,10 +595,10 @@ class NotificationDeepLinkService {
             const didNavigate = await this.navigateToPrayerById(query.id);
             if (!didNavigate) {
               this.navigationRef.current.navigate('MainTabs', {
-                screen: 'Journal',
+                screen: 'Prayer',
                 params: {
-                  targetSection: 'prayer',
                   targetPrayerId: query.id,
+                  selectedDate: this.getSelectedDateParam(query),
                   ...query,
                 },
               });

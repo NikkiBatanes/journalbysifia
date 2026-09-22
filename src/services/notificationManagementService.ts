@@ -134,7 +134,7 @@ class NotificationManagementService {
         prayer_reminders: preferences.prayer_reminders ?? true,
         prayer_request_alerts: preferences.prayer_request_alerts ?? true,
         prayer_requests: preferences.prayer_requests ?? true,
-        playbook_steps: preferences.playbook_steps ?? true,
+        playbook_steps: preferences.playbook_steps ?? false,
         journal_prompts: preferences.journal_prompts ?? true,
         streak_alerts: preferences.streak_alerts ?? true,
         milestone_celebrations: preferences.milestone_celebrations ?? true,
@@ -440,12 +440,12 @@ class NotificationManagementService {
       if (!existingPrefs) {
         const defaultPrefs: NotificationPreferences = {
           user_id: userId,
-          playbook_steps: true,
+          playbook_steps: false,
           journal_prompts: true,
           prayer_reminders: true,
           milestone_celebrations: true,
           trial_notifications: true,
-          streak_alerts: true,
+          streak_alerts: false,
           prayer_request_alerts: true,
           timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         };

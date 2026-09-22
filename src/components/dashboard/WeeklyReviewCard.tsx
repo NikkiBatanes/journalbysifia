@@ -6,7 +6,6 @@ import ThemedText from '../common/ThemedText';
 import { Colors } from '../../theme/colors';
 import { triggerLightHaptic } from '../../utils/haptics';
 import { useWeeklyRhythm } from '../../hooks/useWeeklyRhythm';
-import { type WeeklyRhythm } from '../../services/weeklyRhythmService';
 
 interface Props {
   periodStart: string;
@@ -14,12 +13,11 @@ interface Props {
   onBegin: () => void;
   alsoReady?: string;
   started?: boolean;
-  seededRhythm?: WeeklyRhythm | null;
+  referenceDate?: string;
 }
 
-const WeeklyReviewCard = ({ periodStart, periodEnd, onBegin, alsoReady, started = false, seededRhythm }: Props) => {
-  const liveRhythm = useWeeklyRhythm(periodStart, periodEnd);
-  const rhythm = seededRhythm ?? liveRhythm;
+const WeeklyReviewCard = ({ periodStart, periodEnd, onBegin, alsoReady, started = false, referenceDate }: Props) => {
+  const rhythm = useWeeklyRhythm(periodStart, periodEnd, referenceDate);
   const start = parseISO(periodStart);
   const end = parseISO(periodEnd);
   const periodLabel = `${format(start, 'MMM d')}–${format(end, start.getMonth() === end.getMonth() ? 'd' : 'MMM d')}`;

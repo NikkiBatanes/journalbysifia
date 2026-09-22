@@ -2,7 +2,6 @@ import { supabase } from './supabaseClient';
 import { Logger } from '../utils/ProductionLogger';
 import { notificationSchedulerService } from './notificationSchedulerService';
 import { NotificationQueueItem } from './notificationManagementService';
-import { requestReview } from './reviewPromptService';
 
 export type MilestoneType = 'faith_points' | 'level_up' | 'playbook_complete' | 'prayer_answered';
 
@@ -101,10 +100,6 @@ class MilestoneCelebrationService {
           points,
         });
 
-        // Request review after faith points milestones (100+ points)
-        requestReview({ triggerSource: `faith_points_milestone_${points}` }).catch(() => {
-          // Silently fail - review prompt is optional
-        });
       }
 
       return success;
@@ -157,10 +152,6 @@ class MilestoneCelebrationService {
           levelTitle,
         });
 
-        // Request review after level up (significant achievement)
-        requestReview({ triggerSource: `level_up_${newLevel}` }).catch(() => {
-          // Silently fail - review prompt is optional
-        });
       }
 
       return success;
@@ -212,10 +203,6 @@ class MilestoneCelebrationService {
           playbookTitle,
         });
 
-        // Request review after playbook completion (positive user experience)
-        requestReview({ triggerSource: 'playbook_complete' }).catch(() => {
-          // Silently fail - review prompt is optional
-        });
       }
 
       return success;
@@ -264,10 +251,6 @@ class MilestoneCelebrationService {
           prayerId,
         });
 
-        // Request review after prayer answered (spiritual milestone)
-        requestReview({ triggerSource: 'prayer_answered' }).catch(() => {
-          // Silently fail - review prompt is optional
-        });
       }
 
       return success;

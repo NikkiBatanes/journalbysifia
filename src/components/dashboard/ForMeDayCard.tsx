@@ -1,67 +1,28 @@
-import React, {useCallback, useEffect, useRef, useState} from 'react';
+import React, {useEffect, useRef} from 'react';
 import {Animated, Easing, StyleSheet, TouchableOpacity, View} from 'react-native';
-import {useFocusEffect, useNavigation} from '@react-navigation/native';
+import {useNavigation} from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import {format} from 'date-fns';
 import ThemedText from '../common/ThemedText';
 import {Colors} from '../../theme/colors';
 import {Fonts} from '../../theme/fonts';
-import {
-  gospelStorage,
-  type ForMeDaySettings,
-} from '../../storage/gospelStorage';
-import {
-  getForMeDayYears,
-  isForMeDay,
-  scheduleForMeDayReminder,
-} from '../../services/forMeDayService';
+import {type ForMeDaySettings} from '../../storage/gospelStorage';
+import {getForMeDayYears} from '../../services/forMeDayService';
 import {triggerLightHaptic} from '../../utils/haptics';
 
-const ForMeDayCard = () => {
+const ForMeDayCard = ({settings}: {settings: ForMeDaySettings}) => {
   const navigation = useNavigation<any>();
-  const [settings, setSettings] = useState<ForMeDaySettings | null>(null);
-  const entrance = useRef(new Animated.Value(0)).current;
   const sparkle = useRef(new Animated.Value(0)).current;
-  useFocusEffect(
-    useCallback(() => {
-      let active = true;
-      gospelStorage.getForMeDaySettings().then(value => {
-        if (active) {
-          setSettings(value);
-        }
-        if (value?.reminderEnabled) {
-          scheduleForMeDayReminder(value).catch(() => {});
-        }
-      });
-      return () => {
-        active = false;
-      };
-    }, []),
-  );
-  const active = Boolean(settings && isForMeDay(settings.spiritualBirthday));
   useEffect(() => {
-    if (!active) {return;}
-    entrance.setValue(0);
     sparkle.setValue(0);
-    const animation = Animated.parallel([
-      Animated.spring(entrance, {toValue: 1, tension: 42, friction: 8, overshootClamping: true, useNativeDriver: true}),
-      Animated.timing(sparkle, {toValue: 1, duration: 900, easing: Easing.out(Easing.cubic), useNativeDriver: true}),
-    ]);
+    const animation = Animated.timing(sparkle, {toValue: 1, duration: 900, easing: Easing.out(Easing.cubic), useNativeDriver: true});
     animation.start();
     return () => animation.stop();
-  }, [active, entrance, sparkle]);
-  if (!settings || !active) {
-    return null;
-  }
+  }, [sparkle]);
   const years = getForMeDayYears(settings.spiritualBirthday);
+  const isFirstDay = settings.spiritualBirthday === format(new Date(), 'yyyy-MM-dd');
   return (
-    <Animated.View style={{
-      opacity: entrance,
-      transform: [
-        {translateY: entrance.interpolate({inputRange: [0, 1], outputRange: [14, 0]})},
-        {scale: entrance.interpolate({inputRange: [0, 1], outputRange: [0.97, 1]})},
-      ],
-    }}>
-      <TouchableOpacity
+    <TouchableOpacity
       style={styles.card}
       activeOpacity={0.86}
       onPress={() => {
@@ -80,19 +41,22 @@ const ForMeDayCard = () => {
       </View>
       <ThemedText style={styles.title}>Happy For Me Day.</ThemedText>
       <ThemedText style={styles.body}>
-        {years && settings.includeYearWhenSharing
+        {isFirstDay
+          ? 'Today, you accepted Jesus as your Lord and Savior and began following Him.'
+          : years && settings.includeYearWhenSharing
           ? `Today marks ${years} ${
               years === 1 ? 'year' : 'years'
-            } since the Gospel became personal.`
-          : 'Today, remember when the Gospel became personal.'}{' '}
-        Grace wasn’t only for the world—it was for you.
+            } since you accepted Jesus as your Lord and Savior and began following Him.`
+          : 'Today, remember when you accepted Jesus as your Lord and Savior.'}{' '}
+        {isFirstDay
+          ? 'Celebrate His good news and this new beginning.'
+          : 'Celebrate His good news and thank Him for how He has carried you.'}
       </ThemedText>
       <View style={styles.action}>
-        <ThemedText style={styles.actionText}>Remember this day</ThemedText>
+        <ThemedText style={styles.actionText}>{isFirstDay ? 'Celebrate this beginning' : 'Remember this day'}</ThemedText>
         <Ionicons name="arrow-forward" size={16} color={Colors.hopeWhite} />
       </View>
-      </TouchableOpacity>
-    </Animated.View>
+    </TouchableOpacity>
   );
 };
 

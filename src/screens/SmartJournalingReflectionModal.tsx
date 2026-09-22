@@ -34,11 +34,11 @@ interface SmartJournalingReflectionModalProps {
   onSave: (entry: any) => void;
   onCancel: () => void;
   navigation?: NavigationProp<any>;
-  // When true, this reflection was opened from a guided prompt and should hide metadata
+  // Legacy prop name: true means this entry was opened from a single Guided Prompt.
   isGuidedReflection?: boolean;
   // When true, hide the guided prompt button (heart icon)
   hideGuidedPromptButton?: boolean;
-  // When true, hide the pencil icon for guided reflections
+  // When true, hide the pencil icon for Guided Prompts
   hidePencilIcon?: boolean;
   // When true, this is from journal carousel (freeform) not dashboard smart journaling
   isJournalCarousel?: boolean;
@@ -229,7 +229,17 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
 
       // Use the type from ReflectionLogEditor if it's 'guided', otherwise use modal logic
       const finalType = entry.type === 'guided' ? 'guided' : (isGuidedReflection ? 'guided' : isPlaybookContext ? 'playbook' : 'free');
-      const finalSource = entry.type === 'guided' ? 'guided' : (isGuidedReflection ? 'guided' : isPlaybookContext ? 'playbook' : 'freeform');
+      // This modal's guided mode is the legacy single Guided Prompt flow. It
+      // must remain distinct from the structured Guided Reflection journey.
+      const finalSource = isGuidedReflection
+        ? 'guided_prompt'
+        : entry.source === 'guided_prompt'
+          ? 'guided_prompt'
+          : entry.type === 'guided'
+            ? 'guided'
+            : isPlaybookContext
+              ? 'playbook'
+              : 'freeform';
 
       // Validate UUID format before including in data
       const isValidUUID = (id: string | undefined): boolean => {
@@ -243,9 +253,10 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
         title: entry.title,
         content: entry.content,
         type: finalType,
+        source: finalSource,
         selected_date: dateStr,
         tags: [...(entry.tags || []), (finalType === 'guided' ? 'guided' : finalType === 'playbook' ? 'playbook' : 'freeform')],
-        // Save the prompt for guided reflections so it can be displayed in the journal
+        // Save the Guided Prompt so it can be displayed in the journal
         ...(finalType === 'guided' && (entry.prompt || preservedSubtaskTitle) ? { prompt: entry.prompt || preservedSubtaskTitle } : {}),
         // Only attach playbook metadata when not guided - validate UUIDs before including
         ...(isPlaybookContext && playbookTitle ? { playbook_title: playbookTitle } : {}),
@@ -263,10 +274,10 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
         has_tags: (reflectionData.tags || []).length > 0,
       });
 
-      // If this is a guided reflection, persist completion for today and notify listeners to update UI immediately
+      // Persist Guided Prompt completion for the entry's selected local date.
       if (isGuidedReflection) {
         try {
-          const dateStrKey = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+          const dateStrKey = dateStr;
           const storageKey = `@guided_completed_${dateStrKey}`;
           const existing = await AsyncStorage.getItem(storageKey);
           const list: string[] = existing ? JSON.parse(existing) : [];
@@ -375,7 +386,9 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
       if (!isSuccessModalShown) {
         setIsSuccessModalShown(true);
         successModal.showSuccess({
-          title: isEditing ? 'Reflection Updated' : 'Reflection Saved',
+          title: isGuidedReflection
+            ? `Guided Prompt ${isEditing ? 'Updated' : 'Saved'}`
+            : isEditing ? 'Reflection Updated' : 'Reflection Saved',
           message: isEditing ? 'Your reflection has been updated.' : 'Your reflection has been saved to your journal.',
           showEditButton: true,
         });
@@ -418,9 +431,9 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
         // Pass subtaskTitle for all modes - freeform can have initial title too
         initialTitle={preservedSubtaskTitle || ''}
         lockTitle={isGuidedReflection || !!playbookId}
-        // Source: 'thoughts' for smart journaling, 'guided' for guided prompts, 'freeform' for journal carousel
-        // Guided prompts need their own source to show correct pencil icon
-        source={isJournalCarousel ? 'freeform' : (isGuidedReflection ? 'guided' : 'thoughts')}
+        // Guided Prompts use their own source so they cannot be mistaken for
+        // the structured Guided Reflection journey.
+        source={isJournalCarousel ? 'freeform' : (isGuidedReflection ? 'guided_prompt' : 'thoughts')}
         initialMode="free-form"
         styles={reflectionLogStyles}
         dateString={(function() {
@@ -441,7 +454,7 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
           content: existingReflection.content || '',
           tags: existingReflection.tags || [],
           type: 'free-form',
-          source: isGuidedReflection ? 'guided' : (playbookId ? 'playbook' : 'thoughts'),
+          source: isGuidedReflection ? 'guided_prompt' : (playbookId ? 'playbook' : 'thoughts'),
         } : undefined}
         isLoading={isLoading}
         hideGuidedPromptButton={hideGuidedPromptButton}

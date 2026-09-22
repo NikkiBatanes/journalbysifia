@@ -65,24 +65,27 @@ export class SmartJournalingNavigation {
    * Navigate to Prayer tab with context
    */
   private navigateToPrayer() {
-
-    this.navigation.navigate('Journal' as never);
+    this.navigation.navigate('MainTabs' as never, { screen: 'Prayer' } as never);
   }
 
   /**
    * Navigate to Reflection component with context
    */
   private navigateToReflection() {
-
-    this.navigation.navigate('Journal' as never);
+    this.navigation.navigate('MainTabs' as never, {
+      screen: 'Journal',
+      params: {
+        screen: 'ReflectionEditor',
+        params: { initialMode: 'free-form', source: 'freeform', openHeart: true },
+      },
+    } as never);
   }
 
   /**
    * Navigate to Gratitude component with context
    */
   private navigateToGratitude() {
-
-    this.navigation.navigate('Journal' as never);
+    this.navigation.navigate('GratitudeWalkthrough' as never);
   }
 
   /**
@@ -92,15 +95,21 @@ export class SmartJournalingNavigation {
 
     // TimeBlock smart journaling is handled via modal in ActionStepsCard
     // This navigation method is for fallback cases where modal isn't available
-    this.navigation.navigate('Journal' as never);
+    this.navigation.navigate('MainTabs' as never, {
+      screen: 'Journal',
+      params: { screen: 'TimeBlockEditor' },
+    } as never);
   }
 
   /**
-   * Default navigation to journal screen
+   * Default navigation to Moments
    */
   private navigateToJournalDefault() {
 
-    this.navigation.navigate('Journal' as never);
+    this.navigation.navigate('MainTabs' as never, {
+      screen: 'Journal',
+      params: { screen: 'JournalMoments' },
+    } as never);
   }
 
   /**

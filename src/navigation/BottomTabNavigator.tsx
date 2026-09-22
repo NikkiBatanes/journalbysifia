@@ -10,7 +10,6 @@ import { StyleSheet, Pressable, TouchableOpacity, Animated, Easing, NativeModule
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useScroll } from '../context/ScrollContext';
 import { getFocusedRouteNameFromRoute, ParamListBase, TabNavigationState } from '@react-navigation/native';
-import { JournalScreenRef } from '../screens/JournalScreen';
 
 import ThemedText from '../components/common/ThemedText';
 import { Colors } from '../theme/colors';
@@ -21,7 +20,6 @@ import TodayStackNavigator from './TodayStackNavigator';
 import PrayerListScreen from '../screens/PrayerListScreen';
 import UserProfileScreen from '../screens/UserProfileScreen';
 
-// import JournalScreen from '../screens/JournalScreen'; // Unused - using JournalStackNavigator
 import JournalStackNavigator from './JournalStackNavigator';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { experiencePreferences } from '../services/experiencePreferences';
@@ -111,7 +109,7 @@ const AddMenuItemIcon = ({ icon }: { icon: AddMenuIcon }) => {
 };
 
 // Custom tab bar — floating pill with smooth entrance/exit and per-tab bounce
-const CustomTabBarComponent = ({
+export const CustomTabBarComponent = ({
   state,
   descriptors: _descriptors,
   navigation,
@@ -463,10 +461,9 @@ const CustomTabBarComponent = ({
   const pillAnim = React.useRef(new Animated.Value(isReflect ? 0 : 1)).current;
 
   // ── Collapse-to-circle: 0 = full pill, 1 = collapsed circle ──────────────
-  // Starts collapsed if already on Reflect
-  const collapseAnim = React.useRef(new Animated.Value(isReflect ? 1 : 0)).current;
+  const collapseAnim = React.useRef(new Animated.Value(isReflect || !showTabBar ? 1 : 0)).current;
   const collapsedScale = React.useRef(new Animated.Value(showTabBar ? 0.88 : 1)).current;
-  const [collapsedControlVisible, setCollapsedControlVisible] = React.useState(!showTabBar);
+  const collapsedControlVisible = !showTabBar && !isReflect;
 
   const handleTabLayout = React.useCallback((index: number) => (event: any) => {
     const { x } = event.nativeEvent.layout;
@@ -539,15 +536,12 @@ const CustomTabBarComponent = ({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.index, updateSelectorPosition]);
 
-  const previousShowTabBarRef = React.useRef(showTabBar);
   useEffect(() => {
-    if (previousShowTabBarRef.current === showTabBar) {return;}
-    previousShowTabBarRef.current = showTabBar;
     if (isReflect) {return;}
 
+    collapseAnim.stopAnimation();
+    collapsedScale.stopAnimation();
     if (showTabBar) {
-      setCollapsedControlVisible(false);
-      collapsedScale.stopAnimation();
       collapsedScale.setValue(0.88);
       // Snap selector to the active tab BEFORE the pill grows so it's already
       // in place when it becomes visible — no sliding artifact.
@@ -560,26 +554,21 @@ const CustomTabBarComponent = ({
       friction: 12,
       useNativeDriver: true,
     });
-    if (!showTabBar) {
-      setCollapsedControlVisible(true);
-      collapsedScale.stopAnimation();
-      collapsedScale.setValue(0.35);
-      requestAnimationFrame(() => {
-        Animated.parallel([
-          collapseAnimation,
-          Animated.spring(collapsedScale, {
-            toValue: 1,
-            tension: 75,
-            friction: 12,
-            useNativeDriver: true,
-          }),
-        ]).start();
-      });
-      return;
-    }
-    collapseAnimation.start();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [collapseAnim, collapsedScale, isReflect, showTabBar]);
+    if (!showTabBar) { collapsedScale.setValue(0.35); }
+    // Visibility is derived during render, so the capsule is already mounted.
+    // A deferred frame could otherwise start an old collapse after expansion.
+    const animation = showTabBar ? collapseAnimation : Animated.parallel([
+      collapseAnimation,
+      Animated.spring(collapsedScale, {
+        toValue: 1,
+        tension: 75,
+        friction: 12,
+        useNativeDriver: true,
+      }),
+    ]);
+    animation.start();
+    return () => animation.stop();
+  }, [collapseAnim, collapsedScale, isReflect, selectorPosition, showTabBar, state.index, tabLayouts]);
 
   const { onTabPress } = React.useContext(TabPressContext);
 
@@ -673,6 +662,7 @@ const CustomTabBarComponent = ({
 
       {/* ── Full pill: shape scales left→right, content fades separately ─── */}
       <Animated.View
+        testID="expanded-tab-bar"
         style={[
           styles.pill,
           {
@@ -909,7 +899,7 @@ const CustomTabBarComponent = ({
       </View>
 
       {/* ── Collapsed circle (fades in from left as pill collapses) ─────── */}
-      {collapsedControlVisible && !isReflect ? <Animated.View style={[styles.collapsedCircle, { transform: [{ scale: collapsedScale }] }]}>
+      {collapsedControlVisible ? <Animated.View testID="collapsed-tab-bar" style={[styles.collapsedCircle, { transform: [{ scale: collapsedScale }] }]}>
         {Platform.OS === 'ios' ? (
           <View pointerEvents="none" style={styles.collapsedGlassClip}>
             <LiquidGlassView
@@ -920,6 +910,8 @@ const CustomTabBarComponent = ({
           </View>
         ) : null}
         <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel="Expand navigation"
           style={styles.collapsedCircleTouchable}
           activeOpacity={0.8}
           onPress={() => {
@@ -953,8 +945,6 @@ const TabPressContext = React.createContext<{
 export default function BottomTabNavigator({ onLogout: _onLogout }: BottomTabNavigatorProps) {
   const theme = useTheme();
   const { user } = useAuth();
-  const currentTabRef = React.useRef<string>('Today');
-  const journalScreenRef = React.useRef<JournalScreenRef>(null);
 
   // Subtle haptic feedback, gated by user preference
   const triggerTabHaptic = React.useCallback(() => {
@@ -972,14 +962,8 @@ export default function BottomTabNavigator({ onLogout: _onLogout }: BottomTabNav
     } catch {}
   }, [user]);
 
-  // Handle tab press — uses ref for currentTab so handleTabPress stays stable and
-  // renderTabBar never gets a new reference on every press (prevents full navigator re-render)
-  const handleTabPress = React.useCallback((tabName: string) => {
+  const handleTabPress = React.useCallback((_tabName: string) => {
     triggerLightHaptic();
-    if (tabName === 'Journal' && currentTabRef.current === 'Journal' && journalScreenRef.current) {
-      journalScreenRef.current.resetToCurrentDate();
-    }
-    currentTabRef.current = tabName;
     triggerTabHaptic();
   }, [triggerTabHaptic]);
 
@@ -1235,7 +1219,8 @@ const styles = StyleSheet.create({
     width: COLLAPSED_WIDTH,
     height: COLLAPSED_HEIGHT,
     borderRadius: 26,
-    backgroundColor: Platform.OS === 'ios' ? 'transparent' : PILL_BG,
+    // Keep the cream icon legible while iOS mounts/recreates its glass effect.
+    backgroundColor: PILL_BG,
     borderWidth: Platform.OS === 'ios' ? 0 : 1,
     borderColor: Colors.sageMuted,
     shadowColor: Colors.darkBackground,
