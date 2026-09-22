@@ -188,20 +188,18 @@ const ForMeDayScreen: React.FC<any> = ({navigation, route}) => {
           accessibilityLabel="Go back">
           <Ionicons name="chevron-back" size={22} color={Colors.sage} />
         </TouchableOpacity>
-        <ThemedText style={styles.headerTitle}>
-          {editing ? 'For Me Day settings' : 'My For Me Day'}
-        </ThemedText>
+        <ThemedText style={styles.headerTitle}>My For Me Day</ThemedText>
         <TouchableOpacity
           style={styles.headerButton}
-          onPress={() => setEditing(value => !value)}
+          onPress={editing ? saveSettings : () => setEditing(true)}
           hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}
           accessibilityRole="button"
-          accessibilityLabel={editing ? 'Close settings' : 'Edit For Me Day'}>
-          <Ionicons
-            name={editing ? 'close' : 'settings-outline'}
-            size={19}
-            color={Colors.sage}
-          />
+          accessibilityLabel={editing ? 'Save settings' : 'Edit For Me Day'}>
+          {editing ? (
+            <ThemedText style={styles.headerSave}>Save</ThemedText>
+          ) : (
+            <Ionicons name="settings-outline" size={19} color={Colors.sage} />
+          )}
         </TouchableOpacity>
       </View>
       <KeyboardAvoidingView
@@ -212,11 +210,17 @@ const ForMeDayScreen: React.FC<any> = ({navigation, route}) => {
           keyboardShouldPersistTaps="handled">
           {editing ? (
             <>
-              <ThemedText style={styles.eyebrow}>A PERSONAL MILESTONE</ThemedText>
-              <ThemedText style={styles.pageTitle}>Remember the day grace became personal.</ThemedText>
-              <ThemedText style={styles.pageIntro}>
-                Your For Me Day is the day the Gospel became more than a story—it became good news for you.
-              </ThemedText>
+              <View style={styles.settingsIntro}>
+                <View style={styles.settingsIntroIcon}>
+                  <Ionicons name="sparkles-outline" size={20} color={Colors.sage} />
+                </View>
+                <View style={styles.settingsIntroCopy}>
+                  <ThemedText style={styles.settingsIntroTitle}>Remember your spiritual birthday</ThemedText>
+                  <ThemedText style={styles.settingsIntroBody}>
+                    The day the Gospel became personal to you.
+                  </ThemedText>
+                </View>
+              </View>
 
               <ThemedText style={styles.sectionLabel}>THE DATE</ThemedText>
               <TouchableOpacity
@@ -289,11 +293,6 @@ const ForMeDayScreen: React.FC<any> = ({navigation, route}) => {
                   </View>
                 ))}
               </View>
-              <TouchableOpacity style={styles.primary} onPress={saveSettings}>
-                <ThemedText style={styles.primaryText}>
-                  Save changes
-                </ThemedText>
-              </TouchableOpacity>
             </>
           ) : (
             <>
@@ -409,27 +408,51 @@ const styles = StyleSheet.create({
   flex: {flex: 1},
   loading: {flex: 1, backgroundColor: Colors.lightBackground},
   header: {
-    height: 56,
-    paddingHorizontal: 12,
+    minHeight: 56,
+    paddingHorizontal: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    backgroundColor: Colors.hopeWhite,
   },
-  headerTitle: {fontFamily: Fonts.semiBold, fontSize: 14, color: Colors.text},
+  headerTitle: {fontFamily: Fonts.bold, fontSize: 18, color: Colors.text},
   headerButton: {
     width: 44,
     height: 44,
     alignItems: 'center',
     justifyContent: 'center',
   },
+  headerSave: {fontFamily: Fonts.semiBold, fontSize: 14, color: Colors.sage},
   content: {
-    paddingHorizontal: 20,
-    paddingTop: 26,
-    paddingBottom: 56,
+    paddingHorizontal: 12,
+    paddingTop: 18,
+    paddingBottom: 48,
     maxWidth: 680,
     width: '100%',
     alignSelf: 'center',
   },
+  settingsIntro: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.hopeWhite,
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    marginBottom: 4,
+  },
+  settingsIntroIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: Colors.anchorBlueLight,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.lightBorder,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  settingsIntroCopy: {flex: 1, marginLeft: 12},
+  settingsIntroTitle: {fontFamily: Fonts.semiBold, fontSize: 15, color: Colors.text},
+  settingsIntroBody: {fontFamily: Fonts.regular, fontSize: 12, color: Colors.textGray, marginTop: 3},
   eyebrow: {
     fontFamily: Fonts.semiBold,
     fontSize: 10,
@@ -456,76 +479,75 @@ const styles = StyleSheet.create({
   },
   sectionLabel: {
     fontFamily: Fonts.semiBold,
-    fontSize: 10,
-    letterSpacing: 1.6,
-    color: Colors.sage,
-    marginTop: 24,
-    marginBottom: 10,
-    marginLeft: 4,
+    fontSize: 12,
+    letterSpacing: 0.6,
+    color: Colors.textGray,
+    marginTop: 18,
+    marginBottom: 8,
+    marginLeft: 20,
   },
   dateCard: {
-    minHeight: 78,
+    minHeight: 64,
     borderRadius: 20,
-    backgroundColor: Colors.cardBackground,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.cardBorder,
+    backgroundColor: Colors.hopeWhite,
+    borderWidth: 0,
     paddingHorizontal: 16,
     flexDirection: 'row',
     alignItems: 'center',
   },
   dateIcon: {
-    width: 46,
-    height: 46,
-    borderRadius: 14,
+    width: 34,
+    height: 34,
+    borderRadius: 9,
     backgroundColor: Colors.anchorBlueLight,
     alignItems: 'center',
     justifyContent: 'center',
   },
   dateCopy: {flex: 1, marginLeft: 14},
-  dateMonth: {fontFamily: Fonts.semiBold, fontSize: 16, color: Colors.text},
-  dateYear: {fontFamily: Fonts.regular, fontSize: 12, color: Colors.textGray, marginTop: 2},
+  dateMonth: {fontFamily: Fonts.medium, fontSize: 15, color: Colors.text},
+  dateYear: {fontFamily: Fonts.regular, fontSize: 11, color: Colors.textGray, marginTop: 2},
   changeText: {fontFamily: Fonts.medium, fontSize: 12, color: Colors.sage},
   storyInput: {
-    height: 138,
+    height: 120,
     textAlignVertical: 'top',
     padding: 16,
     borderRadius: 20,
-    backgroundColor: Colors.cardBackground,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.cardBorder,
+    backgroundColor: Colors.hopeWhite,
+    borderWidth: 0,
     color: Colors.text,
     fontFamily: Fonts.regular,
     fontSize: 14,
     lineHeight: 22,
   },
   preferencesCard: {
-    backgroundColor: Colors.cardBackground,
+    backgroundColor: Colors.hopeWhite,
     borderRadius: 20,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.cardBorder,
+    borderWidth: 0,
     overflow: 'hidden',
   },
   toggleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    minHeight: 74,
-    paddingHorizontal: 14,
+    minHeight: 68,
+    paddingHorizontal: 16,
   },
   toggleDivider: {borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: Colors.cardBorder},
   preferenceIcon: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
+    width: 28,
+    height: 28,
+    borderRadius: 8,
     backgroundColor: Colors.anchorBlueLight,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.lightBorder,
+    marginRight: 10,
   },
   toggleCopy: {flex: 1, paddingRight: 8},
-  toggleTitle: {fontFamily: Fonts.semiBold, fontSize: 14, color: Colors.text},
+  toggleTitle: {fontFamily: Fonts.regular, fontSize: 15, color: Colors.text},
   toggleSubtitle: {
     fontFamily: Fonts.regular,
-    fontSize: 11,
+    fontSize: 12,
     color: Colors.textGray,
     marginTop: 3,
   },

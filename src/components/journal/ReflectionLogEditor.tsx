@@ -21,13 +21,13 @@ import {
   Easing,
 } from 'react-native';
 
-import {Trash2} from 'lucide-react-native';
+import {Pencil, Trash2} from 'lucide-react-native';
 import {Colors} from '../../theme/colors';
 // import { GUIDED_PROMPTS } from './reflectionConstants'; // Unused
 import {triggerLightHaptic, triggerMediumHaptic} from '../../utils/haptics';
 import ThemedText from '../common/ThemedText';
 import {useTheme} from '../../hooks/useTheme';
-import {getFontFamily} from '../../theme/fonts';
+import {Fonts, getFontFamily} from '../../theme/fonts';
 import {useGuidedPromptGating} from '../../hooks/useGuidedPromptGating';
 import PlaybookMetaSection from './PlaybookMetaSection';
 import {
@@ -40,23 +40,73 @@ import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {useFloatingKeyboardButton} from '../../hooks/useFloatingKeyboardButton';
 import {JournalComposerBar, JournalPickerMenu} from './shared/JournalComposer';
 import {JournalInlineBlock} from './shared/JournalInlineBlock';
-import {JOURNAL_BLOCKS} from './shared/journalBlocks';
+import {ScriptureLookupInput} from './shared/ScriptureLookupInput';
+import {JournalTableBlock} from './shared/JournalTableBlock';
+import {JournalListBlock} from './shared/JournalListBlock';
+import DraggableJournalBlock from './shared/DraggableJournalBlock';
 import {
-  GUIDED_NOTE_TYPES,
+  reorderJournalBlock,
+  resolveJournalBlockDropIndex,
+} from './shared/journalBlockOperations';
+import ReflectionSpecialBlock from './ReflectionSpecialBlock';
+import SavedReflectionBlocks from './SavedReflectionBlocks';
+import {
+  formatJournalAttribution,
+  hasMeaningfulJournalBlock,
+  JOURNAL_BLOCK_GAP,
+  JOURNAL_BLOCKS,
+  prepareJournalBlocksForSave,
+} from './shared/journalBlocks';
+import {
+  REFLECTION_NOTE_TYPES,
   createGuidedNoteId,
   type GuidedReflectionNote,
 } from '../../types/guidedReflection';
+import {pickImageLocal} from '../../services/avatarService';
+import {useAuth} from '../../context/IndustryStandardAuthContext';
 
 type ViewMode = 'free-form' | 'guided';
 
 const reflectionBlocksToText = (blocks: GuidedReflectionNote[]) =>
   blocks
+    .filter(hasMeaningfulJournalBlock)
     .map(block => {
       const text = block.text.trim();
       const reference = block.reference?.trim();
+      const secondary =
+        block.kind === 'quote'
+          ? formatJournalAttribution(block.secondary?.trim())
+          : block.secondary?.trim();
+      if (block.kind === 'table') {
+        return (block.tableRows || [])
+          .map(row => row.map(cell => cell.trim()).join('\t'))
+          .join('\n');
+      }
+      if (block.kind === 'bullets' || block.kind === 'numbered') {
+        const list = (block.points || [])
+          .filter(point => point.trim())
+          .map((point, index) =>
+            block.kind === 'numbered'
+              ? `${index + 1}. ${point.trim()}`
+              : `• ${point.trim()}`,
+          )
+          .join('\n');
+        return [text, list].filter(Boolean).join('\n');
+      }
       if (block.kind === 'text') return text;
-      const label = JOURNAL_BLOCKS[block.kind].label;
-      return [label, reference, text].filter(Boolean).join('\n');
+      const label =
+        block.kind === 'section' ? 'SECTION' :
+        block.kind === 'action' ? 'ACTION' :
+        block.kind === 'photo' ? 'PHOTO' :
+        block.kind === 'voice' ? 'VOICE NOTE' : JOURNAL_BLOCKS[block.kind].label;
+      if (block.kind === 'scripture') {
+        return [
+          label,
+          block.scriptureReference?.trim() || reference || text,
+          block.scriptureText?.trim(),
+        ].filter(Boolean).join('\n');
+      }
+      return [label, reference, text, secondary].filter(Boolean).join('\n');
     })
     .filter(Boolean)
     .join('\n\n');
@@ -70,11 +120,13 @@ interface ReflectionLogEditorProps {
     type: ViewMode;
     prompt?: string;
     source?: 'freeform' | 'guided' | 'playbook' | string;
+    questionTopic?: string;
     journalClassification?: HeartJournalClassification;
     journalBlocks?: GuidedReflectionNote[];
   }) => void;
   onCancel: () => void;
   onDelete?: (id: string) => void;
+  onUpdateJournalBlocks?: (blocks: GuidedReflectionNote[]) => Promise<void>;
   onUpgradeRequired?: () => void; // Callback to close modal before navigating to upgrade
   entryId?: string;
   playbookTitle?: string;
@@ -89,11 +141,13 @@ interface ReflectionLogEditorProps {
     type?: ViewMode;
     prompt?: string;
     source?: string;
+    questionTopic?: string;
     journalClassification?: HeartJournalClassification;
     journalBlocks?: GuidedReflectionNote[];
   };
   initialMode?: ViewMode;
   initialPrompt?: string;
+  guidedQuestionTopic?: string;
   dateString?: string;
   initialTitle?: string;
   lockTitle?: boolean;
@@ -229,27 +283,46 @@ const fallbackStyles = {
     lineHeight: 22,
     textAlignVertical: 'top',
     paddingVertical: 6,
-    marginBottom: 6,
+    marginBottom: JOURNAL_BLOCK_GAP,
   },
   capture: {
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.22)',
+    borderColor: 'rgba(255,255,255,0.24)',
     borderRadius: 14,
     padding: 12,
-    marginBottom: 9,
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    marginBottom: JOURNAL_BLOCK_GAP,
+    backgroundColor: 'rgba(255,255,255,0.06)',
   },
-  textCapture: {backgroundColor: 'rgba(255,255,255,0.1)'},
-  scriptureCapture: {backgroundColor: 'rgba(255,255,255,0.12)'},
-  quoteCapture: {backgroundColor: 'rgba(255,255,255,0.1)'},
-  keyCapture: {backgroundColor: 'rgba(255,255,255,0.14)'},
-  rememberCapture: {backgroundColor: 'rgba(255,255,255,0.12)'},
-  questionCapture: {backgroundColor: 'rgba(255,255,255,0.08)'},
-  responseCapture: {backgroundColor: 'rgba(255,255,255,0.14)'},
+  textCapture: {backgroundColor: 'rgba(255,255,255,0.06)'},
+  scriptureCapture: {
+    backgroundColor: 'rgba(220,232,222,0.14)',
+    borderColor: 'rgba(229,238,230,0.34)',
+  },
+  quoteCapture: {
+    backgroundColor: 'rgba(244,243,237,0.08)',
+    borderColor: 'rgba(244,243,237,0.28)',
+  },
+  keyCapture: {
+    backgroundColor: 'rgba(237,241,236,0.16)',
+    borderColor: 'rgba(226,235,227,0.34)',
+    borderLeftWidth: 3,
+    borderLeftColor: Colors.hopeWhite,
+  },
+  rememberCapture: {
+    backgroundColor: 'rgba(241,242,237,0.1)',
+    borderColor: 'rgba(231,235,228,0.3)',
+  },
+  questionCapture: {backgroundColor: 'rgba(255,255,255,0.06)'},
+  responseCapture: {
+    backgroundColor: 'rgba(237,241,236,0.16)',
+    borderColor: 'rgba(226,235,227,0.34)',
+  },
   captureHeader: {flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between'},
   captureLabelRow: {flexDirection: 'row', alignItems: 'center', gap: 6},
   captureLabel: {fontSize: 10, letterSpacing: 1.2, color: Colors.hopeWhite},
-  captureInput: {minHeight: 54, paddingTop: 9, fontSize: 14, color: Colors.hopeWhite, textAlignVertical: 'top'},
+  captureInput: {minHeight: 54, paddingTop: 9, fontSize: 14, lineHeight: 21, color: Colors.hopeWhite, textAlignVertical: 'top'},
+  serifInput: {fontFamily: Fonts.lora.regular, fontSize: 16, lineHeight: 24},
+  secondaryInput: {paddingTop: 7, fontSize: 12, lineHeight: 18, color: 'rgba(255,255,255,0.72)'},
   scriptureReferenceInline: {minHeight: 38, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.2)'},
   // Split view styles
   splitViewContainer: {
@@ -494,6 +567,18 @@ const fallbackStyles = {
     borderRadius: 16,
     marginHorizontal: 0,
   },
+  editorHeaderActions: {
+    padding: 0,
+    gap: 0,
+  },
+  headerDeleteButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 999,
+    marginRight: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   activeModeButton: {
     backgroundColor: 'rgba(82, 106, 91, 0.12)',
   },
@@ -585,6 +670,7 @@ const ReflectionLogEditor = React.forwardRef<
       onSave,
       onCancel,
       onDelete,
+      onUpdateJournalBlocks,
       onUpgradeRequired: _onUpgradeRequired,
       entryId,
       playbookTitle,
@@ -595,6 +681,7 @@ const ReflectionLogEditor = React.forwardRef<
       initialEntry = {},
       initialMode = 'free-form',
       initialPrompt = '',
+      guidedQuestionTopic,
       dateString,
       initialTitle = '',
       lockTitle = false,
@@ -639,6 +726,13 @@ const ReflectionLogEditor = React.forwardRef<
     }, []);
 
     const {currentFont} = useTheme();
+    const {user} = useAuth();
+    const bibleVersion = React.useMemo(
+      () =>
+        (user as any)?.user_metadata?.preferences?.content?.bibleVersion ||
+        'NASB',
+      [user],
+    );
     const fontKey = currentFont || 'lexend';
     const fontFamilyRegular = getFontFamily(fontKey, 'regular');
     const fontFamilyBold = getFontFamily(fontKey, 'bold');
@@ -652,6 +746,7 @@ const ReflectionLogEditor = React.forwardRef<
       ...s,
       freeText: [s.freeText, {fontFamily: fontFamilyRegular}],
       captureInput: [s.captureInput, {fontFamily: fontFamilyRegular}],
+      secondaryInput: [s.secondaryInput, {fontFamily: fontFamilyRegular}],
     };
 
     // Prompt selection now lives in GuidedReflectionExperience. This editor
@@ -668,6 +763,7 @@ const ReflectionLogEditor = React.forwardRef<
 
     // Check if we're editing an existing entry (has content)
     const isEditing = Boolean(entryId);
+    const [isEditMode, setIsEditMode] = React.useState(!isEditing);
 
     // Route changes can replace the selected prompt, but this legacy editor
     // must never reopen its retired prompt-picker screen.
@@ -713,7 +809,7 @@ const ReflectionLogEditor = React.forwardRef<
     );
     const [notePickerOpen, setNotePickerOpen] = React.useState(false);
     const notePickerAnimations = useRef(
-      GUIDED_NOTE_TYPES.map(() => new Animated.Value(0)),
+      REFLECTION_NOTE_TYPES.map(() => new Animated.Value(0)),
     ).current;
     const notePlusRotation = useRef(new Animated.Value(0)).current;
     const notePickerColorAnim = useRef(new Animated.Value(0)).current;
@@ -721,7 +817,20 @@ const ReflectionLogEditor = React.forwardRef<
       [0, 1, 2, 3].map(() => new Animated.Value(1)),
     ).current;
     const blockInputRefs = useRef(new Map<string, TextInput>());
+    const journalBlockLayoutsRef = useRef(
+      new Map<string, {y: number; height: number}>(),
+    );
+    const [selectedBlockId, setSelectedBlockId] = React.useState<string | null>(
+      null,
+    );
+    const [dragPreview, setDragPreview] = React.useState<{
+      blockId: string;
+      fromIndex: number;
+      targetIndex: number;
+      blockHeight: number;
+    } | null>(null);
     const pendingFocusBlockIdRef = useRef<string | null>(null);
+    const pendingFocusShouldScrollEndRef = useRef(true);
     const blockFocusRetryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const [selectedPrompt, setSelectedPrompt] = React.useState<string>(() =>
@@ -878,10 +987,52 @@ const ReflectionLogEditor = React.forwardRef<
     );
 
     const addJournalBlock = React.useCallback(
-      (kind: GuidedReflectionNote['kind']) => {
-        const block = {id: createGuidedNoteId(), kind, text: ''};
+      (kind: GuidedReflectionNote['kind'], extra: Partial<GuidedReflectionNote> = {}) => {
+        const block: GuidedReflectionNote = {
+          id: createGuidedNoteId(),
+          kind,
+          text: '',
+          ...(kind === 'table'
+            ? {tableRows: [['', ''], ['', '']], tableEditing: true}
+            : {}),
+          ...(kind === 'bullets' || kind === 'numbered'
+            ? {points: ['']}
+            : {}),
+          ...extra,
+        };
         pendingFocusBlockIdRef.current = block.id;
-        commitJournalBlocks([...journalBlocks, block]);
+        const selectedIndex = selectedBlockId
+          ? journalBlocks.findIndex(item => item.id === selectedBlockId)
+          : -1;
+        const nextBlocks = [...journalBlocks];
+        if (selectedIndex >= 0) {
+          nextBlocks.splice(selectedIndex + 1, 0, block);
+          pendingFocusShouldScrollEndRef.current =
+            selectedIndex === journalBlocks.length - 1;
+        } else {
+          nextBlocks.push(block);
+          pendingFocusShouldScrollEndRef.current = true;
+        }
+        setSelectedBlockId(block.id);
+        commitJournalBlocks(nextBlocks);
+      },
+      [commitJournalBlocks, journalBlocks, selectedBlockId],
+    );
+
+    const insertActionAfter = React.useCallback(
+      (index: number) => {
+        const block: GuidedReflectionNote = {
+          id: createGuidedNoteId(),
+          kind: 'action',
+          text: '',
+          completed: false,
+        };
+        const nextBlocks = [...journalBlocks];
+        nextBlocks.splice(index + 1, 0, block);
+        pendingFocusBlockIdRef.current = block.id;
+        pendingFocusShouldScrollEndRef.current = index === journalBlocks.length - 1;
+        setSelectedBlockId(block.id);
+        commitJournalBlocks(nextBlocks);
       },
       [commitJournalBlocks, journalBlocks],
     );
@@ -891,7 +1042,15 @@ const ReflectionLogEditor = React.forwardRef<
       if (!blockId) return;
       const frame = requestAnimationFrame(() => {
         blockInputRefs.current.get(blockId)?.focus();
-        editorScrollRef.current?.scrollToEnd({animated: true});
+        const layout = journalBlockLayoutsRef.current.get(blockId);
+        if (layout && !pendingFocusShouldScrollEndRef.current) {
+          editorScrollRef.current?.scrollTo({
+            y: Math.max(0, layout.y - 20),
+            animated: true,
+          });
+        } else {
+          editorScrollRef.current?.scrollToEnd({animated: true});
+        }
         if (blockFocusRetryTimerRef.current) {
           clearTimeout(blockFocusRetryTimerRef.current);
         }
@@ -904,6 +1063,60 @@ const ReflectionLogEditor = React.forwardRef<
       });
       return () => cancelAnimationFrame(frame);
     }, [journalBlocks]);
+
+    const handleDragJournalBlockStart = React.useCallback(
+      (blockId: string) => {
+        const fromIndex = journalBlocks.findIndex(block => block.id === blockId);
+        const layout = journalBlockLayoutsRef.current.get(blockId);
+        if (fromIndex < 0 || !layout) {return;}
+        setDragPreview({
+          blockId,
+          fromIndex,
+          targetIndex: fromIndex,
+          blockHeight: layout.height,
+        });
+      },
+      [journalBlocks],
+    );
+
+    const handleDragJournalBlockMove = React.useCallback(
+      (blockId: string, deltaY: number) => {
+        const targetIndex = resolveJournalBlockDropIndex(
+          journalBlocks,
+          journalBlockLayoutsRef.current,
+          blockId,
+          deltaY,
+        );
+        setDragPreview(current =>
+          !current || current.blockId !== blockId || current.targetIndex === targetIndex
+            ? current
+            : {...current, targetIndex},
+        );
+      },
+      [journalBlocks],
+    );
+
+    const handleDragJournalBlock = React.useCallback(
+      (blockId: string, deltaY: number) => {
+        const targetIndex = resolveJournalBlockDropIndex(
+          journalBlocks,
+          journalBlockLayoutsRef.current,
+          blockId,
+          deltaY,
+        );
+        setDragPreview(null);
+        const nextBlocks = reorderJournalBlock(
+          journalBlocks,
+          blockId,
+          targetIndex,
+        );
+        if (nextBlocks !== journalBlocks) {
+          setSelectedBlockId(blockId);
+          commitJournalBlocks(nextBlocks);
+        }
+      },
+      [commitJournalBlocks, journalBlocks],
+    );
 
     useEffect(
       () => () => {
@@ -1307,16 +1520,20 @@ const ReflectionLogEditor = React.forwardRef<
       // Determine the entry type - if there's a guided prompt, it's a guided entry
       const entryType: ViewMode = promptToCheck ? 'guided' : effectiveViewMode;
 
+      const meaningfulJournalBlocks = prepareJournalBlocksForSave(journalBlocks);
       const entry = {
         title: newEntry.title.trim(),
-        content: normalizeOutgoing(newEntry.content).trim(),
+        content: normalizeOutgoing(
+          reflectionBlocksToText(meaningfulJournalBlocks),
+        ).trim(),
         tags: newEntry.tags,
         date: dateString ? new Date(dateString) : new Date(), // Use dateString if provided, fallback to current date
         type: entryType, // Use the determined type
         ...(promptToCheck && {prompt: promptToCheck}),
+        ...(guidedQuestionTopic && {questionTopic: guidedQuestionTopic}),
         ...(source && {source}),
         ...(journalClassification && {journalClassification}),
-        journalBlocks,
+        journalBlocks: meaningfulJournalBlocks,
         // Include playbook metadata if available
         ...(dayNumber !== undefined && {dayNumber}),
         ...(dayTitle && {dayTitle}),
@@ -1523,6 +1740,143 @@ const ReflectionLogEditor = React.forwardRef<
       );
     };
 
+    const handleToggleSavedAction = async (blockId: string) => {
+      const previousBlocks = journalBlocks;
+      const nextBlocks = journalBlocks.map(block =>
+        block.id === blockId && block.kind === 'action'
+          ? {...block, completed: !block.completed}
+          : block,
+      );
+      triggerLightHaptic();
+      setJournalBlocks(nextBlocks);
+      try {
+        await onUpdateJournalBlocks?.(nextBlocks);
+      } catch {
+        setJournalBlocks(previousBlocks);
+        Alert.alert('Could not update action', 'Please try again.');
+      }
+    };
+
+    if (isEditing && !isEditMode) {
+      const visibleBlocks = prepareJournalBlocksForSave(journalBlocks);
+      const classificationLabel = heartJournalClassificationLabel(
+        journalClassification,
+      );
+
+      return (
+        <View style={s.container}>
+          <StatusBar hidden />
+          <View style={s.header}>
+            {!!dateString && (
+              <ThemedText weight="bold" style={s.title}>
+                {dateString}
+              </ThemedText>
+            )}
+            <View style={[s.modeToggle, styles.editorHeaderActions]}>
+              <TouchableOpacity
+                style={s.headerDeleteButton}
+                accessibilityRole="button"
+                accessibilityLabel="Edit reflection"
+                hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}
+                activeOpacity={0.7}
+                onPress={() => {
+                  triggerLightHaptic();
+                  setIsEditMode(true);
+                }}>
+                <Pencil size={20} color={Colors.sage} strokeWidth={1.7} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={s.headerCloseButton}
+                accessibilityRole="button"
+                accessibilityLabel="Close reflection"
+                hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}
+                activeOpacity={0.7}
+                onPress={() => handleCancel()}>
+                <Ionicons name="close" size={17} color={Colors.sage} />
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          <View style={{flex: 1, backgroundColor: Colors.lightBackground}}>
+            <View
+              style={{
+                flex: 1,
+                borderTopLeftRadius: 30,
+                borderTopRightRadius: 30,
+                overflow: 'hidden',
+                backgroundColor: Colors.sage,
+              }}>
+              <View style={s.contentCard}>
+                <ScrollView
+                  style={s.content}
+                  contentContainerStyle={[s.scrollContent, {paddingBottom: 48}]}
+                  showsVerticalScrollIndicator={false}>
+                  {!!classificationLabel && (
+                    <ThemedText
+                      weight="semiBold"
+                      style={{
+                        color: 'rgba(255,255,255,0.7)',
+                        fontSize: 11,
+                        letterSpacing: 0.8,
+                        marginBottom: 12,
+                      }}>
+                      {classificationLabel.toUpperCase()}
+                    </ThemedText>
+                  )}
+                  {!!guidedQuestionTopic && (
+                    <ThemedText
+                      weight="medium"
+                      style={{
+                        color: 'rgba(255,255,255,0.7)',
+                        fontSize: 13,
+                        lineHeight: 18,
+                        marginBottom: 8,
+                      }}>
+                      {guidedQuestionTopic}
+                    </ThemedText>
+                  )}
+                  {!!newEntry.title.trim() && (
+                    <ThemedText
+                      weight="bold"
+                      style={{
+                        color: Colors.hopeWhite,
+                        fontFamily: fontFamilyBold,
+                        fontSize: titleFontSize,
+                        lineHeight: titleFontSize + 7,
+                        marginBottom: 18,
+                      }}>
+                      {newEntry.title.trim()}
+                    </ThemedText>
+                  )}
+                  <SavedReflectionBlocks
+                    blocks={visibleBlocks}
+                    onDark
+                    onToggleAction={handleToggleSavedAction}
+                  />
+                  {(source === 'playbook' ||
+                    (playbookTitle &&
+                      (source === 'thoughts' || source !== 'freeform'))) && (
+                    <PlaybookMetaSection
+                      playbookTitle={playbookTitle}
+                      actionLabel={
+                        dayNumber && dayTitle
+                          ? dayTitle === 'Suggestion'
+                            ? 'SUGGESTION'
+                            : `Action ${dayNumber}: ${dayTitle}`
+                          : undefined
+                      }
+                      stepBody={stepBody}
+                      stepExample={stepExample}
+                    />
+                  )}
+                </ScrollView>
+              </View>
+            </View>
+          </View>
+        </View>
+      );
+    }
+
     return (
       <View style={s.container}>
         {showDraftNotification && (
@@ -1545,7 +1899,19 @@ const ReflectionLogEditor = React.forwardRef<
               {dateString}
             </ThemedText>
           )}
-          <Animated.View style={[s.modeToggle, editorHeaderEntranceStyle]}>
+          <Animated.View style={[s.modeToggle, styles.editorHeaderActions, editorHeaderEntranceStyle]}>
+            {/* Delete icon - only visible in edit mode and when onDelete is provided */}
+            {isEditing && onDelete && (
+              <TouchableOpacity
+                style={s.headerDeleteButton}
+                accessibilityRole="button"
+                accessibilityLabel="Delete reflection"
+                hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}
+                activeOpacity={0.7}
+                onPress={handleDelete}>
+                <Trash2 size={22} color={Colors.sage} strokeWidth={1.5} />
+              </TouchableOpacity>
+            )}
             <TouchableOpacity
               style={s.headerCloseButton}
               accessibilityRole="button"
@@ -1555,26 +1921,20 @@ const ReflectionLogEditor = React.forwardRef<
               onPress={() => handleCancel()}>
               <Ionicons name="close" size={17} color={Colors.sage} />
             </TouchableOpacity>
-            {/* Delete icon - only visible in edit mode and when onDelete is provided */}
-            {isEditing && onDelete && (
-              <TouchableOpacity
-                style={s.modeButton}
-                accessibilityRole="button"
-                accessibilityLabel="Delete reflection"
-                hitSlop={8}
-                onPress={handleDelete}>
-                <View>
-                  <Trash2 size={22} color={Colors.sage} strokeWidth={1.5} />
-                </View>
-              </TouchableOpacity>
-            )}
           </Animated.View>
         </View>
 
-        <View style={{flex: 1}}>
-          <View style={s.backgroundContainer} />
+        <View style={{flex: 1, backgroundColor: Colors.lightBackground}}>
+          <View
+            style={{
+              flex: 1,
+              borderTopLeftRadius: 30,
+              borderTopRightRadius: 30,
+              overflow: 'hidden',
+              backgroundColor: Colors.sage,
+            }}>
           <KeyboardAvoidingView
-            style={s.keyboardAvoidingView}
+            style={[s.keyboardAvoidingView, {borderTopLeftRadius: 0, borderTopRightRadius: 0}]}
             behavior={Platform.OS === 'ios' ? 'padding' : undefined}
             keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
             enabled={Platform.OS === 'ios'}>
@@ -1715,7 +2075,21 @@ const ReflectionLogEditor = React.forwardRef<
                     return shouldLockTitle;
                   })() ? (
                     <View style={s.lockedTitleContainer}>
-                      <View style={s.titleWithLockContainer}>
+                      <View style={{flex: 1}}>
+                        {!!guidedQuestionTopic && (
+                          <View style={{marginBottom: 8}}>
+                            <ThemedText
+                              weight="medium"
+                              style={{
+                                color: 'rgba(255, 255, 255, 0.7)',
+                                fontSize: 13,
+                                lineHeight: 18,
+                              }}>
+                              {guidedQuestionTopic}
+                            </ThemedText>
+                          </View>
+                        )}
+                        <View style={s.titleWithLockContainer}>
                         <ThemedText
                           weight="bold"
                           style={[
@@ -1728,12 +2102,15 @@ const ReflectionLogEditor = React.forwardRef<
                           ]}>
                           {initialTitle || newEntry.title}
                         </ThemedText>
+                        </View>
                       </View>
                     </View>
                   ) : (
                     <View style={s.titleWithLockContainer}>
                       <TextInput
                         ref={titleInputRef}
+                        selectionColor={Colors.hopeWhite}
+                        cursorColor={Colors.hopeWhite}
                         style={[
                           s.entryInput,
                           s.titleInput,
@@ -1751,6 +2128,7 @@ const ReflectionLogEditor = React.forwardRef<
                         }}
                         keyboardAppearance="light"
                         onFocus={() => {
+                          setSelectedBlockId(null);
                           // In edit mode, position cursor at end instead of selecting all
                           if (isEditing && titleInputRef.current) {
                             createManagedTimeout(() => {
@@ -1776,10 +2154,104 @@ const ReflectionLogEditor = React.forwardRef<
                           item.id === block.id ? {...item, ...changes} : item,
                         ),
                       );
-                    return (
-                      <JournalInlineBlock
+                    const selectBlock = () => setSelectedBlockId(block.id);
+                    const wrapBlock = (content: React.ReactNode) => (
+                      <DraggableJournalBlock
                         key={block.id}
-                        block={{id: block.id, kind: block.kind, text: block.text}}
+                        blockId={block.id}
+                        tone="onDark"
+                        selected={selectedBlockId === block.id}
+                        shiftY={(() => {
+                          if (!dragPreview || dragPreview.blockId === block.id) {
+                            return 0;
+                          }
+                          if (
+                            dragPreview.targetIndex > dragPreview.fromIndex &&
+                            index > dragPreview.fromIndex &&
+                            index <= dragPreview.targetIndex
+                          ) {
+                            return -dragPreview.blockHeight;
+                          }
+                          if (
+                            dragPreview.targetIndex < dragPreview.fromIndex &&
+                            index >= dragPreview.targetIndex &&
+                            index < dragPreview.fromIndex
+                          ) {
+                            return dragPreview.blockHeight;
+                          }
+                          return 0;
+                        })()}
+                        onSelect={selectBlock}
+                        onLayout={layout =>
+                          journalBlockLayoutsRef.current.set(block.id, layout)
+                        }
+                        onDragStart={handleDragJournalBlockStart}
+                        onDragMove={handleDragJournalBlockMove}
+                        onDragEnd={handleDragJournalBlock}>
+                        {content}
+                      </DraggableJournalBlock>
+                    );
+                    if (block.kind === 'bullets' || block.kind === 'numbered') {
+                      return wrapBlock(
+                        <JournalListBlock
+                          kind={block.kind}
+                          title={block.text}
+                          points={block.points}
+                          tone="onDark"
+                          onFocus={selectBlock}
+                          onChangeTitle={text => updateBlock({text})}
+                          onChangePoints={points => updateBlock({points})}
+                          onDelete={() =>
+                            commitJournalBlocks(
+                              journalBlocks.filter(item => item.id !== block.id),
+                            )
+                          }
+                          registerInput={input => {
+                            if (input) blockInputRefs.current.set(block.id, input);
+                            else blockInputRefs.current.delete(block.id);
+                          }}
+                        />
+                      );
+                    }
+                    if (block.kind === 'table') {
+                      return wrapBlock(
+                        <JournalTableBlock
+                          rows={block.tableRows}
+                          editing={block.tableEditing}
+                          tone="onDark"
+                          onFocus={selectBlock}
+                          onChangeRows={tableRows => updateBlock({tableRows})}
+                          onChangeEditing={tableEditing => updateBlock({tableEditing})}
+                          onDelete={() =>
+                            commitJournalBlocks(
+                              journalBlocks.filter(item => item.id !== block.id),
+                            )
+                          }
+                          registerInput={input => {
+                            if (input) blockInputRefs.current.set(block.id, input);
+                            else blockInputRefs.current.delete(block.id);
+                          }}
+                        />
+                      );
+                    }
+                    if (['section', 'action', 'photo', 'voice'].includes(block.kind)) {
+                      return wrapBlock(
+                        <ReflectionSpecialBlock
+                          block={block}
+                          onChange={updateBlock}
+                          onFocus={selectBlock}
+                          onDelete={() => commitJournalBlocks(journalBlocks.filter(item => item.id !== block.id))}
+                          onCreateNextAction={block.kind === 'action' ? () => insertActionAfter(index) : undefined}
+                          registerInput={input => {
+                            if (input) blockInputRefs.current.set(block.id, input);
+                            else blockInputRefs.current.delete(block.id);
+                          }}
+                        />
+                      );
+                    }
+                    return wrapBlock(
+                      <JournalInlineBlock
+                        block={{id: block.id, kind: block.kind, text: block.text, secondary: block.secondary}}
                         configOverride={block.kind === 'text' ? undefined : JOURNAL_BLOCKS[block.kind]}
                         tone="onDark"
                         textPlaceholder={bodyPlaceholder}
@@ -1793,6 +2265,8 @@ const ReflectionLogEditor = React.forwardRef<
                           }
                         }}
                         onChangeText={text => updateBlock({text})}
+                        onChangeSecondary={secondary => updateBlock({secondary})}
+                        onFocus={selectBlock}
                         onDelete={() =>
                           commitJournalBlocks(
                             journalBlocks.filter(item => item.id !== block.id),
@@ -1801,26 +2275,27 @@ const ReflectionLogEditor = React.forwardRef<
                         renderScripture={
                           block.kind === 'scripture'
                             ? () => (
-                                <View>
-                                  <TextInput
-                                    style={[blockStyles.captureInput, s.scriptureReferenceInline]}
-                                    value={block.reference || ''}
-                                    onChangeText={reference => updateBlock({reference})}
-                                    placeholder="Scripture reference"
-                                    placeholderTextColor="rgba(255,255,255,0.45)"
-                                  />
-                                  <TextInput
-                                    ref={input => {
-                                      if (input) blockInputRefs.current.set(block.id, input);
-                                    }}
-                                    style={blockStyles.captureInput}
-                                    value={block.text}
-                                    onChangeText={text => updateBlock({text})}
-                                    placeholder="What stands out to you?"
-                                    placeholderTextColor="rgba(255,255,255,0.45)"
-                                    multiline
-                                  />
-                                </View>
+                                <ScriptureLookupInput
+                                  value={block.reference || block.text}
+                                  placeholder={JOURNAL_BLOCKS.scripture.placeholder}
+                                  version={bibleVersion}
+                                  tone="onDark"
+                                  style={blockStyles.captureInput}
+                                  registerInput={input => {
+                                    if (input) blockInputRefs.current.set(block.id, input);
+                                    else blockInputRefs.current.delete(block.id);
+                                  }}
+                                  onChange={text =>
+                                    updateBlock({text, reference: undefined})
+                                  }
+                                  onResolved={result =>
+                                    updateBlock({
+                                      scriptureText: result?.text,
+                                      scriptureReference: result?.reference,
+                                      scriptureVersion: result?.version,
+                                    })
+                                  }
+                                />
                               )
                             : undefined
                         }
@@ -1853,19 +2328,40 @@ const ReflectionLogEditor = React.forwardRef<
 
           <Animated.View
             pointerEvents="box-none"
-            style={[s.fabWrapper, editorActionsEntranceStyle]}>
+            style={[
+              s.fabWrapper,
+              {
+                position: 'absolute',
+                bottom: 0,
+                left: 0,
+                right: 0,
+                zIndex: 30,
+                elevation: 30,
+              },
+              editorActionsEntranceStyle,
+            ]}>
             <Animated.View style={[{marginHorizontal: 18}, {bottom: fabAnimatedValue}]}>
               {notePickerOpen && (
                 <JournalPickerMenu
-                  items={GUIDED_NOTE_TYPES.map(item => ({
+                  items={REFLECTION_NOTE_TYPES.map(item => ({
                     key: item.kind,
                     label: item.label,
                     icon: <Ionicons name={item.icon as any} size={13} color={Colors.sage} />,
                   }))}
                   animations={notePickerAnimations}
-                  onSelect={kind => {
+                  onSelect={async kind => {
                     triggerMediumHaptic();
-                    closeNotePicker(() => addJournalBlock(kind));
+                    if (kind === 'photo') {
+                      closeNotePicker();
+                      try {
+                        const photo = await pickImageLocal();
+                        if (photo) addJournalBlock('photo', {uri: photo.uri});
+                      } catch {
+                        Alert.alert('Could not add photo', 'Please try choosing your photo again.');
+                      }
+                    } else {
+                      closeNotePicker(() => addJournalBlock(kind));
+                    }
                   }}
                 />
               )}
@@ -1901,6 +2397,7 @@ const ReflectionLogEditor = React.forwardRef<
               />
             </Animated.View>
           </Animated.View>
+          </View>
         </View>
       </View>
     );

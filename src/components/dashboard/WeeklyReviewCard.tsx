@@ -47,7 +47,7 @@ const WeeklyReviewCard = ({ periodStart, periodEnd, onBegin, alsoReady, started 
               { label: 'Morning\ncheck-ins', count: rhythm?.morning, Icon: Sun },
               { label: 'Evening\nreflections', count: rhythm?.evening, Icon: Moon },
               { label: 'Prayers', count: rhythm?.prayers, Icon: Heart },
-              { label: 'Other journal\nentries', count: rhythm?.journal, Icon: BookOpen },
+              { label: 'Journal\nentries', count: rhythm?.journal, Icon: BookOpen },
             ].map(({ label, count, Icon }) => (
               <View key={label} style={styles.stat}>
                 <Icon size={16} color={Colors.hopeWhite} strokeWidth={1.6} />

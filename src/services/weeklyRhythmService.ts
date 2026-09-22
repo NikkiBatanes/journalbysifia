@@ -6,7 +6,7 @@ import { getLocalPrayers } from '../storage/prayerStorage';
 import { toLocalDateString } from '../utils/date';
 
 export interface WeeklyRhythm {
-  days: { date: string; active: boolean }[];
+  days: { date: string; active: boolean; activity: number }[];
   activeDays: number;
   morning: number;
   evening: number;
@@ -24,7 +24,7 @@ export const getWeeklyRhythm = async (
   const details = await Promise.all(dates.map(async day => {
     const date = format(day, 'yyyy-MM-dd');
     if (date > today) {
-      return { date, active: false, morning: 0, evening: 0, prayers: 0, journal: 0 };
+      return { date, active: false, morning: 0, evening: 0, prayers: 0, journal: 0, activity: 0 };
     }
     const [morning, evening, checkIn, prayers] = await Promise.all([
       getRoutineState('morning', date), getRoutineState('evening', date),
@@ -42,12 +42,13 @@ export const getWeeklyRhythm = async (
         ? `cast:${prayer.metadata.prayer_session_id}` : prayer.id)).size;
     const morningCount = morning?.completed ? 1 : 0;
     const eveningCount = evening?.completed ? 1 : 0;
-    return { date, active: Boolean(checkIn || morningCount || eveningCount || prayerCount
-      || capture.items.some(item => item.selectedDate === date && item.kind !== 'prayer')), morning: morningCount,
-      evening: eveningCount, prayers: prayerCount, journal };
+    const active = Boolean(checkIn || morningCount || eveningCount || prayerCount
+      || capture.items.some(item => item.selectedDate === date && item.kind !== 'prayer'));
+    const activity = (checkIn ? 1 : 0) + morningCount + eveningCount + prayerCount + journal;
+    return { date, active, morning: morningCount, evening: eveningCount, prayers: prayerCount, journal, activity };
   }));
   return {
-    days: details.map(({ date, active }) => ({ date, active })),
+    days: details.map(({ date, active, activity }) => ({ date, active, activity })),
     activeDays: details.filter(day => day.active).length,
     morning: details.reduce((sum, day) => sum + day.morning, 0),
     evening: details.reduce((sum, day) => sum + day.evening, 0),

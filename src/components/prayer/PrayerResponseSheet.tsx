@@ -8,7 +8,13 @@ import { useCreatePrayer, useMarkPrayerRequestPrayed, useUpdatePrayer } from '..
 import type { PrayerApiEntry } from '../../services/api/prayerApi';
 import { clearPrayerDraft, getPrayerDraft, getPrayerDraftKey, savePrayerDraft } from '../../storage/prayerDraftStorage';
 
-export default function PrayerResponseSheet({ request, onClose, onSaved }: { request: Pick<PrayerApiEntry, 'content'> & Partial<PrayerApiEntry>; onClose: () => void; onSaved: () => void | Promise<void> }) {
+export type PrayerResponseOperations = {
+  create: (request: PrayerApiEntry, data: Omit<PrayerApiEntry, 'id' | 'created_at' | 'updated_at'>) => Promise<PrayerApiEntry>;
+  markPrayed: (request: PrayerApiEntry) => Promise<unknown>;
+  update: (request: PrayerApiEntry, updates: Partial<PrayerApiEntry>) => Promise<unknown>;
+};
+
+export default function PrayerResponseSheet({ request, onClose, onSaved, operations }: { request: Pick<PrayerApiEntry, 'content'> & Partial<PrayerApiEntry>; onClose: () => void; onSaved: () => void | Promise<void>; operations?: PrayerResponseOperations }) {
   const { user } = useAuth();
   const createPrayer = useCreatePrayer();
   const markPrayed = useMarkPrayerRequestPrayed();
@@ -36,12 +42,19 @@ export default function PrayerResponseSheet({ request, onClose, onSaved }: { req
     setSaving(true);
     try {
       if (!createdRef.current) {
-        await createPrayer.mutateAsync({ user_id: user?.id || 'local', prayer_type: 'people', person_name: request.person_name, content: text.trim(), selected_date: format(new Date(), 'yyyy-MM-dd'), prayed: true, prayer_count: 1, last_prayed_at: new Date().toISOString(), status: request.status || 'pending', answered_date: request.answered_date, metadata: { prayer_type: 'pray-for-someone', track_answered: request.metadata?.track_answered !== false, original_request_id: request.id, original_request_content: request.content, prayer_request_display: request.content, prayer_updates: request.metadata?.prayer_updates || [], ...(request.metadata?.prayer_needs ? { prayer_needs: request.metadata.prayer_needs } : {}), ...(request.metadata?.tracking_status ? { tracking_status: request.metadata.tracking_status } : {}) } });
+        const data = { user_id: user?.id || 'local', prayer_type: 'people' as const, person_name: request.person_name, content: text.trim(), selected_date: format(new Date(), 'yyyy-MM-dd'), prayed: true, prayer_count: 1, last_prayed_at: new Date().toISOString(), status: request.status || 'pending', answered_date: request.answered_date, metadata: { prayer_type: 'pray-for-someone', track_answered: request.metadata?.track_answered !== false, original_request_id: request.id, original_request_content: request.content, prayer_request_display: request.content, prayer_updates: request.metadata?.prayer_updates || [], ...(request.metadata?.prayer_needs ? { prayer_needs: request.metadata.prayer_needs } : {}), ...(request.metadata?.tracking_status ? { tracking_status: request.metadata.tracking_status } : {}) } };
+        if (operations && request.id) await operations.create(request as PrayerApiEntry, data);
+        else await createPrayer.mutateAsync(data);
         createdRef.current = true;
       }
       if (request.id && !request.id.startsWith('temp-')) {
-        if (!markedRef.current) { await markPrayed.mutateAsync({ id: request.id, isPrayed: true, _userId: user?.id || 'local', _dateStr: request.selected_date || format(new Date(), 'yyyy-MM-dd') }); markedRef.current = true; }
-        await updatePrayer.mutateAsync({ id: request.id, updates: { metadata: { track_answered: request.metadata?.track_answered !== false } }, _userId: user?.id || 'local', _dateStr: request.selected_date || format(new Date(), 'yyyy-MM-dd') });
+        if (!markedRef.current) {
+          if (operations) await operations.markPrayed(request as PrayerApiEntry);
+          else await markPrayed.mutateAsync({ id: request.id, isPrayed: true, _userId: user?.id || 'local', _dateStr: request.selected_date || format(new Date(), 'yyyy-MM-dd') });
+          markedRef.current = true;
+        }
+        if (operations) await operations.update(request as PrayerApiEntry, { metadata: { track_answered: request.metadata?.track_answered !== false } });
+        else await updatePrayer.mutateAsync({ id: request.id, updates: { metadata: { track_answered: request.metadata?.track_answered !== false } }, _userId: user?.id || 'local', _dateStr: request.selected_date || format(new Date(), 'yyyy-MM-dd') });
       }
       await clearPrayerDraft(draftKey);
       triggerSuccessHaptic();

@@ -65,7 +65,7 @@ interface Props {
   isSaving?: boolean;
   onCancel: () => void;
   onCloseJourney?: () => void;
-  onSelectQuestion: (prompt: string) => void;
+  onSelectQuestion: (prompt: string, topic: GuidedQuestionTopic) => void;
   onSave: (entry: {
     title: string;
     content: string;
@@ -798,7 +798,7 @@ const GuidedReflectionExperience: React.FC<Props> = ({
                   Curated questions
                 </ThemedText>
                 <ThemedText style={styles.chooserQuestionSupport}>
-                  Choose a part of life, then a question to sit with.
+                  Choose what you want to reflect on, then select a question.
                 </ThemedText>
                 <ScrollView
                   horizontal
@@ -840,7 +840,7 @@ const GuidedReflectionExperience: React.FC<Props> = ({
                             question={question.prompt}
                             onReflect={() => {
                               triggerLightHaptic();
-                              onSelectQuestion(question.prompt);
+                              onSelectQuestion(question.prompt, topic);
                             }}
                             styles={styles}
                           />
@@ -1108,7 +1108,7 @@ const GuidedReflectionExperience: React.FC<Props> = ({
                     </ThemedText>
                   </View>
                 ) : null}
-                {savedAnswer.notes.filter(note => note.text.trim() || note.reference?.trim()).map(note => (
+                {savedAnswer.notes.filter(note => note.text.trim() || note.reference?.trim() || note.secondary?.trim()).map(note => (
                   <View key={note.id} style={styles.savedJourneyNote}>
                     <View style={{flex: 1}}>
                       <ThemedText style={styles.savedJourneyNoteKind}>
@@ -1122,6 +1122,11 @@ const GuidedReflectionExperience: React.FC<Props> = ({
                       {note.reference ? (
                         <ThemedText style={styles.savedJourneySupport}>
                           {note.reference}
+                        </ThemedText>
+                      ) : null}
+                      {note.secondary ? (
+                        <ThemedText style={styles.savedJourneySupport}>
+                          {note.secondary}
                         </ThemedText>
                       ) : null}
                     </View>
@@ -1174,7 +1179,7 @@ const GuidedReflectionExperience: React.FC<Props> = ({
         return (
           <NoteEntrance key={note.id} delay={noteIndex * 55}>
           <JournalInlineBlock
-            block={{id: note.id, kind: note.kind, text: note.text}}
+            block={{id: note.id, kind: note.kind, text: note.text, secondary: note.secondary}}
             configOverride={note.kind === 'text' ? undefined : config}
             tone="onDark"
             textPlaceholder="Write here…"
@@ -1184,6 +1189,7 @@ const GuidedReflectionExperience: React.FC<Props> = ({
               else noteInputRefs.current.delete(note.id);
             }}
             onChangeText={text => updateNote({text})}
+            onChangeSecondary={secondary => updateNote({secondary})}
             onDelete={keepKeyboard => {
               if (keepKeyboard !== false) triggerLightHaptic();
               updateAnswer({
@@ -2071,6 +2077,13 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
   },
   serifInput: {fontFamily: Fonts.lora.regular, fontSize: 15},
+  secondaryInput: {
+    paddingTop: 7,
+    fontFamily: Fonts.regular,
+    fontSize: 12,
+    lineHeight: 18,
+    color: 'rgba(255,255,255,0.72)',
+  },
   scriptureReferenceInline: {
     minHeight: 38,
     borderBottomWidth: 1,

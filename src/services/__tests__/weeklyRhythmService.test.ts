@@ -35,8 +35,8 @@ describe('weekly rhythm', () => {
     const result = await getWeeklyRhythm('2026-09-07', '2026-09-13');
     expect(result).toMatchObject({ activeDays: 2, morning: 1, evening: 0, prayers: 1, journal: 1 });
     expect(result.days).toHaveLength(7);
-    expect(result.days[0]).toEqual({ date: '2026-09-07', active: true });
-    expect(result.days[6]).toEqual({ date: '2026-09-13', active: false });
+    expect(result.days[0]).toEqual({ date: '2026-09-07', active: true, activity: 2 });
+    expect(result.days[6]).toEqual({ date: '2026-09-13', active: false, activity: 0 });
     expect(getReviewCapture).toHaveBeenCalledWith('2026-09-07', '2026-09-13');
   });
 

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { DeviceEventEmitter, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -8,7 +8,7 @@ import FontAwesome6 from 'react-native-vector-icons/FontAwesome6';
 import { Pencil } from 'lucide-react-native';
 
 import ThemedText from '../../components/common/ThemedText';
-import ShareDropdownModal from '../../components/ShareDropdownModal';
+import ShareComposer, { MorningSummaryShareData } from '../../components/TruthToCarryShareComposer';
 import { FOCUS_CATEGORIES } from '../../components/journal/TodaysFocusExperience';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
@@ -16,8 +16,12 @@ import { triggerLightHaptic } from '../../utils/haptics';
 import { fromLocalDateString, toLocalDateString } from '../../utils/date';
 import { exitEveningFlow } from '../../navigation/exitEveningFlow';
 import { useRoutine } from '../../context/RoutineContext';
+import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { getLocalJournalSingleton, getLocalJournalEntries } from '../../storage/journalStorage';
+import { getDailyClosingMessage } from '../../services/dailyClosingMessageService';
 import { getLocalReflection } from '../../storage/reflectionStorage';
+import { getScripturePassage } from '../../services/scriptureReaderService';
+import {resolveSavedPsalmNumber} from '../../services/dailyScriptureSequence';
 
 const SummaryIcon = ({ icon, iconType }: { icon?: string; iconType?: 'ionicons' | 'material' | 'fontawesome' }) => {
   if (!icon || !iconType) { return null; }
@@ -34,18 +38,27 @@ const MorningClosingScreen = () => {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
+  const { user } = useAuth();
   const { completeRoutine, selectedDate, contentRefs, completed, routine } = useRoutine();
   const params = route.params ?? {};
-  const [shareDropdownOpen, setShareDropdownOpen] = useState(false);
+  const [shareComposerOpen, setShareComposerOpen] = useState(false);
 
   const date = fromLocalDateString(selectedDate);
   const dateStr = toLocalDateString(date);
+  const dailyMessage = useMemo(() => getDailyClosingMessage({
+    userId: user?.id,
+    date: dateStr,
+    flow: 'morning',
+  }), [dateStr, user?.id]);
 
   const [summary, setSummary] = useState({
     feeling: params.feeling,
     feelingIcon: params.feelingIcon,
     feelingIconType: params.feelingIconType,
     underneath: params.underneath,
+    feelingScriptureText: '',
+    feelingScriptureReference: '',
+    feelingScriptureVersion: '',
     focus: params.focus,
     focusIcon: params.focusIcon,
     focusIconType: params.focusIconType,
@@ -55,6 +68,7 @@ const MorningClosingScreen = () => {
     psalmNumber: params.psalmNumber,
     psalmRead: params.psalmRead,
     selectedAttributes: params.selectedAttributes ?? [],
+    customAttribute: params.customAttribute ?? '',
     carry: params.carry,
   });
 
@@ -75,6 +89,16 @@ const MorningClosingScreen = () => {
           next.feelingIcon = parsed.feelingIcon ?? next.feelingIcon;
           next.feelingIconType = parsed.feelingIconType ?? next.feelingIconType;
           next.underneath = parsed.underneathIt ?? next.underneath;
+          if (parsed.scripture?.reference) {
+            const passage = await getScripturePassage(parsed.scripture.reference, parsed.scripture.translation).catch(() => null);
+            next.feelingScriptureText = passage
+              ? (passage.verses?.length
+                ? passage.verses.map(verse => verse.lines.join('\n')).join('\n')
+                : passage.text)
+              : '';
+            next.feelingScriptureReference = passage?.reference || parsed.scripture.reference;
+            next.feelingScriptureVersion = passage?.version || parsed.scripture.translation || '';
+          }
         }
       }
 
@@ -119,9 +143,10 @@ const MorningClosingScreen = () => {
       if (psalmId) {
         const psalmEntry = await getLocalReflection(psalmId, 'scripture', dateStr);
         if (psalmEntry?.metadata) {
-          next.psalmNumber = psalmEntry.metadata.psalmNumber ?? next.psalmNumber;
+          next.psalmNumber = resolveSavedPsalmNumber(psalmEntry, Number(psalmEntry.metadata.psalmNumber) || next.psalmNumber || 1);
           next.psalmRead = psalmEntry.metadata.psalmRead ?? next.psalmRead;
           next.selectedAttributes = psalmEntry.metadata.selectedAttributes ?? next.selectedAttributes;
+          next.customAttribute = psalmEntry.metadata.customAttribute ?? next.customAttribute;
           next.carry = psalmEntry?.content || psalmEntry.metadata.carry || next.carry;
         }
       }
@@ -134,6 +159,38 @@ const MorningClosingScreen = () => {
 
   const priorityCountLabel = `${summary.priorities.length} ${summary.priorities.length === 1 ? 'priority' : 'priorities'}`;
   const todoCountLabel = `${summary.topTodos.length} ${summary.topTodos.length === 1 ? 'to-do' : 'to-dos'}`;
+  const psalmObservations = [
+    ...summary.selectedAttributes,
+    summary.customAttribute,
+  ].filter((observation): observation is string => Boolean(observation?.trim()));
+  const feelingVerseReference = [summary.feelingScriptureReference, summary.feelingScriptureVersion].filter(Boolean).join(' · ');
+  const morningShareData: MorningSummaryShareData = {
+    feeling: summary.feeling,
+    feelingIcon: summary.feelingIcon,
+    feelingIconType: summary.feelingIconType,
+    feelingVerse: summary.feelingScriptureText,
+    feelingVerseReference,
+    focus: summary.focus,
+    focusIcon: summary.focusIcon,
+    focusIconType: summary.focusIconType,
+    focusReflection: summary.personalText,
+    prioritiesCount: summary.priorities.length,
+    todosCount: summary.topTodos.length,
+    psalmNumber: summary.psalmNumber,
+    psalmRead: summary.psalmRead,
+    observations: psalmObservations,
+    reminder: dailyMessage,
+  };
+  const morningShareText = [
+    'You’re ready for today.',
+    `Feeling: ${summary.feeling || '—'}`,
+    summary.feelingScriptureText ? `“${summary.feelingScriptureText}”\n${feelingVerseReference}` : '',
+    `Focus: ${summary.focus || 'Open'}${summary.personalText ? `\n${summary.personalText}` : ''}`,
+    `${priorityCountLabel} · ${todoCountLabel}`,
+    `${summary.psalmNumber ? `Psalm ${summary.psalmNumber}` : 'Morning Psalm'} — ${summary.psalmRead ? 'Full chapter read' : 'Reading in progress'}`,
+    `Pause and Praise: ${psalmObservations.length ? psalmObservations.join(' · ') : 'Nothing selected'}`,
+    dailyMessage,
+  ].filter(Boolean).join('\n\n');
 
   const onDone = async () => {
     triggerLightHaptic();
@@ -160,7 +217,7 @@ const MorningClosingScreen = () => {
         style={[styles.shareButton, { top: insets.top + 8 }]}
         onPress={() => {
           triggerLightHaptic();
-          setShareDropdownOpen(true);
+          setShareComposerOpen(true);
         }}
         activeOpacity={0.7}
         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
@@ -196,7 +253,7 @@ const MorningClosingScreen = () => {
           </View>
           <View style={styles.completionHeaderText}>
             <ThemedText style={styles.title}>You’re ready for today.</ThemedText>
-            <ThemedText style={styles.subtitle}>Your morning is saved.</ThemedText>
+            <ThemedText style={styles.subtitle}>Your morning reflection is saved.</ThemedText>
           </View>
         </View>
 
@@ -215,6 +272,16 @@ const MorningClosingScreen = () => {
                 <SummaryIcon icon={summary.feelingIcon} iconType={summary.feelingIconType} />
                 <ThemedText weight="semiBold" style={styles.glanceValue}>{summary.feeling || '—'}</ThemedText>
               </View>
+              {summary.feelingScriptureText ? (
+                <>
+                  <ThemedText numberOfLines={4} style={styles.feelingScriptureText}>
+                    “{summary.feelingScriptureText}”
+                  </ThemedText>
+                  <ThemedText numberOfLines={1} weight="medium" style={styles.feelingScriptureReference}>
+                    {summary.feelingScriptureReference}{summary.feelingScriptureVersion ? ` · ${summary.feelingScriptureVersion}` : ''}
+                  </ThemedText>
+                </>
+              ) : null}
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.glanceColumn}
@@ -249,15 +316,22 @@ const MorningClosingScreen = () => {
 
         <TouchableOpacity
           style={styles.psalmCard}
-          onPress={() => { triggerLightHaptic(); navigation.navigate('PsalmOfTheDay'); }}
+          onPress={() => {
+            triggerLightHaptic();
+            navigation.navigate('PsalmOfTheDay', {
+              returnToClosing: true,
+              selectedAttributes: summary.selectedAttributes,
+              customAttribute: summary.customAttribute,
+            });
+          }}
           accessibilityRole="button"
-          accessibilityLabel="Edit morning Psalm"
+          accessibilityLabel="Edit pause and praise response"
           activeOpacity={0.75}
         >
           <View style={styles.psalmHeader}>
             <ThemedText weight="semiBold" style={styles.sectionEyebrow}>MORNING PSALM</ThemedText>
             <ThemedText weight="bold" style={styles.psalmTitle}>
-              {summary.psalmNumber ? `Psalm ${summary.psalmNumber} · pause and praise` : 'Psalm'}
+              {summary.psalmNumber ? `Psalm ${summary.psalmNumber}` : 'Psalm'}
             </ThemedText>
           </View>
 
@@ -270,17 +344,23 @@ const MorningClosingScreen = () => {
             </ThemedText>
           </View>
 
-          <ThemedText style={styles.psalmPrompt}>What you saw about God</ThemedText>
-          <ThemedText weight="bold" style={summary.selectedAttributes.length > 0 ? styles.psalmAnswer : styles.psalmAnswerMuted}>
-            {summary.selectedAttributes.length > 0 ? summary.selectedAttributes.join(' · ') : 'Nothing selected'}
-          </ThemedText>
+          <View style={styles.pauseAndPraiseSection}>
+            <View style={styles.pauseAndPraiseTitleRow}>
+              <Ionicons name="musical-notes" size={18} color={Colors.sage} />
+              <ThemedText weight="bold" style={styles.pauseAndPraiseTitle}>Pause and Praise</ThemedText>
+            </View>
+            <ThemedText style={styles.psalmPrompt}>What you saw about God</ThemedText>
+            <ThemedText weight="bold" style={psalmObservations.length > 0 ? styles.psalmAnswer : styles.psalmAnswerMuted}>
+              {psalmObservations.length > 0 ? psalmObservations.join(' · ') : 'Nothing selected'}
+            </ThemedText>
+          </View>
 
         </TouchableOpacity>
 
         <View style={styles.asYouGo}>
           <ThemedText weight="semiBold" style={styles.sectionEyebrow}>AS YOU GO</ThemedText>
           <ThemedText weight="bold" style={styles.reminderText}>
-            Remember who God is as{'\n'}you step into today.
+            {dailyMessage}
           </ThemedText>
         </View>
       </ScrollView>
@@ -297,13 +377,12 @@ const MorningClosingScreen = () => {
         </TouchableOpacity>
       </View>
 
-      <ShareDropdownModal
-        visible={shareDropdownOpen}
-        onClose={() => setShareDropdownOpen(false)}
-        onExportPDF={() => {}}
-        hideExportPDF={true}
-        shareTitle="Share Journal by siFia with friends"
-        shareText="I started my day with God using Journal by siFia."
+      <ShareComposer
+        visible={shareComposerOpen}
+        variant="morning-summary"
+        morningSummary={morningShareData}
+        text={morningShareText}
+        onClose={() => setShareComposerOpen(false)}
       />
     </View>
   );
@@ -316,15 +395,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   scrollContent: {
-    paddingBottom: 12,
-    paddingTop: 12,
+    paddingBottom: 8,
+    paddingTop: 8,
   },
   completionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 16,
-    marginTop: 54,
-    marginBottom: 38,
+    marginTop: 48,
+    marginBottom: 28,
   },
   completionHeaderText: {
     flex: 1,
@@ -381,11 +460,11 @@ const styles = StyleSheet.create({
     letterSpacing: 1.8,
   },
   glanceSection: {
-    marginBottom: 34,
+    marginBottom: 24,
   },
   glanceGrid: {
     flexDirection: 'row',
-    marginTop: 14,
+    marginTop: 10,
   },
   glanceColumn: {
     flex: 1,
@@ -415,6 +494,20 @@ const styles = StyleSheet.create({
     lineHeight: 23,
     flexShrink: 1,
   },
+  feelingScriptureText: {
+    color: Colors.textGray,
+    fontSize: 11,
+    lineHeight: 15,
+    marginTop: 8,
+  },
+  feelingScriptureReference: {
+    color: Colors.sageMuted,
+    fontSize: 9,
+    lineHeight: 13,
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+    marginTop: 4,
+  },
   focusReflection: {
     color: Colors.textGray,
     fontSize: 12,
@@ -424,8 +517,8 @@ const styles = StyleSheet.create({
   todayCount: {
     borderTopWidth: 1,
     borderTopColor: Colors.cardBorder,
-    marginTop: 20,
-    paddingTop: 18,
+    marginTop: 14,
+    paddingTop: 14,
   },
   todayCountValue: {
     color: Colors.text,
@@ -436,27 +529,26 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.cardBackground,
     borderColor: Colors.cardBorder,
     borderWidth: 1,
-    borderRadius: 26,
-    paddingHorizontal: 24,
-    paddingVertical: 26,
+    borderRadius: 24,
+    paddingHorizontal: 20,
+    paddingVertical: 18,
   },
   psalmHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 16,
-    marginBottom: 14,
+    alignItems: 'flex-start',
+    gap: 3,
+    marginBottom: 10,
   },
   psalmTitle: {
     color: Colors.text,
     fontSize: 19,
     lineHeight: 24,
+    flexShrink: 1,
   },
   readStatus: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginBottom: 26,
+    marginBottom: 16,
   },
   readStatusIcon: {
     width: 20,
@@ -476,16 +568,32 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18,
   },
+  pauseAndPraiseSection: {
+    borderTopWidth: 1,
+    borderTopColor: Colors.cardBorder,
+    paddingTop: 14,
+  },
+  pauseAndPraiseTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
+  },
+  pauseAndPraiseTitle: {
+    color: Colors.text,
+    fontSize: 17,
+    lineHeight: 22,
+  },
   psalmPrompt: {
     color: Colors.textGray,
-    fontSize: 14,
-    lineHeight: 20,
-    marginBottom: 8,
+    fontSize: 13,
+    lineHeight: 18,
+    marginBottom: 5,
   },
   psalmAnswer: {
     color: Colors.text,
-    fontSize: 22,
-    lineHeight: 30,
+    fontSize: 20,
+    lineHeight: 27,
   },
   psalmAnswerMuted: {
     color: Colors.textGray,
@@ -494,15 +602,15 @@ const styles = StyleSheet.create({
   },
   asYouGo: {
     alignItems: 'center',
-    marginTop: 38,
-    paddingBottom: 8,
+    marginTop: 22,
+    paddingBottom: 4,
   },
   reminderText: {
     color: Colors.text,
-    fontSize: 21,
-    lineHeight: 29,
+    fontSize: 19,
+    lineHeight: 25,
     textAlign: 'center',
-    marginTop: 12,
+    marginTop: 8,
   },
   footer: {
     flexDirection: 'row',

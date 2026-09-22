@@ -2,6 +2,7 @@ import type { ReviewType } from '../storage/reviewStorage';
 
 export type ReviewStageKind =
   | 'cover'
+  | 'feelings'
   | 'captured'
   | 'remembered'
   | 'question'
@@ -41,6 +42,15 @@ const weeklyStages = (): ReviewStageConfig[] => [
     kind: 'cover',
     subtitle:
       'Begin by reflecting on the past week with God. Then, in this same review, prepare your heart for the week ahead.',
+  },
+  {
+    key: 'feelings',
+    kind: 'feelings',
+    icon: 'leaf-outline',
+    label: 'LOOKING BACK',
+    question: 'How did this week feel?',
+    subtitle: 'Choose up to 3 words.',
+    answerKey: 'week_feelings',
   },
   sharedCaptured,
   sharedRemembered,

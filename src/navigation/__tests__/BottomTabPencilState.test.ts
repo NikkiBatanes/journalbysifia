@@ -28,6 +28,14 @@ describe('main navigation pencil state', () => {
     expect(source).not.toContain('component: NotebookPen');
   });
 
+  it('reuses the exact Add-menu icons in Review category headings', () => {
+    expect(reviewSource).toContain('<BookHeart size={19}');
+    expect(reviewSource).toContain('<PrayerHandsIcon size={19}');
+    expect(reviewSource).toContain('<MaterialCommunityIcons name="book-outline" size={19}');
+    expect(reviewSource).toContain('<Target size={19}');
+    expect(reviewSource).not.toContain('<NotebookPen size={19}');
+  });
+
   it('closes stale menu state on destination and unrelated route changes', () => {
     expect(source).toContain('}, [currentRouteName, activeNestedRouteName]);');
     expect(source).toContain('activeAddRouteIdentityRef.current = nestedDestination');
@@ -134,9 +142,9 @@ describe('main navigation pencil state', () => {
     expect(guidedReflectionSource).toContain('<View style={styles.journeyHeaderBackdrop} />');
   });
 
-  it('opens Session Notes without a slide and gives Bible Study the Heart Journal fade', () => {
+  it('lets Session Notes and Bible Study use their own content entrances', () => {
     expect(journalStackSource).toMatch(/name="SermonNotes"[\s\S]*?animation: 'none'/);
-    expect(journalStackSource).toMatch(/name="BibleStudy"[\s\S]*?animation: 'fade'/);
+    expect(journalStackSource).toMatch(/name="BibleStudy"[\s\S]*?animation: 'none'/);
     expect(source).toContain("title: 'Session Notes', target: 'Journal', params: { screen: 'SermonNotes'");
     expect(source).not.toContain('opensSessionMenu');
     expect(source).toContain("openedFromPencil: true");

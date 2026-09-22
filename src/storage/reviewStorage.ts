@@ -100,6 +100,23 @@ const getReviewIndexKey = (type: ReviewType): string =>
 const getReviewKey = (type: ReviewType, id: string): string =>
   `${LOCAL_REVIEW_PREFIX}:${type}:${id}`;
 
+const reviewWriteQueues = new Map<string, Promise<void>>();
+
+const serializeReviewWrite = async <T>(key: string, operation: () => Promise<T>): Promise<T> => {
+  const previous = reviewWriteQueues.get(key) ?? Promise.resolve();
+  let release!: () => void;
+  const current = new Promise<void>(resolve => { release = resolve; });
+  const tail = previous.catch(() => undefined).then(() => current);
+  reviewWriteQueues.set(key, tail);
+  await previous.catch(() => undefined);
+  try {
+    return await operation();
+  } finally {
+    release();
+    if (reviewWriteQueues.get(key) === tail) { reviewWriteQueues.delete(key); }
+  }
+};
+
 const readReviewIndex = async (type: ReviewType): Promise<string[]> => {
   const raw = await AsyncStorage.getItem(getReviewIndexKey(type));
   if (!raw) {return [];}
@@ -199,14 +216,12 @@ export const getOrCreateLocalReviewForPeriod = async (
 export const updateLocalReview = async (
   entry: LocalReviewEntry,
 ): Promise<LocalReviewEntry> => {
-  const now = new Date().toISOString();
-  const updated: LocalReviewEntry = {
-    ...entry,
-    updatedAt: now,
-  };
   const key = getReviewKey(entry.type, entry.id);
-  await AsyncStorage.setItem(key, JSON.stringify(updated));
-  return updated;
+  return serializeReviewWrite(key, async () => {
+    const updated: LocalReviewEntry = {...entry, updatedAt: new Date().toISOString()};
+    await AsyncStorage.setItem(key, JSON.stringify(updated));
+    return updated;
+  });
 };
 
 export const completeLocalReview = async (

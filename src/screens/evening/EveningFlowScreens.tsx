@@ -4,6 +4,8 @@ import { LOOKING_FORWARD_EMOTIONS } from '../../data/lookingForwardEmotions';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import WisdomScripturePassage from '../../components/routine/WisdomScripturePassage';
 import { getProverbReflection } from '../../data/getProverbReflection';
+import {getDailyProverbNumber, resolveSavedProverbNumber} from '../../services/dailyScriptureSequence';
+import {getDailyClosingMessage} from '../../services/dailyClosingMessageService';
 import RoutineStepShell from '../../components/routine/RoutineStepShell';
 import { useFloatingKeyboardButton } from '../../hooks/useFloatingKeyboardButton';
 import React, { useState } from 'react';
@@ -33,7 +35,9 @@ import { useTheme } from '../../hooks/useTheme';
 import { triggerLightHaptic } from '../../utils/haptics';
 import { fromLocalDateString, toLocalDateString } from '../../utils/date';
 import { useRoutine } from '../../context/RoutineContext';
+import {useAuth} from '../../context/IndustryStandardAuthContext';
 import { useRoutineDraft } from '../../hooks/useRoutineDraft';
+import {useDailyScriptureSequenceAnchor} from '../../hooks/useDailyScriptureSequenceAnchor';
 import {
   createLocalJournalEntry,
   getLocalJournalEntry,
@@ -361,7 +365,9 @@ export const EveningCarryWisdomScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const { selectedDate, markStepCompleted } = useRoutine();
+  const {user} = useAuth();
   const params = route.params ?? {};
+  const {anchor: scriptureSequenceAnchor, ready: scriptureSequenceReady} = useDailyScriptureSequenceAnchor(user?.created_at);
   const { currentFont } = useTheme();
   const inputFont = getFontFamily(currentFont || 'lexend', 'regular');
   const [text, setText] = useState('');
@@ -375,7 +381,12 @@ export const EveningCarryWisdomScreen: React.FC = () => {
   const [customWisdom, setCustomWisdom] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const chapter = Number(params.proverbNumber || selectedDate.split('-')[2]);
+  const canonicalReflectionDate = React.useRef<string | null>(null);
+  const dailyChapter = React.useMemo(
+    () => getDailyProverbNumber(selectedDate, scriptureSequenceAnchor),
+    [scriptureSequenceAnchor, selectedDate],
+  );
+  const [chapter, setChapter] = useState(dailyChapter);
   const reflection = getProverbReflection(chapter);
   const selectedInsights = selectedIds.flatMap(id => reflection?.insights.filter(insight => insight.id === id) || []);
   const customValue = showCustom ? customWisdom.trim() : '';
@@ -384,11 +395,20 @@ export const EveningCarryWisdomScreen: React.FC = () => {
     'evening', selectedDate, 'wisdom',
     { selectedIds, applications, showCustom, customWisdom, text },
     draft => {
+      // A completed Proverbs reflection is authoritative when this screen is
+      // reopened. Do not let an older autosaved draft hide its written answer.
+      if (canonicalReflectionDate.current === selectedDate) {return;}
       setSelectedIds(draft.selectedIds ?? []);
       setApplications(draft.applications ?? {});
       setShowCustom(Boolean(draft.showCustom));
       setCustomWisdom(draft.customWisdom ?? '');
       setText(draft.text ?? '');
+      setHasTappedChoice(Boolean(
+        draft.showCustom
+        || draft.customWisdom?.trim()
+        || draft.selectedIds?.length
+        || Object.values(draft.applications ?? {}).some(value => value?.trim()),
+      ));
     },
   );
 
@@ -412,33 +432,53 @@ export const EveningCarryWisdomScreen: React.FC = () => {
 
   const dateStr = selectedDate;
 
-  React.useEffect(() => {
+  useFocusEffect(React.useCallback(() => {
+    if (!scriptureSequenceReady) {return undefined;}
     let mounted = true;
     (async () => {
       const entries = await getLocalReflections('scripture', dateStr);
       if (!mounted) {return;}
-      const existing = entries.find(e => e.source === 'evening_proverbs' || e.metadata?.source === 'evening_proverbs');
+      setChapter(dailyChapter);
+      const existing = entries
+        .filter(e => e.source === 'evening_proverbs' || e.metadata?.source === 'evening_proverbs')
+        .sort((a, b) => b.updated_at.localeCompare(a.updated_at))[0];
       if (existing) {
+        canonicalReflectionDate.current = dateStr;
         const metadata = existing.metadata || {};
-        setSelectedIds(metadata.selectedWisdomIds || []);
-        setCustomWisdom(metadata.customWisdom || '');
-        setShowCustom(Boolean(metadata.customWisdom));
+        const validInsightIds = new Set((getProverbReflection(dailyChapter)?.insights || []).map(insight => insight.id));
+        const savedIds = Array.isArray(metadata.selectedWisdomIds)
+          ? metadata.selectedWisdomIds.filter((id: unknown): id is string => typeof id === 'string' && validInsightIds.has(id))
+          : [];
+        const savedApplications = metadata.wisdomApplications || {};
+        const savedCustomWisdom = typeof metadata.customWisdom === 'string' ? metadata.customWisdom : '';
+        const savedGeneralApplication = typeof metadata.wisdomApplication === 'string'
+          ? metadata.wisdomApplication
+          : (metadata.wisdomApplications ? '' : existing.content) ?? '';
+        setSelectedIds(savedIds);
+        setCustomWisdom(savedCustomWisdom);
+        setShowCustom(Boolean(savedCustomWisdom.trim()));
         // Preserve reflections written before selectable insights were introduced.
-        setApplications(metadata.wisdomApplications || {});
-        setText(metadata.wisdomApplication ?? (metadata.wisdomApplications ? '' : existing.content) ?? '');
+        setApplications(savedApplications);
+        setText(savedGeneralApplication);
+        setHasTappedChoice(Boolean(
+          savedIds.length
+          || savedCustomWisdom.trim()
+          || savedGeneralApplication.trim()
+          || Object.values(savedApplications).some(value => typeof value === 'string' && value.trim()),
+        ));
         setProverbReflectionId(existing.id);
       }
       setLoading(false);
     })().catch(error => { console.error('Error loading wisdom reflection:', error); if (mounted) {setLoading(false);} });
     return () => { mounted = false; };
-  }, [dateStr]);
+  }, [dailyChapter, dateStr, scriptureSequenceReady]));
 
   const onNext = async () => {
     if (!canContinue) {return;}
     setSaving(true);
     triggerLightHaptic();
 
-    const title = params.proverbReference || `Proverbs ${chapter}`;
+    const title = `Proverbs ${chapter}`;
     const content = [...selectedInsights.map(insight => [ `${insight.label} (${insight.verses})`, (applications[insight.id] || '').trim() ].filter(Boolean).join('\n')), customValue, text.trim()].filter(Boolean).join('\n\n');
     const metadata = {
       source: 'evening_proverbs',
@@ -448,7 +488,7 @@ export const EveningCarryWisdomScreen: React.FC = () => {
       customWisdom: customValue,
       wisdomApplication: text.trim(),
       wisdomApplications: Object.fromEntries(selectedInsights.map(insight => [insight.id, (applications[insight.id] || '').trim()])),
-      proverbReference: params.proverbReference,
+      proverbReference: title,
     };
 
     let id = proverbReflectionId;
@@ -508,6 +548,8 @@ export const EveningCarryWisdomScreen: React.FC = () => {
         ...params,
         selectedDate,
         wisdom: content,
+        proverbNumber: chapter,
+        proverbReference: title,
         proverbReflectionId: id,
       });
     } catch (error) {
@@ -595,6 +637,7 @@ export const EveningClosingScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
+  const {user} = useAuth();
   const { completeRoutine, selectedDate, contentRefs, completed } = useRoutine();
   const params = route.params ?? {};
   const [showAllGratitude, setShowAllGratitude] = useState(false);
@@ -633,6 +676,11 @@ export const EveningClosingScreen: React.FC = () => {
   ];
   const visibleWisdom = showAllWisdom ? wisdomItems : wisdomItems.slice(0, 1);
   const dateStr = selectedDate;
+  const dailyMessage = React.useMemo(() => getDailyClosingMessage({
+    userId: user?.id,
+    date: dateStr,
+    flow: 'evening',
+  }), [dateStr, user?.id]);
 
   React.useEffect(() => {
     let active = true;
@@ -666,8 +714,9 @@ export const EveningClosingScreen: React.FC = () => {
       if (scriptureRef) {
         const entry = await getLocalReflection(scriptureRef.local_id, 'scripture', dateStr);
         if (entry) {
-          patch.proverbNumber = entry.metadata?.proverbNumber;
-          patch.proverbReference = entry.metadata?.proverbReference || entry.title;
+          const savedProverbNumber = resolveSavedProverbNumber(entry, Number(entry.metadata?.proverbNumber) || 1);
+          patch.proverbNumber = savedProverbNumber;
+          patch.proverbReference = `Proverbs ${savedProverbNumber}`;
           patch.proverbRead = Boolean(entry.metadata?.proverbRead);
           patch.wisdom = entry.content || '';
           patch.wisdomChoices = (entry.metadata?.selectedWisdom || []).map((insight: any) => ({
@@ -743,7 +792,7 @@ export const EveningClosingScreen: React.FC = () => {
             </Animated.View>
           </View>
           <View style={styles.closingCompletionHeaderText}>
-            <ThemedText style={styles.closingTitle}>Your evening is reflected.</ThemedText>
+            <ThemedText style={styles.closingTitle}>Your evening reflection is saved.</ThemedText>
             <ThemedText style={styles.closingSubtitle}>Today is held in God’s hands.</ThemedText>
           </View>
         </View>
@@ -870,7 +919,7 @@ export const EveningClosingScreen: React.FC = () => {
         <View style={styles.closingAsYouGo}>
           <ThemedText weight="semiBold" style={styles.closingSectionEyebrow}>AS YOU REST</ThemedText>
           <ThemedText weight="bold" style={styles.closingReminderText}>
-            Release today into God’s hands.{'\n'}Rest well.
+            {dailyMessage}
           </ThemedText>
         </View>
       </ScrollView>
@@ -1276,9 +1325,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 7,
   },
-  closingScriptureColumns: { flexDirection: 'row' },
-  closingScriptureLeftColumn: { flex: 1, paddingRight: 14, borderRightWidth: 1, borderRightColor: Colors.cardBorder },
-  closingScriptureRightColumn: { flex: 1, paddingLeft: 14 },
+  closingScriptureColumns: { flexDirection: 'column' },
+  closingScriptureLeftColumn: { paddingBottom: 2 },
+  closingScriptureRightColumn: { borderTopWidth: 1, borderTopColor: Colors.cardBorder, paddingTop: 16 },
   closingScriptureCard: {
     backgroundColor: Colors.cardBackground,
     borderColor: Colors.cardBorder,
@@ -1297,6 +1346,7 @@ const styles = StyleSheet.create({
     color: Colors.text,
     fontSize: 17,
     lineHeight: 22,
+    flexShrink: 1,
   },
   closingReadStatus: {
     flexDirection: 'row',

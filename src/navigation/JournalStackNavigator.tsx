@@ -13,6 +13,9 @@ import ReviewScreen from '../screens/ReviewScreen';
 import PastReviewsScreen from '../screens/PastReviewsScreen';
 import ReviewSettingsScreen from '../screens/ReviewSettingsScreen';
 import ReviewReaderScreen from '../screens/ReviewReaderScreen';
+import PrayerV2DemoScreen from '../dev/PrayerV2DemoScreen';
+import TodayPrayerCardGalleryScreen from '../dev/TodayPrayerCardGalleryScreen';
+import ReviewQAScreen from '../dev/reviews/ReviewQAScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -125,6 +128,21 @@ const JournalStackNavigator: React.FC = () => {
           contentStyle: { backgroundColor: '#F6F5EF' },
         }}
       />
+      {__DEV__ && <Stack.Screen
+        name="PrayerV2Demo"
+        component={PrayerV2DemoScreen as React.ComponentType}
+        options={{ headerShown: false, presentation: 'modal', animation: 'slide_from_bottom' }}
+      />}
+      {__DEV__ && <Stack.Screen
+        name="TodayPrayerCardGallery"
+        component={TodayPrayerCardGalleryScreen as React.ComponentType}
+        options={{ headerShown: false, presentation: 'card', animation: 'slide_from_right' }}
+      />}
+      {__DEV__ && <Stack.Screen
+        name="ReviewQA"
+        component={ReviewQAScreen as React.ComponentType}
+        options={{ headerShown: false, presentation: 'modal', animation: 'slide_from_bottom' }}
+      />}
       <Stack.Screen
         name="ScriptureNoteEditor"
         component={ScriptureNoteEditorScreen as React.ComponentType}
@@ -144,7 +162,10 @@ const JournalStackNavigator: React.FC = () => {
         options={{
           headerShown: false,
           presentation: 'fullScreenModal',
-          animation: 'fade',
+          // Bible Study performs its own staggered content reveal after its
+          // saved session has loaded. A native fade here makes that entrance
+          // appear to run twice.
+          animation: 'none',
           gestureEnabled: true,
           contentStyle: { backgroundColor: '#F6F5EF' },
         }}

@@ -20,7 +20,6 @@ import {
   AppState,
   AppStateStatus,
   Linking,
-  DeviceEventEmitter,
 } from 'react-native';
 
 import {
@@ -76,9 +75,7 @@ import {
   clearLoginFlowRedirect,
   getPostAuthRedirect,
 } from './src/utils/postAuthRedirect';
-import {
-  seedJournalPreviewData,
-} from './src/dev/seedPreviewData';
+import {clearJournalDevelopmentDataOnce} from './src/dev/clearDevelopmentData';
 
 // Hide debug notifications
 LogBox.ignoreLogs(['Warning: ...']); // Ignore specific warnings if needed
@@ -138,29 +135,35 @@ const isOAuthUser = (user: any): boolean => {
 function App(): React.JSX.Element {
   const [fontsLoaded] = useState(true); // Fonts are auto-linked via RNVectorIcons pod
   const [playbook] = useState<{actionSteps: any[]}>({actionSteps: []});
+  const [developmentDataReady, setDevelopmentDataReady] = useState(!__DEV__);
 
   // Load experience preferences on app startup
   useEffect(() => {
     initializeMetaAppEvents();
     experiencePreferences.loadOnce();
-    Promise.allSettled([seedJournalPreviewData()])
-      .then(results => {
-        const seeded = results.some(result => result.status === 'fulfilled' && result.value);
-        if (seeded) {
-          queryClient.invalidateQueries();
-          DeviceEventEmitter.emit('previewDataSeeded');
-        }
-        results.forEach(result => {
-          if (result.status === 'rejected') {
-            console.error('[PreviewData] Unable to create preview records', result.reason);
-          }
-        });
-      })
-      .catch(() => {});
+    void clearJournalDevelopmentDataOnce().then(removed => {
+      if (removed > 0) {queryClient.invalidateQueries();}
+    }).catch(error => {
+      console.error('[DevelopmentData] Unable to clear local content', error);
+    }).finally(() => {
+      setDevelopmentDataReady(true);
+    });
   }, []);
 
   // Vector icon fonts are automatically bundled by RNVectorIcons pod
   // No manual loading required in modern React Native
+
+  if (!developmentDataReady) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Image
+          source={require('./assets/images/journalbysifia-splash.png')}
+          style={styles.loadingLogo}
+          resizeMode="contain"
+        />
+      </View>
+    );
+  }
 
   return (
     <QueryClientProvider client={queryClient}>

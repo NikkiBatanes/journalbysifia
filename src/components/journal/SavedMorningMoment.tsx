@@ -8,6 +8,7 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import { Pencil, X } from 'lucide-react-native';
 import { JournalCard } from './JournalCard';
 import ScriptureReaderModal from '../ScriptureReaderModal';
+import ProverbVerseExcerpt from '../scripture/ProverbVerseExcerpt';
 import ThemedText from '../common/ThemedText';
 import { Colors } from '../../theme/colors';
 import { useMomentsPalette } from '../../context/MomentsPaletteContext';
@@ -18,11 +19,14 @@ export const SavedMorningMoment = ({ moment, viewMode = 'inline' }: { moment: Mo
   const momentsPalette = useMomentsPalette();
   const hideReadStatusIcon = momentsPalette || viewMode === 'moments';
   const [open, setOpen] = useState(false);
+  const [scriptureOpen, setScriptureOpen] = useState(false);
   const [reflectionOpen, setReflectionOpen] = useState(false);
+  const [showAllUnderneath, setShowAllUnderneath] = useState(false);
+  const [underneathOverflows, setUnderneathOverflows] = useState(false);
+  const [showAllWisdom, setShowAllWisdom] = useState(false);
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   if (moment.pluginId === 'morningcheckin') {
-    const [scriptureOpen, setScriptureOpen] = useState(false);
     return <>
       <JournalCard title="MORNING CHECK-IN" variant="inline" viewMode={viewMode}>
         <View style={styles.proverbContent}>
@@ -47,7 +51,21 @@ export const SavedMorningMoment = ({ moment, viewMode = 'inline' }: { moment: Mo
             <>
               <View style={styles.divider} />
               <ThemedText style={styles.feelingLabel}>WHAT WAS UNDERNEATH IT</ThemedText>
-              <ThemedText style={styles.reflection}>{moment.underneathIt}</ThemedText>
+              <ThemedText
+                style={styles.reflection}
+                numberOfLines={showAllUnderneath ? undefined : 5}
+                onTextLayout={event => {
+                  if (!showAllUnderneath) {setUnderneathOverflows(event.nativeEvent.lines.length > 5);}
+                }}>
+                {moment.underneathIt}
+              </ThemedText>
+              {underneathOverflows && <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityState={{expanded: showAllUnderneath}}
+                style={styles.viewAllButton}
+                onPress={() => setShowAllUnderneath(value => !value)}>
+                <ThemedText weight="medium" style={styles.viewAllText}>{showAllUnderneath ? 'Show less' : 'Show more'}</ThemedText>
+              </TouchableOpacity>}
             </>
           )}
         </View>
@@ -83,7 +101,10 @@ export const SavedMorningMoment = ({ moment, viewMode = 'inline' }: { moment: Mo
   }
   if (moment.pluginId === 'eveningproverb') {
     const wisdomSelections = moment.wisdomSelections || [];
+    const visibleWisdomSelections = showAllWisdom ? wisdomSelections : wisdomSelections.slice(0, 1);
+    const hiddenWisdomCount = Math.max(0, wisdomSelections.length - 1);
     const wisdomText = (moment.observations || []).join(' · ').trim();
+    const hasWisdomContent = Boolean(wisdomText || moment.reflection?.trim());
     const [year, month, day] = moment.date.split('-').map(Number);
     const proverbDate = format(new Date(year, month - 1, day), 'MMMM d, yyyy');
     const handleEdit = () => {
@@ -105,16 +126,33 @@ export const SavedMorningMoment = ({ moment, viewMode = 'inline' }: { moment: Mo
               {!hideReadStatusIcon && <Ionicons name={moment.markedRead ? 'checkmark-circle' : 'book-outline'} size={14} color={Colors.sage} />}
               <ThemedText style={styles.readStatus}>{moment.markedRead ? 'Passage read' : 'Reading in progress'}</ThemedText>
             </View>
-            {!!wisdomText && (
+            {hasWisdomContent && (
               <>
                 <View style={styles.divider} />
-                <ThemedText style={styles.feelingLabel}>WISDOM YOU NOTICED</ThemedText>
-                {wisdomSelections.length ? wisdomSelections.map(selection => (
+                {!!wisdomText && <ThemedText style={styles.feelingLabel}>WISDOM YOU NOTICED</ThemedText>}
+                {visibleWisdomSelections.length ? visibleWisdomSelections.map(selection => (
                   <View key={selection.id || selection.label} style={styles.wisdomSelection}>
                     <ThemedText weight="semiBold" style={[styles.feeling, styles.centered]}>{selection.label}</ThemedText>
-                    {!!selection.verses && <ThemedText style={styles.wisdomVerses}>{selection.verses}</ThemedText>}
+                    {!!selection.verses && <ProverbVerseExcerpt reference={selection.verses} numberOfLines={5} />}
+                    {!!selection.application && <View style={styles.wisdomResponse}>
+                      <ThemedText style={styles.feelingLabel}>YOUR RESPONSE</ThemedText>
+                      <ThemedText style={styles.wisdomResponseText} numberOfLines={4}>{selection.application}</ThemedText>
+                    </View>}
                   </View>
-                )) : <ThemedText weight="semiBold" style={[styles.feeling, styles.centered]}>{wisdomText}</ThemedText>}
+                )) : !!wisdomText && <ThemedText weight="semiBold" style={[styles.feeling, styles.centered]}>{wisdomText}</ThemedText>}
+                {wisdomSelections.length > 1 && <TouchableOpacity
+                  accessibilityRole="button"
+                  accessibilityState={{expanded: showAllWisdom}}
+                  accessibilityLabel={showAllWisdom ? 'Show less wisdom' : `Show ${hiddenWisdomCount} more wisdom ${hiddenWisdomCount === 1 ? 'item' : 'items'}`}
+                  style={styles.wisdomShowMore}
+                  onPress={event => {event.stopPropagation(); setShowAllWisdom(value => !value);}}>
+                  <Ionicons name={showAllWisdom ? 'chevron-up' : 'chevron-down'} size={13} color={Colors.sage} />
+                  <ThemedText weight="medium" style={styles.viewAllText}>{showAllWisdom ? 'Show less' : `Show more (${hiddenWisdomCount})`}</ThemedText>
+                </TouchableOpacity>}
+                {!!moment.reflection?.trim() && <View style={styles.wisdomResponse}>
+                  <ThemedText style={styles.feelingLabel}>YOUR RESPONSE</ThemedText>
+                  <ThemedText style={styles.wisdomResponseText} numberOfLines={4}>{moment.reflection}</ThemedText>
+                </View>}
               </>
             )}
           </View>
@@ -127,7 +165,34 @@ export const SavedMorningMoment = ({ moment, viewMode = 'inline' }: { moment: Mo
             <ThemedText style={styles.proverbDateText}>{proverbDate.toUpperCase()}</ThemedText>
             <ThemedText weight="semiBold" style={styles.label}>EVENING PROVERBS</ThemedText>
             <ThemedText weight="semiBold" style={styles.title}>{moment.title}</ThemedText>
-            {!!wisdomText && <><View style={styles.divider} /><ThemedText style={styles.feelingLabel}>WISDOM YOU NOTICED</ThemedText>{wisdomSelections.length ? wisdomSelections.map(selection => <View key={selection.id || selection.label} style={styles.wisdomSelection}><ThemedText weight="semiBold" style={styles.detailWisdomLabel}>{selection.label}</ThemedText>{!!selection.verses && <ThemedText style={styles.wisdomVerses}>{selection.verses}</ThemedText>}{!!selection.prompt && <ThemedText style={styles.wisdomPrompt}>{selection.prompt}</ThemedText>}{!!selection.application && <ThemedText style={styles.answer}>{selection.application}</ThemedText>}</View>) : <ThemedText style={styles.answer}>{wisdomText}</ThemedText>}</>}
+            {hasWisdomContent && <>
+              <View style={styles.divider} />
+              {!!wisdomText && <ThemedText style={styles.feelingLabel}>WISDOM YOU NOTICED</ThemedText>}
+              {visibleWisdomSelections.length ? visibleWisdomSelections.map(selection => (
+                <View key={selection.id || selection.label} style={styles.wisdomSelection}>
+                  <ThemedText weight="semiBold" style={styles.detailWisdomLabel}>{selection.label}</ThemedText>
+                  {!!selection.verses && <ProverbVerseExcerpt reference={selection.verses} />}
+                  {!!selection.prompt && <ThemedText style={styles.wisdomPrompt}>{selection.prompt}</ThemedText>}
+                  {!!selection.application && <View style={styles.wisdomResponse}>
+                    <ThemedText style={styles.feelingLabel}>YOUR RESPONSE</ThemedText>
+                    <ThemedText style={styles.wisdomResponseText}>{selection.application}</ThemedText>
+                  </View>}
+                </View>
+              )) : !!wisdomText && <ThemedText style={styles.answer}>{wisdomText}</ThemedText>}
+              {wisdomSelections.length > 1 && <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityState={{expanded: showAllWisdom}}
+                accessibilityLabel={showAllWisdom ? 'Show less wisdom' : `Show ${hiddenWisdomCount} more wisdom ${hiddenWisdomCount === 1 ? 'item' : 'items'}`}
+                style={styles.wisdomShowMore}
+                onPress={() => setShowAllWisdom(value => !value)}>
+                <Ionicons name={showAllWisdom ? 'chevron-up' : 'chevron-down'} size={13} color={Colors.sage} />
+                <ThemedText weight="medium" style={styles.viewAllText}>{showAllWisdom ? 'Show less' : `Show more (${hiddenWisdomCount})`}</ThemedText>
+              </TouchableOpacity>}
+              {!!moment.reflection?.trim() && <View style={styles.wisdomResponse}>
+                <ThemedText style={styles.feelingLabel}>YOUR RESPONSE</ThemedText>
+                <ThemedText style={styles.wisdomResponseText}>{moment.reflection}</ThemedText>
+              </View>}
+            </>}
           </ScrollView>
           <View style={[styles.proverbTopBar, { top: insets.top + 16 }]}>
             <TouchableOpacity onPress={() => { setReflectionOpen(false); handleEdit(); }} style={styles.proverbTopButton} activeOpacity={0.7} accessibilityLabel="Edit" accessibilityRole="button"><Pencil size={20} color={Colors.sage} /></TouchableOpacity>
@@ -168,6 +233,7 @@ const styles = StyleSheet.create({
   reflection: { color: Colors.text, fontSize: 16, lineHeight: 24, textAlign: 'center' },
   viewAllButton: { alignSelf: 'center', paddingHorizontal: 12, paddingTop: 8 },
   viewAllText: { color: Colors.sage, fontSize: 12 },
+  wisdomShowMore: { alignSelf: 'center', flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 12, paddingVertical: 8 },
   observations: { marginTop: 16, backgroundColor: Colors.cardBackground, borderWidth: 1.5, borderColor: Colors.inputBorder, borderRadius: 24, padding: 20 },
   observationText: { marginTop: 6 },
   divider: { height: 1, backgroundColor: Colors.cardBorder, marginVertical: 16 },
@@ -175,8 +241,9 @@ const styles = StyleSheet.create({
   feelingRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
   feeling: { color: Colors.text, fontSize: 20, lineHeight: 26 },
   wisdomSelection: { alignItems: 'center', marginBottom: 16 },
-  wisdomVerses: { color: Colors.textGray, fontSize: 12, lineHeight: 18, textAlign: 'center', marginTop: 4 },
   wisdomPrompt: { color: Colors.text, fontSize: 16, lineHeight: 24, textAlign: 'center', marginTop: 12, marginBottom: 8, fontWeight: '600' },
+  wisdomResponse: { width: '100%', marginTop: 14, paddingTop: 14, borderTopWidth: 1, borderTopColor: Colors.cardBorder },
+  wisdomResponseText: { color: Colors.text, fontSize: 15, lineHeight: 23, textAlign: 'left' },
   detailWisdomLabel: { color: Colors.text, fontSize: 20, lineHeight: 26, textAlign: 'center' },
   readStatus: { color: Colors.sage, fontSize: 12 },
   card: { backgroundColor: Colors.hopeWhite, borderWidth: 1, borderColor: Colors.cardBorder, borderRadius: 24, padding: 20 },

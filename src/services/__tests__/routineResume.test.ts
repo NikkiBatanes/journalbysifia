@@ -2,9 +2,9 @@ import { getRoutineResumeRoutes, getRoutineResumeScreen, getRoutineStepIds } fro
 
 describe('routine resume', () => {
   it('uses the real Morning step order', () => {
-    expect(getRoutineStepIds('morning')).toEqual(['emotion', 'underneath', 'psalm', 'todays_focus', 'todos', 'carry']);
+    expect(getRoutineStepIds('morning')).toEqual(['emotion', 'underneath', 'psalm', 'carry', 'todays_focus', 'todos']);
     expect(getRoutineResumeScreen('morning', [], false)).toBe('EmotionCheckIn');
-    expect(getRoutineResumeScreen('morning', ['emotion', 'underneath', 'psalm'], false)).toBe('TodaysFocus');
+    expect(getRoutineResumeScreen('morning', ['emotion', 'underneath', 'psalm'], false)).toBe('CarryIt');
   });
 
   it('uses the real Evening step order', () => {
@@ -19,13 +19,13 @@ describe('routine resume', () => {
   });
 
   it('falls through to closing if every required step persisted before completion', () => {
-    expect(getRoutineResumeScreen('morning', ['emotion', 'underneath', 'psalm', 'todays_focus', 'todos', 'carry'], false)).toBe('MorningClosing');
+    expect(getRoutineResumeScreen('morning', ['emotion', 'underneath', 'psalm', 'carry', 'todays_focus', 'todos'], false)).toBe('MorningClosing');
     expect(getRoutineResumeScreen('evening', ['gratitude', 'win', 'proverbs', 'wisdom', 'looking_forward'], false)).toBe('EveningClosing');
   });
 
   it('rebuilds prior routes so backward editing remains available after resume', () => {
     expect(getRoutineResumeRoutes('morning', ['emotion', 'underneath', 'psalm'], false)).toEqual([
-      'EmotionCheckIn', 'UnderneathIt', 'PsalmOfTheDay', 'TodaysFocus',
+      'EmotionCheckIn', 'UnderneathIt', 'PsalmOfTheDay', 'CarryIt',
     ]);
     expect(getRoutineResumeRoutes('evening', ['gratitude', 'win'], false)).toEqual([
       'Gratitude', 'Win', 'Proverbs',

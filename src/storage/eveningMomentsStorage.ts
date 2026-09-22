@@ -3,6 +3,7 @@ import { LocalJournalEntry } from './journalStorage';
 import { getAllLocalReflectionsByType } from './reflectionStorage';
 import { safeJsonParse } from '../utils/safeJsonParse';
 import { MorningMoment } from './morningMomentsStorage';
+import {resolveSavedProverbNumber} from '../services/dailyScriptureSequence';
 
 export const getEveningMoments = async (): Promise<MorningMoment[]> => {
   const keys = (await AsyncStorage.getAllKeys()).filter(key =>
@@ -75,8 +76,9 @@ export const getEveningMoments = async (): Promise<MorningMoment[]> => {
 
   for (const entry of proverbByDate.values()) {
     const metadata = entry.metadata || {};
+    const proverbNumber = resolveSavedProverbNumber(entry, Number(metadata.proverbNumber) || 1);
     const content = typeof entry.content === 'string' ? entry.content : '';
-    const wisdomSelections = Array.isArray(metadata.selectedWisdom)
+    const selectedWisdomEntries = Array.isArray(metadata.selectedWisdom)
       ? metadata.selectedWisdom.map((wisdom: any) => typeof wisdom === 'string' ? {
           id: wisdom,
           label: wisdom,
@@ -91,6 +93,13 @@ export const getEveningMoments = async (): Promise<MorningMoment[]> => {
           application: typeof metadata.wisdomApplications?.[wisdom?.id] === 'string' ? metadata.wisdomApplications[wisdom.id] : '',
         }).filter((wisdom: any) => wisdom.label)
       : [];
+    const customWisdom = typeof metadata.customWisdom === 'string' ? metadata.customWisdom.trim() : '';
+    const wisdomSelections = [
+      ...selectedWisdomEntries,
+      ...(customWisdom && !selectedWisdomEntries.some((wisdom: any) => wisdom.label === customWisdom)
+        ? [{id: 'custom', label: customWisdom, verses: '', prompt: '', application: ''}]
+        : []),
+    ];
     const selectedWisdom = wisdomSelections.map((wisdom: any) => wisdom.label);
     const application = typeof metadata.wisdomApplication === 'string' && metadata.wisdomApplication.trim()
       ? metadata.wisdomApplication
@@ -99,7 +108,7 @@ export const getEveningMoments = async (): Promise<MorningMoment[]> => {
     moments.push({
       id: entry.id,
       pluginId: 'eveningproverb',
-      title: entry.title || `Proverbs ${metadata.proverbNumber || ''}`,
+      title: `Proverbs ${proverbNumber}`,
       date: entry.selected_date,
       savedAt: entry.updated_at,
       markedRead: metadata.proverbRead === true,

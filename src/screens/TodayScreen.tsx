@@ -15,6 +15,7 @@ import PrayerToRevisit from '../components/dashboard/PrayerToRevisit';
 import JournalCalendarStrip from '../components/dashboard/JournalCalendarStrip';
 import DashboardHeaderScripture from '../components/dashboard/DashboardHeaderScripture';
 import ForMeDayCard from '../components/dashboard/ForMeDayCard';
+import LiquidGlassView from '../components/common/LiquidGlassView';
 import ThemedText from '../components/common/ThemedText';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { useScroll } from '../context/ScrollContext';
@@ -22,6 +23,7 @@ import { Colors } from '../theme/colors';
 import { Fonts } from '../theme/fonts';
 import { triggerLightHaptic } from '../utils/haptics';
 import { compareLocalDate, toLocalDateString } from '../utils/date';
+import { navigateFromRoot } from '../utils/navigationHelpers';
 import { getReviewEligibility, type ReviewEligibilityResult } from '../services/reviewEligibilityService';
 import { getLocalReviewsByType, type LocalReviewEntry, type ReviewType } from '../storage/reviewStorage';
 import { getRoutineState, type RoutineState } from '../storage/routineStateStorage';
@@ -30,12 +32,12 @@ import { getDailyRhythmCardState, getDailyRhythmContentState, type DailyRhythmCo
 import { refreshMorningWidgetSnapshot } from '../services/morningWidgetService';
 import { getDailyLine } from '../data/dailyLines';
 import { playTodayOpeningSound } from '../utils/soundUtils';
-import { seedWeeklyReviewPreviewData } from '../dev/seedPreviewData';
 import { getWeeklyRhythm, type WeeklyRhythm } from '../services/weeklyRhythmService';
+import {getActiveReviewQAContext, getReviewQAEligibilityOptions, type ActiveReviewQAContext} from '../dev/reviews/reviewQALoader';
+import {getReviewQAScenario} from '../dev/reviews/reviewQAFixtures';
 
 const CALENDAR_SHEET_HEIGHT = 60;
 const CALENDAR_SPRING = { damping: 12, stiffness: 185, mass: 0.85 };
-const REVIEW_PREVIEW_ORDER: ReviewType[] = ['weekly', 'monthly', 'quarterly', 'year_end', 'begin_year'];
 
 const SectionHeading = ({ title, detail }: { title: string; detail: string }) => (
   <View style={styles.sectionHeading}>
@@ -80,13 +82,14 @@ const TodayScreen = () => {
   const [manualDate, setManualDate] = useState(false);
   const [calendarVisible, setCalendarVisible] = useState(false);
   const calendarProgress = useSharedValue(0);
+  const statusBarBlurProgress = useSharedValue(0);
   const greetingIconScale = useSharedValue(1);
   const greetingIconRotation = useSharedValue(0);
   const greetingIconLift = useSharedValue(0);
   const [morningState, setMorningState] = useState<RoutineState | null>(null);
   const [eveningState, setEveningState] = useState<RoutineState | null>(null);
   const [previewEvening, setPreviewEvening] = useState<boolean | null>(null);
-  const [previewReviewType, setPreviewReviewType] = useState<ReviewType | null>(null);
+  const [reviewQAContext, setReviewQAContext] = useState<ActiveReviewQAContext | null>(null);
   const [futurePlanParts, setFuturePlanParts] = useState({ focus: false, todos: false });
   const [pastContent, setPastContent] = useState({ morning: false, evening: false });
   const [contentState, setContentState] = useState<DailyRhythmContentState>({
@@ -225,21 +228,25 @@ const TodayScreen = () => {
     let active = true;
     void (async () => {
       try {
-        // Seed before querying eligibility so a fresh simulator sees the
-        // populated review on its very first Today render.
-        await seedWeeklyReviewPreviewData(appPreferences?.weekStart || 'monday');
+        const qaContext = __DEV__ ? await getActiveReviewQAContext() : null;
+        const eligibilityAnchor = qaContext?.referenceDate ?? todayKey;
         const [nextEligibility, reviews] = await Promise.all([
-          getReviewEligibility(todayKey, appPreferences?.weekStart || 'monday'),
+          getReviewEligibility(
+            eligibilityAnchor,
+            appPreferences?.weekStart || 'monday',
+            qaContext ? getReviewQAEligibilityOptions(qaContext) : undefined,
+          ),
           getLocalReviewsByType('weekly'),
         ]);
         const weeklyPeriod = nextEligibility.allActive.find(item => item.type === 'weekly')?.period;
         const verifiedRhythm = weeklyPeriod
-          ? await getWeeklyRhythm(weeklyPeriod.periodStart, weeklyPeriod.periodEnd, todayKey)
+          ? await getWeeklyRhythm(weeklyPeriod.periodStart, weeklyPeriod.periodEnd, eligibilityAnchor)
           : null;
         if (!active) { return; }
         // Commit both sources together so review cards cannot insert at
         // different points in the opening stagger.
         setEligibility(nextEligibility);
+        setReviewQAContext(qaContext);
         setWeeklyReviews(reviews);
         setSeededWeeklyRhythm(verifiedRhythm);
         setReviewDataReady(true);
@@ -320,6 +327,7 @@ const TodayScreen = () => {
       const frame = requestAnimationFrame(() => scrollRef.current?.scrollTo({ y: 0, animated: false }));
       lastScrollYRef.current = 0;
       tabBarCollapsedRef.current = false;
+      statusBarBlurProgress.value = 0;
       setShowTabBar(true);
 
       return () => {
@@ -332,7 +340,7 @@ const TodayScreen = () => {
         tabBarCollapsedRef.current = false;
         setShowTabBar(true);
       };
-    }, [setShowTabBar, displayDate, isFutureDate])
+    }, [setShowTabBar, displayDate, isFutureDate, statusBarBlurProgress])
   );
 
   useEffect(() => {
@@ -341,95 +349,26 @@ const TodayScreen = () => {
     }
   }, [showTabBar]);
 
-  const selectedWeekStart = format(startOfWeek(displayDate, { weekStartsOn }), 'yyyy-MM-dd');
-  const selectedWeekEnd = format(endOfWeek(displayDate, { weekStartsOn }), 'yyyy-MM-dd');
+  const qaScenario = reviewQAContext ? getReviewQAScenario(reviewQAContext.scenarioId) : null;
+  const selectedWeekStart = qaScenario?.type === 'weekly'
+    ? qaScenario.period.periodStart
+    : format(startOfWeek(displayDate, { weekStartsOn }), 'yyyy-MM-dd');
+  const selectedWeekEnd = qaScenario?.type === 'weekly'
+    ? qaScenario.period.periodEnd
+    : format(endOfWeek(displayDate, { weekStartsOn }), 'yyyy-MM-dd');
   const selectedWeeklyReview = weeklyReviews.find(review =>
     review.status === 'completed'
     && review.periodStart === selectedWeekStart
     && review.periodEnd === selectedWeekEnd,
   ) ?? null;
 
-  const previewEligibility = useMemo<ReviewEligibilityResult | null>(() => {
-    if (!__DEV__ || !previewReviewType) { return null; }
-
-    const year = displayDate.getFullYear();
-    const month = displayDate.getMonth();
-    const previewDates: Record<ReviewType, { start: Date; end: Date }> = {
-      weekly: {
-        start: startOfWeek(displayDate, { weekStartsOn }),
-        end: endOfWeek(displayDate, { weekStartsOn }),
-      },
-      monthly: {
-        start: new Date(year, month, 1),
-        end: new Date(year, month + 1, 0),
-      },
-      quarterly: {
-        start: new Date(year, Math.floor(month / 3) * 3, 1),
-        end: new Date(year, Math.floor(month / 3) * 3 + 3, 0),
-      },
-      year_end: {
-        start: new Date(year, 0, 1),
-        end: new Date(year, 11, 31),
-      },
-      begin_year: {
-        start: new Date(year, 0, 1),
-        end: new Date(year, 0, 14),
-      },
-    };
-    const dates = previewDates[previewReviewType];
-    const periodStart = format(dates.start, 'yyyy-MM-dd');
-    const periodEnd = format(dates.end, 'yyyy-MM-dd');
-    const previewMemories = previewReviewType === 'begin_year' ? [] : [
-      { kind: 'prayer' as const, id: 'preview-prayer', selectedDate: periodEnd },
-      { kind: 'gratitude' as const, id: 'preview-gratitude', selectedDate: periodEnd },
-      { kind: 'win' as const, id: 'preview-win', selectedDate: periodEnd },
-      { kind: 'scripture' as const, id: 'preview-scripture', selectedDate: periodEnd },
-      { kind: 'reflection' as const, id: 'preview-reflection', selectedDate: periodEnd },
-    ];
-    const previewAnswers: Record<string, string> = previewReviewType === 'begin_year'
-      ? {
-          begin_year_priority_1: 'Walk closely with God',
-          begin_year_priority_2: 'Make room for family',
-          posture: 'Open-handed',
-          scripture_begin: 'Proverbs 3:5–6',
-          faithfulness_begin: 'Be present in ordinary days',
-          surrender: 'The outcomes I cannot control',
-        }
-      : previewReviewType === 'quarterly'
-        ? { quarter_priority_1: 'Protect what matters', quarter_priority_2: 'Finish faithfully' }
-        : previewReviewType === 'year_end'
-          ? { carry: 'God was faithful through every season.' }
-          : { next_month_priority_1: 'Begin with prayer', next_month_priority_2: 'Stay present' };
-    const preview = {
-      type: previewReviewType,
-      period: {
-        type: previewReviewType,
-        periodStart,
-        periodEnd,
-        availableFrom: periodStart,
-        availableUntil: null,
-      },
-      review: {
-        id: `preview-${previewReviewType}`,
-        type: previewReviewType,
-        periodStart,
-        periodEnd,
-        status: 'draft' as const,
-        memorableItems: previewMemories,
-        answers: previewAnswers,
-        createdAt: new Date(0).toISOString(),
-        updatedAt: new Date(0).toISOString(),
-      },
-    };
-    return { main: preview, alsoReady: [], allActive: [preview] };
-  }, [displayDate, previewReviewType, weekStartsOn]);
-
-  const displayedEligibility = previewEligibility ?? eligibility;
+  const displayedEligibility = eligibility;
 
   const handleScroll = useCallback((event: any) => {
     const y = Math.max(0, event.nativeEvent.contentOffset.y);
     const isScrollingUp = y < lastScrollYRef.current;
     lastScrollYRef.current = y;
+    statusBarBlurProgress.value = y;
 
     if (calendarVisible) {
       setCalendarVisible(false);
@@ -443,7 +382,7 @@ const TodayScreen = () => {
       tabBarCollapsedRef.current = false;
       setShowTabBar(true);
     }
-  }, [setShowTabBar, calendarVisible, calendarProgress]);
+  }, [setShowTabBar, calendarVisible, calendarProgress, statusBarBlurProgress]);
 
   const toggleCalendar = useCallback(() => {
     triggerLightHaptic();
@@ -458,17 +397,19 @@ const TodayScreen = () => {
     transform: [{ scaleY: 0.96 + Math.min(1, calendarProgress.value) * 0.04 }],
   }));
 
+  const statusBarBlurStyle = useAnimatedStyle(() => ({
+    opacity: Math.min(1, Math.max(0, statusBarBlurProgress.value / 18)),
+  }));
+
   const reviewCard = useMemo(() => {
     if (!displayedEligibility?.main) {return null;}
     const main = displayedEligibility.main;
-    if (main.review.status === 'completed') {return null;}
-
     if (main.type === 'weekly') {
       return <WeeklyReviewCard
         key={`${main.period.periodStart}:${main.period.periodEnd}`}
         periodStart={main.period.periodStart}
         periodEnd={main.period.periodEnd}
-        started={main.review.memorableItems.length > 0 || Object.values(main.review.answers).some(answer => answer.trim().length > 0)}
+        started={main.state === 'in_progress'}
         seededRhythm={seededWeeklyRhythm}
         alsoReady={displayedEligibility.alsoReady.map(item => item.type.replace('_', ' ')).join(', ')}
         onBegin={() => (navigation as any).navigate('Journal', {
@@ -490,6 +431,7 @@ const TodayScreen = () => {
     return (
       <ReviewOverviewCard
         review={main.review}
+        reviewType={main.type as Exclude<ReviewType, 'weekly'>}
         periodLabel={periodText}
         alsoReady={displayedEligibility.alsoReady.map(item => item.type.replace('_', ' ')).join(', ')}
         onBegin={() => {
@@ -539,6 +481,20 @@ const TodayScreen = () => {
           </Animated.View>
           <View style={styles.headerIconsRow}>
             <TouchableOpacity
+              style={styles.onboardingButton}
+              activeOpacity={0.7}
+              onPress={() => {
+                triggerLightHaptic();
+                navigateFromRoot(navigation, 'JournalOnboarding', { mode: 'replay' });
+              }}
+              accessibilityRole="button"
+              accessibilityLabel="Open journal setup"
+              accessibilityHint="Replays the journal setup and getting started guide"
+            >
+              <Ionicons name="compass-outline" size={17} color={Colors.sage} />
+              <ThemedText weight="semiBold" style={styles.onboardingButtonText}>Setup</ThemedText>
+            </TouchableOpacity>
+            <TouchableOpacity
               style={styles.calendarButton}
               activeOpacity={0.7}
               onPress={toggleCalendar}
@@ -572,11 +528,15 @@ const TodayScreen = () => {
           />
         </View>
 
+        {reviewDataReady && dateContext === 'today' && reviewCard ? (
+          <Animated.View key={`review-hero-${staggerRun}`} entering={FadeInUp.springify().damping(14).stiffness(180)}>
+            {reviewCard}
+          </Animated.View>
+        ) : null}
+
         {dateContext === 'today' ? <ForMeDayCard /> : null}
 
         {reviewDataReady ? <Stagger key={staggerRun}>
-        {dateContext === 'today' ? <React.Fragment key="review-card">{reviewCard}</React.Fragment> : null}
-
         <SectionHeading key="rhythm-heading" title={rhythmTitle} detail={rhythmDetail} />
         <TouchableOpacity
           key="rhythm-card"
@@ -681,24 +641,25 @@ const TodayScreen = () => {
 
         {__DEV__ && (
           <TouchableOpacity
-            key="review-preview"
+            key="prayer-v2-demo"
             style={styles.routinePreviewButton}
             accessibilityRole="button"
-            accessibilityLabel="Preview review cards"
-            onPress={() => {
-              triggerLightHaptic();
-              setPreviewReviewType(current => {
-                if (current === null) { return REVIEW_PREVIEW_ORDER[0]; }
-                const nextIndex = REVIEW_PREVIEW_ORDER.indexOf(current) + 1;
-                return nextIndex < REVIEW_PREVIEW_ORDER.length ? REVIEW_PREVIEW_ORDER[nextIndex] : null;
-              });
-            }}
+            accessibilityLabel="Open Prayer V2 demo data"
+            onPress={() => (navigation as any).navigate('Journal', { screen: 'PrayerV2Demo' })}
           >
-            <ThemedText style={styles.routinePreviewText}>
-              {previewReviewType
-                ? `Preview: ${previewReviewType.replace('_', ' ')}`
-                : 'Preview reviews'}
-            </ThemedText>
+            <ThemedText style={styles.routinePreviewText}>Prayer V2 demo data</ThemedText>
+          </TouchableOpacity>
+        )}
+
+        {__DEV__ && (
+          <TouchableOpacity
+            key="review-qa"
+            style={styles.routinePreviewButton}
+            accessibilityRole="button"
+            accessibilityLabel="Open Weekly Review QA"
+            onPress={() => (navigation as any).navigate('Journal', { screen: 'ReviewQA' })}
+          >
+            <ThemedText style={styles.routinePreviewText}>Weekly Review QA</ThemedText>
           </TouchableOpacity>
         )}
 
@@ -823,19 +784,6 @@ const TodayScreen = () => {
 
         {dateContext === 'today' && <React.Fragment key="prayer-section">
         <SectionHeading title="PRAYER" detail="bring it before God" />
-        <TouchableOpacity
-          style={[styles.card, styles.rowCard]}
-          activeOpacity={0.7}
-          accessibilityRole="button"
-          accessibilityLabel="Open Prayer"
-          onPress={() => { triggerLightHaptic(); (navigation as any).navigate('Prayer'); }}>
-          <IconTile icon="clover" family="material" />
-          <View style={styles.rowCopy}>
-            <ThemedText weight="bold" style={styles.rowTitle}>Prayer Journal</ThemedText>
-            <ThemedText style={styles.meta}>Open Prayer · CAST · Pray for Someone</ThemedText>
-          </View>
-          <Ionicons name="chevron-forward" size={24} color={Colors.chevronColor} />
-        </TouchableOpacity>
         <PrayerToRevisit />
         </React.Fragment>}
 
@@ -865,12 +813,23 @@ const TodayScreen = () => {
 
         </Stagger> : null}
       </ScrollView>
+      <Animated.View
+        pointerEvents="none"
+        style={[styles.statusBarBlur, { height: insets.top + 30 }, statusBarBlurStyle]}
+      >
+        <LiquidGlassView
+          style={StyleSheet.absoluteFill}
+          tintColor="rgba(248, 247, 242, 0.22)"
+          fadesToTransparent
+        />
+      </Animated.View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: Colors.lightBackground },
+  statusBarBlur: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 20, overflow: 'hidden' },
   scroll: { flex: 1 },
   content: { paddingHorizontal: 18, maxWidth: 760, width: '100%', alignSelf: 'center' },
   date: { color: Colors.sageMuted, fontFamily: Fonts.semiBold, fontSize: 12, lineHeight: 16, letterSpacing: 1.8 },
@@ -880,6 +839,8 @@ const styles = StyleSheet.create({
   subtitle: { color: Colors.textGray, fontFamily: Fonts.regular, fontSize: 15, lineHeight: 22, marginTop: 2, marginBottom: 4 },
   headerColumn: { width: '100%', alignItems: 'center', marginBottom: 24 },
   headerIconsRow: { flexDirection: 'row', justifyContent: 'flex-end', width: '100%', padding: 4, gap: 4 },
+  onboardingButton: { minHeight: 32, paddingHorizontal: 11, borderRadius: 16, flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: Colors.anchorBlueLight },
+  onboardingButtonText: { color: Colors.sage, fontSize: 11, lineHeight: 15 },
   notificationsButton: { padding: 4 },
   calendarButton: { padding: 4 },
   headerGreeting: { width: '100%', alignItems: 'flex-start' },

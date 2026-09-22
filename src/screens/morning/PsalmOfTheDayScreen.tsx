@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Animated, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import { differenceInCalendarDays } from 'date-fns';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
@@ -9,7 +8,6 @@ import ThemedText from '../../components/common/ThemedText';
 import { BibleCopyrightModal } from '../../components/BibleCopyrightModal';
 import { Colors } from '../../theme/colors';
 import { Fonts, type FontFamily, getFontFamily } from '../../theme/fonts';
-import { toLocalDateString } from '../../utils/date';
 import { triggerLightHaptic, triggerSuccessHaptic } from '../../utils/haptics';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { useRoutine } from '../../context/RoutineContext';
@@ -22,6 +20,8 @@ import {
   getLocalReflections,
   updateLocalReflection,
 } from '../../storage/reflectionStorage';
+import {getDailyPsalmNumber} from '../../services/dailyScriptureSequence';
+import {useDailyScriptureSequenceAnchor} from '../../hooks/useDailyScriptureSequenceAnchor';
 
 type TextAlign = 'left' | 'center' | 'right' | 'justify';
 
@@ -47,15 +47,16 @@ const LETTER_SPACING_OPTIONS = [0, 0.5, 1, 2];
 
 const PsalmOfTheDayScreen = () => {
   const navigation = useNavigation<any>();
+  const route = useRoute<any>();
   const { user } = useAuth();
   const { selectedDate, markStepCompleted } = useRoutine();
+  const {anchor: scriptureSequenceAnchor, ready: scriptureSequenceReady} = useDailyScriptureSequenceAnchor(user?.created_at);
 
-  const psalmNumber = useMemo(() => {
-    const createdAt = (user as any)?.created_at;
-    const start = createdAt ? new Date(createdAt) : new Date();
-    const dayIndex = Math.max(0, differenceInCalendarDays(new Date(), start));
-    return (dayIndex % 150) + 1;
-  }, [user]);
+  const fallbackPsalmNumber = useMemo(() => {
+    return getDailyPsalmNumber(selectedDate, scriptureSequenceAnchor);
+  }, [scriptureSequenceAnchor, selectedDate]);
+  const [psalmNumber, setPsalmNumber] = useState(fallbackPsalmNumber);
+  const [psalmIdentityReady, setPsalmIdentityReady] = useState(false);
 
   const [psalmText, setPsalmText] = useState<string | null>(null);
   const [psalmVerses, setPsalmVerses] = useState<{ number: string; lines: string[] }[] | null>(null);
@@ -83,20 +84,36 @@ const PsalmOfTheDayScreen = () => {
   const dateStr = selectedDate;
 
   useEffect(() => {
+    if (!scriptureSequenceReady) {return;}
     let mounted = true;
+    setPsalmIdentityReady(false);
+    setPsalmLoading(true);
     (async () => {
       const entries = await getLocalReflections('scripture', dateStr);
       if (!mounted) {return;}
       const existing = entries
         .filter(e => e.source === 'morning_psalm' || e.metadata?.source === 'morning_psalm')
         .sort((a, b) => b.updated_at.localeCompare(a.updated_at))[0];
+      // The account/date sequence is canonical. Route params and an older
+      // incorrectly saved chapter must never change today's assigned Psalm.
+      setPsalmNumber(fallbackPsalmNumber);
       if (existing) {
         setHasReadPsalm(Boolean(existing.metadata?.psalmRead));
         setPsalmReflectionId(existing.id);
+      } else {
+        setHasReadPsalm(false);
+        setPsalmReflectionId(null);
       }
-    })();
+      setPsalmIdentityReady(true);
+    })().catch(error => {
+      console.error('Error resolving saved Psalm number:', error);
+      if (mounted) {
+        setPsalmNumber(fallbackPsalmNumber);
+        setPsalmIdentityReady(true);
+      }
+    });
     return () => { mounted = false; };
-  }, [dateStr, psalmNumber]);
+  }, [dateStr, fallbackPsalmNumber, scriptureSequenceReady]);
 
   const psalmLines = useMemo(() => {
     if (!psalmText) { return []; }
@@ -105,6 +122,7 @@ const PsalmOfTheDayScreen = () => {
   }, [psalmText]);
 
   useEffect(() => {
+    if (!psalmIdentityReady) {return;}
     let cancelled = false;
     setPsalmLoading(true);
     setPsalmError(null);
@@ -124,13 +142,14 @@ const PsalmOfTheDayScreen = () => {
         if (!cancelled) { setPsalmLoading(false); }
       });
     return () => { cancelled = true; };
-  }, [psalmNumber, psalmRetry]);
+  }, [psalmIdentityReady, psalmNumber, psalmRetry]);
 
   const onNext = React.useCallback(async () => {
     triggerLightHaptic();
 
     const metadata = {
       psalmNumber,
+      psalmReference: `Psalm ${psalmNumber}`,
       psalmRead: hasReadPsalm,
       source: 'morning_psalm',
     };
@@ -187,8 +206,13 @@ const PsalmOfTheDayScreen = () => {
       'psalm',
     );
 
-    navigation.navigate('TodaysFocus');
-  }, [hasReadPsalm, markStepCompleted, navigation, psalmNumber, psalmReflectionId, dateStr]);
+    navigation.navigate('CarryIt', {
+      returnToClosing: Boolean(route.params?.returnToClosing),
+      psalmNumber,
+      selectedAttributes: route.params?.selectedAttributes,
+      customAttribute: route.params?.customAttribute,
+    });
+  }, [hasReadPsalm, markStepCompleted, navigation, psalmNumber, psalmReflectionId, dateStr, route.params?.customAttribute, route.params?.returnToClosing, route.params?.selectedAttributes]);
 
   const togglePsalmRead = React.useCallback(() => {
     if (hasReadPsalm) {

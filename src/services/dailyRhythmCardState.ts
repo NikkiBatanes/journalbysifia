@@ -58,7 +58,13 @@ export const getDailyRhythmCardState = ({
   }
 
   if (completed) {
-    return { title: period === 'evening' ? 'Your evening is saved.' : 'Your morning is saved.', cta: allDisplayedContent ? 'View' : 'Continue', hasPlan };
+    return {
+      title: period === 'evening'
+        ? 'Your evening reflection is saved.'
+        : 'Your morning reflection is saved.',
+      cta: allDisplayedContent ? 'View' : 'Continue',
+      hasPlan,
+    };
   }
   return {
     title: period === 'evening' ? 'Close your day.' : 'Begin your day.',

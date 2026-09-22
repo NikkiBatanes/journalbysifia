@@ -1,5 +1,5 @@
 import React, {useCallback, useMemo, useState} from 'react';
-import {ScrollView, StatusBar, StyleSheet, TouchableOpacity, View} from 'react-native';
+import {Platform, ScrollView, StatusBar, StyleSheet, TouchableOpacity, View} from 'react-native';
 import {SafeAreaView, useSafeAreaInsets} from 'react-native-safe-area-context';
 import {useFocusEffect, useNavigation, useRoute} from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -12,6 +12,7 @@ import {formatReviewPeriod} from './PastReviewsScreen';
 
 const ReviewReaderScreen: React.FC = () => {
   const navigation = useNavigation<any>(); const route = useRoute<any>(); const insets = useSafeAreaInsets();
+  const topInset = Math.max(insets.top, Platform.OS === 'android' ? StatusBar.currentHeight ?? 0 : 0);
   const [review, setReview] = useState<LocalReviewEntry | null>(null);
   const type = route.params?.type as ReviewType; const id = route.params?.reviewId as string;
   useFocusEffect(useCallback(() => {getLocalReview(type, id).then(setReview);}, [type, id]));
@@ -23,9 +24,9 @@ const ReviewReaderScreen: React.FC = () => {
       return [];
     });
   }, [review]);
-  if (!review) return <SafeAreaView style={styles.safeArea} />;
-  return <SafeAreaView style={styles.safeArea} edges={['top']}>
-    <StatusBar barStyle="dark-content" backgroundColor={Colors.lightBackground} />
+  if (!review) return <SafeAreaView style={[styles.safeArea, {paddingTop: topInset}]} edges={['left', 'right']} />;
+  return <SafeAreaView style={[styles.safeArea, {paddingTop: topInset}]} edges={['left', 'right']}>
+    <StatusBar barStyle="dark-content" backgroundColor={Colors.lightBackground} translucent={false} />
     <View style={styles.header}><TouchableOpacity style={styles.headerButton} onPress={() => navigation.goBack()} accessibilityLabel="Go back"><Ionicons name="arrow-back" size={22} color={Colors.text} /></TouchableOpacity><ThemedText weight="semiBold" style={styles.headerTitle}>{formatReviewPeriod(review)}</ThemedText><View style={styles.headerButton} /></View>
     <ScrollView contentContainerStyle={[styles.content,{paddingBottom:insets.bottom + 32}]} showsVerticalScrollIndicator={false}>
       <ThemedText weight="semiBold" style={styles.eyebrow}>{review.type.replace('_',' ').toUpperCase()} REVIEW</ThemedText><ThemedText weight="bold" style={styles.title}>{formatReviewPeriod(review)}</ThemedText><ThemedText style={styles.subtitle}>A chapter from the life you lived.</ThemedText><View style={styles.rule} />

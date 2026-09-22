@@ -29,7 +29,7 @@ export type RootStackParamList = {
   OnboardingNotificationSetup: undefined;
 
   // Journal first-launch onboarding (local AsyncStorage flag, no auth)
-  JournalOnboarding: undefined;
+  JournalOnboarding: { mode?: 'firstRun' | 'replay' } | undefined;
 
   // Main App
   MainTabs: undefined;
@@ -118,6 +118,9 @@ export type RootStackParamList = {
     initialPrayerType?: 'prayer-request' | 'pray-for-someone';
     initialPrayerText?: string;
     initialTrackAnswered?: boolean;
+    originalRequestId?: string;
+    originalRequestText?: string;
+    originalRequestContext?: string;
     subtaskTitle?: string;
     subtaskId?: string;
     stepId?: string;

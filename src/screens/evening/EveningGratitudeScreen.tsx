@@ -8,6 +8,7 @@ import { withErrorBoundary } from '../../components/ErrorBoundary/withErrorBound
 import { Colors } from '../../theme/colors';
 import { toLocalDateString } from '../../utils/date';
 import { useRoutine } from '../../context/RoutineContext';
+import {useAuth} from '../../context/IndustryStandardAuthContext';
 import { fromLocalDateString } from '../../utils/date';
 import { preloadScripturePassages } from '../../services/scriptureReaderService';
 import {
@@ -16,22 +17,26 @@ import {
   getLocalJournalEntry,
   updateLocalJournalEntry,
 } from '../../storage/journalStorage';
+import {getDailyProverbNumber} from '../../services/dailyScriptureSequence';
+import {useDailyScriptureSequenceAnchor} from '../../hooks/useDailyScriptureSequenceAnchor';
 
 const EveningGratitudeScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const { selectedDate, markStepCompleted } = useRoutine();
+  const {user} = useAuth();
   const selectedDateObj = fromLocalDateString(selectedDate);
   const dateStr = toLocalDateString(selectedDateObj);
 
   const [gratitudeId, setGratitudeId] = React.useState<string | null>(null);
   const [initialItems, setInitialItems] = React.useState<string[]>(['', '', '']);
   const [isLoading, setIsLoading] = React.useState(true);
+  const {anchor: scriptureSequenceAnchor, ready: scriptureSequenceReady} = useDailyScriptureSequenceAnchor(user?.created_at);
 
   React.useEffect(() => {
-    const day = parseInt(selectedDate.split('-')[2] || '0', 10);
-    const proverbNumber = Math.min(Math.max(day, 1), 31);
+    if (!scriptureSequenceReady) {return;}
+    const proverbNumber = getDailyProverbNumber(selectedDate, scriptureSequenceAnchor);
     preloadScripturePassages([`Proverbs ${proverbNumber}`]);
-  }, [selectedDate]);
+  }, [scriptureSequenceAnchor, scriptureSequenceReady, selectedDate]);
 
   React.useEffect(() => {
     let mounted = true;

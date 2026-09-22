@@ -37,6 +37,8 @@
 	<string>siFia uses your location to personalize your experience (for example, local pricing and regional content). We only access your location when the app is in use.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>siFia may access your location to personalize your experience (for example, local pricing and regional content). Location is only used to improve the app experience and is not shared.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>siFia uses your microphone when you choose to add a voice note to your journal.</string>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>siFia connects to the local development server when running debug builds.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>

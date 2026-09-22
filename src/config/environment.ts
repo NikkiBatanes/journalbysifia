@@ -74,20 +74,4 @@ export const validateEnvironment = () => {
   return missing.length === 0;
 };
 
-// Alternative for Expo (if you switch back)
-export const EXPO_ENV = {
-  SUPABASE_URL: process.env.EXPO_PUBLIC_SUPABASE_URL,
-  SUPABASE_ANON_KEY: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
-  // ... other expo variables
-} as const;
-
-// Auto-detect environment type
-export const getEnvironmentConfig = () => {
-  // Check if we're in Expo environment
-  if (typeof process !== 'undefined' && process.env.EXPO_PUBLIC_SUPABASE_URL) {
-    return EXPO_ENV;
-  }
-
-  // Default to bare React Native config
-  return ENV;
-};
+export const getEnvironmentConfig = () => ENV;

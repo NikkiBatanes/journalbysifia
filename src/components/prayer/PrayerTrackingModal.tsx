@@ -1,33 +1,37 @@
 import { triggerLightHaptic } from '../../utils/haptics';
 import React, { useState } from 'react';
 import { Alert, StyleSheet, TouchableOpacity, View } from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import PrayerDetails, { type PrayerChanges } from './PrayerDetails';
 import PrayerWritingSheet from './PrayerWritingSheet';
 import PrayerNeedPicker from './PrayerNeedPicker';
 import ThemedText from '../common/ThemedText';
 import { Colors } from '../../theme/colors';
 import { PrayerApiEntry } from '../../services/api/prayerApi';
+import type { PrayerResponseOperations } from './PrayerResponseSheet';
 
 import { prayerNeeds, trackingStatus, type PrayerUpdateKind, describePrayerUpdate } from '../../utils/prayerTracking';
-export default function PrayerTrackingModal({ prayer, onClose, onSave, mode = 'details', onShowDetails, onDelete, initialNeedId }: { initialNeedId?: string; mode?: 'update' | 'details'; onShowDetails?: () => void; onDelete?: () => Promise<void>; prayer?: PrayerApiEntry; onClose: () => void; onSave: (data: PrayerChanges) => Promise<void> }) {
+export default function PrayerTrackingModal({ prayer, onClose, onSave, mode = 'details', onShowDetails, onDelete, onPrayNow, initialNeedId, responseOperations }: { initialNeedId?: string; mode?: 'update' | 'details'; onShowDetails?: () => void; onDelete?: () => Promise<void>; onPrayNow?: (prayer: PrayerApiEntry) => void; prayer?: PrayerApiEntry; onClose: () => void; onSave: (data: PrayerChanges) => Promise<void>; responseOperations?: PrayerResponseOperations }) {
   const needs = prayer ? prayerNeeds(prayer) : [];
   const [note, setNote] = useState('');
   const [updateKind, setUpdateKind] = useState<PrayerUpdateKind>(prayer && trackingStatus(prayer) === 'answered' ? 'answered' : prayer && trackingStatus(prayer) === 'closed' ? 'situation-changed' : 'still-praying');
   const [updateNeedId, setUpdateNeedId] = useState<string | undefined>(initialNeedId);
   const [saving, setSaving] = useState(false);
   const [continueAfterAnswer, setContinueAfterAnswer] = useState(false);
+  const [answerDate, setAnswerDate] = useState(new Date());
+  const [showAnswerDate, setShowAnswerDate] = useState(false);
   const pill = (label: string, active: boolean, action: () => void) => <TouchableOpacity key={label} disabled={saving} style={[styles.pill, active && styles.active]} onPress={() => { triggerLightHaptic(); return (action)(); }}><ThemedText weight="semiBold" style={{ color: active ? Colors.hopeWhite : Colors.sage, fontSize: 12 }}>{label}</ThemedText></TouchableOpacity>;
   const saveUpdate = async () => {
     if (!prayer || !note.trim() || saving) return;
     setSaving(true);
     try {
-      await onSave(describePrayerUpdate(prayer, note, updateKind, updateNeedId, new Date().toISOString(), continueAfterAnswer));
+      await onSave(describePrayerUpdate(prayer, note, updateKind, updateNeedId, updateKind === 'answered' ? answerDate.toISOString() : new Date().toISOString(), continueAfterAnswer));
       onClose();
     } catch { Alert.alert('Could not save', 'Your note is still here. Please try again.'); }
     finally { setSaving(false); }
   };
-  if (mode === 'details' && prayer?.metadata?.prayer_need) return <PrayerNeedPicker prayer={prayer} onClose={onClose} onSave={onSave} onDelete={onDelete} renderUpdate={(current, save, close) => <PrayerTrackingModal prayer={current} mode="update" onSave={save} onClose={close} onDelete={onDelete ? async () => { await onDelete(); onClose(); } : undefined} />} />;
-  if (mode === 'details' && prayer) return <PrayerDetails prayer={prayer} onClose={onClose} onSave={onSave} onDelete={onDelete} renderUpdate={(current, save, close) => <PrayerTrackingModal prayer={current} mode="update" onSave={save} onClose={close} onDelete={onDelete ? async () => { await onDelete(); onClose(); } : undefined} />} />;
+  if (mode === 'details' && prayer?.metadata?.prayer_need) return <PrayerNeedPicker prayer={prayer} selectedNeedId={initialNeedId} onClose={onClose} onSave={onSave} onDelete={onDelete} renderUpdate={(current, save, close) => <PrayerTrackingModal prayer={current} mode="update" onSave={save} onClose={close} onDelete={onDelete ? async () => { await onDelete(); onClose(); } : undefined} />} />;
+  if (mode === 'details' && prayer) return <PrayerDetails prayer={prayer} onClose={onClose} onSave={onSave} onDelete={onDelete} onPrayNow={onPrayNow} responseOperations={responseOperations} renderUpdate={(current, save, close) => <PrayerTrackingModal prayer={current} mode="update" onSave={save} onClose={close} onDelete={onDelete ? async () => { await onDelete(); onClose(); } : undefined} responseOperations={responseOperations} />} />;
   if (mode === 'update' && prayer) return <PrayerWritingSheet title={prayer.person_name || (prayer.metadata?.prayer_style === 'cast' ? 'CAST Prayer' : prayer.metadata?.prayer_style === 'open' ? 'Open Prayer' : 'Your prayer')} eyebrow="ADD UPDATE" context={prayer.content} contextLabel="YOUR PRAYER" placeholder="What has changed since you prayed?" value={note} onChangeText={setNote} onClose={onClose} onSave={saveUpdate} saving={saving} saveLabel="Save update" keepAfterInputVisible compactInput hideSaveUntilTyped onShowDetails={onShowDetails} maxLength={500} saveEnabled={updateKind !== 'answered' || needs.length < 2 || !!updateNeedId}
     beforeInput={<><ThemedText weight="semiBold" style={styles.updateHeading}>WHAT HAS CHANGED?</ThemedText><ThemedText style={styles.updateHint}>Write an update about what’s happened since you prayed.</ThemedText></>}
     afterInput={<>
@@ -39,6 +43,7 @@ export default function PrayerTrackingModal({ prayer, onClose, onSave, mode = 'd
         { kind: 'situation-changed', label: 'Something changed', subtitle: 'Add to history', icon: 'sync-outline' },
       ] as const).map(choice => <TouchableOpacity key={choice.kind} disabled={saving} accessibilityRole="radio" accessibilityState={{ selected: updateKind === choice.kind }} style={[styles.updateChoice, { width: choice.kind === 'situation-changed' ? '38%' : '29%' }, updateKind === choice.kind && styles.updateChoiceActive]} onPress={() => { triggerLightHaptic(); return (() => setUpdateKind(choice.kind))(); }}><ThemedText weight="semiBold" style={styles.updateChoiceText} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.65}>{choice.label}</ThemedText><ThemedText style={styles.updateChoiceSubtitle} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.65}>{choice.subtitle}</ThemedText></TouchableOpacity>)}</View>
       {needs.length > 1 && <><ThemedText style={styles.updateHint}>{updateKind === 'answered' ? 'Which need did God answer?' : 'For a specific need? (Optional)'}</ThemedText><View style={styles.row}>{needs.map(need => pill(need.text, updateNeedId === need.id, () => setUpdateNeedId(updateNeedId === need.id ? undefined : need.id)))}</View></>}
+      {updateKind === 'answered' && <><ThemedText weight="semiBold" style={styles.updateHeading}>WHEN DID YOU NOTICE THIS ANSWER?</ThemedText><TouchableOpacity style={styles.dateButton} onPress={() => { triggerLightHaptic(); setShowAnswerDate(true); }}><ThemedText style={styles.updateChoiceText}>{answerDate.toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}</ThemedText></TouchableOpacity>{showAnswerDate && <DateTimePicker value={answerDate} mode="date" maximumDate={new Date()} onChange={(_event, value) => { setShowAnswerDate(false); if (value) setAnswerDate(value); }} />}</>}
       {updateKind === 'answered' && <TouchableOpacity accessibilityRole="checkbox" accessibilityState={{ checked: continueAfterAnswer }} style={styles.continueRow} onPress={() => { triggerLightHaptic(); setContinueAfterAnswer(value => !value); }}><ThemedText weight="semiBold" style={styles.updateChoiceText}>Continue praying</ThemedText><ThemedText style={styles.updateHint}>Keep this in Still Praying after recording the answer.</ThemedText></TouchableOpacity>}
     </>}
   />;
@@ -56,4 +61,5 @@ const styles = StyleSheet.create({
   pill: { borderWidth: 1, borderColor: Colors.cardBorder, borderRadius: 20, paddingHorizontal: 14, paddingVertical: 10, alignSelf: 'flex-start' },
   active: { backgroundColor: Colors.sage, borderColor: Colors.sage },
   continueRow: { borderWidth: 1, borderColor: Colors.cardBorder, borderRadius: 18, padding: 12, marginTop: 8 },
+  dateButton: { borderWidth: 1, borderColor: Colors.cardBorder, borderRadius: 18, padding: 12, marginBottom: 8, alignItems: 'center' },
 });

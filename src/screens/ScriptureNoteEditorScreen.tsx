@@ -65,7 +65,7 @@ const blocksToPlainText = (blocks: GuidedReflectionNote[]) =>
   blocks
     .map(block => {
       if (block.kind === 'text') return block.text.trim();
-      return [JOURNAL_BLOCKS[block.kind].label, block.reference?.trim(), block.text.trim()]
+      return [JOURNAL_BLOCKS[block.kind].label, block.reference?.trim(), block.text.trim(), block.secondary?.trim()]
         .filter(Boolean)
         .join('\n');
     })
@@ -569,7 +569,7 @@ const ScriptureNoteEditorScreen: React.FC = () => {
               return (
                 <JournalInlineBlock
                   key={block.id}
-                  block={{ id: block.id, kind: block.kind, text: block.text }}
+                  block={{ id: block.id, kind: block.kind, text: block.text, secondary: block.secondary }}
                   configOverride={block.kind === 'text' ? undefined : JOURNAL_BLOCKS[block.kind]}
                   tone="onDark"
                   textPlaceholder="Write about this passage…"
@@ -583,6 +583,7 @@ const ScriptureNoteEditorScreen: React.FC = () => {
                     }
                   }}
                   onChangeText={text => updateBlock({ text })}
+                  onChangeSecondary={secondary => updateBlock({ secondary })}
                   onDelete={() => commitBlocks(journalBlocks.filter(item => item.id !== block.id))}
                   renderScripture={block.kind === 'scripture' ? () => (
                     <View>
@@ -804,6 +805,12 @@ const styles = StyleSheet.create({
     lineHeight: 21,
     color: Colors.hopeWhite,
     textAlignVertical: 'top',
+  },
+  secondaryInput: {
+    paddingTop: 7,
+    fontSize: 12,
+    lineHeight: 18,
+    color: 'rgba(255,255,255,0.72)',
   },
   scriptureReference: {
     minHeight: 38,

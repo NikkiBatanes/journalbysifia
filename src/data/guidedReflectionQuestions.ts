@@ -13,3 +13,11 @@ export const GUIDED_QUESTION_LIBRARY = CURATED_GUIDED_QUESTIONS.map((question, i
 }));
 
 export const questionsForTopic = (topic: GuidedQuestionTopic) => GUIDED_QUESTION_LIBRARY.filter(question => question.topic === topic);
+
+export const guidedQuestionTopicForPrompt = (prompt: unknown): GuidedQuestionTopic | null => {
+  if (typeof prompt !== 'string') {return null;}
+  const normalized = prompt.trim().toLocaleLowerCase();
+  return GUIDED_QUESTION_LIBRARY.find(question =>
+    question.prompt.trim().toLocaleLowerCase() === normalized,
+  )?.topic ?? null;
+};

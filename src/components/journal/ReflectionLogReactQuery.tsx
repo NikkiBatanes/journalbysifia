@@ -28,7 +28,8 @@ import { triggerLightHaptic } from '../../utils/haptics';
 import { useScroll } from '../../context/ScrollContext';
 import { useMomentsPalette } from '../../context/MomentsPaletteContext';
 import { heartJournalClassificationLabel, type HeartJournalClassification } from '../../types/heartJournal';
-import { parseGuidedReflection } from '../../types/guidedReflection';
+import { parseGuidedReflection, type GuidedReflectionNote } from '../../types/guidedReflection';
+import SavedReflectionBlocks from './SavedReflectionBlocks';
 
 // Define styles at the top to avoid hoisting issues
 const styles = StyleSheet.create({
@@ -304,6 +305,19 @@ const styles = StyleSheet.create({
   guidedPromptTextPalette: {
     color: Colors.sage,
   },
+  guidedTopicSection: {
+    marginTop: 4,
+    marginBottom: 12,
+  },
+  guidedTopicValue: {
+    color: 'rgba(255, 255, 255, 0.68)',
+    fontSize: 13,
+    lineHeight: 18,
+    fontFamily: Fonts.medium,
+  },
+  guidedTopicValuePalette: {
+    color: Colors.sage,
+  },
   playbookPromptContainerPalette: {
     backgroundColor: 'rgba(82, 106, 91, 0.1)',
   },
@@ -368,6 +382,7 @@ interface ReflectionLogEntry {
   day_title?: string;
   total_days?: number;
   question_number?: number;
+  question_topic?: string;
   // Playbook-specific fields
   playbook_title?: string;
   playbook_id?: string;
@@ -377,6 +392,7 @@ interface ReflectionLogEntry {
   updated_at: string;
   selected_date: string;
   journal_classification?: HeartJournalClassification;
+  journal_blocks?: GuidedReflectionNote[];
 }
 
 interface ReflectionLogProps {
@@ -468,6 +484,7 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
       day_title: entry.day_title,
       total_days: entry.total_days,
       question_number: entry.question_number,
+      question_topic: entry.question_topic,
       // Playbook-specific fields
       playbook_title: entry.playbook_title,
       playbook_id: entry.playbook_id,
@@ -477,6 +494,7 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
       updated_at: entry.updated_at,
       selected_date: entry.selected_date,
       journal_classification: entry.journal_classification as HeartJournalClassification | undefined,
+      journal_blocks: entry.journal_blocks,
     }));
     // The canonical Moments timeline has already selected a stable record.
     // Do not let one timeline card render every reflection from that day.
@@ -949,7 +967,9 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
       ) : entry.type === 'guided' ? (
         <View style={styles.guidedPromptRow}>
           <View style={[styles.guidedPromptContainer, momentsPalette && styles.guidedPromptContainerPalette]}>
-            <ThemedText style={[styles.guidedPromptText, momentsPalette && styles.guidedPromptTextPalette]}>GUIDED PROMPT</ThemedText>
+            <ThemedText style={[styles.guidedPromptText, momentsPalette && styles.guidedPromptTextPalette]}>
+              GUIDED REFLECTION
+            </ThemedText>
           </View>
           <ThemedText style={styles.timeText}>
             {new Date(entry.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
@@ -967,28 +987,44 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
       )}
 
       {entry.type === 'guided' ? (
-        <ThemedText style={[styles.promptCardText, momentsPalette && styles.promptCardTextPalette]}>{entry.prompt || entry.title || 'Guided Reflection'}</ThemedText>
+        <>
+          {!!entry.question_topic && (
+            <View style={styles.guidedTopicSection}>
+              <ThemedText style={[styles.guidedTopicValue, momentsPalette && styles.guidedTopicValuePalette]}>
+                {entry.question_topic}
+              </ThemedText>
+            </View>
+          )}
+          <ThemedText style={[styles.promptCardText, momentsPalette && styles.promptCardTextPalette]}>{entry.prompt || entry.title || 'Guided Reflection'}</ThemedText>
+        </>
       ) : entry.title ? (
         <ThemedText style={[styles.promptCardText, styles.normalTitleText, momentsPalette && styles.promptCardTextPalette]}>{entry.title}</ThemedText>
       ) : null}
 
-      <ThemedText
-        style={[styles.entryContent, momentsPalette && styles.entryContentPalette]}
-        numberOfLines={3}
-        ellipsizeMode="tail"
-      >
-        {(() => {
-          const journey = entry.type === 'guided' ? parseGuidedReflection(entry.content) : null;
-          if (!journey) {return typeof entry.content === 'string' ? normalizeIncoming(entry.content) : JSON.stringify(entry.content);}
-          return journey.answers.flatMap(answer => [
-            ...(answer.selected || []),
-            answer.text || '',
-            answer.optionalText || '',
-            ...Object.values(answer.fields || {}),
-            ...answer.notes.map(note => note.text),
-          ]).filter(Boolean).join(' · ');
-        })()}
-      </ThemedText>
+      {entry.journal_blocks?.length ? (
+        <SavedReflectionBlocks
+          blocks={entry.journal_blocks}
+          onDark={!momentsPalette}
+          compact
+        />
+      ) : (
+        <ThemedText
+          style={[styles.entryContent, momentsPalette && styles.entryContentPalette]}
+          numberOfLines={3}
+          ellipsizeMode="tail">
+          {(() => {
+            const journey = entry.type === 'guided' ? parseGuidedReflection(entry.content) : null;
+            if (!journey) {return typeof entry.content === 'string' ? normalizeIncoming(entry.content) : JSON.stringify(entry.content);}
+            return journey.answers.flatMap(answer => [
+              ...(answer.selected || []),
+              answer.text || '',
+              answer.optionalText || '',
+              ...Object.values(answer.fields || {}),
+              ...answer.notes.map(note => note.text),
+            ]).filter(Boolean).join(' · ');
+          })()}
+        </ThemedText>
+      )}
 
       {/* Removed lower right tags - only show upper left type tags (FREE FORM, PLAYBOOK, GUIDED PROMPT) */}
     </TouchableOpacity>

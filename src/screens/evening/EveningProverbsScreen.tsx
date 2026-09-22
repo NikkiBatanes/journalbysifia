@@ -9,9 +9,9 @@ import ThemedText from '../../components/common/ThemedText';
 import { BibleCopyrightModal } from '../../components/BibleCopyrightModal';
 import { Colors } from '../../theme/colors';
 import { Fonts, type FontFamily, getFontFamily } from '../../theme/fonts';
-import { toLocalDateString } from '../../utils/date';
 import { triggerLightHaptic, triggerSuccessHaptic } from '../../utils/haptics';
 import { useRoutine } from '../../context/RoutineContext';
+import {useAuth} from '../../context/IndustryStandardAuthContext';
 import RoutineStepShell from '../../components/routine/RoutineStepShell';
 import { getScripturePassage } from '../../services/scriptureReaderService';
 import {
@@ -20,6 +20,8 @@ import {
   getLocalReflections,
   updateLocalReflection,
 } from '../../storage/reflectionStorage';
+import {getDailyProverbNumber} from '../../services/dailyScriptureSequence';
+import {useDailyScriptureSequenceAnchor} from '../../hooks/useDailyScriptureSequenceAnchor';
 
 type TextAlign = 'left' | 'center' | 'right' | 'justify';
 
@@ -47,12 +49,14 @@ const EveningProverbsScreen = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const { selectedDate, markStepCompleted } = useRoutine();
+  const {user} = useAuth();
+  const {anchor: scriptureSequenceAnchor, ready: scriptureSequenceReady} = useDailyScriptureSequenceAnchor(user?.created_at);
 
-
-  const proverbNumber = useMemo(() => {
-    const day = parseInt(selectedDate.split('-')[2] || '0', 10);
-    return Math.min(Math.max(day, 1), 31);
-  }, [selectedDate]);
+  const fallbackProverbNumber = useMemo(() => {
+    return getDailyProverbNumber(selectedDate, scriptureSequenceAnchor);
+  }, [scriptureSequenceAnchor, selectedDate]);
+  const [proverbNumber, setProverbNumber] = useState(fallbackProverbNumber);
+  const [proverbIdentityReady, setProverbIdentityReady] = useState(false);
 
   const [proverbText, setProverbText] = useState<string | null>(null);
   const [proverbVerses, setProverbVerses] = useState<{ number: string; lines: string[] }[] | null>(null);
@@ -80,20 +84,36 @@ const EveningProverbsScreen = () => {
   const dateStr = selectedDate;
 
   useEffect(() => {
+    if (!scriptureSequenceReady) {return;}
     let mounted = true;
+    setProverbIdentityReady(false);
+    setProverbLoading(true);
     (async () => {
       const entries = await getLocalReflections('scripture', dateStr);
       if (!mounted) {return;}
       const existing = entries
         .filter(e => e.source === 'evening_proverbs' || e.metadata?.source === 'evening_proverbs')
         .sort((a, b) => b.updated_at.localeCompare(a.updated_at))[0];
+      // The account/date sequence is canonical. Route params and an older
+      // incorrectly saved chapter must never change today's assigned Proverb.
+      setProverbNumber(fallbackProverbNumber);
       if (existing) {
         setHasReadProverb(Boolean(existing.metadata?.proverbRead));
         setProverbReflectionId(existing.id);
+      } else {
+        setHasReadProverb(false);
+        setProverbReflectionId(null);
       }
-    })();
+      setProverbIdentityReady(true);
+    })().catch(error => {
+      console.error('Error resolving saved Proverbs chapter:', error);
+      if (mounted) {
+        setProverbNumber(fallbackProverbNumber);
+        setProverbIdentityReady(true);
+      }
+    });
     return () => { mounted = false; };
-  }, [dateStr, proverbNumber]);
+  }, [dateStr, fallbackProverbNumber, scriptureSequenceReady]);
 
   const proverbLines = useMemo(() => {
     if (!proverbText) { return []; }
@@ -102,6 +122,7 @@ const EveningProverbsScreen = () => {
   }, [proverbText]);
 
   useEffect(() => {
+    if (!proverbIdentityReady) {return;}
     let cancelled = false;
     setProverbLoading(true);
     setProverbError(null);
@@ -121,13 +142,14 @@ const EveningProverbsScreen = () => {
         if (!cancelled) { setProverbLoading(false); }
       });
     return () => { cancelled = true; };
-  }, [proverbNumber, proverbRetry]);
+  }, [proverbIdentityReady, proverbNumber, proverbRetry]);
 
   const onNext = React.useCallback(async () => {
     triggerLightHaptic();
 
     const metadata = {
       proverbNumber,
+      proverbReference: `Proverbs ${proverbNumber}`,
       proverbRead: hasReadProverb,
       source: 'evening_proverbs',
     };

@@ -8,7 +8,6 @@ import {triggerLightHaptic} from '../../../utils/haptics';
 import {
   JOURNAL_BLOCKS,
   JournalBlockIcon,
-  type JournalBlockKind,
 } from './journalBlocks';
 
 const AnimatedTouchableOpacity =
@@ -68,14 +67,14 @@ export const JournalPickerMenu = <T extends string,>({
   </View>
 );
 
-export const JournalBlockPickerMenu = ({
+export const JournalBlockPickerMenu = <T extends keyof typeof JOURNAL_BLOCKS>({
   kinds,
   animations,
   onSelect,
 }: {
-  kinds: readonly Exclude<JournalBlockKind, 'text' | 'section'>[];
+  kinds: readonly T[];
   animations: Animated.Value[];
-  onSelect: (kind: Exclude<JournalBlockKind, 'text' | 'section'>) => void;
+  onSelect: (kind: T) => void;
 }) => (
   <JournalPickerMenu
     items={kinds.map(kind => ({

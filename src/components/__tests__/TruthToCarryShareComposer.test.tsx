@@ -8,7 +8,7 @@ import { triggerLightHaptic } from '../../utils/haptics';
 
 jest.mock('react-native-share', () => ({
   __esModule: true,
-  default: { Social: { SMS: 'sms' }, shareSingle: jest.fn().mockResolvedValue({}), open: jest.fn() },
+  default: { Social: { SMS: 'sms', INSTAGRAM_STORIES: 'instagram-stories' }, shareSingle: jest.fn().mockResolvedValue({}), open: jest.fn() },
 }));
 jest.mock('react-native-view-shot', () => {
   const ReactMock = require('react');
@@ -16,8 +16,10 @@ jest.mock('react-native-view-shot', () => {
   return {
     __esModule: true,
     default: ReactMock.forwardRef((props: any, ref: any) => {
-      ReactMock.useImperativeHandle(ref, () => ({ capture: async () => '/tmp/reflection.png' }));
-      return ReactMock.createElement(View, null, props.children);
+      ReactMock.useImperativeHandle(ref, () => ({
+        capture: async () => props.options?.fileName === 'journal-story-share' ? '/tmp/story.png' : '/tmp/reflection.png',
+      }));
+      return ReactMock.createElement(View);
     }),
     captureRef: jest.fn().mockResolvedValue('data:image/png;base64,reflection'),
   };
@@ -42,6 +44,43 @@ describe('Truth to Carry Message sharing', () => {
   it('uses the full Journal by siFia brand on the share card', () => {
     const screen = render(<TruthToCarryShareComposer visible text="A truth to carry." onClose={jest.fn()} />);
     expect(screen.getByLabelText('Journal by siFia logo')).toBeTruthy();
+  });
+
+  it('renders a structured morning summary card without text-style controls', () => {
+    const screen = render(
+      <TruthToCarryShareComposer
+        visible
+        variant="morning-summary"
+        text="Morning summary"
+        morningSummary={{
+          feeling: 'Overwhelmed',
+          feelingIcon: 'waves',
+          feelingIconType: 'material',
+          feelingVerse: 'Come to Me, all who are weary and burdened.',
+          feelingVerseReference: 'Matthew 11:28 · NASB',
+          focus: 'Family',
+          focusIcon: 'home',
+          focusIconType: 'material',
+          focusReflection: 'Be present in the conversations at home.',
+          prioritiesCount: 2,
+          todosCount: 2,
+          psalmNumber: 1,
+          psalmRead: true,
+          observations: ['Sovereign King', 'Refuge'],
+          reminder: 'Carry God’s faithfulness into what comes next.',
+        }}
+        onClose={jest.fn()}
+      />
+    );
+
+    expect(screen.getByLabelText('Morning summary share card')).toBeTruthy();
+    expect(screen.getByText('You’re ready for today.')).toBeTruthy();
+    expect(screen.getByText('Overwhelmed')).toBeTruthy();
+    expect(screen.getByText('Matthew 11:28 · NASB')).toBeTruthy();
+    expect(screen.getByText('Psalm 1')).toBeTruthy();
+    expect(screen.getByText('Sovereign King · Refuge')).toBeTruthy();
+    expect(screen.getAllByText('Carry God’s faithfulness into what comes next.').length).toBeGreaterThan(0);
+    expect(screen.queryByLabelText('Edit post style')).toBeNull();
   });
 
   it('lets the user choose typography and separates supporting truth', async () => {
@@ -105,7 +144,18 @@ describe('Truth to Carry Message sharing', () => {
     expect(triggerLightHaptic).not.toHaveBeenCalled();
   });
 
-  it.each(['ios', 'android'] as const)('passes a safe recipient and image attachment on %s', async os => {
+  it('uses the 9:16 capture for Instagram Stories', async () => {
+    Platform.OS = 'android';
+    const screen = render(<TruthToCarryShareComposer visible text="A truth to carry." onClose={jest.fn()} />);
+    fireEvent.press(screen.getByLabelText('Instagram'));
+
+    await waitFor(() => expect(Share.shareSingle).toHaveBeenCalledWith(expect.objectContaining({
+      social: 'instagram-stories',
+      backgroundImage: 'file:///tmp/story.png',
+    })));
+  });
+
+  it.each(['ios', 'android'] as const)('keeps Messages on the 4:5 image attachment on %s', async os => {
     Platform.OS = os;
     const screen = render(<TruthToCarryShareComposer visible text="A truth to carry." onClose={jest.fn()} />);
     fireEvent.press(screen.getByLabelText('Message'));
@@ -117,6 +167,9 @@ describe('Truth to Carry Message sharing', () => {
     })));
     if (os === 'ios') {
       expect(captureRef).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ result: 'data-uri' }));
+      const captureOptions = jest.mocked(captureRef).mock.calls.at(-1)?.[1];
+      expect(captureOptions).not.toHaveProperty('width');
+      expect(captureOptions).not.toHaveProperty('height');
     } else {
       expect(captureRef).not.toHaveBeenCalled();
     }

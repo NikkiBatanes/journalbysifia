@@ -9,7 +9,7 @@ import PrayerHandsIcon from '../common/PrayerHandsIcon';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
 import { useMomentsPalette } from '../../context/MomentsPaletteContext';
-import { trackingStatus, isTrackedPrayer, prayerNeeds, type PrayerUpdate } from '../../utils/prayerTracking';
+import { trackingStatus, isTrackedPrayer, isPrayerLetGo, prayerNeeds, type PrayerUpdate } from '../../utils/prayerTracking';
 import { triggerLightHaptic } from '../../utils/haptics';
 import { PrayerApiEntry } from '../../services/api/prayerApi';
 
@@ -57,13 +57,14 @@ const PrayerCard = ({
   const isPrayerRequest = prayer.is_prayer_request === true;
   const isCast = prayer.metadata?.prayer_style === 'cast' || (prayer.groupedEntries || []).some((e: any) => e.metadata?.prayer_style === 'cast');
   const isOpen = prayer.metadata?.prayer_style === 'open' || prayer.journal_category === 'personal_prayer';
-  const typeLabel = prayer.metadata?.prayer_need ? 'PRAYER NEED' : isCast
-    ? 'CAST PRAYER'
-    : isOpen
-      ? 'OPEN PRAYER'
-      : isPrayerRequest
-        ? 'PRAYER REQUEST'
-        : 'PRAYED FOR';
+  const hasRequestOrigin = !!prayer.metadata?.original_request_id || !!prayer.metadata?.original_request_content || !!prayer.metadata?.prayer_request_display;
+  const typeLabel = prayer.metadata?.prayer_need ? 'PRAYER NEED'
+    : isPrayerRequest ? prayer.prayed ? 'PRAYED FOR' : 'PRAYER REQUEST'
+      : isAnswered && hasRequestOrigin ? 'ANSWERED'
+        : isPrayerLetGo(prayer) && hasRequestOrigin ? 'LET GO'
+          : hasRequestOrigin ? 'PRAYED FOR'
+            : isCast ? 'CAST PRAYER'
+              : isOpen ? 'OPEN PRAYER' : 'PRAYED FOR';
   const title = prayer.metadata?.prayer_need
     ? prayer.person_name || prayer.content?.split('\n')[0] || 'My prayer need'
     : isCast ? 'CAST Prayer' : isOpen ? 'Open Prayer' : prayer.person_name || 'Prayer';
@@ -118,7 +119,7 @@ const PrayerCard = ({
         {!!requestContext && (
           <View style={styles.requestContext}>
             <Ionicons name="mail-unread-outline" size={12} color={Colors.alertCoral} />
-            <ThemedText style={styles.requestContextText} numberOfLines={3}>Prayer request: {requestContext}</ThemedText>
+            <ThemedText style={styles.requestContextText} numberOfLines={3}>Prayer Request · {requestContext}</ThemedText>
           </View>
         )}
       </TouchableOpacity>
@@ -139,18 +140,18 @@ const PrayerCard = ({
         <View style={styles.requestActionContainer}>
           <TouchableOpacity style={styles.requestPrayButton} onPress={() => onAddPrayer(prayer)} activeOpacity={0.7}>
             <Ionicons name="add-circle-outline" size={18} color={Colors.sage} />
-            <ThemedText weight="medium" style={styles.requestPrayText}>Pray for {prayer.person_name || 'them'} now</ThemedText>
+            <ThemedText weight="medium" style={styles.requestPrayText}>Pray now</ThemedText>
           </TouchableOpacity>
         </View>
       ) : (
         <View style={styles.cardActions}>
-          {!isAnswered && onPrayAgain && <TouchableOpacity style={[styles.actionButton, styles.cardActionButton]} onPress={() => onPrayAgain(prayer)} activeOpacity={0.7}>
+          {!isAnswered && !isPrayerLetGo(prayer) && onPrayAgain && <TouchableOpacity style={[styles.actionButton, styles.cardActionButton]} onPress={() => onPrayAgain(prayer)} activeOpacity={0.7}>
             <PrayerHandsIcon size={14} color={Colors.sage} />
             <ThemedText weight="semiBold" style={[styles.actionButtonText, styles.cardActionText]} numberOfLines={1}>Pray again</ThemedText>
           </TouchableOpacity>}
           {onManage && <TouchableOpacity style={[styles.actionButton, styles.cardActionButton]} onPress={() => onManage(prayer)} activeOpacity={0.7}>
             <Ionicons name="chatbox-ellipses-outline" size={14} color={Colors.sage} />
-            <ThemedText weight="semiBold" style={[styles.actionButtonText, styles.cardActionText]} numberOfLines={1}>{tracked ? 'Update' : 'Keep praying'}</ThemedText>
+            <ThemedText weight="semiBold" style={[styles.actionButtonText, styles.cardActionText]} numberOfLines={1}>{hasRequestOrigin && (isAnswered || isPrayerLetGo(prayer)) ? 'View journey' : tracked ? 'Update' : 'Keep praying'}</ThemedText>
           </TouchableOpacity>}
           {tracked && !isAnswered && onRelease && <TouchableOpacity style={[styles.actionButton, styles.cardActionButton]} onPress={() => onRelease(prayer)} activeOpacity={0.7}>
             <Ionicons name={state === 'closed' ? 'refresh-outline' : 'leaf-outline'} size={14} color={Colors.sage} />

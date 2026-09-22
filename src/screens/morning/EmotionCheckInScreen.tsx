@@ -3,7 +3,6 @@ import { Animated, LayoutAnimation, Platform, UIManager, StyleSheet, TextInput, 
 import { useNavigation } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { differenceInCalendarDays } from 'date-fns';
 
 import ThemedText from '../../components/common/ThemedText';
 import StepFadeIn from '../../components/common/StepFadeIn';
@@ -27,6 +26,8 @@ import {
   getLocalJournalSingleton,
   LocalJournalEntry,
 } from '../../storage/journalStorage';
+import {getDailyPsalmNumber} from '../../services/dailyScriptureSequence';
+import {useDailyScriptureSequenceAnchor} from '../../hooks/useDailyScriptureSequenceAnchor';
 
 const EmotionCheckInScreen = () => {
   const navigation = useNavigation<any>();
@@ -41,14 +42,13 @@ const EmotionCheckInScreen = () => {
   const toggleOpacity = useRef(new Animated.Value(1)).current;
   const buttonScale = useRef(new Animated.Value(0)).current;
   const dateStr = selectedDate;
+  const {anchor: scriptureSequenceAnchor, ready: scriptureSequenceReady} = useDailyScriptureSequenceAnchor(user?.created_at);
 
   useEffect(() => {
-    const createdAt = (user as any)?.created_at;
-    const now = new Date();
-    const start = createdAt ? new Date(createdAt) : now;
-    const psalmNumber = (Math.max(0, differenceInCalendarDays(now, start)) % 150) + 1;
+    if (!scriptureSequenceReady) {return;}
+    const psalmNumber = getDailyPsalmNumber(selectedDate, scriptureSequenceAnchor);
     preloadScripturePassages([`Psalm ${psalmNumber}`]);
-  }, [user]);
+  }, [scriptureSequenceAnchor, scriptureSequenceReady, selectedDate]);
 
   useEffect(() => {
     if (!selected) { return; }
@@ -119,7 +119,7 @@ const EmotionCheckInScreen = () => {
       feelingIcon: selected.icon,
       feelingIconType: selected.iconType,
     });
-  }, [navigation, selected, feelingName, markStepCompleted, dateStr]);
+  }, [navigation, selected, feelingName, isOtherSelected, markStepCompleted, dateStr]);
 
   const footer = selected && feelingName ? (
     <Animated.View style={{ transform: [{ scale: buttonScale }] }}>

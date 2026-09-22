@@ -4,9 +4,12 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import ThemedText from '../../common/ThemedText';
 import {Colors} from '../../../theme/colors';
 import {triggerLightHaptic} from '../../../utils/haptics';
+import {useTheme} from '../../../hooks/useTheme';
+import {getFontFamily} from '../../../theme/fonts';
 import {
   JOURNAL_BLOCKS,
   JournalBlockIcon,
+  formatJournalAttribution,
   type JournalBlock,
   type JournalBlockConfig,
 } from './journalBlocks';
@@ -16,6 +19,7 @@ export const JournalInlineBlock = ({
   styles,
   registerInput,
   onChangeText,
+  onChangeSecondary,
   onDelete,
   onFocus,
   onLayout,
@@ -28,6 +32,7 @@ export const JournalInlineBlock = ({
   styles: any;
   registerInput: (input: TextInput | null) => void;
   onChangeText: (value: string) => void;
+  onChangeSecondary?: (value: string) => void;
   onDelete: (keepKeyboard?: boolean) => void;
   onFocus?: () => void;
   onLayout?: (layout: {y: number; height: number}) => void;
@@ -36,10 +41,18 @@ export const JournalInlineBlock = ({
   tone?: 'default' | 'onDark';
   textPlaceholder?: string;
 }) => {
+  const {currentFont} = useTheme();
+  const attributionFontFamily = getFontFamily(
+    currentFont || 'lexend',
+    'regular',
+  );
+
   if (block.kind === 'text' && !configOverride) {
     return (
       <TextInput
         ref={registerInput}
+        selectionColor={tone === 'onDark' ? Colors.hopeWhite : Colors.sage}
+        cursorColor={tone === 'onDark' ? Colors.hopeWhite : Colors.sage}
         style={styles.freeText}
         multiline
         placeholder={textPlaceholder}
@@ -51,7 +64,9 @@ export const JournalInlineBlock = ({
           value || !block.text ? onChangeText(value) : onDelete()
         }
         onBlur={() => {
-          if (!block.text.trim()) onDelete(false);
+          if (!block.text.trim()) {
+            onDelete(false);
+          }
         }}
         onLayout={event => onLayout?.(event.nativeEvent.layout)}
         onFocus={onFocus}
@@ -62,8 +77,9 @@ export const JournalInlineBlock = ({
     !['text', 'scripture', 'quote', 'key', 'remember', 'question', 'response'].includes(
       block.kind,
     )
-  )
+  ) {
     return null;
+  }
   const config =
     configOverride || JOURNAL_BLOCKS[block.kind as keyof typeof JOURNAL_BLOCKS];
   return (
@@ -94,23 +110,48 @@ export const JournalInlineBlock = ({
       {block.kind === 'scripture' ? (
         renderScripture?.()
       ) : (
-        <TextInput
-          ref={registerInput}
-          style={[
-            styles.captureInput,
-            block.kind === 'quote' && styles.serifInput,
-          ]}
-          multiline
-          placeholder={config.placeholder}
-          placeholderTextColor={
-            tone === 'onDark' ? 'rgba(255,255,255,0.45)' : Colors.textGray
-          }
-          value={block.text}
-          onChangeText={onChangeText}
-          onFocus={onFocus}
-          autoCapitalize="sentences"
-          autoCorrect
-        />
+        <>
+          <TextInput
+            ref={registerInput}
+            selectionColor={tone === 'onDark' ? Colors.hopeWhite : Colors.sage}
+            cursorColor={tone === 'onDark' ? Colors.hopeWhite : Colors.sage}
+            style={[
+              styles.captureInput,
+              block.kind === 'quote' && styles.serifInput,
+            ]}
+            multiline
+            placeholder={config.placeholder}
+            placeholderTextColor={
+              tone === 'onDark' ? 'rgba(255,255,255,0.45)' : Colors.textGray
+            }
+            value={block.text}
+            onChangeText={onChangeText}
+            onFocus={onFocus}
+            autoCapitalize="sentences"
+            autoCorrect
+          />
+          {block.kind === 'quote' && onChangeSecondary && (
+            <TextInput
+              selectionColor={tone === 'onDark' ? Colors.hopeWhite : Colors.sage}
+              cursorColor={tone === 'onDark' ? Colors.hopeWhite : Colors.sage}
+              style={[
+                styles.secondaryInput,
+                {fontFamily: attributionFontFamily},
+              ]}
+              placeholder="— Speaker / Author"
+              placeholderTextColor={
+                tone === 'onDark' ? 'rgba(255,255,255,0.45)' : Colors.textGray
+              }
+              value={formatJournalAttribution(block.secondary)}
+              onChangeText={value =>
+                onChangeSecondary(formatJournalAttribution(value))
+              }
+              onFocus={onFocus}
+              autoCapitalize="words"
+              autoCorrect={false}
+            />
+          )}
+        </>
       )}
     </View>
   );

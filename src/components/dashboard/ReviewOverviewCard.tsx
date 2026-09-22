@@ -58,33 +58,35 @@ const countAnswers = (review: LocalReviewEntry, keys: string[]) =>
 
 const ReviewOverviewCard = ({
   review,
+  reviewType,
   periodLabel,
   alsoReady,
   onBegin,
 }: {
-  review: LocalReviewEntry;
+  review: LocalReviewEntry | null;
+  reviewType: Exclude<ReviewType, 'weekly'>;
   periodLabel: string;
   alsoReady?: string;
   onBegin: () => void;
 }) => {
-  const type = review.type as Exclude<ReviewType, 'weekly'>;
+  const type = reviewType;
   const copy = CARD_COPY[type];
   const isBeginYear = type === 'begin_year';
 
   const { headline, rows } = useMemo<{ headline: number; rows: StatRow[] }>(() => {
     if (isBeginYear) {
-      const priorities = countAnswers(review, [
+      const priorities = review ? countAnswers(review, [
         'begin_year_priority_1',
         'begin_year_priority_2',
         'begin_year_priority_3',
-      ]);
+      ]) : 0;
       return {
         headline: priorities,
         rows: [
-          { label: 'Posture named', value: countAnswers(review, ['posture']), Icon: Sparkles },
-          { label: 'Anchoring Scripture', value: countAnswers(review, ['scripture_begin']), Icon: BookOpen },
-          { label: 'Faithful focus', value: countAnswers(review, ['faithfulness_begin']), Icon: Target },
-          { label: 'Entrusted to God', value: countAnswers(review, ['surrender']), Icon: Heart },
+          { label: 'Posture named', value: review ? countAnswers(review, ['posture']) : 0, Icon: Sparkles },
+          { label: 'Anchoring Scripture', value: review ? countAnswers(review, ['scripture_begin']) : 0, Icon: BookOpen },
+          { label: 'Faithful focus', value: review ? countAnswers(review, ['faithfulness_begin']) : 0, Icon: Target },
+          { label: 'Entrusted to God', value: review ? countAnswers(review, ['surrender']) : 0, Icon: Heart },
         ],
       };
     }
@@ -93,12 +95,12 @@ const ReviewOverviewCard = ({
       ? ['quarter_priority_1', 'quarter_priority_2', 'quarter_priority_3']
       : ['next_month_priority_1', 'next_month_priority_2', 'next_month_priority_3'];
     return {
-      headline: review.memorableItems.length,
+      headline: review?.memorableItems.length ?? 0,
       rows: [
-        { label: 'Prayers', value: countKinds(review, ['prayer']), Icon: Heart },
-        { label: 'Gratitude + wins', value: countKinds(review, ['gratitude', 'win']), Icon: Sparkles },
-        { label: 'Scripture moments', value: countKinds(review, ['scripture']), Icon: BookOpen },
-        { label: type === 'year_end' ? 'Things to carry' : 'Priorities named', value: type === 'year_end' ? countAnswers(review, ['carry']) : countAnswers(review, priorityKeys), Icon: Target },
+        { label: 'Prayers', value: review ? countKinds(review, ['prayer']) : 0, Icon: Heart },
+        { label: 'Gratitude + wins', value: review ? countKinds(review, ['gratitude', 'win']) : 0, Icon: Sparkles },
+        { label: 'Scripture moments', value: review ? countKinds(review, ['scripture']) : 0, Icon: BookOpen },
+        { label: type === 'year_end' ? 'Things to carry' : 'Priorities named', value: review ? (type === 'year_end' ? countAnswers(review, ['carry']) : countAnswers(review, priorityKeys)) : 0, Icon: Target },
       ],
     };
   }, [isBeginYear, review, type]);

@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Alert,
   Animated,
+  DeviceEventEmitter,
   Easing,
   Linking,
   ScrollView,
@@ -18,7 +19,7 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import { Pencil, Trash2, FileText, Sparkles, Leaf } from 'lucide-react-native';
 import { Colors } from '../theme/colors';
 import ThemedText from '../components/common/ThemedText';
-import { deleteLocalReflection, getLocalReflection } from '../storage/reflectionStorage';
+import { deleteLocalReflection, getLocalReflection, updateLocalReflection } from '../storage/reflectionStorage';
 import { safeJsonParse } from '../utils/safeJsonParse';
 import { triggerLightHaptic } from '../utils/haptics';
 import { getScripturePassage } from '../services/scriptureReaderService';
@@ -28,6 +29,9 @@ import { useAuth } from '../context/IndustryStandardAuthContext';
 import ScriptureReaderModal from '../components/ScriptureReaderModal';
 import { BLOCKS, BlockIcon, SermonNotesStyles } from './SermonNotesScreen';
 import { getSessionNoteConfig, getSessionNoteContext, resolveSessionNoteType, sessionNoteTypeLabel } from '../types/sessionNotes';
+import SavedReflectionBlocks from '../components/journal/SavedReflectionBlocks';
+import type {GuidedReflectionNote} from '../types/guidedReflection';
+import {formatJournalAttribution} from '../components/journal/shared/journalBlocks';
 
 type NoteBlock = {
   id: string;
@@ -47,7 +51,25 @@ type NoteBlock = {
   meaning?: string;
   origin?: string;
   tableRows?: string[][];
+  uri?: string;
+  durationMillis?: number;
+  completed?: boolean;
 };
+
+const hasNoteBlockContent = (block: NoteBlock) =>
+  Boolean(
+    block.text?.trim() ||
+      block.secondary?.trim() ||
+      block.note?.trim() ||
+      block.reference?.trim() ||
+      block.scriptureText?.trim() ||
+      block.scriptureReference?.trim() ||
+      block.meaning?.trim() ||
+      block.origin?.trim() ||
+      block.points?.some(point => point.trim()) ||
+      block.tableRows?.some(row => row.some(cell => cell.trim())) ||
+      block.uri,
+  );
 
 const TAB_ICONS = {
   notes: FileText,
@@ -180,13 +202,13 @@ const SermonNotesDetailScreen: React.FC = () => {
 
   const reflectionKinds = useMemo(() => ['question', 'reflection_question', 'remember', 'revisit', 'response'], []);
   const notesBlocks = useMemo(() => {
-    return blocks.filter((b: NoteBlock) => b.text?.trim() && !reflectionKinds.includes(b.kind) && b.kind !== 'prayer');
+    return blocks.filter((b: NoteBlock) => hasNoteBlockContent(b) && !reflectionKinds.includes(b.kind) && b.kind !== 'prayer');
   }, [blocks, reflectionKinds]);
   const reflectionBlocks = useMemo(() => {
-    return blocks.filter((b: NoteBlock) => b.text?.trim() && reflectionKinds.includes(b.kind));
+    return blocks.filter((b: NoteBlock) => hasNoteBlockContent(b) && reflectionKinds.includes(b.kind));
   }, [blocks, reflectionKinds]);
   const prayerBlocks = useMemo(() => {
-    return blocks.filter((b: NoteBlock) => b.text?.trim() && b.kind === 'prayer');
+    return blocks.filter((b: NoteBlock) => hasNoteBlockContent(b) && b.kind === 'prayer');
   }, [blocks]);
   const reflectionQuestions = useMemo(() => {
     return [
@@ -218,7 +240,48 @@ const SermonNotesDetailScreen: React.FC = () => {
     return url;
   };
 
+  const handleToggleSavedAction = async (blockId: string) => {
+    if (!entry) {return;}
+    const previousEntry = entry;
+    const nextBlocks = blocks.map((block: NoteBlock) =>
+      block.id === blockId && block.kind === 'action'
+        ? {...block, completed: !block.completed}
+        : block,
+    );
+    const optimisticEntry = {
+      ...entry,
+      content: JSON.stringify({...content, blocks: nextBlocks}),
+    };
+    triggerLightHaptic();
+    setEntry(optimisticEntry);
+    try {
+      const updatedEntry = await updateLocalReflection(optimisticEntry);
+      setEntry(updatedEntry);
+      DeviceEventEmitter.emit('sermon_saved', {
+        reflectionId: updatedEntry.id,
+        type: 'action_toggled',
+        selectedDate: updatedEntry.selected_date,
+      });
+    } catch {
+      setEntry(previousEntry);
+      Alert.alert('Could not update action', 'Please try again.');
+    }
+  };
+
   const renderNoteBlock = (block: NoteBlock) => {
+    if (
+      ['section', 'action', 'bullets', 'numbered', 'photo', 'voice'].includes(
+        block.kind,
+      )
+    ) {
+      return (
+        <SavedReflectionBlocks
+          key={block.id}
+          blocks={[block as GuidedReflectionNote]}
+          onToggleAction={handleToggleSavedAction}
+        />
+      );
+    }
     if (block.kind === 'text') {
       return (
         <ThemedText key={block.id} style={SermonNotesStyles.freeText}>
@@ -226,17 +289,6 @@ const SermonNotesDetailScreen: React.FC = () => {
         </ThemedText>
       );
     }
-    if (block.kind === 'section') {
-      return (
-        <View key={block.id} style={SermonNotesStyles.sectionDivider}>
-          <View style={SermonNotesStyles.sectionLine} />
-          <ThemedText weight="bold" style={SermonNotesStyles.sectionDividerText}>
-            {block.text}
-          </ThemedText>
-        </View>
-      );
-    }
-
     const config = (BLOCKS as any)[block.kind];
     const captureStyle = (SermonNotesStyles as any)[`${block.kind}Capture`] || {};
 
@@ -429,7 +481,11 @@ const SermonNotesDetailScreen: React.FC = () => {
                 {block.text}
               </ThemedText>
               {!!block.secondary && (['quote', 'song', 'book'].includes(block.kind)) && (
-                <ThemedText style={SermonNotesStyles.secondaryInput}>{block.secondary}</ThemedText>
+                <ThemedText style={SermonNotesStyles.secondaryInput}>
+                  {block.kind === 'quote'
+                    ? formatJournalAttribution(block.secondary)
+                    : block.secondary}
+                </ThemedText>
               )}
             </View>
           );

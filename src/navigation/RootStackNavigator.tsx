@@ -300,7 +300,7 @@ export default function RootStackNavigator({
           headerShown: false,
           animation: 'fade',
           gestureEnabled: false,
-          contentStyle: { backgroundColor: Colors.sage },
+          contentStyle: { backgroundColor: Colors.lightBackground },
         }}
       />
 

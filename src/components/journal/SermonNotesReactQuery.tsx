@@ -29,6 +29,8 @@ interface SermonBlock {
   secondary?: string;
   note?: string;
   points?: string[];
+  tableRows?: string[][];
+  uri?: string;
 }
 
 export const SermonNotesReactQuery: React.FC<SermonNotesProps> = ({
@@ -155,6 +157,8 @@ export const SermonNotesReactQuery: React.FC<SermonNotesProps> = ({
       if (b.secondary?.trim()) {return true;}
       if (b.note?.trim()) {return true;}
       if (b.points?.some(p => p.trim())) {return true;}
+      if (b.tableRows?.some(row => row.some(cell => cell.trim()))) {return true;}
+      if (b.uri) {return true;}
       return false;
     });
 

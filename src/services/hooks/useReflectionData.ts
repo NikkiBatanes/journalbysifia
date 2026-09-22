@@ -15,6 +15,7 @@ import {
   updateLocalReflection,
   type LocalReflectionEntry,
 } from '../../storage/reflectionStorage';
+import {guidedQuestionTopicForPrompt} from '../../data/guidedReflectionQuestions';
 
 const toReflectionApiEntry = (entry: LocalReflectionEntry): ReflectionApiEntry => ({
   id: entry.id,
@@ -33,6 +34,9 @@ const toReflectionApiEntry = (entry: LocalReflectionEntry): ReflectionApiEntry =
   total_days: entry.metadata?.total_days,
   question_number: entry.metadata?.question_number,
   question_text: entry.metadata?.question_text,
+  question_topic: entry.metadata?.questionTopic
+    || guidedQuestionTopicForPrompt(entry.metadata?.prompt || entry.title)
+    || undefined,
   playbook_title: entry.metadata?.playbook_title,
   playbook_id: entry.metadata?.playbook_id,
   subtask_id: entry.metadata?.subtask_id,
@@ -48,6 +52,7 @@ const reflectionMetadata = (entry: Partial<ReflectionApiEntry>): Record<string, 
   ...(entry.total_days !== undefined ? { total_days: entry.total_days } : {}),
   ...(entry.question_number !== undefined ? { question_number: entry.question_number } : {}),
   ...(entry.question_text !== undefined ? { question_text: entry.question_text } : {}),
+  ...(entry.question_topic !== undefined ? { questionTopic: entry.question_topic } : {}),
   ...(entry.playbook_title !== undefined ? { playbook_title: entry.playbook_title } : {}),
   ...(entry.playbook_id !== undefined ? { playbook_id: entry.playbook_id } : {}),
   ...(entry.subtask_id !== undefined ? { subtask_id: entry.subtask_id } : {}),

@@ -107,6 +107,49 @@ describe('canonical Moments timeline', () => {
     expect(items[0].canonicalIds).toEqual(expect.arrayContaining(['thanks', 'win', 'proverb', 'ahead']));
   });
 
+  it('keeps a written Something else Proverbs response beside selected wisdom in Moments', () => {
+    const proverb = reflection('proverb-custom', 'scripture', 'evening_proverbs', 'Guard your words\n\nListen before answering', {
+      proverbRead: true,
+      selectedWisdom: [{id: 'guard-words', label: 'Guard your words', verses: 'Proverbs 10:19', prompt: 'Where can you pause?'}],
+      selectedWisdomIds: ['guard-words'],
+      wisdomApplications: {'guard-words': 'Pause before replying.'},
+      customWisdom: 'Listen before answering',
+    });
+
+    const section = build([], [proverb])[0].preview.sections?.find(item => item.kind === 'proverbs');
+    expect(section?.presentation?.observations).toEqual(['Guard your words', 'Listen before answering']);
+    expect(section?.presentation?.wisdomSelections).toEqual(expect.arrayContaining([
+      expect.objectContaining({id: 'guard-words', label: 'Guard your words', application: 'Pause before replying.'}),
+      expect.objectContaining({id: 'custom', label: 'Listen before answering'}),
+    ]));
+    expect(section?.presentation?.reflection).toBe('');
+  });
+
+  it('repairs a mismatched Proverbs title from the saved wisdom reference in Moments', () => {
+    const damaged = {
+      ...reflection('proverb-damaged', 'scripture', 'evening_proverbs', 'Walk with integrity', {
+        proverbNumber: 1,
+        proverbReference: 'Proverbs 1',
+        selectedWisdomIds: ['2-2'],
+        selectedWisdom: [{id: '2-2', label: 'Walk with integrity', verses: 'Proverbs 2:7–9'}],
+      }),
+      title: 'Proverbs 1',
+    };
+
+    const presentation = build([], [damaged])[0].preview.sections?.find(item => item.kind === 'proverbs')?.presentation;
+    expect(presentation?.title).toBe('Proverbs 2');
+  });
+
+  it('keeps a legacy general Proverbs response visible without structured choices', () => {
+    const proverb = reflection('proverb-response', 'scripture', 'evening_proverbs', 'Pause and pray before responding.', {
+      proverbRead: true,
+      wisdomApplication: 'Pause and pray before responding.',
+    });
+
+    const presentation = build([], [proverb])[0].preview.sections?.find(item => item.kind === 'proverbs')?.presentation;
+    expect(presentation?.reflection).toBe('Pause and pray before responding.');
+  });
+
   it('omits empty Evening sections and does not create an Evening heading item', () => {
     expect(build([
       journal('thanks', 'gratitude', { items: [] }),

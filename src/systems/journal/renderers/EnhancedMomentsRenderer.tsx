@@ -8,7 +8,7 @@ import { PluginRenderer } from '../PluginRenderer';
 import { Colors } from '../../../theme/colors';
 import { format, startOfMonth, endOfMonth, getWeek } from 'date-fns';
 import { getWeekStart, getWeekEnd, WeekStartDay } from '../../../utils/weekStartUtils';
-import { getCanonicalMomentTimeline, type MomentTimelineItem } from '../../../services/momentTimelineService';
+import { getCanonicalMomentTimeline, type MomentTimelineItem, type RoutineSectionKind } from '../../../services/momentTimelineService';
 import { RoutineMomentSummary } from '../../../components/moments/RoutineMomentSummary';
 import { MomentsPaletteContext } from '../../../context/MomentsPaletteContext';
 import ThemedText from '../../../components/common/ThemedText';
@@ -26,6 +26,7 @@ import type { PluginFilters } from '../types';
 import type { FilterKey } from '../../../components/moments/FilterSelect';
 import { adaptSifiaPrayer, adaptSifiaReflection } from '../../../compatibility/sifiaReadCompatibility';
 import { getMomentsListStructureKey, hasMomentsListStructureChanged } from '../../../utils/momentsListIdentity';
+import {matchesMomentCategoryFilter, narrowRoutineMomentToFilters} from '../../../services/momentFilterService';
 
 // Removed unused screenWidth variable
 
@@ -978,7 +979,6 @@ const EnhancedMomentsContent: React.FC<EnhancedMomentsRendererProps> = ({
                       ? (peoplePlugin || prayerPlugin)
                       : prayerPlugin);
 
-                const dateKey = entryDate.toDateString();
                 const existingPrayerEntry = entries.find(e => e._canonicalId === prayer.id);
 
                 if (!existingPrayerEntry) {
@@ -1031,8 +1031,6 @@ const EnhancedMomentsContent: React.FC<EnhancedMomentsRendererProps> = ({
 
               if (hasUserContent && allowedType && allowedSource) {
                 const entryDate = new Date(reflection.selected_date || reflection.created_at);
-                const dateKey = entryDate.toDateString();
-
                 // Check if we already have an entry for this plugin on this date
                 const existingEntry = entries.find(e => e._canonicalId === reflection.id);
 
@@ -1445,15 +1443,32 @@ const EnhancedMomentsContent: React.FC<EnhancedMomentsRendererProps> = ({
     const categoryFilters = filterKeys.filter(k => k !== 'upcoming' && k !== 'answeredPrayers' && k !== 'unansweredPrayers');
     if (categoryFilters.length > 0) {
       filteredEntries = filteredEntries.filter(e => {
-        return (
-          (categoryFilters.includes('prayers') && e._isPrayer) ||
-          (categoryFilters.includes('prayerRequests') && e._isPrayerRequest) ||
-          (categoryFilters.includes('reflectionJournals') && e._isReflection) ||
-          (categoryFilters.includes('bibleStudy') && e.plugin.id === 'biblestudy') ||
-          (categoryFilters.includes('gratitude') && e._isGratitude) ||
-          (categoryFilters.includes('todaysWin') && e._isWin) ||
-          (categoryFilters.includes('planCarousel') && e._isPlan)
-        );
+        const sectionKinds = Array.isArray(e.timelineItem?.metadata?.sectionKinds)
+          ? e.timelineItem?.metadata?.sectionKinds as RoutineSectionKind[]
+          : [];
+        return categoryFilters.some(filter => matchesMomentCategoryFilter({
+          kind: e.timelineItem?.kind,
+          pluginId: e.plugin.id,
+          sectionKinds,
+          isPrayer: e._isPrayer,
+          isPrayerRequest: e._isPrayerRequest,
+          isReflection: e.timelineItem?.kind === 'reflection'
+            || (!e.timelineItem && e._isReflection === true),
+          isGratitude: e._isGratitude,
+          isWin: e._isWin,
+          isPlan: e._isPlan,
+        }, filter));
+      });
+      filteredEntries = filteredEntries.map(entry => {
+        if (!entry.timelineItem) {return entry;}
+        const timelineItem = narrowRoutineMomentToFilters(entry.timelineItem, categoryFilters);
+        if (timelineItem === entry.timelineItem) {return entry;}
+        return {
+          ...entry,
+          timelineItem,
+          plugin: {...entry.plugin, timelineItem},
+          _searchText: timelineItem.searchText,
+        };
       });
 
     }
@@ -2060,7 +2075,7 @@ const EnhancedMomentsContent: React.FC<EnhancedMomentsRendererProps> = ({
     }
   }, [groupBy]);
 
-  const renderCarouselItem: any = ({ item, index, _section }: any) => {
+  const renderCarouselItem: any = ({ item, index: _index, _section }: any) => {
     if (groupBy === 'week') {
       // Support custom emitted kinds when a week is expanded
       const maybeKind: any = item as any;
@@ -2560,8 +2575,16 @@ const EnhancedMomentsContent: React.FC<EnhancedMomentsRendererProps> = ({
     const active: string[] = [];
     if (filterKeys?.includes('answeredPrayers')) {active.push('answered prayers');}
     if (filterKeys?.includes('unansweredPrayers')) {active.push('unanswered prayers');}
-    if (filterKeys?.includes('reflectionJournals')) {active.push('reflections');}
+    if (filterKeys?.includes('morningCheckIns')) {active.push('morning check-ins');}
+    if (filterKeys?.includes('morningPsalms')) {active.push('morning Psalms');}
+    if (filterKeys?.includes('todaysFocus')) {active.push("today's focus");}
+    if (filterKeys?.includes('todos')) {active.push('to-dos');}
+    if (filterKeys?.includes('eveningProverbs')) {active.push('evening Proverbs');}
+    if (filterKeys?.includes('lookingForward')) {active.push('looking forward');}
+    if (filterKeys?.includes('reflectionJournals')) {active.push('Heart Journal');}
     if (filterKeys?.includes('bibleStudy')) {active.push('Bible Studies');}
+    if (filterKeys?.includes('scriptureNotes')) {active.push('Scripture Notes');}
+    if (filterKeys?.includes('sessionNotes')) {active.push('Session Notes');}
     if (filterKeys?.includes('prayers')) {active.push('prayers');}
     if (filterKeys?.includes('prayerRequests')) {active.push('prayer requests');}
     if (filterKeys?.includes('gratitude')) {active.push('gratitude');}

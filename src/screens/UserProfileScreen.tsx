@@ -30,7 +30,6 @@ import { experiencePreferences } from '../services/experiencePreferences';
 import { initSound, releaseSound } from '../utils/soundUtils';
 import { supabase } from '../services/supabaseClient';
 
-// import { LinearGradient } from 'expo-linear-gradient'; // Temporarily disabled
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { withErrorBoundary } from '../components/ErrorBoundary/withErrorBoundary';
 import { userApi } from '../services/userApi';
@@ -1438,6 +1437,21 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
       <View style={styles.menuContainer}>
         <TouchableOpacity
           style={styles.menuItem}
+          onPress={() => {
+            try { triggerLightHaptic(); } catch {}
+            navigateFromRoot(navigation, 'JournalOnboarding', { mode: 'replay' });
+          }}
+          accessibilityLabel="Open How to use Journal"
+        >
+          <View style={styles.menuIconBox}>
+            <Ionicons name="compass" size={18} color={Colors.sage} />
+          </View>
+          <Text style={[styles.menuText, font]}>How to use Journal</Text>
+          <Ionicons name="chevron-forward" size={20} color={theme.colors.chevronColor} />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.menuItem}
           onPress={() => { openExternalLink('https://sifia.app/#faq'); }}
           accessibilityLabel="Open Frequently Asked Questions"
         >
@@ -1657,10 +1671,10 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
             navigation.navigate('Journal', {screen: 'PastReviews'});
           }}
           accessibilityLabel="Open Reviews">
-          <View style={styles.menuIconBox}><Ionicons name="journal-outline" size={18} color={Colors.sage} /></View>
-          <View style={styles.flex1}>
-            <Text style={[styles.menuText, font]}>Reviews</Text>
-            <Text style={[styles.menuValueText, font]}>Look back. Look forward.</Text>
+          <View style={styles.menuIconBox}><Ionicons name="time" size={18} color={Colors.sage} /></View>
+          <View style={styles.featureMenuCopy}>
+            <Text style={[styles.featureMenuTitle, font]}>Reviews</Text>
+            <Text style={[styles.featureMenuSubtitle, font]}>Look back. Look forward.</Text>
           </View>
           <Ionicons name="chevron-forward" size={20} color={theme.colors.chevronColor} />
         </TouchableOpacity>
@@ -1681,11 +1695,11 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           accessibilityRole="button"
           accessibilityLabel="Open Gospel">
           <View style={styles.menuIconBox}>
-            <Ionicons name="sparkles-outline" size={18} color={Colors.sage} />
+            <Ionicons name="sparkles" size={18} color={Colors.sage} />
           </View>
-          <View style={styles.flex1}>
-            <Text style={[styles.menuText, font]}>Gospel</Text>
-            <Text style={[styles.menuValueText, font]}>Know it · Share it · Walk with others</Text>
+          <View style={styles.featureMenuCopy}>
+            <Text style={[styles.featureMenuTitle, font]}>Gospel</Text>
+            <Text style={[styles.featureMenuSubtitle, font]}>Know it · Share it · Walk with others</Text>
           </View>
           <Ionicons name="chevron-forward" size={20} color={theme.colors.chevronColor} />
         </TouchableOpacity>
@@ -1698,11 +1712,11 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           accessibilityRole="button"
           accessibilityLabel="Set up My For Me Day">
           <View style={styles.menuIconBox}>
-            <Ionicons name="calendar-outline" size={18} color={Colors.faithGold} />
+            <Ionicons name="gift" size={18} color={Colors.sage} />
           </View>
-          <View style={styles.flex1}>
-            <Text style={[styles.menuText, font]}>My For Me Day</Text>
-            <Text style={[styles.menuValueText, font]}>Remember your spiritual birthday</Text>
+          <View style={styles.featureMenuCopy}>
+            <Text style={[styles.featureMenuTitle, font]}>My For Me Day</Text>
+            <Text style={[styles.featureMenuSubtitle, font]}>Remember your spiritual birthday</Text>
           </View>
           <Ionicons name="chevron-forward" size={20} color={theme.colors.chevronColor} />
         </TouchableOpacity>
@@ -2833,6 +2847,20 @@ const styles = StyleSheet.create({
   menuValueText: {
     fontSize: 14,
     color: Colors.textGray,
+    marginRight: 8,
+  },
+  featureMenuCopy: {
+    flex: 1,
+    marginLeft: 10,
+  },
+  featureMenuTitle: {
+    fontSize: 16,
+    color: Colors.text,
+  },
+  featureMenuSubtitle: {
+    fontSize: 14,
+    color: Colors.textGray,
+    marginTop: 2,
     marginRight: 8,
   },
   menuIconBox: {

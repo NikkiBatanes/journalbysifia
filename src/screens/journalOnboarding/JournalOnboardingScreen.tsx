@@ -1,315 +1,890 @@
 /**
- * JournalOnboardingScreen.tsx
- *
- * Journal by siFia first-launch flow.
- * Local-only onboarding state (AsyncStorage) — no account, no Supabase,
- * no siFia onboarding systems. Structurally independent from
- * OnboardingContext / onboardingService.
+ * Journal by siFia first-launch setup and product walkthrough.
+ * Local-first: signed-in users also receive a best-effort metadata sync.
  */
 
-import React, { useMemo, useState } from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import {
+  ActivityIndicator,
+  Image,
+  KeyboardAvoidingView,
+  Linking,
+  PanResponder,
+  Platform,
+  ScrollView,
   StatusBar,
   StyleSheet,
+  Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import {SafeAreaView, useSafeAreaInsets} from 'react-native-safe-area-context';
+import {RouteProp, useNavigation, useRoute} from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import {BookHeart, BookOpen, Brain, Clock3, Compass, File, HandHeart, Heart, Pencil, RefreshCw, Sprout, SunMoon} from 'lucide-react-native';
 
 import ThemedText from '../../components/common/ThemedText';
-import { useAuth } from '../../context/IndustryStandardAuthContext';
-import { Colors } from '../../theme/colors';
-import { Fonts } from '../../theme/fonts';
-import { triggerLightHaptic } from '../../utils/haptics';
-import { markJournalOnboardingComplete } from '../../services/journalOnboardingState';
+import {useAuth} from '../../context/IndustryStandardAuthContext';
+import type {RootStackParamList} from '../../navigation/types';
+import {
+  getJournalOnboardingSetup,
+  JournalFaithGoal,
+  JournalRhythmBarrier,
+  JournalWeekStart,
+  markJournalOnboardingComplete,
+  saveJournalOnboardingSetup,
+} from '../../services/journalOnboardingState';
+import {Colors} from '../../theme/colors';
+import {Fonts} from '../../theme/fonts';
+import {triggerLightHaptic, triggerSuccessHaptic} from '../../utils/haptics';
 
-interface OnboardingStep {
-  eyebrow?: string;
-  title: string;
-  body?: string;
-  points?: { icon: string; heading: string; detail: string }[];
-  cta: string;
-}
+type JournalOnboardingRoute = RouteProp<RootStackParamList, 'JournalOnboarding'>;
+type ChoiceIcon = string | React.ComponentType<{size?: number; color?: string; strokeWidth?: number}>;
+type GuidePoint = {icon: ChoiceIcon; heading: string; detail: string};
 
-const STEPS: OnboardingStep[] = [
-  {
-    eyebrow: 'JOURNAL BY SIFIA',
-    title: 'A quiet place to remember, reflect, and return to Scripture.',
-    body: 'Journal by siFia helps you build a daily rhythm of writing, reflection, Scripture, prayer, and remembering what God is doing.',
-    cta: 'Continue',
-  },
-  {
-    title: 'More than a blank page.',
-    points: [
-      {
-        icon: 'sunny-outline',
-        heading: 'Begin Today',
-        detail: 'Set your focus and notice what is on your heart.',
-      },
-      {
-        icon: 'book-outline',
-        heading: 'Scripture & Reflection',
-        detail: 'Slow down with Scripture and what you are learning.',
-      },
-      {
-        icon: 'moon-outline',
-        heading: 'Close the Day',
-        detail: 'Remember the day, gratitude, prayers, and what you want to carry forward.',
-      },
-    ],
-    cta: 'Continue',
-  },
-  {
-    eyebrow: 'MADE TO COMPLEMENT SIFIA',
-    title: 'Build the rhythm.\nProcess the moment.',
-    body: 'Journal by siFia is your everyday space to write, remember, and reflect.\n\nsiFia is there when a specific situation needs deeper Scripture-rooted reflection.',
-    cta: 'Continue',
-  },
-  {
-    title: 'Your journal, your space.',
-    body: 'Journal by siFia is being designed so your core journaling experience can work without depending on an internet connection.\n\nAccount and sync features can be added when you choose to connect your journal.',
-    cta: 'Continue',
-  },
-  {
-    eyebrow: 'YOUR JOURNAL IS READY',
-    title: 'Begin with today.',
-    body: 'You do not need to have the perfect words.\nStart with what is here.',
-    cta: 'Begin Today',
-  },
+const TOTAL_STEPS = 14;
+const BIBLE_VERSIONS = [
+  {key: 'NIV', name: 'New International Version'},
+  {key: 'NLT', name: 'New Living Translation'},
+  {key: 'ESV', name: 'English Standard Version'},
+  {key: 'NKJV', name: 'New King James Version'},
+  {key: 'KJV', name: 'King James Version'},
+  {key: 'NASB', name: 'New American Standard Bible'},
+  {key: 'CSB', name: 'Christian Standard Bible'},
+  {key: 'AMP', name: 'Amplified Bible'},
+  {key: 'MSG', name: 'The Message'},
+] as const;
+
+const DAILY_RHYTHM: GuidePoint[] = [
+  {icon: 'sunny-outline', heading: 'Begin Today', detail: 'Check in, meet with Scripture, and name what matters today.'},
+  {icon: Pencil, heading: 'Capture the moment', detail: 'Use the pencil whenever you want to write, pray, or remember.'},
+  {icon: 'moon-outline', heading: 'Close the Day', detail: 'Return in the evening for gratitude, wisdom, and tomorrow.'},
 ];
+
+const FAITH_GOALS: {key: JournalFaithGoal; icon: ChoiceIcon; label: string; result: string}[] = [
+  {key: 'journal_and_plan', icon: Pencil, label: 'Journal and plan my days with God', result: 'build a rhythm for journaling and planning with God'},
+  {key: 'process_life', icon: Brain, label: 'Care for my mental and emotional well-being', result: 'process thoughts and feelings with God'},
+  {key: 'remember_growth', icon: Sprout, label: 'Remember prayers and growth', result: 'notice prayers and spiritual growth'},
+  {key: 'closer_to_god', icon: Heart, label: 'Grow closer to God', result: 'make space to meet with God'},
+  {key: 'consistent_scripture', icon: BookOpen, label: 'Be consistent with Scripture', result: 'return to Scripture consistently'},
+];
+
+const RHYTHM_BARRIERS: {key: JournalRhythmBarrier; icon: ChoiceIcon; label: string; response: string}[] = [
+  {key: 'where_to_begin', icon: Compass, label: 'I don’t know where to begin', response: 'guided next steps'},
+  {key: 'short_on_time', icon: Clock3, label: 'I’m short on time', response: 'a simple rhythm that fits real days'},
+  {key: 'hard_to_stay_consistent', icon: RefreshCw, label: 'I start, then lose the rhythm', response: 'a clear place to return'},
+  {key: 'blank_page', icon: File, label: 'Blank pages feel overwhelming', response: 'gentle prompts instead of a blank page'},
+];
+
+const PRIMARY_WEEK_DAYS: {key: JournalWeekStart; label: string; badge?: string}[] = [
+  {key: 'sunday', label: 'Sunday'},
+  {key: 'monday', label: 'Monday', badge: 'Common'},
+  {key: 'saturday', label: 'Saturday'},
+];
+const OTHER_WEEK_DAYS: {key: JournalWeekStart; label: string}[] = [
+  {key: 'tuesday', label: 'Tuesday'},
+  {key: 'wednesday', label: 'Wednesday'},
+  {key: 'thursday', label: 'Thursday'},
+  {key: 'friday', label: 'Friday'},
+];
+
+const dateOnly = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const parseDateOnly = (value: string): Date | null => {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) {return null;}
+  const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+  return Number.isNaN(date.getTime()) ? null : date;
+};
+
+const getDefaultBirthDate = (): Date => {
+  const date = new Date();
+  date.setFullYear(date.getFullYear() - 25);
+  return date;
+};
 
 const JournalOnboardingScreen: React.FC = () => {
   const navigation = useNavigation();
+  const route = useRoute<JournalOnboardingRoute>();
   const insets = useSafeAreaInsets();
-  const { isAuthenticated } = useAuth();
+  const {profile, preferences, updateProfile, updatePreferences} = useAuth();
+  const hydrated = useRef(false);
   const [stepIndex, setStepIndex] = useState(0);
-  const step = STEPS[stepIndex];
-  const isLastStep = stepIndex === STEPS.length - 1;
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [birthDate, setBirthDate] = useState<Date | null>(null);
+  const [showBirthDatePicker, setShowBirthDatePicker] = useState(false);
+  const [weekStart, setWeekStart] = useState<JournalWeekStart>('monday');
+  const [showOtherWeekDays, setShowOtherWeekDays] = useState(false);
+  const [sourcesExpanded, setSourcesExpanded] = useState(false);
+  const [bibleVersion, setBibleVersion] = useState('NASB');
+  const [faithGoal, setFaithGoal] = useState<JournalFaithGoal | null>(null);
+  const [rhythmBarrier, setRhythmBarrier] = useState<JournalRhythmBarrier | null>(null);
+  const [validationMessage, setValidationMessage] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
 
-  const dots = useMemo(
-    () =>
-      STEPS.map((_, index) => (
-        <View
-          key={index}
-          style={[styles.dot, index === stepIndex && styles.dotActive]}
-        />
-      )),
-    [stepIndex],
-  );
+  const isReplay = route.params?.mode === 'replay';
+  const isLastStep = stepIndex === TOTAL_STEPS - 1;
+
+  useEffect(() => {
+    if (hydrated.current) {return;}
+    hydrated.current = true;
+    getJournalOnboardingSetup().then(saved => {
+      setFirstName(String(profile?.first_name || profile?.firstName || saved.firstName || '').trim());
+      setLastName(String(profile?.last_name || profile?.lastName || saved.lastName || '').trim());
+      setBirthDate(parseDateOnly(String(profile?.birth_date || saved.birthDate || '')));
+      const storedWeekStart = preferences?.weekStart || saved.weekStart || 'monday';
+      setWeekStart(storedWeekStart as JournalWeekStart);
+      setShowOtherWeekDays(OTHER_WEEK_DAYS.some(day => day.key === storedWeekStart));
+      setBibleVersion(String(preferences?.content?.bibleVersion || saved.bibleVersion || 'NASB'));
+      setFaithGoal(saved.faithGoal);
+      setRhythmBarrier(saved.rhythmBarrier);
+    });
+  }, [preferences, profile]);
+
+  const validateSetup = () => {
+    if (!firstName.trim()) {
+      setValidationMessage('Add your first name to continue.');
+      return false;
+    }
+    if (!lastName.trim()) {
+      setValidationMessage('Add your last name to continue.');
+      return false;
+    }
+    if (!birthDate) {
+      setValidationMessage('Choose your birth date to continue.');
+      return false;
+    }
+    setValidationMessage('');
+    return true;
+  };
+
+  const persistSetup = async () => {
+    const setup = {
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
+      birthDate: dateOnly(birthDate as Date),
+      weekStart,
+      bibleVersion,
+      faithGoal,
+      rhythmBarrier,
+    };
+    // Preserve a local copy first so a network problem cannot block setup.
+    await saveJournalOnboardingSetup(setup);
+    await Promise.allSettled([
+      updateProfile({
+        first_name: setup.firstName,
+        last_name: setup.lastName,
+        display_name: `${setup.firstName} ${setup.lastName}`.trim(),
+        birth_date: setup.birthDate,
+      }),
+      updatePreferences({
+        ...preferences,
+        weekStart: setup.weekStart,
+        content: {...(preferences?.content || {}), bibleVersion: setup.bibleVersion},
+      }),
+    ]);
+  };
 
   const enterJournal = async () => {
-    await markJournalOnboardingComplete();
-    (navigation as any).reset({
-      index: 0,
-      routes: [{ name: 'MainTabs' }],
-    });
+    if (isSaving) {return;}
+    setIsSaving(true);
+    try {
+      await persistSetup();
+      await markJournalOnboardingComplete();
+      triggerSuccessHaptic();
+      if (isReplay && navigation.canGoBack()) {
+        navigation.goBack();
+      } else {
+        (navigation as any).reset({index: 0, routes: [{name: 'MainTabs'}]});
+      }
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handlePrimaryCta = async () => {
     triggerLightHaptic();
-    if (!isLastStep) {
-      setStepIndex(prev => prev + 1);
+    if (stepIndex === 2 && !faithGoal) {
+      setValidationMessage('Choose the hope that feels closest to you.');
       return;
     }
-    await enterJournal();
+    if (stepIndex === 3 && !rhythmBarrier) {
+      setValidationMessage('Choose what most often gets in the way.');
+      return;
+    }
+    if (stepIndex === 9) {
+      if (!validateSetup()) {return;}
+      await persistSetup();
+    }
+    if (isLastStep) {
+      await enterJournal();
+      return;
+    }
+    setValidationMessage('');
+    setStepIndex(previous => previous + 1);
   };
 
-  const handleSignIn = async () => {
+  const handleBack = () => {
     triggerLightHaptic();
-    // Mark onboarding complete: reaching this step means the flow was seen.
-    // Authentication state is intentionally separate from onboarding state.
-    await markJournalOnboardingComplete();
-    if (isAuthenticated) {
-      // Already signed in — Auth stack is not registered in this state.
-      (navigation as any).reset({
-        index: 0,
-        routes: [{ name: 'MainTabs' }],
-      });
-      return;
+    setValidationMessage('');
+    if (stepIndex > 0) {
+      setStepIndex(previous => previous - 1);
+    } else if (isReplay && navigation.canGoBack()) {
+      navigation.goBack();
     }
-    (navigation as any).navigate('Auth', { screen: 'Login' });
   };
 
-  return (
-    <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
-      <StatusBar barStyle="light-content" backgroundColor={Colors.sage} />
-      <View style={styles.content}>
-        <View style={styles.body}>
-          {step.eyebrow ? (
-            <ThemedText style={styles.eyebrow}>{step.eyebrow}</ThemedText>
-          ) : null}
-          <ThemedText style={styles.title}>{step.title}</ThemedText>
-          {step.body ? (
-            <ThemedText style={styles.bodyText}>{step.body}</ThemedText>
-          ) : null}
-          {step.points ? (
-            <View style={styles.points}>
-              {step.points.map(point => (
-                <View key={point.heading} style={styles.pointRow}>
-                  <View style={styles.pointIcon}>
-                    <Ionicons name={point.icon} size={20} color={Colors.hopeWhite} />
-                  </View>
-                  <View style={styles.pointCopy}>
-                    <ThemedText weight="semiBold" style={styles.pointHeading}>
-                      {point.heading}
-                    </ThemedText>
-                    <ThemedText style={styles.pointDetail}>
-                      {point.detail}
-                    </ThemedText>
-                  </View>
+  const saveConfirmedBirthDate = (selectedDate: Date) => {
+    saveJournalOnboardingSetup({
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
+      birthDate: dateOnly(selectedDate),
+      weekStart,
+      bibleVersion,
+      faithGoal,
+      rhythmBarrier,
+    }).catch(() => {});
+  };
+
+  const swipeResponder = PanResponder.create({
+    onMoveShouldSetPanResponder: (_, gestureState) => (
+      Math.abs(gestureState.dx) > 18
+      && Math.abs(gestureState.dx) > Math.abs(gestureState.dy) * 1.4
+    ),
+    onPanResponderRelease: (_, gestureState) => {
+      const isHorizontalSwipe = Math.abs(gestureState.dx) >= 70
+        && Math.abs(gestureState.dx) > Math.abs(gestureState.dy) * 1.25;
+      if (!isHorizontalSwipe) {return;}
+      if (gestureState.dx > 0) {
+        handleBack();
+      } else if (!isSaving) {
+        handlePrimaryCta().catch(() => {});
+      }
+    },
+    onPanResponderTerminationRequest: () => true,
+  });
+
+  const renderGuidePoints = (points: GuidePoint[]) => (
+    <View style={styles.points}>
+      {points.map((point, index) => {
+        const LucidePointIcon = typeof point.icon === 'string' ? null : point.icon;
+        return (
+          <View key={point.heading} style={styles.pointRow}>
+            <View style={styles.pointIcon}>
+              {LucidePointIcon
+                ? <LucidePointIcon size={20} color={Colors.sage} strokeWidth={1.9} />
+                : <Ionicons name={point.icon as string} size={20} color={Colors.sage} />}
+            </View>
+            <View style={styles.pointCopy}>
+              <View style={styles.pointHeadingRow}>
+                <ThemedText style={styles.pointNumber}>0{index + 1}</ThemedText>
+                <ThemedText weight="semiBold" style={styles.pointHeading}>{point.heading}</ThemedText>
+              </View>
+              <ThemedText style={styles.pointDetail}>{point.detail}</ThemedText>
+            </View>
+          </View>
+        );
+      })}
+    </View>
+  );
+
+  const selectedGoal = FAITH_GOALS.find(option => option.key === faithGoal);
+  const selectedBarrier = RHYTHM_BARRIERS.find(option => option.key === rhythmBarrier);
+
+  const renderChoice = (
+    key: string,
+    icon: ChoiceIcon,
+    label: string,
+    selected: boolean,
+    onPress: () => void,
+  ) => {
+    const LucideChoiceIcon = typeof icon === 'string' ? null : icon;
+    const iconColor = selected ? Colors.hopeWhite : Colors.sage;
+    return (
+      <TouchableOpacity
+      key={key}
+      style={[styles.choiceCard, selected && styles.choiceCardSelected]}
+      activeOpacity={0.8}
+      onPress={() => {
+        triggerLightHaptic();
+        setValidationMessage('');
+        onPress();
+      }}
+      accessibilityRole="radio"
+      accessibilityState={{selected}}
+      accessibilityLabel={label}
+    >
+        <View style={[styles.choiceIcon, selected && styles.choiceIconSelected]}>
+          {LucideChoiceIcon
+            ? <LucideChoiceIcon size={21} color={iconColor} strokeWidth={1.9} />
+            : <Ionicons name={icon as string} size={21} color={iconColor} />}
+        </View>
+        <ThemedText weight="bold" style={[styles.choiceLabel, selected && styles.choiceLabelSelected]}>{label}</ThemedText>
+        <Ionicons name={selected ? 'checkmark-circle' : 'ellipse-outline'} size={21} color={selected ? Colors.sage : Colors.lightGray} />
+      </TouchableOpacity>
+    );
+  };
+
+  const renderResearchPage = (
+    eyebrow: string,
+    title: string,
+    Icon: React.ComponentType<{size?: number; color?: string; strokeWidth?: number}>,
+    metric: string,
+    metricLabel: string,
+    finding: string,
+    source: string,
+  ) => (
+    <View>
+      <ThemedText style={styles.eyebrow}>{eyebrow}</ThemedText>
+      <ThemedText weight="bold" style={styles.title}>{title}</ThemedText>
+      <View style={styles.researchHero}>
+        <View style={styles.researchHeroIcon}>
+          <Icon size={31} color={Colors.sage} strokeWidth={1.8} />
+        </View>
+        <ThemedText weight="bold" style={styles.researchMetric}>{metric}</ThemedText>
+        <ThemedText weight="semiBold" style={styles.researchMetricLabel}>{metricLabel}</ThemedText>
+      </View>
+      <View style={styles.researchFindingCard}>
+        <ThemedText style={styles.researchFinding}>{finding}</ThemedText>
+      </View>
+      <ThemedText style={styles.researchSource}>{source}</ThemedText>
+    </View>
+  );
+
+  const renderStep = () => {
+    switch (stepIndex) {
+      case 0:
+        return (
+          <View style={styles.heroContent}>
+            <Image
+              source={require('../../../assets/images/journalbysifia-app-icon.png')}
+              style={styles.heroLogo}
+              resizeMode="cover"
+              accessibilityLabel="Journal by siFia logo"
+            />
+            <ThemedText style={styles.eyebrow}>JOURNAL BY SIFIA</ThemedText>
+            <ThemedText weight="bold" style={styles.heroTitle}>Begin and end your day with God.</ThemedText>
+            <ThemedText style={styles.bodyText}>Build a personal rhythm: start your morning with God, carry what matters through the day, and return each evening to reflect, give thanks, and rest.</ThemedText>
+            <View style={styles.heroVerseBlock}>
+              <View style={styles.heroVerseAccent} />
+              <Text style={styles.heroVerseText}>I will remember the works of the LORD…</Text>
+              <ThemedText weight="semiBold" style={styles.heroVerseReference}>PSALM 77:11 KJV</ThemedText>
+            </View>
+          </View>
+        );
+      case 1:
+        return (
+          <View style={styles.insightContent}>
+            <ThemedText style={styles.eyebrow}>YOU’RE NOT THE ONLY ONE</ThemedText>
+            <ThemedText weight="bold" style={styles.title}>The desire is there. The rhythm is hard.</ThemedText>
+            <View style={styles.statsPanel}>
+              <View style={styles.statRow}>
+                <ThemedText weight="bold" style={styles.statNumber} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85}>51%</ThemedText>
+                <ThemedText weight="bold" style={styles.statHeadline}>of U.S. adults said they wish they read the Bible more.</ThemedText>
+              </View>
+              <View style={styles.statDivider} />
+              <View style={styles.statRow}>
+                <ThemedText weight="bold" style={styles.secondaryStatNumber} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85}>80%</ThemedText>
+                <ThemedText style={styles.secondaryStatCopy}>of the American Bible Society’s “Movable Middle” said the same. This group is open to the Bible as a source of spiritual wisdom.</ThemedText>
+              </View>
+            </View>
+            <View style={styles.insightConclusion}>
+              <ThemedText weight="semiBold" style={styles.insightConclusionLead}>You don’t need more pressure.</ThemedText>
+              <ThemedText weight="bold" style={styles.insightConclusionMain}>You need a simple place{'\n'}to begin, and return.</ThemedText>
+            </View>
+            <TouchableOpacity
+              style={styles.verifyToggle}
+              onPress={() => {triggerLightHaptic(); setSourcesExpanded(value => !value);}}
+              accessibilityRole="button"
+              accessibilityState={{expanded: sourcesExpanded}}
+            >
+              <ThemedText weight="semiBold" style={styles.verifyToggleText}>Verify the sources</ThemedText>
+              <Ionicons name={sourcesExpanded ? 'chevron-up' : 'chevron-down'} size={17} color={Colors.sage} />
+            </TouchableOpacity>
+            {sourcesExpanded ? (
+              <View style={styles.sourceList}>
+                <View style={styles.sourceItem}>
+                  <ThemedText style={styles.sourceNumber}>1.</ThemedText>
+                  <Text style={styles.sourceDescription}>
+                    <Text style={styles.sourceLink} onPress={() => Linking.openURL('https://www.americanbible.org/news/press-releases/articles/sotb-2025-release/').catch(() => {})}>American Bible Society, State of the Bible 2025 release</Text>
+                    {'. It found that 51% of all Americans and 80% of the “Movable Middle” wished they read the Bible more.'}
+                  </Text>
+                </View>
+                <View style={styles.sourceItem}>
+                  <ThemedText style={styles.sourceNumber}>2.</ThemedText>
+                  <Text style={styles.sourceDescription}>
+                    <Text style={styles.sourceLink} onPress={() => Linking.openURL('https://unitedbiblesocieties.org/landmark-gallup-survey-finds-faith-the-norm-globally/').catch(() => {})}>United Bible Societies / Patmos World Bible Attitudes Survey</Text>
+                    {'. The survey included 91,000 respondents across 85 countries and territories. Fieldwork took place from 2023 to 2024.'}
+                  </Text>
+                </View>
+              </View>
+            ) : null}
+          </View>
+        );
+      case 2:
+        return (
+          <View>
+            <ThemedText style={styles.eyebrow}>YOUR HOPE</ThemedText>
+            <ThemedText weight="bold" style={styles.title}>What would you most like this journal to help with?</ThemedText>
+            <ThemedText style={styles.bodyText}>Choose the one that feels most important in this season.</ThemedText>
+            <View style={styles.choices}>{FAITH_GOALS.map(option => renderChoice(option.key, option.icon, option.label, faithGoal === option.key, () => setFaithGoal(option.key)))}</View>
+            {validationMessage ? <ThemedText style={styles.choiceValidation}>{validationMessage}</ThemedText> : null}
+          </View>
+        );
+      case 3:
+        return (
+          <View>
+            <ThemedText style={styles.eyebrow}>BE HONEST. NO JUDGMENT.</ThemedText>
+            <ThemedText weight="bold" style={styles.title}>What usually gets in the way?</ThemedText>
+            <ThemedText style={styles.bodyText}>Your answer helps us shape a rhythm you can actually return to.</ThemedText>
+            <View style={styles.choices}>{RHYTHM_BARRIERS.map(option => renderChoice(option.key, option.icon, option.label, rhythmBarrier === option.key, () => setRhythmBarrier(option.key)))}</View>
+            {validationMessage ? <ThemedText style={styles.choiceValidation}>{validationMessage}</ThemedText> : null}
+          </View>
+        );
+      case 4:
+        return renderResearchPage(
+          'WHY JOURNALING MATTERS',
+          'Writing gives you somewhere to put what you’re carrying.',
+          Pencil,
+          '31',
+          'RANDOMIZED STUDIES',
+          'A meta-analysis found a small but significant overall reduction in depression, anxiety, and stress symptoms.',
+          'Source: Guo (2023). Journaling is not a guaranteed treatment, and these findings do not mean journaling alone causes improvement.',
+        );
+      case 5:
+        return renderResearchPage(
+          'THE PRACTICE OF GRATITUDE',
+          'Gratitude helps you notice what is still good.',
+          HandHeart,
+          '119',
+          'PARTICIPANTS',
+          'A two-week randomized gratitude study reported gains in well-being, optimism, and sleep quality.',
+          'Source: Jackowska et al. (2016). The study describes an association within its specific participants and timeframe.',
+        );
+      case 6:
+        return renderResearchPage(
+          'A FAITHFUL RECORD',
+          'Writing can help you notice spiritual growth over time.',
+          BookHeart,
+          '385',
+          'PARTICIPANTS',
+          'Frequent writers in one church study had higher spiritual-growth and psychological-well-being scores.',
+          'Source: Kim et al. (2021). The findings do not establish that keeping a spiritual diary alone caused these outcomes.',
+        );
+      case 7:
+        return (
+          <View>
+            <ThemedText style={styles.eyebrow}>WHY SCRIPTURE IS PART OF IT</ThemedText>
+            <ThemedText weight="bold" style={styles.title}>Christian reflection is more than recording how you feel.</ThemedText>
+            <ThemedText style={styles.bodyText}>Scripture gives your reflection an anchor. Your journal helps you carry that truth into prayer, response, and ordinary life.</ThemedText>
+            <View style={styles.scripturePath}>
+              {[
+                {number: '01', title: 'Read', detail: 'Receive the passage.'},
+                {number: '02', title: 'Reflect', detail: 'Notice what stands out.'},
+                {number: '03', title: 'Respond', detail: 'Pray and write honestly.'},
+                {number: '04', title: 'Remember', detail: 'Return to what God is growing.'},
+              ].map(item => (
+                <View key={item.title} style={styles.scripturePathItem}>
+                  <ThemedText style={styles.scripturePathNumber}>{item.number}</ThemedText>
+                  <ThemedText weight="semiBold" style={styles.scripturePathTitle}>{item.title}</ThemedText>
+                  <ThemedText style={styles.scripturePathDetail}>{item.detail}</ThemedText>
                 </View>
               ))}
             </View>
-          ) : null}
-        </View>
+            <View style={styles.heroVerseBlock}>
+              <View style={styles.heroVerseAccent} />
+              <Text style={styles.heroVerseText}>Thy word is a lamp unto my feet, and a light unto my path.</Text>
+              <ThemedText weight="semiBold" style={styles.heroVerseReference}>PSALM 119:105 KJV</ThemedText>
+            </View>
+          </View>
+        );
+      case 8:
+        return (
+          <View>
+            <ThemedText style={styles.eyebrow}>A RHYTHM FOR YOU</ThemedText>
+            <ThemedText weight="bold" style={styles.title}>Built to help you {selectedGoal?.result || 'grow in faith'}.</ThemedText>
+            <ThemedText style={styles.bodyText}>You said you need {selectedBarrier?.response || 'a gentle place to return'}. So your journal always offers one clear next step.</ThemedText>
+            {renderGuidePoints(DAILY_RHYTHM)}
+          </View>
+        );
+      case 9:
+        return (
+          <View>
+            <ThemedText style={styles.eyebrow}>LET’S MAKE IT YOURS</ThemedText>
+            <ThemedText weight="bold" style={styles.title}>What should your journal call you?</ThemedText>
+            <ThemedText style={styles.bodyText}>Your birth date helps keep prompts and guidance appropriate for your season of life.</ThemedText>
+            <View style={styles.form}>
+              <View>
+                <ThemedText weight="semiBold" style={styles.fieldLabel}>First name</ThemedText>
+                <TextInput value={firstName} onChangeText={value => {setFirstName(value); setValidationMessage('');}} placeholder="First name" placeholderTextColor={Colors.placeholderText} autoCapitalize="words" autoComplete="given-name" returnKeyType="next" maxLength={40} style={styles.input} />
+              </View>
+              <View>
+                <ThemedText weight="semiBold" style={styles.fieldLabel}>Last name</ThemedText>
+                <TextInput value={lastName} onChangeText={value => {setLastName(value); setValidationMessage('');}} placeholder="Last name" placeholderTextColor={Colors.placeholderText} autoCapitalize="words" autoComplete="family-name" returnKeyType="done" maxLength={50} style={styles.input} />
+              </View>
+              <View>
+                <ThemedText weight="semiBold" style={styles.fieldLabel}>Birth date</ThemedText>
+                <TouchableOpacity
+                  style={styles.dateInput}
+                  onPress={() => {
+                    triggerLightHaptic();
+                    setShowBirthDatePicker(value => !value);
+                  }}
+                  accessibilityRole="button"
+                  accessibilityLabel={birthDate ? `Birth date ${birthDate.toLocaleDateString()}` : 'Choose birth date'}
+                >
+                  <ThemedText style={[styles.dateInputText, !birthDate && styles.dateInputPlaceholder]}>
+                    {birthDate ? birthDate.toLocaleDateString('en-US', {month: 'long', day: 'numeric', year: 'numeric'}) : 'Choose your birth date'}
+                  </ThemedText>
+                  <Ionicons name="calendar-outline" size={20} color={Colors.sage} />
+                </TouchableOpacity>
+                {showBirthDatePicker ? (
+                  <View style={styles.datePickerWrap}>
+                    <DateTimePicker
+                      value={birthDate || getDefaultBirthDate()}
+                      mode="date"
+                      display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                      maximumDate={new Date()}
+                      minimumDate={new Date(new Date().getFullYear() - 120, 0, 1)}
+                      onChange={(event, selectedDate) => {
+                        if (Platform.OS === 'android') {setShowBirthDatePicker(false);}
+                        if (event.type !== 'dismissed' && selectedDate) {
+                          setBirthDate(selectedDate);
+                          setValidationMessage('');
+                          if (Platform.OS === 'android') {saveConfirmedBirthDate(selectedDate);}
+                        }
+                      }}
+                    />
+                    {Platform.OS === 'ios' ? (
+                      <TouchableOpacity style={styles.datePickerDone} onPress={() => {
+                        const confirmedDate = birthDate || getDefaultBirthDate();
+                        setBirthDate(confirmedDate);
+                        setShowBirthDatePicker(false);
+                        saveConfirmedBirthDate(confirmedDate);
+                      }}>
+                        <ThemedText weight="semiBold" style={styles.datePickerDoneText}>Done</ThemedText>
+                      </TouchableOpacity>
+                    ) : null}
+                  </View>
+                ) : null}
+              </View>
+              {validationMessage ? (
+                <View style={styles.validationRow}>
+                  <Ionicons name="information-circle-outline" size={17} color={Colors.error} />
+                  <ThemedText style={styles.validationText}>{validationMessage}</ThemedText>
+                </View>
+              ) : null}
+              <View style={styles.privacyNote}>
+                <Ionicons name="lock-closed-outline" size={16} color={Colors.sageMuted} />
+                <ThemedText style={styles.privacyText}>Your setup is saved with your journal and can be changed later in More.</ThemedText>
+              </View>
+            </View>
+          </View>
+        );
+      case 10:
+        return (
+          <View>
+            <ThemedText style={styles.eyebrow}>YOUR WEEK</ThemedText>
+            <ThemedText weight="bold" style={styles.title}>When does your week begin?</ThemedText>
+            <ThemedText style={styles.bodyText}>This sets the start of weekly reviews, priorities, and journal history.</ThemedText>
+            <View style={styles.weekOptions}>
+              {PRIMARY_WEEK_DAYS.map(day => {
+                const selected = weekStart === day.key;
+                return (
+                  <TouchableOpacity key={day.key} style={[styles.weekOption, selected && styles.weekOptionSelected]} onPress={() => {triggerLightHaptic(); setWeekStart(day.key);}} accessibilityRole="radio" accessibilityState={{selected}}>
+                    <View style={styles.weekOptionCopy}>
+                      <ThemedText weight="semiBold" style={[styles.weekOptionLabel, selected && styles.weekOptionLabelSelected]}>{day.label}</ThemedText>
+                      {day.badge ? <ThemedText weight="semiBold" style={styles.commonBadge}>{day.badge}</ThemedText> : null}
+                    </View>
+                    <Ionicons name={selected ? 'checkmark-circle' : 'ellipse-outline'} size={21} color={selected ? Colors.sage : Colors.lightGray} />
+                  </TouchableOpacity>
+                );
+              })}
+              <TouchableOpacity style={styles.otherDaysToggle} onPress={() => {triggerLightHaptic(); setShowOtherWeekDays(value => !value);}} accessibilityRole="button" accessibilityState={{expanded: showOtherWeekDays}}>
+                <ThemedText weight="semiBold" style={styles.otherDaysText}>{showOtherWeekDays ? 'Hide other days' : 'Choose another day'}</ThemedText>
+                <Ionicons name={showOtherWeekDays ? 'chevron-up' : 'chevron-down'} size={18} color={Colors.sage} />
+              </TouchableOpacity>
+              {showOtherWeekDays ? (
+                <View style={styles.otherDaysGrid}>
+                  {OTHER_WEEK_DAYS.map(day => {
+                    const selected = weekStart === day.key;
+                    return (
+                      <TouchableOpacity key={day.key} style={[styles.otherDayChip, selected && styles.otherDayChipSelected]} onPress={() => {triggerLightHaptic(); setWeekStart(day.key);}} accessibilityRole="radio" accessibilityState={{selected}}>
+                        <ThemedText weight="semiBold" style={[styles.otherDayText, selected && styles.otherDayTextSelected]}>{day.label}</ThemedText>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              ) : null}
+            </View>
+          </View>
+        );
+      case 11:
+        return (
+          <View>
+            <ThemedText style={styles.eyebrow}>BIBLE SETTINGS</ThemedText>
+            <ThemedText weight="bold" style={styles.title}>Choose the translation you read most naturally.</ThemedText>
+            <ThemedText style={styles.bodyText}>Translations make different choices between closely mirroring Hebrew and Greek wording and expressing the meaning in natural contemporary English.</ThemedText>
+            <View style={styles.translationGuide}>
+              <View style={styles.translationGuideRow}><ThemedText weight="bold" style={styles.translationGuideKey}>KJV · NKJV</ThemedText><ThemedText style={styles.translationGuideText}>Traditional style, with NKJV using more modern English</ThemedText></View>
+              <View style={styles.translationGuideRow}><ThemedText weight="bold" style={styles.translationGuideKey}>ESV · NASB</ThemedText><ThemedText style={styles.translationGuideText}>Closer to original wording and structure</ThemedText></View>
+              <View style={styles.translationGuideRow}><ThemedText weight="bold" style={styles.translationGuideKey}>NIV</ThemedText><ThemedText style={styles.translationGuideText}>Balance of form and natural meaning</ThemedText></View>
+              <View style={styles.translationGuideRow}><ThemedText weight="bold" style={styles.translationGuideKey}>NLT</ThemedText><ThemedText style={styles.translationGuideText}>Clear, flowing contemporary English</ThemedText></View>
+              <View style={styles.translationGuideRow}><ThemedText weight="bold" style={styles.translationGuideKey}>AMP</ThemedText><ThemedText style={styles.translationGuideText}>Expanded wording that surfaces nuance</ThemedText></View>
+            </View>
+            <View style={styles.caveatCard}><Ionicons name="information-circle-outline" size={18} color={Colors.sage} /><ThemedText style={styles.caveatText}>No version is ranked as more spiritual. This simply chooses the default shown in your journal.</ThemedText></View>
+          </View>
+        );
+      case 12:
+        return (
+          <View>
+            <ThemedText style={styles.eyebrow}>BIBLE VERSION</ThemedText>
+            <ThemedText weight="bold" style={styles.title}>Which version would you like to use?</ThemedText>
+            <ThemedText style={styles.sectionHint}>You can change this anytime in More.</ThemedText>
+            <View style={styles.versionGrid}>
+              {BIBLE_VERSIONS.map(version => {
+                const selected = bibleVersion === version.key;
+                return (
+                  <TouchableOpacity key={version.key} style={[styles.versionChip, selected && styles.versionChipSelected]} onPress={() => {triggerLightHaptic(); setBibleVersion(version.key);}} accessibilityRole="radio" accessibilityState={{selected}} accessibilityLabel={`${version.key}, ${version.name}`}>
+                    <ThemedText weight="semiBold" style={[styles.versionKey, selected && styles.versionKeySelected]}>{version.key}</ThemedText>
+                    {selected ? <Ionicons name="checkmark-circle" size={17} color={Colors.hopeWhite} /> : null}
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+            <View style={styles.selectedTranslationCard}>
+              <ThemedText style={styles.planEyebrow}>SELECTED TRANSLATION</ThemedText>
+              <ThemedText weight="semiBold" style={styles.planTitle}>{BIBLE_VERSIONS.find(version => version.key === bibleVersion)?.name || bibleVersion}</ThemedText>
+            </View>
+          </View>
+        );
+      default:
+        return (
+          <View style={styles.readyContent}>
+            <View style={styles.readyIcon}><SunMoon size={33} color={Colors.hopeWhite} strokeWidth={1.9} /></View>
+            <ThemedText style={styles.eyebrow}>YOUR RHYTHM IS READY</ThemedText>
+            <ThemedText weight="bold" style={styles.title}>{firstName.trim()}, begin with what is here.</ThemedText>
+            <ThemedText style={styles.bodyText}>Open Today for one clear next step. Write in the moment, return in the evening, and let your weeks tell the story of what God is doing.</ThemedText>
+            <View style={styles.personalPlanCard}>
+              <ThemedText style={styles.planEyebrow}>YOUR PERSONAL FOCUS</ThemedText>
+              <ThemedText weight="semiBold" style={styles.planTitle}>{selectedGoal?.label || 'Grow closer to God'}</ThemedText>
+              <ThemedText style={styles.planDetail}>Supported by {selectedBarrier?.response || 'a gentle daily rhythm'}.</ThemedText>
+            </View>
+            <View style={styles.summaryCard}>
+              <View style={styles.summaryRow}><Ionicons name="calendar-outline" size={19} color={Colors.sage} /><ThemedText style={styles.summaryLabel}>Week begins</ThemedText><ThemedText weight="semiBold" style={styles.summaryValue}>{weekStart.charAt(0).toUpperCase() + weekStart.slice(1)}</ThemedText></View>
+              <View style={styles.summaryDivider} />
+              <View style={styles.summaryRow}><Ionicons name="book-outline" size={19} color={Colors.sage} /><ThemedText style={styles.summaryLabel}>Bible version</ThemedText><ThemedText weight="semiBold" style={styles.summaryValue}>{bibleVersion}</ThemedText></View>
+            </View>
+          </View>
+        );
+    }
+  };
 
-        <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 16) }]}>
-          <View style={styles.dots}>{dots}</View>
-          <TouchableOpacity
-            style={styles.primaryButton}
-            activeOpacity={0.85}
-            accessibilityRole="button"
-            accessibilityLabel={step.cta}
-            onPress={handlePrimaryCta}
-          >
-            <ThemedText weight="semiBold" style={styles.primaryButtonText}>
-              {step.cta}
-            </ThemedText>
-          </TouchableOpacity>
-          {isLastStep ? (
-            <TouchableOpacity
-              style={styles.secondaryButton}
-              activeOpacity={0.7}
-              accessibilityRole="button"
-              accessibilityLabel="Already use siFia? Sign in"
-              onPress={handleSignIn}
-            >
-              <ThemedText style={styles.secondaryButtonText}>
-                Already use siFia?{' '}
-                <ThemedText weight="semiBold" style={styles.secondaryButtonLink}>
-                  Sign in
-                </ThemedText>
-              </ThemedText>
-            </TouchableOpacity>
-          ) : null}
+  const ctaLabel = stepIndex === 0
+    ? 'Begin'
+    : stepIndex === 11
+      ? 'Choose my version'
+      : stepIndex === 12
+        ? 'Use this version'
+        : isLastStep
+          ? 'Begin Today'
+          : 'Continue';
+
+  return (
+    <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+      <StatusBar barStyle="dark-content" backgroundColor={Colors.lightBackground} />
+      <KeyboardAvoidingView style={styles.keyboardView} behavior={Platform.OS === 'ios' ? 'padding' : undefined} {...swipeResponder.panHandlers}>
+        <View style={styles.header}>
+          <View style={styles.progressTrack} accessibilityRole="progressbar" accessibilityValue={{min: 1, max: TOTAL_STEPS, now: stepIndex + 1}}>
+            <View style={[styles.progressFill, {width: `${((stepIndex + 1) / TOTAL_STEPS) * 100}%`}]} />
+          </View>
         </View>
-      </View>
+        <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+          {renderStep()}
+        </ScrollView>
+        <View style={[styles.footer, {paddingBottom: Math.max(insets.bottom, 14)}]}>
+          <TouchableOpacity style={[styles.primaryButton, isSaving && styles.primaryButtonDisabled]} activeOpacity={0.86} accessibilityRole="button" accessibilityLabel={ctaLabel} disabled={isSaving} onPress={handlePrimaryCta}>
+            {isSaving ? <ActivityIndicator color={Colors.hopeWhite} /> : (
+              <>
+                <ThemedText weight="semiBold" style={styles.primaryButtonText}>{ctaLabel}</ThemedText>
+              </>
+            )}
+          </TouchableOpacity>
+          <ThemedText style={styles.changeLaterText}>You can change these choices anytime in the More tab.</ThemedText>
+        </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: Colors.sage,
+  safeArea: {flex: 1, backgroundColor: Colors.lightBackground},
+  keyboardView: {flex: 1},
+  header: {paddingTop: 14, paddingBottom: 12, alignItems: 'center'},
+  progressTrack: {height: 6, width: 120, borderRadius: 3, backgroundColor: Colors.lightGray, overflow: 'hidden'},
+  progressFill: {height: '100%', borderRadius: 2, backgroundColor: Colors.sage},
+  scrollView: {flex: 1},
+  scrollContent: {flexGrow: 1, justifyContent: 'center', paddingHorizontal: 26, paddingVertical: 24},
+  heroContent: {alignItems: 'flex-start'},
+  heroLogo: {width: 68, height: 68, borderRadius: 21, marginBottom: 28},
+  eyebrow: {color: Colors.sageMuted, fontFamily: Fonts.semiBold, fontSize: 11, lineHeight: 15, letterSpacing: 1.8, marginBottom: 12},
+  heroTitle: {color: Colors.text, fontFamily: Fonts.bold, fontSize: 31, lineHeight: 39, letterSpacing: -0.6, marginBottom: 18},
+  title: {color: Colors.text, fontFamily: Fonts.bold, fontSize: 28, lineHeight: 35, letterSpacing: -0.5, marginBottom: 12},
+  bodyText: {color: Colors.secondaryText, fontFamily: Fonts.regular, fontSize: 15, lineHeight: 23},
+  heroVerseBlock: {alignSelf: 'stretch', marginTop: 22, paddingLeft: 16, position: 'relative'},
+  heroVerseAccent: {position: 'absolute', left: 0, top: 2, bottom: 2, width: 3, borderRadius: 999, backgroundColor: Colors.sage},
+  heroVerseText: {color: Colors.text, fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif', fontStyle: 'italic', fontSize: 15, lineHeight: 23},
+  heroVerseReference: {color: Colors.textGray, fontSize: 12, lineHeight: 17, letterSpacing: 0.7, marginTop: 7},
+  insightContent: {alignItems: 'stretch'},
+  statsPanel: {
+    marginTop: 17,
+    borderRadius: 22,
+    backgroundColor: Colors.cardBackground,
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+    overflow: 'hidden',
   },
-  content: {
-    flex: 1,
-    paddingHorizontal: 28,
-  },
-  body: {
-    flex: 1,
-    justifyContent: 'center',
-  },
-  eyebrow: {
-    color: 'rgba(255, 255, 255, 0.6)',
-    fontFamily: Fonts.semiBold,
-    fontSize: 11,
-    lineHeight: 15,
-    letterSpacing: 2,
-    marginBottom: 16,
-  },
-  title: {
-    color: Colors.hopeWhite,
-    fontFamily: Fonts.bold,
-    fontWeight: '900',
-    fontSize: 30,
-    lineHeight: 38,
-    letterSpacing: -0.4,
-    marginBottom: 18,
-  },
-  bodyText: {
-    color: 'rgba(255, 255, 255, 0.75)',
-    fontFamily: Fonts.regular,
-    fontSize: 15,
-    lineHeight: 23,
-  },
-  points: {
-    marginTop: 8,
-    gap: 18,
-  },
-  pointRow: {
+  statRow: {
+    paddingVertical: 18,
+    paddingHorizontal: 17,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 14,
+    gap: 15,
   },
-  pointIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    backgroundColor: 'rgba(255, 255, 255, 0.12)',
-    alignItems: 'center',
-    justifyContent: 'center',
+  statDivider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: Colors.cardBorder,
+    marginHorizontal: 17,
   },
-  pointCopy: {
-    flex: 1,
-    gap: 2,
-  },
-  pointHeading: {
-    color: Colors.hopeWhite,
-    fontSize: 16,
-    lineHeight: 21,
-  },
-  pointDetail: {
-    color: 'rgba(255, 255, 255, 0.65)',
-    fontFamily: Fonts.regular,
-    fontSize: 13,
-    lineHeight: 18,
-  },
-  footer: {
-    paddingTop: 12,
-  },
-  dots: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 6,
-    marginBottom: 18,
-  },
-  dot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-  },
-  dotActive: {
-    backgroundColor: Colors.hopeWhite,
-  },
-  primaryButton: {
-    backgroundColor: Colors.hopeWhite,
-    borderRadius: 28,
-    height: 56,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  primaryButtonText: {
+  statNumber: {
+    width: 96,
+    flexShrink: 0,
     color: Colors.sage,
-    fontSize: 16,
+    fontFamily: Fonts.bold,
+    fontSize: 43,
+    lineHeight: 49,
+    letterSpacing: -1.5,
   },
-  secondaryButton: {
-    alignItems: 'center',
-    paddingVertical: 16,
+  statHeadline: {flex: 1, color: Colors.text, fontSize: 13, lineHeight: 19},
+  secondaryStatNumber: {
+    width: 96,
+    flexShrink: 0,
+    color: Colors.sage,
+    fontFamily: Fonts.bold,
+    fontSize: 43,
+    lineHeight: 49,
+    letterSpacing: -1.5,
   },
-  secondaryButtonText: {
-    color: 'rgba(255, 255, 255, 0.7)',
-    fontFamily: Fonts.regular,
-    fontSize: 14,
-  },
-  secondaryButtonLink: {
-    color: Colors.hopeWhite,
-    fontSize: 14,
-  },
+  secondaryStatCopy: {flex: 1, color: Colors.secondaryText, fontSize: 11, lineHeight: 17},
+  insightConclusion: {marginTop: 20, paddingHorizontal: 20, paddingVertical: 21, borderRadius: 21, backgroundColor: Colors.sage},
+  insightConclusionLead: {color: Colors.hopeWhite, fontSize: 14, lineHeight: 20, opacity: 0.8, marginBottom: 8},
+  insightConclusionMain: {color: Colors.hopeWhite, fontSize: 22, lineHeight: 29, letterSpacing: -0.35},
+  verifyToggle: {marginTop: 14, paddingTop: 13, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: Colors.cardBorder, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between'},
+  verifyToggleText: {color: Colors.sage, fontSize: 11},
+  sourceList: {marginTop: 11, gap: 10},
+  sourceItem: {flexDirection: 'row', alignItems: 'flex-start', gap: 7},
+  sourceNumber: {color: Colors.textGray, fontSize: 9, lineHeight: 14},
+  sourceDescription: {flex: 1, color: Colors.textGray, fontFamily: Fonts.regular, fontSize: 9, lineHeight: 14},
+  sourceLink: {color: Colors.sage, fontFamily: Fonts.semiBold, textDecorationLine: 'underline'},
+  choices: {marginTop: 23, gap: 10},
+  choiceCard: {minHeight: 62, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 18, backgroundColor: Colors.cardBackground, borderWidth: 1, borderColor: Colors.cardBorder, flexDirection: 'row', alignItems: 'center', gap: 11},
+  choiceCardSelected: {borderColor: Colors.sage, backgroundColor: Colors.anchorBlueLight},
+  choiceIcon: {width: 38, height: 38, borderRadius: 13, backgroundColor: Colors.anchorBlueLight, alignItems: 'center', justifyContent: 'center'},
+  choiceIconSelected: {backgroundColor: Colors.sage},
+  choiceLabel: {flex: 1, color: Colors.text, fontSize: 13, lineHeight: 19},
+  choiceLabelSelected: {color: Colors.sage},
+  choiceValidation: {color: Colors.error, fontSize: 11, lineHeight: 16, marginTop: 10},
+  researchHero: {marginTop: 27, alignItems: 'center'},
+  researchHeroIcon: {width: 70, height: 70, borderRadius: 23, backgroundColor: Colors.anchorBlueLight, alignItems: 'center', justifyContent: 'center'},
+  researchMetric: {color: Colors.sage, fontSize: 60, lineHeight: 67, letterSpacing: -2, marginTop: 14},
+  researchMetricLabel: {color: Colors.sageMuted, fontSize: 11, lineHeight: 16, letterSpacing: 1.15},
+  researchFindingCard: {marginTop: 25, paddingHorizontal: 20, paddingVertical: 19, borderRadius: 20, backgroundColor: Colors.anchorBlueLight},
+  researchFinding: {color: Colors.text, fontSize: 16, lineHeight: 25},
+  researchSource: {color: Colors.textGray, fontSize: 11, lineHeight: 17, marginTop: 16},
+  scripturePath: {marginTop: 23, flexDirection: 'row', flexWrap: 'wrap', gap: 10},
+  scripturePathItem: {width: '47%', minHeight: 98, padding: 13, borderRadius: 17, backgroundColor: Colors.anchorBlueLight},
+  scripturePathNumber: {color: Colors.faithGold, fontFamily: Fonts.semiBold, fontSize: 9, letterSpacing: 0.7},
+  scripturePathTitle: {color: Colors.text, fontSize: 14, lineHeight: 20, marginTop: 7},
+  scripturePathDetail: {color: Colors.textGray, fontSize: 10, lineHeight: 15, marginTop: 2},
+  form: {marginTop: 26, gap: 23},
+  fieldLabel: {color: Colors.sageMuted, fontSize: 12, lineHeight: 17, marginBottom: 2},
+  input: {height: 50, color: Colors.text, fontFamily: Fonts.regular, fontSize: 17, paddingHorizontal: 0, paddingVertical: 0},
+  dateInput: {height: 50, paddingHorizontal: 0, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between'},
+  dateInputText: {color: Colors.text, fontSize: 17},
+  dateInputPlaceholder: {color: Colors.placeholderText},
+  datePickerWrap: {marginTop: 5},
+  datePickerDone: {alignSelf: 'flex-end', paddingHorizontal: 18, paddingVertical: 11},
+  datePickerDoneText: {color: Colors.sage, fontSize: 13},
+  validationRow: {flexDirection: 'row', alignItems: 'center', gap: 7},
+  validationText: {flex: 1, color: Colors.error, fontSize: 12, lineHeight: 17},
+  privacyNote: {flexDirection: 'row', alignItems: 'flex-start', gap: 8, padding: 13, borderRadius: 13, backgroundColor: Colors.anchorBlueLight},
+  privacyText: {flex: 1, color: Colors.sageMuted, fontSize: 11, lineHeight: 16},
+  preferenceSection: {marginTop: 25},
+  sectionTitle: {color: Colors.text, fontSize: 15, lineHeight: 20, marginBottom: 7},
+  sectionHint: {color: Colors.textGray, fontSize: 12, lineHeight: 17, marginBottom: 13},
+  segmentedControl: {flexDirection: 'row', padding: 4, borderRadius: 16, backgroundColor: Colors.anchorBlueLight, gap: 4},
+  segment: {flex: 1, height: 45, borderRadius: 12, alignItems: 'center', justifyContent: 'center'},
+  segmentSelected: {backgroundColor: Colors.cardBackground, shadowColor: Colors.black, shadowOffset: {width: 0, height: 2}, shadowOpacity: 0.08, shadowRadius: 5, elevation: 2},
+  segmentText: {color: Colors.textGray, fontSize: 14},
+  segmentTextSelected: {color: Colors.sage},
+  weekOptions: {marginTop: 24, gap: 10},
+  weekOption: {minHeight: 56, paddingHorizontal: 15, borderRadius: 17, borderWidth: 1, borderColor: Colors.cardBorder, backgroundColor: Colors.cardBackground, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between'},
+  weekOptionSelected: {borderColor: Colors.sage, backgroundColor: Colors.anchorBlueLight},
+  weekOptionCopy: {flexDirection: 'row', alignItems: 'center', gap: 9},
+  weekOptionLabel: {color: Colors.text, fontSize: 14},
+  weekOptionLabelSelected: {color: Colors.sage},
+  commonBadge: {color: Colors.faithGold, fontSize: 8, letterSpacing: 0.5, textTransform: 'uppercase', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 9, backgroundColor: '#EEE9DD'},
+  otherDaysToggle: {minHeight: 48, paddingHorizontal: 4, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between'},
+  otherDaysText: {color: Colors.sage, fontSize: 12},
+  otherDaysGrid: {flexDirection: 'row', flexWrap: 'wrap', gap: 8},
+  otherDayChip: {width: '48%', minHeight: 42, paddingHorizontal: 10, borderRadius: 13, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: Colors.cardBorder, backgroundColor: Colors.cardBackground},
+  otherDayChipSelected: {backgroundColor: Colors.sage, borderColor: Colors.sage},
+  otherDayText: {color: Colors.text, fontSize: 11},
+  otherDayTextSelected: {color: Colors.hopeWhite},
+  translationGuide: {marginTop: 22, gap: 10},
+  translationGuideRow: {padding: 14, borderRadius: 17, borderWidth: 1, borderColor: Colors.cardBorder, backgroundColor: Colors.cardBackground},
+  translationGuideKey: {color: Colors.sage, fontSize: 12, lineHeight: 17},
+  translationGuideText: {color: Colors.textGray, fontSize: 11, lineHeight: 16, marginTop: 3},
+  caveatCard: {marginTop: 13, padding: 13, borderRadius: 15, backgroundColor: Colors.anchorBlueLight, flexDirection: 'row', alignItems: 'flex-start', gap: 9},
+  caveatText: {flex: 1, color: Colors.sageMuted, fontSize: 10, lineHeight: 15},
+  versionGrid: {flexDirection: 'row', flexWrap: 'wrap', gap: 9},
+  versionChip: {minWidth: '22%', height: 43, paddingHorizontal: 12, borderRadius: 13, borderWidth: 1, borderColor: Colors.inputBorder, backgroundColor: Colors.cardBackground, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 5},
+  versionChipSelected: {backgroundColor: Colors.sage, borderColor: Colors.sage},
+  versionKey: {color: Colors.text, fontSize: 13},
+  versionKeySelected: {color: Colors.hopeWhite},
+  selectedTranslationCard: {marginTop: 18, padding: 16, borderRadius: 17, backgroundColor: Colors.anchorBlueLight},
+  points: {marginTop: 26, gap: 14},
+  pointRow: {flexDirection: 'row', alignItems: 'flex-start', gap: 13, padding: 15, borderRadius: 18, backgroundColor: Colors.cardBackground, borderWidth: 1, borderColor: Colors.cardBorder},
+  pointIcon: {width: 42, height: 42, borderRadius: 14, backgroundColor: Colors.anchorBlueLight, alignItems: 'center', justifyContent: 'center'},
+  pointCopy: {flex: 1},
+  pointHeadingRow: {flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 3},
+  pointNumber: {color: Colors.faithGold, fontFamily: Fonts.semiBold, fontSize: 10, letterSpacing: 0.5},
+  pointHeading: {color: Colors.text, fontSize: 15, lineHeight: 20},
+  pointDetail: {color: Colors.textGray, fontFamily: Fonts.regular, fontSize: 12, lineHeight: 18},
+  readyContent: {alignItems: 'flex-start'},
+  readyIcon: {width: 64, height: 64, borderRadius: 32, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.sage, marginBottom: 27},
+  personalPlanCard: {alignSelf: 'stretch', marginTop: 22, padding: 17, borderRadius: 18, backgroundColor: Colors.anchorBlueLight},
+  planEyebrow: {color: Colors.sageMuted, fontFamily: Fonts.semiBold, fontSize: 9, lineHeight: 13, letterSpacing: 1.3, marginBottom: 6},
+  planTitle: {color: Colors.text, fontSize: 15, lineHeight: 21},
+  planDetail: {color: Colors.textGray, fontSize: 11, lineHeight: 16, marginTop: 3},
+  summaryCard: {alignSelf: 'stretch', marginTop: 12, paddingHorizontal: 16, borderRadius: 18, backgroundColor: Colors.cardBackground, borderWidth: 1, borderColor: Colors.cardBorder},
+  summaryRow: {minHeight: 54, flexDirection: 'row', alignItems: 'center', gap: 10},
+  summaryLabel: {flex: 1, color: Colors.textGray, fontSize: 13},
+  summaryValue: {color: Colors.text, fontSize: 13},
+  summaryDivider: {height: StyleSheet.hairlineWidth, backgroundColor: Colors.cardBorder, marginLeft: 29},
+  footer: {paddingTop: 10, paddingHorizontal: 26, backgroundColor: Colors.lightBackground},
+  primaryButton: {backgroundColor: Colors.sage, borderRadius: 28, height: 56, alignItems: 'center', justifyContent: 'center'},
+  primaryButtonDisabled: {opacity: 0.65},
+  primaryButtonText: {color: Colors.hopeWhite, fontSize: 16},
+  changeLaterText: {color: Colors.textGray, fontSize: 10, lineHeight: 14, textAlign: 'center', marginTop: 9},
 });
 
 export default JournalOnboardingScreen;

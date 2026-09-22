@@ -2,12 +2,13 @@ import { useAuth } from '../context/IndustryStandardAuthContext';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   ScrollView,
+  Platform,
   StatusBar,
   StyleSheet,
-  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -47,12 +48,31 @@ const isValidTime = (value: string): boolean => {
   return /^([01]?\d|2[0-3]):([0-5]\d)$/.test(value);
 };
 
+const timeValueToDate = (value: string): Date => {
+  const date = new Date();
+  const [hour = 19, minute = 0] = value.split(':').map(Number);
+  date.setHours(hour, minute, 0, 0);
+  return date;
+};
+
+const dateToTimeValue = (date: Date): string =>
+  `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+
+const formatTwelveHourTime = (value: string): string => {
+  const [hour = 19, minute = 0] = value.split(':').map(Number);
+  const period = hour >= 12 ? 'PM' : 'AM';
+  const displayHour = hour % 12 || 12;
+  return `${displayHour}:${String(minute).padStart(2, '0')} ${period}`;
+};
+
 const ReviewSettingsScreen: React.FC = () => {
   const { preferences } = useAuth();
   const weekStart = preferences?.weekStart || 'monday';
   const navigation = useNavigation<any>();
   const insets = useSafeAreaInsets();
+  const topInset = Math.max(insets.top, Platform.OS === 'android' ? StatusBar.currentHeight ?? 0 : 0);
   const [settings, setLocalSettings] = useState<ReviewSettings | null>(null);
+  const [showTimePicker, setShowTimePicker] = useState(false);
 
   useEffect(() => {
     getReviewSettings(weekStart).then(setLocalSettings);
@@ -89,8 +109,8 @@ const ReviewSettingsScreen: React.FC = () => {
 
   if (!settings) {
     return (
-      <SafeAreaView style={styles.safeArea} edges={['top']}>
-        <StatusBar barStyle="dark-content" backgroundColor={Colors.lightBackground} />
+      <SafeAreaView style={[styles.safeArea, { paddingTop: topInset }]} edges={['left', 'right']}>
+        <StatusBar barStyle="dark-content" backgroundColor={Colors.lightBackground} translucent={false} />
         <View style={styles.loading}>
           <ThemedText style={styles.sectionTitle}>Loading…</ThemedText>
         </View>
@@ -99,8 +119,8 @@ const ReviewSettingsScreen: React.FC = () => {
   }
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top']}>
-      <StatusBar barStyle="dark-content" backgroundColor={Colors.lightBackground} />
+    <SafeAreaView style={[styles.safeArea, { paddingTop: topInset }]} edges={['left', 'right']}>
+      <StatusBar barStyle="dark-content" backgroundColor={Colors.lightBackground} translucent={false} />
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.closeButton}
@@ -133,15 +153,50 @@ const ReviewSettingsScreen: React.FC = () => {
         <ThemedText weight="semiBold" style={styles.sectionTitle}>
           Reminder time
         </ThemedText>
-        <TextInput
+        <TouchableOpacity
           style={styles.timeInput}
-          value={settings.reminderTime}
-          onChangeText={t => update({ reminderTime: t })}
-          placeholder="19:00"
-          keyboardType="numbers-and-punctuation"
-          maxLength={5}
-          placeholderTextColor={Colors.textGray}
-        />
+          onPress={() => {
+            triggerLightHaptic();
+            setShowTimePicker(true);
+          }}
+          activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel={`Reminder time, ${formatTwelveHourTime(settings.reminderTime)}`}>
+          <ThemedText weight="semiBold" style={styles.timeText}>
+            {formatTwelveHourTime(settings.reminderTime)}
+          </ThemedText>
+          <Ionicons name="time-outline" size={20} color={Colors.sage} />
+        </TouchableOpacity>
+        {showTimePicker && (
+          <View style={styles.timePickerContainer}>
+            <DateTimePicker
+              value={timeValueToDate(settings.reminderTime)}
+              mode="time"
+              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+              is24Hour={false}
+              locale="en-US"
+              onChange={(event, selectedTime) => {
+                if (Platform.OS === 'android') {
+                  setShowTimePicker(false);
+                }
+                if (event.type !== 'dismissed' && selectedTime) {
+                  update({ reminderTime: dateToTimeValue(selectedTime) });
+                }
+              }}
+            />
+            {Platform.OS === 'ios' && (
+              <TouchableOpacity
+                style={styles.timePickerDone}
+                onPress={() => {
+                  triggerLightHaptic();
+                  setShowTimePicker(false);
+                }}
+                activeOpacity={0.7}>
+                <ThemedText weight="semiBold" style={styles.timePickerDoneText}>Done</ThemedText>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
 
         <ThemedText weight="semiBold" style={styles.sectionTitle}>
           Review cadences
@@ -244,12 +299,34 @@ const styles = StyleSheet.create({
     color: Colors.hopeWhite,
   },
   timeInput: {
-    fontFamily: Fonts.regular,
-    fontSize: 18,
-    color: Colors.text,
+    minHeight: 54,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     backgroundColor: Colors.cardBackground,
     borderRadius: 16,
     padding: 16,
+  },
+  timeText: {
+    fontSize: 18,
+    color: Colors.text,
+  },
+  timePickerContainer: {
+    marginTop: 10,
+    padding: 12,
+    borderRadius: 16,
+    backgroundColor: Colors.cardBackground,
+  },
+  timePickerDone: {
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 22,
+    backgroundColor: Colors.sage,
+  },
+  timePickerDoneText: {
+    fontSize: 14,
+    color: Colors.hopeWhite,
   },
   toggleRow: {
     flexDirection: 'row',

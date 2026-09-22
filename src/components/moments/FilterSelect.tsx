@@ -1,36 +1,15 @@
 import React, { useMemo, useState, forwardRef, useImperativeHandle } from 'react';
-import { View, TouchableOpacity, Modal, StyleSheet, Platform } from 'react-native';
+import { View, TouchableOpacity, Modal, ScrollView, StyleSheet, Platform } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import ThemedText from '../common/ThemedText';
 import { Colors } from '../../theme/colors';
 import { useTheme } from '../../hooks/useTheme';
 import { getFontFamily } from '../../theme/fonts';
 import { triggerLightHaptic } from '../../utils/haptics';
+import {FILTER_OPTIONS, type FilterKey} from './momentFilterOptions';
 
-export type FilterKey =
-  | 'upcoming'
-  | 'unansweredPrayers'
-  | 'answeredPrayers'
-  | 'reflectionJournals'
-  | 'bibleStudy'
-  | 'prayers'
-  | 'prayerRequests'
-  | 'gratitude'
-  | 'todaysWin'
-  | 'planCarousel';
-
-export const FILTER_OPTIONS: { key: FilterKey; label: string }[] = [
-  { key: 'upcoming', label: 'Upcoming' },
-  { key: 'unansweredPrayers', label: 'Unanswered Prayers' },
-  { key: 'answeredPrayers', label: 'Answered Prayers' },
-  { key: 'reflectionJournals', label: 'Reflection Journals' },
-  { key: 'bibleStudy', label: 'Bible Study' },
-  { key: 'prayers', label: 'Prayers' },
-  { key: 'prayerRequests', label: 'Prayer Requests' },
-  { key: 'gratitude', label: 'Gratitude' },
-  { key: 'todaysWin', label: 'Wins' },
-  { key: 'planCarousel', label: 'Planner' },
-];
+export {FILTER_OPTIONS};
+export type {FilterKey};
 
 interface FilterSelectProps {
   values: FilterKey[];
@@ -87,7 +66,9 @@ const FilterSelect = forwardRef<FilterSelectHandle, FilterSelectProps>(({ values
                 </TouchableOpacity>
               )}
             </View>
-            <View style={styles.optionsGrid}>
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.optionsGrid}>
               {FILTER_OPTIONS.map((item) => {
                 const active = values.includes(item.key);
                 return (
@@ -102,7 +83,7 @@ const FilterSelect = forwardRef<FilterSelectHandle, FilterSelectProps>(({ values
                   </TouchableOpacity>
                 );
               })}
-            </View>
+            </ScrollView>
           </View>
         </TouchableOpacity>
       </Modal>
@@ -129,12 +110,12 @@ const styles = StyleSheet.create({
   buttonText: { color: Colors.hopeWhite, fontSize: 13 },
   buttonTextCompact: { fontSize: 12 },
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
-  sheet: { backgroundColor: Colors.sage, borderRadius: 24, padding: 20, maxWidth: 320, alignSelf: 'center' },
+  sheet: { backgroundColor: Colors.sage, borderRadius: 24, padding: 20, width: '88%', maxWidth: 360, maxHeight: '82%', alignSelf: 'center' },
   sheetHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
   sheetTitle: { fontSize: 16, color: Colors.hopeWhite, textTransform: 'uppercase' },
   clearButton: { padding: 4 },
   clearText: { color: Colors.hopeWhite, opacity: 0.8, fontSize: 14 },
-  optionsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, alignItems: 'center' },
+  optionsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, alignItems: 'center', paddingBottom: 2 },
   optionPill: {
     flexDirection: 'row',
     alignItems: 'center',

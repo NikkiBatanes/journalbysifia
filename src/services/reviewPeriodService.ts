@@ -5,13 +5,14 @@ import {
   endOfMonth,
   endOfQuarter,
   endOfYear,
-  getDate,
-  getMonth,
   getYear,
   startOfMonth,
   startOfQuarter,
   startOfYear,
   subDays,
+  subMonths,
+  subQuarters,
+  subYears,
 } from 'date-fns';
 import { toLocalDateString } from '../utils/date';
 import { type ReviewType } from '../storage/reviewStorage';
@@ -25,7 +26,11 @@ export interface ReviewPeriod {
 }
 
 const parseYMD = (value: string | Date): Date => {
-  if (value instanceof Date) {return value;}
+  if (value instanceof Date) {
+    const local = new Date(value);
+    local.setHours(0, 0, 0, 0);
+    return local;
+  }
   const [year, month, day] = value.split('-').map(Number);
   return new Date(year, month - 1, day);
 };
@@ -50,15 +55,18 @@ export const getWeeklyPeriodFor = (
 ): ReviewPeriod => {
   const anchorDate = parseYMD(anchor);
   const periodEnd = getPreviousDayOfWeek(anchorDate, weekEndsOn);
+  if (periodEnd >= anchorDate) {
+    periodEnd.setDate(periodEnd.getDate() - 7);
+  }
   const periodStart = subDays(periodEnd, 6);
-  const nextPeriodEnd = addDays(periodEnd, 7);
+  const availableFrom = addDays(periodEnd, 1);
 
   return {
     type: 'weekly',
     periodStart: toLocalDateString(periodStart),
     periodEnd: toLocalDateString(periodEnd),
-    availableFrom: toLocalDateString(periodEnd),
-    availableUntil: toLocalDateString(nextPeriodEnd),
+    availableFrom: toLocalDateString(availableFrom),
+    availableUntil: toLocalDateString(addDays(availableFrom, 7)),
   };
 };
 
@@ -66,19 +74,17 @@ export const getMonthlyPeriodFor = (
   anchor: string | Date = localToday(),
 ): ReviewPeriod => {
   const anchorDate = parseYMD(anchor);
-  const periodEnd = endOfMonth(anchorDate);
-  const periodStart = startOfMonth(anchorDate);
-  const availableFrom = subDays(periodEnd, 2);
-
-  const nextPeriodEnd = endOfMonth(addMonths(anchorDate, 1));
-  const nextAvailableFrom = subDays(nextPeriodEnd, 2);
+  const reviewedMonth = subMonths(anchorDate, 1);
+  const periodEnd = endOfMonth(reviewedMonth);
+  const periodStart = startOfMonth(reviewedMonth);
+  const availableFrom = startOfMonth(anchorDate);
 
   return {
     type: 'monthly',
     periodStart: toLocalDateString(periodStart),
     periodEnd: toLocalDateString(periodEnd),
     availableFrom: toLocalDateString(availableFrom),
-    availableUntil: toLocalDateString(nextAvailableFrom),
+    availableUntil: toLocalDateString(addMonths(availableFrom, 1)),
   };
 };
 
@@ -86,19 +92,17 @@ export const getQuarterlyPeriodFor = (
   anchor: string | Date = localToday(),
 ): ReviewPeriod => {
   const anchorDate = parseYMD(anchor);
-  const periodEnd = endOfQuarter(anchorDate);
-  const periodStart = startOfQuarter(anchorDate);
-  const availableFrom = subDays(periodEnd, 6);
-
-  const nextPeriodEnd = endOfQuarter(addQuarters(anchorDate, 1));
-  const nextAvailableFrom = subDays(nextPeriodEnd, 6);
+  const reviewedQuarter = subQuarters(anchorDate, 1);
+  const periodEnd = endOfQuarter(reviewedQuarter);
+  const periodStart = startOfQuarter(reviewedQuarter);
+  const availableFrom = startOfQuarter(anchorDate);
 
   return {
     type: 'quarterly',
     periodStart: toLocalDateString(periodStart),
     periodEnd: toLocalDateString(periodEnd),
     availableFrom: toLocalDateString(availableFrom),
-    availableUntil: toLocalDateString(nextAvailableFrom),
+    availableUntil: toLocalDateString(addQuarters(availableFrom, 1)),
   };
 };
 
@@ -107,19 +111,20 @@ export const getYearEndPeriodFor = (
 ): ReviewPeriod | null => {
   const anchorDate = parseYMD(anchor);
   const year = getYear(anchorDate);
-  const availableFrom = new Date(year, 11, 15); // Dec 15
-  const availableUntil = new Date(year, 11, 31); // Dec 31
+  const availableFrom = new Date(year, 0, 1);
+  const availableUntil = new Date(year, 0, 15);
 
   const anchorYMD = toLocalDateString(anchorDate);
   const fromYMD = toLocalDateString(availableFrom);
   const untilYMD = toLocalDateString(availableUntil);
 
-  if (anchorYMD < fromYMD || anchorYMD > untilYMD) {
+  if (anchorYMD < fromYMD || anchorYMD >= untilYMD) {
     return null;
   }
 
-  const periodStart = startOfYear(anchorDate);
-  const periodEnd = endOfYear(anchorDate);
+  const reviewedYear = subYears(anchorDate, 1);
+  const periodStart = startOfYear(reviewedYear);
+  const periodEnd = endOfYear(reviewedYear);
 
   return {
     type: 'year_end',
@@ -136,21 +141,21 @@ export const getBeginYearPeriodFor = (
   const anchorDate = parseYMD(anchor);
   const year = getYear(anchorDate);
   const availableFrom = new Date(year, 0, 1); // Jan 1
-  const availableUntil = new Date(year, 0, 14); // Jan 14
+  const availableUntil = new Date(year, 0, 15); // exclusive
 
   const anchorYMD = toLocalDateString(anchorDate);
   const fromYMD = toLocalDateString(availableFrom);
   const untilYMD = toLocalDateString(availableUntil);
 
-  if (anchorYMD < fromYMD || anchorYMD > untilYMD) {
+  if (anchorYMD < fromYMD || anchorYMD >= untilYMD) {
     return null;
   }
 
   return {
     type: 'begin_year',
     periodStart: fromYMD,
-    periodEnd: untilYMD,
+    periodEnd: toLocalDateString(endOfYear(anchorDate)),
     availableFrom: fromYMD,
-    availableUntil: null,
+    availableUntil: untilYMD,
   };
 };

@@ -20,13 +20,14 @@
 		2F1A0D000000000000000002 /* today_opening.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 2F1A0D000000000000000001 /* today_opening.mp3 */; };
 		2F1A0D000000000000000004 /* gospel_opening.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 2F1A0D000000000000000003 /* gospel_opening.mp3 */; };
 		427FC447A691C58BB6D3B3CC /* libPods-JournalBySiFia.a in Frameworks */ = {isa = PBXBuildFile; fileRef = B62E77873B8CF9FD8510DFED /* libPods-JournalBySiFia.a */; };
+		5A1100000000000000000001 /* SifiaVoiceRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A1100000000000000000003 /* SifiaVoiceRecorder.swift */; };
+		5A1100000000000000000002 /* SifiaVoiceRecorder.m in Sources */ = {isa = PBXBuildFile; fileRef = 5A1100000000000000000004 /* SifiaVoiceRecorder.m */; };
 		5D3BECA3F76C47EA978B5F3D /* Poppins-Medium.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 9D531852859B4AC5BDC9CCE0 /* Poppins-Medium.ttf */; };
 		6D3976B3D62A0BC10B8F2817 /* LiquidGlassViewManager.m in Sources */ = {isa = PBXBuildFile; fileRef = DC8E06AD3847B6FCF573388F /* LiquidGlassViewManager.m */; };
 		75BBBDB9CD3149CEA405A762 /* Lora-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = D044DFC269B948D8BFD99AE7 /* Lora-Regular.ttf */; };
 		761780ED2CA45674006654EE /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 761780EC2CA45674006654EE /* AppDelegate.swift */; };
 		7C64DB553D46C3EE68655733 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */; };
 		81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */; };
-		882BD8642E3CA88200EB01BA /* libRNSound.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 882BD8632E3CA88200EB01BA /* libRNSound.a */; };
 		882BD8662E3CA8FB00EB01BA /* AVFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 882BD8652E3CA8FB00EB01BA /* AVFoundation.framework */; };
 		8862905A2E9F7B070002024B /* StoreKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 886290592E9F7B070002024B /* StoreKit.framework */; };
 		88DC19622ECB8E1B0060E257 /* RCTPushNotificationBridge.m in Sources */ = {isa = PBXBuildFile; fileRef = 88DC19602ECB8E1B0060E257 /* RCTPushNotificationBridge.m */; };
@@ -89,13 +90,14 @@
 		43D1FCFBE4BC418F8F1B879C /* Lexend-SemiBold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Lexend-SemiBold.ttf"; path = "../assets/fonts/Lexend/Lexend-SemiBold.ttf"; sourceTree = "<group>"; };
 		4D2764BA199D4440A1D5D017 /* Poppins-Bold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Poppins-Bold.ttf"; path = "../assets/fonts/Poppins/Poppins-Bold.ttf"; sourceTree = "<group>"; };
 		5608835C08AD4377BE0FE566 /* GreatVibes-Regular.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "GreatVibes-Regular.ttf"; path = "../assets/fonts/GreatVibes/GreatVibes-Regular.ttf"; sourceTree = "<group>"; };
+		5A1100000000000000000003 /* SifiaVoiceRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = SifiaVoiceRecorder.swift; path = JournalBySiFia/SifiaVoiceRecorder.swift; sourceTree = "<group>"; };
+		5A1100000000000000000004 /* SifiaVoiceRecorder.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; name = SifiaVoiceRecorder.m; path = JournalBySiFia/SifiaVoiceRecorder.m; sourceTree = "<group>"; };
 		69025D5AE32D4F0C9E300580 /* Poppins-Regular.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Poppins-Regular.ttf"; path = "../assets/fonts/Poppins/Poppins-Regular.ttf"; sourceTree = "<group>"; };
 		761780EC2CA45674006654EE /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = JournalBySiFia/AppDelegate.swift; sourceTree = "<group>"; };
 		79C4EAB745CB4A43B25C08B1 /* NunitoSans-VariableFont_YTLC,opsz,wdth,wght.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "NunitoSans-VariableFont_YTLC,opsz,wdth,wght.ttf"; path = "../assets/fonts/NunitoSans/NunitoSans-VariableFont_YTLC,opsz,wdth,wght.ttf"; sourceTree = "<group>"; };
 		81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = JournalBySiFia/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		8407802F872042B4B1E17061 /* Lora-Bold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Lora-Bold.ttf"; path = "../assets/fonts/Lora/Lora-Bold.ttf"; sourceTree = "<group>"; };
 		881ACC642E681F9400D4F304 /* JournalBySiFia.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; name = JournalBySiFia.entitlements; path = JournalBySiFia/JournalBySiFia.entitlements; sourceTree = "<group>"; };
-		882BD8632E3CA88200EB01BA /* libRNSound.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; path = libRNSound.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		882BD8652E3CA8FB00EB01BA /* AVFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AVFoundation.framework; path = System/Library/Frameworks/AVFoundation.framework; sourceTree = SDKROOT; };
 		884EE6073AEE4AC7BB2FD40A /* Poppins-SemiBold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Poppins-SemiBold.ttf"; path = "../assets/fonts/Poppins/Poppins-SemiBold.ttf"; sourceTree = "<group>"; };
 		886290592E9F7B070002024B /* StoreKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = StoreKit.framework; path = System/Library/Frameworks/StoreKit.framework; sourceTree = SDKROOT; };
@@ -133,7 +135,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				882BD8662E3CA8FB00EB01BA /* AVFoundation.framework in Frameworks */,
-				882BD8642E3CA88200EB01BA /* libRNSound.a in Frameworks */,
 				8862905A2E9F7B070002024B /* StoreKit.framework in Frameworks */,
 				427FC447A691C58BB6D3B3CC /* libPods-JournalBySiFia.a in Frameworks */,
 			);
@@ -163,6 +164,8 @@
 				13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */,
 				EF8F79F8ECACC81C33EBBDF8 /* LiquidGlassViewManager.swift */,
 				DC8E06AD3847B6FCF573388F /* LiquidGlassViewManager.m */,
+				5A1100000000000000000003 /* SifiaVoiceRecorder.swift */,
+				5A1100000000000000000004 /* SifiaVoiceRecorder.m */,
 			);
 			name = JournalBySiFia;
 			sourceTree = "<group>";
@@ -172,7 +175,6 @@
 			children = (
 				886290592E9F7B070002024B /* StoreKit.framework */,
 				882BD8652E3CA8FB00EB01BA /* AVFoundation.framework */,
-				882BD8632E3CA88200EB01BA /* libRNSound.a */,
 				ED297162215061F000B7C4FE /* JavaScriptCore.framework */,
 				B62E77873B8CF9FD8510DFED /* libPods-JournalBySiFia.a */,
 			);
@@ -533,6 +535,8 @@
 				761780ED2CA45674006654EE /* AppDelegate.swift in Sources */,
 				1F7E387BCCE2E9FFF7B12305 /* LiquidGlassViewManager.swift in Sources */,
 				6D3976B3D62A0BC10B8F2817 /* LiquidGlassViewManager.m in Sources */,
+				5A1100000000000000000001 /* SifiaVoiceRecorder.swift in Sources */,
+				5A1100000000000000000002 /* SifiaVoiceRecorder.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -17,8 +17,8 @@ const MorningTodosScreen: React.FC = () => {
       local_id: item.id,
     }));
     await markStepCompleted('todos', todoRefs, 'todos');
-    navigation.navigate('CarryIt');
-  }, [markStepCompleted, navigation, selectedDate]);
+    navigation.navigate('MorningClosing');
+  }, [markStepCompleted, navigation]);
 
   const handleClose = useCallback(() => {
     exitMorningFlow(navigation, 'Today');

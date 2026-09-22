@@ -1,6 +1,6 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
 import ThemedText from '../../components/common/ThemedText';
@@ -9,11 +9,13 @@ import { getPsalmReflection } from '../../data/psalmReflections';
 import { Colors } from '../../theme/colors';
 import { getFontFamily } from '../../theme/fonts';
 import { useTheme } from '../../hooks/useTheme';
-import { toLocalDateString } from '../../utils/date';
 import { triggerLightHaptic, triggerMediumHaptic } from '../../utils/haptics';
 import { useRoutine } from '../../context/RoutineContext';
+import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { useRoutineDraft } from '../../hooks/useRoutineDraft';
-import { exitMorningFlow } from '../../navigation/exitEveningFlow';
+import { getDailyClosingMessage } from '../../services/dailyClosingMessageService';
+import {getDailyPsalmNumber} from '../../services/dailyScriptureSequence';
+import {useDailyScriptureSequenceAnchor} from '../../hooks/useDailyScriptureSequenceAnchor';
 import RoutineStepShell from '../../components/routine/RoutineStepShell';
 import {
   createLocalReflection,
@@ -24,46 +26,91 @@ import {
 
 const CarryItScreen = () => {
   const navigation = useNavigation<any>();
+  const route = useRoute<any>();
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';
+  const { user } = useAuth();
   const { selectedDate, markStepCompleted } = useRoutine();
   const dateStr = selectedDate;
-
-  const [psalmNumber, setPsalmNumber] = useState(1);
-  const [selectedAttributes, setSelectedAttributes] = useState<string[]>([]);
-  const [showCustomInput, setShowCustomInput] = useState(false);
-  const [customAttribute, setCustomAttribute] = useState('');
+  const {anchor: scriptureSequenceAnchor, ready: scriptureSequenceReady} = useDailyScriptureSequenceAnchor(user?.created_at);
+  const dailyPsalmNumber = useMemo(
+    () => getDailyPsalmNumber(selectedDate, scriptureSequenceAnchor),
+    [scriptureSequenceAnchor, selectedDate],
+  );
+  const dailyMessage = useMemo(() => getDailyClosingMessage({
+    userId: user?.id,
+    date: dateStr,
+    flow: 'morning',
+  }), [dateStr, user?.id]);
+  const routedAttributes = useMemo(
+    () => Array.isArray(route.params?.selectedAttributes)
+      ? route.params.selectedAttributes as string[]
+      : [],
+    [route.params?.selectedAttributes],
+  );
+  const routedCustomAttribute = typeof route.params?.customAttribute === 'string'
+    ? route.params.customAttribute
+    : '';
+  const [psalmNumber, setPsalmNumber] = useState(dailyPsalmNumber);
+  const [selectedAttributes, setSelectedAttributes] = useState<string[]>(routedAttributes);
+  const [showCustomInput, setShowCustomInput] = useState(Boolean(routedCustomAttribute.trim()));
+  const [customAttribute, setCustomAttribute] = useState(routedCustomAttribute);
   const [psalmReflectionId, setPsalmReflectionId] = useState<string | null>(null);
+  const canonicalReflectionLoaded = useRef(
+    routedAttributes.length > 0 || Boolean(routedCustomAttribute.trim()),
+  );
   const clearDraft = useRoutineDraft(
     'morning', selectedDate, 'carry',
     { selectedAttributes, customAttribute, showCustomInput },
     draft => {
+      // A saved reflection is the source of truth while editing. An older
+      // autosaved draft must not replace its selected pills after it loads.
+      if (canonicalReflectionLoaded.current) { return; }
       setSelectedAttributes(draft.selectedAttributes ?? []);
       setCustomAttribute(draft.customAttribute ?? '');
       setShowCustomInput(Boolean(draft.showCustomInput));
     },
   );
 
-  useEffect(() => {
+  useFocusEffect(React.useCallback(() => {
+    if (!scriptureSequenceReady) {return undefined;}
     let mounted = true;
     (async () => {
       const entries = await getLocalReflections('scripture', dateStr);
       if (!mounted) {return;}
+      setPsalmNumber(dailyPsalmNumber);
       const existing = entries
         .filter(e => e.source === 'morning_psalm' || e.metadata?.source === 'morning_psalm')
         .sort((a, b) => b.updated_at.localeCompare(a.updated_at))[0];
-      if (existing?.metadata?.psalmNumber) {
-        setPsalmNumber(existing.metadata.psalmNumber);
-      }
-      if (existing?.metadata?.selectedAttributes) {
-        setSelectedAttributes(existing.metadata.selectedAttributes);
-        setCustomAttribute(existing.metadata.customAttribute || '');
-        setShowCustomInput(Boolean(existing.metadata.customAttribute));
+      if (existing) {
+        canonicalReflectionLoaded.current = true;
+        const metadata = existing.metadata;
+        const dailyReflection = getPsalmReflection(dailyPsalmNumber);
+        const validLabels = new Set(dailyReflection.attributes.map(attribute => attribute.label));
+        const contentObservations = existing.content
+          .split(' · ')
+          .map(observation => observation.trim())
+          .filter(Boolean);
+        const metadataAttributes = metadata && Array.isArray(metadata.selectedAttributes)
+          ? metadata.selectedAttributes
+          : [];
+        const savedAttributes = metadataAttributes.length > 0
+          ? metadataAttributes.filter((attribute): attribute is string =>
+            typeof attribute === 'string' && validLabels.has(attribute))
+          : contentObservations.filter(observation => validLabels.has(observation));
+        const savedCustomAttribute = metadata && typeof metadata.customAttribute === 'string'
+          ? metadata.customAttribute
+          : metadataAttributes.length === 0
+            ? contentObservations.find(observation => !validLabels.has(observation)) || ''
+            : '';
+        setSelectedAttributes(savedAttributes.length > 0 ? savedAttributes : routedAttributes);
+        setCustomAttribute(savedCustomAttribute || routedCustomAttribute);
+        setShowCustomInput(Boolean((savedCustomAttribute || routedCustomAttribute).trim()));
         setPsalmReflectionId(existing.id);
       }
     })();
     return () => { mounted = false; };
-  }, [dateStr]);
+  }, [dailyPsalmNumber, dateStr, routedAttributes, routedCustomAttribute, scriptureSequenceReady]));
 
   const reflection = useMemo(() => getPsalmReflection(psalmNumber), [psalmNumber]);
   const customValue = customAttribute.trim();
@@ -86,6 +133,7 @@ const CarryItScreen = () => {
     try {
       const metadata = {
         psalmNumber,
+        psalmReference: `Psalm ${psalmNumber}`,
         selectedAttributes,
         customAttribute: customValue || undefined,
         carry: carryText,
@@ -126,10 +174,13 @@ const CarryItScreen = () => {
     await clearDraft();
     await markStepCompleted('carry');
 
-    navigation.navigate('MorningClosing');
-  }, [canContinue, clearDraft, customValue, markStepCompleted, navigation, psalmNumber, psalmReflectionId, selectedAttributes, dateStr]);
+    navigation.navigate(route.params?.returnToClosing ? 'MorningClosing' : 'TodaysFocus');
+  }, [canContinue, clearDraft, customValue, markStepCompleted, navigation, psalmNumber, psalmReflectionId, selectedAttributes, dateStr, route.params?.returnToClosing]);
 
-  const onBack = () => exitMorningFlow(navigation, 'Today');
+  const onBack = () => navigation.navigate('PsalmOfTheDay', {
+    returnToClosing: Boolean(route.params?.returnToClosing),
+    psalmNumber,
+  });
 
   const children = (
     <>
@@ -191,7 +242,7 @@ const CarryItScreen = () => {
         <View style={styles.metadataContent}>
           <ThemedText weight="medium" style={styles.fromText}>CARRY IT WITH YOU</ThemedText>
           <ThemedText style={styles.metadataText}>
-            Remember who God is as you step into today.
+            {dailyMessage}
           </ThemedText>
         </View>
       </View>

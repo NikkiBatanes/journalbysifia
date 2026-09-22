@@ -99,9 +99,9 @@ const MorningFlowStackNavigator = ({ route, navigation }: { route: { params?: { 
       <Stack.Screen name="EmotionCheckIn" component={EmotionCheckInScreen} />
       <Stack.Screen name="UnderneathIt" component={UnderneathItScreen} />
       <Stack.Screen name="PsalmOfTheDay" component={PsalmOfTheDayScreen} />
+      <Stack.Screen name="CarryIt" component={CarryItScreen} />
       <Stack.Screen name="TodaysFocus" component={MorningTodaysFocusScreen} />
       <Stack.Screen name="Todos" component={MorningTodosScreen} />
-      <Stack.Screen name="CarryIt" component={CarryItScreen} />
       <Stack.Screen
         name="MorningClosing"
         component={MorningClosingScreen}

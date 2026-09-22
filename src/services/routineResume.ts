@@ -5,9 +5,9 @@ const ROUTINE_STEPS = {
     ['emotion', 'EmotionCheckIn'],
     ['underneath', 'UnderneathIt'],
     ['psalm', 'PsalmOfTheDay'],
+    ['carry', 'CarryIt'],
     ['todays_focus', 'TodaysFocus'],
     ['todos', 'Todos'],
-    ['carry', 'CarryIt'],
   ],
   evening: [
     ['gratitude', 'Gratitude'],

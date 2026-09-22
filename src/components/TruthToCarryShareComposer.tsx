@@ -12,6 +12,7 @@ import {
   Linking,
   Modal,
   PanResponder,
+  PixelRatio,
   Platform,
   Pressable,
   ScrollView,
@@ -24,6 +25,7 @@ import ViewShot, { captureRef } from 'react-native-view-shot';
 import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import FontAwesome6 from 'react-native-vector-icons/FontAwesome6';
 import { Pencil, PencilOff } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ENV } from '../config/environment';
@@ -37,6 +39,12 @@ const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get('window');
 const CAROUSEL_VIEWPORT_WIDTH = Math.min(SCREEN_WIDTH, 480);
 const CARD_WIDTH = Math.min(CAROUSEL_VIEWPORT_WIDTH - 72, 300);
 const CARD_HEIGHT = CARD_WIDTH * 1.25;
+const STORY_CARD_HEIGHT = CARD_WIDTH * 16 / 9;
+const CAPTURE_SCALE = Math.max(1, 1080 / (CARD_WIDTH * PixelRatio.get()));
+const POST_CAPTURE_WIDTH = CARD_WIDTH * CAPTURE_SCALE;
+const POST_CAPTURE_HEIGHT = CARD_HEIGHT * CAPTURE_SCALE;
+const STORY_CAPTURE_WIDTH = CARD_WIDTH * CAPTURE_SCALE;
+const STORY_CAPTURE_HEIGHT = STORY_CARD_HEIGHT * CAPTURE_SCALE;
 const CARD_GAP = 12;
 const CAROUSEL_ITEM_WIDTH = CARD_WIDTH + CARD_GAP;
 const CAROUSEL_SIDE_INSET = (CAROUSEL_VIEWPORT_WIDTH - CAROUSEL_ITEM_WIDTH) / 2;
@@ -99,14 +107,45 @@ const buildTemplates = (): ShareTemplate[] => {
   ];
 };
 
+export interface MorningSummaryShareData {
+  feeling?: string;
+  feelingIcon?: string;
+  feelingIconType?: 'ionicons' | 'material' | 'fontawesome';
+  feelingVerse?: string;
+  feelingVerseReference?: string;
+  focus?: string;
+  focusIcon?: string;
+  focusIconType?: 'ionicons' | 'material' | 'fontawesome';
+  focusReflection?: string;
+  prioritiesCount: number;
+  todosCount: number;
+  psalmNumber?: number;
+  psalmRead?: boolean;
+  observations: string[];
+  reminder: string;
+}
+
 interface TruthToCarryShareComposerProps {
   visible: boolean;
   text: string;
   textColor?: string;
   lineHeightMultiplier?: number;
   noSplit?: boolean;
+  variant?: 'text' | 'morning-summary';
+  morningSummary?: MorningSummaryShareData;
   onClose: () => void;
 }
+
+const ShareSummaryIcon = ({ icon, iconType }: { icon?: string; iconType?: MorningSummaryShareData['feelingIconType'] }) => {
+  if (!icon || !iconType) { return null; }
+  if (iconType === 'material') {
+    return <MaterialCommunityIcons name={icon as any} size={10} color={Colors.sage} />;
+  }
+  if (iconType === 'fontawesome') {
+    return <FontAwesome6 name={icon as any} size={9} color={Colors.sage} />;
+  }
+  return <Ionicons name={icon as any} size={10} color={Colors.sage} />;
+};
 
 const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
   visible,
@@ -114,6 +153,8 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
   textColor,
   lineHeightMultiplier,
   noSplit,
+  variant = 'text',
+  morningSummary,
   onClose,
 }) => {
   const insets = useSafeAreaInsets();
@@ -123,6 +164,7 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
   const liveTextScale = useRef(1);
   const closing = useRef(false);
   const cardRefs = useRef<Array<ViewShot | null>>([]);
+  const storyCardRefs = useRef<Array<ViewShot | null>>([]);
   const carouselRef = useRef<FlatList<ShareTemplate>>(null);
   const sizeSliderWidth = useRef(112);
   const [templates, setTemplates] = useState<ShareTemplate[]>(buildTemplates);
@@ -235,15 +277,20 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
     });
   }, [onClose, sheetAnim]);
 
-  const captureSelectedCard = useCallback(async (asDataUri = false) => {
-    const selectedCard = cardRefs.current[selectedIndex];
+  const captureSelectedCard = useCallback(async (
+    asDataUri = false,
+    imageFormat: 'post' | 'story' = 'post'
+  ) => {
+    const selectedCard = imageFormat === 'story'
+      ? storyCardRefs.current[selectedIndex]
+      : cardRefs.current[selectedIndex];
     if (!selectedCard?.capture) {
       throw new Error('Share card is not ready');
     }
     // iOS SMS requires data URLs for attachments; More requires them to honor filename.
     const uri = asDataUri
       ? await captureRef(selectedCard, {
-        format: 'png', quality: 1, result: 'data-uri', width: 1080, height: 1350,
+        format: 'png', quality: 1, result: 'data-uri',
       })
       : await selectedCard.capture();
     if (!uri) {
@@ -254,14 +301,16 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
 
   const runShareAction = useCallback(async (
     action: string,
-    share: (uri: string) => Promise<unknown>
+    share: (uri: string) => Promise<unknown>,
+    imageFormat: 'post' | 'story' = 'post'
   ) => {
     if (sharingAction || showWatermark === null) { return; }
     triggerLightHaptic();
     setSharingAction(action);
     try {
       const uri = await captureSelectedCard(
-        Platform.OS === 'ios' && (action === 'messages' || action === 'more')
+        Platform.OS === 'ios' && (action === 'messages' || action === 'more'),
+        imageFormat
       );
       await share(uri);
       triggerSuccessHaptic();
@@ -284,7 +333,7 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
     social: Share.Social.INSTAGRAM_STORIES,
     appId: ENV.FACEBOOK_APP_ID,
     backgroundImage: uri,
-  } as any)), [runShareAction]);
+  } as any), 'story'), [runShareAction]);
 
   const shareToFacebook = useCallback(async () => {
     if (Platform.OS === 'ios') {
@@ -302,7 +351,7 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
       social: Share.Social.FACEBOOK_STORIES,
       appId: ENV.FACEBOOK_APP_ID,
       backgroundImage: uri,
-    } as any));
+    } as any), 'story');
   }, [runShareAction]);
 
   const shareToMessages = useCallback(() => runShareAction('messages', uri => Share.shareSingle({
@@ -312,18 +361,24 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
     recipient: '',
     url: uri,
     type: 'image/png',
-    message: 'A Journal by siFia reflection from my Playbook — https://www.journalby.sifia.app',
-  } as any)), [runShareAction]);
+    message: variant === 'morning-summary'
+      ? 'My morning with Journal by siFia — https://www.journalby.sifia.app'
+      : 'A Journal by siFia reflection from my Playbook — https://www.journalby.sifia.app',
+  } as any)), [runShareAction, variant]);
 
   const shareMore = useCallback(() => runShareAction('more', uri => Share.open({
-    title: 'Share your Journal by siFia reflection',
-    subject: 'A reflection from Journal by siFia',
-    message: 'A Journal by siFia reflection from my Playbook — https://www.journalby.sifia.app',
+    title: variant === 'morning-summary' ? 'Share your Journal by siFia morning' : 'Share your Journal by siFia reflection',
+    subject: variant === 'morning-summary' ? 'My morning with Journal by siFia' : 'A reflection from Journal by siFia',
+    message: variant === 'morning-summary'
+      ? 'My morning with Journal by siFia — https://www.journalby.sifia.app'
+      : 'A Journal by siFia reflection from my Playbook — https://www.journalby.sifia.app',
     url: uri,
     type: 'image/png',
-    filename: Platform.OS === 'ios' ? 'journal-by-siFia-reflection.png' : 'journal-by-siFia-reflection',
+    filename: Platform.OS === 'ios'
+      ? `journal-by-siFia-${variant === 'morning-summary' ? 'morning' : 'reflection'}.png`
+      : `journal-by-siFia-${variant === 'morning-summary' ? 'morning' : 'reflection'}`,
     failOnCancel: false,
-  })), [runShareAction]);
+  })), [runShareAction, variant]);
 
   const shareAsText = useCallback(async () => {
     if (sharingAction || showWatermark === null) { return; }
@@ -331,8 +386,8 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
     setSharingAction('text');
     try {
       await Share.open({
-        title: 'Share your Journal by siFia reflection',
-        subject: 'A reflection from Journal by siFia',
+        title: variant === 'morning-summary' ? 'Share your Journal by siFia morning' : 'Share your Journal by siFia reflection',
+        subject: variant === 'morning-summary' ? 'My morning with Journal by siFia' : 'A reflection from Journal by siFia',
         message: text,
         failOnCancel: false,
       });
@@ -350,7 +405,7 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
     } finally {
       setSharingAction(null);
     }
-  }, [sharingAction, showWatermark, text]);
+  }, [sharingAction, showWatermark, text, variant]);
 
   const renderCard = useCallback(({ item, index }: { item: ShareTemplate; index: number }) => {
     if (showWatermark === null) {
@@ -418,9 +473,98 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
       textAlign,
     };
 
-    const content = (
-      <View style={styles.cardContent}>
+    const watermark = showWatermark ? (
+      <View style={styles.watermarkRow}>
+        <Image
+          source={require('../../assets/images/journalbysifia.png')}
+          resizeMode="contain"
+          style={styles.watermarkLogo}
+          accessibilityLabel="Journal by siFia logo"
+        />
+        <ThemedText style={styles.watermarkUrl}>www.journalby.sifia.app</ThemedText>
+      </View>
+    ) : null;
 
+    const renderContent = (includeWatermark = true) => variant === 'morning-summary' && morningSummary ? (
+      <View style={styles.morningCardContent}>
+        <View style={styles.morningPage} accessibilityLabel="Morning summary share card">
+          <View style={styles.morningHeader}>
+            <View style={styles.morningHeaderIcon}>
+              <Ionicons name="sunny-outline" size={15} color={Colors.hopeWhite} />
+            </View>
+            <View style={styles.morningHeaderCopy}>
+              <ThemedText weight="bold" style={styles.morningTitle}>You’re ready for today.</ThemedText>
+              <ThemedText style={styles.morningSubtitle}>Your morning reflection is saved.</ThemedText>
+            </View>
+          </View>
+
+          <ThemedText weight="semiBold" style={styles.morningEyebrow}>TODAY AT A GLANCE</ThemedText>
+          <View style={styles.morningGlanceGrid}>
+            <View style={[styles.morningGlanceColumn, styles.morningGlanceColumnBorder]}>
+              <ThemedText style={styles.morningLabel}>Feeling</ThemedText>
+              <View style={styles.morningValueRow}>
+                <ShareSummaryIcon icon={morningSummary.feelingIcon} iconType={morningSummary.feelingIconType} />
+                <ThemedText numberOfLines={1} weight="semiBold" style={styles.morningValue}>{morningSummary.feeling || '—'}</ThemedText>
+              </View>
+              {morningSummary.feelingVerse ? (
+                <>
+                  <ThemedText numberOfLines={3} style={styles.morningVerse}>“{morningSummary.feelingVerse}”</ThemedText>
+                  <ThemedText numberOfLines={1} weight="medium" style={styles.morningReference}>{morningSummary.feelingVerseReference}</ThemedText>
+                </>
+              ) : null}
+            </View>
+            <View style={styles.morningGlanceColumn}>
+              <ThemedText style={styles.morningLabel}>Focus</ThemedText>
+              <View style={styles.morningValueRow}>
+                <ShareSummaryIcon icon={morningSummary.focusIcon} iconType={morningSummary.focusIconType} />
+                <ThemedText numberOfLines={1} weight="semiBold" style={styles.morningValue}>{morningSummary.focus || 'Open'}</ThemedText>
+              </View>
+              {morningSummary.focusReflection ? (
+                <ThemedText numberOfLines={4} style={styles.morningReflection}>{morningSummary.focusReflection}</ThemedText>
+              ) : null}
+            </View>
+          </View>
+          <View style={styles.morningTodayRow}>
+            <ThemedText style={styles.morningLabel}>Today</ThemedText>
+            <ThemedText weight="semiBold" style={styles.morningTodayValue}>
+              {morningSummary.prioritiesCount} {morningSummary.prioritiesCount === 1 ? 'priority' : 'priorities'} · {morningSummary.todosCount} {morningSummary.todosCount === 1 ? 'to-do' : 'to-dos'}
+            </ThemedText>
+          </View>
+
+          <View style={styles.morningPsalmCard}>
+            <View style={styles.morningPsalmHeader}>
+              <View>
+                <ThemedText weight="semiBold" style={styles.morningEyebrow}>MORNING PSALM</ThemedText>
+                <ThemedText weight="bold" style={styles.morningPsalmTitle}>{morningSummary.psalmNumber ? `Psalm ${morningSummary.psalmNumber}` : 'Psalm'}</ThemedText>
+              </View>
+              <View style={styles.morningReadStatus}>
+                <View style={[styles.morningReadIcon, !morningSummary.psalmRead && styles.morningReadIconInactive]}>
+                  {morningSummary.psalmRead ? <Ionicons name="checkmark" size={8} color={Colors.hopeWhite} /> : <MaterialCommunityIcons name="progress-star" size={8} color={Colors.sage} />}
+                </View>
+                <ThemedText weight="semiBold" style={styles.morningReadText}>{morningSummary.psalmRead ? 'Full chapter read' : 'Reading in progress'}</ThemedText>
+              </View>
+            </View>
+            <View style={styles.morningPraiseSection}>
+              <View style={styles.morningPraiseTitleRow}>
+                <Ionicons name="musical-notes" size={10} color={Colors.sage} />
+                <ThemedText weight="bold" style={styles.morningPraiseTitle}>Pause and Praise</ThemedText>
+              </View>
+              <ThemedText style={styles.morningPrompt}>What you saw about God</ThemedText>
+              <ThemedText numberOfLines={2} weight="bold" style={styles.morningAnswer}>
+                {morningSummary.observations.length ? morningSummary.observations.join(' · ') : 'Nothing selected'}
+              </ThemedText>
+            </View>
+          </View>
+
+          <View style={styles.morningAsYouGo}>
+            <ThemedText weight="semiBold" style={styles.morningEyebrow}>AS YOU GO</ThemedText>
+            <ThemedText weight="bold" style={styles.morningReminder}>{morningSummary.reminder}</ThemedText>
+          </View>
+        </View>
+        {includeWatermark ? watermark : null}
+      </View>
+    ) : (
+      <View style={styles.cardContent}>
         <View style={styles.shareCopy}>
           <Animated.Text style={[styles.shareText, { color: Colors.hopeWhite }, primaryTextStyle]}>{primaryText || displayText}</Animated.Text>
           {supportingText ? (
@@ -430,30 +574,16 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
             </>
           ) : null}
         </View>
-        {showWatermark ? (
-          <View style={styles.watermarkRow}>
-            <>
-              <Image
-                source={require('../../assets/images/journalbysifia.png')}
-                resizeMode="contain"
-                style={styles.watermarkLogo}
-                accessibilityLabel="Journal by siFia logo"
-              />
-              <ThemedText weight="medium" style={styles.watermarkUrl}>www.journalby.sifia.app</ThemedText>
-            </>
-          </View>
-        ) : null}
+        {includeWatermark ? watermark : null}
       </View>
     );
+    const content = renderContent();
+    const storyContent = renderContent(false);
 
     return (
       <View style={styles.carouselPage}>
         <View style={styles.shareCard}>
-          <ViewShot
-            ref={ref => { cardRefs.current[index] = ref; }}
-            options={{ format: 'png', quality: 1, result: 'tmpfile', width: 1080, height: 1350 }}
-            style={styles.captureCard}
-          >
+          <View style={styles.captureCard}>
             {item.image ? (
               <ImageBackground source={item.image} resizeMode="cover" style={styles.cardBackground}>
                 <LinearGradient
@@ -467,11 +597,53 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
                 {content}
               </View>
             )}
+          </View>
+        </View>
+        <View accessible={false} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+          <ViewShot
+            ref={ref => { cardRefs.current[index] = ref; }}
+            options={{ format: 'png', quality: 1, result: 'tmpfile', fileName: 'journal-post-share' }}
+            style={styles.postCaptureCard}
+          >
+            {item.image ? (
+              <ImageBackground source={item.image} resizeMode="cover" style={styles.postCaptureContent}>
+                <LinearGradient
+                  colors={['rgba(0,0,0,0.28)', 'rgba(0,0,0,0.48)']}
+                  style={StyleSheet.absoluteFill}
+                />
+                {content}
+              </ImageBackground>
+            ) : (
+              <View style={[styles.postCaptureContent, styles.anchorBackground]}>
+                {content}
+              </View>
+            )}
+          </ViewShot>
+          <ViewShot
+            ref={ref => { storyCardRefs.current[index] = ref; }}
+            options={{ format: 'png', quality: 1, result: 'tmpfile', fileName: 'journal-story-share' }}
+            style={styles.storyCaptureCard}
+          >
+            {item.image ? (
+              <ImageBackground source={item.image} resizeMode="cover" style={[styles.storyCaptureContent, styles.storyBackground]}>
+                <LinearGradient
+                  colors={['rgba(0,0,0,0.28)', 'rgba(0,0,0,0.48)']}
+                  style={StyleSheet.absoluteFill}
+                />
+                <View style={styles.storyContentFrame}>{storyContent}</View>
+                <View style={styles.storyWatermark}>{watermark}</View>
+              </ImageBackground>
+            ) : (
+              <View style={[styles.storyCaptureContent, styles.anchorBackground, styles.storyBackground]}>
+                <View style={styles.storyContentFrame}>{storyContent}</View>
+                <View style={styles.storyWatermark}>{watermark}</View>
+              </View>
+            )}
           </ViewShot>
         </View>
       </View>
     );
-  }, [showWatermark, text, textAlign, typography, textColor, lineHeightMultiplier, noSplit, textScaleAnim]);
+  }, [showWatermark, text, textAlign, typography, textColor, lineHeightMultiplier, noSplit, textScaleAnim, variant, morningSummary]);
 
   const shareActions = [
     { id: 'instagram', label: 'Instagram', icon: 'logo-instagram', onPress: shareToInstagram },
@@ -525,10 +697,10 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
         >
           <View style={styles.header}>
             <View>
-              <ThemedText weight="bold" style={styles.title}>Share your reflection</ThemedText>
+              <ThemedText weight="bold" style={styles.title}>{variant === 'morning-summary' ? 'Share your morning' : 'Share your reflection'}</ThemedText>
               <ThemedText style={styles.subtitle}>Choose a template</ThemedText>
             </View>
-            <TouchableOpacity style={styles.closeButton} onPress={() => { triggerLightHaptic(); closeComposer(); }} accessibilityLabel="Close share composer">
+            <TouchableOpacity style={styles.closeButton} onPress={() => closeComposer()} accessibilityLabel="Close share composer">
               <Ionicons name="close" size={18} color="rgba(255,255,255,0.7)" />
             </TouchableOpacity>
           </View>
@@ -540,20 +712,22 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
             bounces={false}
           >
           <View style={styles.carouselWrap}>
-          <TouchableOpacity
-            accessibilityRole="button"
-            accessibilityLabel={editorOpen ? 'Close post editor' : 'Edit post style'}
-            accessibilityState={{ expanded: editorOpen }}
-            activeOpacity={0.72}
-            onPress={toggleEditor}
-            style={[styles.editFloatingButton, editorOpen && styles.editFloatingButtonActive]}
-          >
-            {editorOpen ? (
-              <PencilOff size={18} color={SHARE_ACCENT} />
-            ) : (
-              <Pencil size={18} color={Colors.hopeWhite} />
-            )}
-          </TouchableOpacity>
+          {variant === 'text' ? (
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel={editorOpen ? 'Close post editor' : 'Edit post style'}
+              accessibilityState={{ expanded: editorOpen }}
+              activeOpacity={0.72}
+              onPress={toggleEditor}
+              style={[styles.editFloatingButton, editorOpen && styles.editFloatingButtonActive]}
+            >
+              {editorOpen ? (
+                <PencilOff size={18} color={SHARE_ACCENT} />
+              ) : (
+                <Pencil size={18} color={Colors.hopeWhite} />
+              )}
+            </TouchableOpacity>
+          ) : null}
           <FlatList
             ref={carouselRef}
             data={templates}
@@ -593,6 +767,7 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
             importantForAccessibility={editorOpen ? 'auto' : 'no-hide-descendants'}
             style={[
               styles.editorPanel,
+              variant !== 'text' && styles.hidden,
               {
                 maxHeight: editorAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 120] }),
                 marginBottom: editorAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 18] }),
@@ -818,6 +993,53 @@ const styles = StyleSheet.create({
     width: CARD_WIDTH,
     height: CARD_HEIGHT,
   },
+  postCaptureCard: {
+    position: 'absolute',
+    left: -Math.max(SCREEN_WIDTH, POST_CAPTURE_WIDTH) * 3,
+    top: 0,
+    width: POST_CAPTURE_WIDTH,
+    height: POST_CAPTURE_HEIGHT,
+    overflow: 'hidden',
+    backgroundColor: Colors.sage,
+  },
+  postCaptureContent: {
+    position: 'absolute',
+    left: (POST_CAPTURE_WIDTH - CARD_WIDTH) / 2,
+    top: (POST_CAPTURE_HEIGHT - CARD_HEIGHT) / 2,
+    width: CARD_WIDTH,
+    height: CARD_HEIGHT,
+    transform: [{ scale: CAPTURE_SCALE }],
+  },
+  storyCaptureCard: {
+    position: 'absolute',
+    left: -Math.max(SCREEN_WIDTH, STORY_CAPTURE_WIDTH) * 3,
+    top: POST_CAPTURE_HEIGHT + 20,
+    width: STORY_CAPTURE_WIDTH,
+    height: STORY_CAPTURE_HEIGHT,
+    overflow: 'hidden',
+    backgroundColor: Colors.sage,
+  },
+  storyCaptureContent: {
+    position: 'absolute',
+    left: (STORY_CAPTURE_WIDTH - CARD_WIDTH) / 2,
+    top: (STORY_CAPTURE_HEIGHT - STORY_CARD_HEIGHT) / 2,
+    width: CARD_WIDTH,
+    height: STORY_CARD_HEIGHT,
+    transform: [{ scale: CAPTURE_SCALE }],
+  },
+  storyBackground: {
+    justifyContent: 'center',
+  },
+  storyContentFrame: {
+    width: '100%',
+    height: CARD_HEIGHT,
+  },
+  storyWatermark: {
+    position: 'absolute',
+    left: 24,
+    right: 24,
+    bottom: 36,
+  },
   cardBackground: {
     flex: 1,
   },
@@ -830,6 +1052,205 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 30,
     paddingBottom: 22,
+  },
+  morningCardContent: {
+    flex: 1,
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 10,
+  },
+  morningPage: {
+    flex: 1,
+    justifyContent: 'space-between',
+    backgroundColor: Colors.lightBackground,
+    borderRadius: 16,
+    paddingHorizontal: 13,
+    paddingVertical: 12,
+  },
+  morningHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 9,
+    marginBottom: 10,
+  },
+  morningHeaderIcon: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.sage,
+  },
+  morningHeaderCopy: {
+    flex: 1,
+  },
+  morningTitle: {
+    color: Colors.text,
+    fontSize: 14,
+    lineHeight: 18,
+  },
+  morningSubtitle: {
+    color: Colors.textGray,
+    fontSize: 8,
+    lineHeight: 11,
+    marginTop: 1,
+  },
+  morningEyebrow: {
+    color: Colors.sageMuted,
+    fontSize: 6,
+    lineHeight: 8,
+    letterSpacing: 1.1,
+  },
+  morningGlanceGrid: {
+    flexDirection: 'row',
+    marginTop: 6,
+  },
+  morningGlanceColumn: {
+    flex: 1,
+    minWidth: 0,
+    paddingLeft: 9,
+  },
+  morningGlanceColumnBorder: {
+    paddingLeft: 0,
+    paddingRight: 9,
+    borderRightWidth: 1,
+    borderRightColor: Colors.cardBorder,
+  },
+  morningLabel: {
+    color: Colors.textGray,
+    fontSize: 7,
+    lineHeight: 9,
+    marginBottom: 2,
+  },
+  morningValueRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  morningValue: {
+    flexShrink: 1,
+    color: Colors.text,
+    fontSize: 9,
+    lineHeight: 12,
+  },
+  morningVerse: {
+    color: Colors.textGray,
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+    fontStyle: 'italic',
+    fontSize: 6,
+    lineHeight: 8,
+    marginTop: 4,
+  },
+  morningReference: {
+    color: Colors.sageMuted,
+    fontSize: 5,
+    lineHeight: 7,
+    letterSpacing: 0.4,
+    textTransform: 'uppercase',
+    marginTop: 2,
+  },
+  morningReflection: {
+    color: Colors.textGray,
+    fontSize: 6,
+    lineHeight: 8,
+    marginTop: 4,
+  },
+  morningTodayRow: {
+    borderTopWidth: 1,
+    borderTopColor: Colors.cardBorder,
+    marginTop: 7,
+    paddingTop: 6,
+  },
+  morningTodayValue: {
+    color: Colors.text,
+    fontSize: 9,
+    lineHeight: 12,
+  },
+  morningPsalmCard: {
+    backgroundColor: Colors.cardBackground,
+    borderColor: Colors.cardBorder,
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 11,
+    paddingVertical: 9,
+    marginTop: 9,
+  },
+  morningPsalmHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  morningPsalmTitle: {
+    color: Colors.text,
+    fontSize: 10,
+    lineHeight: 13,
+    marginTop: 2,
+  },
+  morningReadStatus: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  morningReadIcon: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: Colors.sage,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  morningReadIconInactive: {
+    backgroundColor: 'rgba(82, 106, 91, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(82, 106, 91, 0.22)',
+  },
+  morningReadText: {
+    color: Colors.sage,
+    fontSize: 6,
+    lineHeight: 8,
+  },
+  morningPraiseSection: {
+    borderTopWidth: 1,
+    borderTopColor: Colors.cardBorder,
+    marginTop: 7,
+    paddingTop: 7,
+  },
+  morningPraiseTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginBottom: 4,
+  },
+  morningPraiseTitle: {
+    color: Colors.text,
+    fontSize: 9,
+    lineHeight: 12,
+  },
+  morningPrompt: {
+    color: Colors.textGray,
+    fontSize: 6,
+    lineHeight: 8,
+    marginBottom: 2,
+  },
+  morningAnswer: {
+    color: Colors.text,
+    fontSize: 10,
+    lineHeight: 13,
+  },
+  morningAsYouGo: {
+    alignItems: 'center',
+    marginTop: 9,
+  },
+  morningReminder: {
+    color: Colors.text,
+    fontSize: 10,
+    lineHeight: 13,
+    textAlign: 'center',
+    marginTop: 3,
+  },
+  hidden: {
+    display: 'none',
   },
 
   shareText: {
@@ -876,6 +1297,7 @@ const styles = StyleSheet.create({
   watermarkRow: {
     minHeight: 22,
     flexDirection: 'row',
+    marginTop: 4,
     alignItems: 'center',
     justifyContent: 'space-between',
   },
@@ -885,9 +1307,9 @@ const styles = StyleSheet.create({
   },
   watermarkUrl: {
     color: Colors.hopeWhite,
-    fontSize: 10,
-    lineHeight: 14,
-    letterSpacing: 0.2,
+    fontSize: 8,
+    lineHeight: 11,
+    letterSpacing: 0.1,
   },
   editFloatingButton: {
     position: 'absolute',

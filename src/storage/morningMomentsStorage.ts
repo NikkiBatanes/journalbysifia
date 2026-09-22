@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LocalJournalEntry } from './journalStorage';
 import { getAllLocalReflectionsByType } from './reflectionStorage';
 import { safeJsonParse } from '../utils/safeJsonParse';
+import {resolveSavedPsalmNumber} from '../services/dailyScriptureSequence';
 
 export interface MorningMoment {
   id: string;
@@ -80,11 +81,12 @@ export const getMorningMoments = async (): Promise<MorningMoment[]> => {
   }
   for (const entry of psalmByDate.values()) {
     const metadata = entry.metadata || {};
+    const psalmNumber = resolveSavedPsalmNumber(entry, Number(metadata.psalmNumber) || 1);
     const psalmObservations = Array.from(new Set([
       ...(Array.isArray(metadata.selectedAttributes) ? metadata.selectedAttributes : []),
       metadata.customAttribute,
     ].filter(value => typeof value === 'string' && value.trim())));
-    moments.push({ id: entry.id, pluginId: 'morningpsalm', title: entry.title || `Psalm ${metadata.psalmNumber}`, date: entry.selected_date, savedAt: entry.updated_at, markedRead: metadata.psalmRead === true,
+    moments.push({ id: entry.id, pluginId: 'morningpsalm', title: `Psalm ${psalmNumber}`, date: entry.selected_date, savedAt: entry.updated_at, markedRead: metadata.psalmRead === true,
       reflection: entry.content || metadata.carry || '',
       observations: psalmObservations,
       lines: Array.from(new Set([

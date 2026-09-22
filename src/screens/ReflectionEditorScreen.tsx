@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { View, Alert, Keyboard, ActivityIndicator, TouchableOpacity, ScrollView, StatusBar, Animated, Easing } from 'react-native';
+import { View, Alert, Keyboard, ActivityIndicator, TouchableOpacity, ScrollView, StatusBar, Animated, Easing, DeviceEventEmitter } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { BookHeart } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -22,7 +22,8 @@ import ThemedTextInput from '../components/common/ThemedTextInput';
 import { HEART_JOURNAL_CLASSIFICATIONS, heartJournalClassificationLabel, type HeartJournalClassification } from '../types/heartJournal';
 import { Colors } from '../theme/colors';
 import GuidedReflectionExperience from '../components/journal/GuidedReflectionExperience';
-import { parseGuidedReflection } from '../types/guidedReflection';
+import { parseGuidedReflection, type GuidedReflectionNote } from '../types/guidedReflection';
+import {guidedQuestionTopicForPrompt} from '../data/guidedReflectionQuestions';
 
 interface RouteParams {
   selectedDate?: string; // ISO date string
@@ -87,6 +88,7 @@ const ReflectionEditorScreen: React.FC = () => {
   const [namingOtherClassification, setNamingOtherClassification] = useState(false);
   const [otherClassificationName, setOtherClassificationName] = useState('');
   const [singleGuidedPrompt, setSingleGuidedPrompt] = useState('');
+  const [singleGuidedTopic, setSingleGuidedTopic] = useState('');
   const [classificationTransitioning, setClassificationTransitioning] = useState(false);
   const classificationRevealAnims = useRef(
     Array.from({ length: HEART_JOURNAL_CLASSIFICATIONS.length + 2 }, () => new Animated.Value(0)),
@@ -268,6 +270,9 @@ const ReflectionEditorScreen: React.FC = () => {
         }),
         ...(entryData.journalClassification && { journal_classification: entryData.journalClassification }),
         ...(entryData.guidedJourney && { guided_journey: entryData.guidedJourney }),
+        ...((entryData.questionTopic || existingReflection?.metadata?.questionTopic || singleGuidedTopic) && {
+          question_topic: entryData.questionTopic || existingReflection?.metadata?.questionTopic || singleGuidedTopic,
+        }),
         ...(entryData.journalBlocks && { journal_blocks: entryData.journalBlocks }),
         ...(entryData.tags && entryData.tags.length > 0 && { tags: entryData.tags }),
         ...(determinedSource && { source: determinedSource }),
@@ -368,6 +373,26 @@ const ReflectionEditorScreen: React.FC = () => {
     }
   };
 
+  const handleUpdateJournalBlocks = async (
+    journalBlocks: GuidedReflectionNote[],
+  ) => {
+    if (!editingId) {return;}
+    await updateMutation.mutateAsync({
+      id: editingId,
+      updates: {journal_blocks: journalBlocks},
+    });
+    setExistingReflection((current: any) => current ? {
+      ...current,
+      journal_blocks: journalBlocks,
+      metadata: {...current.metadata, journalBlocks},
+    } : current);
+    DeviceEventEmitter.emit('reflection_saved', {
+      reflectionId: editingId,
+      type: 'action_toggled',
+      selectedDate: dateStr,
+    });
+  };
+
   if (isResolvingExisting) {
     return <View style={{ flex: 1, backgroundColor: '#526A5B', alignItems: 'center', justifyContent: 'center' }}><ActivityIndicator color="#fff" /></View>;
   }
@@ -377,6 +402,10 @@ const ReflectionEditorScreen: React.FC = () => {
     ? (existingReflection.metadata?.guidedJourney || existingReflection.guided_journey || parseGuidedReflection(existingReflection.content))
     : null;
   const legacyGuidedPrompt = existingReflection?.prompt || existingReflection?.metadata?.prompt || params.initialPrompt || singleGuidedPrompt;
+  const guidedQuestionTopic = existingReflection?.metadata?.questionTopic
+    || singleGuidedTopic
+    || guidedQuestionTopicForPrompt(legacyGuidedPrompt)
+    || undefined;
   // A persisted structured journey must always reopen in its purpose-built
   // saved view. Journal cards also pass its title as `initialPrompt`; treating
   // that as a legacy single-question reflection exposed serialized JSON in
@@ -435,6 +464,8 @@ const ReflectionEditorScreen: React.FC = () => {
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
               <ThemedTextInput
                 autoFocus
+                selectionColor={Colors.hopeWhite}
+                cursorColor={Colors.hopeWhite}
                 value={otherClassificationName}
                 onChangeText={setOtherClassificationName}
                 placeholder="Name your journal type... e.g. Dream"
@@ -479,7 +510,10 @@ const ReflectionEditorScreen: React.FC = () => {
           isSaving={isLoading}
           onCancel={handleCancel}
           onCloseJourney={existingReflection ? handleCancel : guidedFromChooser ? () => setGuidedFromChooser(false) : undefined}
-          onSelectQuestion={prompt => setSingleGuidedPrompt(prompt)}
+          onSelectQuestion={(prompt, topic) => {
+            setSingleGuidedTopic(topic);
+            setSingleGuidedPrompt(prompt);
+          }}
           onSave={handleSave}
         />
 
@@ -501,6 +535,7 @@ const ReflectionEditorScreen: React.FC = () => {
           onSave={handleSave}
           onCancel={handleCancel}
           onDelete={editingId ? handleDelete : undefined}
+          onUpdateJournalBlocks={handleUpdateJournalBlocks}
           entryId={editingId || undefined}
           initialEntry={existingReflection ? {
             title: existingReflection.title,
@@ -509,6 +544,7 @@ const ReflectionEditorScreen: React.FC = () => {
             type: (existingReflection.type === 'guided' ? 'guided' : 'free-form') as 'free-form' | 'guided',
             source: existingReflection.source,
             prompt: existingReflection.prompt || existingReflection.metadata?.prompt,
+            questionTopic: guidedQuestionTopic,
             journalClassification: existingReflection.metadata?.journalClassification || existingReflection.journal_classification,
             journalBlocks: existingReflection.metadata?.journalBlocks || existingReflection.journal_blocks,
           } : {
@@ -522,6 +558,7 @@ const ReflectionEditorScreen: React.FC = () => {
           }}
           initialMode={guidedMode ? 'guided' : 'free-form'}
           initialPrompt={legacyGuidedPrompt || ''}
+          guidedQuestionTopic={guidedQuestionTopic}
           initialTitle={params.initialTitle || legacyGuidedPrompt || ''}
           lockTitle={params.lockTitle || false}
           source={existingReflection?.source || (guidedMode ? 'guided' : (params.source || 'freeform'))}

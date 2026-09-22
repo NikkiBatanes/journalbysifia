@@ -55,7 +55,7 @@ const TABS: { key: PrayerTab; label: string }[] = [
   { key: 'active', label: 'Still praying' },
   { key: 'released', label: 'Let go' },
   { key: 'needs', label: 'Needs' },
-  { key: 'requests', label: 'Requests' },
+  { key: 'requests', label: 'Needs Prayer' },
   { key: 'answered', label: 'Answered' },
 ];
 
@@ -672,8 +672,8 @@ const PrayerListScreen = () => {
       ) : filteredPrayers.length === 0 ? (
             <View style={styles.empty}>
               <PrayerHandsIcon size={32} color={Colors.textGray} style={styles.emptyIcon} />
-              <ThemedText weight="semiBold" style={styles.emptyTitle}>{searchQuery.trim() ? `No prayers match “${searchQuery.trim()}”.` : activeFilterCount > 0 ? 'No prayers match these filters.' : activeTab === 'needs' ? 'No Prayer Needs Yet' : activeTab === 'requests' ? 'No Requests Waiting' : activeTab === 'answered' ? 'No Answered Prayers Yet' : activeTab === 'released' ? 'No Prayers Let Go Yet' : 'No Prayers Yet'}</ThemedText>
-              <ThemedText style={styles.emptySubtitle}>{searchQuery.trim() || activeFilterCount > 0 ? 'Try another search or clear a filter.' : activeTab === 'needs' ? 'You haven’t saved any prayer needs yet.' : activeTab === 'requests' ? 'You haven’t received any prayer requests yet.' : activeTab === 'answered' ? 'You haven’t marked any prayers as answered yet.' : activeTab === 'released' ? 'You haven’t let go of any prayers yet.' : 'You haven’t saved any prayers yet.'}</ThemedText>
+              <ThemedText weight="semiBold" style={styles.emptyTitle}>{searchQuery.trim() ? `No prayers match “${searchQuery.trim()}”.` : activeFilterCount > 0 ? 'No prayers match these filters.' : activeTab === 'needs' ? 'No Prayer Needs Yet' : activeTab === 'requests' ? 'No Requests Needing Prayer' : activeTab === 'answered' ? 'No Answered Prayers Yet' : activeTab === 'released' ? 'No Prayers Let Go Yet' : 'No Prayers Yet'}</ThemedText>
+              <ThemedText style={styles.emptySubtitle}>{searchQuery.trim() || activeFilterCount > 0 ? 'Try another search or clear a filter.' : activeTab === 'needs' ? 'You haven’t saved any prayer needs yet.' : activeTab === 'requests' ? 'All saved requests have been prayed for.' : activeTab === 'answered' ? 'You haven’t marked any prayers as answered yet.' : activeTab === 'released' ? 'You haven’t let go of any prayers yet.' : 'You haven’t saved any prayers yet.'}</ThemedText>
             </View>
       ) : (
             groupedResults.flatMap((section, sectionIndex) => [

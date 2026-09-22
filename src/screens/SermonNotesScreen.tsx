@@ -1,6 +1,5 @@
 import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {
-  ActivityIndicator,
   Alert,
   Animated,
   DeviceEventEmitter,
@@ -56,6 +55,10 @@ import {
   SERMON_BLOCK_KINDS,
   JournalBlockIcon,
   createJournalBlock,
+  formatJournalAttribution,
+  hasMeaningfulJournalBlock,
+  JOURNAL_BLOCK_GAP,
+  prepareJournalBlocksForSave,
   type JournalBlock,
   type JournalBlockKind,
   type JournalHistoryType,
@@ -68,9 +71,17 @@ import {
   JournalComposerBar,
 } from '../components/journal/shared/JournalComposer';
 import {JournalInlineBlock} from '../components/journal/shared/JournalInlineBlock';
+import {ScriptureLookupInput} from '../components/journal/shared/ScriptureLookupInput';
+import {JournalTableBlock} from '../components/journal/shared/JournalTableBlock';
+import {JournalListBlock} from '../components/journal/shared/JournalListBlock';
+import DraggableJournalBlock from '../components/journal/shared/DraggableJournalBlock';
+import ReflectionSpecialBlock from '../components/journal/ReflectionSpecialBlock';
+import {pickImageLocal} from '../services/avatarService';
 import {
   insertJournalBlock,
   removeJournalBlock,
+  reorderJournalBlock,
+  resolveJournalBlockDropIndex,
   updateJournalBlock,
 } from '../components/journal/shared/journalBlockOperations';
 import {
@@ -99,9 +110,6 @@ export const BlockIcon = JournalBlockIcon;
 const CAPTURE_KINDS = SERMON_BLOCK_KINDS;
 const newBlock = createJournalBlock;
 
-const REFERENCE_PATTERN =
-  /^[1-3]?\s*[a-zA-Z]+\.?\s+\d{1,3}(:\d{1,3}([–—-]\d{1,3})?(,\s*\d{1,3}([–—-]\d{1,3})?)*)?$/;
-
 const normalizeLink = (value: string): string | null => {
   const candidate = value.trim();
   if (!candidate) {
@@ -113,131 +121,75 @@ const normalizeLink = (value: string): string | null => {
   return /^https?:\/\/[^\s]+\.[^\s]+$/i.test(url) ? url : null;
 };
 
-type ScriptureLookupInputProps = {
-  value: string;
-  placeholder: string;
-  version: string;
-  style: any;
-  multiline?: boolean;
-  registerInput?: (input: TextInput | null) => void;
-  onChange: (value: string) => void;
-  onResolved: (result: ScriptureReaderResult | null) => void;
-  onFocus?: () => void;
-};
+const escapeHtml = (value = '') =>
+  value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 
-const ScriptureLookupInput = ({
-  value,
-  placeholder,
-  version,
-  style,
-  multiline = false,
-  registerInput,
-  onChange,
-  onResolved,
-  onFocus,
-}: ScriptureLookupInputProps) => {
-  const [resolvedVerse, setResolvedVerse] =
-    useState<ScriptureReaderResult | null>(null);
-  const [resolving, setResolving] = useState(false);
-  const [showCopyright, setShowCopyright] = useState(false);
-  const lookupVersionRef = useRef(0);
-  const onResolvedRef = useRef(onResolved);
-
-  useEffect(() => {
-    onResolvedRef.current = onResolved;
-  }, [onResolved]);
-
-  useEffect(() => {
-    const candidate = value.trim();
-    const lookupId = ++lookupVersionRef.current;
-
-    if (!REFERENCE_PATTERN.test(candidate)) {
-      setResolvedVerse(null);
-      setResolving(false);
-      onResolvedRef.current(null);
-      return;
-    }
-
-    setResolving(true);
-    const timer = setTimeout(() => {
-      getScripturePassage(candidate, version)
-        .then(result => {
-          if (lookupVersionRef.current === lookupId) {
-            setResolvedVerse(result);
-            onResolvedRef.current(result);
-          }
-        })
-        .catch(() => {
-          if (lookupVersionRef.current === lookupId) {
-            setResolvedVerse(null);
-            onResolvedRef.current(null);
-          }
-        })
-        .finally(() => {
-          if (lookupVersionRef.current === lookupId) {
-            setResolving(false);
-          }
-        });
-    }, 600);
-
-    return () => clearTimeout(timer);
-  }, [value, version]);
-
-  return (
-    <>
-      <View style={styles.scriptureLookupRow}>
-        <TextInput
-          ref={registerInput}
-          style={[style, styles.scriptureLookupInput]}
-          multiline={multiline}
-          placeholder={placeholder}
-          placeholderTextColor={Colors.textGray}
-          value={value}
-          onChangeText={onChange}
-          onFocus={onFocus}
-          autoCapitalize="words"
-          autoCorrect={false}
-        />
-        {resolving && <ActivityIndicator size="small" color={Colors.sage} />}
-      </View>
-      {resolvedVerse && (
-        <View style={styles.scripturePreview}>
-          <ThemedText style={styles.scripturePreviewText}>
-            {resolvedVerse.text}
-          </ThemedText>
-          <View style={styles.scripturePreviewReferenceRow}>
-            <ThemedText weight="bold" style={styles.scripturePreviewReference}>
-              {resolvedVerse.reference} · {resolvedVerse.version}
-            </ThemedText>
-            <TouchableOpacity
-              onPress={() => {
-                triggerLightHaptic();
-                setShowCopyright(true);
-              }}
-              activeOpacity={0.7}
-              accessibilityRole="button"
-              accessibilityLabel="Bible translation information">
-              <Ionicons
-                name="information-circle-outline"
-                size={14}
-                color={Colors.sage}
-              />
-            </TouchableOpacity>
-          </View>
-        </View>
-      )}
-      <BibleCopyrightModal
-        visible={showCopyright}
-        onClose={() => setShowCopyright(false)}
-        bibleVersion={resolvedVerse?.version || version}
-      />
-    </>
-  );
+const sessionBlockToHtml = (block: NoteBlock) => {
+  const text = escapeHtml(block.text).replace(/\n/g, '<br>');
+  if (block.kind === 'section') {
+    return `<h2 style="font-size:18px; color:#526A5B; border-left:4px solid #526A5B; padding-left:10px; margin:22px 0 12px;">${text}</h2>`;
+  }
+  if (block.kind === 'action') {
+    return `<p style="margin:0 0 12px; font-size:14px; line-height:20px; color:#29342E;${block.completed ? 'text-decoration:line-through;opacity:.65;' : ''}">${block.completed ? '☑' : '☐'} ${text}</p>`;
+  }
+  if (block.kind === 'photo') {
+    return `<div style="margin:0 0 16px;">${block.uri ? `<img src="${escapeHtml(block.uri)}" style="display:block;width:100%;max-height:360px;object-fit:cover;border-radius:12px;" />` : ''}${text ? `<p style="font-size:12px;color:#59635D;">${text}</p>` : ''}</div>`;
+  }
+  if (block.kind === 'voice') {
+    const seconds = Math.max(0, Math.round((block.durationMillis || 0) / 1000));
+    const duration = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
+    return `<div style="margin:0 0 14px;padding:12px;border:1px solid #D9DED9;border-radius:12px;"><strong style="color:#526A5B;">Voice Note · ${duration}</strong>${text ? `<p style="font-size:13px;line-height:19px;">${text}</p>` : ''}</div>`;
+  }
+  if (block.kind === 'table') {
+    const rows = (block.tableRows || [])
+      .map(
+        (row, rowIndex) =>
+          `<tr>${row.map(cell => `<${rowIndex === 0 ? 'th' : 'td'} style="border:1px solid #D9DED9;padding:6px;text-align:left;">${escapeHtml(cell)}</${rowIndex === 0 ? 'th' : 'td'}>`).join('')}</tr>`,
+      )
+      .join('');
+    return `<table style="width:100%;border-collapse:collapse;margin:0 0 16px;font-size:12px;">${rows}</table>`;
+  }
+  if (block.kind === 'bullets' || block.kind === 'numbered') {
+    const tag = block.kind === 'numbered' ? 'ol' : 'ul';
+    const title = text
+      ? `<strong style="display:block;margin:0 0 6px;font-size:15px;color:#29342E;">${text}</strong>`
+      : '';
+    const items = (block.points || [])
+      .filter(point => point.trim())
+      .map(point => `<li>${escapeHtml(point)}</li>`)
+      .join('');
+    return `<div style="margin:0 0 16px;">${title}<${tag} style="margin:0;padding-left:24px;font-size:14px;line-height:20px;">${items}</${tag}></div>`;
+  }
+  if (block.kind === 'outline') {
+    const points = (block.points || [])
+      .filter(point => point.trim())
+      .map(point => `<li>${escapeHtml(point)}</li>`)
+      .join('');
+    return `<div style="margin:0 0 16px;"><strong style="font-size:10px;letter-spacing:1px;color:#526A5B;">${BLOCKS.outline.label}</strong>${text ? `<p>${text}</p>` : ''}${points ? `<ol>${points}</ol>` : ''}</div>`;
+  }
+  const config = block.kind === 'text' ? null : BLOCKS[block.kind];
+  const secondary = [
+    block.kind === 'quote'
+      ? formatJournalAttribution(block.secondary)
+      : block.secondary,
+    block.note,
+    block.meaning,
+    block.origin,
+  ]
+    .filter(Boolean)
+    .map(value => escapeHtml(value).replace(/\n/g, '<br>'))
+    .join('<br>');
+  return `<div style="margin:0 0 14px;">${config ? `<strong style="font-size:10px;letter-spacing:1px;color:#526A5B;">${config.label}</strong>` : ''}${text ? `<p style="margin:4px 0 0;font-size:14px;line-height:20px;color:#29342E;">${text}</p>` : ''}${secondary ? `<p style="margin:5px 0 0;font-size:12px;line-height:18px;color:#59635D;">${secondary}</p>` : ''}</div>`;
 };
 
 const SermonNotesScreen = ({navigation, route}: any) => {
   const isOnline = useNetworkStore(state => state.isOnline);
-  const {width: screenWidth, height: screenHeight} = useWindowDimensions();
+  const {height: screenHeight} = useWindowDimensions();
   const {user} = useAuth();
   const bibleVersion = useMemo(
     () =>
@@ -267,7 +219,11 @@ const SermonNotesScreen = ({navigation, route}: any) => {
   const sessionFormLayout = useRef<{y: number} | null>(null);
   const detailsLayout = useRef<{y: number} | null>(null);
   const blockInputRefs = useRef(new Map<string, TextInput>());
+  const blockLayoutsRef = useRef(
+    new Map<string, {y: number; height: number}>(),
+  );
   const pendingFocusBlockIdRef = useRef<string | null>(null);
+  const pendingFocusShouldScrollEndRef = useRef(true);
   const focusScrollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
   );
@@ -313,6 +269,12 @@ const SermonNotesScreen = ({navigation, route}: any) => {
   const [showMore, setShowMore] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [focusedInput, setFocusedInput] = useState<string | null>(null);
+  const [dragPreview, setDragPreview] = useState<{
+    blockId: string;
+    fromIndex: number;
+    targetIndex: number;
+    blockHeight: number;
+  } | null>(null);
   const [inputLayoutVersion, setInputLayoutVersion] = useState(0);
   const [saved, setSaved] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -756,13 +718,24 @@ const SermonNotesScreen = ({navigation, route}: any) => {
 
     const frame = requestAnimationFrame(() => {
       blockInputRefs.current.get(blockId)?.focus();
-      scrollRef.current?.scrollToEnd({animated: true});
+      const layout = blockLayoutsRef.current.get(blockId);
+      if (layout && !pendingFocusShouldScrollEndRef.current) {
+        const baseY = editorLayout.current?.y || 0;
+        scrollRef.current?.scrollTo({
+          y: Math.max(0, baseY + layout.y - 20),
+          animated: true,
+        });
+      } else {
+        scrollRef.current?.scrollToEnd({animated: true});
+      }
       if (focusScrollTimerRef.current) {
         clearTimeout(focusScrollTimerRef.current);
       }
       focusScrollTimerRef.current = setTimeout(() => {
         blockInputRefs.current.get(blockId)?.focus();
-        scrollRef.current?.scrollToEnd({animated: true});
+        if (pendingFocusShouldScrollEndRef.current) {
+          scrollRef.current?.scrollToEnd({animated: true});
+        }
         focusScrollTimerRef.current = null;
       }, 320);
       pendingFocusBlockIdRef.current = null;
@@ -834,13 +807,7 @@ const SermonNotesScreen = ({navigation, route}: any) => {
     try {
       const blockHtml = blocks
         .filter(hasBlockContent)
-        .map(block => {
-          const safeText = block.text
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/\n/g, '<br>');
-          return `<p style="margin:0 0 12px 0; font-size:14px; line-height:20px; color:#29342E;">${safeText}</p>`;
-        })
+        .map(sessionBlockToHtml)
         .join('');
 
       const html = `
@@ -1059,9 +1026,17 @@ const SermonNotesScreen = ({navigation, route}: any) => {
     });
   };
 
-  const addBlock = (kind: BlockKind) => {
+  const addBlock = (kind: BlockKind, extra: Partial<NoteBlock> = {}) => {
     triggerLightHaptic();
-    keepScrollAtEndRef.current = true;
+    const insertionAfterId = blocks.some(block => block.id === focusedInput)
+      ? focusedInput
+      : null;
+    const insertionIndex = insertionAfterId
+      ? blocks.findIndex(block => block.id === insertionAfterId)
+      : -1;
+    const shouldScrollToEnd =
+      insertionIndex < 0 || insertionIndex === blocks.length - 1;
+    keepScrollAtEndRef.current = shouldScrollToEnd;
     if (keepAtEndTimerRef.current) {
       clearTimeout(keepAtEndTimerRef.current);
     }
@@ -1069,16 +1044,88 @@ const SermonNotesScreen = ({navigation, route}: any) => {
       keepScrollAtEndRef.current = false;
       keepAtEndTimerRef.current = null;
     }, 2500);
-    const selectedBlock = newBlock(kind);
+    const selectedBlock = {...newBlock(kind), ...extra};
     pendingFocusBlockIdRef.current = selectedBlock.id;
-    setBlocks(
-      current => insertJournalBlock(current, kind, selectedBlock.id).blocks,
+    pendingFocusShouldScrollEndRef.current = shouldScrollToEnd;
+    setFocusedInput(selectedBlock.id);
+    setBlocks(current => {
+      const inserted = insertJournalBlock(
+        current,
+        kind,
+        selectedBlock.id,
+        insertionAfterId,
+      );
+      return updateJournalBlock(inserted.blocks, selectedBlock.id, extra);
+    });
+  };
+
+  const handleDragBlockStart = (blockId: string) => {
+    const fromIndex = blocks.findIndex(block => block.id === blockId);
+    const layout = blockLayoutsRef.current.get(blockId);
+    if (fromIndex < 0 || !layout) {return;}
+    setDragPreview({
+      blockId,
+      fromIndex,
+      targetIndex: fromIndex,
+      blockHeight: layout.height,
+    });
+  };
+
+  const handleDragBlockMove = (blockId: string, deltaY: number) => {
+    const targetIndex = resolveJournalBlockDropIndex(
+      blocks,
+      blockLayoutsRef.current,
+      blockId,
+      deltaY,
+    );
+    setDragPreview(current =>
+      !current || current.blockId !== blockId || current.targetIndex === targetIndex
+        ? current
+        : {...current, targetIndex},
     );
   };
 
-  const selectCaptureKind = (kind: (typeof CAPTURE_KINDS)[number]) => {
+  const handleDragBlock = (blockId: string, deltaY: number) => {
+    const targetIndex = resolveJournalBlockDropIndex(
+      blocks,
+      blockLayoutsRef.current,
+      blockId,
+      deltaY,
+    );
+    setDragPreview(null);
+    const nextBlocks = reorderJournalBlock(blocks, blockId, targetIndex);
+    if (nextBlocks !== blocks) {
+      triggerLightHaptic();
+      setFocusedInput(blockId);
+      setBlocks(nextBlocks);
+    }
+  };
+
+  const selectCaptureKind = async (kind: (typeof CAPTURE_KINDS)[number]) => {
     triggerMediumHaptic();
+    if (kind === 'photo') {
+      closeCapturePicker();
+      try {
+        const photo = await pickImageLocal();
+        if (photo) {
+          addBlock('photo', {uri: photo.uri});
+        }
+      } catch {
+        Alert.alert('Could not add photo', 'Please try choosing your photo again.');
+      }
+      return;
+    }
     closeCapturePicker(() => addBlock(kind));
+  };
+
+  const insertActionAfter = (index: number) => {
+    const block = newBlock('action');
+    const nextBlocks = [...blocks];
+    nextBlocks.splice(index + 1, 0, block);
+    pendingFocusBlockIdRef.current = block.id;
+    pendingFocusShouldScrollEndRef.current = index === blocks.length - 1;
+    setFocusedInput(block.id);
+    setBlocks(nextBlocks);
   };
 
   const runAfterClosingPicker = (action: () => void) => {
@@ -1197,16 +1244,7 @@ const SermonNotesScreen = ({navigation, route}: any) => {
   };
 
   const hasBlockContent = (block: NoteBlock) =>
-    Boolean(
-      block.text.trim() ||
-        block.secondary?.trim() ||
-        block.note?.trim() ||
-        block.reference?.trim() ||
-        block.meaning?.trim() ||
-        block.origin?.trim() ||
-        block.points?.some(point => point.trim()) ||
-        block.tableRows?.some(row => row.some(cell => cell.trim())),
-    );
+    hasMeaningfulJournalBlock(block);
 
   const summary = useMemo(
     () =>
@@ -1241,7 +1279,7 @@ const SermonNotesScreen = ({navigation, route}: any) => {
       return false;
     }
     setIsSaving(true);
-    const meaningfulBlocks = blocks.filter(hasBlockContent);
+    const meaningfulBlocks = prepareJournalBlocksForSave(blocks);
     if (!title.trim() && meaningfulBlocks.length === 0) {
       setIsSaving(false);
       Alert.alert('Nothing to save', `Add a ${sessionConfig.titleLabel.toLowerCase()} or a note first.`);
@@ -1335,7 +1373,69 @@ const SermonNotesScreen = ({navigation, route}: any) => {
     }
   };
 
-  const renderBlock = (block: NoteBlock) => {
+  const renderBlock = (block: NoteBlock, blockIndex: number) => {
+    if (block.kind === 'bullets' || block.kind === 'numbered') {
+      return (
+        <JournalListBlock
+          key={block.id}
+          kind={block.kind}
+          title={block.text}
+          points={block.points}
+          onChangeTitle={text =>
+            setBlocks(current =>
+              current.map(item =>
+                item.id === block.id ? {...item, text} : item,
+              ),
+            )
+          }
+          onChangePoints={points =>
+            setBlocks(current =>
+              current.map(item =>
+                item.id === block.id ? {...item, points} : item,
+              ),
+            )
+          }
+          onDelete={() => removeBlock(block.id)}
+          onFocus={() => setFocusedInput(block.id)}
+          registerInput={input => {
+            if (input) blockInputRefs.current.set(block.id, input);
+            else blockInputRefs.current.delete(block.id);
+          }}
+        />
+      );
+    }
+    if (
+      block.kind === 'section' ||
+      block.kind === 'action' ||
+      block.kind === 'photo' ||
+      block.kind === 'voice'
+    ) {
+      return (
+        <ReflectionSpecialBlock
+          key={block.id}
+          block={block}
+          tone="default"
+          onFocus={() => setFocusedInput(block.id)}
+          onChange={changes =>
+            setBlocks(current =>
+              current.map(item =>
+                item.id === block.id ? {...item, ...changes} : item,
+              ),
+            )
+          }
+          onDelete={() => removeBlock(block.id)}
+          onCreateNextAction={
+            block.kind === 'action'
+              ? () => insertActionAfter(blockIndex)
+              : undefined
+          }
+          registerInput={input => {
+            if (input) blockInputRefs.current.set(block.id, input);
+            else blockInputRefs.current.delete(block.id);
+          }}
+        />
+      );
+    }
     if (GENERIC_JOURNAL_BLOCK_KINDS.includes(block.kind as any)) {
       const focusBlock = () => setFocusedInput(block.id);
       return (
@@ -1348,6 +1448,7 @@ const SermonNotesScreen = ({navigation, route}: any) => {
             else blockInputRefs.current.delete(block.id);
           }}
           onChangeText={value => updateBlock(block.id, 'text', value)}
+          onChangeSecondary={value => updateBlock(block.id, 'secondary', value)}
           onDelete={keepKeyboard =>
             removeBlock(block.id, false, keepKeyboard ?? true)
           }
@@ -1415,17 +1516,26 @@ const SermonNotesScreen = ({navigation, route}: any) => {
         />
       );
     }
-    if (block.kind === 'section') {
+    if (block.kind === 'table') {
       return (
-        <View key={block.id} style={styles.sectionDivider}>
-          <View style={styles.sectionLine} />
-          <ThemedText weight="bold" style={styles.sectionDividerText}>
-            {block.text}
-          </ThemedText>
-          <TouchableOpacity onPress={() => removeBlock(block.id)}>
-            <Ionicons name="close" size={15} color={Colors.textGray} />
-          </TouchableOpacity>
-        </View>
+        <JournalTableBlock
+          key={block.id}
+          rows={block.tableRows}
+          editing={block.tableEditing}
+          onChangeRows={tableRows => updateTableRows(block.id, tableRows)}
+          onChangeEditing={tableEditing =>
+            setTableEditing(block.id, tableEditing)
+          }
+          onDelete={() => removeBlock(block.id)}
+          registerInput={input => {
+            if (input) {
+              blockInputRefs.current.set(block.id, input);
+            } else {
+              blockInputRefs.current.delete(block.id);
+            }
+          }}
+          onFocus={() => setFocusedInput(block.id)}
+        />
       );
     }
     const config = BLOCKS[block.kind];
@@ -1451,13 +1561,11 @@ const SermonNotesScreen = ({navigation, route}: any) => {
               {config.label}
             </ThemedText>
           </View>
-          {(block.kind !== 'table' || block.tableEditing) && (
-            <TouchableOpacity
-              onPress={() => removeBlock(block.id)}
-              hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}>
-              <Ionicons name="close" size={17} color={Colors.textGray} />
-            </TouchableOpacity>
-          )}
+          <TouchableOpacity
+            onPress={() => removeBlock(block.id)}
+            hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}>
+            <Ionicons name="close" size={17} color={Colors.textGray} />
+          </TouchableOpacity>
         </View>
         {block.kind === 'scripture' ? (
           <ScriptureLookupInput
@@ -1476,7 +1584,7 @@ const SermonNotesScreen = ({navigation, route}: any) => {
             onResolved={result => updateBlockScripture(block.id, result)}
             onFocus={focusBlock}
           />
-        ) : block.kind !== 'history' && block.kind !== 'table' ? (
+        ) : block.kind !== 'history' ? (
           <TextInput
             ref={input => {
               if (input) {
@@ -1778,172 +1886,6 @@ const SermonNotesScreen = ({navigation, route}: any) => {
             )}
           </>
         )}
-        {block.kind === 'table' &&
-          (block.tableEditing ? (
-            <>
-              <ScrollView
-                horizontal
-                style={styles.editingTableHorizontalScroll}
-                keyboardShouldPersistTaps="handled"
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.tableGrid}>
-                <View>
-                  {(block.tableRows || []).map((row, rowIndex) => (
-                    <View key={rowIndex} style={styles.tableRow}>
-                      {row.map((cell, columnIndex) => (
-                        <TextInput
-                          key={columnIndex}
-                          ref={input => {
-                            if (rowIndex === 0 && columnIndex === 0 && input) {
-                              blockInputRefs.current.set(block.id, input);
-                            }
-                          }}
-                          style={[
-                            styles.tableCell,
-                            row.length === 2 && {
-                              width: (screenWidth - 92) / 2,
-                            },
-                            rowIndex === 0 && styles.tableHeaderCell,
-                          ]}
-                          placeholder={rowIndex === 0 ? 'Heading' : ''}
-                          placeholderTextColor={Colors.textGray}
-                          value={cell}
-                          multiline
-                          onChangeText={value => {
-                            const rows = (block.tableRows || []).map(item => [
-                              ...item,
-                            ]);
-                            rows[rowIndex][columnIndex] = value;
-                            updateTableRows(block.id, rows);
-                          }}
-                          onFocus={focusBlock}
-                        />
-                      ))}
-                    </View>
-                  ))}
-                </View>
-              </ScrollView>
-              <View style={styles.structureActions}>
-                <TouchableOpacity
-                  style={styles.structureAction}
-                  onPress={() => {
-                    const rows = block.tableRows || [['', '']];
-                    updateTableRows(block.id, [
-                      ...rows,
-                      Array(rows[0]?.length || 2).fill(''),
-                    ]);
-                  }}
-                  accessibilityRole="button"
-                  accessibilityLabel="Add row">
-                  <MaterialCommunityIcons
-                    name="table-row-plus-after"
-                    size={18}
-                    color={Colors.sage}
-                  />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.structureAction}
-                  onPress={() =>
-                    updateTableRows(
-                      block.id,
-                      (block.tableRows || [[''], ['']]).map(row => [
-                        ...row,
-                        '',
-                      ]),
-                    )
-                  }
-                  accessibilityRole="button"
-                  accessibilityLabel="Add column">
-                  <MaterialCommunityIcons
-                    name="table-column-plus-after"
-                    size={18}
-                    color={Colors.sage}
-                  />
-                </TouchableOpacity>
-                {(block.tableRows?.length || 0) > 2 && (
-                  <TouchableOpacity
-                    style={styles.structureAction}
-                    onPress={() =>
-                      updateTableRows(
-                        block.id,
-                        (block.tableRows || []).slice(0, -1),
-                      )
-                    }
-                    accessibilityRole="button"
-                    accessibilityLabel="Remove last row">
-                    <MaterialCommunityIcons
-                      name="table-row-remove"
-                      size={18}
-                      color={Colors.alertCoral}
-                    />
-                  </TouchableOpacity>
-                )}
-                {(block.tableRows?.[0]?.length || 0) > 2 && (
-                  <TouchableOpacity
-                    style={styles.structureAction}
-                    onPress={() =>
-                      updateTableRows(
-                        block.id,
-                        (block.tableRows || []).map(row => row.slice(0, -1)),
-                      )
-                    }
-                    accessibilityRole="button"
-                    accessibilityLabel="Remove last column">
-                    <MaterialCommunityIcons
-                      name="table-column-remove"
-                      size={18}
-                      color={Colors.alertCoral}
-                    />
-                  </TouchableOpacity>
-                )}
-              </View>
-              <TouchableOpacity
-                style={styles.saveTableButton}
-                onPress={() => {
-                  triggerLightHaptic();
-                  Keyboard.dismiss();
-                  setTableEditing(block.id, false);
-                }}>
-                <ThemedText weight="bold" style={styles.saveTableButtonText}>
-                  Save table
-                </ThemedText>
-              </TouchableOpacity>
-            </>
-          ) : (
-            <TouchableOpacity
-              activeOpacity={0.75}
-              accessibilityRole="button"
-              accessibilityLabel="Edit table"
-              onPress={() => setTableEditing(block.id, true)}>
-              <ScrollView
-                horizontal
-                style={styles.savedTableHorizontalScroll}
-                scrollEnabled
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.savedTableGrid}>
-                <View>
-                  {(block.tableRows || []).map((row, rowIndex) => (
-                    <View key={rowIndex} style={styles.savedTableRow}>
-                      {row.map((cell, columnIndex) => (
-                        <ThemedText
-                          key={columnIndex}
-                          weight={rowIndex === 0 ? 'bold' : 'regular'}
-                          style={[
-                            styles.savedTableCell,
-                            row.length === 2 && {
-                              width: (screenWidth - 92) / 2,
-                            },
-                            rowIndex === 0 && styles.savedTableHeaderCell,
-                          ]}>
-                          {cell}
-                        </ThemedText>
-                      ))}
-                    </View>
-                  ))}
-                </View>
-              </ScrollView>
-            </TouchableOpacity>
-          ))}
         {block.kind === 'history' && (
           <>
             <View style={styles.historyChoices}>
@@ -2764,7 +2706,41 @@ const SermonNotesScreen = ({navigation, route}: any) => {
                 onLayout={e => {
                   editorLayout.current = {y: e.nativeEvent.layout.y};
                 }}>
-                {blocks.map(renderBlock)}
+                {blocks.map((block, index) => (
+                  <DraggableJournalBlock
+                    key={block.id}
+                    blockId={block.id}
+                    selected={focusedInput === block.id}
+                    shiftY={(() => {
+                      if (!dragPreview || dragPreview.blockId === block.id) {
+                        return 0;
+                      }
+                      if (
+                        dragPreview.targetIndex > dragPreview.fromIndex &&
+                        index > dragPreview.fromIndex &&
+                        index <= dragPreview.targetIndex
+                      ) {
+                        return -dragPreview.blockHeight;
+                      }
+                      if (
+                        dragPreview.targetIndex < dragPreview.fromIndex &&
+                        index >= dragPreview.targetIndex &&
+                        index < dragPreview.fromIndex
+                      ) {
+                        return dragPreview.blockHeight;
+                      }
+                      return 0;
+                    })()}
+                    onSelect={() => setFocusedInput(block.id)}
+                    onLayout={layout =>
+                      blockLayoutsRef.current.set(block.id, layout)
+                    }
+                    onDragStart={handleDragBlockStart}
+                    onDragMove={handleDragBlockMove}
+                    onDragEnd={handleDragBlock}>
+                    {renderBlock(block, index)}
+                  </DraggableJournalBlock>
+                ))}
               </View>
             </>
           )}
@@ -3169,11 +3145,26 @@ const SermonNotesScreen = ({navigation, route}: any) => {
           pointerEvents="box-none"
           style={[styles.floatingComposer, {bottom: composerBottom}]}>
           {showMore && (
-            <JournalBlockPickerMenu
-              kinds={CAPTURE_KINDS}
-              animations={pillAnimations}
-              onSelect={selectCaptureKind}
-            />
+            <ScrollView
+              style={[
+                styles.blockPickerScroll,
+                {
+                  maxHeight: Math.max(
+                    280,
+                    screenHeight - restingComposerBottom - insets.top - 92,
+                  ),
+                },
+              ]}
+              contentContainerStyle={styles.blockPickerScrollContent}
+              keyboardShouldPersistTaps="handled"
+              nestedScrollEnabled
+              showsVerticalScrollIndicator={false}>
+              <JournalBlockPickerMenu
+                kinds={CAPTURE_KINDS}
+                animations={pillAnimations}
+                onSelect={selectCaptureKind}
+              />
+            </ScrollView>
           )}
           <Animated.View
             style={[
@@ -3503,6 +3494,8 @@ const styles = StyleSheet.create({
     zIndex: 30,
     alignItems: 'flex-end',
   },
+  blockPickerScroll: {width: '100%', marginBottom: 9},
+  blockPickerScrollContent: {flexGrow: 1, justifyContent: 'flex-end'},
   floatingTools: {
     width: '100%',
     marginBottom: 9,
@@ -3758,13 +3751,14 @@ const styles = StyleSheet.create({
     lineHeight: 23,
     color: Colors.text,
     textAlignVertical: 'top',
+    marginBottom: JOURNAL_BLOCK_GAP,
   },
   capture: {
     borderWidth: 1,
     borderColor: Colors.cardBorder,
     borderRadius: 14,
     padding: 12,
-    marginBottom: 9,
+    marginBottom: JOURNAL_BLOCK_GAP,
   },
   keyCapture: {
     backgroundColor: '#EDF1EC',
@@ -3864,42 +3858,15 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.anchorBlueLight,
   },
   openLinkText: {fontSize: 11, color: Colors.sage},
-  tableGrid: {
-    flexGrow: 1,
-    justifyContent: 'center',
-    paddingTop: 14,
-  },
-  editingTableHorizontalScroll: {marginHorizontal: -12},
+  // Also used by the read-only Session Notes detail screen.
   savedTableHorizontalScroll: {marginHorizontal: -12},
-  tableRow: {flexDirection: 'row'},
-  tableCell: {
-    width: 126,
-    minHeight: 48,
-    paddingHorizontal: 9,
-    paddingVertical: 8,
-    borderRightWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: Colors.cardBorder,
-    fontFamily: Fonts.regular,
-    fontSize: 12,
-    lineHeight: 17,
-    color: Colors.text,
-    textAlignVertical: 'top',
-  },
-  tableHeaderCell: {
-    minHeight: 40,
-    backgroundColor: Colors.anchorBlueLight,
-    fontFamily: Fonts.bold,
-  },
   savedTableGrid: {
     flexGrow: 1,
     justifyContent: 'center',
     paddingTop: 9,
     paddingBottom: 3,
   },
-  savedTableRow: {
-    flexDirection: 'row',
-  },
+  savedTableRow: {flexDirection: 'row'},
   savedTableCell: {
     width: 126,
     minHeight: 34,
@@ -3911,35 +3878,7 @@ const styles = StyleSheet.create({
     lineHeight: 17,
     color: Colors.text,
   },
-  savedTableHeaderCell: {
-    backgroundColor: Colors.anchorBlueLight,
-  },
-  structureActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    gap: 7,
-    marginTop: 9,
-  },
-  structureAction: {
-    width: 34,
-    height: 34,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: Colors.cardBorder,
-    borderRadius: 17,
-    backgroundColor: Colors.cardBackground,
-  },
-  saveTableButton: {
-    alignSelf: 'flex-end',
-    marginTop: 11,
-    paddingHorizontal: 15,
-    paddingVertical: 9,
-    borderRadius: 18,
-    backgroundColor: Colors.sage,
-  },
-  saveTableButtonText: {fontSize: 11, color: Colors.hopeWhite},
+  savedTableHeaderCell: {backgroundColor: Colors.anchorBlueLight},
   languageKindChoices: {
     flexDirection: 'row',
     flexWrap: 'wrap',

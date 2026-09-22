@@ -20,6 +20,7 @@ import type { MorningMoment } from '../storage/morningMomentsStorage';
 import { heartJournalClassificationLabel } from '../types/heartJournal';
 import { resolveSessionNoteType, sessionNoteSearchMetadata, sessionNoteTypeLabel } from '../types/sessionNotes';
 import { adaptSifiaPrayer, adaptSifiaReflection } from '../compatibility/sifiaReadCompatibility';
+import {resolveSavedProverbNumber, resolveSavedPsalmNumber} from './dailyScriptureSequence';
 
 export type MomentTimelineKind = 'morning' | 'evening' | 'bible_study' | 'scripture_note' | 'sermon' | 'reflection' | 'prayer';
 export type MomentCanonicalSource = 'journal' | 'reflection' | 'prayer';
@@ -107,9 +108,11 @@ export const buildMomentTimeline = ({ journalEntries, reflections, bibleStudies,
       morningSections.push({ kind: 'check_in', label: 'Check-In', canonicalSource: 'journal', canonicalIds: [checkIn!.id], journalEntries: [checkIn!], lines, presentation: { id: checkIn!.id, pluginId: 'morningcheckin', title: 'How are you feeling?', date: selectedDate, savedAt: checkIn!.updated_at, lines, feeling: content.feeling, feelingIcon: content.feelingIcon, feelingIconType: content.feelingIconType, underneathIt: content.underneathIt, scripture: content.scripture } });
     }
     if (hasMeaningfulScriptureReflection(psalm, 'psalmRead')) {
+      const psalmNumber = resolveSavedPsalmNumber(psalm, Number(psalm?.metadata?.psalmNumber) || 1);
+      const psalmTitle = `Psalm ${psalmNumber}`;
       const observations = text(psalm?.metadata?.selectedAttributes, psalm?.metadata?.customAttribute);
       const lines = text(psalm?.metadata?.psalmRead ? 'Passage read' : '', observations, psalm?.content, psalm?.metadata?.carry);
-      morningSections.push({ kind: 'psalm', label: psalm?.title || 'Psalm', canonicalSource: 'reflection', canonicalIds: [psalm!.id], reflection: psalm, lines, presentation: { id: psalm!.id, pluginId: 'morningpsalm', title: psalm?.title || `Psalm ${psalm?.metadata?.psalmNumber || ''}`, date: selectedDate, savedAt: psalm!.updated_at, lines, markedRead: psalm?.metadata?.psalmRead === true, reflection: psalm?.content || psalm?.metadata?.carry || '', observations } });
+      morningSections.push({ kind: 'psalm', label: psalmTitle, canonicalSource: 'reflection', canonicalIds: [psalm!.id], reflection: psalm, lines, presentation: { id: psalm!.id, pluginId: 'morningpsalm', title: psalmTitle, date: selectedDate, savedAt: psalm!.updated_at, lines, markedRead: psalm?.metadata?.psalmRead === true, reflection: psalm?.content || psalm?.metadata?.carry || '', observations } });
     }
     if (hasMeaningfulFocus(focus)) {
       const content = parseJournalContent(focus);
@@ -137,14 +140,28 @@ export const buildMomentTimeline = ({ journalEntries, reflections, bibleStudies,
       eveningSections.push({ kind: 'win', label: "Today's Win", canonicalSource: 'journal', canonicalIds: [win!.id], journalEntries: [win!], lines, presentation: { id: win!.id, pluginId: 'eveningwin', title: "Today's Win", date: selectedDate, savedAt: win!.updated_at, lines, winType: content.winTypeName, quietWin: content.quietWin } });
     }
     if (hasMeaningfulScriptureReflection(proverbs, 'proverbRead')) {
-      const wisdomSelections = Array.isArray(proverbs?.metadata?.selectedWisdom)
+      const proverbNumber = resolveSavedProverbNumber(proverbs, Number(proverbs?.metadata?.proverbNumber) || 1);
+      const proverbTitle = `Proverbs ${proverbNumber}`;
+      const selectedWisdom = Array.isArray(proverbs?.metadata?.selectedWisdom)
         ? proverbs!.metadata!.selectedWisdom.map((wisdom: any) => typeof wisdom === 'string' ? { id: wisdom, label: wisdom, verses: '', prompt: '', application: '' } : {
           id: wisdom?.id || wisdom?.label || '', label: wisdom?.label || '', verses: wisdom?.verses || '', prompt: wisdom?.prompt || '', application: proverbs?.metadata?.wisdomApplications?.[wisdom?.id] || '',
         }).filter((wisdom: any) => wisdom.label)
         : [];
-      const observations = text(wisdomSelections.map((wisdom: any) => wisdom.label), proverbs?.metadata?.customWisdom);
+      const customWisdom = typeof proverbs?.metadata?.customWisdom === 'string'
+        ? proverbs.metadata.customWisdom.trim()
+        : '';
+      const wisdomSelections = [
+        ...selectedWisdom,
+        ...(customWisdom && !selectedWisdom.some((wisdom: any) => wisdom.label === customWisdom)
+          ? [{id: 'custom', label: customWisdom, verses: '', prompt: '', application: ''}]
+          : []),
+      ];
+      const observations = text(wisdomSelections.map((wisdom: any) => wisdom.label));
+      const wisdomResponse = typeof proverbs?.metadata?.wisdomApplication === 'string'
+        ? proverbs.metadata.wisdomApplication.trim()
+        : '';
       const lines = text(proverbs?.metadata?.proverbRead ? 'Passage read' : '', observations, proverbs?.metadata?.wisdomApplication, proverbs?.metadata?.wisdomApplications, proverbs?.content);
-      eveningSections.push({ kind: 'proverbs', label: proverbs?.title || 'Proverbs', canonicalSource: 'reflection', canonicalIds: [proverbs!.id], reflection: proverbs, lines, presentation: { id: proverbs!.id, pluginId: 'eveningproverb', title: proverbs?.title || `Proverbs ${proverbs?.metadata?.proverbNumber || ''}`, date: selectedDate, savedAt: proverbs!.updated_at, lines, markedRead: proverbs?.metadata?.proverbRead === true, reflection: proverbs?.metadata?.wisdomApplication || proverbs?.content || '', observations, wisdomSelections } });
+      eveningSections.push({ kind: 'proverbs', label: proverbTitle, canonicalSource: 'reflection', canonicalIds: [proverbs!.id], reflection: proverbs, lines, presentation: { id: proverbs!.id, pluginId: 'eveningproverb', title: proverbTitle, date: selectedDate, savedAt: proverbs!.updated_at, lines, markedRead: proverbs?.metadata?.proverbRead === true, reflection: wisdomResponse || (wisdomSelections.length ? '' : proverbs?.content || ''), observations, wisdomSelections } });
     }
     if (hasMeaningfulLookingForward(lookingForward)) {
       const content = parseJournalContent(lookingForward);

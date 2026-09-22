@@ -7,7 +7,10 @@ import com.facebook.react.uimanager.ViewManager
 
 class SifiaKeyboardPackage : ReactPackage {
   override fun createNativeModules(reactContext: ReactApplicationContext): List<NativeModule> =
-    listOf(SifiaKeyboardModule(reactContext))
+    listOf(
+      SifiaKeyboardModule(reactContext),
+      SifiaVoiceRecorderModule(reactContext),
+    )
 
   override fun createViewManagers(reactContext: ReactApplicationContext): List<ViewManager<*, *>> =
     emptyList()

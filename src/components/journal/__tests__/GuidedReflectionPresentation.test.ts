@@ -233,7 +233,15 @@ describe('Guided Reflection presentation contract', () => {
   });
 
   it('opens the selected question directly in the guided writer', () => {
-    expect(screenSource).toContain('onSelectQuestion={prompt => setSingleGuidedPrompt(prompt)}');
+    expect(guidedSource).toContain('onSelectQuestion(question.prompt, topic)');
+    expect(screenSource).toContain('onSelectQuestion={(prompt, topic) => {');
+    expect(screenSource).toContain('setSingleGuidedTopic(topic)');
+    expect(screenSource).toContain('setSingleGuidedPrompt(prompt)');
+    expect(screenSource).toContain('guidedQuestionTopicForPrompt(legacyGuidedPrompt)');
+    expect(screenSource).toContain('guidedQuestionTopic={guidedQuestionTopic}');
+    expect(editorSource).toContain('{guidedQuestionTopic}');
+    expect(editorSource).not.toContain('PART OF LIFE');
+    expect(editorSource).toContain('...(guidedQuestionTopic && {questionTopic: guidedQuestionTopic})');
     expect(editorSource).toContain("source === 'guided' ? initialPrompt || initialTitle || '' : ''");
     expect(editorSource).toContain('const guidedPrompt = initialPrompt || initialTitle');
     expect(editorSource).toContain('setSelectedPrompt(guidedPrompt)');

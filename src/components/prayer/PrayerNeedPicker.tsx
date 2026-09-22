@@ -12,10 +12,12 @@ import { useFloatingKeyboardButton } from '../../hooks/useFloatingKeyboardButton
 import { triggerLightHaptic } from '../../utils/haptics';
 import { Pencil } from 'lucide-react-native';
 import type { PrayerApiEntry } from '../../services/api/prayerApi';
+import { getPrayerTypePresentation } from '../dashboard/prayerTypePresentation';
 import { answerPrayer, prayerNeeds, trackingStatus, type PrayerUpdate } from '../../utils/prayerTracking';
 import { format } from 'date-fns';
 import type { PrayerChanges } from './PrayerDetails';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { formatPrayerDateContext } from '../../utils/date';
 
 const TOPICS = [
   { label: 'Provision', icon: 'wallet-outline', needs: ['Rent', 'Bills', 'Credit card', 'Groceries', 'A home', 'Debt'] },
@@ -45,13 +47,14 @@ const choiceKey = (choice: Choice) => isPresetChoice(choice) ? `${choice.topic}:
 const parseDate = (value?: string) => value ? new Date(`${value.slice(0, 10)}T12:00:00`) : new Date();
 const formatDisplayDate = (value?: string) => { const date = parseDate(value); return format(date, date.getFullYear() === new Date().getFullYear() ? 'MMM d' : 'MMM d, yyyy'); };
 
-export default function PrayerNeedPicker({ prayer, onClose, onSave, onDelete, renderUpdate }: { prayer?: PrayerApiEntry; onClose: () => void; onSave: (data: PrayerChanges) => Promise<void>; onDelete?: () => Promise<void>; renderUpdate?: (prayer: PrayerApiEntry, save: (data: PrayerChanges) => Promise<void>, close: () => void) => React.ReactNode }) {
+export default function PrayerNeedPicker({ prayer, selectedNeedId, onClose, onSave, onDelete, renderUpdate }: { prayer?: PrayerApiEntry; selectedNeedId?: string; onClose: () => void; onSave: (data: PrayerChanges) => Promise<void>; onDelete?: () => Promise<void>; renderUpdate?: (prayer: PrayerApiEntry, save: (data: PrayerChanges) => Promise<void>, close: () => void) => React.ReactNode }) {
   const insets = useSafeAreaInsets();
   const { currentFont } = useTheme();
   const { bottom } = useFloatingKeyboardButton(insets.bottom);
   const [current, setCurrent] = useState(prayer);
   const [editing, setEditing] = useState(!prayer);
   const [showUpdate, setShowUpdate] = useState(false);
+  const [showParentPrayer, setShowParentPrayer] = useState(false);
   const [step, setStep] = useState(0);
   const initialChoices = (entry?: PrayerApiEntry): Choice[] => entry ? prayerNeeds(entry).map(n => ({
     text: n.text, topic: (n as typeof n & { topic?: string }).topic || TOPICS.find(t => (t.needs as readonly string[]).includes(n.text))?.label || 'Other',
@@ -77,8 +80,16 @@ export default function PrayerNeedPicker({ prayer, onClose, onSave, onDelete, re
   const showChoices = editing && step === 0;
   const showDetails = editing && step === 1;
   const showReview = editing && step === 2;
-  const title = editing ? step === 0 ? 'What are you waiting on\nGod for?' : step === 1 ? 'Add the details you want to remember' : 'Your prayer need' : 'What are you waiting on\nGod for?';
-  const hint = editing ? step === 0 ? 'You can choose more than one.' : step === 1 ? 'Add dates, a prayer, or anything that will help you remember.' : 'Take a moment to review before saving.' : 'The needs you’re bringing to God, one prayer at a time.';
+  const selectedNeed = current ? prayerNeeds(current).find(need => need.id === selectedNeedId) || prayerNeeds(current)[0] : undefined;
+  const selectedNeedLastPrayed = selectedNeed && current?.metadata?.need_last_prayed?.[selectedNeed.id];
+  const selectedNeedAnswer = selectedNeed?.answerHistory?.map(answer => answer.date).filter(Boolean).sort().at(-1) || selectedNeed?.answeredDate;
+  const selectedNeedLetGo = selectedNeed?.lifecycleHistory?.filter(event => event.action === 'let-go').map(event => event.date).filter(Boolean).sort().at(-1);
+  const selectedNeedDate = selectedNeed?.status === 'answered' ? selectedNeedAnswer : selectedNeed?.status === 'closed' ? selectedNeedLetGo : selectedNeedLastPrayed;
+  const selectedNeedDateContext = formatPrayerDateContext(selectedNeedDate);
+  const selectedNeedDateLabel = selectedNeedDateContext ? `${selectedNeed?.status === 'answered' ? 'Answer recorded' : selectedNeed?.status === 'closed' ? 'Let go' : 'Last prayed'} ${selectedNeedDateContext.combinedLabel}` : '';
+  const needOrientation = current ? getPrayerTypePresentation(current, selectedNeed) : undefined;
+  const title = editing ? step === 0 ? 'What are you waiting on\nGod for?' : step === 1 ? 'Add the details you want to remember' : 'Your prayer need' : needOrientation?.detailLabel || 'Prayer Need';
+  const hint = editing ? step === 0 ? 'You can choose more than one.' : step === 1 ? 'Add dates, a prayer, or anything that will help you remember.' : 'Take a moment to review before saving.' : [needOrientation?.detailContext, needOrientation?.originLabel].filter(Boolean).join(' · ') || 'This need is part of your prayer.';
   const toggle = (topic: string, text: string) => {
     if (!editing) return;
     triggerLightHaptic();
@@ -194,11 +205,14 @@ export default function PrayerNeedPicker({ prayer, onClose, onSave, onDelete, re
         </View></StepFadeIn>}
         {showReview && <StepFadeIn delay={200}><View style={styles.reviewCard}><ThemedText weight="semiBold" style={styles.eyebrow}>ON MY HEART · {choices.length}</ThemedText>{choices.map(choice => { const expected = expectedDates[choiceKey(choice)]; return <View key={`review-${choiceKey(choice)}`} style={styles.reviewNeed}><Ionicons name="heart-outline" size={16} color={Colors.sage} /><View style={styles.dateText}><ThemedText weight="semiBold" style={styles.choiceTopic}>{choice.topic === 'Other' ? 'SOMETHING ELSE' : choice.topic.toUpperCase()}</ThemedText><ThemedText style={styles.topicText}>{choice.text}</ThemedText>{expected && <ThemedText style={styles.waiting}>On or before {formatDisplayDate(expected)}</ThemedText>}</View></View>; })}<View style={styles.reviewDivider} /><ThemedText style={styles.waiting}>Praying since {formatDisplayDate(prayingSince)}</ThemedText>{!!notes.trim() && <><ThemedText weight="semiBold" style={[styles.eyebrow, styles.reviewNotesLabel]}>NOTES, PRAYER, OR DESCRIPTION</ThemedText><ThemedText style={styles.reviewNotes}>{notes.trim()}</ThemedText></>}</View></StepFadeIn>}
         {current && !editing && <>
-          <ThemedText weight="semiBold" style={[styles.eyebrow, { marginTop: 24 }]}>MY NEEDS</ThemedText>
+          {selectedNeed && <View style={styles.primaryNeed}><ThemedText style={styles.primaryNeedText}>{selectedNeed.text}</ThemedText><ThemedText style={styles.waiting}>{selectedNeed.status === 'answered' ? 'Answered' : selectedNeed.status === 'closed' ? 'Let go' : 'Still praying'}</ThemedText>{!!selectedNeedDateLabel && <ThemedText style={styles.waiting}>{selectedNeedDateLabel}</ThemedText>}</View>}
+          <TouchableOpacity style={styles.parentPrayerToggle} onPress={() => setShowParentPrayer(value => !value)}><ThemedText weight="semiBold" style={styles.pillText}>{showParentPrayer ? 'Hide full prayer' : 'View full prayer'}</ThemedText><Ionicons name={showParentPrayer ? 'chevron-up' : 'chevron-down'} size={15} color={Colors.sage} /></TouchableOpacity>
+          {showParentPrayer && <View style={styles.parentPrayer}><ThemedText weight="semiBold" style={styles.eyebrow}>PARENT PRAYER · {current.person_name ? `FOR ${current.person_name.toUpperCase()}` : 'FULL PRAYER'}</ThemedText><ThemedText style={styles.topicText}>{current.content}</ThemedText></View>}
+          <ThemedText weight="semiBold" style={[styles.eyebrow, { marginTop: 24 }]}>OTHER NEEDS IN THIS PRAYER</ThemedText>
           <ThemedText style={styles.waiting}>Praying since {formatDisplayDate(current.metadata?.praying_since || current.selected_date)}</ThemedText>
           {prayerNeeds(current).map(need => <View key={need.id} style={styles.trackingRow}><View style={{ flex: 1 }}>{!!need.topic && <ThemedText weight="semiBold" style={styles.choiceTopic}>{need.topic === 'Other' ? 'SOMETHING ELSE' : need.topic.toUpperCase()}</ThemedText>}<ThemedText style={styles.topicText}>{need.text}</ThemedText><ThemedText style={styles.waiting}>{need.status === 'answered' ? 'Answered' : need.status === 'closed' ? 'Let go' : 'Still praying'}{need.expectedDate ? ` · On or before ${formatDisplayDate(need.expectedDate)}` : ''}</ThemedText></View><TouchableOpacity disabled={saving} style={styles.pill} onPress={() => { void markAnswered(need.id); }}><Sparkle size={16} color={Colors.sage} strokeWidth={1.8} /><ThemedText style={styles.pillText}>{need.status === 'answered' ? 'Answered' : 'Mark answered'}</ThemedText></TouchableOpacity></View>)}
           <View style={[styles.header, { marginTop: 24, marginBottom: 12 }]}><ThemedText weight="semiBold" style={styles.eyebrow}>UPDATES</ThemedText><TouchableOpacity disabled={saving} style={styles.pill} onPress={() => { triggerLightHaptic(); setShowUpdate(true); }}><Ionicons name="add" size={16} color={Colors.sage} /><ThemedText style={styles.pillText}>Add update</ThemedText></TouchableOpacity></View>
-          {history.length ? history.map(update => <View key={update.id} style={styles.history}><ThemedText style={styles.eyebrow}>{formatDisplayDate(update.date)}{update.needId ? ' · ' + (prayerNeeds(current).find(n => n.id === update.needId)?.text || 'Prayer need') : ''}</ThemedText><ThemedText style={[styles.pillText, { marginTop: 6 }]}>{update.text}</ThemedText></View>) : <ThemedText style={styles.waiting}>Updates you add will appear here.</ThemedText>}
+          {history.length ? history.map(update => <View key={update.id} style={styles.history}><ThemedText style={styles.eyebrow}>{formatPrayerDateContext(update.date)?.combinedLabel || formatDisplayDate(update.date)}{update.needId ? ' · ' + (prayerNeeds(current).find(n => n.id === update.needId)?.text || 'Prayer need') : ''}</ThemedText><ThemedText style={[styles.pillText, { marginTop: 6 }]}>{update.text}</ThemedText></View>) : <ThemedText style={styles.waiting}>Updates you add will appear here.</ThemedText>}
           {onDelete && <TouchableOpacity disabled={saving} style={styles.delete} onPress={removePrayer}><Ionicons name="trash-outline" size={22} color={Colors.error} /><ThemedText weight="semiBold" style={styles.deleteText}>Delete this prayer</ThemedText></TouchableOpacity>}
         </>}
         {current && editing && onDelete && <TouchableOpacity disabled={saving} style={styles.delete} onPress={removePrayer}><Ionicons name="trash-outline" size={22} color={Colors.error} /><ThemedText weight="semiBold" style={styles.deleteText}>Delete this prayer</ThemedText></TouchableOpacity>}
@@ -244,6 +258,7 @@ const styles = StyleSheet.create({
   reviewCard: { borderWidth: 1, borderColor: Colors.cardBorder, borderRadius: 22, padding: 18 }, choiceTopic: { color: Colors.sageMuted, fontSize: 9, lineHeight: 14, letterSpacing: 1.2, marginBottom: 2 }, reviewNeed: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 11 }, reviewDivider: { height: 1, backgroundColor: Colors.cardBorder, marginVertical: 12 }, reviewNotesLabel: { marginTop: 22, marginBottom: 8 }, reviewNotes: { color: Colors.text, fontSize: 14, lineHeight: 22 },
   dateSection: { marginTop: 20, marginBottom: 10 }, dateRow: { flexDirection: 'row', alignItems: 'center', gap: 10, borderBottomWidth: 1, borderBottomColor: Colors.cardBorder, paddingVertical: 12 }, dateText: { flex: 1 },
   dateOverlay: { ...StyleSheet.absoluteFillObject, justifyContent: 'center', paddingHorizontal: 24, backgroundColor: 'rgba(0,0,0,0.25)', zIndex: 300 }, dateModal: { backgroundColor: Colors.lightBackground, borderRadius: 24, padding: 20 }, dateTitle: { color: Colors.text, fontSize: 16, lineHeight: 23, textAlign: 'center', marginBottom: 8 }, dateDone: { alignItems: 'center', backgroundColor: Colors.sage, borderRadius: 20, paddingVertical: 12, marginTop: 8 }, dateDoneText: { color: Colors.hopeWhite, fontSize: 13 }, clearDate: { alignItems: 'center', paddingVertical: 8 }, clearDateText: { color: Colors.textGray, fontSize: 12 },
+  primaryNeed: { width: '100%', padding: 16, borderRadius: 18, borderWidth: 1, borderColor: Colors.cardBorder, backgroundColor: Colors.hopeWhite, marginTop: 8 }, primaryNeedText: { color: Colors.text, fontSize: 16, lineHeight: 24 }, parentPrayerToggle: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, alignSelf: 'center', padding: 12 }, parentPrayer: { padding: 14, backgroundColor: Colors.hopeWhite, borderRadius: 18, borderWidth: 1, borderColor: Colors.cardBorder },
   waiting: { fontSize: 11, lineHeight: 18, color: Colors.textGray, marginTop: 8 },
   stillPrayingNote: { alignSelf: 'stretch', textAlign: 'center', marginTop: 20 },
   delete: { width: '100%', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, marginTop: 30, paddingVertical: 17, backgroundColor: 'rgba(217, 120, 114, 0.1)', borderRadius: 999 }, deleteText: { color: Colors.error, fontSize: 16 },

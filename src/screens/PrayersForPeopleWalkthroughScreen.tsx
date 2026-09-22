@@ -676,9 +676,10 @@ const PrayForSomeonePrayerFocusStep: React.FC<{
   actionStepTitle?: string;
   stepBody?: string;
   stepExample?: string | null;
+  requestContext?: string;
   readOnly?: boolean;
   actionLabel?: string;
-}> = ({ personName, prayerText, onPrayerTextChange, onNext, onBack: _onBack, insets, navigation, playbookTitle, actionStepNumber, actionStepTitle, stepBody, stepExample, readOnly = false, actionLabel }) => {
+}> = ({ personName, prayerText, onPrayerTextChange, onNext, onBack: _onBack, insets, navigation, playbookTitle, actionStepNumber, actionStepTitle, stepBody, stepExample, requestContext, readOnly = false, actionLabel }) => {
   const [keyboardVisible, setKeyboardVisible] = React.useState(false);
   const buttonPosition = React.useRef(new Animated.Value(insets.bottom + 20)).current;
   const buttonOpacity = React.useRef(new Animated.Value(0)).current;
@@ -743,6 +744,7 @@ const PrayForSomeonePrayerFocusStep: React.FC<{
         </StepFadeIn>
 
         <StepFadeIn delay={80}>
+          {!!requestContext && <View style={{ marginBottom: 14, padding: 14, borderRadius: 16, backgroundColor: Colors.hopeWhite, borderWidth: 1, borderColor: Colors.cardBorder }}><ThemedText weight="semiBold" style={styles.focusLabel}>HIS REQUEST</ThemedText><ThemedText style={{ color: Colors.text, fontSize: 14, lineHeight: 21, marginTop: 6 }}>{requestContext}</ThemedText></View>}
           <View style={styles.inputContainer}>
             <TextInput
               style={[styles.personalInput, styles.multilineInput]}
@@ -1138,6 +1140,7 @@ const PrayersForPeopleWalkthroughScreen: React.FC<Props> = ({ navigation, route 
   const [prayerText, setPrayerText] = useState('');
   const [trackAnswered, setTrackAnswered] = useState<boolean | undefined>(route.params?.editingPrayerId ? true : undefined);
   const [editingPrayerId, setEditingPrayerId] = useState<string | undefined>(undefined);
+  const requestPrayerCreatedRef = useRef(false);
 
   // State for prayer modal
   const [showPrayerEditorModal, setShowPrayerEditorModal] = useState(false);
@@ -1287,6 +1290,14 @@ const PrayersForPeopleWalkthroughScreen: React.FC<Props> = ({ navigation, route 
         metadata: {
           prayer_type: selectedType?.id,
           track_answered: trackAnswered === true,
+          ...(selectedType?.id === 'pray-for-someone' && route.params?.originalRequestId ? {
+            origin: 'prayer_request',
+            source: 'prayer_request',
+            original_request_id: route.params.originalRequestId,
+            original_request_content: route.params.originalRequestText || '',
+            prayer_request_display: route.params.originalRequestText || '',
+            ...(route.params.originalRequestContext ? { request_context: route.params.originalRequestContext } : {}),
+          } : {}),
           ...(fromPlaybook ? { origin: 'playbook', source: 'playbook', playbook_id: playbookId, playbook_title: playbookTitle, step_id: stepId, subtask_id: subtaskId, action_step_number: actionStepNumber, action_step_title: actionStepTitle } : {}),
         },
         selected_date: dateStr,
@@ -1301,9 +1312,21 @@ const PrayersForPeopleWalkthroughScreen: React.FC<Props> = ({ navigation, route 
           _userId: prayerUserId,
           _dateStr: dateStr,
         });
-      } else {
+      } else if (!(selectedType?.id === 'pray-for-someone' && route.params?.originalRequestId && requestPrayerCreatedRef.current)) {
         // Create new prayer
         result = await createPrayerMutation.mutateAsync(prayerData);
+        if (selectedType?.id === 'pray-for-someone' && route.params?.originalRequestId) requestPrayerCreatedRef.current = true;
+      }
+
+      // A Request becomes prayed only after its linked Prayer is durably created.
+      if (!editingPrayerId && selectedType?.id === 'pray-for-someone' && route.params?.originalRequestId) {
+        await markPrayedMutation.mutateAsync({
+          id: route.params.originalRequestId,
+          isPrayed: true,
+          _userId: prayerUserId,
+          _dateStr: dateStr,
+        });
+        await queryClient.invalidateQueries({ queryKey: queryKeys.prayers.allEntries(prayerUserId) });
       }
 
       if (draftKey) {await clearPrayerDraft(draftKey);}
@@ -1374,7 +1397,7 @@ const PrayersForPeopleWalkthroughScreen: React.FC<Props> = ({ navigation, route 
     } catch (error) {
       Alert.alert('Error', 'Failed to save prayer. Please try again.');
     }
-  }, [personName, selectedType, prayerNeed, prayerText, trackAnswered, dateStr, draftKey, user, editingPrayerId, createPrayerMutation, updatePrayerMutation, fromPlaybook, playbookId, playbookStatus, stepId, subtaskId, actionStepNumber, navigation, successModal]);
+  }, [personName, selectedType, prayerNeed, prayerText, trackAnswered, dateStr, draftKey, user, editingPrayerId, createPrayerMutation, updatePrayerMutation, markPrayedMutation, queryClient, prayerUserId, route.params, fromPlaybook, playbookId, playbookStatus, stepId, subtaskId, actionStepNumber, navigation, successModal]);
 
   const handleNext = useCallback(() => {
     if (currentStep === 0) {
@@ -1644,6 +1667,7 @@ const PrayersForPeopleWalkthroughScreen: React.FC<Props> = ({ navigation, route 
           actionStepTitle={actionStepTitle}
           stepBody={stepBody}
           stepExample={stepExample}
+          requestContext={route.params?.originalRequestText}
           readOnly={fromNotificationAnsweredCheck}
           actionLabel={fromNotificationAnsweredCheck ? 'Mark Answered' : undefined}
         />

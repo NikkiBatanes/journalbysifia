@@ -29,6 +29,13 @@ describe('daily rhythm card state', () => {
     expect(state(overrides).cta).toBe(cta);
   });
 
+  it.each([
+    ['morning', 'Your morning reflection is saved.'],
+    ['evening', 'Your evening reflection is saved.'],
+  ] as const)('names the saved %s reflection explicitly', (period, title) => {
+    expect(state({ period, completed: true, allDisplayedContent: true }).title).toBe(title);
+  });
+
   it('derives Morning meaning from intentional canonical content', () => {
     expect(hasMeaningfulCheckIn(journalEntry({ scripture: { reference: 'Psalm 1:1' } }))).toBe(false);
     expect(hasMeaningfulCheckIn(journalEntry({ feeling: 'Hopeful' }))).toBe(true);

@@ -1,0 +1,115 @@
+diff --git a/node_modules/react-native-image-picker/ios/ImagePickerManager.mm b/node_modules/react-native-image-picker/ios/ImagePickerManager.mm
+--- a/node_modules/react-native-image-picker/ios/ImagePickerManager.mm
++++ b/node_modules/react-native-image-picker/ios/ImagePickerManager.mm
+@@ -33,6 +33,21 @@ RNImagePickerTarget target;
+ 
+ BOOL photoSelected = NO;
+ 
++- (void)sendResponse:(NSArray *)response
++{
++    // UIKit can report both a presentation dismissal and a picker result for
++    // the same request. TurboModule callbacks are single-use, so consume the
++    // callback before invoking it and ignore any later terminal event.
++    RCTResponseSenderBlock callback;
++    @synchronized(self) {
++        callback = self.callback;
++        self.callback = nil;
++    }
++    if (callback != nil) {
++        callback(response);
++    }
++}
++
+ RCT_EXPORT_MODULE(ImagePicker)
+ 
+ RCT_EXPORT_METHOD(launchCamera:(NSDictionary *)options callback:(RCTResponseSenderBlock)callback)
+@@ -68,7 +80,7 @@ RCT_EXPORT_METHOD(launchImageLibrary:(NSDictionary *)options callback:(RCTRespons
+     self.callback = callback;
+ 
+     if (target == camera && [ImagePickerUtils isSimulator]) {
+-        self.callback(@[@{@"errorCode": errCameraUnavailable}]);
++        [self sendResponse:@[@{@"errorCode": errCameraUnavailable}]];
+         return;
+     }
+ 
+@@ -87,7 +99,7 @@ RCT_EXPORT_METHOD(launchImageLibrary:(NSDictionary *)options callback:(RCTRespons
+ 
+                 [self checkPhotosPermissions:^(BOOL granted) {
+                     if (!granted) {
+-                        self.callback(@[@{@"errorCode": errPermission}]);
++                        [self sendResponse:@[@{@"errorCode": errPermission}]];
+                         return;
+                     }
+                     [self showPickerViewController:picker];
+@@ -108,7 +120,7 @@ RCT_EXPORT_METHOD(launchImageLibrary:(NSDictionary *)options callback:(RCTRespons
+     if([self.options[@"includeExtra"] boolValue]) {
+         [self checkPhotosPermissions:^(BOOL granted) {
+             if (!granted) {
+-                self.callback(@[@{@"errorCode": errPermission}]);
++                [self sendResponse:@[@{@"errorCode": errPermission}]];
+                 return;
+             }
+             [self showPickerViewController:picker];
+@@ -465,7 +477,7 @@ RCT_EXPORT_METHOD(launchImageLibrary:(NSDictionary *)options callback:(RCTRespons
+             if (videoAsset == nil) {
+                 NSString *errorMessage = error.localizedFailureReason;
+                 if (errorMessage == nil) errorMessage = @"Video asset not found";
+-                self.callback(@[@{@"errorCode": errOthers, @"errorMessage": errorMessage}]);
++                [self sendResponse:@[@{@"errorCode": errOthers, @"errorMessage": errorMessage}]];
+                 return;
+             }
+             [assets addObject:videoAsset];
+@@ -473,7 +485,7 @@ RCT_EXPORT_METHOD(launchImageLibrary:(NSDictionary *)options callback:(RCTRespons
+ 
+         NSMutableDictionary *response = [[NSMutableDictionary alloc] init];
+         response[@"assets"] = assets;
+-        self.callback(@[response]);
++        [self sendResponse:@[response]];
+     };
+ 
+     dispatch_async(dispatch_get_main_queue(), ^{
+@@ -485,7 +497,7 @@ RCT_EXPORT_METHOD(launchImageLibrary:(NSDictionary *)options callback:(RCTRespons
+ {
+     dispatch_async(dispatch_get_main_queue(), ^{
+         [picker dismissViewControllerAnimated:YES completion:^{
+-            self.callback(@[@{@"didCancel": @YES}]);
++            [self sendResponse:@[@{@"didCancel": @YES}]];
+         }];
+     });
+ }
+@@ -496,7 +508,7 @@ RCT_EXPORT_METHOD(launchImageLibrary:(NSDictionary *)options callback:(RCTRespons
+ 
+ - (void)presentationControllerDidDismiss:(UIPresentationController *)presentationController
+ {
+-    self.callback(@[@{@"didCancel": @YES}]);
++    [self sendResponse:@[@{@"didCancel": @YES}]];
+ }
+ 
+ @end
+@@ -515,7 +527,7 @@ RCT_EXPORT_METHOD(launchImageLibrary:(NSDictionary *)options callback:(RCTRespons
+ 
+     if (results.count == 0) {
+         dispatch_async(dispatch_get_main_queue(), ^{
+-            self.callback(@[@{@"didCancel": @YES}]);
++            [self sendResponse:@[@{@"didCancel": @YES}]];
+         });
+         return;
+     }
+@@ -571,7 +583,7 @@ RCT_EXPORT_METHOD(launchImageLibrary:(NSDictionary *)options callback:(RCTRespons
+         //  mapVideoToAsset can fail and return nil, leaving asset NSNull.
+         for (NSDictionary *asset in assets) {
+             if ([asset isEqual:[NSNull null]]) {
+-                self.callback(@[@{@"errorCode": errOthers}]);
++                [self sendResponse:@[@{@"errorCode": errOthers}]];
+                 return;
+             }
+         }
+@@ -579,7 +591,7 @@ RCT_EXPORT_METHOD(launchImageLibrary:(NSDictionary *)options callback:(RCTRespons
+         NSMutableDictionary *response = [[NSMutableDictionary alloc] init];
+         [response setObject:assets forKey:@"assets"];
+ 
+-        self.callback(@[response]);
++        [self sendResponse:@[response]];
+     });
+ }
+ 

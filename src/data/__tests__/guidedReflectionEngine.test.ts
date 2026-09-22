@@ -1,6 +1,6 @@
 import { GUIDED_REFLECTION_PATHS } from '../guidedReflectionPaths';
 import { GUIDED_PROMPTS } from '../../components/journal/reflectionConstants';
-import { GUIDED_QUESTION_LIBRARY, GUIDED_QUESTION_TOPICS, questionsForTopic } from '../guidedReflectionQuestions';
+import { GUIDED_QUESTION_LIBRARY, GUIDED_QUESTION_TOPICS, guidedQuestionTopicForPrompt, questionsForTopic } from '../guidedReflectionQuestions';
 import { GUIDED_NOTE_TYPES, GUIDED_REFLECTION_FORMAT, emptyGuidedAnswer, parseGuidedReflection, serializeGuidedReflection, type GuidedReflectionPayload } from '../../types/guidedReflection';
 import fs from 'fs';
 import pathModule from 'path';
@@ -46,11 +46,13 @@ describe('Guided Reflection V1 authored engine', () => {
   });
 
   it('exposes only the approved generic Sermon-compatible note kinds', () => {
-    expect(GUIDED_NOTE_TYPES.map(item => item.kind)).toEqual(['text', 'scripture', 'quote', 'key', 'remember', 'question', 'response']);
+    expect(GUIDED_NOTE_TYPES.map(item => item.kind)).toEqual(['scripture', 'quote', 'key', 'remember', 'question', 'response']);
     expect(GUIDED_NOTE_TYPES.map(item => item.kind)).not.toEqual(expect.arrayContaining(['song', 'outline', 'character', 'language', 'history', 'book', 'prayer']));
     const sermonSource = fs.readFileSync(pathModule.resolve(__dirname, '../../screens/SermonNotesScreen.tsx'), 'utf8');
     expect(sermonSource).toContain("format: 'sermon_notes_v1'");
-    expect(GENERIC_JOURNAL_BLOCK_KINDS).toEqual(GUIDED_NOTE_TYPES.map(item => item.kind));
+    expect(GENERIC_JOURNAL_BLOCK_KINDS.filter(kind => kind !== 'text')).toEqual(
+      GUIDED_NOTE_TYPES.map(item => item.kind),
+    );
   });
 
   it('retains every legacy prompt and filters vertical questions by horizontal topic', () => {
@@ -63,5 +65,8 @@ describe('Guided Reflection V1 authored engine', () => {
       expect(questionsForTopic(topic).length).toBeGreaterThanOrEqual(5);
       expect(questionsForTopic(topic).every(item => item.topic === topic)).toBe(true);
     });
+    expect(guidedQuestionTopicForPrompt('Where have I noticed God at work in my life lately?')).toBe('With God');
+    expect(guidedQuestionTopicForPrompt('  what would meaningful rest look like for me this week? ')).toBe('Rest & Rhythms');
+    expect(guidedQuestionTopicForPrompt('A question that is not curated')).toBeNull();
   });
 });

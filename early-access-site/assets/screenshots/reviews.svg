@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="390" height="844" viewBox="0 0 390 844" role="img" aria-labelledby="title desc">
+  <title id="title">Look back at your week — screenshot placeholder</title>
+  <desc id="desc">Layout placeholder. Replace this asset with a real reviews screenshot before publishing.</desc>
+  <rect width="390" height="844" fill="#f6f1e7"/>
+  <text x="28" y="36" font-family="Arial,sans-serif" font-size="12" fill="#526653">9:41</text>
+  <rect x="155" y="18" width="80" height="20" rx="10" fill="#253027"/>
+  <text x="28" y="95" font-family="Arial,sans-serif" font-size="11" letter-spacing="2" fill="#526653">WEEKLY REVIEW</text>
+  <foreignObject x="28" y="117" width="334" height="100"><div xmlns="http://www.w3.org/1999/xhtml" style="font:32px/1.13 Georgia,serif;color:#253027">Look back at your week</div></foreignObject>
+  <text x="28" y="231" font-family="Arial,sans-serif" font-size="11" fill="#6b746c">Your entries · Remember · Reflect</text>
+  <rect x="24" y="258" width="342" height="119" rx="18" fill="#e8eee5" stroke="#d5dbd3"/>
+  <text x="44" y="290" font-family="Arial,sans-serif" font-size="16" font-weight="bold" fill="#253027">What you captured</text>
+  <text x="44" y="316" font-family="Arial,sans-serif" font-size="12" fill="#6b746c">Prayers, Scripture, and journal entries</text>
+  <rect x="44" y="337" width="210" height="5" rx="2" fill="#dcdfd8"/>
+  <rect x="24" y="393" width="342" height="119" rx="18" fill="#fffdf8" stroke="#d5dbd3"/>
+  <text x="44" y="425" font-family="Arial,sans-serif" font-size="16" font-weight="bold" fill="#253027">What you want to remember</text>
+  <text x="44" y="451" font-family="Arial,sans-serif" font-size="12" fill="#6b746c">Choose entries to revisit</text>
+  <rect x="44" y="472" width="183" height="5" rx="2" fill="#dcdfd8"/>
+  <rect x="24" y="528" width="342" height="119" rx="18" fill="#fffdf8" stroke="#d5dbd3"/>
+  <text x="44" y="560" font-family="Arial,sans-serif" font-size="16" font-weight="bold" fill="#253027">Look back and ahead</text>
+  <text x="44" y="586" font-family="Arial,sans-serif" font-size="12" fill="#6b746c">Reflect and set priorities for next week</text>
+  <rect x="44" y="607" width="156" height="5" rx="2" fill="#dcdfd8"/>
+  <rect x="24" y="707" width="342" height="78" rx="16" fill="none" stroke="#a9b6a7" stroke-dasharray="5 5"/>
+  <text x="195" y="737" text-anchor="middle" font-family="Arial,sans-serif" font-size="11" letter-spacing="1" fill="#526653">SCREENSHOT PLACEHOLDER</text>
+  <text x="195" y="762" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" fill="#6b746c">reviews.svg</text>
+  <rect x="140" y="821" width="110" height="4" rx="2" fill="#253027"/>
+</svg>

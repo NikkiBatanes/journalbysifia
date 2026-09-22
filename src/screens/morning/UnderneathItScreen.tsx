@@ -314,7 +314,6 @@ const UnderneathItScreen = () => {
               </ThemedText>
             ) : null}
           </View>
-          <View style={styles.feelingBalance} />
         </View>
       </StepFadeIn>
       <StepFadeIn delay={120}>
@@ -380,28 +379,22 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
   },
   feelingRow: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 48,
-    marginBottom: 36,
+    marginTop: 32,
+    marginBottom: 28,
   },
   feelingTextWrap: {
     alignItems: 'center',
   },
   feelingIconCircle: {
-    width: 84,
-    height: 84,
-    borderRadius: 42,
+    width: 72,
+    height: 72,
+    borderRadius: 36,
     backgroundColor: Colors.anchorBlueLight,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 18,
-  },
-  feelingBalance: {
-    width: 84,
-    height: 84,
-    marginLeft: 18,
+    marginBottom: 14,
   },
   feelingLabel: {
     fontSize: 11,

@@ -3,9 +3,16 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import {Colors} from '../../../theme/colors';
 
+export const JOURNAL_BLOCK_GAP = 12;
+
 export type JournalBlockKind =
   | 'text'
   | 'section'
+  | 'action'
+  | 'bullets'
+  | 'numbered'
+  | 'photo'
+  | 'voice'
   | 'scripture'
   | 'key'
   | 'quote'
@@ -57,6 +64,9 @@ export interface JournalBlock {
   origin?: string;
   tableRows?: string[][];
   tableEditing?: boolean;
+  uri?: string;
+  durationMillis?: number;
+  completed?: boolean;
 }
 
 export interface JournalBlockConfig {
@@ -67,10 +77,98 @@ export interface JournalBlockConfig {
   iconFamily?: 'Ionicons' | 'MaterialCommunityIcons';
 }
 
+export type JournalBlockContent = {
+  kind: string;
+  text?: string;
+  secondary?: string;
+  note?: string;
+  reference?: string;
+  scriptureText?: string;
+  scriptureReference?: string;
+  meaning?: string;
+  origin?: string;
+  points?: string[];
+  tableRows?: string[][];
+  uri?: string;
+};
+
+export const hasMeaningfulJournalBlock = (block: JournalBlockContent) =>
+  Boolean(
+    block.text?.trim() ||
+      block.secondary?.trim() ||
+      block.note?.trim() ||
+      block.reference?.trim() ||
+      block.scriptureText?.trim() ||
+      block.scriptureReference?.trim() ||
+      block.meaning?.trim() ||
+      block.origin?.trim() ||
+      block.points?.some(point => point.trim()) ||
+      block.tableRows?.some(row => row.some(cell => cell.trim())) ||
+      block.uri,
+  );
+
+export const prepareJournalBlocksForSave = <T extends JournalBlockContent>(
+  blocks: T[],
+): T[] =>
+  blocks
+    .map(block => {
+      if (block.kind !== 'bullets' && block.kind !== 'numbered') {
+        return block;
+      }
+      return {
+        ...block,
+        points: (block.points || []).filter(point => point.trim()),
+      } as T;
+    })
+    .filter(block => hasMeaningfulJournalBlock(block));
+
+export const formatJournalAttribution = (value = '') => {
+  if (!value) {
+    return '';
+  }
+  return value.startsWith('—') ? value : `— ${value}`;
+};
+
 export const JOURNAL_BLOCKS: Record<
-  Exclude<JournalBlockKind, 'text' | 'section'>,
+  Exclude<JournalBlockKind, 'text'>,
   JournalBlockConfig
 > = {
+  section: {
+    label: 'SECTION',
+    action: 'Section',
+    placeholder: 'Section title',
+    icon: 'text-outline',
+  },
+  action: {
+    label: 'ACTION',
+    action: 'Action',
+    placeholder: 'Add an action item…',
+    icon: 'checkbox-outline',
+  },
+  bullets: {
+    label: 'Bullets',
+    action: 'Bullets',
+    placeholder: 'List item',
+    icon: 'list-outline',
+  },
+  numbered: {
+    label: 'Numbered',
+    action: 'Numbered',
+    placeholder: 'List item',
+    icon: 'list-circle-outline',
+  },
+  photo: {
+    label: 'PHOTO',
+    action: 'Photo',
+    placeholder: 'Add a caption…',
+    icon: 'image-outline',
+  },
+  voice: {
+    label: 'VOICE NOTE',
+    action: 'Voice Note',
+    placeholder: 'Add a note…',
+    icon: 'mic-outline',
+  },
   scripture: {
     label: 'SCRIPTURE',
     action: '+ Scripture',
@@ -177,6 +275,12 @@ export const JOURNAL_BLOCKS: Record<
 };
 
 export const SERMON_BLOCK_KINDS = [
+  'section',
+  'action',
+  'bullets',
+  'numbered',
+  'photo',
+  'voice',
   'character',
   'history',
   'key',
@@ -236,6 +340,8 @@ export const createJournalBlock = (
         tableEditing: true,
       }
     : {}),
+  ...(kind === 'action' ? {completed: false} : {}),
+  ...(kind === 'bullets' || kind === 'numbered' ? {points: ['']} : {}),
   ...(kind === 'reflection_question' ? {note: ''} : {}),
 });
 

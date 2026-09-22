@@ -1,6 +1,6 @@
 import { toLocalDateString } from '../utils/date';
 import { type ReviewType, type LocalReviewEntry } from '../storage/reviewStorage';
-import { getOrCreateLocalReviewForPeriod } from '../storage/reviewStorage';
+import { getLocalReviewForPeriod } from '../storage/reviewStorage';
 import { getReviewSettings, type ReviewSettings } from '../storage/reviewSettingsStorage';
 import {
   getWeeklyPeriodFor,
@@ -10,17 +10,28 @@ import {
   getBeginYearPeriodFor,
   type ReviewPeriod,
 } from './reviewPeriodService';
+import { getValidJournalHistoryStart } from './reviewHistoryService';
+
+export type DashboardReviewState = 'ready' | 'in_progress';
 
 export interface DashboardReview {
   type: ReviewType;
   period: ReviewPeriod;
-  review: LocalReviewEntry;
+  review: LocalReviewEntry | null;
+  state: DashboardReviewState;
 }
 
 export interface ReviewEligibilityResult {
   main: DashboardReview | null;
   alsoReady: DashboardReview[];
   allActive: DashboardReview[];
+}
+
+export interface ReviewEligibilityOptions {
+  /** DEV/test seam. Production callers omit this and use persisted settings. */
+  settingsOverride?: ReviewSettings;
+  /** DEV/test seam. Production callers omit this and use canonical history. */
+  historyStartOverride?: string | null;
 }
 
 const PRIORITY: Record<ReviewType, number> = {
@@ -44,9 +55,17 @@ const isInActiveWindow = (period: ReviewPeriod, anchor: string): boolean => {
 export const getReviewEligibility = async (
   anchor: string | Date = toLocalDateString(new Date()),
   weekStart?: string,
+  options: ReviewEligibilityOptions = {},
 ): Promise<ReviewEligibilityResult> => {
   const anchorYMD = typeof anchor === 'string' ? anchor : toLocalDateString(anchor);
-  const settings = await getReviewSettings(weekStart);
+  const settings = options.settingsOverride ?? await getReviewSettings(weekStart);
+  const historyStart = options.historyStartOverride === undefined
+    ? await getValidJournalHistoryStart()
+    : options.historyStartOverride;
+
+  if (!historyStart) {
+    return {main: null, alsoReady: [], allActive: []};
+  }
 
   const activePeriods: ReviewPeriod[] = [];
 
@@ -80,12 +99,15 @@ export const getReviewEligibility = async (
 
   const reviews: DashboardReview[] = [];
   for (const period of activePeriods) {
-    const review = await getOrCreateLocalReviewForPeriod({
+    if (period.periodStart < historyStart) {continue;}
+    const review = await getLocalReviewForPeriod(period.type, period.periodStart, period.periodEnd);
+    if (review?.status === 'completed') {continue;}
+    reviews.push({
       type: period.type,
-      periodStart: period.periodStart,
-      periodEnd: period.periodEnd,
+      period,
+      review,
+      state: review ? 'in_progress' : 'ready',
     });
-    reviews.push({type: period.type, period, review});
   }
 
   reviews.sort((a, b) => PRIORITY[b.type] - PRIORITY[a.type]);

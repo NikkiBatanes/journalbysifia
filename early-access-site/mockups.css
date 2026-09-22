@@ -1,0 +1,33 @@
+/* Reusable screenshot frames. Change the img src; the frame stays in place. */
+[id] { scroll-margin-top: 90px; }
+.hero-grid > *, .split > *, .review-showcase > * { min-width: 0; }
+.product-shot { width: min(100%, 310px); margin: 0 auto; }
+.device-frame { padding: 8px; border: 1px solid #526053; border-radius: 38px; background: #253027; box-shadow: 0 22px 50px rgba(37,48,39,.17); }
+.device-frame img { width: 100%; height: auto; border-radius: 30px; background: var(--cream); }
+.product-shot figcaption { margin-top: 17px; font-size: 12px; text-align: center; color: var(--ink); }
+.product-shot figcaption span { display: block; margin-top: 3px; font-size: 10px; color: var(--muted); }
+.hero-shot { width: min(100%, 330px); }
+.daily-card .product-shot { width: min(100%, 250px); margin-top: 28px; }
+.daily-card { display: flex; flex-direction: column; }
+.daily-card .flow { flex: 1; }
+.review-showcase { display: grid; grid-template-columns: 1.1fr .9fr; align-items: center; gap: 70px; margin-bottom: 48px; }
+.entry-types { display: grid; gap: 20px; }
+.entry-types article { padding-bottom: 20px; border-bottom: 1px solid var(--line); }
+.entry-types article:last-child { padding-bottom: 0; border-bottom: 0; }
+.entry-types h3 { font: 600 20px/1.4 var(--serif); }
+.entry-types p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.7; }
+@media (max-width: 900px) {
+  .review-showcase { grid-template-columns: 1fr; gap: 35px; }
+  .hero h1 { max-width: 750px; margin-inline: auto; }
+  .nav-links { gap: 12px; }
+}
+@media (max-width: 640px) {
+  .hero h1 { font-size: clamp(38px, 10vw, 49px); }
+  .hero .eyebrow { font-size: 9px; }
+  .hero-shot { width: min(100%, 290px); }
+  .daily-card { padding: 24px; }
+  .product-shot figcaption { line-height: 1.5; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+}
