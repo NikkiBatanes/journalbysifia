@@ -47,7 +47,7 @@ describe('Today calendar animation', () => {
     expect(source).toContain('windowWidth / windowHeight > 0.58');
     expect(source).toContain('hasInnerPortraitSizeClasses || hasInnerPortraitProportions');
     expect(source).toContain('!Platform.isPad');
-    expect(source).toContain('const INNER_PORTRAIT_TOP_SPACING = 16');
+    expect(source).toContain('const INNER_PORTRAIT_TOP_SPACING = 20');
     expect(source).toContain('const INNER_PORTRAIT_STATUS_CLEARANCE = 128');
     expect(source).toContain('const INNER_PORTRAIT_CALENDAR_CONTROL_WIDTH = 52');
     expect(source).toContain('const INNER_PORTRAIT_CALENDAR_GAP = 12');
