@@ -1,30 +1,54 @@
-import { eachDayOfInterval } from 'date-fns';
-import { getLocalReflections } from '../storage/reflectionStorage';
+import {eachDayOfInterval} from 'date-fns';
+import {getLocalReflections} from '../storage/reflectionStorage';
 import {
   getLocalJournalEntries,
   getLocalJournalSingleton,
   type LocalJournalContentType,
 } from '../storage/journalStorage';
-import { safeJsonParse } from '../utils/safeJsonParse';
-import { type ReviewMemorableItem, type ReviewType } from '../storage/reviewStorage';
-import { resolveSessionNoteType, sessionNoteTypeLabel } from '../types/sessionNotes';
-import { heartJournalClassificationLabel } from '../types/heartJournal';
+import {safeJsonParse} from '../utils/safeJsonParse';
+import {
+  type ReviewMemorableItem,
+  type ReviewType,
+} from '../storage/reviewStorage';
+import {
+  resolveSessionNoteType,
+  sessionNoteTypeLabel,
+} from '../types/sessionNotes';
+import {heartJournalClassificationLabel} from '../types/heartJournal';
 import {
   guidedEntryKind,
   parseGuidedReflection,
   type GuidedReflectionNote,
 } from '../types/guidedReflection';
 import {guidedQuestionTopicForPrompt} from '../data/guidedReflectionQuestions';
-import { PrayerApi } from './api/prayerApi';
-import { derivePrayerReview, type PrayerReviewEventType } from './prayerReviewService';
-import { getScripturePassage } from './scriptureReaderService';
-import {resolveSavedProverbNumber, resolveSavedPsalmNumber} from './dailyScriptureSequence';
-import {getCarryForwardReferences, rememberedReferenceMatchesMoment} from './reviewMemoryService';
+import {PrayerApi} from './api/prayerApi';
+import {
+  derivePrayerReview,
+  type PrayerReviewEventType,
+} from './prayerReviewService';
+import {getScripturePassage} from './scriptureReaderService';
+import {
+  resolveSavedProverbNumber,
+  resolveSavedPsalmNumber,
+} from './dailyScriptureSequence';
+import {
+  getCarryForwardReferences,
+  rememberedReferenceMatchesMoment,
+} from './reviewMemoryService';
 import {getReviewPrayerTypeLabel} from './reviewPrayerPresentationService';
 
 const REFLECTION_TYPES = [
-  'sermon', 'scripture', 'free', 'freeform', 'free-form', 'guided',
-  'thought', 'thoughts', 'reflection', 'devotional', 'playbook',
+  'sermon',
+  'scripture',
+  'free',
+  'freeform',
+  'free-form',
+  'guided',
+  'thought',
+  'thoughts',
+  'reflection',
+  'devotional',
+  'playbook',
 ] as const;
 
 const JOURNAL_CONTENT_TYPES: LocalJournalContentType[] = [
@@ -138,50 +162,78 @@ const toYMD = (date: Date): string => {
 
 const firstLine = (text: string, max = 60): string => {
   const line = text.split(/\n+/)[0].trim();
-  if (line.length <= max) {return line;}
+  if (line.length <= max) {
+    return line;
+  }
   return `${line.slice(0, max).trim()}…`;
 };
 
 const reflectionTextFromStructuredValue = (value: unknown): string => {
-  if (typeof value === 'string') {return value.trim();}
-  if (Array.isArray(value)) {
-    return value.map(reflectionTextFromStructuredValue).filter(Boolean).join(' · ');
+  if (typeof value === 'string') {
+    return value.trim();
   }
-  if (!value || typeof value !== 'object') {return '';}
+  if (Array.isArray(value)) {
+    return value
+      .map(reflectionTextFromStructuredValue)
+      .filter(Boolean)
+      .join(' · ');
+  }
+  if (!value || typeof value !== 'object') {
+    return '';
+  }
   const record = value as Record<string, unknown>;
-  if (typeof record.text === 'string') {return record.text.trim();}
+  if (typeof record.text === 'string') {
+    return record.text.trim();
+  }
   if (Array.isArray(record.blocks)) {
     const blocks = reflectionTextFromStructuredValue(record.blocks);
-    if (blocks) {return blocks;}
+    if (blocks) {
+      return blocks;
+    }
   }
-  return Object.values(record).map(reflectionTextFromStructuredValue).filter(Boolean).join(' · ');
+  return Object.values(record)
+    .map(reflectionTextFromStructuredValue)
+    .filter(Boolean)
+    .join(' · ');
 };
 
 /** Reflection content is a mixed-format legacy boundary: plain text is valid. */
 export const getReflectionReviewText = (content: unknown): string => {
-  if (content === null || content === undefined) {return '';}
-  if (typeof content !== 'string') {return reflectionTextFromStructuredValue(content);}
+  if (content === null || content === undefined) {
+    return '';
+  }
+  if (typeof content !== 'string') {
+    return reflectionTextFromStructuredValue(content);
+  }
   const trimmed = content.trim();
-  if (!trimmed) {return '';}
-  const looksLikeJson = (trimmed.startsWith('{') && trimmed.endsWith('}'))
-    || (trimmed.startsWith('[') && trimmed.endsWith(']'));
-  if (!looksLikeJson) {return content;}
+  if (!trimmed) {
+    return '';
+  }
+  const looksLikeJson =
+    (trimmed.startsWith('{') && trimmed.endsWith('}')) ||
+    (trimmed.startsWith('[') && trimmed.endsWith(']'));
+  if (!looksLikeJson) {
+    return content;
+  }
   const invalidJson = {};
-  const parsed = safeJsonParse<unknown>(trimmed, { fallback: invalidJson, context: 'Review reflection content' });
-  return parsed === invalidJson ? content : reflectionTextFromStructuredValue(parsed);
+  const parsed = safeJsonParse<unknown>(trimmed, {
+    fallback: invalidJson,
+    context: 'Review reflection content',
+  });
+  return parsed === invalidJson
+    ? content
+    : reflectionTextFromStructuredValue(parsed);
 };
 
-export const classifyReflection = (
-  entry: {
-    id: string;
-    title?: string;
-    type: string;
-    source?: string;
-    content: unknown;
-    selected_date: string;
-    metadata?: Record<string, any>;
-  },
-): ReviewCaptureItem | null => {
+export const classifyReflection = (entry: {
+  id: string;
+  title?: string;
+  type: string;
+  source?: string;
+  content: unknown;
+  selected_date: string;
+  metadata?: Record<string, any>;
+}): ReviewCaptureItem | null => {
   const text = getReflectionReviewText(entry.content);
 
   let title = entry.title?.trim() || firstLine(text, 50) || 'Untitled';
@@ -197,99 +249,196 @@ export const classifyReflection = (
   let wisdomResponse = '';
   const storedJournalBlocks = entry.metadata?.journalBlocks;
   const journalBlocks = Array.isArray(storedJournalBlocks)
-    ? storedJournalBlocks as GuidedReflectionNote[]
+    ? (storedJournalBlocks as GuidedReflectionNote[])
     : undefined;
 
   if (entry.type === 'sermon') {
     kind = 'sermon';
     subtitle = sessionNoteTypeLabel(resolveSessionNoteType(entry));
     presentation = 'session_note';
-    const sessionContent = safeJsonParse<{blocks?: Array<{text?: string; note?: string; secondary?: string; points?: string[]}>}>(
-      typeof entry.content === 'string' ? entry.content : '',
-      {fallback: {}},
-    ) ?? {};
+    const sessionContent =
+      safeJsonParse<{
+        blocks?: Array<{
+          text?: string;
+          note?: string;
+          secondary?: string;
+          points?: string[];
+        }>;
+      }>(typeof entry.content === 'string' ? entry.content : '', {
+        fallback: {},
+      }) ?? {};
     const blocks = sessionContent.blocks || [];
-    displayText = blocks.flatMap(block => [block.text, block.note, block.secondary, ...(block.points || [])]).find(value => value?.trim())?.trim() || text;
-    const sessionDetails = entry.metadata?.sessionNoteDetails?.[resolveSessionNoteType(entry)] || {};
-    detail = [entry.metadata?.series || sessionDetails.event, entry.metadata?.speaker || sessionDetails.person]
-      .filter(value => typeof value === 'string' && value.trim()).join(' · ');
+    displayText =
+      blocks
+        .flatMap(block => [
+          block.text,
+          block.note,
+          block.secondary,
+          ...(block.points || []),
+        ])
+        .find(value => value?.trim())
+        ?.trim() || text;
+    const sessionDetails =
+      entry.metadata?.sessionNoteDetails?.[resolveSessionNoteType(entry)] || {};
+    detail = [
+      entry.metadata?.series || sessionDetails.event,
+      entry.metadata?.speaker || sessionDetails.person,
+    ]
+      .filter(value => typeof value === 'string' && value.trim())
+      .join(' · ');
   } else if (entry.type === 'scripture') {
     if (entry.source === 'morning_psalm') {
       kind = 'morning';
       subtitle = 'Morning rhythm';
       presentation = 'morning_psalm';
-      title = `Psalm ${resolveSavedPsalmNumber(entry, Number(entry.metadata?.psalmNumber) || 1)}`;
-      passageRead = typeof entry.metadata?.psalmRead === 'boolean' ? entry.metadata.psalmRead : undefined;
+      title = `Psalm ${resolveSavedPsalmNumber(
+        entry,
+        Number(entry.metadata?.psalmNumber) || 1,
+      )}`;
+      passageRead =
+        typeof entry.metadata?.psalmRead === 'boolean'
+          ? entry.metadata.psalmRead
+          : undefined;
     } else if (entry.source === 'evening_proverbs') {
       kind = 'evening';
       subtitle = 'Evening rhythm';
       presentation = 'evening_proverb';
       const metadata = entry.metadata ?? {};
-      title = `Proverbs ${resolveSavedProverbNumber(entry, Number(metadata.proverbNumber) || 1)}`;
-      passageRead = typeof metadata.proverbRead === 'boolean' ? metadata.proverbRead : undefined;
-      const applications = metadata.wisdomApplications && typeof metadata.wisdomApplications === 'object'
-        ? metadata.wisdomApplications as Record<string, unknown>
-        : {};
-      const selectedWisdom = Array.isArray(metadata.selectedWisdom) ? metadata.selectedWisdom : [];
-      wisdomItems = selectedWisdom.map((wisdom: unknown) => {
-        const value = wisdom && typeof wisdom === 'object' ? wisdom as Record<string, unknown> : {};
-        const id = typeof value.id === 'string' ? value.id : '';
-        const response = applications[id];
-        return {
-          label: typeof value.label === 'string' ? value.label.trim() : '',
-          verses: typeof value.verses === 'string' ? value.verses.trim() || undefined : undefined,
-          response: typeof response === 'string' ? response.trim() || undefined : undefined,
-        };
-      }).filter((wisdom: {label: string}) => wisdom.label);
-      const customWisdom = typeof metadata.customWisdom === 'string' ? metadata.customWisdom.trim() : '';
-      if (customWisdom) {wisdomItems.push({label: customWisdom});}
-      wisdomResponse = typeof metadata.wisdomApplication === 'string' ? metadata.wisdomApplication.trim() : '';
+      title = `Proverbs ${resolveSavedProverbNumber(
+        entry,
+        Number(metadata.proverbNumber) || 1,
+      )}`;
+      passageRead =
+        typeof metadata.proverbRead === 'boolean'
+          ? metadata.proverbRead
+          : undefined;
+      const applications =
+        metadata.wisdomApplications &&
+        typeof metadata.wisdomApplications === 'object'
+          ? (metadata.wisdomApplications as Record<string, unknown>)
+          : {};
+      const selectedWisdom = Array.isArray(metadata.selectedWisdom)
+        ? metadata.selectedWisdom
+        : [];
+      wisdomItems = selectedWisdom
+        .map((wisdom: unknown) => {
+          const value =
+            wisdom && typeof wisdom === 'object'
+              ? (wisdom as Record<string, unknown>)
+              : {};
+          const id = typeof value.id === 'string' ? value.id : '';
+          const response = applications[id];
+          return {
+            label: typeof value.label === 'string' ? value.label.trim() : '',
+            verses:
+              typeof value.verses === 'string'
+                ? value.verses.trim() || undefined
+                : undefined,
+            response:
+              typeof response === 'string'
+                ? response.trim() || undefined
+                : undefined,
+          };
+        })
+        .filter((wisdom: {label: string}) => wisdom.label);
+      const customWisdom =
+        typeof metadata.customWisdom === 'string'
+          ? metadata.customWisdom.trim()
+          : '';
+      if (customWisdom) {
+        wisdomItems.push({label: customWisdom});
+      }
+      wisdomResponse =
+        typeof metadata.wisdomApplication === 'string'
+          ? metadata.wisdomApplication.trim()
+          : '';
     } else if (entry.source === 'bible_study') {
       kind = 'scripture';
       subtitle = 'Bible Study';
       presentation = 'bible_study';
-      const study = safeJsonParse<any>(typeof entry.content === 'string' ? entry.content : '', {fallback: null});
+      const study = safeJsonParse<any>(
+        typeof entry.content === 'string' ? entry.content : '',
+        {fallback: null},
+      );
       if (study?.format === 'bible_study_v1') {
-        displayText = [study.observation?.text, study.understanding?.text, study.response?.text, study.highlights?.[0]?.text]
-          .find(value => typeof value === 'string' && value.trim())?.trim() || '';
+        displayText =
+          [
+            study.observation?.text,
+            study.understanding?.text,
+            study.response?.text,
+            study.highlights?.[0]?.text,
+          ]
+            .find(value => typeof value === 'string' && value.trim())
+            ?.trim() || '';
         detail = entry.metadata?.passage?.translation || 'NASB';
       }
     } else {
       kind = 'scripture';
       subtitle = 'Scripture reflection';
       presentation = 'scripture_reflection';
+      detail =
+        typeof entry.metadata?.version === 'string' &&
+        entry.metadata.version.trim()
+          ? entry.metadata.version.trim()
+          : 'NASB';
     }
-  } else if (entry.type === 'playbook' || entry.source === 'playbook' || entry.source === 'playbook_reflection') {
+  } else if (
+    entry.type === 'playbook' ||
+    entry.source === 'playbook' ||
+    entry.source === 'playbook_reflection'
+  ) {
     kind = 'journal';
     subtitle = 'Faithful Action';
     presentation = 'playbook_reflection';
-    detail = typeof entry.metadata?.playbookTitle === 'string' ? entry.metadata.playbookTitle.trim() : '';
+    detail =
+      typeof entry.metadata?.playbookTitle === 'string'
+        ? entry.metadata.playbookTitle.trim()
+        : '';
   } else if (entry.type === 'devotional' || entry.source === 'devotional') {
     kind = 'reflection';
     subtitle = 'Devotional reflection';
     presentation = 'devotional_reflection';
     detail = [entry.metadata?.devotional_title, entry.metadata?.day_title]
-      .filter(value => typeof value === 'string' && value.trim()).join(' · ');
-  } else if (entry.type === 'guided' || entry.source === 'guided' || entry.source === 'guided_prompt') {
+      .filter(value => typeof value === 'string' && value.trim())
+      .join(' · ');
+  } else if (
+    entry.type === 'guided' ||
+    entry.source === 'guided' ||
+    entry.source === 'guided_prompt'
+  ) {
     kind = 'reflection';
     presentation = 'guided_reflection';
-    subtitle = guidedEntryKind(entry) === 'prompt' ? 'Guided prompt' : 'Guided reflection';
+    subtitle =
+      guidedEntryKind(entry) === 'prompt'
+        ? 'Guided prompt'
+        : 'Guided reflection';
     const journey = parseGuidedReflection(entry.content);
     if (journey) {
       detail = journey.pathTitle;
-      displayText = journey.answers.flatMap(answer => [
-        ...(answer.selected || []), answer.text || '', answer.optionalText || '',
-        ...Object.values(answer.fields || {}), ...answer.notes.map(note => note.text),
-      ]).find(value => value.trim()) || '';
+      displayText =
+        journey.answers
+          .flatMap(answer => [
+            ...(answer.selected || []),
+            answer.text || '',
+            answer.optionalText || '',
+            ...Object.values(answer.fields || {}),
+            ...answer.notes.map(note => note.text),
+          ])
+          .find(value => value.trim()) || '';
     } else {
-      lifeArea = typeof entry.metadata?.questionTopic === 'string'
-        ? entry.metadata.questionTopic.trim()
-        : guidedQuestionTopicForPrompt(entry.metadata?.prompt || entry.title) || '';
+      lifeArea =
+        typeof entry.metadata?.questionTopic === 'string'
+          ? entry.metadata.questionTopic.trim()
+          : guidedQuestionTopicForPrompt(
+              entry.metadata?.prompt || entry.title,
+            ) || '';
     }
   } else {
     kind = 'reflection';
     presentation = 'heart_journal';
-    subtitle = heartJournalClassificationLabel(entry.metadata?.journalClassification) || 'Thoughts';
+    subtitle =
+      heartJournalClassificationLabel(entry.metadata?.journalClassification) ||
+      'Thoughts';
   }
 
   return {
@@ -317,9 +466,10 @@ const classifyJournal = async (entry: {
   completed?: boolean;
   priority?: 'high' | 'medium' | 'low';
 }): Promise<ReviewCaptureItem | null> => {
-  const parsed = safeJsonParse<Record<string, unknown>>(entry.content, {
-    fallback: {},
-  }) ?? {};
+  const parsed =
+    safeJsonParse<Record<string, unknown>>(entry.content, {
+      fallback: {},
+    }) ?? {};
 
   let kind: ReviewCaptureKind = 'journal';
   let title = '';
@@ -336,7 +486,8 @@ const classifyJournal = async (entry: {
   let text = '';
   let completedPriorityCount: number | undefined;
 
-  const stringValue = (value: unknown): string => typeof value === 'string' ? value.trim() : '';
+  const stringValue = (value: unknown): string =>
+    typeof value === 'string' ? value.trim() : '';
 
   switch (entry.content_type) {
     case 'gratitude':
@@ -344,8 +495,16 @@ const classifyJournal = async (entry: {
       subtitle = 'Gratitude';
       presentation = 'gratitude_list';
       lines = Array.isArray(parsed?.items)
-        ? parsed.items.map(item => typeof item === 'string' ? item : stringValue((item as any)?.text)).filter(Boolean)
-        : [stringValue(parsed?.gratitude) || stringValue(parsed?.text)].filter(Boolean);
+        ? parsed.items
+            .map(item =>
+              typeof item === 'string'
+                ? item
+                : stringValue((item as any)?.text),
+            )
+            .filter(Boolean)
+        : [stringValue(parsed?.gratitude) || stringValue(parsed?.text)].filter(
+            Boolean,
+          );
       title = firstLine(lines[0] || '', 50);
       text = lines.join(' · ');
       break;
@@ -353,7 +512,11 @@ const classifyJournal = async (entry: {
       kind = 'win';
       subtitle = "Today's win";
       presentation = 'today_win';
-      text = stringValue(parsed?.quietWin) || stringValue(parsed?.win) || stringValue(parsed?.text) || stringValue(parsed?.winTypeName);
+      text =
+        stringValue(parsed?.quietWin) ||
+        stringValue(parsed?.win) ||
+        stringValue(parsed?.text) ||
+        stringValue(parsed?.winTypeName);
       title = firstLine(text, 50);
       detail = stringValue(parsed?.winTypeName) || stringValue(parsed?.winType);
       break;
@@ -366,25 +529,41 @@ const classifyJournal = async (entry: {
       title = title || firstLine(text, 50);
       focusIcon = stringValue(parsed?.focusIcon);
       const savedFocusIconType = stringValue(parsed?.focusIconType);
-      focusIconType = savedFocusIconType === 'material' || savedFocusIconType === 'fontawesome'
-        ? savedFocusIconType
-        : 'ionicons';
+      focusIconType =
+        savedFocusIconType === 'material' ||
+        savedFocusIconType === 'fontawesome'
+          ? savedFocusIconType
+          : 'ionicons';
       focusPriorities = Array.isArray(parsed?.priorities)
-        ? parsed.priorities.map(priority => {
-          const value = priority && typeof priority === 'object' ? priority as Record<string, unknown> : {};
-          return {text: stringValue(value.text), completed: Boolean(value.completed)};
-        }).filter(priority => priority.text)
+        ? parsed.priorities
+            .map(priority => {
+              const value =
+                priority && typeof priority === 'object'
+                  ? (priority as Record<string, unknown>)
+                  : {};
+              return {
+                text: stringValue(value.text),
+                completed: Boolean(value.completed),
+              };
+            })
+            .filter(priority => priority.text)
         : [];
-      completedPriorityCount = focusPriorities.filter(priority => priority.completed).length;
+      completedPriorityCount = focusPriorities.filter(
+        priority => priority.completed,
+      ).length;
       break;
     case 'looking_forward': {
       kind = 'journal';
       subtitle = 'Looking forward';
       presentation = 'looking_forward';
-      const lookingForwardEntry = parsed?.entry && typeof parsed.entry === 'object'
-        ? parsed.entry as Record<string, unknown>
-        : {};
-      text = stringValue(parsed?.looking_forward) || stringValue(parsed?.text) || stringValue(lookingForwardEntry.text);
+      const lookingForwardEntry =
+        parsed?.entry && typeof parsed.entry === 'object'
+          ? (parsed.entry as Record<string, unknown>)
+          : {};
+      text =
+        stringValue(parsed?.looking_forward) ||
+        stringValue(parsed?.text) ||
+        stringValue(lookingForwardEntry.text);
       title = firstLine(text, 50);
       detail = stringValue(parsed?.emotionName);
       feelingIcon = stringValue(parsed?.emotionIcon);
@@ -399,13 +578,20 @@ const classifyJournal = async (entry: {
       text = stringValue(parsed?.underneathIt) || title;
       feelingIcon = stringValue(parsed?.feelingIcon);
       const iconType = stringValue(parsed?.feelingIconType);
-      feelingIconType = iconType === 'material' || iconType === 'fontawesome' ? iconType : 'ionicons';
-      const scripture = parsed?.scripture && typeof parsed.scripture === 'object'
-        ? parsed.scripture as Record<string, unknown>
-        : {};
+      feelingIconType =
+        iconType === 'material' || iconType === 'fontawesome'
+          ? iconType
+          : 'ionicons';
+      const scripture =
+        parsed?.scripture && typeof parsed.scripture === 'object'
+          ? (parsed.scripture as Record<string, unknown>)
+          : {};
       detail = stringValue(scripture.reference);
       if (detail) {
-        const passage = await getScripturePassage(detail, stringValue(scripture.translation) || 'NASB').catch(() => null);
+        const passage = await getScripturePassage(
+          detail,
+          stringValue(scripture.translation) || 'NASB',
+        ).catch(() => null);
         scriptureText = passage?.verses?.length
           ? passage.verses.map(verse => verse.lines.join('\n')).join('\n')
           : passage?.text?.trim() || '';
@@ -422,7 +608,9 @@ const classifyJournal = async (entry: {
       break;
   }
 
-  if (!title) {return null;}
+  if (!title) {
+    return null;
+  }
 
   return {
     id: entry.id,
@@ -439,12 +627,14 @@ const classifyJournal = async (entry: {
     focusIcon: focusIcon || undefined,
     focusIconType: focusIcon ? focusIconType : undefined,
     focusPriorities,
-    completed: entry.content_type === 'todo'
-      ? Boolean(parsed?.completed ?? entry.completed)
-      : undefined,
-    priority: entry.content_type === 'todo'
-      ? Boolean(parsed?.priority || entry.priority === 'high')
-      : undefined,
+    completed:
+      entry.content_type === 'todo'
+        ? Boolean(parsed?.completed ?? entry.completed)
+        : undefined,
+    priority:
+      entry.content_type === 'todo'
+        ? Boolean(parsed?.priority || entry.priority === 'high')
+        : undefined,
     completedPriorityCount,
     selectedDate: entry.selected_date,
   };
@@ -457,7 +647,7 @@ export const getReviewCapture = async (
 ): Promise<ReviewCapture> => {
   const start = parseYMD(periodStart);
   const end = parseYMD(periodEnd);
-  const days = eachDayOfInterval({ start, end });
+  const days = eachDayOfInterval({start, end});
 
   const items: ReviewCaptureItem[] = [];
   const summary: Record<ReviewCaptureKind, number> = {
@@ -473,7 +663,11 @@ export const getReviewCapture = async (
   };
   let totalPrayers = 0;
   let answeredPrayers = 0;
-  const carryForwardReferences = await getCarryForwardReferences(reviewType, periodStart, periodEnd);
+  const carryForwardReferences = await getCarryForwardReferences(
+    reviewType,
+    periodStart,
+    periodEnd,
+  );
 
   for (const day of days) {
     const date = toYMD(day);
@@ -482,7 +676,9 @@ export const getReviewCapture = async (
       const entries = await getLocalReflections(type, date);
       for (const e of entries) {
         const item = classifyReflection(e);
-        if (!item) {continue;}
+        if (!item) {
+          continue;
+        }
         items.push(item);
         summary[item.kind] += 1;
       }
@@ -499,7 +695,9 @@ export const getReviewCapture = async (
       }
       const list = await getLocalJournalEntries(contentType, date);
       for (const e of list) {
-        if (e.id === singleton?.id) {continue;}
+        if (e.id === singleton?.id) {
+          continue;
+        }
         const item = await classifyJournal(e);
         if (item) {
           items.push(item);
@@ -507,41 +705,53 @@ export const getReviewCapture = async (
         }
       }
     }
-
   }
 
   const prayers = await PrayerApi.getAllPrayers('local');
   // A prayer written by this review belongs in Prayer and Moments, but should not
   // be recaptured inside the same review when the user later reopens it.
-  const reviewPrayers = prayers.filter(prayer => !(
-    prayer.metadata?.source === 'weekly_review'
-    && prayer.metadata?.periodStart === periodStart
-    && prayer.metadata?.periodEnd === periodEnd
-  ));
-  const prayerReview = derivePrayerReview(reviewPrayers, periodStart, periodEnd, reviewType);
+  const reviewPrayers = prayers.filter(
+    prayer =>
+      !(
+        prayer.metadata?.source === 'weekly_review' &&
+        prayer.metadata?.periodStart === periodStart &&
+        prayer.metadata?.periodEnd === periodEnd
+      ),
+  );
+  const prayerReview = derivePrayerReview(
+    reviewPrayers,
+    periodStart,
+    periodEnd,
+    reviewType,
+  );
   const prayerById = new Map(reviewPrayers.map(prayer => [prayer.id, prayer]));
   for (const event of prayerReview.items) {
     const sourcePrayer = prayerById.get(event.prayerId);
-    const personPrayer = prayerById.get(event.requestId || event.prayerId)
-      || sourcePrayer;
+    const personPrayer =
+      prayerById.get(event.requestId || event.prayerId) || sourcePrayer;
     const metadata = sourcePrayer?.metadata || {};
-    const prayerSessionId = typeof metadata.prayer_session_id === 'string'
-      ? metadata.prayer_session_id
-      : undefined;
-    const hasPrayerNeeds = metadata.prayer_need === true
-      || (Array.isArray(metadata.prayer_needs) && metadata.prayer_needs.length > 0);
-    const prayerActivityType: ReviewPrayerActivityType = event.eventType === 'request_prayed_for'
-      || sourcePrayer?.is_prayer_request
-      ? 'request'
-      : event.needId || hasPrayerNeeds
+    const prayerSessionId =
+      typeof metadata.prayer_session_id === 'string'
+        ? metadata.prayer_session_id
+        : undefined;
+    const hasPrayerNeeds =
+      metadata.prayer_need === true ||
+      (Array.isArray(metadata.prayer_needs) &&
+        metadata.prayer_needs.length > 0);
+    const prayerActivityType: ReviewPrayerActivityType =
+      event.eventType === 'request_prayed_for' ||
+      sourcePrayer?.is_prayer_request
+        ? 'request'
+        : event.needId || hasPrayerNeeds
         ? 'need'
         : metadata.prayer_style === 'cast' || prayerSessionId
-          ? 'cast'
-          : metadata.prayer_style === 'open' || sourcePrayer?.journal_category === 'personal_prayer'
-            ? 'open'
-            : sourcePrayer?.prayer_type === 'people'
-              ? 'person'
-              : 'other';
+        ? 'cast'
+        : metadata.prayer_style === 'open' ||
+          sourcePrayer?.journal_category === 'personal_prayer'
+        ? 'open'
+        : sourcePrayer?.prayer_type === 'people'
+        ? 'person'
+        : 'other';
     items.push({
       id: event.id,
       kind: 'prayer',
@@ -550,30 +760,41 @@ export const getReviewCapture = async (
       text: event.text,
       presentation: 'prayer',
       selectedDate: event.eventDate,
-      answered: event.eventType === 'answer_recorded' || event.eventType === 'need_answer_recorded',
+      answered:
+        event.eventType === 'answer_recorded' ||
+        event.eventType === 'need_answer_recorded',
       prayerEventType: event.eventType,
       prayerId: event.prayerId,
       needId: event.needId,
       requestId: event.requestId,
       prayerActivityType,
-      prayerActivityId: prayerActivityType === 'request'
-        ? event.requestId || event.prayerId
-        : prayerSessionId || event.prayerId,
+      prayerActivityId:
+        prayerActivityType === 'request'
+          ? event.requestId || event.prayerId
+          : prayerSessionId || event.prayerId,
       prayerTypeLabel: getReviewPrayerTypeLabel(sourcePrayer, event),
       personName: personPrayer?.person_name?.trim() || undefined,
     });
     summary.prayer += 1;
   }
-  answeredPrayers = (prayerReview.counts.answer_recorded || 0) + (prayerReview.counts.need_answer_recorded || 0);
+  answeredPrayers =
+    (prayerReview.counts.answer_recorded || 0) +
+    (prayerReview.counts.need_answer_recorded || 0);
   totalPrayers = summary.prayer;
 
   const enrichedItems = items.map(item => {
-    const carriedForwardFrom = [...new Set(carryForwardReferences
-      .filter(reference => reference.id === item.id || (
-        item.prayerEventType === 'still_carrying'
-        && rememberedReferenceMatchesMoment(reference, item)
-      ))
-      .map(reference => reference.reviewType))];
+    const carriedForwardFrom = [
+      ...new Set(
+        carryForwardReferences
+          .filter(
+            reference =>
+              reference.id === item.id ||
+              (item.prayerEventType === 'still_carrying' &&
+                rememberedReferenceMatchesMoment(reference, item)),
+          )
+          .map(reference => reference.reviewType),
+      ),
+    ];
     return carriedForwardFrom.length ? {...item, carriedForwardFrom} : item;
   });
 

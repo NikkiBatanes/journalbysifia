@@ -3,6 +3,7 @@ import { AccessibilityInfo, Alert, Share } from 'react-native';
 import { act, fireEvent, render, waitFor, within } from '@testing-library/react-native';
 import GospelScreen from '../GospelScreen';
 import PrayerHandsIcon from '../../components/common/PrayerHandsIcon';
+import {GOSPEL_PAGES} from '../../data/gospelContent';
 import { gospelStorage } from '../../storage/gospelStorage';
 import { gospelShareService } from '../../services/gospelShareService';
 
@@ -12,7 +13,14 @@ jest.mock('../../hooks/useScreenStatusBar', () => ({ useScreenStatusBar: jest.fn
 jest.mock('../../utils/haptics', () => ({ triggerLightHaptic: jest.fn(), triggerSuccessHaptic: jest.fn() }));
 jest.mock('../../utils/soundUtils', () => ({ playGospelOpeningSound: jest.fn().mockResolvedValue(undefined) }));
 jest.mock('../../services/forMeDayService', () => ({ scheduleForMeDayReminder: jest.fn() }));
-jest.mock('../../storage/gospelStorage', () => ({ gospelStorage: { getPeople: jest.fn(), addPerson: jest.fn() } }));
+jest.mock('../../storage/gospelStorage', () => ({ gospelStorage: {
+  getPeople: jest.fn(),
+  getShareEvents: jest.fn(),
+  addPerson: jest.fn(),
+  recordShareEvent: jest.fn(),
+  saveResponse: jest.fn(),
+  getForMeDaySettings: jest.fn(),
+} }));
 jest.mock('../../services/gospelShareService', () => ({ gospelShareService: { createLink: jest.fn(), getSharedResponses: jest.fn() } }));
 
 const people = [
@@ -33,7 +41,14 @@ beforeEach(() => {
   jest.spyOn(Alert, 'alert').mockImplementation(() => {});
   jest.spyOn(Share, 'share').mockResolvedValue({ action: Share.sharedAction });
   jest.mocked(gospelStorage.getPeople).mockResolvedValue(people);
+  jest.mocked(gospelStorage.getShareEvents).mockResolvedValue([]);
   jest.mocked(gospelStorage.addPerson).mockResolvedValue(people[0]);
+  jest.mocked(gospelStorage.recordShareEvent).mockImplementation(async input => ({
+    id: 'share-event',
+    sharedAt: new Date().toISOString(),
+    method: typeof input === 'object' && input.method ? input.method : 'link',
+    ...(typeof input === 'object' && input.personId ? {personId: input.personId} : {}),
+  }));
   jest.mocked(gospelShareService.createLink).mockImplementation(async personId => ({ token: personId || 'other', url: `https://example.com/${personId || 'other'}` }));
   jest.mocked(gospelShareService.getSharedResponses).mockResolvedValue([]);
 });
@@ -45,7 +60,6 @@ it('uses the navigation prayer hands, opens prayer, and sends with the chosen pe
   fireEvent.press(screen.getByText("People I'm praying for"));
   expect(screen.getByText('Pray. Share. Follow up.')).toBeTruthy();
   expect(screen.getAllByText('Praying that they will know Christ and for an opportunity to share the Gospel.')).toHaveLength(2);
-  expect(screen.getByText('Began praying · September 20, 2026')).toBeTruthy();
   expect(screen.queryByText('Shared responses')).toBeNull();
   const pray = screen.getByLabelText('Pray for Anna');
   expect(within(pray).UNSAFE_getByType(PrayerHandsIcon).props).toMatchObject({ size: 20, strokeWidth: 2.2 });
@@ -55,6 +69,9 @@ it('uses the navigation prayer hands, opens prayer, and sends with the chosen pe
   expect(screen.getByRole('radio', { name: 'Anna' }).props.accessibilityState.checked).toBe(true);
   fireEvent.press(screen.getByText('Share the Gospel'));
   await waitFor(() => expect(Share.share).toHaveBeenCalledWith(expect.objectContaining({ url: 'https://example.com/person-1' })));
+  await waitFor(() => expect(gospelStorage.recordShareEvent).toHaveBeenCalledWith({method: 'link', personId: 'person-1'}));
+  expect(gospelStorage.recordShareEvent).toHaveBeenCalledTimes(1);
+  expect(screen.getByLabelText('Record Gospel share. 1 shared today')).toBeTruthy();
   expect(gospelShareService.createLink).toHaveBeenCalledWith('person-1');
 });
 
@@ -113,6 +130,59 @@ it('keeps links separate when changing recipients while links are being prepared
   fireEvent.press(screen.getByRole('radio', { name: 'Someone else' }));
   fireEvent.press(screen.getByText('Share the Gospel'));
   await waitFor(() => expect(Share.share).toHaveBeenLastCalledWith(expect.objectContaining({ url: 'https://example.com/other' })));
+});
+
+it('records an outside-app Gospel share with one tap', async () => {
+  const {screen} = await openScreen();
+
+  expect(screen.getByText('Gospel shared')).toBeTruthy();
+  expect(screen.queryByText('0')).toBeNull();
+  fireEvent.press(screen.getByLabelText('Record Gospel share. 0 shared today'));
+
+  await waitFor(() => expect(gospelStorage.recordShareEvent).toHaveBeenCalledWith({
+    method: 'outside_app',
+    personId: undefined,
+  }));
+  expect(screen.getByLabelText('Record Gospel share. 1 shared today')).toBeTruthy();
+});
+
+it('does not record a dismissed link share on platforms that report dismissal', async () => {
+  jest.mocked(Share.share).mockResolvedValueOnce({action: Share.dismissedAction});
+  const {screen} = await openScreen();
+  fireEvent.press(screen.getByText('Send the Gospel'));
+  fireEvent.press(screen.getByText('Share the Gospel'));
+  await waitFor(() => expect(Share.share).toHaveBeenCalled());
+
+  expect(gospelStorage.recordShareEvent).not.toHaveBeenCalled();
+  expect(screen.getByText('Send the good news to someone.')).toBeTruthy();
+});
+
+it('confirms an in-person walkthrough without replacing the owner response', async () => {
+  const {screen} = await openScreen();
+  fireEvent.press(screen.getByText('Go through the Gospel'));
+  fireEvent.press(screen.getByText("Someone is with me"));
+
+  fireEvent.press(screen.getByLabelText('Continue'));
+  fireEvent.press(screen.getByLabelText('Continue'));
+  fireEvent.press(screen.getByLabelText('Continue'));
+  fireEvent.press(screen.getByLabelText('Begin the Gospel'));
+
+  GOSPEL_PAGES.forEach((page, index) => {
+    const label = (page.cta || (index === GOSPEL_PAGES.length - 1 ? 'I\'m ready to respond →' : 'Continue →'))
+      .replace(/\s*(→|↗)$/, '');
+    fireEvent.press(screen.getByLabelText(label));
+  });
+  fireEvent.press(screen.getByLabelText('What does this mean for me?'));
+  fireEvent.press(screen.getByText("I'm not ready yet."));
+  fireEvent.press(screen.getByLabelText('Continue'));
+  fireEvent.press(screen.getByText('Finish'));
+
+  expect(gospelStorage.saveResponse).not.toHaveBeenCalled();
+  await waitFor(() => expect(gospelStorage.recordShareEvent).toHaveBeenCalledWith({
+    method: 'together',
+    personId: undefined,
+  }));
+  expect(screen.getByLabelText('Record Gospel share. 1 shared today')).toBeTruthy();
 });
 
 it('reuses a dismissed link and creates a fresh one after sharing successfully', async () => {

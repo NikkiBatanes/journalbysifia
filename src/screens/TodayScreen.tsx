@@ -22,7 +22,7 @@ import {useExpandTabBarOnScrollEnd} from '../hooks/useExpandTabBarOnScrollEnd';
 import { Colors } from '../theme/colors';
 import { Fonts } from '../theme/fonts';
 import { triggerLightHaptic } from '../utils/haptics';
-import { compareLocalDate, fromLocalDateString, toLocalDateString } from '../utils/date';
+import { compareLocalDate, toLocalDateString } from '../utils/date';
 import {formatWeeklyGratitudePeriod} from '../utils/weeklyGratitudePeriod';
 import { navigateFromRoot } from '../utils/navigationHelpers';
 import { useTodayReviewData } from '../hooks/useTodayReviewData';
@@ -70,17 +70,6 @@ const Stagger = ({ children, prioritizeFirst = false }: { children: React.ReactN
     )}
   </View>
 );
-
-const formatReviewCardPeriod = (periodStart: string, periodEnd: string): string => {
-  const start = fromLocalDateString(periodStart);
-  const end = fromLocalDateString(periodEnd);
-  const month = start.toLocaleString('default', { month: 'short' }).toUpperCase();
-  const sameYear = start.getFullYear() === end.getFullYear();
-  const sameMonth = sameYear && start.getMonth() === end.getMonth();
-  return sameMonth
-    ? `${month} ${start.getDate()}–${end.getDate()}, ${end.getFullYear()}`
-    : `${format(start, 'MMM d, yyyy')}–${format(end, 'MMM d, yyyy')}`;
-};
 
 const buildPreviewReview = (type: ReviewType, periodStart: string, periodEnd: string): LocalReviewEntry => {
   const stamp = new Date().toISOString();
@@ -462,7 +451,8 @@ const TodayScreen = () => {
       <ReviewOverviewCard
         review={main.review}
         reviewType={main.type as Exclude<ReviewType, 'weekly'>}
-        periodLabel={formatReviewCardPeriod(main.period.periodStart, main.period.periodEnd)}
+        periodStart={main.period.periodStart}
+        periodEnd={main.period.periodEnd}
         alsoReady={displayedEligibility.alsoReady.map(item => item.type.replace('_', ' ')).join(', ')}
         onBegin={() => {
           (navigation as any).navigate('Journal', {
@@ -488,7 +478,8 @@ const TodayScreen = () => {
       <ReviewOverviewCard
         review={buildPreviewReview(type, period.periodStart, period.periodEnd)}
         reviewType={type}
-        periodLabel={formatReviewCardPeriod(period.periodStart, period.periodEnd)}
+        periodStart={period.periodStart}
+        periodEnd={period.periodEnd}
         onBegin={noop}
       />
     );
@@ -720,10 +711,10 @@ const TodayScreen = () => {
             key="review-qa"
             style={styles.routinePreviewButton}
             accessibilityRole="button"
-            accessibilityLabel="Open Weekly Review QA"
+            accessibilityLabel="Open Review QA"
             onPress={() => (navigation as any).navigate('Journal', { screen: 'ReviewQA' })}
           >
-            <ThemedText style={styles.routinePreviewText}>Weekly Review QA</ThemedText>
+            <ThemedText style={styles.routinePreviewText}>Review QA</ThemedText>
           </TouchableOpacity>
         )}
 

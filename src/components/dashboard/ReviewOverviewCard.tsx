@@ -1,11 +1,13 @@
 import React, { useMemo } from 'react';
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
-import { ArrowRight, BookOpen, Heart, Sparkles, Target } from 'lucide-react-native';
+import {StyleSheet, View} from 'react-native';
+import {Bookmark, BookOpen, CircleCheck, Heart, Moon, Share2, Sparkles, Sun, Target} from 'lucide-react-native';
 
 import ThemedText from '../common/ThemedText';
 import { Colors } from '../../theme/colors';
-import { triggerLightHaptic } from '../../utils/haptics';
 import { type LocalReviewEntry, type ReviewType } from '../../storage/reviewStorage';
+import {formatReviewCardPeriod} from '../../utils/reviewCardPeriod';
+import {useMonthlyReviewStats} from '../../hooks/useMonthlyReviewStats';
+import ReviewDashboardCard from './ReviewDashboardCard';
 
 type StatRow = {
   label: string;
@@ -22,7 +24,7 @@ const CARD_COPY: Record<Exclude<ReviewType, 'weekly'>, {
 }> = {
   monthly: {
     eyebrow: 'MONTHLY REVIEW',
-    title: 'A month worth noticing.',
+    title: 'Remember what this month held.',
     description: 'Notice what mattered and what you want to carry forward.',
     metricLabel: 'moments marked',
     action: 'Explore your month',
@@ -59,19 +61,32 @@ const countAnswers = (review: LocalReviewEntry, keys: string[]) =>
 const ReviewOverviewCard = ({
   review,
   reviewType,
-  periodLabel,
+  periodStart,
+  periodEnd,
   alsoReady,
   onBegin,
 }: {
   review: LocalReviewEntry | null;
   reviewType: Exclude<ReviewType, 'weekly'>;
-  periodLabel: string;
+  periodStart: string;
+  periodEnd: string;
   alsoReady?: string;
   onBegin: () => void;
 }) => {
   const type = reviewType;
   const copy = CARD_COPY[type];
   const isBeginYear = type === 'begin_year';
+  const isInProgress = review?.status === 'draft';
+  const description = type === 'monthly'
+    ? isInProgress ? 'Your monthly review is in progress.' : 'Your monthly review is ready.'
+    : copy.description;
+  const action = type === 'monthly' && isInProgress ? 'Continue your month' : copy.action;
+  const monthlyStats = useMonthlyReviewStats(type === 'monthly', periodStart, periodEnd);
+  const monthlyHighlights = [
+    {label: 'Answered prayers', value: monthlyStats?.answeredPrayers, Icon: CircleCheck},
+    {label: 'Remembered', value: monthlyStats?.rememberedFromWeeks, Icon: Bookmark},
+    {label: 'Gospel shared', value: monthlyStats?.gospelShares, Icon: Share2},
+  ].filter((item): item is typeof item & {value: number} => Boolean(item.value));
 
   const { headline, rows } = useMemo<{ headline: number; rows: StatRow[] }>(() => {
     if (isBeginYear) {
@@ -106,25 +121,51 @@ const ReviewOverviewCard = ({
   }, [isBeginYear, review, type]);
 
   return (
-    <View style={styles.card}>
-      <View style={styles.columns}>
-        <View style={styles.copy}>
-          <ThemedText weight="semiBold" style={styles.eyebrow}>{copy.eyebrow}</ThemedText>
-          <ThemedText weight="semiBold" style={styles.title}>{copy.title}</ThemedText>
-          <ThemedText style={styles.description}>{copy.description}</ThemedText>
-          <ThemedText style={styles.period}>{periodLabel}</ThemedText>
-          <TouchableOpacity
-            style={styles.begin}
-            accessibilityRole="button"
-            accessibilityLabel={copy.action}
-            activeOpacity={0.8}
-            onPress={() => { triggerLightHaptic(); onBegin(); }}
-          >
-            <ThemedText weight="semiBold" style={styles.beginText}>{copy.action}</ThemedText>
-            <ArrowRight size={16} color={Colors.hopeWhite} />
-          </TouchableOpacity>
+    <ReviewDashboardCard
+      eyebrow={copy.eyebrow}
+      title={copy.title}
+      description={description}
+      periodLabel={formatReviewCardPeriod(periodStart, periodEnd, type === 'year_end' || type === 'begin_year')}
+      actionLabel={action}
+      alsoReady={alsoReady}
+      onBegin={onBegin}
+      footer={type === 'monthly' && monthlyHighlights.length ? (
+        <View style={styles.monthlyHighlights}>
+          {monthlyHighlights.map(({label, value, Icon}) => (
+            <View key={label} style={styles.monthlyHighlight}>
+              <Icon size={14} color={Colors.hopeWhite} strokeWidth={1.7} />
+              <View style={styles.monthlyHighlightCopy}>
+                <ThemedText weight="semiBold" style={styles.monthlyHighlightCount}>{value}</ThemedText>
+                <ThemedText style={styles.monthlyHighlightLabel}>{label}</ThemedText>
+              </View>
+            </View>
+          ))}
         </View>
-        <View style={styles.stats}>
+      ) : null}
+      stats={
+        type === 'monthly' ? <>
+          <ThemedText style={styles.statsEyebrow}>YOU SHOWED UP</ThemedText>
+          <View style={styles.metricRow}>
+            <ThemedText weight="semiBold" style={styles.metric}>{monthlyStats?.activeDays ?? '–'}</ThemedText>
+            <ThemedText style={styles.metricLabel}>{monthlyStats?.activeDays === 1 ? 'day this month' : 'days this month'}</ThemedText>
+          </View>
+          <View style={styles.monthlyGrid}>
+            {[
+              {label: 'Check-ins', value: monthlyStats?.morning, Icon: Sun},
+              {label: 'Reflections', value: monthlyStats?.evening, Icon: Moon},
+              {label: 'Prayers', value: monthlyStats?.prayers, Icon: Heart},
+              {label: 'Journal', value: monthlyStats?.journal, Icon: BookOpen},
+            ].map(({label, value, Icon}) => (
+              <View key={label} style={styles.monthlyMetric}>
+                <View style={styles.monthlyMetricValue}>
+                  <Icon size={14} color={Colors.hopeWhite} strokeWidth={1.6} />
+                  <ThemedText weight="semiBold" style={styles.monthlyMetricCount}>{value ?? '–'}</ThemedText>
+                </View>
+                <ThemedText style={styles.monthlyMetricLabel}>{label}</ThemedText>
+              </View>
+            ))}
+          </View>
+        </> : <>
           <ThemedText style={styles.statsEyebrow}>{isBeginYear ? 'WHAT MATTERS' : 'YOU SHOWED UP'}</ThemedText>
           <View style={styles.metricRow}>
             <ThemedText weight="semiBold" style={styles.metric}>{headline}</ThemedText>
@@ -139,24 +180,13 @@ const ReviewOverviewCard = ({
               </View>
             ))}
           </View>
-        </View>
-      </View>
-      {alsoReady ? <ThemedText style={styles.note}>Also ready: {alsoReady}</ThemedText> : null}
-    </View>
+        </>
+      }
+    />
   );
 };
 
 const styles = StyleSheet.create({
-  card: { backgroundColor: Colors.sage, borderColor: Colors.sage, borderWidth: 1, borderRadius: 24, padding: 20, marginBottom: 8 },
-  columns: { flexDirection: 'row' },
-  copy: { flex: 1.45, minWidth: 0, paddingRight: 15 },
-  eyebrow: { color: Colors.hopeWhite, fontSize: 10, lineHeight: 16, letterSpacing: 1.8 },
-  title: { color: Colors.hopeWhite, fontSize: 24, lineHeight: 32, marginTop: 14 },
-  description: { color: Colors.hopeWhite, fontSize: 12, lineHeight: 19, marginTop: 12 },
-  period: { color: Colors.hopeWhite, opacity: 0.85, fontSize: 12, lineHeight: 19, marginTop: 3 },
-  begin: { alignSelf: 'flex-start', backgroundColor: 'rgba(255,255,255,0.15)', borderColor: 'rgba(255,255,255,0.3)', borderWidth: 1, borderRadius: 20, paddingVertical: 12, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: 17 },
-  beginText: { color: Colors.hopeWhite, fontSize: 12, flexShrink: 1 },
-  stats: { flex: 1, minWidth: 0, borderLeftWidth: 1, borderLeftColor: 'rgba(255,255,255,0.3)', paddingLeft: 16 },
   statsEyebrow: { color: Colors.hopeWhite, opacity: 0.85, fontSize: 9, lineHeight: 15, letterSpacing: 1 },
   metricRow: { flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: 8 },
   metric: { color: Colors.hopeWhite, fontSize: 36, lineHeight: 48 },
@@ -165,7 +195,37 @@ const styles = StyleSheet.create({
   stat: { flexDirection: 'row', alignItems: 'center', gap: 7 },
   count: { color: Colors.hopeWhite, fontSize: 17, minWidth: 14 },
   statLabel: { flex: 1, color: Colors.hopeWhite, fontSize: 9, lineHeight: 14 },
-  note: { color: Colors.hopeWhite, opacity: 0.85, fontSize: 11, lineHeight: 18, marginTop: 12 },
+  monthlyGrid: {
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.25)',
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    paddingTop: 13,
+    marginTop: 8,
+    rowGap: 11,
+  },
+  monthlyMetric: {width: '50%', minWidth: 0, paddingRight: 3},
+  monthlyMetricValue: {flexDirection: 'row', alignItems: 'center', gap: 5},
+  monthlyMetricCount: {color: Colors.hopeWhite, fontSize: 17, lineHeight: 21},
+  monthlyMetricLabel: {color: Colors.hopeWhite, opacity: 0.88, fontSize: 8, lineHeight: 12, marginTop: 1},
+  monthlyHighlights: {
+    flexDirection: 'row',
+    gap: 8,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.22)',
+    paddingTop: 11,
+    marginTop: 14,
+  },
+  monthlyHighlight: {
+    flex: 1,
+    minWidth: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  monthlyHighlightCopy: {flex: 1, minWidth: 0},
+  monthlyHighlightCount: {color: Colors.hopeWhite, fontSize: 14, lineHeight: 17},
+  monthlyHighlightLabel: {color: Colors.hopeWhite, opacity: 0.88, fontSize: 7.5, lineHeight: 11},
 });
 
 export default ReviewOverviewCard;

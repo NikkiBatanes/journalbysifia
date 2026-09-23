@@ -5,20 +5,17 @@ import {useNavigation} from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import ThemedText from '../../components/common/ThemedText';
 import {Colors} from '../../theme/colors';
-import {REVIEW_QA_WEEKLY_REFERENCE_DATE} from './reviewQAClock';
 import {formatReviewQAPeriod, REVIEW_QA_SCENARIOS, type ReviewQAScenario, type ReviewQADefinition} from './reviewQAFixtures';
 import {clearReviewQAData, loadReviewQAScenario} from './reviewQALoader';
 import type {ReviewCapture} from '../../services/reviewCaptureService';
-
-const localDate = (value:string) => {const [y,m,d]=value.split('-').map(Number);return new Date(y,m-1,d,12);};
 
 const ReviewQAScreen=()=>{
   const navigation=useNavigation<any>(); const [busy,setBusy]=useState(false); const [loaded,setLoaded]=useState<ReviewQAScenario|null>(null); const [capture,setCapture]=useState<ReviewCapture|null>(null);
   if(!__DEV__) return null;
   const load=async(scenario:ReviewQADefinition,showOnToday=true)=>{setBusy(true);try{const result=await loadReviewQAScenario(scenario.id);setLoaded(scenario.id);setCapture(result.capture);if(showOnToday){navigation.getParent()?.navigate('Today');}}catch(error){Alert.alert('Unable to load Review QA',error instanceof Error?error.message:'Unknown error');}finally{setBusy(false);}};
   const clear=async()=>{setBusy(true);try{const count=await clearReviewQAData();setLoaded(null);setCapture(null);Alert.alert('Review QA cleared',`${count} namespaced records removed. Normal data was preserved.`);}finally{setBusy(false);}};
-  return <SafeAreaView style={styles.safe}><View style={styles.header}><TouchableOpacity accessibilityLabel="Close Review QA" onPress={()=>navigation.goBack()}><Ionicons name="close" size={24} color={Colors.text}/></TouchableOpacity><ThemedText weight="bold" style={styles.headerTitle}>Weekly Review QA</ThemedText><View style={{width:24}}/></View><ScrollView contentContainerStyle={styles.content}>
-    <ThemedText style={styles.dev}>DEVELOPMENT ONLY</ThemedText><ThemedText style={styles.reference}>September 14–20, 2026</ThemedText><ThemedText style={styles.note}>Monday-start profile · 10 structured Guided Reflections · 7 Scripture Notes · Full Prayer V2 dataset · Reference date {localDate(REVIEW_QA_WEEKLY_REFERENCE_DATE).toLocaleDateString(undefined,{month:'long',day:'numeric',year:'numeric'})}</ThemedText>
+  return <SafeAreaView style={styles.safe}><View style={styles.header}><TouchableOpacity accessibilityLabel="Close Review QA" onPress={()=>navigation.goBack()}><Ionicons name="close" size={24} color={Colors.text}/></TouchableOpacity><ThemedText weight="bold" style={styles.headerTitle}>Review QA</ThemedText><View style={{width:24}}/></View><ScrollView contentContainerStyle={styles.content}>
+    <ThemedText style={styles.dev}>DEVELOPMENT ONLY</ThemedText><ThemedText style={styles.reference}>Review scenarios</ThemedText><ThemedText style={styles.note}>Each scenario uses production storage and period eligibility while keeping your existing review data restorable.</ThemedText>
     {REVIEW_QA_SCENARIOS.map(s=><View key={s.id} style={styles.card}><View style={styles.row}><View style={{flex:1}}><ThemedText weight="bold" style={styles.title}>{s.title}</ThemedText><ThemedText style={styles.period}>{formatReviewQAPeriod(s)}</ThemedText></View><ThemedText weight="semiBold" style={styles.status}>{s.status}</ThemedText></View>{loaded===s.id&&capture?<ThemedText style={styles.counts}>Captured: {capture.items.length} · Prayer {capture.summary.prayer} · Gratitude {capture.summary.gratitude} · Reflections {capture.summary.reflection} · Scripture {capture.summary.scripture} · Journal {capture.summary.journal}</ThemedText>:null}<View style={styles.actions}><TouchableOpacity disabled={busy} style={styles.open} onPress={()=>load(s,true)}><ThemedText weight="semiBold" style={styles.openText}>Show on Today</ThemedText></TouchableOpacity><TouchableOpacity disabled={busy} style={styles.reload} onPress={()=>load(s,false)}><ThemedText style={styles.reloadText}>Reload data</ThemedText></TouchableOpacity></View></View>)}
     <TouchableOpacity disabled={busy} style={styles.clear} onPress={clear}><ThemedText weight="semiBold" style={styles.clearText}>Clear Review QA Context</ThemedText></TouchableOpacity>
   </ScrollView></SafeAreaView>;

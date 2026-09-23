@@ -120,8 +120,8 @@ const JournalStackNavigator: React.FC = () => {
         component={ReviewReaderScreen as React.ComponentType}
         options={{
           headerShown: false,
-          presentation: 'card',
-          animation: 'slide_from_right',
+          presentation: 'fullScreenModal',
+          animation: 'slide_from_bottom',
           gestureEnabled: true,
           contentStyle: { backgroundColor: '#F6F5EF' },
         }}

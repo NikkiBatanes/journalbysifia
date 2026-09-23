@@ -1,11 +1,5 @@
-import { useAuth } from '../context/IndustryStandardAuthContext';
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import {useAuth} from '../context/IndustryStandardAuthContext';
+import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {
   AccessibilityInfo,
   ActivityIndicator,
@@ -30,8 +24,12 @@ import {
   View,
   type ViewProps,
 } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
+import {SafeAreaView, useSafeAreaInsets} from 'react-native-safe-area-context';
+import {
+  useFocusEffect,
+  useNavigation,
+  useRoute,
+} from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import HeaderBackButton from '../components/common/HeaderBackButton';
@@ -44,18 +42,39 @@ import LinearGradient from 'react-native-linear-gradient';
 
 import ThemedText from '../components/common/ThemedText';
 import SavedReflectionBlocks from '../components/journal/SavedReflectionBlocks';
-import FocusPriorityInputs, {type FocusPriorityInputsHandle} from '../components/journal/FocusPriorityInputs';
-import {LookingForwardEmotionStep, LookingForwardWritingStep} from '../components/journal/LookingForwardExperience';
+import {
+  SCRIPTURE_NOTE_ICON,
+  SCRIPTURE_NOTE_SECTION_LABEL,
+  ScriptureNoteIcon,
+  ScriptureNotePreview,
+} from '../components/journal/ScriptureNotePreview';
+import FocusPriorityInputs, {
+  type FocusPriorityInputsHandle,
+} from '../components/journal/FocusPriorityInputs';
+import {
+  LookingForwardEmotionStep,
+  LookingForwardWritingStep,
+} from '../components/journal/LookingForwardExperience';
 import {GratitudeListReactQuery} from '../components/journal/GratitudeListReactQuery';
 import {MomentsPaletteContext} from '../context/MomentsPaletteContext';
-import {WeeklyReviewMomentsList} from '../components/reviews/WeeklyReviewMomentsList';
-import {WeeklyReviewSummary, type WeeklyReviewSummaryTab} from '../components/reviews/WeeklyReviewSummary';
+import {
+  ReviewMomentsList,
+  type ReviewMomentsListHandle,
+} from '../components/reviews/WeeklyReviewMomentsList';
+import {
+  WeeklyReviewSummary,
+  type WeeklyReviewSummaryTab,
+} from '../components/reviews/WeeklyReviewSummary';
+import {
+  MonthlyReviewSummary,
+  type MonthlyReviewSummaryTab,
+} from '../components/reviews/MonthlyReviewSummary';
 import ProverbVerseExcerpt from '../components/scripture/ProverbVerseExcerpt';
 import PrayerHandsIcon from '../components/common/PrayerHandsIcon';
-import { Colors } from '../theme/colors';
-import { Fonts } from '../theme/fonts';
-import { triggerLightHaptic } from '../utils/haptics';
-import { toLocalDateString } from '../utils/date';
+import {Colors} from '../theme/colors';
+import {Fonts} from '../theme/fonts';
+import {triggerLightHaptic} from '../utils/haptics';
+import {toLocalDateString} from '../utils/date';
 import {
   type ReviewType,
   type LocalReviewEntry,
@@ -64,7 +83,7 @@ import {
   getOrCreateLocalReviewForPeriod,
   updateLocalReview,
 } from '../storage/reviewStorage';
-import { getReviewSettings } from '../storage/reviewSettingsStorage';
+import {getReviewSettings} from '../storage/reviewSettingsStorage';
 import {
   getWeeklyPeriodFor,
   getMonthlyPeriodFor,
@@ -73,21 +92,47 @@ import {
   getBeginYearPeriodFor,
   type ReviewPeriod,
 } from '../services/reviewPeriodService';
-import { getReviewCapture, type ReviewCapture, type ReviewCaptureItem, type ReviewCaptureKind, type ReviewCapturePresentation } from '../services/reviewCaptureService';
-import { getReviewStages } from '../services/reviewStages';
+import {
+  getReviewCapture,
+  type ReviewCapture,
+  type ReviewCaptureItem,
+  type ReviewCaptureKind,
+  type ReviewCapturePresentation,
+} from '../services/reviewCaptureService';
+import {getReviewStages} from '../services/reviewStages';
 import {WEEKLY_CARE_AREAS, WEEKLY_LIFE_AREAS} from '../data/weeklyLifeAreas';
 import {getWeeklyCareAreas} from '../utils/weeklyLifeAreaAnswers';
-import {getWeeklyChallengeChoices, getWeeklyChallengeOptions, toggleWeeklyChallengeChoice} from '../utils/weeklyChallengeAnswers';
+import {
+  getWeeklyChallengeChoices,
+  getWeeklyChallengeOptions,
+  toggleWeeklyChallengeChoice,
+} from '../utils/weeklyChallengeAnswers';
 import {getWeeklySupportChoices} from '../utils/weeklyLookingAheadAnswers';
 import {formatWeeklyLookingAheadPeriod} from '../utils/weeklyLookingAheadPeriod';
-import {getWeeklyLookingForwardEmotion, isWeeklyLookingForwardAnswerKey} from '../utils/weeklyLookingForwardAnswers';
+import {
+  getWeeklyLookingForwardEmotion,
+  isWeeklyLookingForwardAnswerKey,
+} from '../utils/weeklyLookingForwardAnswers';
 import {saveWeeklyLookingForwardMoment} from '../services/weeklyLookingForwardService';
-import {getWeeklyRhythm, type WeeklyRhythm} from '../services/weeklyRhythmService';
-import {getWeeklyCheckInFeelings, type WeeklyCheckInFeeling} from '../services/weeklyFeelingService';
+import {
+  getWeeklyRhythm,
+  type WeeklyRhythm,
+} from '../services/weeklyRhythmService';
+import {
+  getMonthlyCheckInFeelings,
+  getMonthlyWeeklyReviewFeelings,
+  getWeeklyCheckInFeelings,
+  type MonthlyCheckInFeeling,
+  type MonthlyWeeklyReviewFeelings,
+  type WeeklyCheckInFeeling,
+} from '../services/weeklyFeelingService';
 import {getReviewCoverSummary} from '../services/reviewCoverSummaryService';
 import {getPrayerCaptureCountLabel} from '../services/reviewCaptureSummaryService';
 import {useFloatingKeyboardButton} from '../hooks/useFloatingKeyboardButton';
-import {claimFaithfulRhythmCelebration, FAITHFUL_RHYTHM_UPDATED} from '../services/faithfulRhythmService';
+import {
+  claimFaithfulRhythmCelebration,
+  FAITHFUL_RHYTHM_UPDATED,
+} from '../services/faithfulRhythmService';
 import {saveWeeklyGratitudeMoment} from '../services/weeklyGratitudeService';
 import {
   getWeeklyGratitudeInputCount,
@@ -125,10 +170,11 @@ const StaggeredReviewStage = ({
   const items = React.Children.toArray(children);
   const itemCount = items.length;
   const animatedItems = useMemo(
-    () => Array.from({length: itemCount}, (_, index) => ({
-      key: `${animationKey}-${index}`,
-      value: new Animated.Value(enabled ? 0 : 1),
-    })),
+    () =>
+      Array.from({length: itemCount}, (_, index) => ({
+        key: `${animationKey}-${index}`,
+        value: new Animated.Value(enabled ? 0 : 1),
+      })),
     [animationKey, enabled, itemCount],
   );
 
@@ -150,7 +196,9 @@ const StaggeredReviewStage = ({
 
     AccessibilityInfo.isReduceMotionEnabled()
       .then(reduceMotion => {
-        if (!active) {return;}
+        if (!active) {
+          return;
+        }
         if (reduceMotion) {
           animatedItems.forEach(({value}) => value.setValue(1));
           return;
@@ -158,13 +206,15 @@ const StaggeredReviewStage = ({
 
         entrance = Animated.stagger(
           REVIEW_STAGE_STAGGER_MS,
-          animatedItems.map(({value}) => Animated.spring(value, {
-            toValue: 1,
-            stiffness: 240,
-            damping: 15,
-            mass: 0.72,
-            useNativeDriver: true,
-          })),
+          animatedItems.map(({value}) =>
+            Animated.spring(value, {
+              toValue: 1,
+              stiffness: 240,
+              damping: 15,
+              mass: 0.72,
+              useNativeDriver: true,
+            }),
+          ),
         );
         frame = requestAnimationFrame(() => entrance?.start());
       })
@@ -176,7 +226,9 @@ const StaggeredReviewStage = ({
 
     return () => {
       active = false;
-      if (frame !== null) {cancelAnimationFrame(frame);}
+      if (frame !== null) {
+        cancelAnimationFrame(frame);
+      }
       entrance?.stop();
       animatedItems.forEach(({value}) => value.stopAnimation());
     };
@@ -196,12 +248,14 @@ const StaggeredReviewStage = ({
                 outputRange: [0, 1],
                 extrapolate: 'clamp',
               }),
-              transform: [{
-                scale: progress.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [0.965, 1],
-                }),
-              }],
+              transform: [
+                {
+                  scale: progress.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0.965, 1],
+                  }),
+                },
+              ],
             }}>
             {item}
           </Animated.View>
@@ -216,17 +270,31 @@ const StaggeredReviewStage = ({
  * have started appearing. Keyed by feeling name so selection and the
  * show-more toggle never replay the entrance.
  */
-const StaggeredFeelingPill = ({delay, exiting = false, exitDelay = 0, children}: {delay: number; exiting?: boolean; exitDelay?: number; children: React.ReactNode}) => {
+const StaggeredFeelingPill = ({
+  delay,
+  exiting = false,
+  exitDelay = 0,
+  children,
+}: {
+  delay: number;
+  exiting?: boolean;
+  exitDelay?: number;
+  children: React.ReactNode;
+}) => {
   const progress = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    if (exiting) {return;}
+    if (exiting) {
+      return;
+    }
     let active = true;
     let entrance: Animated.CompositeAnimation | null = null;
 
     AccessibilityInfo.isReduceMotionEnabled()
       .then(reduceMotion => {
-        if (!active) {return;}
+        if (!active) {
+          return;
+        }
         if (reduceMotion) {
           progress.setValue(1);
           return;
@@ -242,7 +310,9 @@ const StaggeredFeelingPill = ({delay, exiting = false, exitDelay = 0, children}:
         entrance.start();
       })
       .catch(() => {
-        if (active) {progress.setValue(1);}
+        if (active) {
+          progress.setValue(1);
+        }
       });
 
     return () => {
@@ -253,7 +323,9 @@ const StaggeredFeelingPill = ({delay, exiting = false, exitDelay = 0, children}:
   }, [delay, exiting, progress]);
 
   useEffect(() => {
-    if (!exiting) {return;}
+    if (!exiting) {
+      return;
+    }
     const exit = Animated.timing(progress, {
       toValue: 0,
       duration: 200,
@@ -270,12 +342,14 @@ const StaggeredFeelingPill = ({delay, exiting = false, exitDelay = 0, children}:
       style={{
         alignSelf: 'flex-start',
         opacity: progress,
-        transform: [{
-          translateY: progress.interpolate({
-            inputRange: [0, 1],
-            outputRange: [10, 0],
-          }),
-        }],
+        transform: [
+          {
+            translateY: progress.interpolate({
+              inputRange: [0, 1],
+              outputRange: [10, 0],
+            }),
+          },
+        ],
       }}>
       {children}
     </Animated.View>
@@ -327,6 +401,14 @@ const WEEKLY_FEELING_WORDS = [
 ] as const;
 const WEEKLY_FEELINGS_PREVIEW_COUNT = 9;
 
+const MONTHLY_PATTERN_BAR_COLORS = [
+  Colors.sage,
+  '#E6B98D',
+  '#D7A57C',
+  Colors.sageMuted,
+  '#8FA99A',
+] as const;
+
 const WEEKLY_LIFE_CHECK_IN_OPTIONS = [
   {value: 'struggling', label: 'Struggling'},
   {value: 'okay', label: 'Okay'},
@@ -350,7 +432,10 @@ const WEEKLY_GOD_FAITHFULNESS_OPTIONS = [
 const isGodFaithfulnessChoice = (value: string): boolean =>
   WEEKLY_GOD_FAITHFULNESS_OPTIONS.some(option => option === value);
 
-const CAPTURE_PRESENTATION_GROUPS: Array<{presentation: ReviewCapturePresentation; title: string}> = [
+const CAPTURE_PRESENTATION_GROUPS: Array<{
+  presentation: ReviewCapturePresentation;
+  title: string;
+}> = [
   {presentation: 'morning_check_in', title: 'Morning check-ins'},
   {presentation: 'morning_psalm', title: 'Daily Psalms'},
   {presentation: 'focus', title: 'What you focused on'},
@@ -361,7 +446,7 @@ const CAPTURE_PRESENTATION_GROUPS: Array<{presentation: ReviewCapturePresentatio
   {presentation: 'looking_forward', title: 'Looking forward'},
   {presentation: 'prayer', title: 'Prayers'},
   {presentation: 'bible_study', title: 'Bible studies'},
-  {presentation: 'scripture_reflection', title: 'Scripture notes'},
+  {presentation: 'scripture_reflection', title: SCRIPTURE_NOTE_SECTION_LABEL},
   {presentation: 'session_note', title: 'Session notes'},
 ];
 
@@ -383,7 +468,7 @@ const CAPTURE_GROUP_ICONS: Record<ReviewCapturePresentation, string> = {
   prayer: 'hand-left-outline',
   gratitude_list: 'heart-circle-outline',
   bible_study: 'book-outline',
-  scripture_reflection: 'book-outline',
+  scripture_reflection: SCRIPTURE_NOTE_ICON,
   session_note: 'document-text-outline',
   today_win: 'trophy-outline',
   focus: 'compass-outline',
@@ -391,45 +476,98 @@ const CAPTURE_GROUP_ICONS: Record<ReviewCapturePresentation, string> = {
   looking_forward: 'arrow-forward-circle-outline',
 };
 
-const FocusCategoryIcon = ({item, size = 19}: {item: ReviewCaptureItem; size?: number}) => {
-  if (!item.focusIcon) {return <MaterialIcons name="filter-center-focus" size={size} color={Colors.sage}/>;}
+const FocusCategoryIcon = ({
+  item,
+  size = 19,
+}: {
+  item: ReviewCaptureItem;
+  size?: number;
+}) => {
+  if (!item.focusIcon) {
+    return (
+      <MaterialIcons
+        name="filter-center-focus"
+        size={size}
+        color={Colors.sage}
+      />
+    );
+  }
   if (item.focusIconType === 'material') {
-    return <MaterialCommunityIcons name={item.focusIcon} size={size} color={Colors.sage}/>;
+    return (
+      <MaterialCommunityIcons
+        name={item.focusIcon}
+        size={size}
+        color={Colors.sage}
+      />
+    );
   }
   if (item.focusIconType === 'fontawesome') {
-    return <FontAwesome6 name={item.focusIcon} size={size - 1} color={Colors.sage}/>;
+    return (
+      <FontAwesome6 name={item.focusIcon} size={size - 1} color={Colors.sage} />
+    );
   }
-  return <Ionicons name={item.focusIcon} size={size} color={Colors.sage}/>;
+  return <Ionicons name={item.focusIcon} size={size} color={Colors.sage} />;
 };
 
-const CaptureGroupIcon = ({presentation}: {presentation: ReviewCapturePresentation}) => {
+const CaptureGroupIcon = ({
+  presentation,
+}: {
+  presentation: ReviewCapturePresentation;
+}) => {
   if (presentation === 'heart_journal') {
-    return <BookHeart size={19} color={Colors.sage} strokeWidth={2.5}/>;
+    return <BookHeart size={19} color={Colors.sage} strokeWidth={2.5} />;
   }
   if (presentation === 'prayer') {
-    return <PrayerHandsIcon size={19} color={Colors.sage}/>;
+    return <PrayerHandsIcon size={19} color={Colors.sage} />;
   }
   if (presentation === 'bible_study') {
-    return <MaterialCommunityIcons name="book-outline" size={19} color={Colors.sage}/>;
+    return (
+      <MaterialCommunityIcons
+        name="book-outline"
+        size={19}
+        color={Colors.sage}
+      />
+    );
+  }
+  if (presentation === 'scripture_reflection') {
+    return <ScriptureNoteIcon size={19} color={Colors.sage} />;
   }
   if (presentation === 'focus') {
-    return <MaterialIcons name="filter-center-focus" size={19} color={Colors.sage}/>;
+    return (
+      <MaterialIcons name="filter-center-focus" size={19} color={Colors.sage} />
+    );
   }
   if (presentation === 'todo') {
-    return <Entypo name="list" size={19} color={Colors.sage}/>;
+    return <Entypo name="list" size={19} color={Colors.sage} />;
   }
-  return <Ionicons name={CAPTURE_GROUP_ICONS[presentation]} size={19} color={Colors.sage}/>;
+  return (
+    <Ionicons
+      name={CAPTURE_GROUP_ICONS[presentation]}
+      size={19}
+      color={Colors.sage}
+    />
+  );
 };
 
 const FeelingIcon = ({item}: {item: ReviewCaptureItem}) => {
-  if (!item.feelingIcon) {return null;}
+  if (!item.feelingIcon) {
+    return null;
+  }
   if (item.feelingIconType === 'material') {
-    return <MaterialCommunityIcons name={item.feelingIcon} size={22} color={Colors.sage}/>;
+    return (
+      <MaterialCommunityIcons
+        name={item.feelingIcon}
+        size={22}
+        color={Colors.sage}
+      />
+    );
   }
   if (item.feelingIconType === 'fontawesome') {
-    return <FontAwesome6 name={item.feelingIcon} size={20} color={Colors.sage}/>;
+    return (
+      <FontAwesome6 name={item.feelingIcon} size={20} color={Colors.sage} />
+    );
   }
-  return <Ionicons name={item.feelingIcon} size={22} color={Colors.sage}/>;
+  return <Ionicons name={item.feelingIcon} size={22} color={Colors.sage} />;
 };
 
 const formatCapturedDate = (value: string): string => {
@@ -451,25 +589,37 @@ const formatFollowingDate = (value: string): string => {
 const capturedMomentCopy = (item: ReviewCaptureItem): string => {
   const title = item.title.trim();
   const text = item.text?.trim();
-  if (!text || text.toLocaleLowerCase() === title.toLocaleLowerCase()) {return title;}
+  if (!text || text.toLocaleLowerCase() === title.toLocaleLowerCase()) {
+    return title;
+  }
   return `${title} — ${text}`;
 };
 
-const memorableReferenceFor = (item: ReviewCaptureItem): ReviewMemorableItem => ({
+const memorableReferenceFor = (
+  item: ReviewCaptureItem,
+): ReviewMemorableItem => ({
   kind: item.kind,
   id: item.id,
   selectedDate: item.selectedDate,
-  canonicalIds: [...new Set([
-    item.id,
-    item.prayerId,
-    item.requestId,
-  ].filter((id): id is string => Boolean(id)))],
+  canonicalIds: [
+    ...new Set(
+      [item.id, item.prayerId, item.requestId].filter((id): id is string =>
+        Boolean(id),
+      ),
+    ),
+  ],
 });
 
 const carryForwardHeading = (type: ReviewType): string => {
-  if (type === 'monthly') {return 'FROM YOUR WEEKLY REVIEWS';}
-  if (type === 'quarterly') {return 'FROM YOUR MONTHLY REVIEWS';}
-  if (type === 'year_end') {return 'FROM YOUR QUARTERLY REVIEWS';}
+  if (type === 'monthly') {
+    return 'FROM YOUR WEEKLY REVIEWS';
+  }
+  if (type === 'quarterly') {
+    return 'FROM YOUR MONTHLY REVIEWS';
+  }
+  if (type === 'year_end') {
+    return 'FROM YOUR QUARTERLY REVIEWS';
+  }
   return 'CARRIED FORWARD';
 };
 
@@ -499,37 +649,58 @@ const heartJournalCountLabel = (items: ReviewCaptureItem[]): string => {
     .filter(label => (counts.get(label) || 0) > 0)
     .sort((left, right) => (counts.get(right) || 0) - (counts.get(left) || 0));
   const visibleLabels = populatedLabels.slice(0, 2).map(label => {
-      const count = counts.get(label) || 0;
-      const copy = HEART_JOURNAL_COUNT_LABELS[label];
-      return copy
-        ? `${count} ${count === 1 ? copy[0] : copy[1]}`
-        : `${count} ${label.toLocaleLowerCase()}`;
-    });
+    const count = counts.get(label) || 0;
+    const copy = HEART_JOURNAL_COUNT_LABELS[label];
+    return copy
+      ? `${count} ${count === 1 ? copy[0] : copy[1]}`
+      : `${count} ${label.toLocaleLowerCase()}`;
+  });
   const remainingTypeCount = populatedLabels.length - visibleLabels.length;
   return [
     ...visibleLabels,
     remainingTypeCount > 0
-      ? `${remainingTypeCount} more ${remainingTypeCount === 1 ? 'type' : 'types'}`
+      ? `${remainingTypeCount} more ${
+          remainingTypeCount === 1 ? 'type' : 'types'
+        }`
       : '',
-  ].filter(Boolean).join(' · ');
+  ]
+    .filter(Boolean)
+    .join(' · ');
 };
 
-const captureGroupCountLabel = (presentation: ReviewCapturePresentation, items: ReviewCaptureItem[]): string => {
+const captureGroupCountLabel = (
+  presentation: ReviewCapturePresentation,
+  items: ReviewCaptureItem[],
+): string => {
   if (presentation === 'heart_journal') {
     return heartJournalCountLabel(items);
   }
   if (presentation === 'prayer') {
     return getPrayerCaptureCountLabel(items);
   }
+  if (presentation === 'scripture_reflection') {
+    return `${items.length} ${items.length === 1 ? 'note' : 'notes'}`;
+  }
   if (presentation === 'morning_check_in') {
     const reflectionCount = items.filter(item => {
       const text = item.text?.trim();
-      return text && text.toLocaleLowerCase() !== item.title.trim().toLocaleLowerCase();
+      return (
+        text &&
+        text.toLocaleLowerCase() !== item.title.trim().toLocaleLowerCase()
+      );
     }).length;
     return [
-      items.length > 0 ? `${items.length} ${items.length === 1 ? 'check-in' : 'check-ins'}` : '',
-      reflectionCount > 0 ? `${reflectionCount} ${reflectionCount === 1 ? 'reflection' : 'reflections'} written` : '',
-    ].filter(Boolean).join(' · ');
+      items.length > 0
+        ? `${items.length} ${items.length === 1 ? 'check-in' : 'check-ins'}`
+        : '',
+      reflectionCount > 0
+        ? `${reflectionCount} ${
+            reflectionCount === 1 ? 'reflection' : 'reflections'
+          } written`
+        : '',
+    ]
+      .filter(Boolean)
+      .join(' · ');
   }
   if (presentation === 'todo') {
     const completedCount = items.filter(item => item.completed).length;
@@ -539,35 +710,75 @@ const captureGroupCountLabel = (presentation: ReviewCapturePresentation, items: 
       completedCount > 0 ? `${completedCount} completed` : '',
       pendingCount > 0 ? `${pendingCount} pending` : '',
       prioritizedCount > 0 ? `${prioritizedCount} prioritized` : '',
-    ].filter(Boolean).join(' · ');
+    ]
+      .filter(Boolean)
+      .join(' · ');
   }
   if (presentation === 'focus') {
-    const completedPriorities = items.reduce((total, item) => total + (item.completedPriorityCount ?? 0), 0);
+    const completedPriorities = items.reduce(
+      (total, item) => total + (item.completedPriorityCount ?? 0),
+      0,
+    );
     return [
-      items.length > 0 ? `${items.length} ${items.length === 1 ? 'focus' : 'focuses'}` : '',
-      completedPriorities > 0 ? `${completedPriorities} ${completedPriorities === 1 ? 'priority' : 'priorities'} completed` : '',
-    ].filter(Boolean).join(' · ');
+      items.length > 0
+        ? `${items.length} ${items.length === 1 ? 'focus' : 'focuses'}`
+        : '',
+      completedPriorities > 0
+        ? `${completedPriorities} ${
+            completedPriorities === 1 ? 'priority' : 'priorities'
+          } completed`
+        : '',
+    ]
+      .filter(Boolean)
+      .join(' · ');
   }
   if (presentation === 'gratitude_list') {
-    const gratitudeCount = items.reduce((total, item) => total + (item.lines?.length || 0), 0);
+    const gratitudeCount = items.reduce(
+      (total, item) => total + (item.lines?.length || 0),
+      0,
+    );
     return [
-      items.length > 0 ? `${items.length} gratitude ${items.length === 1 ? 'list' : 'lists'}` : '',
-      gratitudeCount > 0 ? `${gratitudeCount} ${gratitudeCount === 1 ? 'gratitude' : 'gratitudes'}` : '',
-    ].filter(Boolean).join(' · ');
+      items.length > 0
+        ? `${items.length} gratitude ${items.length === 1 ? 'list' : 'lists'}`
+        : '',
+      gratitudeCount > 0
+        ? `${gratitudeCount} ${
+            gratitudeCount === 1 ? 'gratitude' : 'gratitudes'
+          }`
+        : '',
+    ]
+      .filter(Boolean)
+      .join(' · ');
   }
   if (presentation === 'today_win') {
-    return items.length > 0 ? `${items.length} ${items.length === 1 ? 'win' : 'wins'}` : '';
+    return items.length > 0
+      ? `${items.length} ${items.length === 1 ? 'win' : 'wins'}`
+      : '';
   }
   if (presentation === 'looking_forward') {
-    return items.length > 0 ? `${items.length} ${items.length === 1 ? 'reflection' : 'reflections'} written` : '';
+    return items.length > 0
+      ? `${items.length} ${
+          items.length === 1 ? 'reflection' : 'reflections'
+        } written`
+      : '';
   }
   if (presentation === 'morning_psalm' || presentation === 'evening_proverb') {
-    const fullChapterCount = items.filter(item => item.passageRead === true).length;
-    const inProgressCount = items.filter(item => item.passageRead === false).length;
+    const fullChapterCount = items.filter(
+      item => item.passageRead === true,
+    ).length;
+    const inProgressCount = items.filter(
+      item => item.passageRead === false,
+    ).length;
     return [
-      fullChapterCount > 0 ? `${fullChapterCount} full ${fullChapterCount === 1 ? 'chapter' : 'chapters'} read` : '',
+      fullChapterCount > 0
+        ? `${fullChapterCount} full ${
+            fullChapterCount === 1 ? 'chapter' : 'chapters'
+          } read`
+        : '',
       inProgressCount > 0 ? `${inProgressCount} reading in progress` : '',
-    ].filter(Boolean).join(' · ');
+    ]
+      .filter(Boolean)
+      .join(' · ');
   }
   return `${items.length} ${items.length === 1 ? 'entry' : 'entries'}`;
 };
@@ -588,329 +799,720 @@ const WeeklyMomentCard = ({
   const [showAllLines, setShowAllLines] = useState(false);
   const [underneathOverflows, setUnderneathOverflows] = useState(false);
   const body = item.text?.trim();
-  const distinctBody = body && body.toLocaleLowerCase() !== item.title.trim().toLocaleLowerCase() ? body : '';
+  const distinctBody =
+    body && body.toLocaleLowerCase() !== item.title.trim().toLocaleLowerCase()
+      ? body
+      : '';
   const date = formatCapturedDate(item.selectedDate);
-  const usesScriptureCardPalette = item.presentation === 'morning_psalm'
-    || item.presentation === 'evening_proverb'
-    || item.presentation === 'looking_forward';
+  const usesScriptureCardPalette =
+    item.presentation === 'morning_psalm' ||
+    item.presentation === 'evening_proverb' ||
+    item.presentation === 'looking_forward';
   const selection = (
-    <View style={[
-      styles.momentRemember,
-      usesScriptureCardPalette && !selected && styles.psalmRemember,
-      selected && styles.momentRememberSelected,
-    ]}>
+    <View
+      style={[
+        styles.momentRemember,
+        usesScriptureCardPalette && !selected && styles.psalmRemember,
+        selected && styles.momentRememberSelected,
+      ]}>
       <Ionicons
         name={selected ? 'bookmark' : 'bookmark-outline'}
         size={18}
-        color={selected ? Colors.hopeWhite : Colors.sage}/>
+        color={selected ? Colors.hopeWhite : Colors.sage}
+      />
     </View>
   );
   const commonProps = {
     accessibilityRole: 'checkbox' as const,
-    accessibilityLabel: `${selected ? 'Remove from remembered' : 'Remember this'}. ${date}. ${capturedMomentCopy(item)}`,
+    accessibilityLabel: `${
+      selected ? 'Remove from remembered' : 'Remember this'
+    }. ${date}. ${capturedMomentCopy(item)}`,
     accessibilityState: {checked: selected},
     activeOpacity: 0.76,
     onPress,
   };
   const shell = (content: React.ReactNode, extraStyle?: object) => (
-    <TouchableOpacity {...commonProps} style={[
-      styles.momentTypeCard,
-      extraStyle,
-      selected && styles.momentTypeCardSelected,
-      {width},
-    ]}>
+    <TouchableOpacity
+      {...commonProps}
+      style={[
+        styles.momentTypeCard,
+        extraStyle,
+        selected && styles.momentTypeCardSelected,
+        {width},
+      ]}>
       {selection}
       {content}
     </TouchableOpacity>
   );
 
   if (item.presentation === 'prayer') {
-    const prayerType = item.prayerTypeLabel
-      || (item.prayerActivityType === 'request' ? 'PRAYER REQUEST'
-        : item.prayerActivityType === 'cast' ? 'CAST PRAYER'
-          : item.prayerActivityType === 'open' ? 'OPEN PRAYER'
-            : item.prayerActivityType === 'need' ? 'PRAYER NEED'
-              : item.prayerActivityType === 'person' ? 'PRAYED FOR'
-                : 'PRAYER');
-    return shell(<>
-      <View style={styles.momentMetaRow}>
-        <Ionicons name="heart-outline" size={15} color={Colors.sage}/>
-        <ThemedText weight="semiBold" style={styles.prayerCardEyebrow}>{prayerType}</ThemedText>
-        <ThemedText style={styles.momentDate}>{date}</ThemedText>
-      </View>
-      <ThemedText weight="bold" style={styles.prayerCardTitle} numberOfLines={2}>{item.title}</ThemedText>
-      {!!distinctBody && <ThemedText style={styles.prayerCardBody} numberOfLines={4}>{distinctBody}</ThemedText>}
-      <View style={styles.prayerStatusPill}>
-        <Ionicons name={item.answered ? 'sparkles-outline' : 'leaf-outline'} size={14} color={Colors.sage}/>
-        <ThemedText weight="semiBold" style={styles.prayerStatusText}>{item.answered ? 'God answered' : 'Carry in prayer'}</ThemedText>
-      </View>
-    </>, styles.prayerReviewCard);
+    const prayerType =
+      item.prayerTypeLabel ||
+      (item.prayerActivityType === 'request'
+        ? 'PRAYER REQUEST'
+        : item.prayerActivityType === 'cast'
+        ? 'CAST PRAYER'
+        : item.prayerActivityType === 'open'
+        ? 'OPEN PRAYER'
+        : item.prayerActivityType === 'need'
+        ? 'PRAYER NEED'
+        : item.prayerActivityType === 'person'
+        ? 'PRAYED FOR'
+        : 'PRAYER');
+    return shell(
+      <>
+        <View style={styles.momentMetaRow}>
+          <Ionicons name="heart-outline" size={15} color={Colors.sage} />
+          <ThemedText weight="semiBold" style={styles.prayerCardEyebrow}>
+            {prayerType}
+          </ThemedText>
+          <ThemedText style={styles.momentDate}>{date}</ThemedText>
+        </View>
+        <ThemedText
+          weight="bold"
+          style={styles.prayerCardTitle}
+          numberOfLines={2}>
+          {item.title}
+        </ThemedText>
+        {!!distinctBody && (
+          <ThemedText style={styles.prayerCardBody} numberOfLines={4}>
+            {distinctBody}
+          </ThemedText>
+        )}
+        <View style={styles.prayerStatusPill}>
+          <Ionicons
+            name={item.answered ? 'sparkles-outline' : 'leaf-outline'}
+            size={14}
+            color={Colors.sage}
+          />
+          <ThemedText weight="semiBold" style={styles.prayerStatusText}>
+            {item.answered ? 'God answered' : 'Carry in prayer'}
+          </ThemedText>
+        </View>
+      </>,
+      styles.prayerReviewCard,
+    );
   }
 
   if (item.presentation === 'gratitude_list') {
     const lines = item.lines?.length ? item.lines : [item.title];
     const visibleLines = showAllLines ? lines : lines.slice(0, 5);
-    return shell(<>
-      <View style={styles.momentMetaRow}>
-        <Ionicons name="heart-circle-outline" size={21} color={Colors.sage}/>
-        <ThemedText weight="semiBold" style={styles.gratitudeCardEyebrow}>GRATITUDE LIST</ThemedText>
-        <ThemedText style={styles.momentDate}>{date}</ThemedText>
-      </View>
-      <ThemedText style={styles.gratitudeCardSubtitle}>{lines.length === 1 ? '1 moment of gratitude' : `${lines.length} moments of gratitude`}</ThemedText>
-      <View style={styles.gratitudeLines}>
-        {visibleLines.map((line, index) => <View key={`${item.id}-${index}`} style={styles.gratitudeLine}>
-          <View style={styles.gratitudeNumber}><ThemedText style={styles.gratitudeNumberText}>{index + 1}</ThemedText></View>
-          <ThemedText style={styles.gratitudeText} numberOfLines={2}>{line}</ThemedText>
-        </View>)}
-      </View>
-      {lines.length > 5 && <TouchableOpacity
-        accessibilityRole="button"
-        accessibilityState={{expanded: showAllLines}}
-        accessibilityLabel={showAllLines ? 'Show fewer gratitude items' : `Show ${lines.length - 5} more gratitude items`}
-        style={styles.momentShowMore}
-        onPress={event => {event.stopPropagation(); setShowAllLines(value => !value);}}>
-        <Ionicons name={showAllLines ? 'chevron-up' : 'chevron-down'} size={12} color={Colors.sage}/>
-        <ThemedText weight="medium" style={styles.momentShowMoreText}>{showAllLines ? 'Show less' : `Show more (${lines.length - 5})`}</ThemedText>
-      </TouchableOpacity>}
-    </>);
+    return shell(
+      <>
+        <View style={styles.momentMetaRow}>
+          <Ionicons name="heart-circle-outline" size={21} color={Colors.sage} />
+          <ThemedText weight="semiBold" style={styles.gratitudeCardEyebrow}>
+            GRATITUDE LIST
+          </ThemedText>
+          <ThemedText style={styles.momentDate}>{date}</ThemedText>
+        </View>
+        <ThemedText style={styles.gratitudeCardSubtitle}>
+          {lines.length === 1
+            ? '1 moment of gratitude'
+            : `${lines.length} moments of gratitude`}
+        </ThemedText>
+        <View style={styles.gratitudeLines}>
+          {visibleLines.map((line, index) => (
+            <View key={`${item.id}-${index}`} style={styles.gratitudeLine}>
+              <View style={styles.gratitudeNumber}>
+                <ThemedText style={styles.gratitudeNumberText}>
+                  {index + 1}
+                </ThemedText>
+              </View>
+              <ThemedText style={styles.gratitudeText} numberOfLines={2}>
+                {line}
+              </ThemedText>
+            </View>
+          ))}
+        </View>
+        {lines.length > 5 && (
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityState={{expanded: showAllLines}}
+            accessibilityLabel={
+              showAllLines
+                ? 'Show fewer gratitude items'
+                : `Show ${lines.length - 5} more gratitude items`
+            }
+            style={styles.momentShowMore}
+            onPress={event => {
+              event.stopPropagation();
+              setShowAllLines(value => !value);
+            }}>
+            <Ionicons
+              name={showAllLines ? 'chevron-up' : 'chevron-down'}
+              size={12}
+              color={Colors.sage}
+            />
+            <ThemedText weight="medium" style={styles.momentShowMoreText}>
+              {showAllLines ? 'Show less' : `Show more (${lines.length - 5})`}
+            </ThemedText>
+          </TouchableOpacity>
+        )}
+      </>,
+    );
   }
 
   if (item.presentation === 'bible_study') {
-    return shell(<>
-      <ThemedText weight="semiBold" style={styles.scriptureCenteredEyebrow}>BIBLE STUDY</ThemedText>
-      <ThemedText weight="semiBold" style={styles.scriptureCenteredTitle}>{item.title}</ThemedText>
-      {!!item.detail && <ThemedText style={styles.scriptureTranslation}>{item.detail}</ThemedText>}
-      {!!distinctBody && <ThemedText style={styles.scriptureQuote} numberOfLines={3}>{distinctBody}</ThemedText>}
-      <View style={styles.momentDivider}/>
-      <View style={styles.scriptureFooter}><Ionicons name="book-outline" size={14} color={Colors.textGray}/><ThemedText style={styles.scriptureFooterText}>Passage read · Reflection saved</ThemedText></View>
-      <ThemedText style={styles.centeredMomentDate}>{date}</ThemedText>
-    </>, styles.scriptureReviewCard);
+    return shell(
+      <>
+        <ThemedText weight="semiBold" style={styles.scriptureCenteredEyebrow}>
+          BIBLE STUDY
+        </ThemedText>
+        <ThemedText weight="semiBold" style={styles.scriptureCenteredTitle}>
+          {item.title}
+        </ThemedText>
+        {!!item.detail && (
+          <ThemedText style={styles.scriptureTranslation}>
+            {item.detail}
+          </ThemedText>
+        )}
+        {!!distinctBody && (
+          <ThemedText style={styles.scriptureQuote} numberOfLines={3}>
+            {distinctBody}
+          </ThemedText>
+        )}
+        <View style={styles.momentDivider} />
+        <View style={styles.scriptureFooter}>
+          <Ionicons name="book-outline" size={14} color={Colors.textGray} />
+          <ThemedText style={styles.scriptureFooterText}>
+            Passage read · Reflection saved
+          </ThemedText>
+        </View>
+        <ThemedText style={styles.centeredMomentDate}>{date}</ThemedText>
+      </>,
+      styles.scriptureReviewCard,
+    );
   }
 
   if (item.presentation === 'session_note') {
-    return shell(<>
-      <View style={styles.momentMetaRow}>
-        <ThemedText weight="semiBold" style={styles.sessionEyebrow}>{(item.subtitle || 'Session Notes').toUpperCase()}</ThemedText>
-        <ThemedText style={styles.momentDate}>{date}</ThemedText>
-      </View>
-      <ThemedText weight="semiBold" style={styles.sessionTitle} numberOfLines={2}>{item.title}</ThemedText>
-      {!!item.detail && <ThemedText style={styles.sessionDetail} numberOfLines={1}>{item.detail}</ThemedText>}
-      {!!distinctBody && <View style={styles.sessionQuoteBox}><ThemedText style={styles.sessionQuote} numberOfLines={3}>{distinctBody}</ThemedText></View>}
-      <View style={styles.momentDivider}/>
-      <View style={styles.sessionFooter}><Ionicons name="document-text-outline" size={14} color={Colors.textGray}/><ThemedText style={styles.sessionFooterText}>Notes and reflections</ThemedText></View>
-    </>);
+    return shell(
+      <>
+        <View style={styles.momentMetaRow}>
+          <ThemedText weight="semiBold" style={styles.sessionEyebrow}>
+            {(item.subtitle || 'Session Notes').toUpperCase()}
+          </ThemedText>
+          <ThemedText style={styles.momentDate}>{date}</ThemedText>
+        </View>
+        <ThemedText
+          weight="semiBold"
+          style={styles.sessionTitle}
+          numberOfLines={2}>
+          {item.title}
+        </ThemedText>
+        {!!item.detail && (
+          <ThemedText style={styles.sessionDetail} numberOfLines={1}>
+            {item.detail}
+          </ThemedText>
+        )}
+        {!!distinctBody && (
+          <View style={styles.sessionQuoteBox}>
+            <ThemedText style={styles.sessionQuote} numberOfLines={3}>
+              {distinctBody}
+            </ThemedText>
+          </View>
+        )}
+        <View style={styles.momentDivider} />
+        <View style={styles.sessionFooter}>
+          <Ionicons
+            name="document-text-outline"
+            size={14}
+            color={Colors.textGray}
+          />
+          <ThemedText style={styles.sessionFooterText}>
+            Notes and reflections
+          </ThemedText>
+        </View>
+      </>,
+    );
   }
 
   if (item.presentation === 'today_win') {
-    return shell(<>
-      <View style={styles.winHeader}>
-        <Ionicons name="trophy-outline" size={22} color={Colors.sage}/>
-        <ThemedText weight="semiBold" style={styles.winEyebrow}>TODAY'S WIN</ThemedText>
-        <ThemedText style={styles.momentDate}>{date}</ThemedText>
-      </View>
-      {!!item.detail && <ThemedText weight="semiBold" style={styles.winType}>{item.detail}</ThemedText>}
-      <View style={styles.momentDivider}/>
-      <ThemedText weight="medium" style={styles.winQuietLabel}>QUIET WIN</ThemedText>
-      <ThemedText style={styles.winText} numberOfLines={4}>{item.text || item.title}</ThemedText>
-    </>);
+    return shell(
+      <>
+        <View style={styles.winHeader}>
+          <Ionicons name="trophy-outline" size={22} color={Colors.sage} />
+          <ThemedText weight="semiBold" style={styles.winEyebrow}>
+            TODAY'S WIN
+          </ThemedText>
+          <ThemedText style={styles.momentDate}>{date}</ThemedText>
+        </View>
+        {!!item.detail && (
+          <ThemedText weight="semiBold" style={styles.winType}>
+            {item.detail}
+          </ThemedText>
+        )}
+        <View style={styles.momentDivider} />
+        <ThemedText weight="medium" style={styles.winQuietLabel}>
+          QUIET WIN
+        </ThemedText>
+        <ThemedText style={styles.winText} numberOfLines={4}>
+          {item.text || item.title}
+        </ThemedText>
+      </>,
+    );
   }
 
   if (HEART_JOURNAL_PRESENTATIONS.has(item.presentation)) {
-    const label = item.presentation === 'guided_reflection' ? (item.subtitle || 'Guided reflection').toUpperCase()
-      : item.presentation === 'devotional_reflection' ? 'DEVOTIONAL REFLECTION'
-        : item.presentation === 'playbook_reflection' ? 'PLAYBOOK REFLECTION'
+    const label =
+      item.presentation === 'guided_reflection'
+        ? (item.subtitle || 'Guided reflection').toUpperCase()
+        : item.presentation === 'devotional_reflection'
+        ? 'DEVOTIONAL REFLECTION'
+        : item.presentation === 'playbook_reflection'
+        ? 'PLAYBOOK REFLECTION'
         : (item.subtitle || 'Thoughts').toUpperCase();
     const bodyLineLimit = item.presentation === 'guided_reflection' ? 2 : 3;
     const hasJournalBlocks = Boolean(item.journalBlocks?.length);
-    return shell(<>
-      <View style={styles.momentMetaRow}>
-        <View style={[styles.reflectionBadge, item.presentation === 'guided_reflection' && styles.guidedBadge]}><ThemedText weight="semiBold" style={styles.reflectionBadgeText}>{label}</ThemedText></View>
-        <ThemedText style={styles.momentDate}>{date}</ThemedText>
-      </View>
-      {item.presentation === 'guided_reflection' && !!item.lifeArea && <View style={styles.guidedLifeArea}>
-        <ThemedText weight="medium" style={styles.guidedLifeAreaValue}>{item.lifeArea}</ThemedText>
-      </View>}
-      <ThemedText weight="medium" style={styles.reflectionTitle} numberOfLines={2}>{item.title}</ThemedText>
-      {!!item.detail && item.detail.trim().toLocaleLowerCase() !== item.title.trim().toLocaleLowerCase()
-        && <ThemedText style={styles.reflectionDetail} numberOfLines={1}>{item.detail}</ThemedText>}
-      {hasJournalBlocks ? (
-        <View pointerEvents="none" style={styles.reflectionBlocksPreview}>
-          <SavedReflectionBlocks blocks={item.journalBlocks!} compact />
+    return shell(
+      <>
+        <View style={styles.momentMetaRow}>
+          <View
+            style={[
+              styles.reflectionBadge,
+              item.presentation === 'guided_reflection' && styles.guidedBadge,
+            ]}>
+            <ThemedText weight="semiBold" style={styles.reflectionBadgeText}>
+              {label}
+            </ThemedText>
+          </View>
+          <ThemedText style={styles.momentDate}>{date}</ThemedText>
         </View>
-      ) : !!distinctBody && (
-        <ThemedText style={styles.reflectionBody} numberOfLines={bodyLineLimit}>{distinctBody}</ThemedText>
-      )}
-    </>, styles.heartJournalReviewCard);
+        {item.presentation === 'guided_reflection' && !!item.lifeArea && (
+          <View style={styles.guidedLifeArea}>
+            <ThemedText weight="medium" style={styles.guidedLifeAreaValue}>
+              {item.lifeArea}
+            </ThemedText>
+          </View>
+        )}
+        <ThemedText
+          weight="medium"
+          style={styles.reflectionTitle}
+          numberOfLines={2}>
+          {item.title}
+        </ThemedText>
+        {!!item.detail &&
+          item.detail.trim().toLocaleLowerCase() !==
+            item.title.trim().toLocaleLowerCase() && (
+            <ThemedText style={styles.reflectionDetail} numberOfLines={1}>
+              {item.detail}
+            </ThemedText>
+          )}
+        {hasJournalBlocks ? (
+          <View pointerEvents="none" style={styles.reflectionBlocksPreview}>
+            <SavedReflectionBlocks blocks={item.journalBlocks!} compact />
+          </View>
+        ) : (
+          !!distinctBody && (
+            <ThemedText
+              style={styles.reflectionBody}
+              numberOfLines={bodyLineLimit}>
+              {distinctBody}
+            </ThemedText>
+          )
+        )}
+      </>,
+      styles.heartJournalReviewCard,
+    );
   }
 
   if (item.presentation === 'morning_check_in') {
-    return shell(<>
-      <View style={styles.morningCheckInFeelingRow}>
-        <FeelingIcon item={item}/>
-        <ThemedText weight="semiBold" style={styles.morningCheckInFeeling} numberOfLines={2}>{item.title}</ThemedText>
-      </View>
-      {!!item.scriptureText && <Text style={styles.morningCheckInVerse} numberOfLines={5}>{item.scriptureText}</Text>}
-      {!!item.detail && <ThemedText weight="medium" style={styles.morningCheckInReference}>{item.detail}</ThemedText>}
-      {!!distinctBody && <>
-        <ThemedText
-          style={styles.morningCheckInUnderneath}
-          numberOfLines={showAllLines ? undefined : 5}
-          onTextLayout={event => {
-            if (!showAllLines) {setUnderneathOverflows(event.nativeEvent.lines.length > 5);}
-          }}>
-          {distinctBody}
-        </ThemedText>
-        {underneathOverflows && <TouchableOpacity
-          accessibilityRole="button"
-          accessibilityState={{expanded: showAllLines}}
-          style={styles.momentShowMore}
-          onPress={event => {event.stopPropagation(); setShowAllLines(value => !value);}}>
-          <Ionicons name={showAllLines ? 'chevron-up' : 'chevron-down'} size={12} color={Colors.sage}/>
-          <ThemedText weight="medium" style={styles.momentShowMoreText}>{showAllLines ? 'Show less' : 'Show more'}</ThemedText>
-        </TouchableOpacity>}
-      </>}
-      <ThemedText style={styles.centeredMomentDate}>{date}</ThemedText>
-    </>);
+    return shell(
+      <>
+        <View style={styles.morningCheckInFeelingRow}>
+          <FeelingIcon item={item} />
+          <ThemedText
+            weight="semiBold"
+            style={styles.morningCheckInFeeling}
+            numberOfLines={2}>
+            {item.title}
+          </ThemedText>
+        </View>
+        {!!item.scriptureText && (
+          <Text style={styles.morningCheckInVerse} numberOfLines={5}>
+            {item.scriptureText}
+          </Text>
+        )}
+        {!!item.detail && (
+          <ThemedText weight="medium" style={styles.morningCheckInReference}>
+            {item.detail}
+          </ThemedText>
+        )}
+        {!!distinctBody && (
+          <>
+            <ThemedText
+              style={styles.morningCheckInUnderneath}
+              numberOfLines={showAllLines ? undefined : 5}
+              onTextLayout={event => {
+                if (!showAllLines) {
+                  setUnderneathOverflows(event.nativeEvent.lines.length > 5);
+                }
+              }}>
+              {distinctBody}
+            </ThemedText>
+            {underneathOverflows && (
+              <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityState={{expanded: showAllLines}}
+                style={styles.momentShowMore}
+                onPress={event => {
+                  event.stopPropagation();
+                  setShowAllLines(value => !value);
+                }}>
+                <Ionicons
+                  name={showAllLines ? 'chevron-up' : 'chevron-down'}
+                  size={12}
+                  color={Colors.sage}
+                />
+                <ThemedText weight="medium" style={styles.momentShowMoreText}>
+                  {showAllLines ? 'Show less' : 'Show more'}
+                </ThemedText>
+              </TouchableOpacity>
+            )}
+          </>
+        )}
+        <ThemedText style={styles.centeredMomentDate}>{date}</ThemedText>
+      </>,
+    );
   }
 
-  if (item.presentation === 'morning_psalm' || item.presentation === 'evening_proverb') {
+  if (
+    item.presentation === 'morning_psalm' ||
+    item.presentation === 'evening_proverb'
+  ) {
     const morning = item.presentation === 'morning_psalm';
     const wisdomItems = item.wisdomItems ?? [];
-    const visibleWisdomItems = showAllLines ? wisdomItems : wisdomItems.slice(0, 1);
+    const visibleWisdomItems = showAllLines
+      ? wisdomItems
+      : wisdomItems.slice(0, 1);
     const hiddenWisdomCount = Math.max(0, wisdomItems.length - 1);
-    const hasStructuredWisdom = !morning && (wisdomItems.length > 0 || Boolean(item.wisdomResponse));
-    return shell(<>
-      <View style={styles.momentMetaRow}>
-        <Ionicons name={morning ? 'sunny-outline' : 'moon-outline'} size={19} color={Colors.sage}/>
-        <ThemedText weight="semiBold" style={styles.rhythmEyebrow}>{morning ? 'MORNING PSALM' : 'EVENING PROVERB'}</ThemedText>
-        <ThemedText style={styles.momentDate}>{date}</ThemedText>
-      </View>
-      <ThemedText weight="semiBold" style={styles.rhythmTitle}>{item.title}</ThemedText>
-      {morning && !!distinctBody && <ThemedText weight="semiBold" style={styles.rhythmTruthLabel}>WHO GOD IS</ThemedText>}
-      {hasStructuredWisdom && <View style={styles.proverbWisdomSection}>
-        <ThemedText weight="semiBold" style={styles.rhythmTruthLabel}>WISDOM YOU NOTICED</ThemedText>
-        {visibleWisdomItems.map((wisdom, index) => <View key={`${item.id}-wisdom-${index}`} style={styles.proverbWisdomItem}>
-          <ThemedText weight="semiBold" style={styles.proverbWisdomLabel}>{wisdom.label}</ThemedText>
-          {!!wisdom.verses && <ProverbVerseExcerpt reference={wisdom.verses} numberOfLines={5} />}
-          {!!wisdom.response && <View style={styles.proverbResponseSection}>
-            <ThemedText weight="semiBold" style={styles.rhythmTruthLabel}>YOUR RESPONSE</ThemedText>
-            <ThemedText style={styles.proverbResponseText}>{wisdom.response}</ThemedText>
-          </View>}
-        </View>)}
-        {wisdomItems.length > 1 && <TouchableOpacity
-          accessibilityRole="button"
-          accessibilityState={{expanded: showAllLines}}
-          accessibilityLabel={showAllLines ? 'Show less wisdom' : `Show ${hiddenWisdomCount} more wisdom ${hiddenWisdomCount === 1 ? 'item' : 'items'}`}
-          style={styles.momentShowMore}
-          onPress={event => {event.stopPropagation(); setShowAllLines(value => !value);}}>
-          <Ionicons name={showAllLines ? 'chevron-up' : 'chevron-down'} size={12} color={Colors.sage}/>
-          <ThemedText weight="medium" style={styles.momentShowMoreText}>{showAllLines ? 'Show less' : `Show more (${hiddenWisdomCount})`}</ThemedText>
-        </TouchableOpacity>}
-        {!!item.wisdomResponse && <View style={styles.proverbResponseSection}>
-          <ThemedText weight="semiBold" style={styles.rhythmTruthLabel}>YOUR RESPONSE</ThemedText>
-          <ThemedText style={styles.proverbResponseText}>{item.wisdomResponse}</ThemedText>
-        </View>}
-      </View>}
-      {!hasStructuredWisdom && !!distinctBody && <ThemedText style={styles.rhythmBody} numberOfLines={4}>{distinctBody}</ThemedText>}
-      {item.passageRead === false && <View style={styles.rhythmReadingProgress} accessibilityElementsHidden>
-        <MaterialCommunityIcons name="progress-star" size={14} color={Colors.sage}/>
-      </View>}
-    </>, styles.rhythmReviewCard);
+    const hasStructuredWisdom =
+      !morning && (wisdomItems.length > 0 || Boolean(item.wisdomResponse));
+    return shell(
+      <>
+        <View style={styles.momentMetaRow}>
+          <Ionicons
+            name={morning ? 'sunny-outline' : 'moon-outline'}
+            size={19}
+            color={Colors.sage}
+          />
+          <ThemedText weight="semiBold" style={styles.rhythmEyebrow}>
+            {morning ? 'MORNING PSALM' : 'EVENING PROVERB'}
+          </ThemedText>
+          <ThemedText style={styles.momentDate}>{date}</ThemedText>
+        </View>
+        <ThemedText weight="semiBold" style={styles.rhythmTitle}>
+          {item.title}
+        </ThemedText>
+        {morning && !!distinctBody && (
+          <ThemedText weight="semiBold" style={styles.rhythmTruthLabel}>
+            WHO GOD IS
+          </ThemedText>
+        )}
+        {hasStructuredWisdom && (
+          <View style={styles.proverbWisdomSection}>
+            <ThemedText weight="semiBold" style={styles.rhythmTruthLabel}>
+              WISDOM YOU NOTICED
+            </ThemedText>
+            {visibleWisdomItems.map((wisdom, index) => (
+              <View
+                key={`${item.id}-wisdom-${index}`}
+                style={styles.proverbWisdomItem}>
+                <ThemedText weight="semiBold" style={styles.proverbWisdomLabel}>
+                  {wisdom.label}
+                </ThemedText>
+                {!!wisdom.verses && (
+                  <ProverbVerseExcerpt
+                    reference={wisdom.verses}
+                    numberOfLines={5}
+                  />
+                )}
+                {!!wisdom.response && (
+                  <View style={styles.proverbResponseSection}>
+                    <ThemedText
+                      weight="semiBold"
+                      style={styles.rhythmTruthLabel}>
+                      YOUR RESPONSE
+                    </ThemedText>
+                    <ThemedText style={styles.proverbResponseText}>
+                      {wisdom.response}
+                    </ThemedText>
+                  </View>
+                )}
+              </View>
+            ))}
+            {wisdomItems.length > 1 && (
+              <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityState={{expanded: showAllLines}}
+                accessibilityLabel={
+                  showAllLines
+                    ? 'Show less wisdom'
+                    : `Show ${hiddenWisdomCount} more wisdom ${
+                        hiddenWisdomCount === 1 ? 'item' : 'items'
+                      }`
+                }
+                style={styles.momentShowMore}
+                onPress={event => {
+                  event.stopPropagation();
+                  setShowAllLines(value => !value);
+                }}>
+                <Ionicons
+                  name={showAllLines ? 'chevron-up' : 'chevron-down'}
+                  size={12}
+                  color={Colors.sage}
+                />
+                <ThemedText weight="medium" style={styles.momentShowMoreText}>
+                  {showAllLines
+                    ? 'Show less'
+                    : `Show more (${hiddenWisdomCount})`}
+                </ThemedText>
+              </TouchableOpacity>
+            )}
+            {!!item.wisdomResponse && (
+              <View style={styles.proverbResponseSection}>
+                <ThemedText weight="semiBold" style={styles.rhythmTruthLabel}>
+                  YOUR RESPONSE
+                </ThemedText>
+                <ThemedText style={styles.proverbResponseText}>
+                  {item.wisdomResponse}
+                </ThemedText>
+              </View>
+            )}
+          </View>
+        )}
+        {!hasStructuredWisdom && !!distinctBody && (
+          <ThemedText style={styles.rhythmBody} numberOfLines={4}>
+            {distinctBody}
+          </ThemedText>
+        )}
+        {item.passageRead === false && (
+          <View
+            style={styles.rhythmReadingProgress}
+            accessibilityElementsHidden>
+            <MaterialCommunityIcons
+              name="progress-star"
+              size={14}
+              color={Colors.sage}
+            />
+          </View>
+        )}
+      </>,
+      styles.rhythmReviewCard,
+    );
   }
 
   if (item.presentation === 'scripture_reflection') {
-    return shell(<>
-      <View style={styles.momentMetaRow}><Ionicons name="book-outline" size={18} color={Colors.sage}/><ThemedText weight="semiBold" style={styles.sessionEyebrow}>SCRIPTURE NOTE</ThemedText><ThemedText style={styles.momentDate}>{date}</ThemedText></View>
-      <ThemedText weight="semiBold" style={styles.sessionTitle}>{item.title}</ThemedText>
-      {!!distinctBody && <View style={styles.sessionQuoteBox}><ThemedText style={styles.sessionQuote} numberOfLines={4}>{distinctBody}</ThemedText></View>}
-    </>);
+    return shell(
+      <ScriptureNotePreview
+        reference={item.title}
+        version={item.detail || 'NASB'}
+        journalBlocks={item.journalBlocks}
+        content={distinctBody}
+        meta={<ThemedText style={styles.momentDate}>{date}</ThemedText>}
+        metaRightInset={36}
+        metaMinHeight={24}
+        blocksPointerEvents="none"
+      />,
+      styles.scriptureNoteReviewCard,
+    );
   }
 
   if (item.presentation === 'todo') {
     const visibleTodos = showAllLines ? relatedItems : relatedItems.slice(0, 5);
     const completedCount = relatedItems.filter(todo => todo.completed).length;
     const pendingCount = relatedItems.length - completedCount;
-    return shell(<>
-      <View style={styles.momentMetaRow}>
-        <Entypo name="list" size={19} color={Colors.sage}/>
-        <ThemedText weight="semiBold" style={styles.sessionEyebrow}>TO-DOS</ThemedText>
-        <ThemedText style={styles.momentDate}>{date}</ThemedText>
-      </View>
-      <ThemedText style={styles.todoSummary}>{pendingCount} pending · {completedCount} done</ThemedText>
-      <View style={styles.todoReviewList}>
-        {visibleTodos.map(todo => <View key={todo.id} style={styles.todoReviewRow}>
-          <Ionicons name={todo.completed ? 'checkmark-circle' : 'ellipse-outline'} size={20} color={todo.completed ? Colors.sage : Colors.textGray}/>
-          <ThemedText style={[styles.todoReviewText, todo.completed && styles.todoReviewTextCompleted]} numberOfLines={2}>{todo.text || todo.title}</ThemedText>
-        </View>)}
-      </View>
-      {relatedItems.length > 5 && <TouchableOpacity
-        accessibilityRole="button"
-        accessibilityState={{expanded: showAllLines}}
-        accessibilityLabel={showAllLines ? 'Show fewer to-dos' : `Show ${relatedItems.length - 5} more to-dos`}
-        style={styles.momentShowMore}
-        onPress={event => {event.stopPropagation(); setShowAllLines(value => !value);}}>
-        <Ionicons name={showAllLines ? 'chevron-up' : 'chevron-down'} size={12} color={Colors.sage}/>
-        <ThemedText weight="medium" style={styles.momentShowMoreText}>{showAllLines ? 'Show less' : `Show more (${relatedItems.length - 5})`}</ThemedText>
-      </TouchableOpacity>}
-    </>);
+    return shell(
+      <>
+        <View style={styles.momentMetaRow}>
+          <Entypo name="list" size={19} color={Colors.sage} />
+          <ThemedText weight="semiBold" style={styles.sessionEyebrow}>
+            TO-DOS
+          </ThemedText>
+          <ThemedText style={styles.momentDate}>{date}</ThemedText>
+        </View>
+        <ThemedText style={styles.todoSummary}>
+          {pendingCount} pending · {completedCount} done
+        </ThemedText>
+        <View style={styles.todoReviewList}>
+          {visibleTodos.map(todo => (
+            <View key={todo.id} style={styles.todoReviewRow}>
+              <Ionicons
+                name={todo.completed ? 'checkmark-circle' : 'ellipse-outline'}
+                size={20}
+                color={todo.completed ? Colors.sage : Colors.textGray}
+              />
+              <ThemedText
+                style={[
+                  styles.todoReviewText,
+                  todo.completed && styles.todoReviewTextCompleted,
+                ]}
+                numberOfLines={2}>
+                {todo.text || todo.title}
+              </ThemedText>
+            </View>
+          ))}
+        </View>
+        {relatedItems.length > 5 && (
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityState={{expanded: showAllLines}}
+            accessibilityLabel={
+              showAllLines
+                ? 'Show fewer to-dos'
+                : `Show ${relatedItems.length - 5} more to-dos`
+            }
+            style={styles.momentShowMore}
+            onPress={event => {
+              event.stopPropagation();
+              setShowAllLines(value => !value);
+            }}>
+            <Ionicons
+              name={showAllLines ? 'chevron-up' : 'chevron-down'}
+              size={12}
+              color={Colors.sage}
+            />
+            <ThemedText weight="medium" style={styles.momentShowMoreText}>
+              {showAllLines
+                ? 'Show less'
+                : `Show more (${relatedItems.length - 5})`}
+            </ThemedText>
+          </TouchableOpacity>
+        )}
+      </>,
+    );
   }
 
   if (item.presentation === 'focus') {
     const priorities = item.focusPriorities ?? [];
-    return shell(<>
-      <View style={styles.momentMetaRow}>
-        <FocusCategoryIcon item={item} size={18}/>
-        <ThemedText weight="semiBold" style={styles.sessionEyebrow}>{item.title.toUpperCase()}</ThemedText>
-        <ThemedText style={styles.momentDate}>{date}</ThemedText>
-      </View>
-      {!!distinctBody && <ThemedText weight="medium" style={styles.journalMomentText}>{distinctBody}</ThemedText>}
-      {priorities.length > 0 && <View style={styles.focusPriorities}>
-        <ThemedText weight="medium" style={styles.focusPrioritiesTitle}>
-          {priorities.length === 1 ? 'TOP PRIORITY' : `TOP ${priorities.length} PRIORITIES`}
-        </ThemedText>
-        {priorities.map((priority, index) => <View key={`${item.id}-priority-${index}`} style={styles.focusPriorityRow}>
-          <Ionicons name={priority.completed ? 'checkmark-circle' : 'ellipse-outline'} size={18} color={priority.completed ? Colors.sage : Colors.textGray}/>
-          <ThemedText style={[styles.focusPriorityText, priority.completed && styles.focusPriorityTextCompleted]}>{priority.text}</ThemedText>
-        </View>)}
-      </View>}
-    </>);
+    return shell(
+      <>
+        <View style={styles.momentMetaRow}>
+          <FocusCategoryIcon item={item} size={18} />
+          <ThemedText weight="semiBold" style={styles.sessionEyebrow}>
+            {item.title.toUpperCase()}
+          </ThemedText>
+          <ThemedText style={styles.momentDate}>{date}</ThemedText>
+        </View>
+        {!!distinctBody && (
+          <ThemedText weight="medium" style={styles.journalMomentText}>
+            {distinctBody}
+          </ThemedText>
+        )}
+        {priorities.length > 0 && (
+          <View style={styles.focusPriorities}>
+            <ThemedText weight="medium" style={styles.focusPrioritiesTitle}>
+              {priorities.length === 1
+                ? 'TOP PRIORITY'
+                : `TOP ${priorities.length} PRIORITIES`}
+            </ThemedText>
+            {priorities.map((priority, index) => (
+              <View
+                key={`${item.id}-priority-${index}`}
+                style={styles.focusPriorityRow}>
+                <Ionicons
+                  name={
+                    priority.completed ? 'checkmark-circle' : 'ellipse-outline'
+                  }
+                  size={18}
+                  color={priority.completed ? Colors.sage : Colors.textGray}
+                />
+                <ThemedText
+                  style={[
+                    styles.focusPriorityText,
+                    priority.completed && styles.focusPriorityTextCompleted,
+                  ]}>
+                  {priority.text}
+                </ThemedText>
+              </View>
+            ))}
+          </View>
+        )}
+      </>,
+    );
   }
 
   if (item.presentation === 'looking_forward') {
     const towardDate = formatFollowingDate(item.selectedDate).toUpperCase();
-    return shell(<>
-      <View style={styles.lookingForwardHeader}>
-        <Ionicons name="arrow-forward-circle-outline" size={18} color={Colors.sage}/>
-        <ThemedText weight="semiBold" style={styles.sessionEyebrow}>LOOKING TOWARD {towardDate}</ThemedText>
-      </View>
-      <ThemedText weight="medium" style={styles.lookingForwardText} numberOfLines={4}>{item.text || item.title}</ThemedText>
-      {!!item.detail && <View style={styles.lookingForwardHeldSection}>
-        <ThemedText weight="semiBold" style={styles.rhythmTruthLabel}>HOW YOU HELD IT</ThemedText>
-        <View style={styles.lookingForwardEmotionRow}>
-          <FeelingIcon item={item}/>
-          <ThemedText weight="semiBold" style={styles.lookingForwardEmotion}>{item.detail}</ThemedText>
+    return shell(
+      <>
+        <View style={styles.lookingForwardHeader}>
+          <Ionicons
+            name="arrow-forward-circle-outline"
+            size={18}
+            color={Colors.sage}
+          />
+          <ThemedText weight="semiBold" style={styles.sessionEyebrow}>
+            LOOKING TOWARD {towardDate}
+          </ThemedText>
         </View>
-      </View>}
-      <ThemedText style={styles.lookingForwardWritten}>Written {date}</ThemedText>
-    </>, styles.lookingForwardReviewCard);
+        <ThemedText
+          weight="medium"
+          style={styles.lookingForwardText}
+          numberOfLines={4}>
+          {item.text || item.title}
+        </ThemedText>
+        {!!item.detail && (
+          <View style={styles.lookingForwardHeldSection}>
+            <ThemedText weight="semiBold" style={styles.rhythmTruthLabel}>
+              HOW YOU HELD IT
+            </ThemedText>
+            <View style={styles.lookingForwardEmotionRow}>
+              <FeelingIcon item={item} />
+              <ThemedText
+                weight="semiBold"
+                style={styles.lookingForwardEmotion}>
+                {item.detail}
+              </ThemedText>
+            </View>
+          </View>
+        )}
+        <ThemedText style={styles.lookingForwardWritten}>
+          Written {date}
+        </ThemedText>
+      </>,
+      styles.lookingForwardReviewCard,
+    );
   }
 
-  return shell(<>
-    <View style={styles.momentMetaRow}><Ionicons name="sunny-outline" size={18} color={Colors.sage}/><ThemedText weight="semiBold" style={styles.sessionEyebrow}>MORNING CHECK-IN</ThemedText><ThemedText style={styles.momentDate}>{date}</ThemedText></View>
-    <ThemedText weight="medium" style={styles.journalMomentText} numberOfLines={4}>{item.text || item.title}</ThemedText>
-  </>);
+  return shell(
+    <>
+      <View style={styles.momentMetaRow}>
+        <Ionicons name="sunny-outline" size={18} color={Colors.sage} />
+        <ThemedText weight="semiBold" style={styles.sessionEyebrow}>
+          MORNING CHECK-IN
+        </ThemedText>
+        <ThemedText style={styles.momentDate}>{date}</ThemedText>
+      </View>
+      <ThemedText
+        weight="medium"
+        style={styles.journalMomentText}
+        numberOfLines={4}>
+        {item.text || item.title}
+      </ThemedText>
+    </>,
+  );
 };
 
 const ReviewScreen: React.FC = () => {
-  const { preferences } = useAuth();
+  const {preferences} = useAuth();
   const weekStart = preferences?.weekStart || 'monday';
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const insets = useSafeAreaInsets();
-  const topInset = Math.max(insets.top, Platform.OS === 'android' ? StatusBar.currentHeight ?? 0 : 0);
-  const {bottom: floatingActionBottom, keyboardVisible, keyboardHeight} = useFloatingKeyboardButton(insets.bottom);
+  const topInset = Math.max(
+    insets.top,
+    Platform.OS === 'android' ? StatusBar.currentHeight ?? 0 : 0,
+  );
+  const {
+    bottom: floatingActionBottom,
+    keyboardVisible,
+    keyboardHeight,
+  } = useFloatingKeyboardButton(insets.bottom);
   const {height: screenHeight, width: screenWidth} = useWindowDimensions();
   const scrollRef = useRef<ScrollView>(null);
+  const reviewMomentsListRef = useRef<ReviewMomentsListHandle>(null);
+  const weeklyAdditionalMemoryInputRef = useRef<TextInput>(null);
   const customFeelingInputRef = useRef<TextInput>(null);
   const pendingCustomFeelingFocusRef = useRef(false);
   const godFaithfulnessInputRef = useRef<TextInput>(null);
@@ -921,7 +1523,7 @@ const ReviewScreen: React.FC = () => {
   const weeklyChallengeOtherInputRef = useRef<TextInput>(null);
   const weeklyPrayerInputRef = useRef<TextInput>(null);
   const weeklyPriorityInputsRef = useRef<FocusPriorityInputsHandle>(null);
-  const editingWeeklySummaryRef = useRef(false);
+  const editingReviewSummaryRef = useRef(false);
   const weeklyGratitudeInputRefs = useRef<Array<TextInput | null>>([]);
   const completingReviewRef = useRef<string | null>(null);
   const loadedReviewIdRef = useRef<string | null>(null);
@@ -933,7 +1535,9 @@ const ReviewScreen: React.FC = () => {
       weeklyCareOtherInputRef.current,
       weeklyCareInputRef.current,
     ].find(candidate => candidate?.isFocused());
-    if (!input) {return;}
+    if (!input) {
+      return;
+    }
     scrollRef.current?.scrollResponderScrollNativeHandleToKeyboard(
       input,
       80,
@@ -943,20 +1547,88 @@ const ReviewScreen: React.FC = () => {
 
   const revealWeeklyChallengeOtherInput = useCallback(() => {
     const input = weeklyChallengeOtherInputRef.current;
-    if (!input?.isFocused()) {return;}
+    if (!input?.isFocused()) {
+      return;
+    }
     const handle = findNodeHandle(input);
-    if (handle) {scrollRef.current?.scrollResponderScrollNativeHandleToKeyboard(handle, 80, true);}
+    if (handle) {
+      scrollRef.current?.scrollResponderScrollNativeHandleToKeyboard(
+        handle,
+        80,
+        true,
+      );
+    }
   }, []);
 
   const revealWeeklyClosingInput = useCallback(() => {
     const input = weeklyPrayerInputRef.current;
-    if (!input?.isFocused()) {return;}
+    if (!input?.isFocused()) {
+      return;
+    }
     const handle = findNodeHandle(input);
-    if (handle) {scrollRef.current?.scrollResponderScrollNativeHandleToKeyboard(handle, 80, true);}
+    if (handle) {
+      scrollRef.current?.scrollResponderScrollNativeHandleToKeyboard(
+        handle,
+        80,
+        true,
+      );
+    }
   }, []);
 
+  const revealWeeklyAdditionalMemoryInput = useCallback(() => {
+    const input = weeklyAdditionalMemoryInputRef.current;
+    const inputHandle = input ? findNodeHandle(input) : null;
+    const scrollResponder =
+      reviewMomentsListRef.current?.getScrollResponder() as
+        | {
+            scrollResponderScrollNativeHandleToKeyboard?: (
+              nodeHandle: number,
+              additionalOffset?: number,
+              preventNegativeScrollOffset?: boolean,
+            ) => void;
+          }
+        | null
+        | undefined;
+    if (
+      inputHandle &&
+      scrollResponder?.scrollResponderScrollNativeHandleToKeyboard
+    ) {
+      scrollResponder.scrollResponderScrollNativeHandleToKeyboard(
+        inputHandle,
+        96,
+        true,
+      );
+      return;
+    }
+    reviewMomentsListRef.current?.scrollToEnd({animated: true});
+  }, []);
+
+  useEffect(() => {
+    const eventName =
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const subscription = Keyboard.addListener(eventName, () => {
+      if (weeklyAdditionalMemoryInputRef.current?.isFocused()) {
+        requestAnimationFrame(revealWeeklyAdditionalMemoryInput);
+      }
+    });
+    return () => subscription.remove();
+  }, [revealWeeklyAdditionalMemoryInput]);
+
+  useEffect(() => {
+    if (
+      !keyboardVisible ||
+      !weeklyAdditionalMemoryInputRef.current?.isFocused()
+    ) {
+      return;
+    }
+    requestAnimationFrame(revealWeeklyAdditionalMemoryInput);
+  }, [keyboardVisible, revealWeeklyAdditionalMemoryInput]);
+
   const [stage, setStage] = useState<ReviewStage>(1);
-  const [weeklySummaryTab, setWeeklySummaryTab] = useState<WeeklyReviewSummaryTab>('back');
+  const [weeklySummaryTab, setWeeklySummaryTab] =
+    useState<WeeklyReviewSummaryTab>('back');
+  const [monthlySummaryTab, setMonthlySummaryTab] =
+    useState<MonthlyReviewSummaryTab>('back');
   const [review, setReview] = useState<LocalReviewEntry | null>(null);
   const [isLoadingReview, setIsLoadingReview] = useState(true);
   const [reviewLoadError, setReviewLoadError] = useState(false);
@@ -967,20 +1639,41 @@ const ReviewScreen: React.FC = () => {
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [isFinishingWeeklyReview, setIsFinishingWeeklyReview] = useState(false);
   const [weeklyCompletionError, setWeeklyCompletionError] = useState(false);
-  const [memorableItems, setMemorableItems] = useState(review?.memorableItems ?? []);
+  const [isFinishingMonthlyReview, setIsFinishingMonthlyReview] =
+    useState(false);
+  const [monthlyCompletionError, setMonthlyCompletionError] = useState(false);
+  const [memorableItems, setMemorableItems] = useState(
+    review?.memorableItems ?? [],
+  );
   const [capture, setCapture] = useState<ReviewCapture | null>(null);
+  const [monthlyMomentsView, setMonthlyMomentsView] = useState<
+    'weekly_bookmarks' | 'all'
+  >('all');
   const [weeklyRhythm, setWeeklyRhythm] = useState<WeeklyRhythm | null>(null);
-  const [weeklyCheckInFeelings, setWeeklyCheckInFeelings] = useState<WeeklyCheckInFeeling[]>([]);
+  const [checkInFeelings, setCheckInFeelings] = useState<
+    Array<WeeklyCheckInFeeling | MonthlyCheckInFeeling>
+  >([]);
+  const [monthlyWeeklyReviewFeelings, setMonthlyWeeklyReviewFeelings] =
+    useState<MonthlyWeeklyReviewFeelings>({reviewCount: 0, feelings: []});
+  const [expandedMonthlyFeeling, setExpandedMonthlyFeeling] = useState<
+    string | null
+  >(null);
   const [showAllWeeklySummary, setShowAllWeeklySummary] = useState(false);
   const [showCustomFeelingInput, setShowCustomFeelingInput] = useState(false);
   const [showAllWeeklyFeelings, setShowAllWeeklyFeelings] = useState(false);
-  const [showGodFaithfulnessInput, setShowGodFaithfulnessInput] = useState(false);
+  const [showGodFaithfulnessInput, setShowGodFaithfulnessInput] =
+    useState(false);
   const [weeklyGratitudeInputCount, setWeeklyGratitudeInputCount] = useState(1);
   const [weeklyPriorityInputCount, setWeeklyPriorityInputCount] = useState(1);
-  const [showWeeklyGratitudeLookBack, setShowWeeklyGratitudeLookBack] = useState(false);
+  const [showWeeklyGratitudeLookBack, setShowWeeklyGratitudeLookBack] =
+    useState(false);
   const [closingFeelings, setClosingFeelings] = useState<string[] | null>(null);
-  const feelingsCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const weeklyGratitudeSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const feelingsCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
+  const weeklyGratitudeSaveTimerRef = useRef<ReturnType<
+    typeof setTimeout
+  > | null>(null);
   const pendingWeeklyGratitudeRef = useRef<{
     items: string[];
     periodStart: string;
@@ -988,194 +1681,329 @@ const ReviewScreen: React.FC = () => {
     reviewId: string;
   } | null>(null);
 
-  useEffect(() => () => {
-    if (feelingsCloseTimerRef.current) {clearTimeout(feelingsCloseTimerRef.current);}
-    if (weeklyGratitudeSaveTimerRef.current) {clearTimeout(weeklyGratitudeSaveTimerRef.current);}
-    const pendingWeeklyGratitude = pendingWeeklyGratitudeRef.current;
-    pendingWeeklyGratitudeRef.current = null;
-    if (pendingWeeklyGratitude) {
-      saveWeeklyGratitudeMoment(pendingWeeklyGratitude).catch(error => {
-        Logger.error('Failed to save Weekly Gratitude Moment', error as Error, {
-          component: 'ReviewScreen',
-          reviewId: pendingWeeklyGratitude.reviewId,
+  useEffect(
+    () => () => {
+      if (feelingsCloseTimerRef.current) {
+        clearTimeout(feelingsCloseTimerRef.current);
+      }
+      if (weeklyGratitudeSaveTimerRef.current) {
+        clearTimeout(weeklyGratitudeSaveTimerRef.current);
+      }
+      const pendingWeeklyGratitude = pendingWeeklyGratitudeRef.current;
+      pendingWeeklyGratitudeRef.current = null;
+      if (pendingWeeklyGratitude) {
+        saveWeeklyGratitudeMoment(pendingWeeklyGratitude).catch(error => {
+          Logger.error(
+            'Failed to save Weekly Gratitude Moment',
+            error as Error,
+            {
+              component: 'ReviewScreen',
+              reviewId: pendingWeeklyGratitude.reviewId,
+            },
+          );
         });
-      });
-    }
-  }, []);
+      }
+    },
+    [],
+  );
 
   const stages = useMemo(() => getReviewStages(reviewType), [reviewType]);
   const stageCount = stages.length;
   const currentStageKind = stages[stage - 1]?.kind;
-  const isWeeklyCoverStage = reviewType === 'weekly' && currentStageKind === 'cover';
-  const reviewProgressStepCount = Math.max(1, reviewType === 'weekly' ? stageCount - 2 : stageCount);
+  const isDesignedReview = reviewType === 'weekly' || reviewType === 'monthly';
+  const isDesignedCoverStage = isDesignedReview && currentStageKind === 'cover';
+  const reviewProgressStepCount = Math.max(
+    1,
+    isDesignedReview ? stageCount - 2 : stageCount,
+  );
   const reviewProgressStep = Math.min(
     reviewProgressStepCount,
-    Math.max(0, reviewType === 'weekly' ? stage - 1 : stage),
+    Math.max(0, isDesignedReview ? stage - 1 : stage),
   );
   const isFeelingsStage = currentStageKind === 'feelings';
-  const isWeeklyGodFaithfulnessStage = reviewType === 'weekly'
-    && stages[stage - 1]?.key === 'god';
-  const isWeeklyCareStage = reviewType === 'weekly'
-    && stages[stage - 1]?.key === 'dont_forget';
-  const hasAutoScrollingReviewInput = isFeelingsStage || isWeeklyGodFaithfulnessStage || isWeeklyCareStage;
+  const isWeeklyGodFaithfulnessStage =
+    reviewType === 'weekly' && stages[stage - 1]?.key === 'god';
+  const isWeeklyCareStage =
+    reviewType === 'weekly' && stages[stage - 1]?.key === 'dont_forget';
+  const isMonthlyPatternsStage =
+    reviewType === 'monthly' && stages[stage - 1]?.key === 'notice';
+  const hasAutoScrollingReviewInput =
+    isFeelingsStage ||
+    isWeeklyGodFaithfulnessStage ||
+    isWeeklyCareStage ||
+    isMonthlyPatternsStage;
   const isLifeCheckInStage = currentStageKind === 'life_check_in';
   const isCapturedStage = currentStageKind === 'captured';
   const isRememberedStage = currentStageKind === 'remembered';
-  const isWeeklyLookingAheadStage = reviewType === 'weekly'
-    && stages[stage - 1]?.key === 'looking_ahead';
-  const isWeeklyPriorityStage = reviewType === 'weekly' && currentStageKind === 'priorities';
-  const isWeeklyLookingForwardWalkthrough = reviewType === 'weekly'
-    && ['looking_forward_feeling', 'looking_forward'].includes(stages[stage - 1]?.key ?? '');
-  const hasFloatingNavigation = currentStageKind !== undefined
-    && currentStageKind !== 'cover'
-    && currentStageKind !== 'ready';
-  const showsStandardNextButton = hasFloatingNavigation
-    && !isFeelingsStage
-    && !isCapturedStage
-    && !isWeeklyLookingAheadStage;
-  const hasHorizontalMomentCarousels = isCapturedStage || (reviewType === 'weekly' && isRememberedStage);
-  const hasSavedProgress = review?.status === 'draft' && (
-    memorableItems.length > 0 ||
-    Object.values(answers).some(answer => answer.trim().length > 0)
-  );
+  const isWeeklyLookingAheadStage =
+    reviewType === 'weekly' && stages[stage - 1]?.key === 'looking_ahead';
+  const isMonthlyLookingAheadStage =
+    reviewType === 'monthly' && stages[stage - 1]?.key === 'step_into';
+  const isDesignedLookingAheadStage =
+    isWeeklyLookingAheadStage || isMonthlyLookingAheadStage;
+  const isDesignedPriorityStage =
+    isDesignedReview && currentStageKind === 'priorities';
+  const isWeeklyLookingForwardWalkthrough =
+    reviewType === 'weekly' &&
+    ['looking_forward_feeling', 'looking_forward'].includes(
+      stages[stage - 1]?.key ?? '',
+    );
+  const hasFloatingNavigation =
+    currentStageKind !== undefined &&
+    currentStageKind !== 'cover' &&
+    currentStageKind !== 'ready';
+  const showsStandardNextButton =
+    hasFloatingNavigation &&
+    !isFeelingsStage &&
+    !isCapturedStage &&
+    !isDesignedLookingAheadStage;
+  const hasHorizontalMomentCarousels =
+    isDesignedReview && (isCapturedStage || isRememberedStage);
+  const hasSavedProgress =
+    review?.status === 'draft' &&
+    (memorableItems.length > 0 ||
+      Object.values(answers).some(answer => answer.trim().length > 0));
 
   const typeFromRoute = route.params?.type as ReviewType | undefined;
   const startFromRoute = route.params?.periodStart as string | undefined;
   const endFromRoute = route.params?.periodEnd as string | undefined;
 
-  const loadReview = useCallback(async (isActive: () => boolean) => {
-    const anchor = toLocalDateString(new Date());
-    const settings = await getReviewSettings(weekStart);
-    if (!isActive()) {return;}
-    let type: ReviewType = typeFromRoute ?? 'weekly';
-    let start = '';
-    let end = '';
-
-    if (typeFromRoute && startFromRoute && endFromRoute) {
-      start = startFromRoute;
-      end = endFromRoute;
-    } else {
-      let period: ReviewPeriod | null = null;
-      switch (type) {
-        case 'weekly':
-          period = getWeeklyPeriodFor(settings.weekEndsOn, anchor);
-          break;
-        case 'monthly':
-          period = getMonthlyPeriodFor(anchor);
-          break;
-        case 'quarterly':
-          period = getQuarterlyPeriodFor(anchor);
-          break;
-        case 'year_end':
-          period = getYearEndPeriodFor(anchor);
-          break;
-        case 'begin_year':
-          period = getBeginYearPeriodFor(anchor);
-          break;
+  const loadReview = useCallback(
+    async (isActive: () => boolean) => {
+      const anchor = toLocalDateString(new Date());
+      const settings = await getReviewSettings(weekStart);
+      if (!isActive()) {
+        return;
       }
+      let type: ReviewType = typeFromRoute ?? 'weekly';
+      let start = '';
+      let end = '';
 
-      if (!period) {
-        start = anchor;
-        end = anchor;
+      if (typeFromRoute && startFromRoute && endFromRoute) {
+        start = startFromRoute;
+        end = endFromRoute;
       } else {
-        type = period.type;
-        start = period.periodStart;
-        end = period.periodEnd;
+        let period: ReviewPeriod | null = null;
+        switch (type) {
+          case 'weekly':
+            period = getWeeklyPeriodFor(settings.weekEndsOn, anchor);
+            break;
+          case 'monthly':
+            period = getMonthlyPeriodFor(anchor);
+            break;
+          case 'quarterly':
+            period = getQuarterlyPeriodFor(anchor);
+            break;
+          case 'year_end':
+            period = getYearEndPeriodFor(anchor);
+            break;
+          case 'begin_year':
+            period = getBeginYearPeriodFor(anchor);
+            break;
+        }
+
+        if (!period) {
+          start = anchor;
+          end = anchor;
+        } else {
+          type = period.type;
+          start = period.periodStart;
+          end = period.periodEnd;
+        }
       }
-    }
 
-    const existing = await getOrCreateLocalReviewForPeriod({
-      type,
-      periodStart: start,
-      periodEnd: end,
-    });
-    if (!isActive()) {return;}
-
-    const [captured, rhythm, checkInFeelings] = await Promise.all([
-      getReviewCapture(start, end, type),
-      type === 'weekly' ? getWeeklyRhythm(start, end, end) : Promise.resolve(null),
-      type === 'weekly' ? getWeeklyCheckInFeelings(start, end) : Promise.resolve([]),
-    ]);
-    if (!isActive()) {return;}
-
-    if (loadedReviewIdRef.current !== existing.id) {
-      setStage(1);
-      setWeeklySummaryTab('back');
-      editingWeeklySummaryRef.current = false;
-    }
-    loadedReviewIdRef.current = existing.id;
-    setReview(existing);
-    setReviewType(type);
-    setPeriodStart(existing.periodStart);
-    setPeriodEnd(existing.periodEnd);
-    setAnswers(existing.answers);
-    setWeeklyPriorityInputCount(['priority_1', 'priority_2', 'priority_3']
-      .reduce((count, key, index) => existing.answers[key]?.trim() ? index + 1 : count, 1));
-    setWeeklyGratitudeInputCount(getWeeklyGratitudeInputCount(existing.answers));
-    setShowWeeklyGratitudeLookBack(false);
-    setShowCustomFeelingInput(Boolean(existing.answers.week_feeling_other?.trim()));
-    const savedGodChoices = (existing.answers.god || '').split('|').filter(isGodFaithfulnessChoice);
-    const legacyGodResponse = Boolean(existing.answers.god?.trim()) && savedGodChoices.length === 0;
-    setShowGodFaithfulnessInput(Boolean(existing.answers.god_faithfulness_other?.trim()) || legacyGodResponse);
-    setMemorableItems(existing.memorableItems);
-    setCapture(captured);
-    setWeeklyRhythm(rhythm);
-    setWeeklyCheckInFeelings(checkInFeelings);
-    setShowAllWeeklySummary(false);
-    const existingWeeklyGratitude = getWeeklyGratitudeItems(existing.answers);
-    if (type === 'weekly' && existingWeeklyGratitude.length > 0) {
-      saveWeeklyGratitudeMoment({
-        items: existingWeeklyGratitude,
-        periodStart: existing.periodStart,
-        periodEnd: existing.periodEnd,
-        reviewId: existing.id,
-      }).catch(error => {
-        Logger.error('Failed to sync Weekly Gratitude Moment', error as Error, {
-          component: 'ReviewScreen',
-          reviewId: existing.id,
-        });
+      const existing = await getOrCreateLocalReviewForPeriod({
+        type,
+        periodStart: start,
+        periodEnd: end,
       });
-    }
-  }, [typeFromRoute, startFromRoute, endFromRoute, weekStart]);
+      if (!isActive()) {
+        return;
+      }
+
+      const [
+        captured,
+        rhythm,
+        loadedCheckInFeelings,
+        loadedMonthlyWeeklyReviewFeelings,
+      ] = await Promise.all([
+        getReviewCapture(start, end, type),
+        type === 'weekly'
+          ? getWeeklyRhythm(start, end, end)
+          : Promise.resolve(null),
+        type === 'weekly'
+          ? getWeeklyCheckInFeelings(start, end)
+          : type === 'monthly'
+          ? getMonthlyCheckInFeelings(start, end)
+          : Promise.resolve([]),
+        type === 'monthly'
+          ? getMonthlyWeeklyReviewFeelings(start, end)
+          : Promise.resolve({reviewCount: 0, feelings: []}),
+      ]);
+      if (!isActive()) {
+        return;
+      }
+
+      if (loadedReviewIdRef.current !== existing.id) {
+        setStage(1);
+        setWeeklySummaryTab('back');
+        setMonthlySummaryTab('back');
+        editingReviewSummaryRef.current = false;
+      }
+      loadedReviewIdRef.current = existing.id;
+      setReview(existing);
+      setReviewType(type);
+      setPeriodStart(existing.periodStart);
+      setPeriodEnd(existing.periodEnd);
+      setAnswers(existing.answers);
+      setWeeklyPriorityInputCount(
+        (type === 'monthly'
+          ? [
+              'next_month_priority_1',
+              'next_month_priority_2',
+              'next_month_priority_3',
+            ]
+          : ['priority_1', 'priority_2', 'priority_3']
+        ).reduce(
+          (count, key, index) =>
+            existing.answers[key]?.trim() ? index + 1 : count,
+          1,
+        ),
+      );
+      setWeeklyGratitudeInputCount(
+        getWeeklyGratitudeInputCount(existing.answers),
+      );
+      setShowWeeklyGratitudeLookBack(false);
+      setShowCustomFeelingInput(
+        Boolean(
+          existing.answers[
+            type === 'monthly' ? 'month_feeling_other' : 'week_feeling_other'
+          ]?.trim(),
+        ),
+      );
+      const savedGodChoices = (existing.answers.god || '')
+        .split('|')
+        .filter(isGodFaithfulnessChoice);
+      const legacyGodResponse =
+        Boolean(existing.answers.god?.trim()) && savedGodChoices.length === 0;
+      setShowGodFaithfulnessInput(
+        Boolean(existing.answers.god_faithfulness_other?.trim()) ||
+          legacyGodResponse,
+      );
+      setMemorableItems(existing.memorableItems);
+      setCapture(captured);
+      setMonthlyMomentsView(
+        type === 'monthly' &&
+          captured.items.some(item =>
+            item.carriedForwardFrom?.includes('weekly'),
+          )
+          ? 'weekly_bookmarks'
+          : 'all',
+      );
+      setWeeklyRhythm(rhythm);
+      setCheckInFeelings(loadedCheckInFeelings);
+      setMonthlyWeeklyReviewFeelings(loadedMonthlyWeeklyReviewFeelings);
+      setExpandedMonthlyFeeling(null);
+      setShowAllWeeklySummary(false);
+      const existingWeeklyGratitude = getWeeklyGratitudeItems(existing.answers);
+      if (type === 'weekly' && existingWeeklyGratitude.length > 0) {
+        saveWeeklyGratitudeMoment({
+          items: existingWeeklyGratitude,
+          periodStart: existing.periodStart,
+          periodEnd: existing.periodEnd,
+          reviewId: existing.id,
+        }).catch(error => {
+          Logger.error(
+            'Failed to sync Weekly Gratitude Moment',
+            error as Error,
+            {
+              component: 'ReviewScreen',
+              reviewId: existing.id,
+            },
+          );
+        });
+      }
+    },
+    [typeFromRoute, startFromRoute, endFromRoute, weekStart],
+  );
 
   // Tab navigation can reuse this screen for the same period after new entries
   // are saved. Reload on every focus and ignore reads from a previous visit.
-  useFocusEffect(useCallback(() => {
-    let active = true;
-    setIsLoadingReview(true);
-    setReviewLoadError(false);
-    void loadReview(() => active).catch(error => {
-      if (!active) {return;}
-      setReviewLoadError(true);
-      Logger.error('Failed to load review', error as Error, {
-        component: 'ReviewScreen', attempt: reviewLoadAttempt,
-      });
-    }).finally(() => {
-      if (active) {setIsLoadingReview(false);}
-    });
-    return () => {active = false;};
-  }, [loadReview, reviewLoadAttempt]));
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      setIsLoadingReview(true);
+      setReviewLoadError(false);
+      loadReview(() => active)
+        .catch(error => {
+          if (!active) {
+            return;
+          }
+          setReviewLoadError(true);
+          Logger.error('Failed to load review', error as Error, {
+            component: 'ReviewScreen',
+            attempt: reviewLoadAttempt,
+          });
+        })
+        .finally(() => {
+          if (active) {
+            setIsLoadingReview(false);
+          }
+        });
+      return () => {
+        active = false;
+      };
+    }, [loadReview, reviewLoadAttempt]),
+  );
 
   useEffect(() => {
-    if (!keyboardVisible) {return;}
+    if (!keyboardVisible) {
+      return;
+    }
     const frame = requestAnimationFrame(() => {
       revealCustomReviewInput();
     });
     return () => cancelAnimationFrame(frame);
-  }, [keyboardHeight, keyboardVisible, revealCustomReviewInput, showCustomFeelingInput, showGodFaithfulnessInput]);
+  }, [
+    keyboardHeight,
+    keyboardVisible,
+    revealCustomReviewInput,
+    showCustomFeelingInput,
+    showGodFaithfulnessInput,
+  ]);
 
   useEffect(() => {
-    if (!keyboardVisible) {return;}
+    if (!keyboardVisible) {
+      return;
+    }
     const frame = requestAnimationFrame(() => {
       revealWeeklyChallengeOtherInput();
       revealWeeklyClosingInput();
     });
     return () => cancelAnimationFrame(frame);
-  }, [keyboardVisible, revealWeeklyChallengeOtherInput, revealWeeklyClosingInput]);
+  }, [
+    keyboardVisible,
+    revealWeeklyChallengeOtherInput,
+    revealWeeklyClosingInput,
+  ]);
 
   const saveReview = useCallback(
-    async (patch: Partial<Pick<LocalReviewEntry, 'answers' | 'memorableItems' | 'prayerSnapshot' | 'status' | 'completedAt'>>) => {
-      if (!review) {return;}
+    async (
+      patch: Partial<
+        Pick<
+          LocalReviewEntry,
+          | 'answers'
+          | 'memorableItems'
+          | 'prayerSnapshot'
+          | 'status'
+          | 'completedAt'
+          | 'monthlyWeeklyBookmarksInitialized'
+        >
+      >,
+    ) => {
+      if (!review) {
+        return;
+      }
       const updated = {
         ...review,
         ...patch,
@@ -1188,18 +2016,54 @@ const ReviewScreen: React.FC = () => {
   );
 
   useEffect(() => {
-    if (isLoadingReview || reviewLoadError || reviewType === 'weekly') {return;}
+    if (
+      isLoadingReview ||
+      reviewLoadError ||
+      reviewType === 'weekly' ||
+      reviewType === 'monthly'
+    ) {
+      return;
+    }
     if (stage === stageCount && review && review.status !== 'completed') {
       const completionKey = `${review.type}:${review.id}`;
-      if (completingReviewRef.current === completionKey) {return;}
+      if (completingReviewRef.current === completionKey) {
+        return;
+      }
       completingReviewRef.current = completionKey;
       const prayerSnapshot: ReviewPrayerSnapshotItem[] = (capture?.items || [])
-        .filter(item => item.kind === 'prayer' && item.prayerEventType && item.prayerId)
-        .map(item => ({ id: item.id, prayerId: item.prayerId!, needId: item.needId, requestId: item.requestId, eventType: item.prayerEventType!, eventDate: item.selectedDate, title: item.title, subtitle: item.subtitle || 'Prayer', text: item.text, prayerTypeLabel: item.prayerTypeLabel }));
+        .filter(
+          item =>
+            item.kind === 'prayer' && item.prayerEventType && item.prayerId,
+        )
+        .map(item => ({
+          id: item.id,
+          prayerId: item.prayerId!,
+          needId: item.needId,
+          requestId: item.requestId,
+          eventType: item.prayerEventType!,
+          eventDate: item.selectedDate,
+          title: item.title,
+          subtitle: item.subtitle || 'Prayer',
+          text: item.text,
+          prayerTypeLabel: item.prayerTypeLabel,
+        }));
       const completeReview = async () => {
-        await saveReview({ status: 'completed', completedAt: new Date().toISOString(), prayerSnapshot });
-        DeviceEventEmitter.emit(FAITHFUL_RHYTHM_UPDATED, {rhythm: 'reviews', selectedDate: review.periodEnd});
-        if (await claimFaithfulRhythmCelebration('reviews', review.periodEnd, weekStart)) {
+        await saveReview({
+          status: 'completed',
+          completedAt: new Date().toISOString(),
+          prayerSnapshot,
+        });
+        DeviceEventEmitter.emit(FAITHFUL_RHYTHM_UPDATED, {
+          rhythm: 'reviews',
+          selectedDate: review.periodEnd,
+        });
+        if (
+          await claimFaithfulRhythmCelebration(
+            'reviews',
+            review.periodEnd,
+            weekStart,
+          )
+        ) {
           navigation.navigate('StreakPlan', {
             rhythm: 'reviews',
             source: 'review_complete',
@@ -1210,27 +2074,76 @@ const ReviewScreen: React.FC = () => {
         completingReviewRef.current = null;
       });
     }
-  }, [stage, stageCount, review, reviewType, capture, saveReview, navigation, weekStart, isLoadingReview, reviewLoadError]);
+  }, [
+    stage,
+    stageCount,
+    review,
+    reviewType,
+    capture,
+    saveReview,
+    navigation,
+    weekStart,
+    isLoadingReview,
+    reviewLoadError,
+  ]);
 
   const finishWeeklyReview = useCallback(async () => {
-    if (!review || completingReviewRef.current === review.id) {return;}
+    if (!review || completingReviewRef.current === review.id) {
+      return;
+    }
     completingReviewRef.current = review.id;
     setIsFinishingWeeklyReview(true);
     setWeeklyCompletionError(false);
     triggerLightHaptic();
     try {
       const prayerSnapshot: ReviewPrayerSnapshotItem[] = (capture?.items || [])
-        .filter(item => item.kind === 'prayer' && item.prayerEventType && item.prayerId)
-        .map(item => ({id: item.id, prayerId: item.prayerId!, needId: item.needId, requestId: item.requestId, eventType: item.prayerEventType!, eventDate: item.selectedDate, title: item.title, subtitle: item.subtitle || 'Prayer', text: item.text, prayerTypeLabel: item.prayerTypeLabel}));
+        .filter(
+          item =>
+            item.kind === 'prayer' && item.prayerEventType && item.prayerId,
+        )
+        .map(item => ({
+          id: item.id,
+          prayerId: item.prayerId!,
+          needId: item.needId,
+          requestId: item.requestId,
+          eventType: item.prayerEventType!,
+          eventDate: item.selectedDate,
+          title: item.title,
+          subtitle: item.subtitle || 'Prayer',
+          text: item.text,
+          prayerTypeLabel: item.prayerTypeLabel,
+        }));
       if (Object.keys(answers).some(isWeeklyLookingForwardAnswerKey)) {
-        await saveWeeklyLookingForwardMoment({answers, periodStart: review.periodStart, periodEnd: review.periodEnd, reviewId: review.id});
+        await saveWeeklyLookingForwardMoment({
+          answers,
+          periodStart: review.periodStart,
+          periodEnd: review.periodEnd,
+          reviewId: review.id,
+        });
       }
-      await saveReview({answers, memorableItems, status: 'completed', completedAt: review.completedAt ?? new Date().toISOString(), prayerSnapshot});
-      DeviceEventEmitter.emit(FAITHFUL_RHYTHM_UPDATED, {rhythm: 'reviews', selectedDate: review.periodEnd});
-      const celebrate = review.status !== 'completed'
-        && await claimFaithfulRhythmCelebration('reviews', review.periodEnd, weekStart);
+      await saveReview({
+        answers,
+        memorableItems,
+        status: 'completed',
+        completedAt: review.completedAt ?? new Date().toISOString(),
+        prayerSnapshot,
+      });
+      DeviceEventEmitter.emit(FAITHFUL_RHYTHM_UPDATED, {
+        rhythm: 'reviews',
+        selectedDate: review.periodEnd,
+      });
+      const celebrate =
+        review.status !== 'completed' &&
+        (await claimFaithfulRhythmCelebration(
+          'reviews',
+          review.periodEnd,
+          weekStart,
+        ));
       if (celebrate) {
-        navigation.navigate('StreakPlan', {rhythm: 'reviews', source: 'review_complete'});
+        navigation.navigate('StreakPlan', {
+          rhythm: 'reviews',
+          source: 'review_complete',
+        });
       } else {
         navigation.goBack();
       }
@@ -1240,22 +2153,136 @@ const ReviewScreen: React.FC = () => {
       completingReviewRef.current = null;
       setIsFinishingWeeklyReview(false);
     }
-  }, [review, capture, answers, memorableItems, saveReview, weekStart, navigation]);
+  }, [
+    review,
+    capture,
+    answers,
+    memorableItems,
+    saveReview,
+    weekStart,
+    navigation,
+  ]);
+
+  const finishMonthlyReview = useCallback(async () => {
+    if (!review || completingReviewRef.current === review.id) {
+      return;
+    }
+    completingReviewRef.current = review.id;
+    setIsFinishingMonthlyReview(true);
+    setMonthlyCompletionError(false);
+    triggerLightHaptic();
+    try {
+      const prayerSnapshot: ReviewPrayerSnapshotItem[] = (capture?.items || [])
+        .filter(
+          item =>
+            item.kind === 'prayer' && item.prayerEventType && item.prayerId,
+        )
+        .map(item => ({
+          id: item.id,
+          prayerId: item.prayerId!,
+          needId: item.needId,
+          requestId: item.requestId,
+          eventType: item.prayerEventType!,
+          eventDate: item.selectedDate,
+          title: item.title,
+          subtitle: item.subtitle || 'Prayer',
+          text: item.text,
+          prayerTypeLabel: item.prayerTypeLabel,
+        }));
+      await saveReview({
+        answers,
+        memorableItems,
+        status: 'completed',
+        completedAt: review.completedAt ?? new Date().toISOString(),
+        prayerSnapshot,
+      });
+      DeviceEventEmitter.emit(FAITHFUL_RHYTHM_UPDATED, {
+        rhythm: 'reviews',
+        selectedDate: review.periodEnd,
+      });
+      const celebrate =
+        review.status !== 'completed' &&
+        (await claimFaithfulRhythmCelebration(
+          'reviews',
+          review.periodEnd,
+          weekStart,
+        ));
+      if (celebrate) {
+        navigation.navigate('StreakPlan', {
+          rhythm: 'reviews',
+          source: 'review_complete',
+        });
+      } else {
+        navigation.goBack();
+      }
+    } catch {
+      setMonthlyCompletionError(true);
+    } finally {
+      completingReviewRef.current = null;
+      setIsFinishingMonthlyReview(false);
+    }
+  }, [
+    review,
+    capture,
+    answers,
+    memorableItems,
+    saveReview,
+    weekStart,
+    navigation,
+  ]);
 
   const goTo = useCallback(
     (next: ReviewStage) => {
-      if (next < 1 || next > stageCount) {return;}
+      if (next < 1 || next > stageCount) {
+        return;
+      }
       triggerLightHaptic();
       Keyboard.dismiss();
       scrollRef.current?.scrollTo({y: 0, animated: false});
-      const continuingWalkthrough = editingWeeklySummaryRef.current
-        && stages[stage - 1]?.key === 'looking_forward_feeling' && next === stage + 1;
-      const returnToSummary = editingWeeklySummaryRef.current && !continuingWalkthrough && next === stage + 1;
-      if (!continuingWalkthrough) {editingWeeklySummaryRef.current = false;}
+      const continuingWalkthrough =
+        editingReviewSummaryRef.current &&
+        stages[stage - 1]?.key === 'looking_forward_feeling' &&
+        next === stage + 1;
+      const returnToSummary =
+        editingReviewSummaryRef.current &&
+        !continuingWalkthrough &&
+        next === stage + 1;
+      if (!continuingWalkthrough) {
+        editingReviewSummaryRef.current = false;
+      }
       setStage(returnToSummary ? stageCount : next);
     },
     [stage, stageCount, stages],
   );
+
+  const beginMonthlyReview = useCallback(() => {
+    if (review && !review.monthlyWeeklyBookmarksInitialized) {
+      const existingKeys = new Set(
+        memorableItems.map(item => `${item.id}:${item.selectedDate}`),
+      );
+      const weeklyBookmarks = (capture?.items ?? [])
+        .filter(item => item.carriedForwardFrom?.includes('weekly'))
+        .filter(item => !existingKeys.has(`${item.id}:${item.selectedDate}`))
+        .map(memorableReferenceFor);
+      const initializedMemorableItems = [...memorableItems, ...weeklyBookmarks];
+      const initializedReview: LocalReviewEntry = {
+        ...review,
+        memorableItems: initializedMemorableItems,
+        monthlyWeeklyBookmarksInitialized: true,
+        updatedAt: new Date().toISOString(),
+      };
+      setMemorableItems(initializedMemorableItems);
+      setReview(initializedReview);
+      updateLocalReview(initializedReview).catch(error =>
+        Logger.error(
+          'Failed to initialize Monthly Review weekly bookmarks',
+          error as Error,
+          {component: 'ReviewScreen', reviewId: review.id},
+        ),
+      );
+    }
+    goTo(2);
+  }, [capture, goTo, memorableItems, review]);
 
   const stageRef = useRef(stage);
   const stageCountRef = useRef(stageCount);
@@ -1278,7 +2305,9 @@ const ReviewScreen: React.FC = () => {
       PanResponder.create({
         onStartShouldSetPanResponder: () => false,
         onMoveShouldSetPanResponder: (_e, g) =>
-          !capturedStageRef.current && Math.abs(g.dx) > 12 && Math.abs(g.dy) < Math.abs(g.dx),
+          !capturedStageRef.current &&
+          Math.abs(g.dx) > 12 &&
+          Math.abs(g.dy) < Math.abs(g.dx),
         onPanResponderRelease: (_e, g) => {
           const threshold = 40;
           if (g.dx < -threshold && stageRef.current < stageCountRef.current) {
@@ -1300,29 +2329,77 @@ const ReviewScreen: React.FC = () => {
   );
 
   const periodLabel = useMemo(() => {
-    if (!periodStart || !periodEnd) {return '';}
+    if (!periodStart || !periodEnd) {
+      return '';
+    }
     const start = new Date(periodStart);
     const end = new Date(periodEnd);
-    const month = start.toLocaleString('default', { month: 'short' }).toUpperCase();
+    const month = start
+      .toLocaleString('default', {month: 'short'})
+      .toUpperCase();
     return `${month} ${start.getDate()}–${end.getDate()}`;
   }, [periodStart, periodEnd]);
 
   const weeklyPeriodLabel = useMemo(() => {
-    if (!periodStart || !periodEnd) {return '';}
-    const parseLocal = (value:string) => {const [year,month,day]=value.split('-').map(Number);return new Date(year,month-1,day,12);};
-    const start=parseLocal(periodStart); const end=parseLocal(periodEnd);
-    const startText=start.toLocaleDateString(undefined,{month:'short',day:'numeric'});
-    const endText=end.toLocaleDateString(undefined,start.getMonth()===end.getMonth()?{day:'numeric'}:{month:'short',day:'numeric'});
+    if (!periodStart || !periodEnd) {
+      return '';
+    }
+    const parseLocal = (value: string) => {
+      const [year, month, day] = value.split('-').map(Number);
+      return new Date(year, month - 1, day, 12);
+    };
+    const start = parseLocal(periodStart);
+    const end = parseLocal(periodEnd);
+    const startText = start.toLocaleDateString(undefined, {
+      month: 'short',
+      day: 'numeric',
+    });
+    const endText = end.toLocaleDateString(
+      undefined,
+      start.getMonth() === end.getMonth()
+        ? {day: 'numeric'}
+        : {month: 'short', day: 'numeric'},
+    );
     return `${startText} – ${endText}`;
-  }, [periodStart,periodEnd]);
+  }, [periodStart, periodEnd]);
 
-  const weeklyLookingAheadPeriodLabel = useMemo(() => formatWeeklyLookingAheadPeriod(periodEnd), [periodEnd]);
+  const weeklyLookingAheadPeriodLabel = useMemo(
+    () => formatWeeklyLookingAheadPeriod(periodEnd),
+    [periodEnd],
+  );
+
+  const monthlyPeriodLabel = useMemo(() => {
+    if (!periodStart) {
+      return '';
+    }
+    const [year, month, day] = periodStart.split('-').map(Number);
+    return new Date(year, month - 1, day, 12).toLocaleDateString(undefined, {
+      month: 'long',
+      year: 'numeric',
+    });
+  }, [periodStart]);
+
+  const monthlyLookingAheadPeriodLabel = useMemo(() => {
+    if (!periodEnd) {
+      return '';
+    }
+    const [year, month] = periodEnd.split('-').map(Number);
+    return new Date(year, month, 1, 12).toLocaleDateString(undefined, {
+      month: 'long',
+      year: 'numeric',
+    });
+  }, [periodEnd]);
 
   const weeklyCoverSummary = useMemo(
-    () => capture ? getReviewCoverSummary(
-      capture,
-      weeklyRhythm ? {morning: weeklyRhythm.morning, evening: weeklyRhythm.evening} : undefined,
-    ) : [],
+    () =>
+      capture
+        ? getReviewCoverSummary(
+            capture,
+            weeklyRhythm
+              ? {morning: weeklyRhythm.morning, evening: weeklyRhythm.evening}
+              : undefined,
+          )
+        : [],
     [capture, weeklyRhythm],
   );
   const visibleWeeklyCoverSummary = showAllWeeklySummary
@@ -1333,22 +2410,68 @@ const ReviewScreen: React.FC = () => {
     weeklyCoverSummary.length - visibleWeeklyCoverSummary.length,
   );
 
+  const monthlyActiveDates = useMemo(
+    () => [...new Set((capture?.items ?? []).map(item => item.selectedDate))],
+    [capture],
+  );
+  const monthlyWeekActivity = useMemo(() => {
+    const counts = [0, 0, 0, 0, 0];
+    monthlyActiveDates.forEach(value => {
+      const day = Number(value.slice(-2));
+      counts[Math.min(4, Math.floor((day - 1) / 7))] += 1;
+    });
+    return counts;
+  }, [monthlyActiveDates]);
+  const monthlyDayCount = useMemo(() => {
+    if (!periodStart || !periodEnd) {
+      return 0;
+    }
+    const [startYear, startMonth, startDay] = periodStart
+      .split('-')
+      .map(Number);
+    const [endYear, endMonth, endDay] = periodEnd.split('-').map(Number);
+    return (
+      Math.round(
+        (new Date(endYear, endMonth - 1, endDay, 12).getTime() -
+          new Date(startYear, startMonth - 1, startDay, 12).getTime()) /
+          86400000,
+      ) + 1
+    );
+  }, [periodEnd, periodStart]);
+
   const weeklyGratitudeDates = useMemo(
-    () => [...new Set((capture?.items ?? [])
-      .filter(item => item.presentation === 'gratitude_list' && item.lines?.some(line => line.trim()))
-      .map(item => item.selectedDate))].sort(),
+    () =>
+      [
+        ...new Set(
+          (capture?.items ?? [])
+            .filter(
+              item =>
+                item.presentation === 'gratitude_list' &&
+                item.lines?.some(line => line.trim()),
+            )
+            .map(item => item.selectedDate),
+        ),
+      ].sort(),
     [capture],
   );
 
   const revealWeeklyGratitudeInput = useCallback((index: number) => {
     const input = weeklyGratitudeInputRefs.current[index];
     const inputHandle = input ? findNodeHandle(input) : null;
-    if (!inputHandle) {return;}
-    scrollRef.current?.scrollResponderScrollNativeHandleToKeyboard(inputHandle, 80, true);
+    if (!inputHandle) {
+      return;
+    }
+    scrollRef.current?.scrollResponderScrollNativeHandleToKeyboard(
+      inputHandle,
+      80,
+      true,
+    );
   }, []);
 
   const addWeeklyPriorityInput = useCallback(() => {
-    if (weeklyPriorityInputCount >= 3) {return;}
+    if (weeklyPriorityInputCount >= 3) {
+      return;
+    }
     triggerLightHaptic();
     const index = weeklyPriorityInputCount;
     setWeeklyPriorityInputCount(count => Math.min(3, count + 1));
@@ -1356,15 +2479,34 @@ const ReviewScreen: React.FC = () => {
   }, [weeklyPriorityInputCount]);
 
   const onAnswerChange = (beat: string, text: string) => {
-    const next = { ...answers, [beat]: text };
+    const next = {...answers, [beat]: text};
     setAnswers(next);
     // Autosave draft
-    saveReview({ answers: next });
-    if (reviewType === 'weekly' && review && isWeeklyLookingForwardAnswerKey(beat)) {
-      saveWeeklyLookingForwardMoment({answers: next, periodStart, periodEnd, reviewId: review.id})
-        .catch(error => Logger.error('Failed to save weekly Looking Forward', error as Error, {component: 'ReviewScreen', reviewId: review.id}));
+    saveReview({answers: next});
+    if (
+      reviewType === 'weekly' &&
+      review &&
+      isWeeklyLookingForwardAnswerKey(beat)
+    ) {
+      saveWeeklyLookingForwardMoment({
+        answers: next,
+        periodStart,
+        periodEnd,
+        reviewId: review.id,
+      }).catch(error =>
+        Logger.error('Failed to save weekly Looking Forward', error as Error, {
+          component: 'ReviewScreen',
+          reviewId: review.id,
+        }),
+      );
     }
-    if (isWeeklyGratitudeAnswerKey(beat) && reviewType === 'weekly' && review && periodStart && periodEnd) {
+    if (
+      isWeeklyGratitudeAnswerKey(beat) &&
+      reviewType === 'weekly' &&
+      review &&
+      periodStart &&
+      periodEnd
+    ) {
       if (weeklyGratitudeSaveTimerRef.current) {
         clearTimeout(weeklyGratitudeSaveTimerRef.current);
       }
@@ -1378,12 +2520,18 @@ const ReviewScreen: React.FC = () => {
         weeklyGratitudeSaveTimerRef.current = null;
         const pendingWeeklyGratitude = pendingWeeklyGratitudeRef.current;
         pendingWeeklyGratitudeRef.current = null;
-        if (!pendingWeeklyGratitude) {return;}
+        if (!pendingWeeklyGratitude) {
+          return;
+        }
         saveWeeklyGratitudeMoment(pendingWeeklyGratitude).catch(error => {
-          Logger.error('Failed to save Weekly Gratitude Moment', error as Error, {
-            component: 'ReviewScreen',
-            reviewId: pendingWeeklyGratitude.reviewId,
-          });
+          Logger.error(
+            'Failed to save Weekly Gratitude Moment',
+            error as Error,
+            {
+              component: 'ReviewScreen',
+              reviewId: pendingWeeklyGratitude.reviewId,
+            },
+          );
         });
       }, 350);
     }
@@ -1400,16 +2548,24 @@ const ReviewScreen: React.FC = () => {
         )
       : [...memorableItems, memorableReferenceFor(item)];
     setMemorableItems(next);
-    saveReview({ memorableItems: next });
+    saveReview({memorableItems: next});
   };
 
   const toggleMemorableGroup = (items: ReviewCaptureItem[]) => {
     triggerLightHaptic();
-    const itemKeys = new Set(items.map(item => `${item.id}:${item.selectedDate}`));
-    const allSelected = items.every(item => memorableItems.some(
-      memorable => memorable.id === item.id && memorable.selectedDate === item.selectedDate,
-    ));
-    const retained = memorableItems.filter(item => !itemKeys.has(`${item.id}:${item.selectedDate}`));
+    const itemKeys = new Set(
+      items.map(item => `${item.id}:${item.selectedDate}`),
+    );
+    const allSelected = items.every(item =>
+      memorableItems.some(
+        memorable =>
+          memorable.id === item.id &&
+          memorable.selectedDate === item.selectedDate,
+      ),
+    );
+    const retained = memorableItems.filter(
+      item => !itemKeys.has(`${item.id}:${item.selectedDate}`),
+    );
     const next = allSelected
       ? retained
       : [...retained, ...items.map(memorableReferenceFor)];
@@ -1419,127 +2575,416 @@ const ReviewScreen: React.FC = () => {
 
   const renderCurrentStage = (): React.ReactNode => {
     const current = stages[stage - 1];
-    if (!current) {return null;}
+    if (!current) {
+      return null;
+    }
 
     if (current.kind === 'cover') {
-      const eyebrow = current.eyebrow ?? `${reviewType.replace('_', ' ').toUpperCase()} REVIEW`;
+      const eyebrow =
+        current.eyebrow ??
+        `${reviewType.replace('_', ' ').toUpperCase()} REVIEW`;
       if (reviewType === 'weekly') {
         const activeDays = weeklyRhythm?.activeDays ?? 0;
-        const activeDayLabel = `${activeDays} ${activeDays === 1 ? 'day' : 'days'} this week`;
-        return <View
-          style={[
-            styles.stage,
-            styles.weeklyCoverStage,
-            {minHeight: Math.max(0, screenHeight - topInset - insets.bottom - 64)},
-          ]}>
-          <StaggeredReviewStage
-            animationKey={current.key}
-            enabled
-            style={styles.weeklyCoverContent}>
-            <Image
-              accessible={false}
-              resizeMode="contain"
-              source={require('../../assets/images/reviews/weekly-cover-looking-back-v2.png')}
-              style={styles.weeklyCoverArtwork}
-            />
-            <View style={styles.weeklyCoverHero}>
-              <View style={styles.weeklyCoverLabelRow}>
-                <Ionicons name="leaf-outline" size={15} color={Colors.sage}/>
-                <ThemedText weight="semiBold" style={styles.weeklyCoverEyebrow}>WEEKLY REVIEW</ThemedText>
+        const activeDayLabel = `${activeDays} ${
+          activeDays === 1 ? 'day' : 'days'
+        } this week`;
+        return (
+          <View
+            style={[
+              styles.stage,
+              styles.weeklyCoverStage,
+              {
+                minHeight: Math.max(
+                  0,
+                  screenHeight - topInset - insets.bottom - 64,
+                ),
+              },
+            ]}>
+            <StaggeredReviewStage
+              animationKey={current.key}
+              enabled
+              style={styles.weeklyCoverContent}>
+              <Image
+                accessible={false}
+                resizeMode="contain"
+                source={require('../../assets/images/reviews/weekly-cover-looking-back-v2.png')}
+                style={styles.weeklyCoverArtwork}
+              />
+              <View style={styles.weeklyCoverHero}>
+                <View style={styles.weeklyCoverLabelRow}>
+                  <Ionicons name="leaf-outline" size={15} color={Colors.sage} />
+                  <ThemedText
+                    weight="semiBold"
+                    style={styles.weeklyCoverEyebrow}>
+                    WEEKLY REVIEW
+                  </ThemedText>
+                </View>
+                <ThemedText weight="bold" style={styles.weeklyCoverTitle}>
+                  Now, let’s look back.
+                </ThemedText>
+                <ThemedText weight="semiBold" style={styles.weeklyCoverPeriod}>
+                  {weeklyPeriodLabel}
+                </ThemedText>
+                <ThemedText style={styles.weeklyCoverSubtitle}>
+                  Pause. Notice what mattered. Carry it forward.
+                </ThemedText>
               </View>
-              <ThemedText weight="bold" style={styles.weeklyCoverTitle}>Now, let’s look back.</ThemedText>
-              <ThemedText weight="semiBold" style={styles.weeklyCoverPeriod}>{weeklyPeriodLabel}</ThemedText>
-              <ThemedText style={styles.weeklyCoverSubtitle}>Pause. Notice what mattered. Carry it forward.</ThemedText>
-            </View>
 
-            <View style={styles.weeklyShowedUpCard}>
-              <View style={styles.weeklyShowedUpHeader}>
-                <View style={styles.weeklyShowedUpIcon}>
-                  <Ionicons name="leaf-outline" size={19} color={Colors.sage}/>
-                </View>
-                <View style={styles.weeklyShowedUpCopy}>
-                  <ThemedText weight="semiBold" style={styles.weeklyShowedUpLabel}>YOU SHOWED UP</ThemedText>
-                  <ThemedText weight="semiBold" style={styles.weeklyShowedUpTotal}>{activeDayLabel}</ThemedText>
-                </View>
-                <View style={styles.weeklyShowedUpBadge}>
-                  <ThemedText weight="bold" style={styles.weeklyShowedUpBadgeValue}>{activeDays}</ThemedText>
-                  <ThemedText style={styles.weeklyShowedUpBadgeTotal}>/ 7</ThemedText>
-                </View>
-              </View>
-              <View style={styles.weeklyDayChart}>
-                {(weeklyRhythm?.days ?? []).map(day => {
-                  const [year, month, date] = day.date.split('-').map(Number);
-                  const label = new Date(year, month - 1, date, 12)
-                    .toLocaleDateString(undefined, {weekday: 'narrow'});
-                  const height = day.active ? Math.min(28, 8 + day.activity * 3) : 5;
-                  return <View
-                    accessible
-                    accessibilityLabel={`${label}, ${day.active ? `${day.activity} activities` : 'no activity'}`}
-                    key={day.date}
-                    style={styles.weeklyDayColumn}>
-                    <View style={styles.weeklyDayTrack}>
-                      <View style={[
-                        styles.weeklyDayBar,
-                        {height},
-                        day.active ? styles.weeklyDayBarActive : styles.weeklyDayBarQuiet,
-                      ]}/>
-                    </View>
+              <View style={styles.weeklyShowedUpCard}>
+                <View style={styles.weeklyShowedUpHeader}>
+                  <View style={styles.weeklyShowedUpIcon}>
+                    <Ionicons
+                      name="leaf-outline"
+                      size={19}
+                      color={Colors.sage}
+                    />
+                  </View>
+                  <View style={styles.weeklyShowedUpCopy}>
                     <ThemedText
                       weight="semiBold"
-                      style={[styles.weeklyDayLabel, day.active && styles.weeklyDayLabelActive]}>
-                      {label}
+                      style={styles.weeklyShowedUpLabel}>
+                      YOU SHOWED UP
                     </ThemedText>
-                  </View>;
-                })}
-              </View>
-              {weeklyCoverSummary.length > 0 && <View style={styles.weeklySummarySection}>
-                <View style={styles.weeklySummaryHeading}>
-                  <ThemedText weight="semiBold" style={styles.weeklySummaryEyebrow}>YOUR WEEK AT A GLANCE</ThemedText>
-                  <View style={styles.weeklySummaryRule}/>
+                    <ThemedText
+                      weight="semiBold"
+                      style={styles.weeklyShowedUpTotal}>
+                      {activeDayLabel}
+                    </ThemedText>
+                  </View>
+                  <View style={styles.weeklyShowedUpBadge}>
+                    <ThemedText
+                      weight="bold"
+                      style={styles.weeklyShowedUpBadgeValue}>
+                      {activeDays}
+                    </ThemedText>
+                    <ThemedText style={styles.weeklyShowedUpBadgeTotal}>
+                      / 7
+                    </ThemedText>
+                  </View>
                 </View>
-                <View style={styles.weeklySummaryMetrics}>
-                  {visibleWeeklyCoverSummary.map(item => (
-                    <View key={item.key} style={styles.weeklySummaryMetricSlot}>
-                      <View style={styles.weeklySummaryPill}>
-                        <ThemedText weight="bold" style={styles.weeklySummaryCount}>{item.count}</ThemedText>
-                        <ThemedText style={styles.weeklySummaryLabel}>{item.label}</ThemedText>
+                <View style={styles.weeklyDayChart}>
+                  {(weeklyRhythm?.days ?? []).map(day => {
+                    const [year, month, date] = day.date.split('-').map(Number);
+                    const label = new Date(
+                      year,
+                      month - 1,
+                      date,
+                      12,
+                    ).toLocaleDateString(undefined, {weekday: 'narrow'});
+                    const height = day.active
+                      ? Math.min(28, 8 + day.activity * 3)
+                      : 5;
+                    return (
+                      <View
+                        accessible
+                        accessibilityLabel={`${label}, ${
+                          day.active
+                            ? `${day.activity} activities`
+                            : 'no activity'
+                        }`}
+                        key={day.date}
+                        style={styles.weeklyDayColumn}>
+                        <View style={styles.weeklyDayTrack}>
+                          <View
+                            style={[
+                              styles.weeklyDayBar,
+                              {height},
+                              day.active
+                                ? styles.weeklyDayBarActive
+                                : styles.weeklyDayBarQuiet,
+                            ]}
+                          />
+                        </View>
+                        <ThemedText
+                          weight="semiBold"
+                          style={[
+                            styles.weeklyDayLabel,
+                            day.active && styles.weeklyDayLabelActive,
+                          ]}>
+                          {label}
+                        </ThemedText>
                       </View>
-                    </View>
-                  ))}
+                    );
+                  })}
                 </View>
-                {weeklyCoverSummary.length > WEEKLY_COVER_METRIC_LIMIT && <TouchableOpacity
-                  accessibilityRole="button"
-                  accessibilityLabel={showAllWeeklySummary ? 'Show fewer weekly highlights' : `Show ${hiddenWeeklyCoverMetricCount} more weekly highlights`}
-                  activeOpacity={0.7}
-                  onPress={() => {
-                    triggerLightHaptic();
-                    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-                    setShowAllWeeklySummary(value => !value);
-                  }}
-                  style={styles.weeklySummaryToggle}>
-                  <ThemedText weight="semiBold" style={styles.weeklySummaryToggleText}>
-                    {showAllWeeklySummary ? 'Show less' : `${hiddenWeeklyCoverMetricCount} more from your week`}
-                  </ThemedText>
-                  <Ionicons
-                    name={showAllWeeklySummary ? 'chevron-up' : 'chevron-down'}
-                    size={15}
-                    color={Colors.sage}/>
-                </TouchableOpacity>}
-              </View>}
-            </View>
-          </StaggeredReviewStage>
+                {weeklyCoverSummary.length > 0 && (
+                  <View style={styles.weeklySummarySection}>
+                    <View style={styles.weeklySummaryHeading}>
+                      <ThemedText
+                        weight="semiBold"
+                        style={styles.weeklySummaryEyebrow}>
+                        YOUR WEEK AT A GLANCE
+                      </ThemedText>
+                      <View style={styles.weeklySummaryRule} />
+                    </View>
+                    <View style={styles.weeklySummaryMetrics}>
+                      {visibleWeeklyCoverSummary.map(item => (
+                        <View
+                          key={item.key}
+                          style={styles.weeklySummaryMetricSlot}>
+                          <View style={styles.weeklySummaryPill}>
+                            <ThemedText
+                              weight="bold"
+                              style={styles.weeklySummaryCount}>
+                              {item.count}
+                            </ThemedText>
+                            <ThemedText style={styles.weeklySummaryLabel}>
+                              {item.label}
+                            </ThemedText>
+                          </View>
+                        </View>
+                      ))}
+                    </View>
+                    {weeklyCoverSummary.length > WEEKLY_COVER_METRIC_LIMIT && (
+                      <TouchableOpacity
+                        accessibilityRole="button"
+                        accessibilityLabel={
+                          showAllWeeklySummary
+                            ? 'Show fewer weekly highlights'
+                            : `Show ${hiddenWeeklyCoverMetricCount} more weekly highlights`
+                        }
+                        activeOpacity={0.7}
+                        onPress={() => {
+                          triggerLightHaptic();
+                          LayoutAnimation.configureNext(
+                            LayoutAnimation.Presets.easeInEaseOut,
+                          );
+                          setShowAllWeeklySummary(value => !value);
+                        }}
+                        style={styles.weeklySummaryToggle}>
+                        <ThemedText
+                          weight="semiBold"
+                          style={styles.weeklySummaryToggleText}>
+                          {showAllWeeklySummary
+                            ? 'Show less'
+                            : `${hiddenWeeklyCoverMetricCount} more from your week`}
+                        </ThemedText>
+                        <Ionicons
+                          name={
+                            showAllWeeklySummary ? 'chevron-up' : 'chevron-down'
+                          }
+                          size={15}
+                          color={Colors.sage}
+                        />
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                )}
+              </View>
+            </StaggeredReviewStage>
 
-          <TouchableOpacity
-            accessibilityRole="button"
-            accessibilityLabel={hasSavedProgress ? 'Continue weekly review' : 'Begin weekly review'}
-            style={[styles.primaryButton, styles.weeklyBeginButton]}
-            onPress={() => goTo(2)}
-            activeOpacity={0.8}>
-            <ThemedText weight="bold" style={styles.weeklyBeginText}>
-              {hasSavedProgress ? 'Continue review' : 'Begin review'}
-            </ThemedText>
-          </TouchableOpacity>
-        </View>;
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel={
+                hasSavedProgress
+                  ? 'Continue weekly review'
+                  : 'Begin weekly review'
+              }
+              style={[styles.primaryButton, styles.weeklyBeginButton]}
+              onPress={() => goTo(2)}
+              activeOpacity={0.8}>
+              <ThemedText weight="bold" style={styles.weeklyBeginText}>
+                {hasSavedProgress ? 'Continue review' : 'Begin review'}
+              </ThemedText>
+            </TouchableOpacity>
+          </View>
+        );
+      }
+      if (reviewType === 'monthly') {
+        const maxWeekActivity = Math.max(1, ...monthlyWeekActivity);
+        return (
+          <View
+            style={[
+              styles.stage,
+              styles.weeklyCoverStage,
+              {
+                minHeight: Math.max(
+                  0,
+                  screenHeight - topInset - insets.bottom - 64,
+                ),
+              },
+            ]}>
+            <StaggeredReviewStage
+              animationKey={current.key}
+              enabled
+              style={styles.weeklyCoverContent}>
+              <Image
+                accessible={false}
+                resizeMode="contain"
+                source={require('../../assets/images/reviews/weekly-cover-looking-back-v2.png')}
+                style={styles.weeklyCoverArtwork}
+              />
+              <View style={styles.weeklyCoverHero}>
+                <View style={styles.weeklyCoverLabelRow}>
+                  <Ionicons name="leaf-outline" size={15} color={Colors.sage} />
+                  <ThemedText
+                    weight="semiBold"
+                    style={styles.weeklyCoverEyebrow}>
+                    MONTHLY REVIEW
+                  </ThemedText>
+                </View>
+                <ThemedText weight="bold" style={styles.weeklyCoverTitle}>
+                  Now, let’s look back.
+                </ThemedText>
+                <ThemedText weight="semiBold" style={styles.weeklyCoverPeriod}>
+                  {monthlyPeriodLabel}
+                </ThemedText>
+                <ThemedText style={styles.weeklyCoverSubtitle}>
+                  Step back. Notice the patterns. Carry forward what matters.
+                </ThemedText>
+              </View>
+
+              <View style={styles.weeklyShowedUpCard}>
+                <View style={styles.weeklyShowedUpHeader}>
+                  <View style={styles.weeklyShowedUpIcon}>
+                    <Ionicons
+                      name="calendar-outline"
+                      size={19}
+                      color={Colors.sage}
+                    />
+                  </View>
+                  <View style={styles.weeklyShowedUpCopy}>
+                    <ThemedText
+                      weight="semiBold"
+                      style={styles.weeklyShowedUpLabel}>
+                      YOUR MONTH AT A GLANCE
+                    </ThemedText>
+                    <ThemedText
+                      weight="semiBold"
+                      style={styles.weeklyShowedUpTotal}>
+                      {monthlyActiveDates.length}{' '}
+                      {monthlyActiveDates.length === 1 ? 'day' : 'days'} with
+                      moments
+                    </ThemedText>
+                  </View>
+                  <View style={styles.weeklyShowedUpBadge}>
+                    <ThemedText
+                      weight="bold"
+                      style={styles.weeklyShowedUpBadgeValue}>
+                      {monthlyActiveDates.length}
+                    </ThemedText>
+                    <ThemedText style={styles.weeklyShowedUpBadgeTotal}>
+                      / {monthlyDayCount}
+                    </ThemedText>
+                  </View>
+                </View>
+                <View style={styles.weeklyDayChart}>
+                  {monthlyWeekActivity.map((count, index) => {
+                    const height =
+                      count > 0 ? 7 + (count / maxWeekActivity) * 22 : 5;
+                    return (
+                      <View
+                        accessible
+                        accessibilityLabel={`Week ${index + 1}, ${count} ${
+                          count === 1 ? 'active day' : 'active days'
+                        }`}
+                        key={index}
+                        style={styles.weeklyDayColumn}>
+                        <View style={styles.weeklyDayTrack}>
+                          <View
+                            style={[
+                              styles.weeklyDayBar,
+                              {height},
+                              count > 0
+                                ? styles.weeklyDayBarActive
+                                : styles.weeklyDayBarQuiet,
+                            ]}
+                          />
+                        </View>
+                        <ThemedText
+                          weight="semiBold"
+                          style={[
+                            styles.weeklyDayLabel,
+                            count > 0 && styles.weeklyDayLabelActive,
+                          ]}>
+                          W{index + 1}
+                        </ThemedText>
+                      </View>
+                    );
+                  })}
+                </View>
+                {weeklyCoverSummary.length > 0 && (
+                  <View style={styles.weeklySummarySection}>
+                    <View style={styles.weeklySummaryHeading}>
+                      <ThemedText
+                        weight="semiBold"
+                        style={styles.weeklySummaryEyebrow}>
+                        WHAT FILLED YOUR MONTH
+                      </ThemedText>
+                      <View style={styles.weeklySummaryRule} />
+                    </View>
+                    <View style={styles.weeklySummaryMetrics}>
+                      {visibleWeeklyCoverSummary.map(item => (
+                        <View
+                          key={item.key}
+                          style={styles.weeklySummaryMetricSlot}>
+                          <View style={styles.weeklySummaryPill}>
+                            <ThemedText
+                              weight="bold"
+                              style={styles.weeklySummaryCount}>
+                              {item.count}
+                            </ThemedText>
+                            <ThemedText style={styles.weeklySummaryLabel}>
+                              {item.label}
+                            </ThemedText>
+                          </View>
+                        </View>
+                      ))}
+                    </View>
+                    {weeklyCoverSummary.length > WEEKLY_COVER_METRIC_LIMIT && (
+                      <TouchableOpacity
+                        accessibilityRole="button"
+                        accessibilityLabel={
+                          showAllWeeklySummary
+                            ? 'Show fewer monthly highlights'
+                            : `Show ${hiddenWeeklyCoverMetricCount} more monthly highlights`
+                        }
+                        activeOpacity={0.7}
+                        onPress={() => {
+                          triggerLightHaptic();
+                          LayoutAnimation.configureNext(
+                            LayoutAnimation.Presets.easeInEaseOut,
+                          );
+                          setShowAllWeeklySummary(value => !value);
+                        }}
+                        style={styles.weeklySummaryToggle}>
+                        <ThemedText
+                          weight="semiBold"
+                          style={styles.weeklySummaryToggleText}>
+                          {showAllWeeklySummary
+                            ? 'Show less'
+                            : `${hiddenWeeklyCoverMetricCount} more from your month`}
+                        </ThemedText>
+                        <Ionicons
+                          name={
+                            showAllWeeklySummary ? 'chevron-up' : 'chevron-down'
+                          }
+                          size={15}
+                          color={Colors.sage}
+                        />
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                )}
+              </View>
+            </StaggeredReviewStage>
+
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel={
+                hasSavedProgress
+                  ? 'Continue monthly review'
+                  : 'Begin monthly review'
+              }
+              style={[styles.primaryButton, styles.weeklyBeginButton]}
+              onPress={beginMonthlyReview}
+              activeOpacity={0.8}>
+              <ThemedText weight="bold" style={styles.weeklyBeginText}>
+                {hasSavedProgress ? 'Continue review' : 'Begin review'}
+              </ThemedText>
+            </TouchableOpacity>
+          </View>
+        );
       }
       return (
         <View style={styles.stage}>
@@ -1549,14 +2994,13 @@ const ReviewScreen: React.FC = () => {
           <ThemedText weight="bold" style={styles.title}>
             {periodLabel}
           </ThemedText>
-          <ThemedText style={styles.subtitle}>
-            {current.subtitle}
-          </ThemedText>
+          <ThemedText style={styles.subtitle}>{current.subtitle}</ThemedText>
 
           {capture && (
             <View style={styles.captureStats}>
               <ThemedText weight="bold" style={styles.captureStatTotal}>
-                {capture.items.length} moments from your {reviewType.replace('_', ' ')}
+                {capture.items.length} moments from your{' '}
+                {reviewType.replace('_', ' ')}
               </ThemedText>
               {Object.entries(capture.summary)
                 .filter(([, count]) => count > 0)
@@ -1565,7 +3009,9 @@ const ReviewScreen: React.FC = () => {
                     <ThemedText style={styles.captureStatLabel}>
                       {CATEGORY_LABELS[kind as ReviewCaptureKind]}
                     </ThemedText>
-                    <ThemedText weight="semiBold" style={styles.captureStatValue}>
+                    <ThemedText
+                      weight="semiBold"
+                      style={styles.captureStatValue}>
                       {count}
                     </ThemedText>
                   </View>
@@ -1573,14 +3019,22 @@ const ReviewScreen: React.FC = () => {
               {capture.prayerStats.total > 0 ? (
                 <>
                   <View style={styles.captureStatRow}>
-                    <ThemedText style={styles.captureStatLabel}>Prayers answered</ThemedText>
-                    <ThemedText weight="semiBold" style={styles.captureStatValue}>
+                    <ThemedText style={styles.captureStatLabel}>
+                      Prayers answered
+                    </ThemedText>
+                    <ThemedText
+                      weight="semiBold"
+                      style={styles.captureStatValue}>
                       {capture.prayerStats.answered}
                     </ThemedText>
                   </View>
                   <View style={styles.captureStatRow}>
-                    <ThemedText style={styles.captureStatLabel}>Still praying</ThemedText>
-                    <ThemedText weight="semiBold" style={styles.captureStatValue}>
+                    <ThemedText style={styles.captureStatLabel}>
+                      Still praying
+                    </ThemedText>
+                    <ThemedText
+                      weight="semiBold"
+                      style={styles.captureStatValue}>
                       {capture.prayerStats.pending}
                     </ThemedText>
                   </View>
@@ -1594,32 +3048,62 @@ const ReviewScreen: React.FC = () => {
             onPress={() => goTo(2)}
             activeOpacity={0.7}>
             <ThemedText weight="bold" style={styles.primaryButtonText}>
-              {reviewType === 'year_end' ? 'Review my year' : 'Review my ' + reviewType.replace('_', ' ')}
+              {reviewType === 'year_end'
+                ? 'Review my year'
+                : 'Review my ' + reviewType.replace('_', ' ')}
             </ThemedText>
           </TouchableOpacity>
         </View>
       );
     }
 
-    if (reviewType === 'weekly' && (current.kind === 'captured' || current.kind === 'remembered')) {
+    if (
+      (reviewType === 'weekly' || reviewType === 'monthly') &&
+      (current.kind === 'captured' || current.kind === 'remembered')
+    ) {
       const showingRemembered = current.kind === 'remembered';
+      const periodWord = reviewType === 'monthly' ? 'month' : 'week';
       const rememberedKeys = new Set(
         memorableItems.map(item => `${item.id}:${item.selectedDate}`),
       );
-      const moments = [...(capture?.items ?? [])]
-        .filter(item => !showingRemembered || rememberedKeys.has(`${item.id}:${item.selectedDate}`))
+      const allCapturedMoments = [...(capture?.items ?? [])];
+      const weeklyBookmarkedMoments = allCapturedMoments.filter(item =>
+        item.carriedForwardFrom?.includes('weekly'),
+      );
+      const otherMonthlyMoments = allCapturedMoments.filter(
+        item => !item.carriedForwardFrom?.includes('weekly'),
+      );
+      const hasWeeklyBookmarks = weeklyBookmarkedMoments.length > 0;
+      const showingMonthlyWeeklyBookmarks =
+        reviewType === 'monthly' &&
+        !showingRemembered &&
+        hasWeeklyBookmarks &&
+        monthlyMomentsView === 'weekly_bookmarks';
+      const visibleCapturedMoments = showingMonthlyWeeklyBookmarks
+        ? weeklyBookmarkedMoments
+        : reviewType === 'monthly' && !showingRemembered
+        ? otherMonthlyMoments
+        : allCapturedMoments;
+      const moments = visibleCapturedMoments
+        .filter(
+          item =>
+            !showingRemembered ||
+            rememberedKeys.has(`${item.id}:${item.selectedDate}`),
+        )
         .sort((a, b) => a.selectedDate.localeCompare(b.selectedDate));
       const heartJournalGroup = {
         key: 'heart-journal',
         presentation: 'heart_journal' as ReviewCapturePresentation,
         title: 'Heart Journal',
-        items: moments.filter(item => HEART_JOURNAL_PRESENTATIONS.has(item.presentation)),
+        items: moments.filter(item =>
+          HEART_JOURNAL_PRESENTATIONS.has(item.presentation),
+        ),
       };
       const presentationGroups = CAPTURE_PRESENTATION_GROUPS.map(group => ({
-          ...group,
-          key: group.presentation,
-          items: moments.filter(item => item.presentation === group.presentation),
-        }));
+        ...group,
+        key: group.presentation,
+        items: moments.filter(item => item.presentation === group.presentation),
+      }));
       const momentGroups = [
         ...presentationGroups.slice(0, 8),
         heartJournalGroup,
@@ -1627,52 +3111,150 @@ const ReviewScreen: React.FC = () => {
       ].filter(group => group.items.length > 0);
       const carouselCardWidth = Math.min(310, Math.max(240, screenWidth - 76));
       return (
-        <WeeklyReviewMomentsList
+        <ReviewMomentsList
+          ref={reviewMomentsListRef}
           key={current.key}
           groups={momentGroups}
           cardWidth={carouselCardWidth}
           contentContainerStyle={[
             styles.weeklyCapturedStage,
-            {paddingTop: topInset + 64, paddingBottom: keyboardVisible ? 320 : insets.bottom + 112},
+            {
+              paddingTop: topInset + 64,
+              paddingBottom: keyboardVisible ? 320 : insets.bottom + 112,
+            },
           ]}
           header={
             <View style={styles.weeklyCapturedHeading}>
               <View style={styles.feelingsLabelRow}>
-                <Ionicons name="leaf-outline" size={15} color={Colors.sage}/>
-                <ThemedText weight="semiBold" style={styles.feelingsLabel}>LOOKING BACK</ThemedText>
+                <Ionicons name="leaf-outline" size={15} color={Colors.sage} />
+                <ThemedText weight="semiBold" style={styles.feelingsLabel}>
+                  LOOKING BACK
+                </ThemedText>
               </View>
               <ThemedText weight="bold" style={styles.weeklyCapturedTitle}>
-                {showingRemembered ? 'What you want to remember' : 'Moments from this week'}
+                {showingRemembered
+                  ? current.title ?? 'What you want to remember'
+                  : reviewType === 'monthly'
+                  ? 'What shaped this month?'
+                  : `Moments from this ${periodWord}`}
               </ThemedText>
               <ThemedText style={styles.weeklyCapturedSubtitle}>
-                {showingRemembered
-                  ? 'These are the moments you bookmarked to carry forward.'
-                  : <>Here are the moments you captured.{`\n`}Tap the bookmark on anything you want to carry forward.</>}
+                {showingRemembered && reviewType === 'monthly' ? (
+                  'These are the moments that shaped the month and stayed with you.'
+                ) : showingRemembered ? (
+                  'These are the moments you bookmarked to carry forward.'
+                ) : showingMonthlyWeeklyBookmarks ? (
+                  <>
+                    {
+                      'These were bookmarked in your weekly reviews.\nChoose what still matters enough to carry forward.'
+                    }
+                  </>
+                ) : (
+                  <>
+                    {
+                      'Here are the moments you captured.\nTap the bookmark on anything you want to carry forward.'
+                    }
+                  </>
+                )}
               </ThemedText>
+              {reviewType === 'monthly' && !showingRemembered ? (
+                hasWeeklyBookmarks ? (
+                  <View
+                    accessibilityRole="tablist"
+                    style={styles.monthlyMomentsTabs}>
+                    {(
+                      [
+                        {
+                          key: 'weekly_bookmarks',
+                          label: 'Weekly bookmarks',
+                          count: weeklyBookmarkedMoments.length,
+                        },
+                        {
+                          key: 'all',
+                          label: 'More moments',
+                          count: otherMonthlyMoments.length,
+                        },
+                      ] as const
+                    ).map(option => {
+                      const selected = monthlyMomentsView === option.key;
+                      return (
+                        <TouchableOpacity
+                          key={option.key}
+                          accessibilityRole="tab"
+                          accessibilityLabel={`${option.label}, ${option.count}`}
+                          accessibilityState={{selected}}
+                          activeOpacity={0.78}
+                          onPress={() => {
+                            triggerLightHaptic();
+                            setMonthlyMomentsView(option.key);
+                          }}
+                          style={[
+                            styles.monthlyMomentsTab,
+                            selected && styles.monthlyMomentsTabActive,
+                          ]}>
+                          <ThemedText
+                            weight="semiBold"
+                            style={[
+                              styles.monthlyMomentsTabText,
+                              selected && styles.monthlyMomentsTabTextActive,
+                            ]}>
+                            {option.label} · {option.count}
+                          </ThemedText>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                ) : (
+                  <View style={styles.monthlyMomentsFallback}>
+                    <Ionicons
+                      name="bookmark-outline"
+                      size={16}
+                      color={Colors.sage}
+                    />
+                    <ThemedText style={styles.monthlyMomentsFallbackText}>
+                      No weekly bookmarks yet, so all moments are shown.
+                    </ThemedText>
+                  </View>
+                )
+              ) : null}
             </View>
           }
           renderGroupHeader={group => (
             <View style={styles.weeklyMomentGroupHeader}>
               <View style={styles.weeklyMomentGroupTitleRow}>
-                <CaptureGroupIcon presentation={group.presentation}/>
-                <ThemedText weight="semiBold" style={styles.weeklyMomentGroupTitle}>{group.title}</ThemedText>
+                <CaptureGroupIcon presentation={group.presentation} />
+                <ThemedText
+                  weight="semiBold"
+                  style={styles.weeklyMomentGroupTitle}>
+                  {group.title}
+                </ThemedText>
               </View>
-              {!!captureGroupCountLabel(group.presentation, group.items) && <ThemedText style={styles.weeklyMomentGroupCount}>
-                {captureGroupCountLabel(group.presentation, group.items)}
-              </ThemedText>}
+              {!!captureGroupCountLabel(group.presentation, group.items) && (
+                <ThemedText style={styles.weeklyMomentGroupCount}>
+                  {captureGroupCountLabel(group.presentation, group.items)}
+                </ThemedText>
+              )}
             </View>
           )}
           renderCard={({item, relatedItems}) => {
-            const isSelected = relatedItems.every(related => memorableItems.some(
-              memorable => memorable.id === related.id && memorable.selectedDate === related.selectedDate,
-            ));
+            const isSelected = relatedItems.every(related =>
+              memorableItems.some(
+                memorable =>
+                  memorable.id === related.id &&
+                  memorable.selectedDate === related.selectedDate,
+              ),
+            );
             return (
               <WeeklyMomentCard
                 item={item}
                 selected={isSelected}
                 width={carouselCardWidth}
                 relatedItems={relatedItems}
-                onPress={() => relatedItems.length > 1 ? toggleMemorableGroup(relatedItems) : toggleMemorable(item)}
+                onPress={() =>
+                  relatedItems.length > 1
+                    ? toggleMemorableGroup(relatedItems)
+                    : toggleMemorable(item)
+                }
               />
             );
           }}
@@ -1681,43 +3263,58 @@ const ReviewScreen: React.FC = () => {
               <View style={styles.weeklyMomentsEmpty}>
                 <ThemedText style={styles.weeklyMomentsEmptyText}>
                   {showingRemembered
-                    ? 'You didn’t bookmark any moments from this week.'
-                    : 'No journal moments were captured this week.'}
+                    ? `You didn’t bookmark any moments from this ${periodWord}.`
+                    : reviewType === 'monthly' &&
+                      hasWeeklyBookmarks &&
+                      monthlyMomentsView === 'all'
+                    ? 'Every captured moment was already bookmarked in a weekly review.'
+                    : `No journal moments were captured this ${periodWord}.`}
                 </ThemedText>
               </View>
             </View>
           }
-          footer={showingRemembered ? (
-            <View style={styles.weeklyAdditionalMemory}>
-              <ThemedText weight="semiBold" style={styles.weeklyAdditionalMemoryTitle}>
-                Anything else you want to remember?
-              </ThemedText>
-              <ThemedText style={styles.weeklyAdditionalMemoryHint}>
-                Optional. A moment that mattered, even if you didn’t write it down during the week.
-              </ThemedText>
-              <TextInput
-                style={[styles.input, styles.weeklyAdditionalMemoryInput]}
-                multiline
-                scrollEnabled={false}
-                textAlignVertical="top"
-                value={answers.week_memory_other ?? ''}
-                onChangeText={text => onAnswerChange('week_memory_other', text)}
-                placeholder="I also want to remember…"
-                placeholderTextColor={Colors.textGray}
-                accessibilityLabel="Anything else you want to remember?"
-              />
-            </View>
-          ) : undefined}
+          footer={
+            showingRemembered && reviewType === 'weekly' ? (
+              <View style={styles.weeklyAdditionalMemory}>
+                <ThemedText
+                  weight="semiBold"
+                  style={styles.weeklyAdditionalMemoryTitle}>
+                  Anything else you want to remember?
+                </ThemedText>
+                <TextInput
+                  ref={weeklyAdditionalMemoryInputRef}
+                  style={[styles.input, styles.weeklyAdditionalMemoryInput]}
+                  multiline
+                  scrollEnabled={false}
+                  textAlignVertical="top"
+                  value={answers.week_memory_other ?? ''}
+                  onFocus={() =>
+                    requestAnimationFrame(revealWeeklyAdditionalMemoryInput)
+                  }
+                  onChangeText={text =>
+                    onAnswerChange('week_memory_other', text)
+                  }
+                  placeholder="I also want to remember…"
+                  placeholderTextColor={Colors.textGray}
+                  accessibilityLabel="Anything else you want to remember?"
+                />
+              </View>
+            ) : undefined
+          }
         />
       );
     }
 
     if (current.kind === 'captured') {
-      const carriedForwardItems = capture?.items.filter(item => item.carriedForwardFrom?.length) ?? [];
-      const otherItems = capture?.items.filter(item => !item.carriedForwardFrom?.length) ?? [];
+      const carriedForwardItems =
+        capture?.items.filter(item => item.carriedForwardFrom?.length) ?? [];
+      const otherItems =
+        capture?.items.filter(item => !item.carriedForwardFrom?.length) ?? [];
       const renderCaptureItem = (item: ReviewCaptureItem) => {
         const isSel = memorableItems.some(
-          memorable => memorable.id === item.id && memorable.selectedDate === item.selectedDate,
+          memorable =>
+            memorable.id === item.id &&
+            memorable.selectedDate === item.selectedDate,
         );
         return (
           <View key={`${item.kind}-${item.id}`} style={styles.captureItem}>
@@ -1734,7 +3331,9 @@ const ReviewScreen: React.FC = () => {
             <TouchableOpacity
               accessibilityRole="checkbox"
               accessibilityState={{checked: isSel}}
-              accessibilityLabel={`${isSel ? 'Remove from remembered' : 'Remember this'}: ${item.title}`}
+              accessibilityLabel={`${
+                isSel ? 'Remove from remembered' : 'Remember this'
+              }: ${item.title}`}
               style={[
                 styles.rememberButton,
                 isSel && styles.rememberButtonActive,
@@ -1757,168 +3356,364 @@ const ReviewScreen: React.FC = () => {
           </ThemedText>
           <ThemedText style={styles.subtitle}>
             {capture
-              ? `${capture.items.length} moments from your ${reviewType.replace('_', ' ')}. Remember what you want to carry forward.`
+              ? `${capture.items.length} moments from your ${reviewType.replace(
+                  '_',
+                  ' ',
+                )}. Remember what you want to carry forward.`
               : 'Loading…'}
           </ThemedText>
           {carriedForwardItems.length > 0 ? (
             <View style={styles.carryForwardSection}>
               <View style={styles.carryForwardHeadingRow}>
-                <Ionicons name="bookmark" size={15} color={Colors.sage}/>
-                <ThemedText weight="semiBold" style={styles.carryForwardEyebrow}>
+                <Ionicons name="bookmark" size={15} color={Colors.sage} />
+                <ThemedText
+                  weight="semiBold"
+                  style={styles.carryForwardEyebrow}>
                   {carryForwardHeading(reviewType)}
                 </ThemedText>
               </View>
               <ThemedText style={styles.carryForwardCopy}>
-                You marked these as meaningful before. Choose what still deserves to move forward.
+                You marked these as meaningful before. Choose what still
+                deserves to move forward.
               </ThemedText>
               {carriedForwardItems.map(renderCaptureItem)}
             </View>
           ) : null}
           {otherItems.length > 0 && carriedForwardItems.length > 0 ? (
-            <ThemedText weight="semiBold" style={styles.allMomentsHeading}>ALL MOMENTS</ThemedText>
+            <ThemedText weight="semiBold" style={styles.allMomentsHeading}>
+              ALL MOMENTS
+            </ThemedText>
           ) : null}
           {otherItems.map(renderCaptureItem)}
         </View>
       );
     }
 
-    if(current.kind==='feelings'){
-      const selected=(answers[current.answerKey!]||'').split('|').filter(item=>Boolean(item)&&item.toLocaleLowerCase()!=='other');
-      const customFeeling=answers.week_feeling_other??'';
-      const hasCustomFeeling=Boolean(customFeeling.trim());
-      const hasCustomChoice=showCustomFeelingInput||hasCustomFeeling;
-      const selectionCount=selected.length+(hasCustomChoice?1:0);
-      const uniqueWords=(words:readonly string[])=>words.filter((item,index,all)=>item.toLocaleLowerCase()!=='other'&&all.findIndex(other=>other.toLocaleLowerCase()===item.toLocaleLowerCase())===index);
-      const suggestedNames=uniqueWords([...WEEKLY_FEELING_WORDS,...selected]);
-      const collapsedNames=uniqueWords([...suggestedNames.slice(0,WEEKLY_FEELINGS_PREVIEW_COUNT),...selected]);
-      const visibleNames=showAllWeeklyFeelings||closingFeelings!==null
-        ? suggestedNames
-        : collapsedNames;
-      const optionNames=[...visibleNames,'Other'];
-      const toggleFeeling=(feeling:string)=>{
-        const isSelected=selected.includes(feeling);
-        if(!isSelected&&selectionCount>=3)return;
-        triggerLightHaptic();
-        const next=isSelected?selected.filter(item=>item!==feeling):[...selected,feeling];
-        onAnswerChange(current.answerKey!,next.join('|'));
-      };
-      const toggleCustomFeeling=()=>{
-        if(hasCustomChoice){
-          triggerLightHaptic();
-          pendingCustomFeelingFocusRef.current=false;
-          Keyboard.dismiss();
-          setShowCustomFeelingInput(false);
-          onAnswerChange('week_feeling_other','');
+    if (current.kind === 'feelings') {
+      const isMonthlyFeelings = reviewType === 'monthly';
+      const customFeelingKey = isMonthlyFeelings
+        ? 'month_feeling_other'
+        : 'week_feeling_other';
+      const selected = (answers[current.answerKey!] || '')
+        .split('|')
+        .filter(item => Boolean(item) && item.toLocaleLowerCase() !== 'other');
+      const customFeeling = answers[customFeelingKey] ?? '';
+      const hasCustomFeeling = Boolean(customFeeling.trim());
+      const hasCustomChoice = showCustomFeelingInput || hasCustomFeeling;
+      const selectionCount = selected.length + (hasCustomChoice ? 1 : 0);
+      const uniqueWords = (words: readonly string[]) =>
+        words.filter(
+          (item, index, all) =>
+            item.toLocaleLowerCase() !== 'other' &&
+            all.findIndex(
+              other => other.toLocaleLowerCase() === item.toLocaleLowerCase(),
+            ) === index,
+        );
+      const suggestedNames = uniqueWords([
+        ...WEEKLY_FEELING_WORDS,
+        ...checkInFeelings.map(item => item.name),
+        ...selected,
+      ]);
+      const collapsedNames = uniqueWords([
+        ...suggestedNames.slice(0, WEEKLY_FEELINGS_PREVIEW_COUNT),
+        ...selected,
+      ]);
+      const visibleNames =
+        showAllWeeklyFeelings || closingFeelings !== null
+          ? suggestedNames
+          : collapsedNames;
+      const optionNames = [...visibleNames, 'Other'];
+      const toggleFeeling = (feeling: string) => {
+        const isSelected = selected.includes(feeling);
+        if (!isSelected && selectionCount >= 3) {
           return;
         }
-        if(selectionCount>=3)return;
         triggerLightHaptic();
-        pendingCustomFeelingFocusRef.current=true;
+        const next = isSelected
+          ? selected.filter(item => item !== feeling)
+          : [...selected, feeling];
+        onAnswerChange(current.answerKey!, next.join('|'));
+      };
+      const toggleCustomFeeling = () => {
+        if (hasCustomChoice) {
+          triggerLightHaptic();
+          pendingCustomFeelingFocusRef.current = false;
+          Keyboard.dismiss();
+          setShowCustomFeelingInput(false);
+          onAnswerChange(customFeelingKey, '');
+          return;
+        }
+        if (selectionCount >= 3) {
+          return;
+        }
+        triggerLightHaptic();
+        pendingCustomFeelingFocusRef.current = true;
         setShowCustomFeelingInput(true);
       };
-      return <StaggeredReviewStage
-        animationKey={current.key}
-        enabled
-        style={[styles.stage,styles.feelingsStage,{minHeight:Math.max(580,screenHeight-topInset-insets.bottom-64)}]}>
-        <View style={styles.feelingsHeading}>
-          <View style={styles.feelingsLabelRow}>
-            <Ionicons name="leaf-outline" size={15} color={Colors.sage}/>
-            <ThemedText weight="semiBold" style={styles.feelingsLabel}>LOOKING BACK</ThemedText>
+      return (
+        <StaggeredReviewStage
+          animationKey={current.key}
+          enabled
+          style={[
+            styles.stage,
+            styles.feelingsStage,
+            {
+              minHeight: Math.max(
+                580,
+                screenHeight - topInset - insets.bottom - 64,
+              ),
+            },
+          ]}>
+          <View style={styles.feelingsHeading}>
+            <View style={styles.feelingsLabelRow}>
+              <Ionicons name="leaf-outline" size={15} color={Colors.sage} />
+              <ThemedText weight="semiBold" style={styles.feelingsLabel}>
+                LOOKING BACK
+              </ThemedText>
+            </View>
+            <ThemedText weight="bold" style={styles.feelingsQuestion}>
+              {current.question}
+            </ThemedText>
           </View>
-          <ThemedText weight="bold" style={styles.feelingsQuestion}>How did this week feel?</ThemedText>
-        </View>
-        {weeklyCheckInFeelings.length>0?<View style={styles.checkInSummary}>
-          <ThemedText weight="semiBold" style={styles.checkInSummaryLabel}>YOUR MORNING CHECK-INS</ThemedText>
-          <View style={styles.checkInSummaryPills}>
-            {weeklyCheckInFeelings.map(item=><View key={item.name.toLocaleLowerCase()} style={styles.checkInSummaryPill}>
-              <ThemedText weight="medium" style={styles.checkInSummaryPillText}>{item.name}{item.count>1?` ×${item.count}`:''}</ThemedText>
-            </View>)}
+          {checkInFeelings.length > 0 ? (
+            <View style={styles.checkInSummary}>
+              <ThemedText weight="semiBold" style={styles.checkInSummaryLabel}>
+                YOUR MORNING CHECK-INS
+              </ThemedText>
+              {isMonthlyFeelings ? (
+                <ThemedText style={styles.monthlyCheckInSummaryCopy}>
+                  {checkInFeelings.reduce(
+                    (total, item) => total + item.count,
+                    0,
+                  )}{' '}
+                  mornings recorded · {checkInFeelings.length}{' '}
+                  {checkInFeelings.length === 1 ? 'feeling' : 'feelings'}
+                </ThemedText>
+              ) : null}
+              <View style={styles.checkInSummaryPills}>
+                {checkInFeelings.map(item => {
+                  const feelingKey = item.name.toLocaleLowerCase();
+                  const expanded = expandedMonthlyFeeling === feelingKey;
+                  const content = (
+                    <ThemedText
+                      weight="medium"
+                      style={[
+                        styles.checkInSummaryPillText,
+                        expanded && styles.monthlyCheckInSummaryPillTextActive,
+                      ]}>
+                      {item.name}
+                      {item.count > 1 ? ` ×${item.count}` : ''}
+                    </ThemedText>
+                  );
+                  return isMonthlyFeelings ? (
+                    <TouchableOpacity
+                      key={feelingKey}
+                      accessibilityRole="button"
+                      accessibilityState={{expanded}}
+                      accessibilityLabel={`${item.name}, ${item.count} ${
+                        item.count === 1 ? 'morning' : 'mornings'
+                      }`}
+                      activeOpacity={0.78}
+                      onPress={() => {
+                        triggerLightHaptic();
+                        setExpandedMonthlyFeeling(value =>
+                          value === feelingKey ? null : feelingKey,
+                        );
+                      }}
+                      style={[
+                        styles.checkInSummaryPill,
+                        expanded && styles.monthlyCheckInSummaryPillActive,
+                      ]}>
+                      {content}
+                    </TouchableOpacity>
+                  ) : (
+                    <View key={feelingKey} style={styles.checkInSummaryPill}>
+                      {content}
+                    </View>
+                  );
+                })}
+              </View>
+              {isMonthlyFeelings ? (
+                <ThemedText style={styles.monthlyCheckInHint}>
+                  Tap a feeling to revisit those mornings.
+                </ThemedText>
+              ) : null}
+              {isMonthlyFeelings && expandedMonthlyFeeling ? (
+                <View style={styles.monthlyCheckInDetails}>
+                  {checkInFeelings
+                    .filter(
+                      item =>
+                        item.name.toLocaleLowerCase() ===
+                        expandedMonthlyFeeling,
+                    )
+                    .flatMap(item => ('entries' in item ? item.entries : []))
+                    .map(entry => (
+                      <View
+                        key={entry.date}
+                        style={styles.monthlyCheckInDetailRow}>
+                        <ThemedText
+                          weight="semiBold"
+                          style={styles.monthlyCheckInDate}>
+                          {formatCapturedDate(entry.date)}
+                        </ThemedText>
+                        <ThemedText style={styles.monthlyCheckInReflection}>
+                          {entry.underneathIt || 'No reflection added.'}
+                        </ThemedText>
+                      </View>
+                    ))}
+                </View>
+              ) : null}
+            </View>
+          ) : null}
+          <View style={styles.weeklyChoicePrompt}>
+            <ThemedText
+              weight="semiBold"
+              style={styles.weeklyChoicePromptLabel}>
+              {isMonthlyFeelings
+                ? 'LOOKING AT THE WHOLE MONTH'
+                : 'LOOKING AT THE WHOLE WEEK'}
+            </ThemedText>
+            <ThemedText style={styles.feelingsSubtitle}>
+              Choose or write up to 3 words.
+            </ThemedText>
           </View>
-        </View>:null}
-        <View style={styles.weeklyChoicePrompt}>
-          <ThemedText weight="semiBold" style={styles.weeklyChoicePromptLabel}>LOOKING AT THE WHOLE WEEK</ThemedText>
-          <ThemedText style={styles.feelingsSubtitle}>Choose or write up to 3 words.</ThemedText>
-        </View>
-        <View style={styles.feelingsGrid}>
-          {optionNames.map((feeling,pillIndex)=>{
-            const isOther=feeling==='Other';
-            const isSelected=selected.includes(feeling);
-            const isOtherActive=isOther&&hasCustomChoice;
-            const atLimit=isOther?!isOtherActive&&selectionCount>=3:!isSelected&&selectionCount>=3;
-            const active=isOther?isOtherActive:isSelected;
-            const exitingIndex=closingFeelings?closingFeelings.indexOf(feeling):-1;
-            const isExiting=exitingIndex>=0;
-            const pillDelay=showAllWeeklyFeelings
-              ? Math.max(0,pillIndex-collapsedNames.length)*REVIEW_PILL_STAGGER_MS
-              : REVIEW_PILL_BASE_DELAY_MS+pillIndex*REVIEW_PILL_STAGGER_MS;
-            return <StaggeredFeelingPill key={feeling} delay={pillDelay} exiting={isExiting} exitDelay={isExiting?((closingFeelings?.length??1)-1-exitingIndex)*REVIEW_PILL_STAGGER_MS:0}>
-              <TouchableOpacity accessibilityRole="button" accessibilityState={{selected:active,disabled:atLimit}} disabled={atLimit} activeOpacity={0.8} style={[styles.feelingPill,active&&styles.feelingPillSelected,atLimit&&styles.feelingPillDisabled]} onPress={()=>isOther?toggleCustomFeeling():toggleFeeling(feeling)}>
-                <ThemedText weight="semiBold" style={[styles.feelingPillText,active&&styles.feelingPillTextSelected]}>{feeling}</ThemedText>
-              </TouchableOpacity>
-            </StaggeredFeelingPill>;
-          })}
-        </View>
-        {suggestedNames.length>WEEKLY_FEELINGS_PREVIEW_COUNT?<TouchableOpacity
-          accessibilityRole="button"
-          accessibilityState={{expanded:showAllWeeklyFeelings}}
-          activeOpacity={0.7}
-          onPress={()=>{
-            triggerLightHaptic();
-            if(feelingsCloseTimerRef.current){clearTimeout(feelingsCloseTimerRef.current);feelingsCloseTimerRef.current=null;}
-            if(showAllWeeklyFeelings){
-              const staying=new Set([...collapsedNames,'Other']);
-              const exiting=optionNames.filter(name=>!staying.has(name));
-              AccessibilityInfo.isReduceMotionEnabled().then(reduceMotion=>{
-                if(reduceMotion||exiting.length===0){
-                  LayoutAnimation.configureNext(LayoutAnimation.Presets.spring);
-                  setClosingFeelings(null);
-                  setShowAllWeeklyFeelings(false);
+          <View style={styles.feelingsGrid}>
+            {optionNames.map((feeling, pillIndex) => {
+              const isOther = feeling === 'Other';
+              const isSelected = selected.includes(feeling);
+              const isOtherActive = isOther && hasCustomChoice;
+              const atLimit = isOther
+                ? !isOtherActive && selectionCount >= 3
+                : !isSelected && selectionCount >= 3;
+              const active = isOther ? isOtherActive : isSelected;
+              const exitingIndex = closingFeelings
+                ? closingFeelings.indexOf(feeling)
+                : -1;
+              const isExiting = exitingIndex >= 0;
+              const pillDelay = showAllWeeklyFeelings
+                ? Math.max(0, pillIndex - collapsedNames.length) *
+                  REVIEW_PILL_STAGGER_MS
+                : REVIEW_PILL_BASE_DELAY_MS +
+                  pillIndex * REVIEW_PILL_STAGGER_MS;
+              return (
+                <StaggeredFeelingPill
+                  key={feeling}
+                  delay={pillDelay}
+                  exiting={isExiting}
+                  exitDelay={
+                    isExiting
+                      ? ((closingFeelings?.length ?? 1) - 1 - exitingIndex) *
+                        REVIEW_PILL_STAGGER_MS
+                      : 0
+                  }>
+                  <TouchableOpacity
+                    accessibilityRole="button"
+                    accessibilityState={{selected: active, disabled: atLimit}}
+                    disabled={atLimit}
+                    activeOpacity={0.8}
+                    style={[
+                      styles.feelingPill,
+                      active && styles.feelingPillSelected,
+                      atLimit && styles.feelingPillDisabled,
+                    ]}
+                    onPress={() =>
+                      isOther ? toggleCustomFeeling() : toggleFeeling(feeling)
+                    }>
+                    <ThemedText
+                      weight="semiBold"
+                      style={[
+                        styles.feelingPillText,
+                        active && styles.feelingPillTextSelected,
+                      ]}>
+                      {feeling}
+                    </ThemedText>
+                  </TouchableOpacity>
+                </StaggeredFeelingPill>
+              );
+            })}
+          </View>
+          {suggestedNames.length > WEEKLY_FEELINGS_PREVIEW_COUNT ? (
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityState={{expanded: showAllWeeklyFeelings}}
+              activeOpacity={0.7}
+              onPress={() => {
+                triggerLightHaptic();
+                if (feelingsCloseTimerRef.current) {
+                  clearTimeout(feelingsCloseTimerRef.current);
+                  feelingsCloseTimerRef.current = null;
+                }
+                if (showAllWeeklyFeelings) {
+                  const staying = new Set([...collapsedNames, 'Other']);
+                  const exiting = optionNames.filter(
+                    name => !staying.has(name),
+                  );
+                  AccessibilityInfo.isReduceMotionEnabled()
+                    .then(reduceMotion => {
+                      if (reduceMotion || exiting.length === 0) {
+                        LayoutAnimation.configureNext(
+                          LayoutAnimation.Presets.spring,
+                        );
+                        setClosingFeelings(null);
+                        setShowAllWeeklyFeelings(false);
+                        return;
+                      }
+                      setClosingFeelings(exiting);
+                      setShowAllWeeklyFeelings(false);
+                      const totalExit =
+                        (exiting.length - 1) * REVIEW_PILL_STAGGER_MS + 260;
+                      feelingsCloseTimerRef.current = setTimeout(() => {
+                        feelingsCloseTimerRef.current = null;
+                        LayoutAnimation.configureNext(
+                          LayoutAnimation.Presets.spring,
+                        );
+                        setClosingFeelings(null);
+                      }, totalExit);
+                    })
+                    .catch(() => {
+                      LayoutAnimation.configureNext(
+                        LayoutAnimation.Presets.spring,
+                      );
+                      setClosingFeelings(null);
+                      setShowAllWeeklyFeelings(false);
+                    });
                   return;
                 }
-                setClosingFeelings(exiting);
-                setShowAllWeeklyFeelings(false);
-                const totalExit=(exiting.length-1)*REVIEW_PILL_STAGGER_MS+260;
-                feelingsCloseTimerRef.current=setTimeout(()=>{
-                  feelingsCloseTimerRef.current=null;
-                  LayoutAnimation.configureNext(LayoutAnimation.Presets.spring);
-                  setClosingFeelings(null);
-                },totalExit);
-              }).catch(()=>{
                 LayoutAnimation.configureNext(LayoutAnimation.Presets.spring);
                 setClosingFeelings(null);
-                setShowAllWeeklyFeelings(false);
-              });
-              return;
-            }
-            LayoutAnimation.configureNext(LayoutAnimation.Presets.spring);
-            setClosingFeelings(null);
-            setShowAllWeeklyFeelings(true);
-          }}
-          style={styles.feelingsShowMore}>
-          <ThemedText weight="semiBold" style={styles.feelingsShowMoreText}>{showAllWeeklyFeelings?'Show less':'Show more'}</ThemedText>
-        </TouchableOpacity>:null}
-        {showCustomFeelingInput||hasCustomFeeling?<TextInput
-          ref={customFeelingInputRef}
-          style={styles.customFeelingInput}
-          value={customFeeling}
-          onChangeText={text=>onAnswerChange('week_feeling_other',text)}
-          placeholder="Write it in your own words"
-          placeholderTextColor={Colors.textGray}
-          maxLength={160}
-          multiline
-          editable={selected.length<3||hasCustomFeeling}
-          textAlignVertical="top"
-          onLayout={()=>{
-            if(pendingCustomFeelingFocusRef.current){
-              pendingCustomFeelingFocusRef.current=false;
-              customFeelingInputRef.current?.focus();
-            }
-            revealCustomReviewInput();
-          }}
-          onFocus={()=>requestAnimationFrame(revealCustomReviewInput)}
-          accessibilityLabel="Write it in your own words"
-        />:null}
-      </StaggeredReviewStage>;
+                setShowAllWeeklyFeelings(true);
+              }}
+              style={styles.feelingsShowMore}>
+              <ThemedText weight="semiBold" style={styles.feelingsShowMoreText}>
+                {showAllWeeklyFeelings ? 'Show less' : 'Show more'}
+              </ThemedText>
+            </TouchableOpacity>
+          ) : null}
+          {showCustomFeelingInput || hasCustomFeeling ? (
+            <TextInput
+              ref={customFeelingInputRef}
+              style={styles.customFeelingInput}
+              value={customFeeling}
+              onChangeText={text => onAnswerChange(customFeelingKey, text)}
+              placeholder="Write it in your own words"
+              placeholderTextColor={Colors.textGray}
+              maxLength={160}
+              multiline
+              editable={selected.length < 3 || hasCustomFeeling}
+              textAlignVertical="top"
+              onLayout={() => {
+                if (pendingCustomFeelingFocusRef.current) {
+                  pendingCustomFeelingFocusRef.current = false;
+                  customFeelingInputRef.current?.focus();
+                }
+                revealCustomReviewInput();
+              }}
+              onFocus={() => requestAnimationFrame(revealCustomReviewInput)}
+              accessibilityLabel="Write it in your own words"
+            />
+          ) : null}
+        </StaggeredReviewStage>
+      );
     }
 
     if (current.kind === 'life_check_in') {
@@ -1929,8 +3724,10 @@ const ReviewScreen: React.FC = () => {
           style={[styles.stage, styles.lifeCheckInStage]}>
           <View style={styles.lifeCheckInHeading}>
             <View style={styles.feelingsLabelRow}>
-              <Ionicons name="leaf-outline" size={15} color={Colors.sage}/>
-              <ThemedText weight="semiBold" style={styles.feelingsLabel}>LOOKING BACK</ThemedText>
+              <Ionicons name="leaf-outline" size={15} color={Colors.sage} />
+              <ThemedText weight="semiBold" style={styles.feelingsLabel}>
+                LOOKING BACK
+              </ThemedText>
             </View>
             <ThemedText weight="bold" style={styles.lifeCheckInQuestion}>
               {current.question}
@@ -1944,11 +3741,19 @@ const ReviewScreen: React.FC = () => {
             const selectedValue = answers[area.answerKey] ?? '';
             return (
               <View key={area.key} style={styles.lifeCheckInRow}>
-                <View style={styles.lifeCheckInIcon} accessibilityElementsHidden>
-                  <MaterialCommunityIcons name={area.icon} size={24} color={Colors.sage}/>
+                <View
+                  style={styles.lifeCheckInIcon}
+                  accessibilityElementsHidden>
+                  <MaterialCommunityIcons
+                    name={area.icon}
+                    size={24}
+                    color={Colors.sage}
+                  />
                 </View>
                 <View style={styles.lifeCheckInContent}>
-                  <ThemedText weight="medium" style={styles.lifeCheckInAreaLabel}>
+                  <ThemedText
+                    weight="medium"
+                    style={styles.lifeCheckInAreaLabel}>
                     {area.label}
                   </ThemedText>
                   <View style={styles.lifeCheckInOptions}>
@@ -1993,22 +3798,33 @@ const ReviewScreen: React.FC = () => {
 
     if (current.kind === 'remembered') {
       return (
-        <StaggeredReviewStage animationKey={current.key} enabled={reviewType === 'weekly'} style={styles.stage}>
+        <StaggeredReviewStage
+          animationKey={current.key}
+          enabled={reviewType === 'weekly' || reviewType === 'monthly'}
+          style={styles.stage}>
           <ThemedText weight="bold" style={styles.title}>
             {current.title}
           </ThemedText>
           <ThemedText style={styles.subtitle}>
-            {memorableItems.length > 0
+            {reviewType === 'monthly' && memorableItems.length > 0
+              ? 'These are the moments that shaped the month and stayed with you.'
+              : memorableItems.length > 0
               ? `You chose ${memorableItems.length} thing${
                   memorableItems.length === 1 ? '' : 's'
                 } to carry with this review.`
               : 'Go back and tap the bookmark on anything you want to carry with this review.'}
           </ThemedText>
           {memorableItems
-            .map(m => capture?.items.find(i => i.id === m.id && i.selectedDate === m.selectedDate))
+            .map(m =>
+              capture?.items.find(
+                i => i.id === m.id && i.selectedDate === m.selectedDate,
+              ),
+            )
             .filter(Boolean)
             .map(item => (
-              <View key={`${item!.kind}-${item!.id}`} style={styles.captureItem}>
+              <View
+                key={`${item!.kind}-${item!.id}`}
+                style={styles.captureItem}>
                 <View style={styles.captureItemHeader}>
                   <ThemedText weight="semiBold" style={styles.captureItemTitle}>
                     {item!.title}
@@ -2025,14 +3841,198 @@ const ReviewScreen: React.FC = () => {
       );
     }
 
-    if (current.kind === 'question' && current.key === 'notice' && reviewType === 'weekly') {
+    if (
+      current.kind === 'question' &&
+      current.key === 'notice' &&
+      reviewType === 'monthly'
+    ) {
+      const totalCheckIns = checkInFeelings.reduce(
+        (total, item) => total + item.count,
+        0,
+      );
+      const largestFeelingCount = Math.max(
+        1,
+        ...checkInFeelings.map(item => item.count),
+      );
+      const largestWeeklyFeelingCount = Math.max(
+        1,
+        ...monthlyWeeklyReviewFeelings.feelings.map(item => item.count),
+      );
+      const weeklyReviewCount = monthlyWeeklyReviewFeelings.reviewCount;
+
+      return (
+        <StaggeredReviewStage
+          animationKey={current.key}
+          enabled
+          style={[styles.stage, styles.monthlyPatternsStage]}>
+          <View style={styles.monthlyPatternsHeading}>
+            <View style={styles.monthlyPatternsLabelRow}>
+              <Ionicons name="leaf-outline" size={17} color={Colors.sage} />
+              <ThemedText weight="semiBold" style={styles.monthlyPatternsLabel}>
+                LOOKING BACK
+              </ThemedText>
+            </View>
+            <ThemedText weight="bold" style={styles.monthlyPatternsTitle}>
+              {current.question}
+            </ThemedText>
+            <ThemedText style={styles.monthlyPatternsSubtitle}>
+              {totalCheckIns > 0
+                ? `Here’s what showed up across your ${totalCheckIns} morning ${
+                    totalCheckIns === 1 ? 'check-in' : 'check-ins'
+                  }${
+                    weeklyReviewCount > 0
+                      ? ` and ${weeklyReviewCount} weekly ${
+                          weeklyReviewCount === 1 ? 'review' : 'reviews'
+                        }`
+                      : ''
+                  }.`
+                : weeklyReviewCount > 0
+                ? `Here’s what showed up across your ${weeklyReviewCount} weekly ${
+                    weeklyReviewCount === 1 ? 'review' : 'reviews'
+                  }.`
+                : 'There were no Morning Check-ins or completed Weekly Reviews recorded this month. You can still name what you noticed.'}
+            </ThemedText>
+          </View>
+
+          {checkInFeelings.length > 0 ? (
+            <View style={styles.monthlyPatternSection}>
+              <View style={styles.monthlyPatternSectionHeading}>
+                <Ionicons name="sunny-outline" size={17} color={Colors.sage} />
+                <ThemedText
+                  weight="semiBold"
+                  style={styles.monthlyPatternSectionTitle}>
+                  FROM YOUR MORNINGS
+                </ThemedText>
+              </View>
+              <View style={styles.monthlyPatternList}>
+                {checkInFeelings.map((item, index) => (
+                  <View key={item.name} style={styles.monthlyPatternRow}>
+                    <View style={styles.monthlyPatternLabelRow}>
+                      <ThemedText
+                        weight="semiBold"
+                        style={styles.monthlyPatternName}>
+                        {item.name}
+                      </ThemedText>
+                      <ThemedText
+                        weight="semiBold"
+                        style={styles.monthlyPatternCount}>
+                        {item.count} {item.count === 1 ? 'day' : 'days'}
+                      </ThemedText>
+                    </View>
+                    <View style={styles.monthlyPatternTrack}>
+                      <View
+                        testID={`monthly-pattern-bar-morning-${item.name
+                          .toLowerCase()
+                          .replace(/\s+/g, '-')}`}
+                        style={[
+                          styles.monthlyPatternFill,
+                          {
+                            width: `${
+                              (item.count / largestFeelingCount) * 100
+                            }%`,
+                            backgroundColor:
+                              MONTHLY_PATTERN_BAR_COLORS[
+                                index % MONTHLY_PATTERN_BAR_COLORS.length
+                              ],
+                          },
+                        ]}
+                      />
+                    </View>
+                  </View>
+                ))}
+              </View>
+            </View>
+          ) : null}
+
+          {monthlyWeeklyReviewFeelings.feelings.length > 0 ? (
+            <View style={styles.monthlyPatternSection}>
+              <View style={styles.monthlyPatternSectionHeading}>
+                <Ionicons
+                  name="calendar-outline"
+                  size={17}
+                  color={Colors.sage}
+                />
+                <ThemedText
+                  weight="semiBold"
+                  style={styles.monthlyPatternSectionTitle}>
+                  FROM YOUR WEEKLY REVIEWS
+                </ThemedText>
+              </View>
+              <View style={styles.monthlyPatternList}>
+                {monthlyWeeklyReviewFeelings.feelings.map((item, index) => (
+                  <View key={item.name} style={styles.monthlyPatternRow}>
+                    <View style={styles.monthlyPatternLabelRow}>
+                      <ThemedText
+                        weight="semiBold"
+                        style={styles.monthlyPatternName}>
+                        {item.name}
+                      </ThemedText>
+                      <ThemedText
+                        weight="semiBold"
+                        style={styles.monthlyPatternCount}>
+                        {item.count} {item.count === 1 ? 'week' : 'weeks'}
+                      </ThemedText>
+                    </View>
+                    <View style={styles.monthlyPatternTrack}>
+                      <View
+                        testID={`monthly-pattern-bar-weekly-${item.name
+                          .toLowerCase()
+                          .replace(/\s+/g, '-')}`}
+                        style={[
+                          styles.monthlyPatternFill,
+                          {
+                            width: `${
+                              (item.count / largestWeeklyFeelingCount) * 100
+                            }%`,
+                            backgroundColor:
+                              MONTHLY_PATTERN_BAR_COLORS[
+                                index % MONTHLY_PATTERN_BAR_COLORS.length
+                              ],
+                          },
+                        ]}
+                      />
+                    </View>
+                  </View>
+                ))}
+              </View>
+            </View>
+          ) : null}
+
+          <View style={styles.monthlyPatternNote}>
+            <ThemedText
+              weight="semiBold"
+              style={styles.monthlyPatternNoteTitle}>
+              What do you notice?
+            </ThemedText>
+            <TextInput
+              style={styles.monthlyPatternInput}
+              multiline
+              scrollEnabled={false}
+              underlineColorAndroid="transparent"
+              textAlignVertical="top"
+              value={answers.notice_month ?? ''}
+              onChangeText={text => onAnswerChange('notice_month', text)}
+              placeholder="Start writing…"
+              placeholderTextColor={Colors.textGray}
+              accessibilityLabel="What do you notice?"
+            />
+          </View>
+        </StaggeredReviewStage>
+      );
+    }
+
+    if (
+      current.kind === 'question' &&
+      current.key === 'notice' &&
+      reviewType === 'weekly'
+    ) {
       return (
         <StaggeredReviewStage
           animationKey={current.key}
           enabled
           style={[styles.stage, styles.weeklyGratitudeStage]}>
           <View style={styles.weeklyGratitudeLabelContainer}>
-            <Ionicons name="heart-outline" size={16} color={Colors.sage}/>
+            <Ionicons name="heart-outline" size={16} color={Colors.sage} />
             <ThemedText weight="semiBold" style={styles.weeklyGratitudeLabel}>
               WEEKLY GRATITUDE
             </ThemedText>
@@ -2055,12 +4055,20 @@ const ReviewScreen: React.FC = () => {
                 }}
                 activeOpacity={0.7}
                 style={styles.weeklyGratitudeLookBackToggle}>
-                <Ionicons name="calendar-outline" size={18} color={Colors.sage}/>
-                <ThemedText weight="medium" style={styles.weeklyGratitudeLookBackTitle}>
+                <Ionicons
+                  name="calendar-outline"
+                  size={18}
+                  color={Colors.sage}
+                />
+                <ThemedText
+                  weight="medium"
+                  style={styles.weeklyGratitudeLookBackTitle}>
                   Look back at your week
                 </ThemedText>
                 <Ionicons
-                  name={showWeeklyGratitudeLookBack ? 'chevron-up' : 'chevron-down'}
+                  name={
+                    showWeeklyGratitudeLookBack ? 'chevron-up' : 'chevron-down'
+                  }
                   size={18}
                   color={Colors.sage}
                 />
@@ -2078,16 +4086,24 @@ const ReviewScreen: React.FC = () => {
                   </ThemedText>
                   <MomentsPaletteContext.Provider value={true}>
                     {weeklyGratitudeDates.map(date => {
-                      const [entryYear, entryMonth, entryDay] = date.split('-').map(Number);
+                      const [entryYear, entryMonth, entryDay] = date
+                        .split('-')
+                        .map(Number);
                       return (
-                        <View key={date} style={styles.weeklyGratitudeLookBackDay}>
+                        <View
+                          key={date}
+                          style={styles.weeklyGratitudeLookBackDay}>
                           <View style={styles.weeklyGratitudeLookBackDatePill}>
-                            <ThemedText weight="semiBold" style={styles.weeklyGratitudeLookBackDate}>
+                            <ThemedText
+                              weight="semiBold"
+                              style={styles.weeklyGratitudeLookBackDate}>
                               {formatCapturedDate(date)}
                             </ThemedText>
                           </View>
                           <GratitudeListReactQuery
-                            selectedDate={new Date(entryYear, entryMonth - 1, entryDay, 12)}
+                            selectedDate={
+                              new Date(entryYear, entryMonth - 1, entryDay, 12)
+                            }
                             viewMode="moments"
                             readOnly
                             cardStyle={styles.weeklyGratitudeLookBackCard}
@@ -2110,7 +4126,9 @@ const ReviewScreen: React.FC = () => {
               return (
                 <TextInput
                   key={answerKey}
-                  ref={input => {weeklyGratitudeInputRefs.current[index] = input;}}
+                  ref={input => {
+                    weeklyGratitudeInputRefs.current[index] = input;
+                  }}
                   style={styles.weeklyGratitudeInput}
                   autoFocus={index === 0}
                   underlineColorAndroid="transparent"
@@ -2122,7 +4140,11 @@ const ReviewScreen: React.FC = () => {
                   onFocus={() => revealWeeklyGratitudeInput(index)}
                   placeholder={current.placeholder}
                   placeholderTextColor={Colors.textGray}
-                  accessibilityLabel={index === 0 ? 'Your weekly prayer of thanks' : `Additional weekly reflection ${index}`}
+                  accessibilityLabel={
+                    index === 0
+                      ? 'Your weekly prayer of thanks'
+                      : `Additional weekly reflection ${index}`
+                  }
                 />
               );
             })}
@@ -2131,12 +4153,22 @@ const ReviewScreen: React.FC = () => {
       );
     }
 
-    if (current.kind === 'question' && current.key === 'god' && reviewType === 'weekly') {
+    if (
+      current.kind === 'question' &&
+      current.key === 'god' &&
+      reviewType === 'weekly'
+    ) {
       const rawAnswer = answers.god ?? '';
-      const selectedChoices = rawAnswer.split('|').filter(isGodFaithfulnessChoice);
-      const legacyResponse = rawAnswer.trim() && selectedChoices.length === 0 ? rawAnswer.trim() : '';
+      const selectedChoices = rawAnswer
+        .split('|')
+        .filter(isGodFaithfulnessChoice);
+      const legacyResponse =
+        rawAnswer.trim() && selectedChoices.length === 0
+          ? rawAnswer.trim()
+          : '';
       const customResponse = answers.god_faithfulness_other ?? legacyResponse;
-      const hasCustomChoice = showGodFaithfulnessInput || Boolean(customResponse.trim());
+      const hasCustomChoice =
+        showGodFaithfulnessInput || Boolean(customResponse.trim());
       const selectionCount = selectedChoices.length + (hasCustomChoice ? 1 : 0);
       const saveGodAnswers = (patch: Record<string, string>) => {
         const next = {...answers, ...patch};
@@ -2145,13 +4177,21 @@ const ReviewScreen: React.FC = () => {
       };
       const toggleChoice = (choice: string) => {
         const isSelected = selectedChoices.includes(choice);
-        if (!isSelected && selectionCount >= 3) {return;}
+        if (!isSelected && selectionCount >= 3) {
+          return;
+        }
         triggerLightHaptic();
-        const nextChoices = choice === 'I’m still looking'
-          ? (isSelected ? [] : [choice])
-          : isSelected
+        const nextChoices =
+          choice === 'I’m still looking'
+            ? isSelected
+              ? []
+              : [choice]
+            : isSelected
             ? selectedChoices.filter(item => item !== choice)
-            : [...selectedChoices.filter(item => item !== 'I’m still looking'), choice];
+            : [
+                ...selectedChoices.filter(item => item !== 'I’m still looking'),
+                choice,
+              ];
         saveGodAnswers({
           god: nextChoices.join('|'),
           ...(legacyResponse && answers.god_faithfulness_other === undefined
@@ -2171,7 +4211,9 @@ const ReviewScreen: React.FC = () => {
           });
           return;
         }
-        if (selectionCount >= 3) {return;}
+        if (selectionCount >= 3) {
+          return;
+        }
         triggerLightHaptic();
         pendingGodFaithfulnessFocusRef.current = true;
         setShowGodFaithfulnessInput(true);
@@ -2183,8 +4225,10 @@ const ReviewScreen: React.FC = () => {
           enabled
           style={[styles.stage, styles.godFaithfulnessStage]}>
           <View style={styles.labelRow}>
-            <Ionicons name="sparkles-outline" size={16} color={Colors.sage}/>
-            <ThemedText weight="semiBold" style={styles.label}>{current.label}</ThemedText>
+            <Ionicons name="sparkles-outline" size={16} color={Colors.sage} />
+            <ThemedText weight="semiBold" style={styles.label}>
+              {current.label}
+            </ThemedText>
           </View>
           <ThemedText weight="bold" style={styles.godFaithfulnessQuestion}>
             {current.question}
@@ -2194,37 +4238,48 @@ const ReviewScreen: React.FC = () => {
           </ThemedText>
 
           <View style={styles.godFaithfulnessGrid}>
-            {[...WEEKLY_GOD_FAITHFULNESS_OPTIONS, 'Write my own'].map((choice, index) => {
-              const isCustom = choice === 'Write my own';
-              const isSelected = isCustom ? hasCustomChoice : selectedChoices.includes(choice);
-              const atLimit = !isSelected && selectionCount >= 3;
-              return (
-                <StaggeredFeelingPill
-                  key={choice}
-                  delay={REVIEW_PILL_BASE_DELAY_MS + index * REVIEW_PILL_STAGGER_MS}>
-                  <TouchableOpacity
-                    accessibilityRole="button"
-                    accessibilityState={{selected: isSelected, disabled: atLimit}}
-                    disabled={atLimit}
-                    activeOpacity={0.8}
-                    onPress={() => isCustom ? toggleCustomChoice() : toggleChoice(choice)}
-                    style={[
-                      styles.feelingPill,
-                      isSelected && styles.feelingPillSelected,
-                      atLimit && styles.feelingPillDisabled,
-                    ]}>
-                    <ThemedText
-                      weight="semiBold"
+            {[...WEEKLY_GOD_FAITHFULNESS_OPTIONS, 'Write my own'].map(
+              (choice, index) => {
+                const isCustom = choice === 'Write my own';
+                const isSelected = isCustom
+                  ? hasCustomChoice
+                  : selectedChoices.includes(choice);
+                const atLimit = !isSelected && selectionCount >= 3;
+                return (
+                  <StaggeredFeelingPill
+                    key={choice}
+                    delay={
+                      REVIEW_PILL_BASE_DELAY_MS + index * REVIEW_PILL_STAGGER_MS
+                    }>
+                    <TouchableOpacity
+                      accessibilityRole="button"
+                      accessibilityState={{
+                        selected: isSelected,
+                        disabled: atLimit,
+                      }}
+                      disabled={atLimit}
+                      activeOpacity={0.8}
+                      onPress={() =>
+                        isCustom ? toggleCustomChoice() : toggleChoice(choice)
+                      }
                       style={[
-                        styles.feelingPillText,
-                        isSelected && styles.feelingPillTextSelected,
+                        styles.feelingPill,
+                        isSelected && styles.feelingPillSelected,
+                        atLimit && styles.feelingPillDisabled,
                       ]}>
-                      {choice}
-                    </ThemedText>
-                  </TouchableOpacity>
-                </StaggeredFeelingPill>
-              );
-            })}
+                      <ThemedText
+                        weight="semiBold"
+                        style={[
+                          styles.feelingPillText,
+                          isSelected && styles.feelingPillTextSelected,
+                        ]}>
+                        {choice}
+                      </ThemedText>
+                    </TouchableOpacity>
+                  </StaggeredFeelingPill>
+                );
+              },
+            )}
           </View>
 
           {hasCustomChoice ? (
@@ -2235,10 +4290,12 @@ const ReviewScreen: React.FC = () => {
               multiline
               scrollEnabled={false}
               value={customResponse}
-              onChangeText={text => saveGodAnswers({
-                god: selectedChoices.join('|'),
-                god_faithfulness_other: text,
-              })}
+              onChangeText={text =>
+                saveGodAnswers({
+                  god: selectedChoices.join('|'),
+                  god_faithfulness_other: text,
+                })
+              }
               onLayout={() => {
                 if (pendingGodFaithfulnessFocusRef.current) {
                   pendingGodFaithfulnessFocusRef.current = false;
@@ -2258,18 +4315,31 @@ const ReviewScreen: React.FC = () => {
       );
     }
 
-    if (current.kind === 'question' && current.key === 'dont_forget' && reviewType === 'weekly') {
-      const selectedCareAreas = new Set(getWeeklyCareAreas(answers).map(area => area.key));
+    if (
+      current.kind === 'question' &&
+      current.key === 'dont_forget' &&
+      reviewType === 'weekly'
+    ) {
+      const selectedCareAreas = new Set(
+        getWeeklyCareAreas(answers).map(area => area.key),
+      );
       return (
-        <StaggeredReviewStage animationKey={current.key} enabled style={[styles.stage, styles.weeklyCareStage]}>
+        <StaggeredReviewStage
+          animationKey={current.key}
+          enabled
+          style={[styles.stage, styles.weeklyCareStage]}>
           <View style={styles.labelRow}>
-            <Ionicons name="heart-outline" size={16} color={Colors.sage}/>
-            <ThemedText weight="semiBold" style={styles.label}>{current.label}</ThemedText>
+            <Ionicons name="heart-outline" size={16} color={Colors.sage} />
+            <ThemedText weight="semiBold" style={styles.label}>
+              {current.label}
+            </ThemedText>
           </View>
           <ThemedText weight="semiBold" style={styles.weeklyGratitudeTitle}>
             {current.question}
           </ThemedText>
-          <ThemedText style={styles.weeklyGratitudeSubtitle}>{current.subtitle}</ThemedText>
+          <ThemedText style={styles.weeklyGratitudeSubtitle}>
+            {current.subtitle}
+          </ThemedText>
           <View style={styles.weeklyCareAreas}>
             {WEEKLY_CARE_AREAS.map(area => {
               const isSelected = selectedCareAreas.has(area.key);
@@ -2283,17 +4353,38 @@ const ReviewScreen: React.FC = () => {
                     onPress={() => {
                       triggerLightHaptic();
                       const next = new Set(selectedCareAreas);
-                      if (area.key === 'other') {pendingWeeklyCareOtherFocusRef.current = !isSelected;}
-                      if (isSelected) {next.delete(area.key);} else {next.add(area.key);}
-                      onAnswerChange('week_care_areas', WEEKLY_CARE_AREAS
-                        .filter(candidate => next.has(candidate.key))
-                        .map(candidate => candidate.key).join('|'));
+                      if (area.key === 'other') {
+                        pendingWeeklyCareOtherFocusRef.current = !isSelected;
+                      }
+                      if (isSelected) {
+                        next.delete(area.key);
+                      } else {
+                        next.add(area.key);
+                      }
+                      onAnswerChange(
+                        'week_care_areas',
+                        WEEKLY_CARE_AREAS.filter(candidate =>
+                          next.has(candidate.key),
+                        )
+                          .map(candidate => candidate.key)
+                          .join('|'),
+                      );
                     }}
-                    style={[styles.weeklyCareArea, isSelected && styles.weeklyCareAreaSelected]}>
-                    <MaterialCommunityIcons name={area.icon} size={22} color={isSelected ? Colors.hopeWhite : Colors.sage}/>
+                    style={[
+                      styles.weeklyCareArea,
+                      isSelected && styles.weeklyCareAreaSelected,
+                    ]}>
+                    <MaterialCommunityIcons
+                      name={area.icon}
+                      size={22}
+                      color={isSelected ? Colors.hopeWhite : Colors.sage}
+                    />
                     <ThemedText
                       weight="medium"
-                      style={[styles.weeklyCareAreaLabel, isSelected && styles.weeklyCareAreaLabelSelected]}>
+                      style={[
+                        styles.weeklyCareAreaLabel,
+                        isSelected && styles.weeklyCareAreaLabelSelected,
+                      ]}>
                       {area.label}
                     </ThemedText>
                   </TouchableOpacity>
@@ -2353,7 +4444,11 @@ const ReviewScreen: React.FC = () => {
       );
     }
 
-    if (current.kind === 'question' && current.key === 'watch_for' && reviewType === 'weekly') {
+    if (
+      current.kind === 'question' &&
+      current.key === 'watch_for' &&
+      reviewType === 'weekly'
+    ) {
       const selectedChoices = getWeeklyChallengeChoices(answers);
       const selectedKeys = new Set(selectedChoices.map(option => option.key));
       const saveChallengeAnswers = (patch: Record<string, string>) => {
@@ -2362,15 +4457,26 @@ const ReviewScreen: React.FC = () => {
         saveReview({answers: next});
       };
       return (
-        <StaggeredReviewStage animationKey={current.key} enabled style={[styles.stage, styles.weeklyChallengeStage]}>
+        <StaggeredReviewStage
+          animationKey={current.key}
+          enabled
+          style={[styles.stage, styles.weeklyChallengeStage]}>
           <View style={styles.labelRow}>
-            <Ionicons name="arrow-forward-outline" size={16} color={Colors.sage}/>
-            <ThemedText weight="semiBold" style={styles.label}>{current.label}</ThemedText>
+            <Ionicons
+              name="arrow-forward-outline"
+              size={16}
+              color={Colors.sage}
+            />
+            <ThemedText weight="semiBold" style={styles.label}>
+              {current.label}
+            </ThemedText>
           </View>
           <ThemedText weight="semiBold" style={styles.weeklyChallengeTitle}>
             {current.question}
           </ThemedText>
-          <ThemedText style={styles.weeklyChallengeSubtitle}>{current.subtitle}</ThemedText>
+          <ThemedText style={styles.weeklyChallengeSubtitle}>
+            {current.subtitle}
+          </ThemedText>
           <View style={styles.weeklyChallengeChoices}>
             {getWeeklyChallengeOptions(answers).map(option => {
               const isSelected = selectedKeys.has(option.key);
@@ -2383,15 +4489,29 @@ const ReviewScreen: React.FC = () => {
                   activeOpacity={0.8}
                   onPress={() => {
                     triggerLightHaptic();
-                    saveChallengeAnswers({week_challenge_choices: toggleWeeklyChallengeChoice(answers, option.key)});
+                    saveChallengeAnswers({
+                      week_challenge_choices: toggleWeeklyChallengeChoice(
+                        answers,
+                        option.key,
+                      ),
+                    });
                     if (option.key === 'other' && !isSelected) {
-                      requestAnimationFrame(() => weeklyChallengeOtherInputRef.current?.focus());
+                      requestAnimationFrame(() =>
+                        weeklyChallengeOtherInputRef.current?.focus(),
+                      );
                     }
                   }}
-                  style={[styles.feelingPill, styles.weeklyChallengePill, isSelected && styles.feelingPillSelected]}>
+                  style={[
+                    styles.feelingPill,
+                    styles.weeklyChallengePill,
+                    isSelected && styles.feelingPillSelected,
+                  ]}>
                   <ThemedText
                     weight="medium"
-                    style={[styles.feelingPillText, isSelected && styles.feelingPillTextSelected]}>
+                    style={[
+                      styles.feelingPillText,
+                      isSelected && styles.feelingPillTextSelected,
+                    ]}>
                     {option.label}
                   </ThemedText>
                   <Ionicons
@@ -2418,11 +4538,17 @@ const ReviewScreen: React.FC = () => {
                   scrollEnabled={false}
                   underlineColorAndroid="transparent"
                   value={answers.watch_for ?? ''}
-                  onChangeText={text => saveChallengeAnswers({
-                    week_challenge_choices: selectedChoices.map(option => option.key).join('|'),
-                    watch_for: text,
-                  })}
-                  onFocus={() => requestAnimationFrame(revealWeeklyChallengeOtherInput)}
+                  onChangeText={text =>
+                    saveChallengeAnswers({
+                      week_challenge_choices: selectedChoices
+                        .map(option => option.key)
+                        .join('|'),
+                      watch_for: text,
+                    })
+                  }
+                  onFocus={() =>
+                    requestAnimationFrame(revealWeeklyChallengeOtherInput)
+                  }
                   placeholder={current.placeholder}
                   placeholderTextColor={Colors.textGray}
                   textAlignVertical="top"
@@ -2441,11 +4567,15 @@ const ReviewScreen: React.FC = () => {
           weekly
           embedded
           selectedEmotion={getWeeklyLookingForwardEmotion(answers)}
-          onSelect={emotion => onAnswerChange('week_looking_forward_emotion', emotion?.id ?? '')}
+          onSelect={emotion =>
+            onAnswerChange('week_looking_forward_emotion', emotion?.id ?? '')
+          }
           onNext={() => goTo(stage + 1)}
           insets={{top: topInset + 36, bottom: insets.bottom}}
           customEmotion={answers.week_looking_forward_other ?? ''}
-          setCustomEmotion={text => onAnswerChange('week_looking_forward_other', text)}
+          setCustomEmotion={text =>
+            onAnswerChange('week_looking_forward_other', text)
+          }
           dateContext="today"
         />
       );
@@ -2468,17 +4598,32 @@ const ReviewScreen: React.FC = () => {
     }
 
     if (reviewType === 'weekly' && current.key === 'prayer_ahead') {
-      const savedPrayerWords = getWeeklySupportChoices(answers).filter(option => option.key !== 'other');
+      const savedPrayerWords = getWeeklySupportChoices(answers).filter(
+        option => option.key !== 'other',
+      );
       return (
-        <StaggeredReviewStage animationKey={current.key} enabled style={[styles.stage, styles.weeklyClosingStage]}>
+        <StaggeredReviewStage
+          animationKey={current.key}
+          enabled
+          style={[styles.stage, styles.weeklyClosingStage]}>
           <View style={styles.labelRow}>
-            <PrayerHandsIcon size={18} color={Colors.sage}/>
-            <ThemedText weight="semiBold" style={styles.label}>{current.label}</ThemedText>
+            <PrayerHandsIcon size={18} color={Colors.sage} />
+            <ThemedText weight="semiBold" style={styles.label}>
+              {current.label}
+            </ThemedText>
           </View>
-          <ThemedText weight="semiBold" style={styles.weeklyChallengeTitle}>{current.question}</ThemedText>
-          <ThemedText style={styles.weeklyChallengeSubtitle}>{current.subtitle}</ThemedText>
+          <ThemedText weight="semiBold" style={styles.weeklyChallengeTitle}>
+            {current.question}
+          </ThemedText>
+          <ThemedText style={styles.weeklyChallengeSubtitle}>
+            {current.subtitle}
+          </ThemedText>
           <View style={styles.weeklyClosingNote}>
-            {savedPrayerWords.length > 0 && <ThemedText style={styles.weeklyCareNoteLabel}>{savedPrayerWords.map(option => option.label).join(' · ')}</ThemedText>}
+            {savedPrayerWords.length > 0 && (
+              <ThemedText style={styles.weeklyCareNoteLabel}>
+                {savedPrayerWords.map(option => option.label).join(' · ')}
+              </ThemedText>
+            )}
             <TextInput
               ref={weeklyPrayerInputRef}
               style={styles.weeklyPrayerInput}
@@ -2500,31 +4645,49 @@ const ReviewScreen: React.FC = () => {
     }
 
     if (current.kind === 'question') {
-      const isWeeklyDifficulty = reviewType === 'weekly' && current.key === 'difficulty';
-      const isWeeklyLearning = reviewType === 'weekly' && current.key === 'learning';
+      const isWeeklyDifficulty =
+        reviewType === 'weekly' && current.key === 'difficulty';
+      const isWeeklyLearning =
+        reviewType === 'weekly' && current.key === 'learning';
       return (
         <StaggeredReviewStage
           animationKey={current.key}
           enabled={reviewType === 'weekly'}
-          style={[styles.stage, isWeeklyDifficulty && styles.weeklyDifficultyStage]}>
+          style={[
+            styles.stage,
+            isWeeklyDifficulty && styles.weeklyDifficultyStage,
+          ]}>
           <View style={styles.labelRow}>
-            {current.icon && <Ionicons name={current.icon as any} size={16} color={Colors.sage} />}
+            {current.icon && (
+              <Ionicons
+                name={current.icon as any}
+                size={16}
+                color={Colors.sage}
+              />
+            )}
             <ThemedText weight="semiBold" style={styles.label}>
               {current.label}
             </ThemedText>
           </View>
           <ThemedText
             weight="bold"
-            style={[styles.question, current.subtitle && styles.questionWithSubtitle]}>
+            style={[
+              styles.question,
+              current.subtitle && styles.questionWithSubtitle,
+            ]}>
             {current.question}
           </ThemedText>
           {current.subtitle ? (
-            <ThemedText style={styles.questionSubtitle}>{current.subtitle}</ThemedText>
+            <ThemedText style={styles.questionSubtitle}>
+              {current.subtitle}
+            </ThemedText>
           ) : null}
           <TextInput
             style={styles.input}
             autoFocus={isWeeklyDifficulty || isWeeklyLearning}
-            underlineColorAndroid={isWeeklyDifficulty ? 'transparent' : undefined}
+            underlineColorAndroid={
+              isWeeklyDifficulty ? 'transparent' : undefined
+            }
             multiline
             value={answers[current.answerKey!] ?? ''}
             onChangeText={t => onAnswerChange(current.answerKey!, t)}
@@ -2533,12 +4696,18 @@ const ReviewScreen: React.FC = () => {
             textAlignVertical="top"
             accessibilityLabel={current.question}
           />
-          {reviewType === 'weekly' && current.key === 'learning' && answers.prayer?.trim() ? (
+          {reviewType === 'weekly' &&
+          current.key === 'learning' &&
+          answers.prayer?.trim() ? (
             <View style={styles.weeklySavedPrayer}>
-              <ThemedText weight="semiBold" style={styles.weeklyAdditionalMemoryTitle}>
+              <ThemedText
+                weight="semiBold"
+                style={styles.weeklyAdditionalMemoryTitle}>
                 Your saved prayer from this review
               </ThemedText>
-              <ThemedText style={styles.weeklySavedPrayerBody}>{answers.prayer}</ThemedText>
+              <ThemedText style={styles.weeklySavedPrayerBody}>
+                {answers.prayer}
+              </ThemedText>
             </View>
           ) : null}
         </StaggeredReviewStage>
@@ -2546,50 +4715,82 @@ const ReviewScreen: React.FC = () => {
     }
 
     if (current.kind === 'priorities') {
-      const isWeeklyPriority = reviewType === 'weekly';
+      const isDesignedPriority =
+        reviewType === 'weekly' || reviewType === 'monthly';
       return (
-        <StaggeredReviewStage animationKey={current.key} enabled={reviewType === 'weekly'} style={styles.stage}>
+        <StaggeredReviewStage
+          animationKey={current.key}
+          enabled={isDesignedPriority}
+          style={styles.stage}>
           <View style={styles.labelRow}>
-            {isWeeklyPriority ? (
-              <MaterialIcons name="filter-center-focus" size={16} color={Colors.sage} />
-            ) : current.icon && <Ionicons name={current.icon as any} size={16} color={Colors.sage} />}
+            {isDesignedPriority ? (
+              <MaterialIcons
+                name="filter-center-focus"
+                size={16}
+                color={Colors.sage}
+              />
+            ) : (
+              current.icon && (
+                <Ionicons
+                  name={current.icon as any}
+                  size={16}
+                  color={Colors.sage}
+                />
+              )
+            )}
             <ThemedText weight="semiBold" style={styles.label}>
               {current.label}
             </ThemedText>
           </View>
           <ThemedText
             weight="bold"
-            style={[styles.question, isWeeklyPriority && current.subtitle && styles.questionWithSubtitle]}>
+            style={[
+              styles.question,
+              isDesignedPriority &&
+                current.subtitle &&
+                styles.questionWithSubtitle,
+            ]}>
             {current.question}
           </ThemedText>
           {current.subtitle ? (
-            <ThemedText style={isWeeklyPriority ? styles.questionSubtitle : styles.subtitle}>
+            <ThemedText
+              style={
+                isDesignedPriority ? styles.questionSubtitle : styles.subtitle
+              }>
               {current.subtitle}
             </ThemedText>
           ) : null}
-          {isWeeklyPriority ? (
+          {isDesignedPriority ? (
             <FocusPriorityInputs
               ref={weeklyPriorityInputsRef}
               visibleCount={weeklyPriorityInputCount}
               priorities={current.answerKeys!.map(key => answers[key] ?? '')}
-              onChange={(index, text) => onAnswerChange(current.answerKeys![index], text)}
+              onChange={(index, text) =>
+                onAnswerChange(current.answerKeys![index], text)
+              }
             />
-          ) : current.answerKeys!.map((key, index) => (
-            <TextInput
-              key={key}
-              style={[styles.input, styles.shortInput]}
-              value={answers[key] ?? ''}
-              onChangeText={t => onAnswerChange(key, t)}
-              placeholder={`${current.label} ${index + 1}`}
-              placeholderTextColor={Colors.textGray}
-            />
-          ))}
+          ) : (
+            current.answerKeys!.map((key, index) => (
+              <TextInput
+                key={key}
+                style={[styles.input, styles.shortInput]}
+                value={answers[key] ?? ''}
+                onChangeText={t => onAnswerChange(key, t)}
+                placeholder={`${current.label} ${index + 1}`}
+                placeholderTextColor={Colors.textGray}
+              />
+            ))
+          )}
         </StaggeredReviewStage>
       );
     }
 
     if (current.kind === 'transition') {
-      if (reviewType === 'weekly' && current.key === 'looking_ahead') {
+      if (
+        (reviewType === 'weekly' && current.key === 'looking_ahead') ||
+        (reviewType === 'monthly' && current.key === 'step_into')
+      ) {
+        const isMonthlyTransition = reviewType === 'monthly';
         return (
           <StaggeredReviewStage
             animationKey={current.key}
@@ -2597,7 +4798,12 @@ const ReviewScreen: React.FC = () => {
             style={[
               styles.stage,
               styles.weeklyLookingAheadStage,
-              {minHeight: Math.max(480, screenHeight - topInset - insets.bottom - 172)},
+              {
+                minHeight: Math.max(
+                  480,
+                  screenHeight - topInset - insets.bottom - 172,
+                ),
+              },
             ]}>
             <Image
               accessible={false}
@@ -2608,7 +4814,9 @@ const ReviewScreen: React.FC = () => {
             <View style={styles.weeklyLookingAheadCopy}>
               <View style={styles.weeklyLookingAheadLabelRow}>
                 <Ionicons name="leaf-outline" size={15} color={Colors.sage} />
-                <ThemedText weight="semiBold" style={styles.weeklyLookingAheadLabel}>
+                <ThemedText
+                  weight="semiBold"
+                  style={styles.weeklyLookingAheadLabel}>
                   {current.label}
                 </ThemedText>
               </View>
@@ -2618,17 +4826,32 @@ const ReviewScreen: React.FC = () => {
               <ThemedText style={styles.weeklyLookingAheadSubtitle}>
                 {current.subtitle}
               </ThemedText>
-              <ThemedText weight="medium" style={styles.weeklyAheadDates}>{weeklyLookingAheadPeriodLabel}</ThemedText>
-              <ThemedText style={styles.weeklyAheadOptional}>Answer what helps. You can skip any step.</ThemedText>
+              <ThemedText weight="medium" style={styles.weeklyAheadDates}>
+                {isMonthlyTransition
+                  ? monthlyLookingAheadPeriodLabel
+                  : weeklyLookingAheadPeriodLabel}
+              </ThemedText>
+              <ThemedText style={styles.weeklyAheadOptional}>
+                Answer what helps. You can skip any step.
+              </ThemedText>
             </View>
           </StaggeredReviewStage>
         );
       }
 
       return (
-        <StaggeredReviewStage animationKey={current.key} enabled={reviewType === 'weekly'} style={styles.stage}>
+        <StaggeredReviewStage
+          animationKey={current.key}
+          enabled={reviewType === 'weekly' || reviewType === 'monthly'}
+          style={styles.stage}>
           <View style={styles.labelRow}>
-            {current.icon && <Ionicons name={current.icon as any} size={16} color={Colors.sage} />}
+            {current.icon && (
+              <Ionicons
+                name={current.icon as any}
+                size={16}
+                color={Colors.sage}
+              />
+            )}
             <ThemedText weight="semiBold" style={styles.label}>
               {current.label}
             </ThemedText>
@@ -2636,24 +4859,30 @@ const ReviewScreen: React.FC = () => {
           <ThemedText weight="bold" style={styles.title}>
             {current.title}
           </ThemedText>
-          <ThemedText style={styles.subtitle}>
-            {current.subtitle}
-          </ThemedText>
+          <ThemedText style={styles.subtitle}>{current.subtitle}</ThemedText>
         </StaggeredReviewStage>
       );
     }
 
     if (current.kind === 'ready') {
       const isMonthly = reviewType === 'monthly';
-      const label = current.label ?? `${reviewType.replace('_', ' ').toUpperCase()} IS READY`;
+      const label =
+        current.label ??
+        `${reviewType.replace('_', ' ').toUpperCase()} IS READY`;
 
       const priorityKeys =
         reviewType === 'quarterly'
           ? ['quarter_priority_1', 'quarter_priority_2', 'quarter_priority_3']
           : isMonthly
-          ? ['next_month_priority_1', 'next_month_priority_2', 'next_month_priority_3']
+          ? [
+              'next_month_priority_1',
+              'next_month_priority_2',
+              'next_month_priority_3',
+            ]
           : ['priority_1', 'priority_2', 'priority_3'];
-      const priorityCount = priorityKeys.map(k => answers[k]).filter(Boolean).length;
+      const priorityCount = priorityKeys
+        .map(k => answers[k])
+        .filter(Boolean).length;
 
       const summaryRows =
         reviewType === 'begin_year' ? (
@@ -2850,9 +5079,18 @@ const ReviewScreen: React.FC = () => {
         );
 
       return (
-        <StaggeredReviewStage animationKey={current.key} enabled={reviewType === 'weekly'} style={styles.stage}>
+        <StaggeredReviewStage
+          animationKey={current.key}
+          enabled={reviewType === 'weekly'}
+          style={styles.stage}>
           <View style={styles.labelRow}>
-            {current.icon && <Ionicons name={current.icon as any} size={16} color={Colors.sage} />}
+            {current.icon && (
+              <Ionicons
+                name={current.icon as any}
+                size={16}
+                color={Colors.sage}
+              />
+            )}
             <ThemedText weight="semiBold" style={styles.label}>
               YOUR {label}
             </ThemedText>
@@ -2861,9 +5099,7 @@ const ReviewScreen: React.FC = () => {
             {periodLabel}
           </ThemedText>
 
-          <View style={styles.summaryCard}>
-            {summaryRows}
-          </View>
+          <View style={styles.summaryCard}>{summaryRows}</View>
 
           <TouchableOpacity
             style={styles.primaryButton}
@@ -2886,7 +5122,11 @@ const ReviewScreen: React.FC = () => {
   if (isLoadingReview || reviewLoadError) {
     return (
       <SafeAreaView style={styles.safeArea} edges={['left', 'right']}>
-        <StatusBar barStyle="dark-content" backgroundColor={Colors.lightBackground} translucent={false}/>
+        <StatusBar
+          barStyle="dark-content"
+          backgroundColor={Colors.lightBackground}
+          translucent={false}
+        />
         <HeaderBackButton
           style={[styles.backButton, {top: topInset + 8}]}
           onPress={() => {
@@ -2897,18 +5137,24 @@ const ReviewScreen: React.FC = () => {
           color={Colors.text}
         />
         <View style={styles.reviewLoadState}>
-          {isLoadingReview ? <>
-            <ActivityIndicator color={Colors.sage}/>
-            <ThemedText>Loading your review…</ThemedText>
-          </> : <>
-            <ThemedText>We couldn’t load your review.</ThemedText>
-            <TouchableOpacity
-              accessibilityRole="button"
-              style={styles.primaryButton}
-              onPress={() => setReviewLoadAttempt(attempt => attempt + 1)}>
-              <ThemedText weight="bold" style={styles.primaryButtonText}>Try again</ThemedText>
-            </TouchableOpacity>
-          </>}
+          {isLoadingReview ? (
+            <>
+              <ActivityIndicator color={Colors.sage} />
+              <ThemedText>Loading your review…</ThemedText>
+            </>
+          ) : (
+            <>
+              <ThemedText>We couldn’t load your review.</ThemedText>
+              <TouchableOpacity
+                accessibilityRole="button"
+                style={styles.primaryButton}
+                onPress={() => setReviewLoadAttempt(attempt => attempt + 1)}>
+                <ThemedText weight="bold" style={styles.primaryButtonText}>
+                  Try again
+                </ThemedText>
+              </TouchableOpacity>
+            </>
+          )}
         </View>
       </SafeAreaView>
     );
@@ -2917,19 +5163,26 @@ const ReviewScreen: React.FC = () => {
   if (reviewType === 'weekly' && currentStageKind === 'ready' && review) {
     return (
       <SafeAreaView style={styles.safeArea} edges={['left', 'right']}>
-        <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent/>
+        <StatusBar
+          barStyle="dark-content"
+          backgroundColor="transparent"
+          translucent
+        />
         <WeeklyReviewSummary
           topInset={topInset}
           backAccessibilityLabel="Previous review step"
           onBack={() => goTo(stage - 1)}
-          onClose={() => {triggerLightHaptic(); navigation.goBack();}}
+          onClose={() => {
+            triggerLightHaptic();
+            navigation.goBack();
+          }}
           review={{...review, answers, memorableItems}}
           capture={capture}
           activeTab={weeklySummaryTab}
           onTabChange={setWeeklySummaryTab}
           onEdit={stageKey => {
             goTo(stages.findIndex(item => item.key === stageKey) + 1);
-            editingWeeklySummaryRef.current = true;
+            editingReviewSummaryRef.current = true;
           }}
           onFinish={finishWeeklyReview}
           saving={isFinishingWeeklyReview}
@@ -2940,9 +5193,46 @@ const ReviewScreen: React.FC = () => {
     );
   }
 
+  if (reviewType === 'monthly' && currentStageKind === 'ready' && review) {
+    return (
+      <SafeAreaView style={styles.safeArea} edges={['left', 'right']}>
+        <StatusBar
+          barStyle="dark-content"
+          backgroundColor="transparent"
+          translucent
+        />
+        <MonthlyReviewSummary
+          topInset={topInset}
+          backAccessibilityLabel="Previous review step"
+          onBack={() => goTo(stage - 1)}
+          onClose={() => {
+            triggerLightHaptic();
+            navigation.goBack();
+          }}
+          review={{...review, answers, memorableItems}}
+          capture={capture}
+          activeTab={monthlySummaryTab}
+          onTabChange={setMonthlySummaryTab}
+          onEdit={stageKey => {
+            goTo(stages.findIndex(item => item.key === stageKey) + 1);
+            editingReviewSummaryRef.current = true;
+          }}
+          onFinish={finishMonthlyReview}
+          saving={isFinishingMonthlyReview}
+          saveError={monthlyCompletionError}
+          bottomInset={insets.bottom}
+        />
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.safeArea} edges={['left', 'right']}>
-      <StatusBar barStyle="dark-content" backgroundColor={Colors.lightBackground} translucent={false} />
+      <StatusBar
+        barStyle="dark-content"
+        backgroundColor={Colors.lightBackground}
+        translucent={false}
+      />
 
       <LinearGradient
         pointerEvents="none"
@@ -2955,24 +5245,27 @@ const ReviewScreen: React.FC = () => {
         style={[styles.topChromeBlend, {height: topInset + 74}]}
       />
 
-      {!isWeeklyCoverStage && <View
-        testID="review-progress-bar"
-        style={[
-          styles.actionProgressBar,
-          { top: topInset + 25 },
-        ]}
-        pointerEvents="none">
+      {!isDesignedCoverStage && (
         <View
-          testID="review-progress-fill"
-          style={[
-            styles.actionProgressFill,
-            { width: `${(reviewProgressStep / reviewProgressStepCount) * 100}%` },
-          ]}
-        />
-      </View>}
+          testID="review-progress-bar"
+          style={[styles.actionProgressBar, {top: topInset + 25}]}
+          pointerEvents="none">
+          <View
+            testID="review-progress-fill"
+            style={[
+              styles.actionProgressFill,
+              {
+                width: `${
+                  (reviewProgressStep / reviewProgressStepCount) * 100
+                }%`,
+              },
+            ]}
+          />
+        </View>
+      )}
 
       <HeaderBackButton
-        style={[styles.backButton, { top: topInset + 8 }]}
+        style={[styles.backButton, {top: topInset + 8}]}
         onPress={() => {
           if (stage > 1) {
             goTo(stage - 1);
@@ -2986,7 +5279,7 @@ const ReviewScreen: React.FC = () => {
       />
 
       <HeaderCloseButton
-        style={[styles.closeButton, { top: topInset + 8 }]}
+        style={[styles.closeButton, {top: topInset + 8}]}
         onPress={() => {
           triggerLightHaptic();
           Keyboard.dismiss();
@@ -2995,20 +5288,29 @@ const ReviewScreen: React.FC = () => {
         accessibilityLabel="Close review"
       />
 
-      <View style={{ flex: 1 }} {...panResponder.panHandlers}>
-        {reviewType === 'weekly' && (hasHorizontalMomentCarousels || isWeeklyLookingForwardWalkthrough) ? renderCurrentStage() : (
+      <View style={{flex: 1}} {...panResponder.panHandlers}>
+        {hasHorizontalMomentCarousels || isWeeklyLookingForwardWalkthrough ? (
+          renderCurrentStage()
+        ) : (
           <ScrollView
             ref={scrollRef}
-            style={{ flex: 1 }}
-            bounces={!(stage === 1 && reviewType === 'weekly')}
+            style={{flex: 1}}
+            bounces={!(stage === 1 && isDesignedReview)}
             contentContainerStyle={{
-              flexGrow: (stage === 1 && reviewType === 'weekly') || isLifeCheckInStage ? 1 : undefined,
+              flexGrow:
+                (stage === 1 && isDesignedReview) || isLifeCheckInStage
+                  ? 1
+                  : undefined,
               paddingTop: topInset + 36,
               paddingBottom: keyboardVisible
-                ? (hasAutoScrollingReviewInput ? keyboardHeight + 88 : 320)
+                ? hasAutoScrollingReviewInput
+                  ? keyboardHeight + 88
+                  : 320
                 : insets.bottom + (hasFloatingNavigation ? 88 : 28),
             }}
-            onContentSizeChange={hasAutoScrollingReviewInput ? revealCustomReviewInput : undefined}
+            onContentSizeChange={
+              hasAutoScrollingReviewInput ? revealCustomReviewInput : undefined
+            }
             keyboardShouldPersistTaps="always"
             keyboardDismissMode="interactive"
             showsVerticalScrollIndicator={false}>
@@ -3025,9 +5327,13 @@ const ReviewScreen: React.FC = () => {
             accessibilityRole="button"
             accessibilityLabel="Next"
             style={styles.feelingsNext}
-            onPress={()=>goTo(stage+1)}
+            onPress={() => goTo(stage + 1)}
             activeOpacity={0.7}>
-            <Ionicons name="chevron-forward" size={24} color={Colors.hopeWhite}/>
+            <Ionicons
+              name="chevron-forward"
+              size={24}
+              color={Colors.hopeWhite}
+            />
           </TouchableOpacity>
         </Animated.View>
       )}
@@ -3039,25 +5345,38 @@ const ReviewScreen: React.FC = () => {
           <TouchableOpacity
             accessibilityRole="button"
             accessibilityLabel="Next"
-            onPress={()=>goTo(stage+1)}
+            onPress={() => goTo(stage + 1)}
             activeOpacity={0.7}
             style={styles.feelingsNext}>
-            <Ionicons name="chevron-forward" size={24} color={Colors.hopeWhite}/>
+            <Ionicons
+              name="chevron-forward"
+              size={24}
+              color={Colors.hopeWhite}
+            />
           </TouchableOpacity>
         </Animated.View>
       )}
 
-      {isWeeklyLookingAheadStage && (
+      {isDesignedLookingAheadStage && (
         <Animated.View
           pointerEvents="box-none"
-          style={[styles.weeklyLookingAheadFooter, {bottom: floatingActionBottom}]}>
+          style={[
+            styles.weeklyLookingAheadFooter,
+            {bottom: floatingActionBottom},
+          ]}>
           <TouchableOpacity
             accessibilityRole="button"
-            accessibilityLabel="Continue to weekly priorities"
+            accessibilityLabel={
+              reviewType === 'monthly'
+                ? 'Continue to monthly priorities'
+                : 'Continue to weekly priorities'
+            }
             activeOpacity={0.8}
             onPress={() => goTo(stage + 1)}
             style={styles.weeklyLookingAheadContinueButton}>
-            <ThemedText weight="bold" style={styles.weeklyLookingAheadContinueText}>
+            <ThemedText
+              weight="bold"
+              style={styles.weeklyLookingAheadContinueText}>
               Continue
             </ThemedText>
             <Ionicons name="arrow-forward" size={22} color={Colors.hopeWhite} />
@@ -3069,14 +5388,14 @@ const ReviewScreen: React.FC = () => {
         <Animated.View
           pointerEvents="box-none"
           style={[styles.feelingsFooter, {bottom: floatingActionBottom}]}>
-          {isWeeklyPriorityStage && weeklyPriorityInputCount < 3 && (
+          {isDesignedPriorityStage && weeklyPriorityInputCount < 3 && (
             <TouchableOpacity
               accessibilityRole="button"
               accessibilityLabel="Add another priority"
               onPress={addWeeklyPriorityInput}
               activeOpacity={0.7}
               style={[styles.feelingsNext, styles.weeklyPriorityAdd]}>
-              <Ionicons name="add" size={24} color={Colors.sage}/>
+              <Ionicons name="add" size={24} color={Colors.sage} />
             </TouchableOpacity>
           )}
           <TouchableOpacity
@@ -3085,7 +5404,11 @@ const ReviewScreen: React.FC = () => {
             style={styles.feelingsNext}
             activeOpacity={0.7}
             onPress={() => goTo(stage + 1)}>
-            <Ionicons name="chevron-forward" size={24} color={Colors.hopeWhite} />
+            <Ionicons
+              name="chevron-forward"
+              size={24}
+              color={Colors.hopeWhite}
+            />
           </TouchableOpacity>
         </Animated.View>
       )}
@@ -3094,7 +5417,13 @@ const ReviewScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  reviewLoadState: {flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, gap: 16},
+  reviewLoadState: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+    gap: 16,
+  },
   safeArea: {
     flex: 1,
     backgroundColor: Colors.lightBackground,
@@ -3430,6 +5759,14 @@ const styles = StyleSheet.create({
     letterSpacing: 1.4,
     marginBottom: 9,
   },
+  monthlyCheckInSummaryCopy: {
+    color: Colors.textGray,
+    fontSize: 12,
+    lineHeight: 18,
+    textAlign: 'center',
+    marginTop: -3,
+    marginBottom: 11,
+  },
   checkInSummaryPills: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -3449,6 +5786,48 @@ const styles = StyleSheet.create({
     color: Colors.sage,
     fontSize: 11,
     lineHeight: 16,
+  },
+  monthlyCheckInSummaryPillActive: {
+    backgroundColor: Colors.sage,
+  },
+  monthlyCheckInSummaryPillTextActive: {
+    color: Colors.hopeWhite,
+  },
+  monthlyCheckInHint: {
+    color: Colors.textGray,
+    fontSize: 11,
+    lineHeight: 17,
+    textAlign: 'center',
+    marginTop: 10,
+  },
+  monthlyCheckInDetails: {
+    alignSelf: 'stretch',
+    backgroundColor: Colors.cardBackground,
+    borderColor: Colors.cardBorder,
+    borderWidth: 1,
+    borderRadius: 18,
+    marginTop: 13,
+    paddingHorizontal: 15,
+  },
+  monthlyCheckInDetailRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    paddingVertical: 12,
+    borderBottomColor: Colors.cardBorder,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  monthlyCheckInDate: {
+    color: Colors.sage,
+    fontSize: 11,
+    lineHeight: 18,
+    minWidth: 48,
+  },
+  monthlyCheckInReflection: {
+    flex: 1,
+    color: Colors.textGray,
+    fontSize: 12,
+    lineHeight: 19,
   },
   weeklyChoicePrompt: {
     alignItems: 'center',
@@ -3540,7 +5919,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: Colors.sage,
     shadowColor: '#29342E',
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: {width: 0, height: 4},
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 8,
@@ -3641,15 +6020,40 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.anchorBlueLight,
   },
   weeklyCareAreaSelected: {backgroundColor: Colors.sage},
-  weeklyCareAreaLabel: {flex: 1, fontSize: 15, lineHeight: 21, color: Colors.text},
+  weeklyCareAreaLabel: {
+    flex: 1,
+    fontSize: 15,
+    lineHeight: 21,
+    color: Colors.text,
+  },
   weeklyCareAreaLabelSelected: {color: Colors.hopeWhite},
   weeklyCareNote: {marginTop: 24},
   weeklyCareOther: {marginBottom: 20},
   weeklyCareOtherInput: {minHeight: 56},
-  weeklyChallengeStage: {paddingTop: 28, paddingHorizontal: 24, paddingBottom: 24},
-  weeklyChallengeTitle: {fontSize: 26, lineHeight: 34, textAlign: 'center', color: Colors.text},
-  weeklyChallengeSubtitle: {fontSize: 15, lineHeight: 23, textAlign: 'center', color: Colors.textGray, marginTop: 12},
-  weeklyChallengeChoices: {flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 28},
+  weeklyChallengeStage: {
+    paddingTop: 28,
+    paddingHorizontal: 24,
+    paddingBottom: 24,
+  },
+  weeklyChallengeTitle: {
+    fontSize: 26,
+    lineHeight: 34,
+    textAlign: 'center',
+    color: Colors.text,
+  },
+  weeklyChallengeSubtitle: {
+    fontSize: 15,
+    lineHeight: 23,
+    textAlign: 'center',
+    color: Colors.textGray,
+    marginTop: 12,
+  },
+  weeklyChallengeChoices: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    marginTop: 28,
+  },
   weeklyChallengePill: {
     maxWidth: '100%',
     flexDirection: 'row',
@@ -3660,11 +6064,35 @@ const styles = StyleSheet.create({
   },
   weeklyChallengeOther: {marginTop: 24},
   weeklyChallengeInput: {minHeight: 72},
-  weeklyClosingStage: {paddingTop: 28, paddingHorizontal: 24, paddingBottom: 24},
+  weeklyClosingStage: {
+    paddingTop: 28,
+    paddingHorizontal: 24,
+    paddingBottom: 24,
+  },
   weeklyClosingNote: {marginTop: 28},
-  weeklyPrayerInput: {minHeight: 180, marginTop: 8, paddingVertical: 12, fontFamily: Fonts.regular, fontSize: 17, lineHeight: 26, color: Colors.text},
-  weeklyAheadDates: {fontSize: 14, lineHeight: 21, color: Colors.sage, textAlign: 'center', marginTop: 16},
-  weeklyAheadOptional: {fontSize: 13, lineHeight: 20, color: Colors.textGray, textAlign: 'center', marginTop: 12},
+  weeklyPrayerInput: {
+    minHeight: 180,
+    marginTop: 8,
+    paddingVertical: 12,
+    fontFamily: Fonts.regular,
+    fontSize: 17,
+    lineHeight: 26,
+    color: Colors.text,
+  },
+  weeklyAheadDates: {
+    fontSize: 14,
+    lineHeight: 21,
+    color: Colors.sage,
+    textAlign: 'center',
+    marginTop: 16,
+  },
+  weeklyAheadOptional: {
+    fontSize: 13,
+    lineHeight: 20,
+    color: Colors.textGray,
+    textAlign: 'center',
+    marginTop: 12,
+  },
   weeklyCareNoteLabel: {fontSize: 13, lineHeight: 19, color: Colors.textGray},
   weeklyCareInput: {
     minHeight: 96,
@@ -3688,14 +6116,9 @@ const styles = StyleSheet.create({
     fontSize: 17,
     lineHeight: 24,
   },
-  weeklyAdditionalMemoryHint: {
-    color: Colors.textGray,
-    fontSize: 14,
-    lineHeight: 21,
-    marginTop: 6,
-  },
   weeklyAdditionalMemoryInput: {
     minHeight: 120,
+    marginTop: 8,
   },
   weeklySavedPrayer: {
     backgroundColor: Colors.cardBackground,
@@ -3722,6 +6145,57 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     textAlign: 'center',
     marginTop: 7,
+  },
+  monthlyMomentsTabs: {
+    alignSelf: 'stretch',
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.borderLight,
+    marginTop: 22,
+  },
+  monthlyMomentsTab: {
+    flex: 1,
+    minHeight: 42,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+    marginBottom: -1,
+    paddingHorizontal: 6,
+    paddingVertical: 10,
+  },
+  monthlyMomentsTabActive: {
+    borderBottomColor: Colors.sage,
+  },
+  monthlyMomentsTabText: {
+    color: Colors.textGray,
+    fontSize: 12,
+    lineHeight: 18,
+    letterSpacing: 0.2,
+    textAlign: 'center',
+  },
+  monthlyMomentsTabTextActive: {
+    color: Colors.text,
+  },
+  monthlyMomentsFallback: {
+    alignSelf: 'stretch',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 7,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: Colors.borderLight,
+    paddingHorizontal: 8,
+    paddingVertical: 12,
+    marginTop: 20,
+  },
+  monthlyMomentsFallbackText: {
+    flexShrink: 1,
+    color: Colors.textGray,
+    fontSize: 12,
+    lineHeight: 17,
+    textAlign: 'center',
   },
   weeklyMomentsCard: {
     backgroundColor: Colors.cardBackground,
@@ -3890,11 +6364,28 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.actionBackground,
   },
   prayerStatusText: {color: Colors.sage, fontSize: 11, lineHeight: 15},
-  gratitudeCardEyebrow: {color: Colors.sage, fontSize: 10, lineHeight: 14, letterSpacing: 1.3},
-  gratitudeCardSubtitle: {color: Colors.textGray, fontSize: 12, lineHeight: 17, marginBottom: 14},
+  gratitudeCardEyebrow: {
+    color: Colors.sage,
+    fontSize: 10,
+    lineHeight: 14,
+    letterSpacing: 1.3,
+  },
+  gratitudeCardSubtitle: {
+    color: Colors.textGray,
+    fontSize: 12,
+    lineHeight: 17,
+    marginBottom: 14,
+  },
   gratitudeLines: {gap: 10},
   gratitudeLine: {flexDirection: 'row', alignItems: 'flex-start', gap: 10},
-  gratitudeNumber: {width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.actionBackground},
+  gratitudeNumber: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.actionBackground,
+  },
   gratitudeNumberText: {color: Colors.sage, fontSize: 11, lineHeight: 15},
   gratitudeText: {flex: 1, color: Colors.text, fontSize: 13, lineHeight: 19},
   momentShowMore: {
@@ -3910,60 +6401,261 @@ const styles = StyleSheet.create({
   },
   momentShowMoreText: {color: Colors.sage, fontSize: 11, lineHeight: 15},
   scriptureReviewCard: {alignItems: 'center'},
-  scriptureCenteredEyebrow: {color: Colors.sage, fontSize: 10, lineHeight: 14, letterSpacing: 1.3, marginBottom: 12},
-  scriptureCenteredTitle: {color: Colors.text, fontSize: 20, lineHeight: 26, textAlign: 'center', paddingHorizontal: 24},
-  scriptureTranslation: {color: Colors.textGray, fontSize: 11, lineHeight: 16, marginTop: 4},
-  scriptureQuote: {color: Colors.text, fontSize: 14, lineHeight: 22, textAlign: 'center', marginTop: 14, paddingHorizontal: 10},
-  momentDivider: {height: 1, width: '100%', backgroundColor: Colors.borderLight, marginVertical: 14},
+  scriptureNoteReviewCard: {padding: 18, paddingTop: 18},
+  scriptureCenteredEyebrow: {
+    color: Colors.sage,
+    fontSize: 10,
+    lineHeight: 14,
+    letterSpacing: 1.3,
+    marginBottom: 12,
+  },
+  scriptureCenteredTitle: {
+    color: Colors.text,
+    fontSize: 20,
+    lineHeight: 26,
+    textAlign: 'center',
+    paddingHorizontal: 24,
+  },
+  scriptureTranslation: {
+    color: Colors.textGray,
+    fontSize: 11,
+    lineHeight: 16,
+    marginTop: 4,
+  },
+  scriptureQuote: {
+    color: Colors.text,
+    fontSize: 14,
+    lineHeight: 22,
+    textAlign: 'center',
+    marginTop: 14,
+    paddingHorizontal: 10,
+  },
+  momentDivider: {
+    height: 1,
+    width: '100%',
+    backgroundColor: Colors.borderLight,
+    marginVertical: 14,
+  },
   scriptureFooter: {flexDirection: 'row', alignItems: 'center', gap: 6},
   scriptureFooterText: {color: Colors.textGray, fontSize: 11, lineHeight: 16},
-  centeredMomentDate: {color: Colors.textGray, fontSize: 10, lineHeight: 14, marginTop: 7},
-  sessionEyebrow: {color: Colors.sage, fontSize: 10, lineHeight: 14, letterSpacing: 1.2},
-  sessionTitle: {color: Colors.text, fontSize: 18, lineHeight: 24, marginBottom: 5, paddingRight: 28},
+  centeredMomentDate: {
+    color: Colors.textGray,
+    fontSize: 10,
+    lineHeight: 14,
+    marginTop: 7,
+  },
+  sessionEyebrow: {
+    color: Colors.sage,
+    fontSize: 10,
+    lineHeight: 14,
+    letterSpacing: 1.2,
+  },
+  sessionTitle: {
+    color: Colors.text,
+    fontSize: 18,
+    lineHeight: 24,
+    marginBottom: 5,
+    paddingRight: 28,
+  },
   sessionDetail: {color: Colors.textGray, fontSize: 12, lineHeight: 18},
-  sessionQuoteBox: {borderLeftWidth: 2, borderLeftColor: 'rgba(82, 106, 91, 0.3)', paddingLeft: 12, marginTop: 13},
+  sessionQuoteBox: {
+    borderLeftWidth: 2,
+    borderLeftColor: 'rgba(82, 106, 91, 0.3)',
+    paddingLeft: 12,
+    marginTop: 13,
+  },
   sessionQuote: {color: Colors.text, fontSize: 13, lineHeight: 20},
   sessionFooter: {flexDirection: 'row', alignItems: 'center', gap: 6},
   sessionFooterText: {color: Colors.textGray, fontSize: 11, lineHeight: 16},
-  winHeader: {flexDirection: 'row', alignItems: 'center', gap: 7, paddingRight: 36, marginBottom: 13},
-  winEyebrow: {color: Colors.sage, fontSize: 10, lineHeight: 14, letterSpacing: 1.2},
-  winType: {color: Colors.text, fontSize: 18, lineHeight: 24, textAlign: 'center'},
-  winQuietLabel: {color: Colors.sage, fontSize: 10, lineHeight: 14, letterSpacing: 1.2, marginBottom: 7},
+  winHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    paddingRight: 36,
+    marginBottom: 13,
+  },
+  winEyebrow: {
+    color: Colors.sage,
+    fontSize: 10,
+    lineHeight: 14,
+    letterSpacing: 1.2,
+  },
+  winType: {
+    color: Colors.text,
+    fontSize: 18,
+    lineHeight: 24,
+    textAlign: 'center',
+  },
+  winQuietLabel: {
+    color: Colors.sage,
+    fontSize: 10,
+    lineHeight: 14,
+    letterSpacing: 1.2,
+    marginBottom: 7,
+  },
   winText: {color: Colors.text, fontSize: 14, lineHeight: 22},
-  morningCheckInFeelingRow: {flexDirection: 'row', alignItems: 'center', gap: 9, marginBottom: 14, paddingRight: 32},
-  morningCheckInFeeling: {flex: 1, color: Colors.text, fontSize: 20, lineHeight: 27},
-  morningCheckInVerse: {color: Colors.text, fontFamily: 'Georgia', fontSize: 14, lineHeight: 22, fontStyle: 'italic'},
-  morningCheckInReference: {color: Colors.sage, fontSize: 11, lineHeight: 16, marginTop: 5},
-  morningCheckInUnderneath: {color: Colors.textGray, fontSize: 14, lineHeight: 22, marginTop: 18, paddingTop: 16, borderTopWidth: 1, borderTopColor: Colors.borderLight},
+  morningCheckInFeelingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 9,
+    marginBottom: 14,
+    paddingRight: 32,
+  },
+  morningCheckInFeeling: {
+    flex: 1,
+    color: Colors.text,
+    fontSize: 20,
+    lineHeight: 27,
+  },
+  morningCheckInVerse: {
+    color: Colors.text,
+    fontFamily: 'Georgia',
+    fontSize: 14,
+    lineHeight: 22,
+    fontStyle: 'italic',
+  },
+  morningCheckInReference: {
+    color: Colors.sage,
+    fontSize: 11,
+    lineHeight: 16,
+    marginTop: 5,
+  },
+  morningCheckInUnderneath: {
+    color: Colors.textGray,
+    fontSize: 14,
+    lineHeight: 22,
+    marginTop: 18,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: Colors.borderLight,
+  },
   rhythmReviewCard: {backgroundColor: 'rgba(232, 237, 232, 0.72)'},
-  rhythmEyebrow: {color: Colors.sage, fontSize: 10, lineHeight: 14, letterSpacing: 1.2},
-  rhythmTitle: {color: Colors.text, fontSize: 18, lineHeight: 24, marginBottom: 9},
-  rhythmTruthLabel: {color: Colors.sage, fontSize: 9, lineHeight: 14, letterSpacing: 1.3, marginBottom: 5},
-  rhythmBody: {color: Colors.textGray, fontSize: 14, lineHeight: 22, paddingBottom: 20},
+  rhythmEyebrow: {
+    color: Colors.sage,
+    fontSize: 10,
+    lineHeight: 14,
+    letterSpacing: 1.2,
+  },
+  rhythmTitle: {
+    color: Colors.text,
+    fontSize: 18,
+    lineHeight: 24,
+    marginBottom: 9,
+  },
+  rhythmTruthLabel: {
+    color: Colors.sage,
+    fontSize: 9,
+    lineHeight: 14,
+    letterSpacing: 1.3,
+    marginBottom: 5,
+  },
+  rhythmBody: {
+    color: Colors.textGray,
+    fontSize: 14,
+    lineHeight: 22,
+    paddingBottom: 20,
+  },
   proverbWisdomSection: {paddingBottom: 20},
   proverbWisdomItem: {marginTop: 9},
   proverbWisdomLabel: {color: Colors.text, fontSize: 15, lineHeight: 21},
-  proverbResponseSection: {marginTop: 13, paddingLeft: 12, borderLeftWidth: 2, borderLeftColor: Colors.borderLight},
+  proverbResponseSection: {
+    marginTop: 13,
+    paddingLeft: 12,
+    borderLeftWidth: 2,
+    borderLeftColor: Colors.borderLight,
+  },
   proverbResponseText: {color: Colors.textGray, fontSize: 14, lineHeight: 21},
-  rhythmReadingProgress: {position: 'absolute', right: 16, bottom: 14, width: 20, height: 20, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(82, 106, 91, 0.1)', borderWidth: 1, borderColor: 'rgba(82, 106, 91, 0.22)'},
-  todoSummary: {color: Colors.textGray, fontSize: 12, lineHeight: 17, marginBottom: 13},
+  rhythmReadingProgress: {
+    position: 'absolute',
+    right: 16,
+    bottom: 14,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(82, 106, 91, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(82, 106, 91, 0.22)',
+  },
+  todoSummary: {
+    color: Colors.textGray,
+    fontSize: 12,
+    lineHeight: 17,
+    marginBottom: 13,
+  },
   todoReviewList: {gap: 9},
   todoReviewRow: {flexDirection: 'row', alignItems: 'flex-start', gap: 9},
   todoReviewText: {flex: 1, color: Colors.text, fontSize: 13, lineHeight: 20},
-  todoReviewTextCompleted: {color: Colors.textGray, textDecorationLine: 'line-through', opacity: 0.72},
-  journalMomentText: {color: Colors.text, fontSize: 17, lineHeight: 25, paddingTop: 10},
+  todoReviewTextCompleted: {
+    color: Colors.textGray,
+    textDecorationLine: 'line-through',
+    opacity: 0.72,
+  },
+  journalMomentText: {
+    color: Colors.text,
+    fontSize: 17,
+    lineHeight: 25,
+    paddingTop: 10,
+  },
   lookingForwardReviewCard: {backgroundColor: 'rgba(232, 237, 232, 0.72)'},
-  lookingForwardHeader: {flexDirection: 'row', alignItems: 'center', gap: 7, paddingRight: 32},
-  lookingForwardText: {color: Colors.text, fontSize: 16, lineHeight: 24, marginTop: 14},
-  lookingForwardHeldSection: {marginTop: 16, paddingTop: 14, borderTopWidth: 1, borderTopColor: Colors.borderLight},
-  lookingForwardEmotionRow: {flexDirection: 'row', alignItems: 'center', gap: 8},
+  lookingForwardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    paddingRight: 32,
+  },
+  lookingForwardText: {
+    color: Colors.text,
+    fontSize: 16,
+    lineHeight: 24,
+    marginTop: 14,
+  },
+  lookingForwardHeldSection: {
+    marginTop: 16,
+    paddingTop: 14,
+    borderTopWidth: 1,
+    borderTopColor: Colors.borderLight,
+  },
+  lookingForwardEmotionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   lookingForwardEmotion: {color: Colors.text, fontSize: 16, lineHeight: 22},
-  lookingForwardWritten: {color: Colors.textGray, fontSize: 10, lineHeight: 14, marginTop: 14, textAlign: 'right'},
-  focusPriorities: {gap: 9, marginTop: 18, paddingTop: 14, borderTopWidth: 1, borderTopColor: Colors.borderLight},
-  focusPrioritiesTitle: {color: Colors.sage, fontSize: 10, lineHeight: 14, letterSpacing: 1.2, marginBottom: 2},
+  lookingForwardWritten: {
+    color: Colors.textGray,
+    fontSize: 10,
+    lineHeight: 14,
+    marginTop: 14,
+    textAlign: 'right',
+  },
+  focusPriorities: {
+    gap: 9,
+    marginTop: 18,
+    paddingTop: 14,
+    borderTopWidth: 1,
+    borderTopColor: Colors.borderLight,
+  },
+  focusPrioritiesTitle: {
+    color: Colors.sage,
+    fontSize: 10,
+    lineHeight: 14,
+    letterSpacing: 1.2,
+    marginBottom: 2,
+  },
   focusPriorityRow: {flexDirection: 'row', alignItems: 'flex-start', gap: 9},
-  focusPriorityText: {flex: 1, color: Colors.text, fontSize: 13, lineHeight: 20},
-  focusPriorityTextCompleted: {color: Colors.textGray, textDecorationLine: 'line-through', opacity: 0.72},
+  focusPriorityText: {
+    flex: 1,
+    color: Colors.text,
+    fontSize: 13,
+    lineHeight: 20,
+  },
+  focusPriorityTextCompleted: {
+    color: Colors.textGray,
+    textDecorationLine: 'line-through',
+    opacity: 0.72,
+  },
   weeklyMomentsEmpty: {
     minHeight: 108,
     paddingHorizontal: 24,
@@ -4103,6 +6795,116 @@ const styles = StyleSheet.create({
   weeklyGratitudeStage: {
     paddingTop: 34,
     paddingHorizontal: 20,
+  },
+  monthlyPatternsStage: {
+    paddingTop: 34,
+    paddingHorizontal: 28,
+  },
+  monthlyPatternsHeading: {
+    alignItems: 'center',
+  },
+  monthlyPatternsLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+  },
+  monthlyPatternsLabel: {
+    color: Colors.sage,
+    fontSize: 11,
+    lineHeight: 16,
+    letterSpacing: 1.8,
+  },
+  monthlyPatternsTitle: {
+    color: Colors.text,
+    fontFamily: Fonts.lora.bold,
+    fontSize: 30,
+    lineHeight: 38,
+    textAlign: 'center',
+    marginTop: 14,
+  },
+  monthlyPatternsSubtitle: {
+    maxWidth: 330,
+    color: Colors.textGray,
+    fontSize: 15,
+    lineHeight: 22,
+    textAlign: 'center',
+    marginTop: 10,
+  },
+  monthlyPatternList: {
+    gap: 22,
+    marginTop: 16,
+  },
+  monthlyPatternSection: {
+    marginTop: 32,
+  },
+  monthlyPatternSectionHeading: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+  },
+  monthlyPatternSectionTitle: {
+    color: Colors.sage,
+    fontSize: 10,
+    lineHeight: 15,
+    letterSpacing: 1.3,
+  },
+  monthlyPatternRow: {
+    gap: 9,
+  },
+  monthlyPatternLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  monthlyPatternName: {
+    flex: 1,
+    color: Colors.text,
+    fontSize: 16,
+    lineHeight: 22,
+  },
+  monthlyPatternCount: {
+    color: Colors.text,
+    fontSize: 15,
+    lineHeight: 22,
+  },
+  monthlyPatternTrack: {
+    height: 10,
+    borderRadius: 999,
+    backgroundColor: Colors.inputBackground,
+    overflow: 'hidden',
+  },
+  monthlyPatternFill: {
+    height: '100%',
+    minWidth: 10,
+    borderRadius: 999,
+  },
+  monthlyPatternNote: {
+    minHeight: 154,
+    marginTop: 38,
+    paddingHorizontal: 20,
+    paddingTop: 18,
+    paddingBottom: 14,
+    borderRadius: 24,
+    backgroundColor: Colors.cardBackground,
+    borderWidth: 1,
+    borderColor: Colors.borderLight,
+  },
+  monthlyPatternNoteTitle: {
+    color: Colors.text,
+    fontSize: 15,
+    lineHeight: 21,
+  },
+  monthlyPatternInput: {
+    flex: 1,
+    minHeight: 94,
+    paddingHorizontal: 0,
+    paddingTop: 8,
+    paddingBottom: 0,
+    color: Colors.text,
+    fontFamily: Fonts.regular,
+    fontSize: 17,
+    lineHeight: 25,
   },
   weeklyDifficultyStage: {
     paddingTop: 34,

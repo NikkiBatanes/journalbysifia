@@ -24,14 +24,14 @@
 
 ### Cadence & availability
 
-| Review | Default trigger | Period reviewed | Ends with | Dashboard lifespan |
-|---|---|---|---|---|
-| Weekly | User’s chosen review day, default Sunday, 7 PM | Previous 7 days based on Profile `weekStart` | Step into next week | Until next weekly period becomes available |
-| Monthly | Last 3 days of month | Current calendar month | Step into next month | Until next monthly period becomes available |
-| Quarterly | Last 7 days of Mar/Jun/Sep/Dec | Current quarter | Step into next season | Until next quarterly period becomes available |
-| Year End | December 15 | Jan 1 → Dec 31 | Close the year | Dec 15 through Dec 31 |
-| Begin Year | January 1–14 | Builds from Year End carry-forward | Begin the year | Jan 1 through Jan 14 |
-| Past Reviews | Always | Completed periods | Read / edit / revisit | Journal → Reviews |
+| Review       | Default trigger                                | Period reviewed                              | Ends with             | Dashboard lifespan                            |
+| ------------ | ---------------------------------------------- | -------------------------------------------- | --------------------- | --------------------------------------------- |
+| Weekly       | User’s chosen review day, default Sunday, 7 PM | Previous 7 days based on Profile `weekStart` | Step into next week   | Until next weekly period becomes available    |
+| Monthly      | Last 3 days of month                           | Current calendar month                       | Step into next month  | Until next monthly period becomes available   |
+| Quarterly    | Last 7 days of Mar/Jun/Sep/Dec                 | Current quarter                              | Step into next season | Until next quarterly period becomes available |
+| Year End     | December 15                                    | Jan 1 → Dec 31                               | Close the year        | Dec 15 through Dec 31                         |
+| Begin Year   | January 1–14                                   | Builds from Year End carry-forward           | Begin the year        | Jan 1 through Jan 14                          |
+| Past Reviews | Always                                         | Completed periods                            | Read / edit / revisit | Journal → Reviews                             |
 
 ### Dashboard lifecycle
 
@@ -59,6 +59,7 @@
 #### Weekly
 
 **Look Back**
+
 - FEELINGS: How did this week feel? (up to 3 everyday or spiritual words, or write your own)
 - LIFE CHECK-IN: How did these areas of life feel this week? Mind, Body, Relationships, Work / School, Finances, Responsibilities, Rest, and Life with God share the catalog in `src/data/weeklyLifeAreas.ts`.
 - MOMENTS: Moments from this week — browse and bookmark.
@@ -71,6 +72,7 @@
 Weekly Look Back reflection answers stay in the review. New learning answers must not create Open Prayers. Legacy `answers.prayer` remains preserved and readable in the editor/reader; existing canonical prayers are left intact. Weekly gratitude retains its existing Gratitude Moment integration.
 
 **Look Ahead (Step into next week)**
+
 - PRIORITY: What matters most this week? Start with one input; the icon-only floating plus beside Next adds and focuses another, up to three.
 - NEEDS CARE: What needs care this week? Select any of the shared life areas or Other (`week_care_areas`). Other reveals its own text field (`week_care_other`); one shared optional note retains the legacy `dont_forget` answer key.
 - CHALLENGES AHEAD: What could make this week difficult? Reuses `watch_for` immediately after Needs Care. Suggestions are stored in `week_challenge_choices`; Other keeps the legacy `watch_for` text. Older written answers open as Other. Deselection preserves the text for re-selection.
@@ -83,25 +85,31 @@ Closing: a shared `WeeklyReviewSummary` shows **Looking Back / Looking Ahead** t
 #### Monthly
 
 **Look Back**
-- REMEMBER: What do you want to remember from this month?
-- NOTICE: What pattern are you beginning to notice?
+
+- FEELINGS: How did this month feel? First collate every canonical Morning Check-in feeling for the month by frequency. Tapping a feeling revisits its dated “underneath it” reflections. The user then chooses up to three separate retrospective words (`month_feelings`, optional `month_feeling_other`); the app never converts the raw check-ins into an automatic mood verdict.
+- WHAT SHAPED THIS MONTH: This is the Monthly Review’s single moments and remembering page. It uses the exact shared weekly moments experience: the same presentation groups, rich card variants, horizontal carousels, counts, expansion controls, bookmark selection, loading behavior, and empty state. When completed Weekly Reviews contain bookmarks for the month, those moments are automatically bookmarked once and the page defaults to them. `More moments` contains only moments that were not bookmarked in Weekly Reviews, so the views never duplicate cards. With no Weekly bookmarks, it automatically shows all monthly moments and explains the fallback instead of presenting an empty page. Continue directly to PATTERNS; do not add another bookmark-review or free-writing remember page.
+- PATTERNS: “What patterns do you notice?” keeps two distinct charts on one page: every canonical Morning Check-in feeling in the month by days recorded, and the retrospective “How did this week feel?” selections from completed Weekly Reviews by weeks recorded. Never combine the two units or infer a mood verdict. Save the user’s own observation to `notice_month`.
 - GOD: Where did you see God’s faithfulness?
 - FORMATION: What might God be forming in you through this season?
 - PRAYER: What prayers were answered? What are you still waiting on?
 - RELEASE: What don’t you want to carry unnecessarily into another month?
 
 **Step Into Next Month**
+
 - What matters most next month? (up to 3)
 - What needs your attention? (decision, responsibility, conversation, deadline, etc.)
 - What do you want to continue?
 - What should you simplify or stop?
 - Who do you want to be intentional with?
 - What rhythm do you want to protect?
-- What are you praying for this month?
+- What are you praying for in the month ahead?
+
+Monthly now follows the Weekly Review’s immersive visual structure without copying its week-specific prompts: a reflective cover, rich Moments and Remembered pages, a Looking Ahead transition, and a shared-style **Looking Back / Looking Ahead** recap. The recap stays month-scale by emphasizing patterns, formation, prayer across the month, release, and a small set of faithful priorities for the month ahead. Completion happens only from the recap’s `Finish review` action; completed monthly reviews reopen in the same two-tab recap.
 
 #### Quarterly
 
 **Look Back**
+
 - THE SEASON: If you had to describe this season, what would you call it?
 - PATTERNS: What kept showing up?
 - GROWTH: Where can you see change in yourself?
@@ -111,6 +119,7 @@ Closing: a shared `WeeklyReviewSummary` shows **Looking Back / Looking Ahead** t
 - CONTINUE: What is worth carrying forward?
 
 **Step Into Next Season**
+
 - What are the 3 things that deserve your attention this quarter?
 - What needs less of your attention?
 - What important decision needs to be made?

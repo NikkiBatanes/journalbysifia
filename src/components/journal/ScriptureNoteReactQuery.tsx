@@ -7,10 +7,13 @@ import {format} from 'date-fns';
 import ThemedText from '../common/ThemedText';
 import ScriptureReaderModal from '../ScriptureReaderModal';
 import ShareComposer from '../TruthToCarryShareComposer';
-import SavedReflectionBlocks from './SavedReflectionBlocks';
 import {JournalCard} from './JournalCard';
+import {
+  SCRIPTURE_NOTE_LABEL,
+  ScriptureNoteIcon,
+  ScriptureNotePreview,
+} from './ScriptureNotePreview';
 import {Colors} from '../../theme/colors';
-import {Fonts} from '../../theme/fonts';
 import {triggerLightHaptic} from '../../utils/haptics';
 import {useMomentsPalette} from '../../context/MomentsPaletteContext';
 import type {JournalBlock} from './shared/journalBlocks';
@@ -60,13 +63,12 @@ export const ScriptureNoteReactQuery: React.FC<Props> = ({
   return (
     <JournalCard
       icon={
-        <MaterialCommunityIcons
-          name="book-open-page-variant-outline"
+        <ScriptureNoteIcon
           size={24}
           color={momentsPalette ? Colors.sage : Colors.alertCoral}
         />
       }
-      title="SCRIPTURE NOTE"
+      title={SCRIPTURE_NOTE_LABEL}
       subtitle={`${reflections.length} saved ${
         reflections.length === 1 ? 'note' : 'notes'
       }`}
@@ -96,76 +98,38 @@ export const ScriptureNoteReactQuery: React.FC<Props> = ({
               onPress={() => openNote(reflection)}
               accessibilityRole="button"
               accessibilityLabel={`Open scripture note ${reference}`}>
-              {!!time && (
-                <View style={styles.timeRow}>
-                  <ThemedText style={styles.time}>{time}</ThemedText>
-                </View>
-              )}
-
-              <View style={styles.referenceBlock}>
-                <View style={styles.referenceAccent} />
-                <View style={styles.referenceCopy}>
-                  <ThemedText weight="bold" style={styles.reference}>
-                    {reference}
-                  </ThemedText>
-                  <ThemedText weight="medium" style={styles.version}>
-                    {version}
-                  </ThemedText>
-                </View>
-              </View>
-
-              <View style={styles.divider} />
-
-              {journalBlocks.length > 0 ? (
-                <View pointerEvents="box-none" style={styles.blocks}>
-                  <SavedReflectionBlocks blocks={journalBlocks} compact />
-                </View>
-              ) : !!reflection.content?.trim() ? (
-                <View style={styles.contentBlock}>
-                  <ThemedText
-                    numberOfLines={5}
-                    ellipsizeMode="tail"
-                    style={styles.content}>
-                    {reflection.content.trim()}
-                  </ThemedText>
-                </View>
-              ) : null}
-
-              <View style={styles.footer}>
-                <View style={styles.savedNoteMeta}>
-                  <MaterialCommunityIcons
-                    name="notebook-edit-outline"
-                    size={14}
-                    color={Colors.textGray}
-                  />
-                  <ThemedText style={styles.savedNoteMetaText}>
-                    {journalBlocks.length > 0
-                      ? `${journalBlocks.length} ${
-                          journalBlocks.length === 1 ? 'note' : 'notes'
-                        }`
-                      : 'Saved reflection'}
-                  </ThemedText>
-                </View>
-                <TouchableOpacity
-                  style={styles.readButton}
-                  activeOpacity={0.72}
-                  onPress={event => {
-                    event.stopPropagation();
-                    triggerLightHaptic();
-                    setReader({reference, version});
-                  }}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Read ${reference}`}>
-                  <MaterialCommunityIcons
-                    name="book-outline"
-                    size={15}
-                    color={Colors.sage}
-                  />
-                  <ThemedText weight="semiBold" style={styles.readButtonText}>
-                    Read verse
-                  </ThemedText>
-                </TouchableOpacity>
-              </View>
+              <ScriptureNotePreview
+                reference={reference}
+                version={version}
+                journalBlocks={journalBlocks}
+                content={reflection.content || ''}
+                meta={
+                  time ? (
+                    <ThemedText style={styles.time}>{time}</ThemedText>
+                  ) : undefined
+                }
+                footerAction={
+                  <TouchableOpacity
+                    style={styles.readButton}
+                    activeOpacity={0.72}
+                    onPress={event => {
+                      event.stopPropagation();
+                      triggerLightHaptic();
+                      setReader({reference, version});
+                    }}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Read ${reference}`}>
+                    <MaterialCommunityIcons
+                      name="book-outline"
+                      size={15}
+                      color={Colors.sage}
+                    />
+                    <ThemedText weight="semiBold" style={styles.readButtonText}>
+                      Read verse
+                    </ThemedText>
+                  </TouchableOpacity>
+                }
+              />
             </TouchableOpacity>
           );
         })}
@@ -213,78 +177,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0,
     elevation: 0,
   },
-  timeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    marginBottom: 10,
-  },
   time: {
     color: Colors.textGray,
     fontSize: 10,
     lineHeight: 15,
-  },
-  referenceBlock: {
-    flexDirection: 'row',
-    alignItems: 'stretch',
-    gap: 13,
-  },
-  referenceAccent: {
-    width: 3,
-    borderRadius: 2,
-    backgroundColor: Colors.sage,
-  },
-  referenceCopy: {
-    flex: 1,
-  },
-  reference: {
-    color: Colors.text,
-    fontFamily: Fonts.lora.bold,
-    fontSize: 22,
-    lineHeight: 29,
-  },
-  version: {
-    color: Colors.textGray,
-    fontSize: 10,
-    lineHeight: 15,
-    letterSpacing: 0.8,
-    marginTop: 2,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: Colors.borderLight,
-    marginVertical: 16,
-  },
-  blocks: {
-    marginHorizontal: -2,
-  },
-  contentBlock: {
-    borderLeftWidth: 2,
-    borderLeftColor: 'rgba(82, 106, 91, 0.24)',
-    paddingLeft: 14,
-  },
-  content: {
-    color: Colors.text,
-    fontSize: 14,
-    lineHeight: 22,
-  },
-  footer: {
-    minHeight: 32,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 12,
-    marginTop: 6,
-  },
-  savedNoteMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  savedNoteMetaText: {
-    color: Colors.textGray,
-    fontSize: 11,
-    lineHeight: 16,
   },
   readButton: {
     minHeight: 32,

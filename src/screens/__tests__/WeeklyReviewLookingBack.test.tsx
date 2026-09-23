@@ -1,5 +1,5 @@
 import React from 'react';
-import {AccessibilityInfo, ScrollView, StyleSheet, TextInput} from 'react-native';
+import {AccessibilityInfo, FlatList, ScrollView, StyleSheet, TextInput} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {act, fireEvent, render, waitFor} from '@testing-library/react-native';
 import ReviewScreen from '../ReviewScreen';
@@ -277,4 +277,22 @@ it('allows a week with no logged moments to keep a memory and skip difficult or 
   expect(screen.getByText('Now, let’s look ahead.')).toBeTruthy();
   expect((await savedReview())?.answers).toEqual({week_memory_other: 'Dinner with a friend.'});
   expect(saveWeeklyReviewPrayer).not.toHaveBeenCalled();
+});
+
+it('scrolls the additional memory field into view on focus without helper text', async () => {
+  const scrollToInput = jest.fn();
+  jest.spyOn(require('react-native'), 'findNodeHandle').mockReturnValue(42);
+  jest.spyOn(FlatList.prototype, 'getScrollResponder').mockReturnValue({
+    scrollResponderScrollNativeHandleToKeyboard: scrollToInput,
+  } as any);
+  const screen = render(<ReviewScreen/>);
+  await begin(screen);
+  await next(screen);
+  await next(screen);
+  await next(screen);
+
+  expect(screen.getByText('Anything else you want to remember?')).toBeTruthy();
+  expect(screen.queryByText(/A moment that mattered/)).toBeNull();
+  fireEvent(screen.getByLabelText('Anything else you want to remember?'), 'focus');
+  await waitFor(() => expect(scrollToInput).toHaveBeenCalledWith(expect.any(Number), 96, true));
 });

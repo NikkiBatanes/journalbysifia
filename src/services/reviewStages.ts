@@ -1,4 +1,4 @@
-import type { ReviewType } from '../storage/reviewStorage';
+import type {ReviewType} from '../storage/reviewStorage';
 import {WEEKLY_LIFE_AREAS} from '../data/weeklyLifeAreas';
 
 export type ReviewStageKind =
@@ -71,7 +71,8 @@ const weeklyStages = (): ReviewStageConfig[] => [
     icon: 'heart-outline',
     label: 'THE HARD PARTS',
     question: 'What felt difficult this week?',
-    subtitle: 'You can name what was hard without having to resolve it. Write if you want to, or simply continue.',
+    subtitle:
+      'You can name what was hard without having to resolve it. Write if you want to, or simply continue.',
     placeholder: 'This week, what felt hard was…',
     answerKey: 'week_difficulty',
   },
@@ -81,7 +82,8 @@ const weeklyStages = (): ReviewStageConfig[] => [
     icon: 'sparkles-outline',
     label: 'WEEKLY GRATITUDE',
     question: 'Looking back on this week, what do you want to thank God for?',
-    subtitle: 'A simple thank-you for something that mattered to you, however small.',
+    subtitle:
+      'A simple thank-you for something that mattered to you, however small.',
     placeholder: 'God, looking back on this week, thank You for…',
     answerKey: 'notice',
   },
@@ -100,7 +102,8 @@ const weeklyStages = (): ReviewStageConfig[] => [
     icon: 'leaf-outline',
     label: 'WHAT YOU’RE LEARNING',
     question: 'What are you learning through this week?',
-    subtitle: 'A pattern, a small realization, or something you’re still making sense of. It’s okay to leave this open.',
+    subtitle:
+      'A pattern, a small realization, or something you’re still making sense of. It’s okay to leave this open.',
     placeholder: 'This week, I’m noticing…',
     answerKey: 'week_learning',
   },
@@ -110,7 +113,8 @@ const weeklyStages = (): ReviewStageConfig[] => [
     icon: 'leaf-outline',
     label: 'LOOKING AHEAD',
     title: 'Now, let’s look ahead.',
-    subtitle: 'Let what God has shown you shape how you step into the week ahead.',
+    subtitle:
+      'Let what God has shown you shape how you step into the week ahead.',
   },
   {
     key: 'priority',
@@ -159,7 +163,11 @@ const weeklyStages = (): ReviewStageConfig[] => [
     question: 'What are you looking forward to this week?',
     placeholder: 'This week, I am looking forward to…',
     answerKey: 'week_looking_forward',
-    answerKeys: ['week_looking_forward', 'week_looking_forward_emotion', 'week_looking_forward_other'],
+    answerKeys: [
+      'week_looking_forward',
+      'week_looking_forward_emotion',
+      'week_looking_forward_other',
+    ],
   },
   {
     key: 'prayer_ahead',
@@ -185,32 +193,38 @@ const monthlyStages = (): ReviewStageConfig[] => [
     key: 'cover',
     kind: 'cover',
     subtitle:
-      'Take a little time to notice what happened this month, what mattered, and what you want to carry forward.',
+      'Step back from the individual days. Notice the patterns, the grace, and what deserves to move forward.',
+  },
+  {
+    key: 'monthly_feelings',
+    kind: 'feelings',
+    icon: 'leaf-outline',
+    label: 'LOOKING BACK',
+    question: 'How did this month feel?',
+    subtitle:
+      'Choose up to 3 words after looking across your morning check-ins.',
+    answerKey: 'month_feelings',
   },
   sharedCaptured,
-  sharedRemembered,
-  {
-    key: 'remember',
-    kind: 'question',
-    icon: 'bookmark',
-    label: 'REMEMBER',
-    question: 'What do you want to remember from this month?',
-    answerKey: 'remember_month',
-  },
   {
     key: 'notice',
     kind: 'question',
     icon: 'eye',
-    label: 'NOTICE',
-    question: 'What pattern are you beginning to notice?',
+    label: 'PATTERNS',
+    question: 'What patterns do you notice?',
+    subtitle: 'Look across every Morning Check-in from the month.',
+    placeholder: 'Start writing…',
     answerKey: 'notice_month',
   },
   {
     key: 'god',
     kind: 'question',
     icon: 'sunny',
-    label: 'GOD',
+    label: 'GOD’S FAITHFULNESS',
     question: 'Where did you see God’s faithfulness?',
+    subtitle:
+      'Name the provision, presence, protection, or grace you can see now.',
+    placeholder: 'God, I saw Your faithfulness in…',
     answerKey: 'god_month',
   },
   {
@@ -219,6 +233,8 @@ const monthlyStages = (): ReviewStageConfig[] => [
     icon: 'leaf',
     label: 'FORMATION',
     question: 'What might God be forming in you through this season?',
+    subtitle: 'You do not need a finished answer. Name what may be growing.',
+    placeholder: 'God may be forming…',
     answerKey: 'formation_month',
   },
   {
@@ -227,6 +243,9 @@ const monthlyStages = (): ReviewStageConfig[] => [
     icon: 'chatbubble',
     label: 'PRAYER',
     question: 'What prayers were answered? What are you still waiting on?',
+    subtitle:
+      'Look back with gratitude, and make room for what remains unfinished.',
+    placeholder: 'This month in prayer…',
     answerKey: 'prayer_month',
   },
   {
@@ -235,32 +254,41 @@ const monthlyStages = (): ReviewStageConfig[] => [
     icon: 'trash',
     label: 'RELEASE',
     question: 'What don’t you want to carry unnecessarily into another month?',
+    subtitle: 'You can put down what is no longer yours to hold.',
+    placeholder: 'I am ready to release…',
     answerKey: 'release_month',
   },
   {
     key: 'step_into',
     kind: 'transition',
-    icon: 'arrow-forward',
-    label: 'STEP INTO NEXT MONTH',
-    title: 'You don’t need to have the whole month figured out.',
-    subtitle: 'What deserves intentional attention?',
+    icon: 'leaf-outline',
+    label: 'LOOKING AHEAD',
+    title: 'Now, let’s look ahead.',
+    subtitle:
+      'Let what God has shown you shape how you step into the month ahead.',
   },
   {
     key: 'priority',
     kind: 'priorities',
     icon: 'star',
     label: 'PRIORITY',
-    question: 'What matters most next month?',
-    subtitle: 'Choose up to three.',
-    answerKeys: ['next_month_priority_1', 'next_month_priority_2', 'next_month_priority_3'],
+    question: 'What matters most in the month ahead?',
+    subtitle: 'One is enough. Add up to three if you’d like.',
+    answerKeys: [
+      'next_month_priority_1',
+      'next_month_priority_2',
+      'next_month_priority_3',
+    ],
   },
   {
     key: 'attention',
     kind: 'question',
     icon: 'list',
     label: 'ATTENTION',
-    question:
-      'What needs your attention? (a decision, responsibility, conversation, deadline, etc.)',
+    question: 'What needs your attention next month?',
+    subtitle:
+      'A decision, responsibility, conversation, deadline, or something else.',
+    placeholder: 'What needs attention is…',
     answerKey: 'attention',
   },
   {
@@ -269,6 +297,8 @@ const monthlyStages = (): ReviewStageConfig[] => [
     icon: 'play',
     label: 'CONTINUE',
     question: 'What do you want to continue?',
+    subtitle: 'Carry forward what has been life-giving or faithful.',
+    placeholder: 'I want to continue…',
     answerKey: 'continue',
   },
   {
@@ -277,6 +307,8 @@ const monthlyStages = (): ReviewStageConfig[] => [
     icon: 'remove-circle',
     label: 'SIMPLIFY OR STOP',
     question: 'What should you simplify or stop?',
+    subtitle: 'Make room by naming what can become lighter or come to an end.',
+    placeholder: 'I can simplify or stop…',
     answerKey: 'simplify_or_stop',
   },
   {
@@ -285,6 +317,8 @@ const monthlyStages = (): ReviewStageConfig[] => [
     icon: 'people',
     label: 'PEOPLE',
     question: 'Who do you want to be intentional with?',
+    subtitle: 'Who needs your presence, care, encouragement, or attention?',
+    placeholder: 'I want to make room for…',
     answerKey: 'intentional_with',
   },
   {
@@ -293,14 +327,18 @@ const monthlyStages = (): ReviewStageConfig[] => [
     icon: 'musical-notes',
     label: 'RHYTHM',
     question: 'What rhythm do you want to protect?',
+    subtitle: 'Choose a simple rhythm that will help you stay grounded.',
+    placeholder: 'I want to protect…',
     answerKey: 'rhythm',
   },
   {
     key: 'prayer_for_month',
     kind: 'question',
     icon: 'chatbubble',
-    label: 'PRAYER',
-    question: 'What are you praying for this month?',
+    label: 'WITH GOD',
+    question: 'What are you praying for in the month ahead?',
+    subtitle: 'Bring the month to God before you try to carry it.',
+    placeholder: 'God, as I enter this month…',
     answerKey: 'prayer_for_month',
   },
   {
@@ -391,7 +429,11 @@ const quarterlyStages = (): ReviewStageConfig[] => [
     label: 'PRIORITY',
     question: 'What are the 3 things that deserve your attention this quarter?',
     subtitle: 'Choose up to three.',
-    answerKeys: ['quarter_priority_1', 'quarter_priority_2', 'quarter_priority_3'],
+    answerKeys: [
+      'quarter_priority_1',
+      'quarter_priority_2',
+      'quarter_priority_3',
+    ],
   },
   {
     key: 'less_attention',
@@ -454,8 +496,7 @@ const yearEndStages = (): ReviewStageConfig[] => [
     key: 'cover',
     kind: 'cover',
     eyebrow: 'YOUR YEAR WITH GOD',
-    subtitle:
-      'Before you move into another year, remember what this one held.',
+    subtitle: 'Before you move into another year, remember what this one held.',
   },
   sharedCaptured,
   sharedRemembered,
@@ -584,7 +625,8 @@ const beginYearStages = (): ReviewStageConfig[] => [
     kind: 'question',
     icon: 'book',
     label: 'SCRIPTURE',
-    question: 'Is there a passage of Scripture you want to return to in this season?',
+    question:
+      'Is there a passage of Scripture you want to return to in this season?',
     answerKey: 'scripture_begin',
   },
   {
@@ -616,9 +658,14 @@ const beginYearStages = (): ReviewStageConfig[] => [
     kind: 'priorities',
     icon: 'star',
     label: 'PRIORITIES',
-    question: 'If many things compete for your attention this year, what three do you especially want to remember?',
+    question:
+      'If many things compete for your attention this year, what three do you especially want to remember?',
     subtitle: 'Choose up to three.',
-    answerKeys: ['begin_year_priority_1', 'begin_year_priority_2', 'begin_year_priority_3'],
+    answerKeys: [
+      'begin_year_priority_1',
+      'begin_year_priority_2',
+      'begin_year_priority_3',
+    ],
   },
   {
     key: 'rhythms',

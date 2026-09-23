@@ -1,20 +1,59 @@
 import type {ReviewType} from '../../storage/reviewStorage';
-import {getWeeklyPeriodFor, type ReviewPeriod} from '../../services/reviewPeriodService';
-import {REVIEW_QA_WEEKLY_REFERENCE_DATE} from './reviewQAClock';
+import {
+  getMonthlyPeriodFor,
+  getWeeklyPeriodFor,
+  type ReviewPeriod,
+} from '../../services/reviewPeriodService';
+import {
+  REVIEW_QA_MONTHLY_REFERENCE_DATE,
+  REVIEW_QA_WEEKLY_REFERENCE_DATE,
+} from './reviewQAClock';
 
 export const REVIEW_QA_PREFIX = 'dev-review-v2:';
-export type ReviewQAScenario = 'weekly';
+export type ReviewQAScenario = 'weekly' | 'monthly';
 
-export interface ReviewQADefinition { id: ReviewQAScenario; title: string; status: string; type: ReviewType; period: ReviewPeriod; density: 'rich' | 'sparse' | 'zero'; referenceDate:string; }
+export interface ReviewQADefinition {
+  id: ReviewQAScenario;
+  title: string;
+  status: string;
+  type: ReviewType;
+  period: ReviewPeriod;
+  density: 'rich' | 'sparse' | 'zero';
+  referenceDate: string;
+}
 
-const required = <T>(value: T | null): T => { if (!value) throw new Error('QA reference date does not support this period.'); return value; };
+const required = <T>(value: T | null): T => {
+  if (!value) {
+    throw new Error('QA reference date does not support this period.');
+  }
+  return value;
+};
 const weekly = getWeeklyPeriodFor(0, REVIEW_QA_WEEKLY_REFERENCE_DATE);
+const monthly = getMonthlyPeriodFor(REVIEW_QA_MONTHLY_REFERENCE_DATE);
 
 export const REVIEW_QA_SCENARIOS: ReviewQADefinition[] = [
-  {id:'weekly',title:'Weekly Review',status:'FULL WEEK · 10 GUIDED · 7 SCRIPTURE · PRAYER V2',type:'weekly',period:weekly,density:'rich',referenceDate:REVIEW_QA_WEEKLY_REFERENCE_DATE},
+  {
+    id: 'weekly',
+    title: 'Weekly Review',
+    status: 'FULL WEEK · 10 GUIDED · 7 SCRIPTURE · PRAYER V2',
+    type: 'weekly',
+    period: weekly,
+    density: 'rich',
+    referenceDate: REVIEW_QA_WEEKLY_REFERENCE_DATE,
+  },
+  {
+    id: 'monthly',
+    title: 'Monthly Review',
+    status: '25 DAYS · FULL MOMENT CARDS · 3 REMEMBERED · 1 GOSPEL SHARE',
+    type: 'monthly',
+    period: monthly,
+    density: 'rich',
+    referenceDate: REVIEW_QA_MONTHLY_REFERENCE_DATE,
+  },
 ];
 
-export const getReviewQAScenario = (id: ReviewQAScenario) => required(REVIEW_QA_SCENARIOS.find(item => item.id === id) ?? null);
+export const getReviewQAScenario = (id: ReviewQAScenario) =>
+  required(REVIEW_QA_SCENARIOS.find(item => item.id === id) ?? null);
 
 const localDate = (value: string) => {
   const [year, month, day] = value.split('-').map(Number);
@@ -25,5 +64,12 @@ const localDate = (value: string) => {
 export const formatReviewQAPeriod = (scenario: ReviewQADefinition): string => {
   const start = localDate(scenario.period.periodStart);
   const end = localDate(scenario.period.periodEnd);
-  return `${start.toLocaleDateString(undefined, {month: 'long', day: 'numeric'})}–${end.toLocaleDateString(undefined, {month: 'long', day: 'numeric', year: 'numeric'})}`;
+  return `${start.toLocaleDateString(undefined, {
+    month: 'long',
+    day: 'numeric',
+  })}–${end.toLocaleDateString(undefined, {
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+  })}`;
 };

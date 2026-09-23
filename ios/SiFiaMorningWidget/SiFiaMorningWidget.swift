@@ -1,516 +1,540 @@
 import SwiftUI
 import WidgetKit
 
-// MARK: - Palette (mirrors src/theme/themes/default.ts)
-
 private enum Palette {
-    static let cream = Color(red: 0xF6 / 255, green: 0xF5 / 255, blue: 0xEF / 255)   // lightBackground
-    static let card = Color(red: 0xFF / 255, green: 0xFE / 255, blue: 0xFA / 255)    // hopeWhite / cardBackground
-    static let sage = Color(red: 0x52 / 255, green: 0x6A / 255, blue: 0x5B / 255)    // sage
+    static let cream = Color(red: 0xF6 / 255, green: 0xF5 / 255, blue: 0xEF / 255)
+    static let card = Color(red: 0xFF / 255, green: 0xFE / 255, blue: 0xFA / 255)
+    static let sage = Color(red: 0x52 / 255, green: 0x6A / 255, blue: 0x5B / 255)
     static let sageMuted = Color(red: 0x71 / 255, green: 0x84 / 255, blue: 0x76 / 255)
-    static let ink = Color(red: 0x29 / 255, green: 0x34 / 255, blue: 0x2E / 255)     // text
-    static let gray = Color(red: 0x7C / 255, green: 0x83 / 255, blue: 0x7D / 255)    // textGray
-    static let border = Color(red: 0xDF / 255, green: 0xE4 / 255, blue: 0xDD / 255)  // cardBorder
+    static let ink = Color(red: 0x29 / 255, green: 0x34 / 255, blue: 0x2E / 255)
+    static let gray = Color(red: 0x7C / 255, green: 0x83 / 255, blue: 0x7D / 255)
+    static let border = Color(red: 0xDF / 255, green: 0xE4 / 255, blue: 0xDD / 255)
+    static let dusk = Color(red: 0x54 / 255, green: 0x59 / 255, blue: 0x70 / 255)
+    static let duskMuted = Color(red: 0x7A / 255, green: 0x7D / 255, blue: 0x91 / 255)
+    static let eveningWash = Color(red: 0xF3 / 255, green: 0xF1 / 255, blue: 0xEE / 255)
+    static let moon = Color(red: 0xC9 / 255, green: 0xA9 / 255, blue: 0x68 / 255)
 }
 
-// MARK: - Deep links (routed by notificationDeepLinkService → MorningFlow)
+private struct Eyebrow: View {
+    let text: String
+    var color = Palette.sageMuted
+    var body: some View {
+        Text(text).font(.system(size: 10, weight: .semibold)).tracking(1.7)
+            .foregroundColor(color).lineLimit(1)
+    }
+}
+
+private struct BrandHeader: View {
+    var evening = false
+    var body: some View {
+        HStack(spacing: 6) {
+            Image(systemName: evening ? "moon.stars" : "leaf")
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundColor(evening ? Palette.moon : Palette.sage)
+            Eyebrow(text: "JOURNAL BY SIFIA", color: evening ? Palette.duskMuted : Palette.sageMuted)
+            Spacer(minLength: 0)
+        }.accessibilityHidden(true)
+    }
+}
+
+private struct ProgressDots: View {
+    let completed: Int
+    let total: Int
+    var color = Palette.sage
+    var body: some View {
+        HStack(spacing: 4) {
+            ForEach(0..<total, id: \.self) { index in
+                Capsule().fill(index < completed ? color : Palette.border)
+                    .frame(maxWidth: .infinity).frame(height: 3)
+            }
+        }.accessibilityLabel("\(completed) of \(total) steps complete")
+    }
+}
+
+private struct ActionLabel: View {
+    let title: String
+    var color = Palette.sage
+    var body: some View {
+        HStack(spacing: 5) {
+            Text(title).font(.system(size: 13, weight: .semibold))
+            Image(systemName: "arrow.right").font(.system(size: 11, weight: .semibold))
+        }
+        .foregroundColor(Palette.card).padding(.horizontal, 14).padding(.vertical, 8)
+        .background(color).clipShape(Capsule())
+    }
+}
+
+private struct StepRow: View {
+    let label: String
+    let complete: Bool
+    var active = false
+    var color = Palette.sage
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: complete ? "checkmark.circle.fill" : (active ? "circle.inset.filled" : "circle"))
+                .font(.system(size: 12)).foregroundColor(complete || active ? color : Palette.gray.opacity(0.65))
+            Text(label).font(.system(size: 12, weight: active ? .semibold : .regular))
+                .foregroundColor(active ? Palette.ink : Palette.gray).lineLimit(1)
+            Spacer(minLength: 0)
+        }
+    }
+}
+
+private extension View {
+    @ViewBuilder func widgetBackground(_ color: Color) -> some View {
+        if #available(iOSApplicationExtension 17.0, *) {
+            self.containerBackground(for: .widget) { color }
+        } else { self.background(color) }
+    }
+}
+
+// MARK: Morning
 
 private enum MorningLink {
-    static func url(_ step: String?) -> URL {
+    static func url(_ step: String? = nil) -> URL {
         URL(string: "sifia://morning/today\(step.map { "/\($0)" } ?? "")")!
     }
     static var emotion: URL { url("emotion") }
     static var underneath: URL { url("underneath") }
     static var psalm: URL { url("psalm") }
+    static var carry: URL { url("carry") }
     static var focus: URL { url("focus") }
     static var todos: URL { url("todos") }
-    static var carry: URL { url("carry") }
     static var closing: URL { url("closing") }
-    static var today: URL { url(nil) }
 }
 
-// MARK: - Widget state machine (canonical step order from routineResume.ts)
-
-private enum MorningStepState {
-    case checkIn      // emotion incomplete → feeling selector
-    case underneath   // emotion done → "You're feeling X / What's underneath that?"
-    case psalm        // underneath done → Psalm
-    case focus        // psalm done → Today's Focus
-    case todos        // focus done → Todos
-    case carry        // todos done → Pause & Praise
-    case closing      // all steps done, routine not completed → MorningClosing
-    case done         // routine completed → post-morning summary
-}
-
-private func widgetState(for snapshot: MorningWidgetSnapshot?, on date: Date) -> MorningStepState {
-    // The widget represents TODAY only. A snapshot stamped with another day is
-    // treated as a fresh, unstarted morning.
-    guard let snapshot, snapshot.date == MorningWidgetStore.localDateString(date) else {
-        return .checkIn
+private enum MorningStepState: String {
+    case checkIn, underneath, psalm, carry, focus, todos, closing, done
+    var eyebrow: String {
+        switch self {
+        case .checkIn, .underneath: return "MORNING CHECK-IN"
+        case .psalm: return "DAILY PSALM"
+        case .carry: return "PAUSE & PRAISE"
+        case .focus: return "TODAY’S FOCUS"
+        case .todos: return "TO-DOs"
+        case .closing: return "MORNING"
+        case .done: return "MORNING SAVED"
+        }
     }
+    var title: String {
+        switch self {
+        case .checkIn: return "How are you feeling?"
+        case .underneath: return "What’s underneath that?"
+        case .psalm: return "Sit with today’s Psalm"
+        case .carry: return "What do you see about God?"
+        case .focus: return "Set today’s focus"
+        case .todos: return "What needs to get done?"
+        case .closing: return "Your morning is ready to save"
+        case .done: return "Carry this into today"
+        }
+    }
+    var subtitle: String {
+        switch self {
+        case .checkIn: return "Begin with an honest check-in."
+        case .underneath: return "Make a little room for what is true."
+        case .psalm: return "Take a few quiet minutes with Scripture."
+        case .carry: return "Notice who God is in what you read."
+        case .focus: return "Choose what matters most today."
+        case .todos: return "Keep today’s next steps close."
+        case .closing: return "Review, save, and step into the day."
+        case .done: return "Your morning reflection is with you."
+        }
+    }
+    var icon: String {
+        switch self {
+        case .checkIn: return "heart"
+        case .underneath: return "text.bubble"
+        case .psalm: return "book.closed"
+        case .carry: return "sparkles"
+        case .focus: return "scope"
+        case .todos: return "checklist"
+        case .closing: return "checkmark.circle"
+        case .done: return "sun.max"
+        }
+    }
+    var destination: URL {
+        switch self {
+        case .checkIn: return MorningLink.emotion
+        case .underneath: return MorningLink.underneath
+        case .psalm: return MorningLink.psalm
+        case .carry: return MorningLink.carry
+        case .focus: return MorningLink.focus
+        case .todos: return MorningLink.todos
+        case .closing, .done: return MorningLink.closing
+        }
+    }
+}
+
+private let morningSteps: [(id: String, label: String, state: MorningStepState)] = [
+    ("emotion", "Check in", .checkIn), ("underneath", "What’s underneath", .underneath),
+    ("psalm", "Daily Psalm", .psalm), ("carry", "Pause & Praise", .carry),
+    ("todays_focus", "Today’s focus", .focus), ("todos", "To-dos", .todos),
+]
+
+private func morningState(_ snapshot: MorningWidgetSnapshot?, _ date: Date) -> MorningStepState {
+    guard let snapshot, snapshot.date == MorningWidgetStore.localDateString(date) else { return .checkIn }
     if snapshot.routineCompleted { return .done }
-    let steps = Set(snapshot.completedSteps)
-    if !steps.contains("emotion") { return .checkIn }
-    if !steps.contains("underneath") { return .underneath }
-    if !steps.contains("psalm") { return .psalm }
-    if !steps.contains("todays_focus") { return .focus }
-    if !steps.contains("todos") { return .todos }
-    if !steps.contains("carry") { return .carry }
-    return .closing
+    let completed = Set(snapshot.completedSteps)
+    return morningSteps.first(where: { !completed.contains($0.id) })?.state ?? .closing
 }
 
-// MARK: - Timeline
-
-private struct MorningEntry: TimelineEntry {
-    let date: Date
-    let snapshot: MorningWidgetSnapshot?
-}
-
+private struct MorningEntry: TimelineEntry { let date: Date; let snapshot: MorningWidgetSnapshot? }
 private struct MorningProvider: TimelineProvider {
-    func placeholder(in context: Context) -> MorningEntry {
-        MorningEntry(date: Date(), snapshot: nil)
-    }
-
+    func placeholder(in context: Context) -> MorningEntry { MorningEntry(date: Date(), snapshot: nil) }
     func getSnapshot(in context: Context, completion: @escaping (MorningEntry) -> Void) {
         completion(MorningEntry(date: Date(), snapshot: MorningWidgetStore.loadSnapshot()))
     }
-
     func getTimeline(in context: Context, completion: @escaping (Timeline<MorningEntry>) -> Void) {
+        completion(dailyTimeline(snapshot: MorningWidgetStore.loadSnapshot()))
+    }
+    private func dailyTimeline(snapshot: MorningWidgetSnapshot?) -> Timeline<MorningEntry> {
         let now = Date()
-        var entries = [MorningEntry(date: now, snapshot: MorningWidgetStore.loadSnapshot())]
-
-        // Roll the widget to a fresh day at local midnight.
-        if let midnight = Calendar.current.nextDate(
-            after: now,
-            matching: DateComponents(hour: 0, minute: 0, second: 0),
-            matchingPolicy: .nextTime
-        ) {
+        var entries = [MorningEntry(date: now, snapshot: snapshot)]
+        if let midnight = Calendar.current.nextDate(after: now, matching: DateComponents(hour: 0), matchingPolicy: .nextTime) {
             entries.append(MorningEntry(date: midnight, snapshot: nil))
         }
+        return Timeline(entries: entries, policy: .atEnd)
+    }
+}
 
+private struct FeelingPill: View {
+    let id: String; let name: String
+    var body: some View {
+        if #available(iOSApplicationExtension 17.0, *) {
+            Button(intent: SelectFeelingIntent(feelingId: id)) { label }.buttonStyle(.plain)
+        } else { Link(destination: MorningLink.emotion) { label } }
+    }
+    private var label: some View {
+        HStack(spacing: 5) {
+            Image(systemName: MorningWidgetStore.sfSymbol(forIconName: MorningWidgetStore.feelingIcon(forId: id)))
+                .font(.system(size: 12, weight: .medium)).foregroundColor(Palette.sage)
+            Text(name).font(.system(size: 12, weight: .semibold)).foregroundColor(Palette.ink)
+                .lineLimit(1).minimumScaleFactor(0.75)
+        }.frame(maxWidth: .infinity).padding(.vertical, 8).background(Palette.card)
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Palette.border, lineWidth: 0.5))
+    }
+}
+
+private struct MorningSmallView: View {
+    let state: MorningStepState; let snapshot: MorningWidgetSnapshot?
+    var body: some View {
+        VStack(alignment: .leading, spacing: 7) {
+            HStack { Image(systemName: state.icon).foregroundColor(Palette.sage); Spacer()
+                if state == .done { Image(systemName: "checkmark.circle.fill").foregroundColor(Palette.sage) } }
+            Spacer(minLength: 0)
+            Eyebrow(text: state.eyebrow)
+            Text(displayTitle).font(.system(size: 17, weight: .bold, design: .serif))
+                .foregroundColor(Palette.ink).lineLimit(3).minimumScaleFactor(0.8).privacySensitive()
+            if state != .done { Text("\(completedCount) of \(morningSteps.count)")
+                .font(.system(size: 10, weight: .medium)).foregroundColor(Palette.gray) }
+        }.widgetURL(state.destination)
+    }
+    private var displayTitle: String {
+        if state == .done, let focus = snapshot?.focus, !focus.isEmpty { return focus }
+        if state == .underneath, let feeling = snapshot?.feeling, !feeling.isEmpty { return "\(feeling). What’s underneath?" }
+        return state.title
+    }
+    private var completedCount: Int {
+        let done = Set(snapshot?.completedSteps ?? []); return morningSteps.filter { done.contains($0.id) }.count
+    }
+}
+
+private struct MorningCheckInView: View {
+    private let feelings = [("peaceful", "Peaceful"), ("grateful", "Grateful"), ("hopeful", "Hopeful"), ("anxious", "Anxious"), ("tired", "Tired")]
+    var body: some View {
+        VStack(alignment: .leading, spacing: 9) {
+            BrandHeader(); Eyebrow(text: "MORNING CHECK-IN")
+            Text("How are you feeling?").font(.system(size: 19, weight: .bold, design: .serif)).foregroundColor(Palette.ink)
+            HStack(spacing: 6) { ForEach(feelings.prefix(3), id: \.0) { FeelingPill(id: $0.0, name: $0.1) } }
+            HStack(spacing: 6) {
+                ForEach(feelings.suffix(2), id: \.0) { FeelingPill(id: $0.0, name: $0.1) }
+                Link(destination: MorningLink.emotion) { Text("More  ›").font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(Palette.sage).frame(maxWidth: .infinity).padding(.vertical, 8) }
+            }
+        }
+    }
+}
+
+private struct MorningStepView: View {
+    let state: MorningStepState; let snapshot: MorningWidgetSnapshot?
+    var body: some View {
+        VStack(alignment: .leading, spacing: 9) {
+            BrandHeader()
+            HStack(alignment: .top, spacing: 12) {
+                Image(systemName: state.icon).foregroundColor(Palette.sage).frame(width: 34, height: 34)
+                    .background(Palette.sage.opacity(0.09)).clipShape(Circle())
+                VStack(alignment: .leading, spacing: 3) { Eyebrow(text: state.eyebrow)
+                    Text(displayTitle).font(.system(size: 19, weight: .bold, design: .serif))
+                        .foregroundColor(Palette.ink).lineLimit(2).privacySensitive() }
+            }
+            Spacer(minLength: 0)
+            HStack(alignment: .bottom) { Text(state.subtitle).font(.system(size: 11)).foregroundColor(Palette.gray).lineLimit(2)
+                Spacer(minLength: 8); Link(destination: state.destination) { ActionLabel(title: state == .closing ? "Save" : "Continue") } }
+        }
+    }
+    private var displayTitle: String {
+        if state == .underneath, let feeling = snapshot?.feeling, !feeling.isEmpty { return "You’re feeling \(feeling)" }
+        if state == .psalm, let number = snapshot?.psalmNumber { return "Psalm \(number)" }
+        return state.title
+    }
+}
+
+private struct MorningLargeView: View {
+    let state: MorningStepState; let snapshot: MorningWidgetSnapshot?
+    private var completed: Set<String> { Set(snapshot?.completedSteps ?? []) }
+    var body: some View {
+        VStack(alignment: .leading, spacing: 13) {
+            BrandHeader()
+            HStack(alignment: .top) { VStack(alignment: .leading, spacing: 4) { Eyebrow(text: state.eyebrow)
+                Text(title).font(.system(size: 22, weight: .bold, design: .serif)).foregroundColor(Palette.ink).lineLimit(2)
+                Text(state.subtitle).font(.system(size: 12)).foregroundColor(Palette.gray) }
+                Spacer(); Link(destination: state.destination) { ActionLabel(title: state == .closing ? "Save" : "Continue") } }
+            ProgressDots(completed: completed.count, total: morningSteps.count)
+            HStack(alignment: .top, spacing: 18) {
+                VStack(alignment: .leading, spacing: 8) { Eyebrow(text: "YOUR MORNING")
+                    ForEach(morningSteps, id: \.id) { step in StepRow(label: step.label, complete: completed.contains(step.id), active: step.state == state) } }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                VStack(alignment: .leading, spacing: 10) {
+                    Eyebrow(text: snapshot?.focus?.isEmpty == false ? "TODAY’S FOCUS" : "A GENTLE START")
+                    Text(snapshot?.focus?.isEmpty == false ? snapshot!.focus! : "Name what you’re carrying, sit with Scripture, and choose what deserves your attention.")
+                        .font(.system(size: 13, design: .serif)).foregroundColor(Palette.ink).lineLimit(5).lineSpacing(3).privacySensitive()
+                    Spacer(minLength: 0)
+                    if let number = snapshot?.psalmNumber { Label("Psalm \(number)", systemImage: "book.closed")
+                        .font(.system(size: 12, weight: .medium)).foregroundColor(Palette.sage) }
+                }.frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+    }
+    private var title: String {
+        if state == .underneath, let feeling = snapshot?.feeling, !feeling.isEmpty { return "You’re feeling \(feeling)" }
+        if state == .psalm, let number = snapshot?.psalmNumber { return "Psalm \(number)" }
+        return state.title
+    }
+}
+
+private struct MorningDoneView: View {
+    let snapshot: MorningWidgetSnapshot; let large: Bool
+    var body: some View {
+        VStack(alignment: .leading, spacing: large ? 13 : 9) {
+            BrandHeader(); HStack { Eyebrow(text: "TODAY’S FOCUS"); Spacer(); Image(systemName: "checkmark.circle.fill").foregroundColor(Palette.sage) }
+            Text(snapshot.focus?.isEmpty == false ? snapshot.focus! : "Morning saved")
+                .font(.system(size: large ? 22 : 20, weight: .bold, design: .serif)).foregroundColor(Palette.ink)
+                .lineLimit(large ? 3 : 2).privacySensitive()
+            if large {
+                let priorities = (snapshot.priorities ?? []).filter { !$0.text.isEmpty }
+                if !priorities.isEmpty { VStack(alignment: .leading, spacing: 6) { Eyebrow(text: "TOP PRIORITIES")
+                    ForEach(priorities.prefix(3), id: \.text) { item in Label(item.text, systemImage: item.completed ? "checkmark.circle.fill" : "circle")
+                        .font(.system(size: 13, weight: .medium)).foregroundColor(Palette.ink).lineLimit(1) } }.privacySensitive() }
+            }
+            Spacer(minLength: 0)
+            HStack(spacing: 12) {
+                if let feeling = snapshot.feeling, !feeling.isEmpty { Label(feeling, systemImage: MorningWidgetStore.sfSymbol(forIconName: snapshot.feelingIcon)).privacySensitive() }
+                Label(snapshot.psalmNumber.map { "Psalm \($0)" } ?? "Psalm", systemImage: "book.closed"); Spacer(minLength: 0)
+            }.font(.system(size: 12, weight: .medium)).foregroundColor(Palette.sage).lineLimit(1)
+        }.widgetURL(MorningLink.closing)
+    }
+}
+
+private struct SiFiaMorningWidgetEntryView: View {
+    @Environment(\.widgetFamily) private var family
+    let entry: MorningEntry
+    var body: some View {
+        let state = morningState(entry.snapshot, entry.date)
+        Group {
+            if family == .systemSmall { MorningSmallView(state: state, snapshot: entry.snapshot) }
+            else if state == .done, let snapshot = entry.snapshot { MorningDoneView(snapshot: snapshot, large: family == .systemLarge) }
+            else if family == .systemLarge { MorningLargeView(state: state, snapshot: entry.snapshot) }
+            else if state == .checkIn { MorningCheckInView() }
+            else { MorningStepView(state: state, snapshot: entry.snapshot) }
+        }.padding(16).frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading).widgetBackground(Palette.cream)
+    }
+}
+
+// MARK: Evening
+
+private enum EveningLink {
+    static func url(_ step: String? = nil) -> URL { URL(string: "sifia://evening/today\(step.map { "/\($0)" } ?? "")")! }
+    static var gratitude: URL { url("gratitude") }; static var win: URL { url("win") }
+    static var proverbs: URL { url("proverbs") }; static var wisdom: URL { url("wisdom") }
+    static var lookingForward: URL { url("looking-forward") }; static var closing: URL { url("closing") }
+}
+
+private enum EveningStepState {
+    case gratitude, win, proverbs, wisdom, lookingForward, closing, done
+    var eyebrow: String { switch self {
+        case .gratitude: return "GRATITUDE"; case .win: return "TODAY’S WIN"; case .proverbs: return "PROVERBS"
+        case .wisdom: return "CARRY WISDOM"; case .lookingForward: return "LOOKING FORWARD"
+        case .closing: return "EVENING"; case .done: return "EVENING SAVED" } }
+    var title: String { switch self {
+        case .gratitude: return "What are you grateful for?"; case .win: return "What was today’s win?"
+        case .proverbs: return "Read today’s Proverbs"; case .wisdom: return "What wisdom stands out?"
+        case .lookingForward: return "What are you looking forward to?"; case .closing: return "Your evening is ready to save"
+        case .done: return "Rest in what today held" } }
+    var subtitle: String { switch self {
+        case .gratitude: return "Notice the gifts held in today."; case .win: return "Celebrate progress, even when it felt quiet."
+        case .proverbs: return "End the day grounded in wisdom."; case .wisdom: return "Keep the words you want to carry."
+        case .lookingForward: return "Let tomorrow hold something hopeful."; case .closing: return "Review and gently close the day."
+        case .done: return "Your reflection is saved." } }
+    var icon: String { switch self {
+        case .gratitude: return "heart"; case .win: return "trophy"; case .proverbs: return "book.closed"
+        case .wisdom: return "sparkles"; case .lookingForward: return "sunrise"; case .closing: return "checkmark.circle"
+        case .done: return "moon.stars" } }
+    var destination: URL { switch self {
+        case .gratitude: return EveningLink.gratitude; case .win: return EveningLink.win; case .proverbs: return EveningLink.proverbs
+        case .wisdom: return EveningLink.wisdom; case .lookingForward: return EveningLink.lookingForward
+        case .closing, .done: return EveningLink.closing } }
+}
+
+private let eveningSteps: [(id: String, label: String, state: EveningStepState)] = [
+    ("gratitude", "Gratitude", .gratitude), ("win", "Today’s win", .win), ("proverbs", "Proverbs", .proverbs),
+    ("wisdom", "Carry wisdom", .wisdom), ("looking_forward", "Looking forward", .lookingForward),
+]
+private func eveningState(_ snapshot: EveningWidgetSnapshot?, _ date: Date) -> EveningStepState {
+    guard let snapshot, snapshot.date == MorningWidgetStore.localDateString(date) else { return .gratitude }
+    if snapshot.routineCompleted { return .done }
+    let done = Set(snapshot.completedSteps); return eveningSteps.first(where: { !done.contains($0.id) })?.state ?? .closing
+}
+
+private struct EveningEntry: TimelineEntry { let date: Date; let snapshot: EveningWidgetSnapshot? }
+private struct EveningProvider: TimelineProvider {
+    func placeholder(in context: Context) -> EveningEntry { EveningEntry(date: Date(), snapshot: nil) }
+    func getSnapshot(in context: Context, completion: @escaping (EveningEntry) -> Void) {
+        completion(EveningEntry(date: Date(), snapshot: MorningWidgetStore.loadEveningSnapshot()))
+    }
+    func getTimeline(in context: Context, completion: @escaping (Timeline<EveningEntry>) -> Void) {
+        let now = Date(); var entries = [EveningEntry(date: now, snapshot: MorningWidgetStore.loadEveningSnapshot())]
+        if let midnight = Calendar.current.nextDate(after: now, matching: DateComponents(hour: 0), matchingPolicy: .nextTime) {
+            entries.append(EveningEntry(date: midnight, snapshot: nil))
+        }
         completion(Timeline(entries: entries, policy: .atEnd))
     }
 }
 
-// MARK: - Shared subviews
-
-private struct Eyebrow: View {
-    let text: String
+private struct EveningSmallView: View {
+    let state: EveningStepState; let snapshot: EveningWidgetSnapshot?
     var body: some View {
-        Text(text)
-            .font(.system(size: 11, weight: .semibold))
-            .tracking(2.2)
-            .foregroundColor(Palette.sageMuted)
+        VStack(alignment: .leading, spacing: 7) {
+            HStack { Image(systemName: state.icon).foregroundColor(state == .done ? Palette.moon : Palette.dusk); Spacer()
+                if state == .done { Image(systemName: "checkmark.circle.fill").foregroundColor(Palette.dusk) } }
+            Spacer(minLength: 0); Eyebrow(text: state.eyebrow, color: Palette.duskMuted)
+            Text(displayTitle).font(.system(size: 17, weight: .bold, design: .serif)).foregroundColor(Palette.ink)
+                .lineLimit(3).minimumScaleFactor(0.8).privacySensitive()
+            if state != .done { Text("\(completedCount) of \(eveningSteps.count)").font(.system(size: 10, weight: .medium)).foregroundColor(Palette.gray) }
+        }.widgetURL(state.destination)
     }
+    private var displayTitle: String {
+        if state == .done { if let text = snapshot?.lookingForward, !text.isEmpty { return text }; if let win = snapshot?.win, !win.isEmpty { return win } }
+        if state == .proverbs, let number = snapshot?.proverbNumber { return "Proverbs \(number)" }; return state.title
+    }
+    private var completedCount: Int { let done = Set(snapshot?.completedSteps ?? []); return eveningSteps.filter { done.contains($0.id) }.count }
 }
 
-private struct Header: View {
+private struct EveningStepView: View {
+    let state: EveningStepState; let snapshot: EveningWidgetSnapshot?
+    private var completed: Set<String> { Set(snapshot?.completedSteps ?? []) }
     var body: some View {
-        HStack(spacing: 6) {
-            Image(systemName: "leaf")
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundColor(Palette.sage)
-            Eyebrow(text: "JOURNAL BY SIFIA")
-            Spacer(minLength: 0)
-        }
-        .accessibilityHidden(true)
-    }
-}
-
-/// One tappable feeling. On iOS 17+ it writes the check-in in place via
-/// SelectFeelingIntent; on older systems it opens the app's full selector.
-private struct FeelingPill: View {
-    let id: String
-    let name: String
-
-    var body: some View {
-        if #available(iOSApplicationExtension 17.0, *) {
-            Button(intent: SelectFeelingIntent(feelingId: id)) {
-                pillLabel(icon: MorningWidgetStore.feelingIcon(forId: id), name: name)
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Select \(name) as today's feeling")
-        } else {
-            Link(destination: MorningLink.emotion) {
-                pillLabel(icon: MorningWidgetStore.feelingIcon(forId: id), name: name)
-            }
-            .accessibilityLabel("Open Journal by siFia to choose how you're feeling")
-        }
-    }
-
-    private func pillLabel(icon: String, name: String) -> some View {
-        HStack(spacing: 6) {
-            Image(systemName: MorningWidgetStore.sfSymbol(forIconName: icon))
-                .font(.system(size: 13, weight: .medium))
-                .foregroundColor(Palette.sage)
-            Text(name)
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundColor(Palette.ink)
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 10)
-        .background(Palette.card)
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .stroke(Palette.border, lineWidth: 0.5)
-        )
-    }
-}
-
-private struct ContinueLink: View {
-    let title: String
-    let destination: URL
-    var accessibilityLabel: String? = nil
-
-    var body: some View {
-        Link(destination: destination) {
-            HStack(spacing: 6) {
-                Text(title)
-                    .font(.system(size: 14, weight: .semibold))
-                Image(systemName: "arrow.right")
-                    .font(.system(size: 12, weight: .semibold))
-            }
-            .foregroundColor(Palette.card)
-            .padding(.horizontal, 16)
-            .padding(.vertical, 9)
-            .background(Palette.sage)
-            .clipShape(Capsule())
-        }
-        .accessibilityLabel(accessibilityLabel ?? title)
-    }
-}
-
-// MARK: - State views
-
-private struct CheckInView: View {
-    private let quickFeelings: [(id: String, name: String)] = [
-        ("peaceful", "Peaceful"),
-        ("grateful", "Grateful"),
-        ("hopeful", "Hopeful"),
-        ("anxious", "Anxious"),
-        ("tired", "Tired"),
-    ]
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Header()
-            VStack(alignment: .leading, spacing: 2) {
-                Eyebrow(text: "MORNING CHECK-IN")
-                Text("How are you feeling?")
-                    .font(.system(size: 17, weight: .bold, design: .serif))
-                    .foregroundColor(Palette.ink)
-            }
-
-            VStack(spacing: 8) {
-                HStack(spacing: 8) {
-                    ForEach(quickFeelings.prefix(3), id: \.id) { FeelingPill(id: $0.id, name: $0.name) }
-                }
-                HStack(spacing: 8) {
-                    ForEach(quickFeelings.suffix(2), id: \.id) { FeelingPill(id: $0.id, name: $0.name) }
-                    Link(destination: MorningLink.emotion) {
-                        HStack(spacing: 4) {
-                            Text("More")
-                                .font(.system(size: 13, weight: .semibold))
-                            Image(systemName: "chevron.right")
-                                .font(.system(size: 11, weight: .semibold))
-                        }
-                        .foregroundColor(Palette.sage)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 10)
-                    }
-                    .accessibilityLabel("Show all feelings in Journal by siFia")
-                }
-            }
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-    }
-}
-
-private struct UnderneathView: View {
-    let feeling: String
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Header()
-            Eyebrow(text: "MORNING CHECK-IN")
-            Text("You’re feeling")
-                .font(.system(size: 13))
-                .foregroundColor(Palette.gray)
-            Text(feeling)
-                .font(.system(size: 22, weight: .bold, design: .serif))
-                .foregroundColor(Palette.ink)
-                .privacySensitive()
-            Text("What’s underneath that?")
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundColor(Palette.ink)
-            Spacer(minLength: 0)
-            HStack {
-                Text("Continue with Scripture and what is on your heart.")
-                    .font(.system(size: 12))
-                    .foregroundColor(Palette.gray)
-                Spacer(minLength: 8)
-                ContinueLink(
-                    title: "Continue",
-                    destination: MorningLink.underneath,
-                    accessibilityLabel: "Continue to what's underneath that"
-                )
-            }
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-    }
-}
-
-private struct StepLinkView: View {
-    let eyebrow: String
-    let title: String
-    var subtitle: String? = nil
-    let linkTitle: String
-    let destination: URL
-    let icon: String
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Header()
-            Eyebrow(text: eyebrow)
-            Text(title)
-                .font(.system(size: 20, weight: .bold, design: .serif))
-                .foregroundColor(Palette.ink)
-                .privacySensitive()
-            if let subtitle = subtitle {
-                Text(subtitle)
-                    .font(.system(size: 13))
-                    .foregroundColor(Palette.gray)
+        VStack(alignment: .leading, spacing: 9) {
+            BrandHeader(evening: true); ProgressDots(completed: completed.count, total: eveningSteps.count, color: Palette.dusk)
+            HStack(alignment: .top, spacing: 12) {
+                Image(systemName: state.icon).foregroundColor(Palette.dusk).frame(width: 34, height: 34)
+                    .background(Palette.dusk.opacity(0.08)).clipShape(Circle())
+                VStack(alignment: .leading, spacing: 3) { Eyebrow(text: state.eyebrow, color: Palette.duskMuted)
+                    Text(title).font(.system(size: 19, weight: .bold, design: .serif)).foregroundColor(Palette.ink).lineLimit(2) }
             }
             Spacer(minLength: 0)
-            HStack {
-                Image(systemName: icon)
-                    .font(.system(size: 14))
-                    .foregroundColor(Palette.sage)
+            HStack(alignment: .bottom) { Text(state.subtitle).font(.system(size: 11)).foregroundColor(Palette.gray).lineLimit(2)
+                Spacer(minLength: 8); Link(destination: state.destination) { ActionLabel(title: state == .closing ? "Save" : "Continue", color: Palette.dusk) } }
+        }
+    }
+    private var title: String { state == .proverbs && snapshot?.proverbNumber != nil ? "Proverbs \(snapshot!.proverbNumber!)" : state.title }
+}
+
+private struct EveningLargeView: View {
+    let state: EveningStepState; let snapshot: EveningWidgetSnapshot?
+    private var completed: Set<String> { Set(snapshot?.completedSteps ?? []) }
+    var body: some View {
+        VStack(alignment: .leading, spacing: 13) {
+            BrandHeader(evening: true)
+            HStack(alignment: .top) { VStack(alignment: .leading, spacing: 4) { Eyebrow(text: state.eyebrow, color: Palette.duskMuted)
+                Text(title).font(.system(size: 22, weight: .bold, design: .serif)).foregroundColor(Palette.ink).lineLimit(2)
+                Text(state.subtitle).font(.system(size: 12)).foregroundColor(Palette.gray) }
+                Spacer(); Link(destination: state.destination) { ActionLabel(title: state == .closing ? "Save" : "Continue", color: Palette.dusk) } }
+            ProgressDots(completed: completed.count, total: eveningSteps.count, color: Palette.dusk)
+            HStack(alignment: .top, spacing: 18) {
+                VStack(alignment: .leading, spacing: 9) { Eyebrow(text: "YOUR EVENING", color: Palette.duskMuted)
+                    ForEach(eveningSteps, id: \.id) { step in StepRow(label: step.label, complete: completed.contains(step.id), active: step.state == state, color: Palette.dusk) } }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                VStack(alignment: .leading, spacing: 10) {
+                    Eyebrow(text: snapshot?.win?.isEmpty == false ? "TODAY’S WIN" : "A GENTLE CLOSE", color: Palette.duskMuted)
+                    Text(snapshot?.win?.isEmpty == false ? snapshot!.win! : "Notice what mattered, receive wisdom, and leave a little hope for tomorrow.")
+                        .font(.system(size: 13, design: .serif)).foregroundColor(Palette.ink).lineLimit(5).lineSpacing(3).privacySensitive()
+                    Spacer(minLength: 0)
+                    if let number = snapshot?.proverbNumber { Label("Proverbs \(number)", systemImage: "book.closed")
+                        .font(.system(size: 12, weight: .medium)).foregroundColor(Palette.dusk) }
+                }.frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+    }
+    private var title: String { state == .proverbs && snapshot?.proverbNumber != nil ? "Proverbs \(snapshot!.proverbNumber!)" : state.title }
+}
+
+private struct EveningDoneView: View {
+    let snapshot: EveningWidgetSnapshot; let large: Bool
+    var body: some View {
+        VStack(alignment: .leading, spacing: large ? 12 : 8) {
+            BrandHeader(evening: true); HStack { Eyebrow(text: "EVENING SAVED", color: Palette.duskMuted); Spacer()
+                Image(systemName: "checkmark.circle.fill").foregroundColor(Palette.dusk) }
+            if large {
+                section("GRATEFUL FOR", "heart", snapshot.gratitude?.first); section("TODAY’S WIN", "trophy", snapshot.win)
+                section("WISDOM TO CARRY", "sparkles", snapshot.wisdom?.first); section("LOOKING FORWARD", "sunrise", snapshot.lookingForward)
+            } else {
+                Text(snapshot.win?.isEmpty == false ? snapshot.win! : snapshot.gratitude?.first ?? "Your evening reflection is saved.")
+                    .font(.system(size: 19, weight: .bold, design: .serif)).foregroundColor(Palette.ink).lineLimit(2).privacySensitive()
                 Spacer(minLength: 0)
-                ContinueLink(title: linkTitle, destination: destination)
+                Label(snapshot.lookingForward?.isEmpty == false ? snapshot.lookingForward! : "Rest well. Begin again tomorrow.", systemImage: "sunrise")
+                    .font(.system(size: 12, weight: .medium)).foregroundColor(Palette.dusk).lineLimit(1).privacySensitive()
             }
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        }.widgetURL(EveningLink.closing)
+    }
+    @ViewBuilder private func section(_ heading: String, _ icon: String, _ text: String?) -> some View {
+        if let text, !text.isEmpty { VStack(alignment: .leading, spacing: 3) { HStack(spacing: 5) { Image(systemName: icon).font(.system(size: 10)); Eyebrow(text: heading, color: Palette.duskMuted) }
+            Text(text).font(.system(size: 13, weight: .medium, design: .serif)).foregroundColor(Palette.ink).lineLimit(2).privacySensitive() } }
     }
 }
 
-// MARK: - Post-morning summary
-
-private struct DoneMediumView: View {
-    let snapshot: MorningWidgetSnapshot
-
+private struct SiFiaEveningWidgetEntryView: View {
+    @Environment(\.widgetFamily) private var family
+    let entry: EveningEntry
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Header()
-            Eyebrow(text: "TODAY’S FOCUS")
-            Text(snapshot.focus?.isEmpty == false ? snapshot.focus! : "Morning saved")
-                .font(.system(size: 20, weight: .bold, design: .serif))
-                .foregroundColor(Palette.ink)
-                .lineLimit(2)
-                .privacySensitive()
-            Spacer(minLength: 0)
-            HStack(spacing: 6) {
-                Image(systemName: "book")
-                    .font(.system(size: 12))
-                    .foregroundColor(Palette.sage)
-                Text(psalmLine)
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundColor(Palette.gray)
-                    .lineLimit(1)
-            }
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .widgetURL(MorningLink.closing)
-    }
-
-    private var psalmLine: String {
-        let number = snapshot.psalmNumber.map { "Psalm \($0)" } ?? "Psalm"
-        let attribute = snapshot.selectedPsalmAttributes?.first
-        if let attribute, !attribute.isEmpty {
-            return "\(number) · \(attribute)"
-        }
-        return "\(number) · Morning saved"
-    }
-}
-
-private struct DoneLargeView: View {
-    let snapshot: MorningWidgetSnapshot
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Header()
-
-            VStack(alignment: .leading, spacing: 4) {
-                Eyebrow(text: "TODAY’S FOCUS")
-                Text(snapshot.focus?.isEmpty == false ? snapshot.focus! : "Morning saved")
-                    .font(.system(size: 20, weight: .bold, design: .serif))
-                    .foregroundColor(Palette.ink)
-                    .lineLimit(2)
-                    .privacySensitive()
-            }
-
-            let priorities = (snapshot.priorities ?? []).filter { !$0.text.isEmpty }
-            if !priorities.isEmpty {
-                VStack(alignment: .leading, spacing: 5) {
-                    Eyebrow(text: "TOP PRIORITIES")
-                    ForEach(priorities.prefix(3), id: \.text) { priority in
-                        HStack(spacing: 8) {
-                            Image(systemName: priority.completed ? "checkmark.circle.fill" : "circle")
-                                .font(.system(size: 13))
-                                .foregroundColor(priority.completed ? Palette.sage : Palette.gray)
-                            Text(priority.text)
-                                .font(.system(size: 14, weight: .medium))
-                                .foregroundColor(Palette.ink)
-                                .lineLimit(1)
-                        }
-                    }
-                }
-                .privacySensitive()
-            }
-
-            if let feeling = snapshot.feeling, !feeling.isEmpty {
-                VStack(alignment: .leading, spacing: 4) {
-                    Eyebrow(text: "HOW YOU BEGAN")
-                    HStack(spacing: 6) {
-                        Image(systemName: MorningWidgetStore.sfSymbol(forIconName: snapshot.feelingIcon))
-                            .font(.system(size: 13))
-                            .foregroundColor(Palette.sage)
-                        Text(feeling)
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundColor(Palette.ink)
-                    }
-                }
-                .privacySensitive()
-            }
-
-            VStack(alignment: .leading, spacing: 4) {
-                let number = snapshot.psalmNumber.map { "PSALM \($0)" } ?? "PSALM"
-                Eyebrow(text: "\(number) · PAUSE & PRAISE")
-                let attributes = (snapshot.selectedPsalmAttributes ?? []).filter { !$0.isEmpty }
-                Text(attributes.isEmpty ? "Morning saved" : attributes.joined(separator: " · "))
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundColor(Palette.ink)
-                    .lineLimit(2)
-                    .privacySensitive()
-            }
-
-            Spacer(minLength: 0)
-            Text("Remember who God is as you step into today.")
-                .font(.system(size: 12, design: .serif))
-                .italic()
-                .foregroundColor(Palette.gray)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .widgetURL(MorningLink.closing)
-    }
-}
-
-// MARK: - Entry view
-
-private struct SiFiaMorningWidgetEntryView: View {
-    @Environment(\.widgetFamily) var family
-    let entry: MorningEntry
-
-    var body: some View {
-        let state = widgetState(for: entry.snapshot, on: entry.date)
-        let snapshot = entry.snapshot
-
+        let state = eveningState(entry.snapshot, entry.date)
         Group {
-            switch state {
-            case .checkIn:
-                CheckInView()
-            case .underneath:
-                UnderneathView(feeling: snapshot?.feeling?.isEmpty == false ? snapshot!.feeling! : "checked in")
-            case .psalm:
-                StepLinkView(
-                    eyebrow: "DAILY PSALM",
-                    title: snapshot?.psalmNumber.map { "Psalm \($0)" } ?? "Today’s Psalm",
-                    subtitle: "Take a few quiet minutes with today’s Psalm.",
-                    linkTitle: "Read today’s Psalm",
-                    destination: MorningLink.psalm,
-                    icon: "book"
-                )
-            case .focus:
-                StepLinkView(
-                    eyebrow: "TODAY’S FOCUS",
-                    title: "Set today’s focus",
-                    subtitle: "Choose what matters most today.",
-                    linkTitle: "Set focus",
-                    destination: MorningLink.focus,
-                    icon: "scope"
-                )
-            case .todos:
-                StepLinkView(
-                    eyebrow: "TO-DOS",
-                    title: "What needs to get done today?",
-                    subtitle: "Add the tasks you do not want to forget.",
-                    linkTitle: "Add to-dos",
-                    destination: MorningLink.todos,
-                    icon: "checklist"
-                )
-            case .carry:
-                StepLinkView(
-                    eyebrow: "PAUSE & PRAISE",
-                    title: "What do you see about God?",
-                    subtitle: "Remember who God is as you step into today.",
-                    linkTitle: "Pause & Praise",
-                    destination: MorningLink.carry,
-                    icon: "music.note"
-                )
-            case .closing:
-                StepLinkView(
-                    eyebrow: "MORNING",
-                    title: "Your morning is ready to save.",
-                    linkTitle: "Save & finish",
-                    destination: MorningLink.closing,
-                    icon: "checkmark.circle"
-                )
-            case .done:
-                if family == .systemLarge {
-                    DoneLargeView(snapshot: snapshot!)
-                } else {
-                    DoneMediumView(snapshot: snapshot!)
-                }
-            }
-        }
-        .padding(16)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .widgetBackground()
+            if family == .systemSmall { EveningSmallView(state: state, snapshot: entry.snapshot) }
+            else if state == .done, let snapshot = entry.snapshot { EveningDoneView(snapshot: snapshot, large: family == .systemLarge) }
+            else if family == .systemLarge { EveningLargeView(state: state, snapshot: entry.snapshot) }
+            else { EveningStepView(state: state, snapshot: entry.snapshot) }
+        }.padding(16).frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading).widgetBackground(Palette.eveningWash)
     }
 }
-
-private extension View {
-    /// iOS 17+ uses containerBackground; earlier versions paint the canvas
-    /// behind the content so both look identical.
-    @ViewBuilder
-    func widgetBackground() -> some View {
-        if #available(iOSApplicationExtension 17.0, *) {
-            self.containerBackground(for: .widget) { Palette.cream }
-        } else {
-            self.background(Palette.cream)
-        }
-    }
-}
-
-// MARK: - Widget definition
 
 struct SiFiaMorningWidget: Widget {
     var body: some WidgetConfiguration {
-        StaticConfiguration(kind: MorningWidgetStore.widgetKind, provider: MorningProvider()) { entry in
-            SiFiaMorningWidgetEntryView(entry: entry)
-        }
-        .configurationDisplayName("Morning")
-        .description("Begin your day with a gentle check-in, and carry your focus with you.")
-        .supportedFamilies([.systemMedium, .systemLarge])
+        StaticConfiguration(kind: MorningWidgetStore.widgetKind, provider: MorningProvider()) { SiFiaMorningWidgetEntryView(entry: $0) }
+            .configurationDisplayName("Morning Flow")
+            .description("Begin gently, continue your morning flow, and keep today’s focus close.")
+            .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
     }
 }
 
-@main
-struct SiFiaMorningWidgetBundle: WidgetBundle {
-    var body: some Widget {
-        SiFiaMorningWidget()
+struct SiFiaEveningWidget: Widget {
+    var body: some WidgetConfiguration {
+        StaticConfiguration(kind: MorningWidgetStore.eveningWidgetKind, provider: EveningProvider()) { SiFiaEveningWidgetEntryView(entry: $0) }
+            .configurationDisplayName("Evening Flow")
+            .description("Reflect on today, continue your evening flow, and carry hope into tomorrow.")
+            .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
     }
+}
+
+@main struct SiFiaWidgetBundle: WidgetBundle {
+    var body: some Widget { SiFiaMorningWidget(); SiFiaEveningWidget() }
 }

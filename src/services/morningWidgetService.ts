@@ -5,6 +5,7 @@ import { toLocalDateString } from '../utils/date';
 import { safeJsonParse } from '../utils/safeJsonParse';
 import { getRoutineState } from '../storage/routineStateStorage';
 import {
+  getLocalJournalEntries,
   getLocalJournalSingleton,
   getLocalTodosForDate,
 } from '../storage/journalStorage';
@@ -29,6 +30,7 @@ import { applyWidgetFeelingSelection } from './morningCheckInService';
 
 interface MorningWidgetBridgeModule {
   updateSnapshot(snapshot: Record<string, unknown>): Promise<void>;
+  updateEveningSnapshot(snapshot: Record<string, unknown>): Promise<void>;
   consumePendingCheckIn(): Promise<{ feelingId?: string; date?: string } | null>;
   reloadTimelines(): void;
 }
@@ -125,6 +127,78 @@ export const refreshMorningWidgetSnapshot = async (): Promise<void> => {
   }
 };
 
+/** Build the evening widget projection from the same canonical stores used by the flow. */
+export const refreshEveningWidgetSnapshot = async (): Promise<void> => {
+  if (!Bridge?.updateEveningSnapshot) { return; }
+
+  try {
+    const today = toLocalDateString(new Date());
+    const [routine, gratitudeEntries, winEntry, lookingForwardEntry, scriptureReflections] = await Promise.all([
+      getRoutineState('evening', today),
+      getLocalJournalEntries('gratitude', today),
+      getLocalJournalSingleton('today_win', today),
+      getLocalJournalSingleton('looking_forward', today),
+      getLocalReflections('scripture', today),
+    ]);
+
+    const gratitudeEntry = [...gratitudeEntries]
+      .reverse()
+      .find(entry => entry.metadata?.source === 'evening' && !entry.metadata?.subtask_id);
+    const gratitudeContent = gratitudeEntry
+      ? safeJsonParse<Record<string, any>>(gratitudeEntry.content, { fallback: {} }) || {}
+      : {};
+    const win = winEntry
+      ? safeJsonParse<Record<string, any>>(winEntry.content, { fallback: {} }) || {}
+      : {};
+    const lookingForward = lookingForwardEntry
+      ? safeJsonParse<Record<string, any>>(lookingForwardEntry.content, { fallback: {} }) || {}
+      : {};
+    const proverb = [...scriptureReflections].reverse().find(entry =>
+      entry.source === 'evening_proverbs' || entry.metadata?.source === 'evening_proverbs',
+    );
+    const proverbMetadata = proverb?.metadata ?? {};
+    const selectedWisdom = Array.isArray(proverbMetadata.selectedWisdom)
+      ? proverbMetadata.selectedWisdom
+          .map((item: any) => typeof item?.label === 'string' ? item.label.trim() : '')
+          .filter(Boolean)
+      : [];
+    const customWisdom = typeof proverbMetadata.customWisdom === 'string'
+      ? proverbMetadata.customWisdom.trim()
+      : '';
+
+    await Bridge.updateEveningSnapshot({
+      date: today,
+      routineStarted: Boolean(routine),
+      routineCompleted: routine?.completed === true,
+      completedSteps: routine?.completed_steps ?? [],
+      gratitude: Array.isArray(gratitudeContent.items)
+        ? gratitudeContent.items.filter((item: unknown): item is string => typeof item === 'string' && item.trim().length > 0)
+        : [],
+      win: typeof win.quietWin === 'string' && win.quietWin.trim()
+        ? win.quietWin.trim()
+        : typeof win.winTypeName === 'string' ? win.winTypeName : null,
+      winContext: typeof win.winTypeName === 'string' ? win.winTypeName : null,
+      proverbNumber: typeof proverbMetadata.proverbNumber === 'number' ? proverbMetadata.proverbNumber : null,
+      proverbRead: proverbMetadata.proverbRead === true,
+      wisdom: [...selectedWisdom, ...(customWisdom ? [customWisdom] : [])],
+      lookingForward: typeof lookingForward.entry?.text === 'string'
+        ? lookingForward.entry.text.trim()
+        : null,
+      lookingForwardEmotion: typeof lookingForward.emotionName === 'string'
+        ? lookingForward.emotionName
+        : null,
+      lookingForwardIcon: typeof lookingForward.emotionIcon === 'string'
+        ? lookingForward.emotionIcon
+        : null,
+    });
+  } catch (error) {
+    Logger.warn('Failed to refresh evening widget snapshot', {
+      component: 'morningWidgetService',
+      errorMessage: error instanceof Error ? error.message : String(error),
+    });
+  }
+};
+
 /**
  * Consume a feeling selected on the Home Screen and write it through the
  * canonical check-in path. Stale (non-today) pending actions are discarded.
@@ -151,7 +225,10 @@ export const reconcileMorningWidgetActions = async (): Promise<void> => {
 /** Reconcile pending widget writes, then push a fresh snapshot. */
 export const syncMorningWidget = async (): Promise<void> => {
   await reconcileMorningWidgetActions();
-  await refreshMorningWidgetSnapshot();
+  await Promise.all([
+    refreshMorningWidgetSnapshot(),
+    refreshEveningWidgetSnapshot(),
+  ]);
 };
 
 let listenersInitialized = false;
@@ -165,9 +242,14 @@ export const initMorningWidgetSync = (): void => {
   if (Platform.OS !== 'ios' || listenersInitialized) { return; }
   listenersInitialized = true;
 
-  const refresh = () => { void refreshMorningWidgetSnapshot(); };
+  const refresh = () => {
+    Promise.all([
+      refreshMorningWidgetSnapshot(),
+      refreshEveningWidgetSnapshot(),
+    ]);
+  };
   DeviceEventEmitter.addListener('reflection_saved', refresh);
   DeviceEventEmitter.addListener('morning_complete', refresh);
   DeviceEventEmitter.addListener('future_plan_saved', refresh);
-  void syncMorningWidget();
+  syncMorningWidget();
 };

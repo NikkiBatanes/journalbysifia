@@ -2,7 +2,10 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useS
 import { DeviceEventEmitter } from 'react-native';
 import { toLocalDateString } from '../utils/date';
 import { saveRoutineState, updateRoutineState, ContentRef } from '../storage/routineStateStorage';
-import { refreshMorningWidgetSnapshot } from '../services/morningWidgetService';
+import {
+  refreshEveningWidgetSnapshot,
+  refreshMorningWidgetSnapshot,
+} from '../services/morningWidgetService';
 import { FAITHFUL_RHYTHM_UPDATED } from '../services/faithfulRhythmService';
 
 export interface RoutineContextValue {
@@ -107,9 +110,10 @@ export const RoutineProvider: React.FC<RoutineProviderProps> = ({ children, rout
       startedAt: saved.started_at,
       completed: saved.completed,
     }));
-    if (routine === 'morning') {
-      refreshMorningWidgetSnapshot().catch(() => {});
-    }
+    const refreshWidget = routine === 'morning'
+      ? refreshMorningWidgetSnapshot
+      : refreshEveningWidgetSnapshot;
+    refreshWidget().catch(() => {});
   }, [routine, selectedDate]);
 
   const completeRoutine = useCallback(async () => {
@@ -120,9 +124,10 @@ export const RoutineProvider: React.FC<RoutineProviderProps> = ({ children, rout
       selectedDate,
       completed: saved.completed,
     });
-    if (routine === 'morning') {
-      refreshMorningWidgetSnapshot().catch(() => {});
-    }
+    const refreshWidget = routine === 'morning'
+      ? refreshMorningWidgetSnapshot
+      : refreshEveningWidgetSnapshot;
+    refreshWidget().catch(() => {});
   }, [routine, selectedDate]);
 
   const getContentRef = useCallback((step: string) => {

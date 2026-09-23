@@ -1,9 +1,11 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {DeviceEventEmitter} from 'react-native';
 import {GOSPEL_CONTENT_VERSION} from '../data/gospelContent';
 
 const PEOPLE_KEY = 'journal:gospel:people:v1';
 const RESPONSE_KEY = 'journal:gospel:self-response:v1';
 const FOR_ME_DAY_SETTINGS_KEY = 'journal:gospel:for-me-day-settings:v1';
+export const GOSPEL_SHARE_EVENTS_KEY = 'journal:gospel:share-events:v1';
 
 export type GospelResponse =
   | 'trusted_jesus_today'
@@ -38,6 +40,38 @@ export type ForMeDaySettings = {
   updatedAt: string;
 };
 
+export type GospelShareMethod =
+  | 'link'
+  | 'together'
+  | 'outside_app'
+  | 'in_person'
+  | 'phone'
+  | 'message'
+  | 'other';
+
+export type GospelShareEvent = {
+  id: string;
+  sharedAt: string;
+  method: GospelShareMethod;
+  personId?: string;
+};
+
+export type GospelShareEventInput = {
+  sharedAt?: string;
+  method?: GospelShareMethod;
+  personId?: string;
+};
+
+const GOSPEL_SHARE_METHODS: GospelShareMethod[] = [
+  'link',
+  'together',
+  'outside_app',
+  'in_person',
+  'phone',
+  'message',
+  'other',
+];
+
 const defaultForMeDaySettings = (
   spiritualBirthday: string,
 ): ForMeDaySettings => ({
@@ -68,7 +102,48 @@ const parseArray = (value: string | null): GospelPerson[] => {
   }
 };
 
+const parseShareEvents = (value: string | null): GospelShareEvent[] => {
+  if (!value) {return [];}
+  try {
+    const parsed = JSON.parse(value);
+    if (!Array.isArray(parsed)) {return [];}
+    return parsed
+      .filter(event =>
+        typeof event?.id === 'string' &&
+        typeof event?.sharedAt === 'string' &&
+        Number.isFinite(new Date(event.sharedAt).getTime()),
+      )
+      .map(event => ({
+        id: event.id,
+        sharedAt: event.sharedAt,
+        // Every event stored before methods were introduced came from a link.
+        method: GOSPEL_SHARE_METHODS.includes(event.method) ? event.method : 'link',
+        ...(typeof event.personId === 'string' ? {personId: event.personId} : {}),
+      }));
+  } catch {
+    return [];
+  }
+};
+
 export const gospelStorage = {
+  async getShareEvents(): Promise<GospelShareEvent[]> {
+    return parseShareEvents(await AsyncStorage.getItem(GOSPEL_SHARE_EVENTS_KEY));
+  },
+
+  async recordShareEvent(input: GospelShareEventInput | string = {}): Promise<GospelShareEvent> {
+    const details = typeof input === 'string' ? {sharedAt: input} : input;
+    const event: GospelShareEvent = {
+      id: `gospel-share-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      sharedAt: details.sharedAt || new Date().toISOString(),
+      method: details.method || 'link',
+      ...(details.personId ? {personId: details.personId} : {}),
+    };
+    const events = await this.getShareEvents();
+    await AsyncStorage.setItem(GOSPEL_SHARE_EVENTS_KEY, JSON.stringify([event, ...events]));
+    DeviceEventEmitter.emit('gospelShareSaved', event);
+    return event;
+  },
+
   async getResponse(): Promise<SavedGospelResponse | null> {
     const raw = await AsyncStorage.getItem(RESPONSE_KEY);
     if (!raw) {

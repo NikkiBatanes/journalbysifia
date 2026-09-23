@@ -692,6 +692,38 @@ class NotificationDeepLinkService {
           break;
         }
 
+        case 'evening': {
+          // sifia://evening/today | sifia://evening/{YYYY-MM-DD} | .../{step}
+          const datePart = parts[1];
+          const stepSlug = parts[2];
+          const eveningDate = !datePart || datePart === 'today'
+            ? toLocalDateString(new Date())
+            : datePart;
+
+          const eveningStepRoutes: Record<string, string> = {
+            gratitude: 'Gratitude',
+            win: 'Win',
+            proverbs: 'Proverbs',
+            wisdom: 'CarryWisdom',
+            'looking-forward': 'LookingForward',
+            closing: 'EveningClosing',
+          };
+          const stepRoute = stepSlug ? eveningStepRoutes[stepSlug] : undefined;
+
+          this.navigationRef.current.navigate(
+            'EveningFlow',
+            stepRoute
+              ? { selectedDate: eveningDate, screen: stepRoute }
+              : { selectedDate: eveningDate },
+          );
+          Logger.info('Navigated to EveningFlow', {
+            component: 'notificationDeepLinkService',
+            selectedDate: eveningDate,
+            stepRoute,
+          });
+          break;
+        }
+
         default:
           Logger.warn('Unknown deep link screen type', {
             component: 'notificationDeepLinkService',

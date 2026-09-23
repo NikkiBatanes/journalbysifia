@@ -1,4 +1,5 @@
 export const REVIEW_QA_WEEKLY_REFERENCE_DATE = '2026-09-21';
+export const REVIEW_QA_MONTHLY_REFERENCE_DATE = '2026-09-01';
 
 export const reviewQAReferenceDate = (): Date => {
   const [year, month, day] = REVIEW_QA_WEEKLY_REFERENCE_DATE.split('-').map(Number);

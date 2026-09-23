@@ -19,6 +19,7 @@ import {formatWeeklyChallengeAnswer} from '../utils/weeklyChallengeAnswers';
 import {formatWeeklySupportAnswer, getLegacyWeeklyLookingAheadSections} from '../utils/weeklyLookingAheadAnswers';
 import {formatWeeklyLookingForwardAnswer, WEEKLY_LOOKING_FORWARD_TITLE} from '../utils/weeklyLookingForwardAnswers';
 import {WeeklyReviewSummary} from '../components/reviews/WeeklyReviewSummary';
+import {MonthlyReviewSummary} from '../components/reviews/MonthlyReviewSummary';
 
 const ReviewReaderScreen: React.FC = () => {
   const navigation = useNavigation<any>(); const route = useRoute<any>(); const insets = useSafeAreaInsets();
@@ -48,6 +49,8 @@ const ReviewReaderScreen: React.FC = () => {
       if (active) {setCapture(null); setCaptureLoading(false); setReviewLoading(false);}
     });
     return () => {active = false;};
+  // The retry counter intentionally restarts this focus effect.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [type, id, loadAttempt]));
   const sections = useMemo(() => {
     if (!review) {return [];}
@@ -152,6 +155,14 @@ const ReviewReaderScreen: React.FC = () => {
     return <SafeAreaView style={styles.safeArea} edges={['left', 'right']}>
       <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent/>
       <WeeklyReviewSummary key={review.id} review={review} capture={capture} captureLoading={captureLoading}
+        bottomInset={insets.bottom} topInset={topInset}
+        onBack={() => {triggerLightHaptic(); navigation.goBack();}}/>
+    </SafeAreaView>;
+  }
+  if (review.type === 'monthly') {
+    return <SafeAreaView style={styles.safeArea} edges={['left', 'right']}>
+      <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent/>
+      <MonthlyReviewSummary key={review.id} review={review} capture={capture} captureLoading={captureLoading}
         bottomInset={insets.bottom} topInset={topInset}
         onBack={() => {triggerLightHaptic(); navigation.goBack();}}/>
     </SafeAreaView>;

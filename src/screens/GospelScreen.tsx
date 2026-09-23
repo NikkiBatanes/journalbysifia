@@ -21,7 +21,13 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { GOSPEL_PAGES, GOSPEL_PRAYER, GOSPEL_RESPONSE_ASSURANCE, LISTEN_FIRST_QUESTIONS } from '../data/gospelContent';
-import { GospelPerson, GospelResponse, gospelStorage } from '../storage/gospelStorage';
+import {
+  GospelPerson,
+  GospelResponse,
+  GospelShareEvent,
+  GospelShareMethod,
+  gospelStorage,
+} from '../storage/gospelStorage';
 import { Colors } from '../theme/colors';
 import { Fonts } from '../theme/fonts';
 import { useTheme } from '../theme/ThemeContext';
@@ -217,20 +223,24 @@ const GospelScreen: React.FC<any> = ({ navigation }) => {
   const [expandedAssurance, setExpandedAssurance] = useState<string | null>('forgiven');
   const [readingGuideExpanded, setReadingGuideExpanded] = useState(false);
   const [people, setPeople] = useState<GospelPerson[]>([]);
+  const [shareEvents, setShareEvents] = useState<GospelShareEvent[]>([]);
   const [personName, setPersonName] = useState('');
   const [personNote, setPersonNote] = useState('');
   const [selectedSharePrompts, setSelectedSharePrompts] = useState<string[]>([]);
   const [sharedResponses, setSharedResponses] = useState<SharedGospelResponse[]>([]);
   const [loadingSharedResponses, setLoadingSharedResponses] = useState(false);
   const [sharingGospel, setSharingGospel] = useState(false);
+  const [savingShare, setSavingShare] = useState(false);
   const [recipientId, setRecipientId] = useState<string | undefined>();
   const [lockedRecipientId, setLockedRecipientId] = useState<string | undefined>();
   const [responseFilter, setResponseFilter] = useState<ResponseFilter>('all');
   const preparedShareLinks = useRef(new Map<string | undefined, Promise<GospelShareLink>>());
   const shareInProgress = useRef(false);
+  const shareSaveInProgress = useRef(false);
   const leafBloom = useRef(new Animated.Value(0)).current;
   const birdFlight = useRef(new Animated.Value(0)).current;
   const birthdayReveal = useRef(new Animated.Value(0)).current;
+  const shareCounterLabelAnim = useRef(new Animated.Value(1)).current;
   const scrollRef = useRef<ScrollView>(null);
   const [reduceMotion, setReduceMotion] = useState(false);
 
@@ -245,6 +255,20 @@ const GospelScreen: React.FC<any> = ({ navigation }) => {
     const subscription = AccessibilityInfo.addEventListener('reduceMotionChanged', setReduceMotion);
     return () => subscription.remove();
   }, []);
+
+  useEffect(() => {
+    shareCounterLabelAnim.setValue(reduceMotion ? 0 : 1);
+    if (reduceMotion) {return;}
+    const collapseTimer = setTimeout(() => {
+      Animated.timing(shareCounterLabelAnim, {
+        toValue: 0,
+        duration: 320,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: false,
+      }).start();
+    }, 3600);
+    return () => clearTimeout(collapseTimer);
+  }, [reduceMotion, shareCounterLabelAnim]);
 
   useEffect(() => {
     if (view !== 'assurance-intro' && view !== 'assurance') {return;}
@@ -322,6 +346,8 @@ const GospelScreen: React.FC<any> = ({ navigation }) => {
     setPageIndex(0);
     setListenIndex(0);
     setResponse(null);
+    setRecipientId(undefined);
+    setLockedRecipientId(undefined);
   }, []);
 
   const close = useCallback(() => {
@@ -329,8 +355,17 @@ const GospelScreen: React.FC<any> = ({ navigation }) => {
   }, [navigation]);
 
   const loadPeople = useCallback(async () => setPeople(await gospelStorage.getPeople()), []);
-  useEffect(() => { loadPeople(); }, [loadPeople]);
+  const loadShareEvents = useCallback(async () => setShareEvents(await gospelStorage.getShareEvents()), []);
+  useEffect(() => {
+    loadPeople();
+    loadShareEvents();
+  }, [loadPeople, loadShareEvents]);
   useEffect(() => { setPickedChoice(null); }, [pageIndex, view]);
+
+  const todayShareCount = useMemo(() => {
+    const today = toLocalDateString(new Date());
+    return shareEvents.filter(event => toLocalDateString(new Date(event.sharedAt)) === today).length;
+  }, [shareEvents]);
 
   const prepareShareLink = useCallback((personId?: string) => {
     const cached = preparedShareLinks.current.get(personId);
@@ -382,6 +417,35 @@ const GospelScreen: React.FC<any> = ({ navigation }) => {
     }
   };
 
+  const recordConfirmedShare = async (
+    method: GospelShareMethod,
+    personId?: string,
+  ) => {
+    if (shareSaveInProgress.current) {return null;}
+    shareSaveInProgress.current = true;
+    setSavingShare(true);
+    try {
+      const event = await gospelStorage.recordShareEvent({method, personId});
+      setShareEvents(current => [event, ...current]);
+      try { triggerSuccessHaptic(); } catch {}
+      return event;
+    } finally {
+      shareSaveInProgress.current = false;
+      setSavingShare(false);
+    }
+  };
+
+  const finishGospelExperience = async () => {
+    if (mode === 'app_together') {
+      try {
+        await recordConfirmedShare('together', recipientId);
+      } catch {
+        Alert.alert('Unable to save this share', 'The Gospel walkthrough is complete, but its share could not be recorded.');
+      }
+    }
+    resetHome();
+  };
+
   const submitResponse = async () => {
     if (!response) {
       Alert.alert('Choose a response', 'Choose the response closest to where you are.');
@@ -391,19 +455,25 @@ const GospelScreen: React.FC<any> = ({ navigation }) => {
       go('prayer');
       return;
     }
-    await gospelStorage.saveResponse(response, mode);
+    // A person using the owner's phone should not replace the owner's saved
+    // response or spiritual birthday.
+    if (mode === 'app_self') {
+      await gospelStorage.saveResponse(response, mode);
+    }
     go('other');
   };
 
   const saveTrustedResponse = async (saveDate: boolean) => {
-    const date = saveDate ? toLocalDateString(new Date()) : undefined;
-    await gospelStorage.saveResponse('trusted_jesus_today', mode, date);
-    if (saveDate) {
-      const settings = await gospelStorage.getForMeDaySettings();
-      await scheduleForMeDayReminder(settings);
+    if (mode === 'app_self') {
+      const date = saveDate ? toLocalDateString(new Date()) : undefined;
+      await gospelStorage.saveResponse('trusted_jesus_today', mode, date);
+      if (saveDate) {
+        const settings = await gospelStorage.getForMeDaySettings();
+        await scheduleForMeDayReminder(settings);
+      }
     }
     try { triggerSuccessHaptic(); } catch {}
-    resetHome();
+    await finishGospelExperience();
   };
 
   const addPerson = async () => {
@@ -436,6 +506,11 @@ const GospelScreen: React.FC<any> = ({ navigation }) => {
         url: link.url,
       });
       if (result.action === Share.sharedAction) {
+        try {
+          await recordConfirmedShare('link', recipientId);
+        } catch {
+          Alert.alert('Unable to save this share', 'The link was opened in the share menu, but its share could not be recorded.');
+        }
         // Each recipient needs a separate link because a link accepts one
         // private response. Prepare the next one outside the next button tap.
         preparedShareLinks.current.delete(recipientId);
@@ -446,6 +521,14 @@ const GospelScreen: React.FC<any> = ({ navigation }) => {
     } finally {
       shareInProgress.current = false;
       setSharingGospel(false);
+    }
+  };
+
+  const saveOutsideAppShare = async () => {
+    try {
+      await recordConfirmedShare('outside_app');
+    } catch {
+      Alert.alert('Unable to save this share', 'Please try again.');
     }
   };
 
@@ -508,15 +591,40 @@ const GospelScreen: React.FC<any> = ({ navigation }) => {
           </View>
         ) : null}
       </View>
-      <TouchableOpacity
-        onPress={withLightHaptic(close)}
-        style={styles.headerButton}
-        activeOpacity={0.7}
-        hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}
-        accessibilityRole="button"
-        accessibilityLabel="Close Gospel">
-        <Ionicons name="close" size={17} color={Colors.sage} />
-      </TouchableOpacity>
+      <View style={styles.headerActions}>
+        <TouchableOpacity
+          onPress={withLightHaptic(saveOutsideAppShare)}
+          style={[styles.shareCounterButton, savingShare && styles.actionDisabled]}
+          activeOpacity={0.7}
+          disabled={savingShare}
+          hitSlop={{top: 8, bottom: 8, left: 8, right: 4}}
+          accessibilityRole="button"
+          accessibilityState={{disabled: savingShare}}
+          accessibilityLabel={`Record Gospel share. ${todayShareCount} shared today`}>
+          <MaterialCommunityIcons name="sprout" size={18} color={Colors.sage} />
+          <Animated.View
+            testID="gospel-share-label"
+            style={{
+              overflow: 'hidden',
+              opacity: shareCounterLabelAnim,
+              maxWidth: shareCounterLabelAnim.interpolate({inputRange: [0, 1], outputRange: [0, 105]}),
+              marginLeft: shareCounterLabelAnim.interpolate({inputRange: [0, 1], outputRange: [0, 7]}),
+              marginRight: shareCounterLabelAnim.interpolate({inputRange: [0, 1], outputRange: [0, 7]}),
+            }}>
+            <Text style={[styles.shareCounterLabel, font]} numberOfLines={1}>Gospel shared</Text>
+          </Animated.View>
+          {todayShareCount > 0 ? <Text style={[styles.shareCounterText, font]}>{todayShareCount}</Text> : null}
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={withLightHaptic(close)}
+          style={styles.headerButton}
+          activeOpacity={0.7}
+          hitSlop={{top: 8, bottom: 8, left: 4, right: 8}}
+          accessibilityRole="button"
+          accessibilityLabel="Close Gospel">
+          <Ionicons name="close" size={17} color={Colors.sage} />
+        </TouchableOpacity>
+      </View>
     </View>
   );
 
@@ -942,8 +1050,12 @@ const GospelScreen: React.FC<any> = ({ navigation }) => {
             <Text style={[styles.dateCardLabel, font]}>DATE</Text>
             <Text style={[styles.dateCardValue, font]}>{today}</Text>
           </View>
-          {staggerControl(<Action label="Save & finish" onPress={() => saveTrustedResponse(true)} />, 3)}
-          {staggerControl(<Action label="Finish without saving" onPress={() => saveTrustedResponse(false)} quiet />, 4)}
+          {mode === 'app_together'
+            ? staggerControl(<Action label="Finish" onPress={() => saveTrustedResponse(false)} />, 3)
+            : <>
+                {staggerControl(<Action label="Save & finish" onPress={() => saveTrustedResponse(true)} />, 3)}
+                {staggerControl(<Action label="Finish without saving" onPress={() => saveTrustedResponse(false)} quiet />, 4)}
+              </>}
         </View>
       </>;
     }
@@ -1004,7 +1116,7 @@ const GospelScreen: React.FC<any> = ({ navigation }) => {
         <Text style={[styles.title, styles.center, font]}>{responseCopy[0]}</Text>
         <Text style={[styles.body, styles.center, font]}>{responseCopy[1]}</Text>
         <Card icon="heart-outline" title="No pressure to manufacture a response." body="You can ask questions, read Scripture, talk with the person who shared this with you, and return whenever you want." />
-        <Action label="Finish" onPress={resetHome} />
+        <Action label="Finish" onPress={finishGospelExperience} />
       </>;
     }
 
@@ -1261,6 +1373,10 @@ const styles = StyleSheet.create({
   preloadedImage: { width: 1, height: 1 },
   header: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 20, minHeight: 58, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingBottom: 8 },
   headerButton: { ...ivorySurface, width: 42, height: 42, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
+  headerActions: {flexDirection: 'row', alignItems: 'center', gap: 8},
+  shareCounterButton: { ...ivorySurface, minWidth: 54, height: 42, borderRadius: 999, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
+  shareCounterLabel: {color: Colors.sage, fontSize: 13, lineHeight: 18, fontWeight: '700'},
+  shareCounterText: {color: Colors.sage, fontSize: 14, lineHeight: 18, fontWeight: '800', minWidth: 9, textAlign: 'center'},
   headerPlaceholder: { width: 42, height: 42 },
   headerCenterSpacer: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   scrollHeaderSpacer: { minHeight: 58, paddingBottom: 8 },

@@ -32,10 +32,28 @@ struct MorningWidgetSnapshot: Codable {
     var openTodoCount: Int?
 }
 
+struct EveningWidgetSnapshot: Codable {
+    var date: String
+    var routineStarted: Bool
+    var routineCompleted: Bool
+    var completedSteps: [String]
+    var gratitude: [String]?
+    var win: String?
+    var winContext: String?
+    var proverbNumber: Int?
+    var proverbRead: Bool?
+    var wisdom: [String]?
+    var lookingForward: String?
+    var lookingForwardEmotion: String?
+    var lookingForwardIcon: String?
+}
+
 enum MorningWidgetStore {
     static let appGroupId = "group.app.journal.sifia.morning"
     static let widgetKind = "SiFiaMorningWidget"
+    static let eveningWidgetKind = "SiFiaEveningWidget"
     static let snapshotKey = "morning_widget_snapshot"
+    static let eveningSnapshotKey = "evening_widget_snapshot"
     static let pendingCheckInKey = "morning_widget_pending_checkin"
 
     static var sharedDefaults: UserDefaults? {
@@ -67,6 +85,16 @@ enum MorningWidgetStore {
     static func saveSnapshot(_ snapshot: MorningWidgetSnapshot) {
         guard let data = try? JSONEncoder().encode(snapshot) else { return }
         sharedDefaults?.set(data, forKey: snapshotKey)
+    }
+
+    static func loadEveningSnapshot() -> EveningWidgetSnapshot? {
+        guard let data = sharedDefaults?.data(forKey: eveningSnapshotKey) else { return nil }
+        return try? JSONDecoder().decode(EveningWidgetSnapshot.self, from: data)
+    }
+
+    static func saveEveningSnapshot(_ dictionary: [String: Any]) {
+        guard let data = try? JSONSerialization.data(withJSONObject: dictionary) else { return }
+        sharedDefaults?.set(data, forKey: eveningSnapshotKey)
     }
 
     // MARK: - Pending check-in (written by the widget intent, consumed by the app)
@@ -119,6 +147,7 @@ enum MorningWidgetStore {
     static func reloadTimelines() {
         #if canImport(WidgetKit)
         WidgetCenter.shared.reloadTimelines(ofKind: widgetKind)
+        WidgetCenter.shared.reloadTimelines(ofKind: eveningWidgetKind)
         #endif
     }
 

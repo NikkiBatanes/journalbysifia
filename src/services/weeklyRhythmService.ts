@@ -12,6 +12,7 @@ export interface WeeklyRhythm {
   evening: number;
   prayers: number;
   journal: number;
+  answeredPrayers: number;
 }
 
 export const getWeeklyRhythm = async (
@@ -54,5 +55,6 @@ export const getWeeklyRhythm = async (
     evening: details.reduce((sum, day) => sum + day.evening, 0),
     prayers: details.reduce((sum, day) => sum + day.prayers, 0),
     journal: details.reduce((sum, day) => sum + day.journal, 0),
+    answeredPrayers: capture.prayerStats?.answered ?? 0,
   };
 };
