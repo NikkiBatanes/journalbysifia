@@ -18,6 +18,7 @@ describe('Moments iPhone Duo layout', () => {
 
   it('places landscape filters beside the side status region', () => {
     expect(screen).toContain("sizeClasses.horizontal === 'regular'");
+    expect(screen).not.toContain("sizeClasses.vertical === 'regular'\n    && width > height");
     expect(screen).toContain('height / width > 0.58');
     expect(screen).toContain('!Platform.isPad');
     expect(screen).toContain('!isDuoLandscape && <View style={styles.headerActions}>');

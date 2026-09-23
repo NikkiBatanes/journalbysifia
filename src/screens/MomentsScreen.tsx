@@ -41,7 +41,6 @@ export const MomentsScreen: React.FC = () => {
   const sizeClasses = useIOSSizeClasses();
   const usesSideSystemRegion = Platform.OS === 'ios' && insets.left !== insets.right;
   const hasOpenLandscapeSizeClasses = sizeClasses.horizontal === 'regular'
-    && sizeClasses.vertical === 'regular'
     && width > height;
   const hasOpenLandscapeProportions = sizeClasses.horizontal === 'unspecified'
     && sizeClasses.vertical === 'unspecified'
