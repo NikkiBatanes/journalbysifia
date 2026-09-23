@@ -20,6 +20,9 @@ describe('Today calendar animation', () => {
     expect(source).toContain('const SIDE_REGION_TOP_SPACING = 20');
     expect(source).toContain('Math.min(TODAY_READABLE_MAX_WIDTH, windowWidth)');
     expect(source).toContain('const readableLeadingPadding');
+    expect(source).toContain('event.nativeEvent.layout.x + TODAY_HORIZONTAL_MARGIN');
+    expect(source).toContain('readableContentLeading ?? readableLeadingPadding');
+    expect(source).toContain('onLayout={handleReadableContentLayout}');
     expect(source).toContain('insets.left + TODAY_HORIZONTAL_MARGIN');
     expect(source).toContain('{ paddingLeft: calendarLeadingPadding, paddingRight: topCalendarTrailingPadding }');
     expect(source).toContain('<View style={styles.readableRail}>');

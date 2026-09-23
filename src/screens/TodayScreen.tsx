@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { DeviceEventEmitter, Platform, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View, useWindowDimensions } from 'react-native';
+import { DeviceEventEmitter, Platform, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View, useWindowDimensions, type LayoutChangeEvent } from 'react-native';
 import Animated, { Easing, FadeInUp, useAnimatedStyle, useSharedValue, withSequence, withSpring, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
@@ -137,6 +137,7 @@ const TodayScreen = () => {
   const [displayDate, setDisplayDate] = useState(() => now);
   const [manualDate, setManualDate] = useState(false);
   const [calendarVisible, setCalendarVisible] = useState(false);
+  const [readableContentLeading, setReadableContentLeading] = useState<number | null>(null);
   const calendarProgress = useSharedValue(0);
   // Duo exposes its camera/status-bar side as an asymmetric safe area. Key the
   // layout to that live environment instead of guessing a display from width.
@@ -153,7 +154,7 @@ const TodayScreen = () => {
   const readableLeadingPadding = Math.max(0, (windowWidth - readableOuterWidth) / 2)
     + TODAY_HORIZONTAL_MARGIN;
   const calendarLeadingPadding = Math.max(
-    readableLeadingPadding,
+    readableContentLeading ?? readableLeadingPadding,
     insets.left + TODAY_HORIZONTAL_MARGIN,
   );
   const calendarTrailingPadding = insets.right + TODAY_HORIZONTAL_MARGIN;
@@ -163,6 +164,10 @@ const TodayScreen = () => {
   const scrollTopPadding = usesInnerPortraitRail
     ? INNER_PORTRAIT_TOP_SPACING
     : insets.top + (usesSideSystemRegion ? SIDE_REGION_TOP_SPACING : 0);
+  const handleReadableContentLayout = useCallback((event: LayoutChangeEvent) => {
+    const leading = event.nativeEvent.layout.x + TODAY_HORIZONTAL_MARGIN;
+    setReadableContentLeading(current => Math.abs((current ?? -1) - leading) > 0.5 ? leading : current);
+  }, []);
   const greetingIconScale = useSharedValue(1);
   const greetingIconRotation = useSharedValue(0);
   const greetingIconLift = useSharedValue(0);
@@ -609,7 +614,7 @@ const TodayScreen = () => {
           </View>
         ) : null}
         <View style={styles.readableRail}>
-          <View style={styles.readableContent}>
+          <View style={styles.readableContent} onLayout={handleReadableContentLayout}>
             <View style={styles.headerColumn}>
               {!usesTopCalendarRail ? calendarSheet : null}
               {!usesTopCalendarRail ? <View style={styles.headerIconsRow}>
