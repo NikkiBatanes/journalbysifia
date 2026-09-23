@@ -44,9 +44,9 @@ const TODAY_READABLE_MAX_WIDTH = 760;
 const TODAY_HORIZONTAL_MARGIN = 18;
 const SIDE_REGION_TOP_SPACING = 20;
 const INNER_PORTRAIT_TOP_SPACING = 16;
-const INNER_PORTRAIT_STATUS_CLEARANCE = 112;
+const INNER_PORTRAIT_STATUS_CLEARANCE = 128;
 const INNER_PORTRAIT_CALENDAR_CONTROL_WIDTH = 52;
-const INNER_PORTRAIT_CALENDAR_GAP = 16;
+const INNER_PORTRAIT_CALENDAR_GAP = 12;
 
 const SectionHeading = ({ title, detail, compactTop = false }: { title: string; detail: string; compactTop?: boolean }) => (
   <View style={[styles.sectionHeading, compactTop && styles.sectionHeadingCompact]}>
