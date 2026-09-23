@@ -44,8 +44,9 @@ const TODAY_READABLE_MAX_WIDTH = 760;
 const TODAY_HORIZONTAL_MARGIN = 18;
 const SIDE_REGION_TOP_SPACING = 20;
 const INNER_PORTRAIT_TOP_SPACING = 16;
-const INNER_PORTRAIT_STATUS_CLEARANCE = 184;
+const INNER_PORTRAIT_STATUS_CLEARANCE = 112;
 const INNER_PORTRAIT_CALENDAR_CONTROL_WIDTH = 52;
+const INNER_PORTRAIT_CALENDAR_GAP = 16;
 
 const SectionHeading = ({ title, detail, compactTop = false }: { title: string; detail: string; compactTop?: boolean }) => (
   <View style={[styles.sectionHeading, compactTop && styles.sectionHeadingCompact]}>
@@ -606,6 +607,7 @@ const TodayScreen = () => {
             style={[
               styles.sideCalendarRail,
               usesInnerPortraitRail && styles.innerPortraitCalendarRail,
+              usesInnerPortraitRail && calendarVisible && styles.innerPortraitCalendarRailOpen,
               { paddingLeft: calendarLeadingPadding, paddingRight: topCalendarTrailingPadding },
             ]}
           >
@@ -988,6 +990,7 @@ const styles = StyleSheet.create({
   calendarSheet: { width: '100%', backgroundColor: Colors.hopeWhite, borderRadius: 22, overflow: 'hidden' },
   sideCalendarRail: { width: '100%' },
   innerPortraitCalendarRail: { height: CALENDAR_SHEET_HEIGHT, justifyContent: 'center' },
+  innerPortraitCalendarRailOpen: { marginBottom: INNER_PORTRAIT_CALENDAR_GAP },
   innerPortraitCalendarButton: { position: 'absolute', right: INNER_PORTRAIT_STATUS_CLEARANCE, top: 8, width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   sectionHeading: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, marginTop: 24, marginBottom: 10, paddingHorizontal: 2 },
   sectionHeadingCompact: { marginTop: 0 },
