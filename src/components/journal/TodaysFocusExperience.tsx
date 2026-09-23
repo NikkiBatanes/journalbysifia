@@ -24,6 +24,7 @@ import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 
 import { Colors } from '../../theme/colors';
 import ThemedText from '../common/ThemedText';
+import FocusPriorityInputs from './FocusPriorityInputs';
 import { useTheme } from '../../hooks/useTheme';
 import { getFontFamily } from '../../theme/fonts';
 import StepFadeIn from '../common/StepFadeIn';
@@ -622,23 +623,12 @@ const PrioritiesInputStep: React.FC<{
           </View>
         </StepFadeIn>
 
-        <StepFadeIn delay={240} style={[styles.prioritiesContainer, { marginTop: 32 }]}>
-          {priorities.map((priority: string, index: number) => (
-            <View key={index} style={styles.priorityInputRow}>
-              <View style={[styles.priorityNumberContainer, { backgroundColor: Colors.sage }]}>
-                <ThemedText weight="semiBold" style={[styles.priorityNumber, { color: Colors.hopeWhite }]}>{index + 1}</ThemedText>
-              </View>
-              <TextInput
-                style={[styles.priorityInput, { fontFamily: getFontFamily(fontKey, 'regular') }]}
-                value={priority}
-                onChangeText={(text) => onChange(index, text)}
-                placeholder=""
-                placeholderTextColor={Colors.textGray}
-                autoFocus={index === 0}
-                keyboardAppearance="light"
-              />
-            </View>
-          ))}
+        <StepFadeIn delay={240} style={{ marginTop: 32 }}>
+          <FocusPriorityInputs
+            priorities={priorities}
+            onChange={onChange}
+            fontKey={fontKey}
+          />
         </StepFadeIn>
 
         <StepFadeIn delay={320}>
@@ -1324,40 +1314,6 @@ const styles = StyleSheet.create({
     opacity: 0.6,
     marginBottom: 4,
     lineHeight: 16,
-  },
-  prioritiesContainer: {
-    gap: 16,
-  },
-  priorityInputRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  priorityNumberContainer: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255, 107, 107, 0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  priorityNumber: {
-    fontSize: 14,
-    color: Colors.alertCoral,
-    textAlign: 'center',
-    lineHeight: 16,
-  },
-  priorityInput: {
-    flex: 1,
-    backgroundColor: Colors.inputBackground,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: Colors.inputBorder,
-    padding: 16,
-    fontSize: 18,
-    color: Colors.text,
-    minHeight: 50,
-    textAlignVertical: 'top',
   },
   stepLabelRow: {
     flexDirection: 'row',

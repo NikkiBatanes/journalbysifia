@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { Animated, Easing, Keyboard, Platform, useWindowDimensions } from 'react-native';
 
 // For floating actions outside a KeyboardAvoidingView; do not apply both offsets.
+// Apply bottom to an Animated.View around the button. TouchableOpacity's native
+// opacity animation must not share a style node with this JS-driven layout value.
 export const useFloatingKeyboardButton = (bottomInset: number) => {
   const { height } = useWindowDimensions();
   const bottom = useRef(new Animated.Value(bottomInset + 20)).current;

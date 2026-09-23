@@ -3,6 +3,7 @@ import {getReviewCapture} from '../../../services/reviewCaptureService';
 import {getLocalReviewForPeriod} from '../../../storage/reviewStorage';
 import {GUIDED_PROMPTS} from '../../../components/journal/reflectionConstants';
 import {REFLECTION_NOTE_TYPES, parseGuidedReflection} from '../../../types/guidedReflection';
+import {buildWeeklyReviewQAPrayerFixtures} from '../reviewQAWeeklyPrayerData';
 
 const mockData=new Map<string,string>();
 jest.mock('@react-native-async-storage/async-storage',()=>({getItem:jest.fn(async(key:string)=>mockData.get(key)??null),setItem:jest.fn(async(key:string,value:string)=>{mockData.set(key,value);}),getAllKeys:jest.fn(async()=>[...mockData.keys()]),multiGet:jest.fn(async(keys:string[])=>keys.map(key=>[key,mockData.get(key)??null])),multiRemove:jest.fn(async(keys:string[])=>keys.forEach(key=>mockData.delete(key))),removeItem:jest.fn(async(key:string)=>mockData.delete(key))}));
@@ -16,7 +17,7 @@ describe('Review QA loader isolation',()=>{
     expect(result.review).toBeNull();
     expect([...mockData.keys()].filter(key=>key.startsWith('journal_local_singleton:morning_check_in:'))).toHaveLength(7);
     expect([...mockData.keys()].filter(key=>key.startsWith('journal_local_singleton:todays_focus:'))).toHaveLength(7);
-    expect([...mockData.keys()].filter(key=>key.startsWith('reflection_local:scripture:'))).toHaveLength(14);
+    expect([...mockData.keys()].filter(key=>key.startsWith('reflection_local:scripture:'))).toHaveLength(21);
     expect([...mockData.keys()].filter(key=>key.startsWith('journal_local:todo:'))).toHaveLength(21);
     expect([...mockData.keys()].filter(key=>key.startsWith('journal_local:gratitude:'))).toHaveLength(7);
     expect([...mockData.keys()].filter(key=>key.startsWith('journal_local_singleton:today_win:'))).toHaveLength(7);
@@ -25,10 +26,11 @@ describe('Review QA loader isolation',()=>{
     expect([...mockData.keys()].filter(key=>key.startsWith('reflection_local:guided:'))).toHaveLength(14);
     expect([...mockData.keys()].filter(key=>key.startsWith('journal_local:todo:2026-09-14:'))).toHaveLength(7);
     expect([...mockData.keys()].filter(key=>key.startsWith('routine_state:morning:'))).toHaveLength(7);
-    expect([...mockData.keys()].some(key=>key.startsWith('prayer_local:'))).toBe(false);
+    expect([...mockData.keys()].filter(key=>key.startsWith('prayer_local:'))).toHaveLength(buildWeeklyReviewQAPrayerFixtures().length);
+    expect([...mockData.keys()].some(key=>key.startsWith('bible_study_session:dev-review-v2:weekly:prayer-v2:'))).toBe(true);
     expect([...mockData.keys()].filter(key=>key.startsWith('routine_state:evening:'))).toHaveLength(7);
     expect([...mockData.keys()].some(key=>key.startsWith('review_local:'))).toBe(false);
-    expect(JSON.parse(mockData.get('dev-review-v2:manifest')!).datasetVersion).toBe('weekly-routines-heart-journal-guided-v7');
+    expect(JSON.parse(mockData.get('dev-review-v2:manifest')!).datasetVersion).toBe('weekly-routines-heart-journal-prayer-v2-scripture-notes-v9');
     const monday=JSON.parse(mockData.get('journal_local_singleton:morning_check_in:2026-09-14')!);
     expect(JSON.parse(monday.content)).toMatchObject({feeling:'Hopeful',underneathIt:expect.any(String)});
     const mondayPsalm=JSON.parse(mockData.get('reflection_local:scripture:2026-09-14:dev-review-v2:weekly:morning-psalm:2026-09-14')!);
@@ -51,6 +53,14 @@ describe('Review QA loader isolation',()=>{
     expect(mondayProverb).toMatchObject({title:'Proverbs 1',metadata:{proverbNumber:1,proverbRead:true,selectedWisdomIds:['1-1']}});
     const fridayProverb=JSON.parse(mockData.get('reflection_local:scripture:2026-09-18:dev-review-v2:weekly:evening-proverb:2026-09-18')!);
     expect(fridayProverb).toMatchObject({title:'Proverbs 5',metadata:{proverbNumber:5,proverbRead:false}});
+    const scriptureNotes=[...mockData.entries()]
+      .filter(([key])=>key.includes(':weekly:scripture-note:'))
+      .map(([,value])=>JSON.parse(value));
+    expect(scriptureNotes).toHaveLength(7);
+    expect(scriptureNotes.map(entry=>entry.selected_date)).toEqual([
+      '2026-09-14','2026-09-15','2026-09-16','2026-09-17','2026-09-18','2026-09-19','2026-09-20',
+    ]);
+    expect(scriptureNotes.every(entry=>entry.type==='scripture'&&entry.source==='scripture_note')).toBe(true);
     const sundayRoutine=JSON.parse(mockData.get('routine_state:morning:2026-09-20')!);
     expect(sundayRoutine).toMatchObject({completed:true,completed_steps:['emotion','underneath','psalm','carry','todays_focus','todos']});
     const sundayEveningRoutine=JSON.parse(mockData.get('routine_state:evening:2026-09-20')!);

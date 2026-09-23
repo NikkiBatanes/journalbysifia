@@ -680,6 +680,7 @@ export const CustomTabBarComponent = ({
             <LiquidGlassView
               tintColor="rgba(82, 106, 91, 0.32)"
               cornerRadius={31}
+              isInteractive
               style={StyleSheet.absoluteFill}
             />
           </View>
@@ -708,6 +709,7 @@ export const CustomTabBarComponent = ({
                 <LiquidGlassView
                   tintColor={Colors.sage}
                   cornerRadius={26}
+                  isInteractive
                   style={StyleSheet.absoluteFill}
                 />
               </View>
@@ -905,6 +907,7 @@ export const CustomTabBarComponent = ({
             <LiquidGlassView
               tintColor={Colors.sage}
               cornerRadius={26}
+              isInteractive
               style={StyleSheet.absoluteFill}
             />
           </View>

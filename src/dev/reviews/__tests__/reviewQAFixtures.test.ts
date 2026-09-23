@@ -11,7 +11,7 @@ describe('Review QA period continuity and DEV boundary',()=>{
   it('uses the same Weekly dates in its human label and Review route data',()=>{
     expect(formatReviewQAPeriod(getReviewQAScenario('weekly'))).toContain('September 14');
     expect(formatReviewQAPeriod(getReviewQAScenario('weekly'))).toContain('September 20, 2026');
-    expect(getReviewQAScenario('weekly')).toMatchObject({density:'rich',status:'FULL WEEK · 10 GUIDED'});
+    expect(getReviewQAScenario('weekly')).toMatchObject({density:'rich',status:'FULL WEEK · 10 GUIDED · 7 SCRIPTURE · PRAYER V2'});
   });
   it('registers the screen only inside a DEV guard',()=>{
     const source=fs.readFileSync(path.resolve(__dirname,'../../../navigation/JournalStackNavigator.tsx'),'utf8');

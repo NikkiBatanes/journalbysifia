@@ -659,6 +659,7 @@ const PsalmOfTheDayScreen = () => {
   return (
     <RoutineStepShell
       titleBottomSpacing={16}
+      extraScrollBottomPadding={140}
       step={4}
       totalSteps={6}
       eyebrow="PSALM OF THE DAY"
@@ -667,6 +668,7 @@ const PsalmOfTheDayScreen = () => {
       onBack={onBack}
       backgroundColor={Colors.lightBackground}
       rightControl={aAButton}
+      stickyRightControls
       manageStatusBar={false}
     >
       {children}
@@ -938,7 +940,7 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingVertical: 14,
     paddingHorizontal: 18,
-    backgroundColor: 'rgba(82, 106, 91, 0.08)',
+    backgroundColor: '#E9EAE3',
     borderRadius: 28,
     borderWidth: 0.5,
     borderColor: 'rgba(82, 106, 91, 0.2)',
@@ -948,7 +950,7 @@ const styles = StyleSheet.create({
     borderColor: Colors.sage,
   },
   readButtonText: {
-    color: Colors.text,
+    color: Colors.sage,
     fontSize: 15,
   },
   readButtonTextActive: {

@@ -142,6 +142,9 @@ const PrayerListScreen = () => {
   const answerInFlight = useRef(false);
   const scrollRef = useRef<any>(null);
   const lastScrollYRef = useRef(0);
+  const firstSectionHeaderYRef = useRef<number | null>(null);
+  const requestBadgePinnedRef = useRef(false);
+  const [requestBadgePinned, setRequestBadgePinned] = useState(false);
   const tabBarCollapsedRef = useRef(false);
   const expandTabBar = useCallback(() => {
     tabBarCollapsedRef.current = false;
@@ -190,6 +193,15 @@ const PrayerListScreen = () => {
     const y = Math.max(0, event.nativeEvent.contentOffset.y);
     const isScrollingUp = y < lastScrollYRef.current;
     lastScrollYRef.current = y;
+
+    const firstSectionHeaderY = firstSectionHeaderYRef.current;
+    if (firstSectionHeaderY !== null) {
+      const shouldPinRequestBadge = y >= firstSectionHeaderY;
+      if (requestBadgePinnedRef.current !== shouldPinRequestBadge) {
+        requestBadgePinnedRef.current = shouldPinRequestBadge;
+        setRequestBadgePinned(shouldPinRequestBadge);
+      }
+    }
 
     if (y > 60 && !tabBarCollapsedRef.current) {
       tabBarCollapsedRef.current = true;
@@ -399,6 +411,12 @@ const PrayerListScreen = () => {
     return [...sections.values()].sort((a, b) => direction * (a.date.getTime() - b.date.getTime()));
   }, [filteredPrayers, sortMode, timeframe, weekStartsOn]);
 
+  useEffect(() => {
+    firstSectionHeaderYRef.current = null;
+    requestBadgePinnedRef.current = false;
+    setRequestBadgePinned(false);
+  }, [activeTab, searchQuery, selectedPeople, selectedTopics, selectedTypes, sortMode, timeframe]);
+
   const changeTimeframe = (next: PrayerTimeframe) => {
     triggerLightHaptic();
     LayoutAnimation.configureNext({
@@ -575,6 +593,31 @@ const PrayerListScreen = () => {
     setSortMode('updated');
   };
 
+  const showAllPrayerRequests = () => {
+    triggerLightHaptic();
+    setActiveTab('requests');
+    setSelectedTypes([]);
+    setSelectedPeople([]);
+    setSelectedTopics([]);
+    setSortMode('updated');
+    requestAnimationFrame(() => scrollRef.current?.scrollTo({y: 0, animated: true}));
+  };
+
+  const renderRequestReminderBadge = () => (
+    <TouchableOpacity
+      style={styles.requestSummaryBadge}
+      activeOpacity={0.75}
+      onPress={showAllPrayerRequests}
+      accessibilityRole="button"
+      accessibilityLabel={`${pendingRequests.length} prayer ${pendingRequests.length === 1 ? 'request' : 'requests'} across all time. Show only prayer requests.`}
+    >
+      <Ionicons name="mail-unread-outline" size={12} color={Colors.alertCoral} />
+      <ThemedText weight="semiBold" numberOfLines={1} style={styles.requestSummaryBadgeText}>
+        {pendingRequests.length} {pendingRequests.length === 1 ? 'request' : 'requests'}
+      </ThemedText>
+    </TouchableOpacity>
+  );
+
   const applyQuickView = (view: 'attention' | 'waiting' | 'answered' | 'others' | 'needs') => {
     triggerLightHaptic();
     setFilterOpen(false);
@@ -642,21 +685,22 @@ const PrayerListScreen = () => {
           {!!searchQuery && <TouchableOpacity onPress={() => { triggerLightHaptic(); setSearchQuery(''); }} style={styles.clearButton} accessibilityLabel="Clear prayer search"><Ionicons name="close-circle" size={16} color={Colors.placeholderText} /></TouchableOpacity>}
         </View>}
       </View>
-      <ScrollView
-        ref={scrollRef}
-        style={styles.scroll}
-        contentContainerStyle={[
-          styles.content,
-          {paddingBottom: !isLoading && filteredPrayers.length === 0 ? 0 : insets.bottom + 80},
-        ]}
-        showsVerticalScrollIndicator={false}
-        onScroll={handlePrayerScroll}
-        onScrollEndDrag={handleTabBarScrollEndDrag}
-        onMomentumScrollBegin={handleTabBarMomentumScrollBegin}
-        onMomentumScrollEnd={handleTabBarMomentumScrollEnd}
-        scrollEventThrottle={16}
-        stickyHeaderIndices={stickyHeaderIndices}
-      >
+      <View style={styles.scrollContainer}>
+        <ScrollView
+          ref={scrollRef}
+          style={styles.scroll}
+          contentContainerStyle={[
+            styles.content,
+            {paddingBottom: !isLoading && filteredPrayers.length === 0 ? 0 : insets.bottom + 80},
+          ]}
+          showsVerticalScrollIndicator={false}
+          onScroll={handlePrayerScroll}
+          onScrollEndDrag={handleTabBarScrollEndDrag}
+          onMomentumScrollBegin={handleTabBarMomentumScrollBegin}
+          onMomentumScrollEnd={handleTabBarMomentumScrollEnd}
+          scrollEventThrottle={16}
+          stickyHeaderIndices={stickyHeaderIndices}
+        >
       {prayerContentReady && showSavedConfirmation && (
         <Animated.View
           key={`${prayerEntranceRun}:saved-confirmation`}
@@ -720,28 +764,32 @@ const PrayerListScreen = () => {
                   key={`${prayerEntranceRun}:header-${timeframe}-${section.key}`}
                   entering={FadeInUp.delay(Math.min(sectionIndex * 160, 560)).springify().damping(14).stiffness(180)}
                   style={styles.sectionHeader}
+                  onLayout={sectionIndex === 0 ? event => {
+                    const y = event.nativeEvent.layout.y;
+                    firstSectionHeaderYRef.current = y;
+                    const shouldPinRequestBadge = lastScrollYRef.current >= y;
+                    requestBadgePinnedRef.current = shouldPinRequestBadge;
+                    setRequestBadgePinned(shouldPinRequestBadge);
+                  } : undefined}
                 >
-                  <ThemedText weight="semiBold" numberOfLines={1} style={styles.sectionTitle}>{section.title}</ThemedText>
-                  {(() => {
-                    const requestCount = section.prayers.filter(
-                      prayer => prayer.is_prayer_request === true && prayer.prayed !== true && trackingStatus(prayer) === 'pending'
-                    ).length;
-
-                    return requestCount > 0 ? (
-                      <View
-                        style={styles.sectionRequestBadge}
-                        accessibilityRole="text"
-                        accessibilityLabel={`${requestCount} waiting prayer ${requestCount === 1 ? 'request' : 'requests'}`}
-                      >
-                        <Ionicons name="mail-unread-outline" size={12} color={Colors.alertCoral} />
-                        <ThemedText weight="semiBold" numberOfLines={1} style={styles.sectionRequestBadgeText}>
-                          {requestCount} {requestCount === 1 ? 'request' : 'requests'}
-                        </ThemedText>
-                      </View>
-                    ) : (
-                      <ThemedText numberOfLines={1} style={styles.sectionCount}>{section.prayers.length} {section.prayers.length === 1 ? 'prayer' : 'prayers'}</ThemedText>
-                    );
-                  })()}
+                  <ThemedText
+                    weight="semiBold"
+                    numberOfLines={1}
+                    style={[
+                      styles.sectionTitle,
+                      pendingRequests.length > 0
+                        && activeTab !== 'requests'
+                        && (requestBadgePinned || sectionIndex === 0)
+                        && styles.sectionTitleWithRequestBadge,
+                    ]}
+                  >
+                    {section.title}
+                  </ThemedText>
+                  {sectionIndex === 0
+                    && !requestBadgePinned
+                    && pendingRequests.length > 0
+                    && activeTab !== 'requests'
+                    && renderRequestReminderBadge()}
                 </Animated.View>,
                 ...section.prayers.map((prayer, prayerIndex) => (
                   <Animated.View
@@ -765,7 +813,12 @@ const PrayerListScreen = () => {
       )}
       <View style={{ height: 24 }} />
 
-      </ScrollView>
+        </ScrollView>
+        {requestBadgePinned
+          && pendingRequests.length > 0
+          && activeTab !== 'requests'
+          && renderRequestReminderBadge()}
+      </View>
       <Modal visible={timeframeOpen} transparent animationType="fade" onRequestClose={() => setTimeframeOpen(false)}>
         <TouchableOpacity style={styles.pickerOverlay} activeOpacity={1} onPress={() => setTimeframeOpen(false)}>
           <TouchableOpacity style={styles.timeframePicker} activeOpacity={1} onPress={() => {}}>
@@ -880,16 +933,14 @@ const styles = StyleSheet.create({
   quickPill: {paddingHorizontal: 12, paddingVertical: 8, borderRadius: 17, backgroundColor: Colors.actionBackground},
   quickText: {fontSize: 10, color: Colors.sage},
   sectionHeader: {alignSelf: 'stretch', position: 'relative', height: 38, marginHorizontal: -18, marginBottom: 10, borderBottomWidth: 1, borderBottomColor: Colors.borderLight, backgroundColor: Colors.lightBackground},
-  sectionTitle: {position: 'absolute', left: 18, right: 108, top: 3, fontSize: 18, lineHeight: 24, color: Colors.text, fontFamily: Fonts.semiBold},
-  sectionCount: {position: 'absolute', right: 18, top: 3, fontSize: 12, lineHeight: 24, color: Colors.textGray, fontFamily: Fonts.regular, textAlign: 'right'},
-  sectionRequestBadge: {position: 'absolute', right: 18, top: 2, height: 26, flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, borderRadius: 13, backgroundColor: 'rgba(217, 120, 114, 0.12)', borderWidth: 1, borderColor: 'rgba(217, 120, 114, 0.28)'},
-  sectionRequestBadgeText: {fontSize: 11, lineHeight: 15, color: Colors.alertCoral, letterSpacing: 0.2},
+  sectionTitle: {position: 'absolute', left: 18, right: 18, top: 3, fontSize: 18, lineHeight: 24, color: Colors.text, fontFamily: Fonts.semiBold},
+  sectionTitleWithRequestBadge: {right: 122},
   filterButton: {minHeight: 36, flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 13, borderRadius: 18, borderWidth: 1, borderColor: Colors.cardBorder, backgroundColor: Colors.cardBackground},
   filterButtonActive: {backgroundColor: Colors.sage, borderColor: Colors.sage},
   filterButtonText: {fontSize: 11, color: Colors.sage},
   filterButtonTextActive: {color: Colors.hopeWhite},
-  activeFiltersScroll: {marginHorizontal: -18, marginTop: -4, marginBottom: 12, flexGrow: 0},
-  activeFiltersRow: {paddingHorizontal: 18, gap: 7},
+  activeFiltersScroll: {marginHorizontal: -18, marginTop: 8, marginBottom: 12, flexGrow: 0},
+  activeFiltersRow: {paddingHorizontal: 18, paddingVertical: 2, gap: 7},
   activeFilterPill: {flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 11, paddingVertical: 7, borderRadius: 16, backgroundColor: Colors.actionBackground},
   activeFilterText: {fontSize: 10, color: Colors.sage},
   savedConfirmation: {
@@ -944,6 +995,26 @@ const styles = StyleSheet.create({
     color: Colors.text,
     fontSize: 16,
     lineHeight: 22,
+  },
+  requestSummaryBadge: {
+    position: 'absolute',
+    right: 18,
+    top: 2,
+    height: 26,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    borderRadius: 13,
+    borderWidth: 1,
+    borderColor: 'rgba(217,120,114,0.28)',
+    backgroundColor: 'rgba(217,120,114,0.12)',
+  },
+  requestSummaryBadgeText: {
+    fontSize: 11,
+    lineHeight: 15,
+    color: Colors.alertCoral,
+    letterSpacing: 0.2,
   },
   tabsScroll: {
     marginHorizontal: -18,
@@ -1012,6 +1083,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: 120,
+  },
+  scrollContainer: {
+    flex: 1,
+    width: '100%',
+    maxWidth: 760,
+    alignSelf: 'center',
   },
   scroll: {
     flex: 1,

@@ -108,7 +108,8 @@ export const getJournalBackupInventory = async (): Promise<JournalBackupInventor
     }
   });
   sortedReviews.forEach(review => review.memorableItems.forEach(item => {
-    if (!allActiveIds.has(item.id)) {
+    const sourceIds = [item.id, ...(item.canonicalIds ?? [])];
+    if (!sourceIds.some(id => allActiveIds.has(id))) {
       danglingReferences.push({ owner: `review:${review.id}`, reference: item.id, status: 'legacy_unresolved' });
     }
   }));

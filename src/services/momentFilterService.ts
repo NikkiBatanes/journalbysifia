@@ -11,6 +11,7 @@ export interface FilterableMoment {
   isGratitude?: boolean;
   isWin?: boolean;
   isPlan?: boolean;
+  isRemembered?: boolean;
 }
 
 const pluginIs = (moment: FilterableMoment, ...ids: string[]): boolean =>
@@ -55,6 +56,29 @@ export const narrowRoutineMomentToFilters = (
   };
 };
 
+/** Restricts an aggregated Morning/Evening card to the source records a user remembered. */
+export const narrowRoutineMomentToRemembered = (
+  item: MomentTimelineItem,
+  rememberedCanonicalIds: string[],
+): MomentTimelineItem => {
+  if (item.kind !== 'morning' && item.kind !== 'evening') {return item;}
+  if (!rememberedCanonicalIds.length || !item.preview.sections?.length) {return item;}
+  const remembered = new Set(rememberedCanonicalIds);
+  const sections = item.preview.sections.filter(section =>
+    section.canonicalIds.some(id => remembered.has(id)),
+  );
+  if (!sections.length || sections.length === item.preview.sections.length) {return item;}
+  const lines = sections.flatMap(section => section.lines);
+  const canonicalIds = [...new Set(sections.flatMap(section => section.canonicalIds))];
+  return {
+    ...item,
+    canonicalIds,
+    searchText: `${item.preview.title} ${lines.join(' ')}`.replace(/\s+/g, ' ').trim().toLowerCase(),
+    preview: {...item.preview, lines, sections},
+    metadata: {...item.metadata, sectionKinds: sections.map(section => section.kind)},
+  };
+};
+
 /** Matches one category pill. Multiple selected pills are combined with OR. */
 export const matchesMomentCategoryFilter = (
   moment: FilterableMoment,
@@ -70,13 +94,13 @@ export const matchesMomentCategoryFilter = (
     case 'todos':
       return hasSection(moment, 'priorities') || pluginIs(moment, 'todo', 'todos');
     case 'gratitude':
-      return moment.isGratitude === true || hasSection(moment, 'gratitude') || pluginIs(moment, 'gratitude', 'eveninggratitude');
+      return moment.isGratitude === true || hasSection(moment, 'gratitude') || pluginIs(moment, 'gratitude', 'eveninggratitude', 'weeklygratitude');
     case 'todaysWin':
       return moment.isWin === true || hasSection(moment, 'win') || pluginIs(moment, 'win', 'todayswin', 'eveningwin');
     case 'eveningProverbs':
       return hasSection(moment, 'proverbs') || pluginIs(moment, 'eveningproverb');
     case 'lookingForward':
-      return hasSection(moment, 'looking_forward') || pluginIs(moment, 'lookingforward', 'lookingforwardto');
+      return moment.kind === 'weekly_looking_forward' || hasSection(moment, 'looking_forward') || pluginIs(moment, 'lookingforward', 'lookingforwardto', 'weeklylookingforward');
     case 'reflectionJournals':
       return moment.kind === 'reflection' || moment.isReflection === true || pluginIs(moment, 'reflection');
     case 'bibleStudy':
@@ -91,6 +115,8 @@ export const matchesMomentCategoryFilter = (
       return moment.isPrayerRequest === true;
     case 'planCarousel':
       return moment.isPlan === true || hasSection(moment, 'focus') || hasSection(moment, 'priorities');
+    case 'remembered':
+      return moment.isRemembered === true;
     case 'upcoming':
     case 'answeredPrayers':
     case 'unansweredPrayers':

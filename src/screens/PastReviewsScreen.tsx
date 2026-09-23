@@ -44,7 +44,7 @@ const PastReviewsScreen: React.FC = () => {
     <SafeAreaView style={[styles.safeArea, {paddingTop: topInset}]} edges={['left', 'right']}>
       <StatusBar barStyle="dark-content" backgroundColor={Colors.lightBackground} translucent={false} />
       <View style={styles.header}>
-        <HeaderBackButton onPress={() => navigation.goBack()} color={Colors.text} />
+        <HeaderBackButton onPress={() => {triggerLightHaptic(); navigation.goBack();}} color={Colors.text} />
         <TouchableOpacity style={styles.headerButton} onPress={() => navigation.navigate('ReviewSettings')} accessibilityLabel="Review settings"><Ionicons name="settings-outline" size={21} color={Colors.text} /></TouchableOpacity>
       </View>
       <ScrollView contentContainerStyle={[styles.content, {paddingBottom: insets.bottom + 30}]} showsVerticalScrollIndicator={false}>

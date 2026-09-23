@@ -1,6 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { View, TouchableOpacity, StyleSheet, Animated, Platform } from 'react-native';
+import { View, TouchableOpacity, StyleSheet, Animated, Platform, type StyleProp, type ViewStyle } from 'react-native';
 import { Colors } from '../../theme/colors';
 import { useMomentsPalette } from '../../context/MomentsPaletteContext';
 import { Fonts } from '../../theme/fonts';
@@ -15,9 +15,11 @@ import { triggerLightHaptic } from '../../utils/haptics';
 
 interface JournalCardProps {
   icon?: string | React.ReactNode;
+  iconPosition?: 'left' | 'top';
   title?: string;
   subtitle?: string;
   children: React.ReactNode;
+  style?: StyleProp<ViewStyle>;
   componentType?: string; // Add componentType prop to identify the component
   showAddButton?: boolean;
   onAdd?: () => void;
@@ -32,9 +34,11 @@ interface JournalCardProps {
 
 export const JournalCard: React.FC<JournalCardProps> = ({
   icon,
+  iconPosition = 'left',
   title,
   subtitle,
   children,
+  style,
   showAddButton = false,
   onAdd,
   isAdding = false,
@@ -46,14 +50,21 @@ export const JournalCard: React.FC<JournalCardProps> = ({
   componentType,
 }) => {
   const momentsPalette = useMomentsPalette();
-  const styles = React.useMemo(() => momentsPalette ? {
+  const styles = React.useMemo(() => ({
     ...baseStyles,
-    card: { ...baseStyles.card, backgroundColor: Colors.hopeWhite, borderColor: Colors.cardBorder, paddingHorizontal: 0 },
-    cardInline: { ...baseStyles.cardInline, backgroundColor: 'transparent' },
-    content: { ...baseStyles.content, paddingHorizontal: 0 },
-    title: { ...baseStyles.title, color: Colors.sage },
-    subtitle: { ...baseStyles.subtitle, color: Colors.textGray },
-  } : baseStyles, [momentsPalette]);
+    ...(momentsPalette ? {
+      card: { ...baseStyles.card, backgroundColor: Colors.hopeWhite, borderColor: Colors.cardBorder, paddingHorizontal: 0 },
+      cardInline: { ...baseStyles.cardInline, backgroundColor: 'transparent' },
+      content: { ...baseStyles.content, paddingHorizontal: 0 },
+      title: { ...baseStyles.title, color: Colors.sage },
+      subtitle: { ...baseStyles.subtitle, color: Colors.textGray },
+    } : {}),
+    ...(iconPosition === 'top' ? {
+      headerContent: { ...baseStyles.headerContent, flexDirection: 'column' as const },
+      icon: { ...baseStyles.icon, position: 'relative' as const, marginBottom: 8 },
+      titleContainer: { ...baseStyles.titleContainer, marginLeft: 0, marginRight: 0 },
+    } : {}),
+  }), [momentsPalette, iconPosition]);
   const hasContent = React.Children.count(children) > 0;
   const showContent = hasContent || isAdding;
 
@@ -146,6 +157,7 @@ export const JournalCard: React.FC<JournalCardProps> = ({
       <Animated.View
         style={[
           getEmptyCardStyle(),
+          style,
           {
             opacity: fadeAnim,
             transform: [
@@ -262,7 +274,7 @@ export const JournalCard: React.FC<JournalCardProps> = ({
   };
 
   return (
-    <View style={getCardStyle()}>
+    <View style={[getCardStyle(), style]}>
       <View style={styles.header}>
         <View style={styles.headerContent}>
           {viewMode !== 'inline' && (

@@ -423,6 +423,15 @@ describe('Guided Reflection presentation contract', () => {
     );
   });
 
+  it('offers deletion when editing a saved structured Guided Reflection', () => {
+    expect(screenSource).toContain('entryId={editingId || undefined}');
+    expect(screenSource).toContain('onDelete={editingId ? handleDelete : undefined}');
+    expect(guidedSource).toContain('accessibilityLabel="Delete guided reflection"');
+    expect(guidedSource).toContain("'Delete Guided Reflection'");
+    expect(guidedSource).toContain('<Trash2 size={22} color={Colors.sage} strokeWidth={1.5} />');
+    expect(guidedSource).toMatch(/entryId && onDelete && \([\s\S]*?onPress=\{deleteSavedJourney\}/);
+  });
+
   it('animates the Reflection Log Editor into the focused writer', () => {
     expect(editorSource).toContain('editorEntranceAnims');
     expect(editorSource).toContain('editorEntranceKey');

@@ -57,6 +57,9 @@ const PrayerCard = ({
   const isPrayerRequest = prayer.is_prayer_request === true;
   const isCast = prayer.metadata?.prayer_style === 'cast' || (prayer.groupedEntries || []).some((e: any) => e.metadata?.prayer_style === 'cast');
   const isOpen = prayer.metadata?.prayer_style === 'open' || prayer.journal_category === 'personal_prayer';
+  const isWeeklyReviewPrayer = prayer.metadata?.source === 'weekly_review'
+    || prayer.metadata?.weeklyReviewId
+    || prayer.metadata?.tags?.includes?.('weekly');
   const hasRequestOrigin = !!prayer.metadata?.original_request_id || !!prayer.metadata?.original_request_content || !!prayer.metadata?.prayer_request_display;
   const typeLabel = prayer.metadata?.prayer_need ? 'PRAYER NEED'
     : isPrayerRequest ? prayer.prayed ? 'PRAYED FOR' : 'PRAYER REQUEST'
@@ -64,7 +67,7 @@ const PrayerCard = ({
         : isPrayerLetGo(prayer) && hasRequestOrigin ? 'LET GO'
           : hasRequestOrigin ? 'PRAYED FOR'
             : isCast ? 'CAST PRAYER'
-              : isOpen ? 'OPEN PRAYER' : 'PRAYED FOR';
+              : isOpen ? isWeeklyReviewPrayer ? 'WEEKLY · OPEN PRAYER' : 'OPEN PRAYER' : 'PRAYED FOR';
   const title = prayer.metadata?.prayer_need
     ? prayer.person_name || prayer.content?.split('\n')[0] || 'My prayer need'
     : isCast ? 'CAST Prayer' : isOpen ? 'Open Prayer' : prayer.person_name || 'Prayer';
@@ -105,7 +108,7 @@ const PrayerCard = ({
         <View style={styles.prayerTypeRow}>
           {isOpen ? <Ionicons name="chatbubble-outline" size={14} color={Colors.sage} /> : <Ionicons name={isPrayerRequest ? 'mail-unread-outline' : isCast ? 'layers-outline' : 'heart-outline'} size={14} color={Colors.sage} />}
           <ThemedText weight="semiBold" style={styles.cardMeta}>{typeLabel}</ThemedText>
-          {!momentsPalette && <ThemedText style={styles.cardDate}>{formatStarted(prayer.created_at)}</ThemedText>}
+          {!momentsPalette && <ThemedText style={styles.cardDate}>{formatStarted(isWeeklyReviewPrayer ? prayer.selected_date : prayer.created_at)}</ThemedText>}
         </View>
         <ThemedText weight="bold" style={styles.cardTitle}>{title}</ThemedText>
         {prayer.metadata?.prayer_need && topics.length > 0 && <ThemedText weight="semiBold" style={styles.needTopics}>{topics.join(' · ').toUpperCase()}</ThemedText>}

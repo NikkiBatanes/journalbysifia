@@ -1,19 +1,13 @@
 import fs from 'fs';
 import path from 'path';
 
-describe('Today status bar blur', () => {
+describe('Today status bar treatment', () => {
   const source = fs.readFileSync(path.resolve(__dirname, '../TodayScreen.tsx'), 'utf8');
 
-  it('fades the existing native liquid glass in as Today scrolls', () => {
-    expect(source).toContain("import LiquidGlassView from '../components/common/LiquidGlassView'");
-    expect(source).toContain('statusBarBlurProgress.value = y');
-    expect(source).toContain('statusBarBlurProgress.value / 18');
-    expect(source).toContain('<LiquidGlassView');
-    expect(source).toContain('fadesToTransparent');
-  });
-
-  it('extends below the non-interactive status bar inset so its edge blends away', () => {
-    expect(source).toContain('pointerEvents="none"');
-    expect(source).toContain('{ height: insets.top + 30 }');
+  it('does not place a glass overlay over the Today screen status bar', () => {
+    expect(source).not.toContain("import LiquidGlassView from '../components/common/LiquidGlassView'");
+    expect(source).not.toContain('<LiquidGlassView');
+    expect(source).not.toContain('statusBarBlur');
+    expect(source).not.toContain('statusBarBlurProgress');
   });
 });

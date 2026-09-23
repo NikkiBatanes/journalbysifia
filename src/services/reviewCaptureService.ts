@@ -19,6 +19,8 @@ import { PrayerApi } from './api/prayerApi';
 import { derivePrayerReview, type PrayerReviewEventType } from './prayerReviewService';
 import { getScripturePassage } from './scriptureReaderService';
 import {resolveSavedProverbNumber, resolveSavedPsalmNumber} from './dailyScriptureSequence';
+import {getCarryForwardReferences, rememberedReferenceMatchesMoment} from './reviewMemoryService';
+import {getReviewPrayerTypeLabel} from './reviewPrayerPresentationService';
 
 const REFLECTION_TYPES = [
   'sermon', 'scripture', 'free', 'freeform', 'free-form', 'guided',
@@ -53,6 +55,14 @@ export type ReviewCapturePresentation =
   | 'morning_check_in'
   | 'morning_psalm'
   | 'evening_proverb';
+
+export type ReviewPrayerActivityType =
+  | 'request'
+  | 'cast'
+  | 'open'
+  | 'need'
+  | 'person'
+  | 'other';
 
 export interface ReviewCaptureItem {
   id: string;
@@ -92,6 +102,14 @@ export interface ReviewCaptureItem {
   prayerId?: string;
   needId?: string;
   requestId?: string;
+  /** Canonical prayer path used for the Weekly Review's compact Prayer totals. */
+  prayerActivityType?: ReviewPrayerActivityType;
+  /** Stable identity used to avoid counting several events from one prayer more than once. */
+  prayerActivityId?: string;
+  /** Canonical type label shown on the Weekly Review Prayer card. */
+  prayerTypeLabel?: string;
+  /** Completed lower-cadence reviews that already identified this as meaningful. */
+  carriedForwardFrom?: ReviewType[];
 }
 
 export interface ReviewCapture {
@@ -455,6 +473,7 @@ export const getReviewCapture = async (
   };
   let totalPrayers = 0;
   let answeredPrayers = 0;
+  const carryForwardReferences = await getCarryForwardReferences(reviewType, periodStart, periodEnd);
 
   for (const day of days) {
     const date = toYMD(day);
@@ -492,11 +511,37 @@ export const getReviewCapture = async (
   }
 
   const prayers = await PrayerApi.getAllPrayers('local');
-  const prayerReview = derivePrayerReview(prayers, periodStart, periodEnd, reviewType);
-  const prayerById = new Map(prayers.map(prayer => [prayer.id, prayer]));
+  // A prayer written by this review belongs in Prayer and Moments, but should not
+  // be recaptured inside the same review when the user later reopens it.
+  const reviewPrayers = prayers.filter(prayer => !(
+    prayer.metadata?.source === 'weekly_review'
+    && prayer.metadata?.periodStart === periodStart
+    && prayer.metadata?.periodEnd === periodEnd
+  ));
+  const prayerReview = derivePrayerReview(reviewPrayers, periodStart, periodEnd, reviewType);
+  const prayerById = new Map(reviewPrayers.map(prayer => [prayer.id, prayer]));
   for (const event of prayerReview.items) {
+    const sourcePrayer = prayerById.get(event.prayerId);
     const personPrayer = prayerById.get(event.requestId || event.prayerId)
-      || prayerById.get(event.prayerId);
+      || sourcePrayer;
+    const metadata = sourcePrayer?.metadata || {};
+    const prayerSessionId = typeof metadata.prayer_session_id === 'string'
+      ? metadata.prayer_session_id
+      : undefined;
+    const hasPrayerNeeds = metadata.prayer_need === true
+      || (Array.isArray(metadata.prayer_needs) && metadata.prayer_needs.length > 0);
+    const prayerActivityType: ReviewPrayerActivityType = event.eventType === 'request_prayed_for'
+      || sourcePrayer?.is_prayer_request
+      ? 'request'
+      : event.needId || hasPrayerNeeds
+        ? 'need'
+        : metadata.prayer_style === 'cast' || prayerSessionId
+          ? 'cast'
+          : metadata.prayer_style === 'open' || sourcePrayer?.journal_category === 'personal_prayer'
+            ? 'open'
+            : sourcePrayer?.prayer_type === 'people'
+              ? 'person'
+              : 'other';
     items.push({
       id: event.id,
       kind: 'prayer',
@@ -510,6 +555,11 @@ export const getReviewCapture = async (
       prayerId: event.prayerId,
       needId: event.needId,
       requestId: event.requestId,
+      prayerActivityType,
+      prayerActivityId: prayerActivityType === 'request'
+        ? event.requestId || event.prayerId
+        : prayerSessionId || event.prayerId,
+      prayerTypeLabel: getReviewPrayerTypeLabel(sourcePrayer, event),
       personName: personPrayer?.person_name?.trim() || undefined,
     });
     summary.prayer += 1;
@@ -517,10 +567,20 @@ export const getReviewCapture = async (
   answeredPrayers = (prayerReview.counts.answer_recorded || 0) + (prayerReview.counts.need_answer_recorded || 0);
   totalPrayers = summary.prayer;
 
+  const enrichedItems = items.map(item => {
+    const carriedForwardFrom = [...new Set(carryForwardReferences
+      .filter(reference => reference.id === item.id || (
+        item.prayerEventType === 'still_carrying'
+        && rememberedReferenceMatchesMoment(reference, item)
+      ))
+      .map(reference => reference.reviewType))];
+    return carriedForwardFrom.length ? {...item, carriedForwardFrom} : item;
+  });
+
   return {
     periodStart,
     periodEnd,
-    items,
+    items: enrichedItems,
     summary,
     prayerStats: {
       total: totalPrayers,

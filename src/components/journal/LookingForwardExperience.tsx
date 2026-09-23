@@ -81,7 +81,7 @@ const COMPLETION_MESSAGES = [
 ];
 
 // Step 1: Emotion Selection
-const EmotionSelectionStep: React.FC<{
+export const LookingForwardEmotionStep: React.FC<{
   selectedEmotion: Emotion | null;
   onSelect: (emotion: Emotion | null) => void;
   onNext: () => void;
@@ -90,7 +90,9 @@ const EmotionSelectionStep: React.FC<{
   customEmotion: string;
   setCustomEmotion: (text: string) => void;
   dateContext: DateContext;
-}> = ({ selectedEmotion, onSelect, onNext, insets, onClose, customEmotion, setCustomEmotion, dateContext }) => {
+  weekly?: boolean;
+  embedded?: boolean;
+}> = ({ selectedEmotion, onSelect, onNext, insets, onClose, customEmotion, setCustomEmotion, dateContext, weekly = false, embedded = false }) => {
   const [isOtherSelected, setIsOtherSelected] = React.useState(false);
   const [showAllEmotions, setShowAllEmotions] = React.useState(false);
   const { bottom: buttonPosition, keyboardVisible } = useFloatingKeyboardButton(insets.bottom);
@@ -109,12 +111,14 @@ const EmotionSelectionStep: React.FC<{
 
   React.useEffect(() => {
     if (selectedEmotion) {
-      Animated.spring(buttonScale, {
+      const animation = Animated.spring(buttonScale, {
         toValue: 1,
         tension: 50,
         friction: 7,
         useNativeDriver: false,
-      }).start();
+      });
+      animation.start();
+      return () => animation.stop();
     } else {
       buttonScale.setValue(0);
     }
@@ -135,12 +139,14 @@ const EmotionSelectionStep: React.FC<{
 
   React.useEffect(() => {
     if (isOtherSelected) {
-      Animated.spring(chooseAgainScale, {
+      const animation = Animated.spring(chooseAgainScale, {
         toValue: 1,
         tension: 60,
         friction: 8,
         useNativeDriver: false,
-      }).start();
+      });
+      animation.start();
+      return () => animation.stop();
     } else {
       chooseAgainScale.setValue(0);
     }
@@ -148,12 +154,14 @@ const EmotionSelectionStep: React.FC<{
 
   React.useEffect(() => {
     if (!isOtherSelected && EMOTIONS.length > INITIAL_EMOTION_COUNT) {
-      Animated.spring(showMoreScale, {
+      const animation = Animated.spring(showMoreScale, {
         toValue: 1,
         tension: 60,
         friction: 8,
         useNativeDriver: false,
-      }).start();
+      });
+      animation.start();
+      return () => animation.stop();
     } else {
       showMoreScale.setValue(0);
     }
@@ -163,6 +171,7 @@ const EmotionSelectionStep: React.FC<{
 
   // Dynamic labels based on date context
   const getEyebrowLabel = () => {
+    if (weekly) {return 'LOOKING FORWARD TO THIS WEEK';}
     switch (dateContext) {
       case 'today': return 'LOOKING FORWARD TO';
       case 'yesterday': return 'LOOKED FORWARD TO';
@@ -171,6 +180,7 @@ const EmotionSelectionStep: React.FC<{
   };
 
   const getTitle = () => {
+    if (weekly) {return isOtherSelected ? 'How does this week feel?' : 'How does this week feel right now?';}
     if (isOtherSelected) {
       switch (dateContext) {
         case 'today': return 'How does tomorrow feel?';
@@ -234,6 +244,7 @@ const EmotionSelectionStep: React.FC<{
               <TextInput
                 style={[styles.customInput, { fontFamily: getFontFamily(fontKey, 'regular') }]}
                 placeholder="Type your emotion"
+                accessibilityLabel="Your own feeling"
                 placeholderTextColor={Colors.textGray}
                 value={customEmotion}
                 onChangeText={setCustomEmotion}
@@ -252,6 +263,9 @@ const EmotionSelectionStep: React.FC<{
             return (
               <TouchableOpacity
                 key={emotion.id}
+                accessibilityRole="button"
+                accessibilityLabel={emotion.name}
+                accessibilityState={{selected: isSelected}}
                 style={[styles.emotionCard, isSelected && styles.emotionCardSelected]}
                 onPress={() => {
                   triggerLightHaptic();
@@ -323,7 +337,7 @@ const EmotionSelectionStep: React.FC<{
       </ScrollView>
 
       {/* Bottom buttons */}
-      {selectedEmotion && (!isOtherSelected || customEmotion.trim() !== '') && (
+      {!embedded && selectedEmotion && (!isOtherSelected || customEmotion.trim() !== '') && (
         <Animated.View style={[styles.primaryButton, { bottom: buttonPosition, transform: [{ scale: buttonScale }] }]}>
           <TouchableOpacity
             onPress={() => {
@@ -339,7 +353,7 @@ const EmotionSelectionStep: React.FC<{
       )}
 
       {/* Close button - top right */}
-      <View style={[styles.closeButton, { top: insets.top + 8 }]}>
+      {!embedded && <View style={[styles.closeButton, { top: insets.top + 8 }]}>
         <TouchableOpacity
           onPress={() => {
             triggerLightHaptic();
@@ -351,14 +365,14 @@ const EmotionSelectionStep: React.FC<{
         >
           <Ionicons name="close" size={17} color={Colors.sage} />
         </TouchableOpacity>
-      </View>
+      </View>}
     </View>
   );
 };
 
 // Step 2: Looking Ahead Text Input
-const LookingAheadInputStep: React.FC<{
-  emotion: Emotion;
+export const LookingForwardWritingStep: React.FC<{
+  emotion: Emotion | null;
   lookingAheadText: string;
   onChange: (text: string) => void;
   onNext: () => void;
@@ -366,24 +380,29 @@ const LookingAheadInputStep: React.FC<{
   onClose?: () => void;
   customEmotion: string;
   dateContext: DateContext;
-}> = ({ emotion, lookingAheadText, onChange, onNext, insets, onClose, customEmotion, dateContext }) => {
+  weekly?: boolean;
+  embedded?: boolean;
+}> = ({ emotion, lookingAheadText, onChange, onNext, insets, onClose, customEmotion, dateContext, weekly = false, embedded = false }) => {
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';
   const verticalLineHeight = React.useRef(new Animated.Value(0)).current;
   const { bottom: buttonPosition, keyboardVisible } = useFloatingKeyboardButton(insets.bottom);
 
   React.useEffect(() => {
-    Animated.timing(verticalLineHeight, {
+    const animation = Animated.timing(verticalLineHeight, {
       toValue: 75,
       duration: 400,
       useNativeDriver: false,
-    }).start();
+    });
+    animation.start();
+    return () => animation.stop();
   }, [verticalLineHeight]);
 
 
 
   // Dynamic labels based on date context
   const getEyebrowLabel = () => {
+    if (weekly) {return 'LOOKING FORWARD TO THIS WEEK';}
     switch (dateContext) {
       case 'today': return 'LOOKING FORWARD TO';
       case 'yesterday': return 'LOOKED FORWARD TO';
@@ -392,6 +411,7 @@ const LookingAheadInputStep: React.FC<{
   };
 
   const getTitle = () => {
+    if (weekly) {return 'What are you looking forward to this week?';}
     switch (dateContext) {
       case 'today': return 'What are you looking ahead to?';
       case 'yesterday': return 'What were you looking forward to?';
@@ -400,6 +420,7 @@ const LookingAheadInputStep: React.FC<{
   };
 
   const getPlaceholder = () => {
+    if (weekly) {return 'This week, I am looking forward to…';}
     switch (dateContext) {
       case 'today': return 'I am looking forward to...';
       case 'yesterday': return 'I was looking forward to...';
@@ -408,6 +429,7 @@ const LookingAheadInputStep: React.FC<{
   };
 
   const getMetadataNote = () => {
+    if (weekly) {return 'Name what this week holds, and place it before God.';}
     switch (dateContext) {
       case 'today': return 'Name what tomorrow holds, and place it before God.';
       case 'yesterday': return 'Name what yesterday held, and place it before God.';
@@ -444,6 +466,8 @@ const LookingAheadInputStep: React.FC<{
             value={lookingAheadText}
             onChangeText={onChange}
             placeholder={getPlaceholder()}
+            accessibilityLabel={getTitle()}
+            underlineColorAndroid="transparent"
             placeholderTextColor={Colors.textGray}
             multiline
             textAlignVertical="top"
@@ -452,7 +476,7 @@ const LookingAheadInputStep: React.FC<{
           />
         </StepFadeIn>
 
-        <StepFadeIn delay={160}>
+        {emotion && <StepFadeIn delay={160}>
           <View style={styles.metadataContainer}>
             <Animated.View style={[styles.verticalLine, { height: verticalLineHeight }]} />
             <View style={styles.metadataContent}>
@@ -472,12 +496,12 @@ const LookingAheadInputStep: React.FC<{
               </ThemedText>
             </View>
           </View>
-        </StepFadeIn>
+        </StepFadeIn>}
 
         <View style={{ height: 100 }} />
       </ScrollView>
 
-      <Animated.View style={[styles.primaryButton, { bottom: buttonPosition }]}>
+      {!embedded && <Animated.View style={[styles.primaryButton, { bottom: buttonPosition }]}>
         <TouchableOpacity
           onPress={() => {
             triggerMediumHaptic();
@@ -488,10 +512,10 @@ const LookingAheadInputStep: React.FC<{
         >
           <Ionicons name="chevron-forward" size={24} color={Colors.hopeWhite} />
         </TouchableOpacity>
-      </Animated.View>
+      </Animated.View>}
 
       {/* Close button - top right */}
-      <View style={[styles.closeButton, { top: insets.top + 8 }]}>
+      {!embedded && <View style={[styles.closeButton, { top: insets.top + 8 }]}>
         <TouchableOpacity
           onPress={() => {
             triggerLightHaptic();
@@ -503,7 +527,7 @@ const LookingAheadInputStep: React.FC<{
         >
           <Ionicons name="close" size={17} color={Colors.sage} />
         </TouchableOpacity>
-      </View>
+      </View>}
     </View>
   );
 };
@@ -825,7 +849,7 @@ export const LookingForwardExperience: React.FC<LookingForwardExperienceProps> =
   return (
     <View style={styles.container} {...panResponder.panHandlers}>
       {currentStep === 0 && (
-        <EmotionSelectionStep
+        <LookingForwardEmotionStep
           selectedEmotion={selectedEmotion}
           onSelect={setSelectedEmotion}
           onNext={handleNext}
@@ -838,7 +862,7 @@ export const LookingForwardExperience: React.FC<LookingForwardExperienceProps> =
       )}
 
       {currentStep === 1 && selectedEmotion && (
-        <LookingAheadInputStep
+        <LookingForwardWritingStep
           emotion={selectedEmotion}
           lookingAheadText={lookingAheadText}
           onChange={setLookingAheadText}

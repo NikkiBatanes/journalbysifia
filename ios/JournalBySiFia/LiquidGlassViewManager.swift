@@ -18,6 +18,10 @@ final class LiquidGlassHostView: UIVisualEffectView {
     didSet { updateFadeMask() }
   }
 
+  @objc var isInteractive = false {
+    didSet { configureEffect() }
+  }
+
   override init(effect: UIVisualEffect?) {
     super.init(effect: nil)
     installFallbackLayers()
@@ -49,8 +53,10 @@ final class LiquidGlassHostView: UIVisualEffectView {
 
   private func configureEffect() {
     if #available(iOS 26.0, *) {
-      let glass = UIGlassEffect()
-      glass.isInteractive = true
+      // Use the documented initializer. UIGlassEffect's inherited empty
+      // initializer has rendered differently across iOS 26 and 27 runtimes.
+      let glass = UIGlassEffect(style: .regular)
+      glass.isInteractive = isInteractive
       glass.tintColor = tintColor
       effect = glass
       contentView.backgroundColor = .clear
@@ -108,6 +114,11 @@ final class LiquidGlassHostView: UIVisualEffectView {
       UIColor.clear.cgColor,
     ]
     fadeMaskLayer.locations = [0, 0.52, 0.72, 0.88, 1]
+
+    // UIVisualEffectView forwards a copy of its mask to its private effect
+    // layers. Reassign after changing the frame so those copies are refreshed
+    // on every runtime, particularly iOS 26.
+    layer.mask = nil
     layer.mask = fadeMaskLayer
   }
 }

@@ -142,7 +142,10 @@ export const validateJournalBackup = (candidate: unknown): JournalBackupValidati
   inventory.reviews.forEach((review: any, index: number) => {
     if (!isObject(review) || typeof review.id !== 'string' || !ymd.test(review.periodStart || '') || !ymd.test(review.periodEnd || '')) {add(issue('fatal', 'invalid_review', `$.inventory.reviews[${index}]`, 'Review is malformed.'));}
     if (review?.memorableItems !== undefined && !Array.isArray(review.memorableItems)) {add(issue('fatal', 'invalid_review_items', `$.inventory.reviews[${index}]`, 'Review memorableItems must be an array.')); return;}
-    (review?.memorableItems || []).forEach((item: any) => { if (item?.id && !ids.has(item.id)) {add(issue('warning', 'unresolved_review_reference', `$.inventory.reviews[${index}]`, 'Review source may be legacy or missing.'));} });
+    (review?.memorableItems || []).forEach((item: any) => {
+      const sourceIds = [item?.id, ...(Array.isArray(item?.canonicalIds) ? item.canonicalIds : [])].filter(Boolean);
+      if (item?.id && !sourceIds.some((id: string) => ids.has(id))) {add(issue('warning', 'unresolved_review_reference', `$.inventory.reviews[${index}]`, 'Review source may be legacy or missing.'));}
+    });
   });
   return { valid: fatal.length === 0, backup: fatal.length === 0 ? candidate as JournalBackupEnvelopeV1 : undefined, fatal, warnings };
 };

@@ -30,6 +30,19 @@ describe('canonical Prayer type presentation', () => {
     expect(getPrayerTypePresentation({ ...byId('remember'), metadata: {}, journal_category: undefined }).label).toBe('Prayer');
   });
 
+  it('identifies an Open Prayer created by a Weekly Review', () => {
+    const weeklyPrayer = {
+      ...byId('return'),
+      journal_category: 'personal_prayer' as const,
+      metadata: {...byId('return').metadata, prayer_style: 'open', source: 'weekly_review'},
+    };
+    expect(getPrayerTypePresentation(weeklyPrayer)).toMatchObject({
+      label: 'Weekly · Open Prayer',
+      detailLabel: 'Weekly Open Prayer',
+      originLabel: 'From your Weekly Review',
+    });
+  });
+
   it('distinguishes an incoming Request from its prayed linked Prayer', () => {
     const request = byId('request-unprayed');
     const linked = byId('request-charles-response');

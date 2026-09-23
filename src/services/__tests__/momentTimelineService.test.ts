@@ -22,8 +22,75 @@ const build = (journalEntries: LocalJournalEntry[] = [], reflections: LocalRefle
   buildMomentTimeline({ journalEntries, reflections, prayers, bibleStudies });
 
 describe('canonical Moments timeline', () => {
+  it('keeps weekly Looking Forward separate from the daily Evening entry', () => {
+    const items = build([
+      journal('daily-forward', 'looking_forward', {entry: {text: 'A walk tomorrow'}, emotionName: 'Calm'}, '2026-09-20'),
+      journal('weekly-forward', 'weekly_looking_forward', {entry: {text: 'Dinner with family'}, emotionName: 'Hopeful', emotionIcon: 'heart', periodEnd: '2026-09-20'}, '2026-09-20'),
+    ]);
+    expect(items).toHaveLength(2);
+    const weekly = items.find(item => item.kind === 'weekly_looking_forward');
+    expect(weekly).toMatchObject({
+      preview: {title: 'Looking forward to this week', lines: ['Dinner with family', 'Hopeful']},
+      metadata: {periodLabel: 'Sep 21–27, 2026', emotionName: 'Hopeful', emotionIcon: 'heart'},
+      canonicalIds: ['weekly-forward'],
+    });
+    expect(items.find(item => item.kind === 'evening')?.canonicalIds).toEqual(['daily-forward']);
+  });
+
+  it('omits empty and deleted weekly Looking Forward records', () => {
+    expect(build([
+      journal('empty-forward', 'weekly_looking_forward', {entry: {text: ' '}, emotionName: ''}),
+      {...journal('deleted-forward', 'weekly_looking_forward', {entry: {text: 'Removed'}}), deleted: true},
+    ])).toEqual([]);
+  });
+
   it('does not create routine Moments from empty canonical shells', () => {
     expect(build([journal('check', 'morning_check_in', { scripture: { reference: 'Psalm 1' } }), journal('gratitude', 'gratitude', { items: ['', ' '] })])).toEqual([]);
+  });
+
+  it('creates Weekly Gratitude as a standalone Moment instead of daily Gratitude', () => {
+    const items = build([
+      journal('weekly-thanks', 'weekly_gratitude', {
+        items: [
+          'God carried our family through a difficult decision.',
+          'A friend checked in at the right time.',
+          'We found room to rest.',
+        ],
+        periodStart: '2026-09-14',
+        periodEnd: '2026-09-21',
+      }, '2026-09-21'),
+    ]);
+
+    expect(items).toHaveLength(1);
+    expect(items[0]).toMatchObject({
+      key: 'weekly-gratitude:weekly-thanks',
+      kind: 'weekly_gratitude',
+      selectedDate: '2026-09-21',
+      preview: {
+        title: 'Weekly Gratitude',
+        lines: [
+          'God carried our family through a difficult decision.',
+          'A friend checked in at the right time.',
+          'We found room to rest.',
+        ],
+      },
+      metadata: {
+        periodLabel: 'Sep 14–21, 2026',
+      },
+    });
+    expect(items[0].preview.sections).toBeUndefined();
+  });
+
+  it('keeps legacy single-response Weekly Gratitude readable', () => {
+    const items = build([
+      journal('legacy-weekly-thanks', 'weekly_gratitude', {
+        text: 'God met me in the ordinary.',
+        periodStart: '2026-09-14',
+        periodEnd: '2026-09-21',
+      }, '2026-09-21'),
+    ]);
+
+    expect(items[0].preview.lines).toEqual(['God met me in the ordinary.']);
   });
 
   it('creates one Morning group with only the meaningful Check-In presentation', () => {

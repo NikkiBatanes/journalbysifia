@@ -1,5 +1,6 @@
 export type FilterKey =
   | 'upcoming'
+  | 'remembered'
   | 'unansweredPrayers'
   | 'answeredPrayers'
   | 'morningCheckIns'
@@ -20,6 +21,7 @@ export type FilterKey =
 
 export const FILTER_OPTIONS: { key: FilterKey; label: string }[] = [
   { key: 'upcoming', label: 'Upcoming' },
+  { key: 'remembered', label: 'Remembered' },
   { key: 'morningCheckIns', label: 'Morning Check-ins' },
   { key: 'morningPsalms', label: 'Morning Psalms' },
   { key: 'todaysFocus', label: "Today's Focus" },
@@ -38,4 +40,3 @@ export const FILTER_OPTIONS: { key: FilterKey; label: string }[] = [
   { key: 'unansweredPrayers', label: 'Unanswered Prayers' },
   { key: 'answeredPrayers', label: 'Answered Prayers' },
 ];
-

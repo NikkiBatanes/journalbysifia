@@ -15,7 +15,6 @@ import PrayerToRevisit from '../components/dashboard/PrayerToRevisit';
 import JournalCalendarStrip from '../components/dashboard/JournalCalendarStrip';
 import DashboardHeaderScripture from '../components/dashboard/DashboardHeaderScripture';
 import ForMeDayCard from '../components/dashboard/ForMeDayCard';
-import LiquidGlassView from '../components/common/LiquidGlassView';
 import ThemedText from '../components/common/ThemedText';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { useScroll } from '../context/ScrollContext';
@@ -23,10 +22,12 @@ import {useExpandTabBarOnScrollEnd} from '../hooks/useExpandTabBarOnScrollEnd';
 import { Colors } from '../theme/colors';
 import { Fonts } from '../theme/fonts';
 import { triggerLightHaptic } from '../utils/haptics';
-import { compareLocalDate, toLocalDateString } from '../utils/date';
+import { compareLocalDate, fromLocalDateString, toLocalDateString } from '../utils/date';
+import {formatWeeklyGratitudePeriod} from '../utils/weeklyGratitudePeriod';
 import { navigateFromRoot } from '../utils/navigationHelpers';
 import { useTodayReviewData } from '../hooks/useTodayReviewData';
-import { type ReviewType } from '../storage/reviewStorage';
+import { type LocalReviewEntry, type ReviewType } from '../storage/reviewStorage';
+import { getMonthlyPeriodFor, getQuarterlyPeriodFor, getWeeklyPeriodFor } from '../services/reviewPeriodService';
 import { getRoutineState, type RoutineState } from '../storage/routineStateStorage';
 import { getLocalJournalEntries, getLocalJournalSingleton } from '../storage/journalStorage';
 import { getDailyRhythmCardState, getDailyRhythmContentState, type DailyRhythmContentState } from '../services/dailyRhythmCardState';
@@ -70,6 +71,54 @@ const Stagger = ({ children, prioritizeFirst = false }: { children: React.ReactN
   </View>
 );
 
+const formatReviewCardPeriod = (periodStart: string, periodEnd: string): string => {
+  const start = fromLocalDateString(periodStart);
+  const end = fromLocalDateString(periodEnd);
+  const month = start.toLocaleString('default', { month: 'short' }).toUpperCase();
+  const sameYear = start.getFullYear() === end.getFullYear();
+  const sameMonth = sameYear && start.getMonth() === end.getMonth();
+  return sameMonth
+    ? `${month} ${start.getDate()}–${end.getDate()}, ${end.getFullYear()}`
+    : `${format(start, 'MMM d, yyyy')}–${format(end, 'MMM d, yyyy')}`;
+};
+
+const buildPreviewReview = (type: ReviewType, periodStart: string, periodEnd: string): LocalReviewEntry => {
+  const stamp = new Date().toISOString();
+  return {
+    id: `review-card-preview-${type}`,
+    type,
+    periodStart,
+    periodEnd,
+    status: 'draft',
+    memorableItems: [
+      { kind: 'prayer', id: 'preview-p1', selectedDate: periodStart },
+      { kind: 'prayer', id: 'preview-p2', selectedDate: periodStart },
+      { kind: 'prayer', id: 'preview-p3', selectedDate: periodStart },
+      { kind: 'gratitude', id: 'preview-g1', selectedDate: periodStart },
+      { kind: 'gratitude', id: 'preview-g2', selectedDate: periodStart },
+      { kind: 'win', id: 'preview-w1', selectedDate: periodStart },
+      { kind: 'scripture', id: 'preview-s1', selectedDate: periodStart },
+      { kind: 'scripture', id: 'preview-s2', selectedDate: periodStart },
+    ],
+    answers: {
+      next_month_priority_1: 'Stay rooted in prayer',
+      next_month_priority_2: 'Make room for rest',
+      quarter_priority_1: 'Stay rooted in prayer',
+      quarter_priority_2: 'Make room for rest',
+      carry: 'God met me in the small moments',
+      posture: 'Open-handed and expectant',
+      scripture_begin: 'Psalm 23',
+      faithfulness_begin: 'He provided in every season',
+      surrender: 'The timeline and the outcome',
+      begin_year_priority_1: 'Prayer first',
+      begin_year_priority_2: 'Family rhythms',
+      begin_year_priority_3: 'Weekly rest',
+    },
+    createdAt: stamp,
+    updatedAt: stamp,
+  };
+};
+
 const TodayScreen = () => {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
@@ -93,13 +142,13 @@ const TodayScreen = () => {
   const [manualDate, setManualDate] = useState(false);
   const [calendarVisible, setCalendarVisible] = useState(false);
   const calendarProgress = useSharedValue(0);
-  const statusBarBlurProgress = useSharedValue(0);
   const greetingIconScale = useSharedValue(1);
   const greetingIconRotation = useSharedValue(0);
   const greetingIconLift = useSharedValue(0);
   const [morningState, setMorningState] = useState<RoutineState | null>(null);
   const [eveningState, setEveningState] = useState<RoutineState | null>(null);
   const [previewEvening, setPreviewEvening] = useState<boolean | null>(null);
+  const [showReviewCardPreview, setShowReviewCardPreview] = useState(false);
   const [futurePlanParts, setFuturePlanParts] = useState({ focus: false, todos: false });
   const [pastContent, setPastContent] = useState({ morning: false, evening: false });
   const [contentState, setContentState] = useState<DailyRhythmContentState>({
@@ -311,7 +360,6 @@ const TodayScreen = () => {
       const frame = requestAnimationFrame(() => scrollRef.current?.scrollTo({ y: 0, animated: false }));
       lastScrollYRef.current = 0;
       tabBarCollapsedRef.current = false;
-      statusBarBlurProgress.value = 0;
       setShowTabBar(true);
 
       return () => {
@@ -324,7 +372,7 @@ const TodayScreen = () => {
         tabBarCollapsedRef.current = false;
         setShowTabBar(true);
       };
-    }, [cancelPendingTabBarExpand, setShowTabBar, displayDate, isFutureDate, statusBarBlurProgress])
+    }, [cancelPendingTabBarExpand, setShowTabBar, displayDate, isFutureDate])
   );
 
   useEffect(() => {
@@ -345,6 +393,18 @@ const TodayScreen = () => {
     && review.periodStart === selectedWeekStart
     && review.periodEnd === selectedWeekEnd,
   ) ?? null;
+  const selectedWeeklyReviewPeriodLabel = selectedWeeklyReview
+    ? formatWeeklyGratitudePeriod(
+      selectedWeeklyReview.periodStart,
+      selectedWeeklyReview.periodEnd,
+      now.getFullYear(),
+    )
+    : '';
+  const selectedWeeklyPriorities = selectedWeeklyReview
+    ? (['priority_1', 'priority_2', 'priority_3'] as const)
+      .map(key => selectedWeeklyReview.answers[key]?.trim())
+      .filter((value): value is string => Boolean(value))
+    : [];
 
   const displayedEligibility = eligibility;
 
@@ -353,8 +413,6 @@ const TodayScreen = () => {
     const y = Math.max(0, event.nativeEvent.contentOffset.y);
     const isScrollingUp = y < lastScrollYRef.current;
     lastScrollYRef.current = y;
-    statusBarBlurProgress.value = y;
-
     if (calendarVisible) {
       setCalendarVisible(false);
       calendarProgress.value = withSpring(0, CALENDAR_SPRING);
@@ -367,7 +425,7 @@ const TodayScreen = () => {
       tabBarCollapsedRef.current = false;
       setShowTabBar(true);
     }
-  }, [cancelPendingTabBarExpand, setShowTabBar, calendarVisible, calendarProgress, statusBarBlurProgress]);
+  }, [cancelPendingTabBarExpand, setShowTabBar, calendarVisible, calendarProgress]);
 
   const toggleCalendar = useCallback(() => {
     triggerLightHaptic();
@@ -380,10 +438,6 @@ const TodayScreen = () => {
     height: Math.max(0, calendarProgress.value * CALENDAR_SHEET_HEIGHT),
     opacity: Math.min(1, calendarProgress.value * 1.4),
     transform: [{ scaleY: 0.96 + Math.min(1, calendarProgress.value) * 0.04 }],
-  }));
-
-  const statusBarBlurStyle = useAnimatedStyle(() => ({
-    opacity: Math.min(1, Math.max(0, statusBarBlurProgress.value / 18)),
   }));
 
   const reviewCard = useMemo(() => {
@@ -404,20 +458,11 @@ const TodayScreen = () => {
       />;
     }
 
-    const periodStart = new Date(main.period.periodStart);
-    const periodEnd = new Date(main.period.periodEnd);
-    const month = periodStart.toLocaleString('default', { month: 'short' }).toUpperCase();
-    const sameYear = periodStart.getFullYear() === periodEnd.getFullYear();
-    const sameMonth = sameYear && periodStart.getMonth() === periodEnd.getMonth();
-    const periodText = sameMonth
-      ? `${month} ${periodStart.getDate()}–${periodEnd.getDate()}, ${periodEnd.getFullYear()}`
-      : `${format(periodStart, 'MMM d, yyyy')}–${format(periodEnd, 'MMM d, yyyy')}`;
-
     return (
       <ReviewOverviewCard
         review={main.review}
         reviewType={main.type as Exclude<ReviewType, 'weekly'>}
-        periodLabel={periodText}
+        periodLabel={formatReviewCardPeriod(main.period.periodStart, main.period.periodEnd)}
         alsoReady={displayedEligibility.alsoReady.map(item => item.type.replace('_', ' ')).join(', ')}
         onBegin={() => {
           (navigation as any).navigate('Journal', {
@@ -428,6 +473,48 @@ const TodayScreen = () => {
       />
     );
   }, [displayedEligibility, navigation, reviewQAContext?.referenceDate, todayKey]);
+
+  const reviewCardPreview = useMemo(() => {
+    if (!__DEV__ || !showReviewCardPreview) {return null;}
+    const noop = () => {};
+    const weekEndsOn = ((weekStartsOn + 6) % 7) as 0 | 1 | 2 | 3 | 4 | 5 | 6;
+    const weekly = getWeeklyPeriodFor(weekEndsOn, todayKey);
+    const monthly = getMonthlyPeriodFor(todayKey);
+    const quarterly = getQuarterlyPeriodFor(todayKey);
+    const year = now.getFullYear();
+    const yearEnd = { periodStart: `${year - 1}-01-01`, periodEnd: `${year - 1}-12-31` };
+    const beginYear = { periodStart: `${year}-01-01`, periodEnd: `${year}-12-31` };
+    const overview = (type: Exclude<ReviewType, 'weekly'>, period: { periodStart: string; periodEnd: string }) => (
+      <ReviewOverviewCard
+        review={buildPreviewReview(type, period.periodStart, period.periodEnd)}
+        reviewType={type}
+        periodLabel={formatReviewCardPeriod(period.periodStart, period.periodEnd)}
+        onBegin={noop}
+      />
+    );
+    return (
+      <View>
+        <WeeklyReviewCard
+          periodStart={weekly.periodStart}
+          periodEnd={weekly.periodEnd}
+          referenceDate={todayKey}
+          onBegin={noop}
+        />
+        <WeeklyReviewCard
+          periodStart={weekly.periodStart}
+          periodEnd={weekly.periodEnd}
+          started
+          referenceDate={todayKey}
+          alsoReady="monthly, quarterly"
+          onBegin={noop}
+        />
+        {overview('monthly', monthly)}
+        {overview('quarterly', quarterly)}
+        {overview('year_end', yearEnd)}
+        {overview('begin_year', beginYear)}
+      </View>
+    );
+  }, [showReviewCardPreview, weekStartsOn, todayKey, now]);
 
   return (
     <View style={styles.safeArea}>
@@ -520,6 +607,7 @@ const TodayScreen = () => {
         {forMeDaySettings !== undefined && <Stagger prioritizeFirst={showForMeDay}>
         {showForMeDay && forMeDaySettings ? <ForMeDayCard key="for-me-day" settings={forMeDaySettings} /> : null}
         {dateContext === 'today' && reviewCard ? <React.Fragment key="review-card">{reviewCard}</React.Fragment> : null}
+        {__DEV__ && reviewCardPreview ? <React.Fragment key="review-card-preview">{reviewCardPreview}</React.Fragment> : null}
         <SectionHeading
           key="rhythm-heading"
           title={rhythmTitle}
@@ -629,18 +717,6 @@ const TodayScreen = () => {
 
         {__DEV__ && (
           <TouchableOpacity
-            key="prayer-v2-demo"
-            style={styles.routinePreviewButton}
-            accessibilityRole="button"
-            accessibilityLabel="Open Prayer V2 demo data"
-            onPress={() => (navigation as any).navigate('Journal', { screen: 'PrayerV2Demo' })}
-          >
-            <ThemedText style={styles.routinePreviewText}>Prayer V2 demo data</ThemedText>
-          </TouchableOpacity>
-        )}
-
-        {__DEV__ && (
-          <TouchableOpacity
             key="review-qa"
             style={styles.routinePreviewButton}
             accessibilityRole="button"
@@ -648,6 +724,18 @@ const TodayScreen = () => {
             onPress={() => (navigation as any).navigate('Journal', { screen: 'ReviewQA' })}
           >
             <ThemedText style={styles.routinePreviewText}>Weekly Review QA</ThemedText>
+          </TouchableOpacity>
+        )}
+
+        {__DEV__ && (
+          <TouchableOpacity
+            key="review-card-preview-toggle"
+            style={styles.routinePreviewButton}
+            accessibilityRole="button"
+            accessibilityLabel={showReviewCardPreview ? 'Hide review card previews' : 'Preview all review cards'}
+            onPress={() => { triggerLightHaptic(); setShowReviewCardPreview(!showReviewCardPreview); }}
+          >
+            <ThemedText style={styles.routinePreviewText}>{showReviewCardPreview ? 'Hide review cards' : 'Review cards'}</ThemedText>
           </TouchableOpacity>
         )}
 
@@ -659,6 +747,8 @@ const TodayScreen = () => {
           <TouchableOpacity
             style={[styles.card, styles.weeklyPreviewCard]}
             activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel={`Open completed weekly review for ${selectedWeeklyReviewPeriodLabel}`}
             onPress={() => {
               triggerLightHaptic();
               (navigation as any).navigate('Journal', {
@@ -670,23 +760,42 @@ const TodayScreen = () => {
                 },
               });
             }}>
-            <ThemedText style={styles.cardLabel}>FROM YOUR WEEK · {weekLabel}</ThemedText>
-            <ThemedText style={styles.compactTitle}>You said this mattered.</ThemedText>
-            {(['priority_1', 'priority_2', 'priority_3'] as const).map(key =>
-              selectedWeeklyReview.answers[key]?.trim() ? (
-                <View key={key} style={styles.priorityRow}>
-                  <ThemedText style={styles.priorityBullet}>○</ThemedText>
-                  <ThemedText style={styles.priorityText}>{selectedWeeklyReview.answers[key]}</ThemedText>
+            <View style={styles.weeklyPreviewMetaRow}>
+              <ThemedText style={styles.weeklyPreviewKicker}>FROM YOUR WEEK · {selectedWeeklyReviewPeriodLabel}</ThemedText>
+              <View style={styles.weeklyPreviewBadge}>
+                <Ionicons name="checkmark-circle-outline" size={14} color={Colors.sage} />
+                <ThemedText weight="medium" style={styles.weeklyPreviewBadgeText}>A week remembered</ThemedText>
+              </View>
+            </View>
+            <View style={styles.weeklyPreviewHeading}>
+              <View style={styles.weeklyPreviewIcon}>
+                <Ionicons name="flag-outline" size={18} color={Colors.sage} />
+              </View>
+              <ThemedText weight="bold" style={styles.weeklyPreviewTitle}>You said this mattered.</ThemedText>
+            </View>
+            <View style={styles.weeklyPreviewPriorities}>
+              {selectedWeeklyPriorities.length ? selectedWeeklyPriorities.map((priority, index) => (
+                <View key={`${index}:${priority}`} style={styles.weeklyPriorityRow}>
+                  <View style={styles.weeklyPriorityNumber}>
+                    <ThemedText weight="semiBold" style={styles.weeklyPriorityNumberText}>{String(index + 1).padStart(2, '0')}</ThemedText>
+                  </View>
+                  <ThemedText weight="medium" style={styles.weeklyPriorityText}>{priority}</ThemedText>
                 </View>
-              ) : null,
-            )}
+              )) : <ThemedText style={styles.weeklyPreviewEmpty}>You left room to name what matters as the week unfolds.</ThemedText>}
+            </View>
             {selectedWeeklyReview.answers.faithful_step?.trim() ? (
               <View style={styles.faithfulStepBox}>
-                <ThemedText style={styles.meta}>One faithful step</ThemedText>
+                <View style={styles.faithfulStepHeading}>
+                  <Ionicons name="leaf-outline" size={15} color={Colors.sage} />
+                  <ThemedText weight="semiBold" style={styles.faithfulStepLabel}>ONE FAITHFUL STEP</ThemedText>
+                </View>
                 <ThemedText style={styles.faithfulStepText}>{selectedWeeklyReview.answers.faithful_step}</ThemedText>
               </View>
             ) : null}
-            <ThemedText style={styles.textLink}>Look back into this week →</ThemedText>
+            <View style={styles.weeklyPreviewLinkPill}>
+              <ThemedText weight="semiBold" style={styles.weeklyPreviewLinkText}>Look back into this week</ThemedText>
+              <Ionicons name="chevron-forward" size={13} color={Colors.sage} />
+            </View>
           </TouchableOpacity>
         </React.Fragment> : null}
 
@@ -776,23 +885,12 @@ const TodayScreen = () => {
 
         </Stagger>}
       </ScrollView>
-      <Animated.View
-        pointerEvents="none"
-        style={[styles.statusBarBlur, { height: insets.top + 30 }, statusBarBlurStyle]}
-      >
-        <LiquidGlassView
-          style={StyleSheet.absoluteFill}
-          tintColor="rgba(248, 247, 242, 0.22)"
-          fadesToTransparent
-        />
-      </Animated.View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: Colors.lightBackground },
-  statusBarBlur: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 20, overflow: 'hidden' },
   scroll: { flex: 1 },
   content: { paddingHorizontal: 18, maxWidth: 760, width: '100%', alignSelf: 'center' },
   date: { color: Colors.sageMuted, fontFamily: Fonts.semiBold, fontSize: 12, lineHeight: 16, letterSpacing: 1.8 },
@@ -872,12 +970,26 @@ const styles = StyleSheet.create({
   reviewTitle: { color: Colors.hopeWhite, fontFamily: Fonts.bold, fontSize: 21, marginTop: 6 },
   reviewPeriod: { color: Colors.hopeWhite, fontFamily: Fonts.regular, fontSize: 14, marginTop: 2, opacity: 0.95 },
   reviewAlso: { color: Colors.hopeWhite, fontFamily: Fonts.regular, fontSize: 12, marginTop: 10, opacity: 0.85 },
-  weeklyPreviewCard: { padding: 18 },
-  priorityRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginTop: 10 },
-  priorityBullet: { color: Colors.sage, fontFamily: Fonts.semiBold, fontSize: 14, lineHeight: 21 },
-  priorityText: { color: Colors.text, fontFamily: Fonts.regular, fontSize: 15, lineHeight: 21, flex: 1 },
-  faithfulStepBox: { marginTop: 18, padding: 14, backgroundColor: Colors.anchorBlueLight, borderRadius: 14 },
-  faithfulStepText: { color: Colors.text, fontFamily: Fonts.lora.medium, fontSize: 17, lineHeight: 24, marginTop: 6 },
+  weeklyPreviewCard: { padding: 18, backgroundColor: '#ECF1E8', borderColor: '#E1E9DB' },
+  weeklyPreviewMetaRow: { gap: 10, alignItems: 'flex-start' },
+  weeklyPreviewKicker: { color: Colors.sage, fontFamily: Fonts.semiBold, fontSize: 10, lineHeight: 15, letterSpacing: 1.5 },
+  weeklyPreviewBadge: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 18, backgroundColor: 'rgba(255,254,250,0.72)' },
+  weeklyPreviewBadgeText: { color: Colors.sage, fontSize: 10, lineHeight: 15 },
+  weeklyPreviewHeading: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 18, marginBottom: 16 },
+  weeklyPreviewIcon: { width: 32, height: 32, borderRadius: 10, backgroundColor: '#DCE6D6', alignItems: 'center', justifyContent: 'center' },
+  weeklyPreviewTitle: { flex: 1, color: Colors.text, fontFamily: Fonts.bold, fontWeight: '900', fontSize: 20, lineHeight: 27, letterSpacing: -0.25 },
+  weeklyPreviewPriorities: { gap: 11 },
+  weeklyPriorityRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 11 },
+  weeklyPriorityNumber: { width: 28, height: 28, borderRadius: 9, backgroundColor: '#DCE6D6', alignItems: 'center', justifyContent: 'center' },
+  weeklyPriorityNumberText: { color: Colors.sage, fontSize: 10, lineHeight: 14 },
+  weeklyPriorityText: { flex: 1, color: Colors.text, fontSize: 13.5, lineHeight: 21, paddingTop: 3 },
+  weeklyPreviewEmpty: { color: Colors.textGray, fontSize: 13, lineHeight: 21 },
+  faithfulStepBox: { marginTop: 18, padding: 15, backgroundColor: 'rgba(255,254,250,0.72)', borderRadius: 16 },
+  faithfulStepHeading: { flexDirection: 'row', alignItems: 'center', gap: 7 },
+  faithfulStepLabel: { color: Colors.sage, fontSize: 9, lineHeight: 14, letterSpacing: 1.3 },
+  faithfulStepText: { color: Colors.text, fontFamily: Fonts.lora.medium, fontSize: 16, lineHeight: 24, marginTop: 7 },
+  weeklyPreviewLinkPill: { alignSelf: 'flex-end', minHeight: 32, marginTop: 13, paddingHorizontal: 11, borderRadius: 16, backgroundColor: 'rgba(82,106,91,0.08)', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4 },
+  weeklyPreviewLinkText: { color: Colors.sage, fontSize: 10.5, lineHeight: 15 },
 });
 
 export default TodayScreen;

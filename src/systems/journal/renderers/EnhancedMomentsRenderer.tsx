@@ -2,7 +2,7 @@ import React, { useCallback, useMemo, useState, useEffect, useRef } from 'react'
 import { Logger } from '../../../utils/ProductionLogger';
 import { View, StyleSheet, SectionList, RefreshControlProps, TouchableOpacity, DeviceEventEmitter } from 'react-native';
 import Animated, { FadeInUp } from 'react-native-reanimated';
-import { Feather } from 'lucide-react-native';
+import { Bookmark, Feather } from 'lucide-react-native';
 import { JournalPlugin } from '../types';
 import { PluginRenderer } from '../PluginRenderer';
 import { Colors } from '../../../theme/colors';
@@ -10,6 +10,8 @@ import { format, startOfMonth, endOfMonth, getWeek } from 'date-fns';
 import { getWeekStart, getWeekEnd, WeekStartDay } from '../../../utils/weekStartUtils';
 import { getCanonicalMomentTimeline, type MomentTimelineItem, type RoutineSectionKind } from '../../../services/momentTimelineService';
 import { RoutineMomentSummary } from '../../../components/moments/RoutineMomentSummary';
+import {WeeklyGratitudeMomentCard} from '../../../components/moments/WeeklyGratitudeMomentCard';
+import {WeeklyLookingForwardMomentCard} from '../../../components/moments/WeeklyLookingForwardMomentCard';
 import { MomentsPaletteContext } from '../../../context/MomentsPaletteContext';
 import ThemedText from '../../../components/common/ThemedText';
 import { useTheme } from '../../../hooks/useTheme';
@@ -26,7 +28,8 @@ import type { PrayerHomeEntry } from '../../../components/journal/PrayerCard';
 import type { PluginFilters } from '../types';
 import type { FilterKey } from '../../../components/moments/FilterSelect';
 import { adaptSifiaPrayer, adaptSifiaReflection } from '../../../compatibility/sifiaReadCompatibility';
-import {matchesMomentCategoryFilter, narrowRoutineMomentToFilters} from '../../../services/momentFilterService';
+import {matchesMomentCategoryFilter, narrowRoutineMomentToFilters, narrowRoutineMomentToRemembered} from '../../../services/momentFilterService';
+import {buildRememberedCanonicalIdSet, getRememberedMomentReferences} from '../../../services/reviewMemoryService';
 
 // Removed unused screenWidth variable
 
@@ -102,6 +105,8 @@ interface MomentEntry {
   _savedAt?: number;
   timelineItem?: MomentTimelineItem;
   _canonicalId?: string;
+  _isRemembered?: boolean;
+  _rememberedCanonicalIds?: string[];
 }
 
 interface GroupedSection {
@@ -321,6 +326,27 @@ const createStyles = (fonts: any) => StyleSheet.create({
   },
   momentContent: {
     flex: 1,
+  },
+  rememberedMomentShell: {
+    flex: 1,
+    position: 'relative',
+  },
+  rememberedBadge: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    zIndex: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: Colors.sage,
+    shadowColor: Colors.darkBackground,
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.12,
+    shadowRadius: 4,
+    elevation: 3,
   },
   momentHeader: {
     flexDirection: 'row',
@@ -601,6 +627,12 @@ const EnhancedMomentsContent: React.FC<EnhancedMomentsRendererProps> = ({
     // Canonical local timeline is the offline-authoritative Moments source.
     // Cloud reads below remain temporarily as legacy compatibility fallbacks.
     let localEntries: MomentEntry[] = [];
+    let rememberedCanonicalIds = new Set<string>();
+    try {
+      rememberedCanonicalIds = buildRememberedCanonicalIdSet(await getRememberedMomentReferences());
+    } catch (error) {
+      Logger.error('Error loading remembered Moments', error as Error, { component: 'EnhancedMomentsRenderer' });
+    }
     try {
       const timeline = await getCanonicalMomentTimeline();
       const timelineByKey = new Map<string, MomentTimelineItem>();
@@ -624,6 +656,26 @@ const EnhancedMomentsContent: React.FC<EnhancedMomentsRendererProps> = ({
             priority: 1,
             viewModes: ['moments'],
             component: RoutineMomentSummary,
+            timelineItem: item,
+          };
+        } else if (item.kind === 'weekly_gratitude') {
+          plugin = {
+            id: 'weeklygratitude',
+            title: 'Weekly Gratitude',
+            category: 'reflect',
+            priority: 3,
+            viewModes: ['moments'],
+            component: WeeklyGratitudeMomentCard,
+            timelineItem: item,
+          };
+        } else if (item.kind === 'weekly_looking_forward') {
+          plugin = {
+            id: 'weeklylookingforward',
+            title: item.preview.title,
+            category: 'reflect',
+            priority: 3,
+            viewModes: ['moments'],
+            component: WeeklyLookingForwardMomentCard,
             timelineItem: item,
           };
         } else if (item.kind === 'bible_study') {
@@ -653,11 +705,13 @@ const EnhancedMomentsContent: React.FC<EnhancedMomentsRendererProps> = ({
           _isPrayer: item.kind === 'prayer',
           _isPrayerRequest: item.metadata?.isPrayerRequest === true,
           _isReflection: item.kind !== 'prayer',
-          _isGratitude: sectionKinds.includes('gratitude'),
+          _isGratitude: item.kind === 'weekly_gratitude' || sectionKinds.includes('gratitude'),
           _isWin: sectionKinds.includes('win'),
           _isPlan: sectionKinds.includes('focus') || sectionKinds.includes('priorities'),
           _searchText: item.searchText,
           _savedAt: new Date(item.savedAt).getTime(),
+          _isRemembered: item.canonicalIds.some(id => rememberedCanonicalIds.has(id)),
+          _rememberedCanonicalIds: item.canonicalIds.filter(id => rememberedCanonicalIds.has(id)),
         } as MomentEntry];
       });
     } catch (error) {
@@ -1310,6 +1364,20 @@ const EnhancedMomentsContent: React.FC<EnhancedMomentsRendererProps> = ({
       );
       entries.push(...localEntries);
 
+      entries = entries.map(entry => {
+        if (entry._isRemembered) {return entry;}
+        const canonicalIds = [
+          entry._canonicalId,
+          entry.reflectionId,
+          ...(entry.timelineItem?.canonicalIds ?? []),
+          ...(entry._prayers ?? []).flatMap(prayer => [prayer.id, prayer.metadata?.original_request_id]),
+        ].filter((id): id is string => typeof id === 'string' && id.length > 0);
+        const matchingIds = canonicalIds.filter(id => rememberedCanonicalIds.has(id));
+        return matchingIds.length
+          ? {...entry, _isRemembered: true, _rememberedCanonicalIds: matchingIds}
+          : entry;
+      });
+
       if (generation === fetchGeneration.current) {setRealEntries(entries);}
     } catch (error) {
       Logger.error('❌ [MomentsRenderer] Error fetching journal entries', error as Error, { component: 'EnhancedMomentsRenderer' });
@@ -1396,6 +1464,27 @@ const EnhancedMomentsContent: React.FC<EnhancedMomentsRendererProps> = ({
       return { ...e, _isPrayer: isPrayer, _isReflection: isReflection, _isGratitude: isGratitude, _isWin: isWin, _isPlan: isPlan, _isPrayerRequest: isPrayerRequest } as MomentEntry;
     });
 
+    // Remembered is a refinement: when combined with a category, show only
+    // remembered entries in that category instead of broadening the result.
+    if (filterKeys.includes('remembered')) {
+      filteredEntries = filteredEntries
+        .filter(entry => entry._isRemembered === true)
+        .map(entry => {
+          if (!entry.timelineItem) {return entry;}
+          const timelineItem = narrowRoutineMomentToRemembered(
+            entry.timelineItem,
+            entry._rememberedCanonicalIds ?? [],
+          );
+          if (timelineItem === entry.timelineItem) {return entry;}
+          return {
+            ...entry,
+            timelineItem,
+            plugin: {...entry.plugin, timelineItem},
+            _searchText: timelineItem.searchText,
+          };
+        });
+    }
+
     // Exclusive handling for answered/unanswered filters: if exactly one is selected, only show matching prayers
     const hasAnsweredOnly = filterKeys.includes('answeredPrayers') && !filterKeys.includes('unansweredPrayers');
     const hasUnansweredOnly = filterKeys.includes('unansweredPrayers') && !filterKeys.includes('answeredPrayers');
@@ -1449,7 +1538,7 @@ const EnhancedMomentsContent: React.FC<EnhancedMomentsRendererProps> = ({
     }
 
     // Apply category filters if any are selected (excluding upcoming and answered/unanswered which are handled separately)
-    const categoryFilters = filterKeys.filter(k => k !== 'upcoming' && k !== 'answeredPrayers' && k !== 'unansweredPrayers');
+    const categoryFilters = filterKeys.filter(k => k !== 'upcoming' && k !== 'remembered' && k !== 'answeredPrayers' && k !== 'unansweredPrayers');
     if (categoryFilters.length > 0) {
       filteredEntries = filteredEntries.filter(e => {
         const sectionKinds = Array.isArray(e.timelineItem?.metadata?.sectionKinds)
@@ -1466,6 +1555,7 @@ const EnhancedMomentsContent: React.FC<EnhancedMomentsRendererProps> = ({
           isGratitude: e._isGratitude,
           isWin: e._isWin,
           isPlan: e._isPlan,
+          isRemembered: e._isRemembered,
         }, filter));
       });
       filteredEntries = filteredEntries.map(entry => {
@@ -2084,6 +2174,35 @@ const EnhancedMomentsContent: React.FC<EnhancedMomentsRendererProps> = ({
     }
   }, [groupBy]);
 
+  const withRememberedMarker = (remembered: boolean, content: React.ReactNode) => (
+    <View style={styles.rememberedMomentShell}>
+      {content}
+      {remembered ? (
+        <View pointerEvents="none" style={styles.rememberedBadge} accessibilityLabel="Remembered in a review">
+          <Bookmark size={13} color={Colors.hopeWhite} fill={Colors.hopeWhite}/>
+        </View>
+      ) : null}
+    </View>
+  );
+
+  const renderEntryContent = (
+    entry: MomentEntry,
+    viewMode: 'inline' | 'moments' = 'inline',
+    filters: PluginFilters | undefined = pluginFilters,
+  ) => withRememberedMarker(Boolean(entry._isRemembered), entry._prayers
+    ? <PrayerMomentsCarousel prayers={entry._prayers} navigation={navigation} />
+    : <PluginRenderer
+        plugin={entry.plugin}
+        selectedDate={entry.date}
+        reflectionId={entry.reflectionId}
+        sessionId={entry.sessionId}
+        timelineItem={entry.timelineItem}
+        refreshKey={refreshKey}
+        viewMode={viewMode}
+        filters={filters}
+        navigation={navigation}
+      />);
+
   const renderCarouselItem: any = ({ item, index: _index, _section }: any) => {
     if (groupBy === 'week') {
       // Support custom emitted kinds when a week is expanded
@@ -2127,7 +2246,7 @@ const EnhancedMomentsContent: React.FC<EnhancedMomentsRendererProps> = ({
               <View key={`wday-${dayItem.key}-entry-${i}`} style={styles.carouselItem}>
                 <View style={styles.momentItem}>
                   <View style={styles.momentContent}>
-                    {entry._prayers ? <PrayerMomentsCarousel prayers={entry._prayers} navigation={navigation} /> : (<PluginRenderer plugin={entry.plugin} selectedDate={entry.date} reflectionId={entry.reflectionId} sessionId={entry.sessionId} timelineItem={entry.timelineItem} refreshKey={refreshKey} viewMode="inline" filters={{ ...(pluginFilters || {}), hideEmptyComponents: true }} navigation={navigation} />)}
+                    {renderEntryContent(entry, 'inline', {...(pluginFilters || {}), hideEmptyComponents: true})}
                   </View>
                 </View>
               </View>
@@ -2231,14 +2350,7 @@ const EnhancedMomentsContent: React.FC<EnhancedMomentsRendererProps> = ({
                         <View key={`${week.key}-entry-${dk}-${i}`} style={styles.carouselItem}>
                           <View style={styles.momentItem}>
                             <View style={styles.momentContent}>
-                              {entry._prayers ? <PrayerMomentsCarousel prayers={entry._prayers} navigation={navigation} /> : (<PluginRenderer
-                                plugin={entry.plugin}
-                                selectedDate={entry.date} reflectionId={entry.reflectionId} sessionId={entry.sessionId} timelineItem={entry.timelineItem}
-                                refreshKey={refreshKey}
-                                viewMode="inline"
-                                filters={{ ...(pluginFilters || {}), hideEmptyComponents: true }}
-                                navigation={navigation}
-                              />)}
+                              {renderEntryContent(entry, 'inline', {...(pluginFilters || {}), hideEmptyComponents: true})}
                             </View>
                           </View>
                         </View>
@@ -2298,7 +2410,7 @@ const EnhancedMomentsContent: React.FC<EnhancedMomentsRendererProps> = ({
               <View key={`day-${dayItem.key}-entry-${i}`} style={styles.carouselItem}>
                 <View style={styles.momentItem}>
                   <View style={styles.momentContent}>
-                    {entry._prayers ? <PrayerMomentsCarousel prayers={entry._prayers} navigation={navigation} /> : (<PluginRenderer plugin={entry.plugin} selectedDate={entry.date} reflectionId={entry.reflectionId} sessionId={entry.sessionId} timelineItem={entry.timelineItem} refreshKey={refreshKey} viewMode="moments" filters={pluginFilters} navigation={navigation} />)}
+                    {renderEntryContent(entry, 'moments', pluginFilters)}
                   </View>
                 </View>
               </View>
@@ -2386,7 +2498,7 @@ const EnhancedMomentsContent: React.FC<EnhancedMomentsRendererProps> = ({
                       <View key={`${month.key}-entry-${dk}-${i}`} style={styles.carouselItem}>
                         <View style={styles.momentItem}>
                           <View style={styles.momentContent}>
-                            {entry._prayers ? <PrayerMomentsCarousel prayers={entry._prayers} navigation={navigation} /> : (<PluginRenderer plugin={entry.plugin} selectedDate={entry.date} reflectionId={entry.reflectionId} sessionId={entry.sessionId} timelineItem={entry.timelineItem} refreshKey={refreshKey} viewMode="inline" filters={{ ...(pluginFilters || {}), hideEmptyComponents: true }} navigation={navigation} />)}
+                            {renderEntryContent(entry, 'inline', {...(pluginFilters || {}), hideEmptyComponents: true})}
                           </View>
                         </View>
                       </View>
@@ -2438,7 +2550,7 @@ const EnhancedMomentsContent: React.FC<EnhancedMomentsRendererProps> = ({
               <View key={`yrday-${dayItem.key}-entry-${i}`} style={styles.carouselItem}>
                 <View style={styles.momentItem}>
                   <View style={styles.momentContent}>
-                    {entry._prayers ? <PrayerMomentsCarousel prayers={entry._prayers} navigation={navigation} /> : (<PluginRenderer plugin={entry.plugin} selectedDate={entry.date} reflectionId={entry.reflectionId} sessionId={entry.sessionId} timelineItem={entry.timelineItem} refreshKey={refreshKey} viewMode="inline" filters={{ hideEmptyComponents: true }} navigation={navigation} />)}
+                    {renderEntryContent(entry, 'inline', {hideEmptyComponents: true})}
                   </View>
                 </View>
               </View>
@@ -2512,33 +2624,26 @@ const EnhancedMomentsContent: React.FC<EnhancedMomentsRendererProps> = ({
 
     const carouselGroup = item as MomentEntry[];
     if (carouselGroup?.length && carouselGroup.every(entry => !!entry._prayers)) {
-      return <View style={styles.carouselItem}><View style={styles.momentItem}><View style={styles.momentContent}><PrayerMomentsCarousel prayers={carouselGroup.flatMap(entry => entry._prayers!)} navigation={navigation} /></View></View></View>;
+      return <View style={styles.carouselItem}><View style={styles.momentItem}><View style={styles.momentContent}>{withRememberedMarker(carouselGroup.some(entry => entry._isRemembered), <PrayerMomentsCarousel prayers={carouselGroup.flatMap(entry => entry._prayers!)} navigation={navigation} />)}</View></View></View>;
     }
     const isHeartJournalGroup = carouselGroup?.length > 0 && carouselGroup.every(entry => entry.plugin?.id === 'reflection' && entry.timelineItem?.kind === 'reflection');
     if (isHeartJournalGroup) {
       const representative = carouselGroup[0];
       const reflectionIds = carouselGroup.map(entry => entry.reflectionId).filter((id): id is string => !!id);
-      return <View style={styles.carouselItem}><View style={styles.momentItem}><View style={styles.momentContent}><PluginRenderer plugin={representative.plugin} selectedDate={representative.date} reflectionIds={reflectionIds} refreshKey={refreshKey} viewMode="inline" filters={{ ...(pluginFilters || {}), hideEmptyComponents: true }} navigation={navigation} /></View></View></View>;
+      return <View style={styles.carouselItem}><View style={styles.momentItem}><View style={styles.momentContent}>{withRememberedMarker(carouselGroup.some(entry => entry._isRemembered), <PluginRenderer plugin={representative.plugin} selectedDate={representative.date} reflectionIds={reflectionIds} refreshKey={refreshKey} viewMode="inline" filters={{ ...(pluginFilters || {}), hideEmptyComponents: true }} navigation={navigation} />)}</View></View></View>;
     }
     const isScriptureNoteGroup = carouselGroup?.length > 0 && carouselGroup.every(entry => entry.plugin?.id === 'scripturenote');
     if (isScriptureNoteGroup) {
       const representative = carouselGroup[0];
       const timelineItems = carouselGroup.map(entry => entry.timelineItem).filter((timelineItem): timelineItem is MomentTimelineItem => !!timelineItem);
-      return <View style={styles.carouselItem}><View style={styles.momentItem}><View style={styles.momentContent}><PluginRenderer plugin={representative.plugin} selectedDate={representative.date} timelineItems={timelineItems} refreshKey={refreshKey} viewMode="inline" filters={{ ...(pluginFilters || {}), hideEmptyComponents: true }} navigation={navigation} /></View></View></View>;
+      return <View style={styles.carouselItem}><View style={styles.momentItem}><View style={styles.momentContent}>{withRememberedMarker(carouselGroup.some(entry => entry._isRemembered), <PluginRenderer plugin={representative.plugin} selectedDate={representative.date} timelineItems={timelineItems} refreshKey={refreshKey} viewMode="inline" filters={{ ...(pluginFilters || {}), hideEmptyComponents: true }} navigation={navigation} />)}</View></View></View>;
     }
     return (
       <View style={styles.carouselItem}>
         {carouselGroup && carouselGroup.map((entry, i) => (
           <View key={entry.timelineItem?.key || `entry-${entry.plugin.id}-${i}`} style={styles.momentItem}>
             <View style={styles.momentContent}>
-              {entry._prayers ? <PrayerMomentsCarousel prayers={entry._prayers} navigation={navigation} /> : (<PluginRenderer
-                plugin={entry.plugin}
-                selectedDate={entry.date} reflectionId={entry.reflectionId} sessionId={entry.sessionId} timelineItem={entry.timelineItem}
-                refreshKey={refreshKey}
-                viewMode="inline"
-                filters={{ ...(pluginFilters || {}), hideEmptyComponents: true }}
-                navigation={navigation}
-              />)}
+              {renderEntryContent(entry, 'inline', {...(pluginFilters || {}), hideEmptyComponents: true})}
             </View>
           </View>
         ))}
@@ -2584,6 +2689,7 @@ const EnhancedMomentsContent: React.FC<EnhancedMomentsRendererProps> = ({
     const active: string[] = [];
     if (filterKeys?.includes('answeredPrayers')) {active.push('answered prayers');}
     if (filterKeys?.includes('unansweredPrayers')) {active.push('unanswered prayers');}
+    if (filterKeys?.includes('remembered')) {active.push('remembered moments');}
     if (filterKeys?.includes('morningCheckIns')) {active.push('morning check-ins');}
     if (filterKeys?.includes('morningPsalms')) {active.push('morning Psalms');}
     if (filterKeys?.includes('todaysFocus')) {active.push("today's focus");}

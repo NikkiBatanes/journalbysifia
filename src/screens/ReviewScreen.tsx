@@ -8,12 +8,18 @@ import React, {
 } from 'react';
 import {
   AccessibilityInfo,
+  ActivityIndicator,
   Animated,
   DeviceEventEmitter,
+  Easing,
   findNodeHandle,
+  Image,
   Keyboard,
+  LayoutAnimation,
   PanResponder,
   Platform,
+  Pressable,
+  UIManager,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -29,6 +35,7 @@ import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/nativ
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import HeaderBackButton from '../components/common/HeaderBackButton';
+import HeaderCloseButton from '../components/common/HeaderCloseButton';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import FontAwesome6 from 'react-native-vector-icons/FontAwesome6';
 import Entypo from 'react-native-vector-icons/Entypo';
@@ -37,6 +44,12 @@ import LinearGradient from 'react-native-linear-gradient';
 
 import ThemedText from '../components/common/ThemedText';
 import SavedReflectionBlocks from '../components/journal/SavedReflectionBlocks';
+import FocusPriorityInputs, {type FocusPriorityInputsHandle} from '../components/journal/FocusPriorityInputs';
+import {LookingForwardEmotionStep, LookingForwardWritingStep} from '../components/journal/LookingForwardExperience';
+import {GratitudeListReactQuery} from '../components/journal/GratitudeListReactQuery';
+import {MomentsPaletteContext} from '../context/MomentsPaletteContext';
+import {WeeklyReviewMomentsList} from '../components/reviews/WeeklyReviewMomentsList';
+import {WeeklyReviewSummary, type WeeklyReviewSummaryTab} from '../components/reviews/WeeklyReviewSummary';
 import ProverbVerseExcerpt from '../components/scripture/ProverbVerseExcerpt';
 import PrayerHandsIcon from '../components/common/PrayerHandsIcon';
 import { Colors } from '../theme/colors';
@@ -62,25 +75,36 @@ import {
 } from '../services/reviewPeriodService';
 import { getReviewCapture, type ReviewCapture, type ReviewCaptureItem, type ReviewCaptureKind, type ReviewCapturePresentation } from '../services/reviewCaptureService';
 import { getReviewStages } from '../services/reviewStages';
+import {WEEKLY_CARE_AREAS, WEEKLY_LIFE_AREAS} from '../data/weeklyLifeAreas';
+import {getWeeklyCareAreas} from '../utils/weeklyLifeAreaAnswers';
+import {getWeeklyChallengeChoices, getWeeklyChallengeOptions, toggleWeeklyChallengeChoice} from '../utils/weeklyChallengeAnswers';
+import {getWeeklySupportChoices} from '../utils/weeklyLookingAheadAnswers';
+import {formatWeeklyLookingAheadPeriod} from '../utils/weeklyLookingAheadPeriod';
+import {getWeeklyLookingForwardEmotion, isWeeklyLookingForwardAnswerKey} from '../utils/weeklyLookingForwardAnswers';
+import {saveWeeklyLookingForwardMoment} from '../services/weeklyLookingForwardService';
 import {getWeeklyRhythm, type WeeklyRhythm} from '../services/weeklyRhythmService';
 import {getWeeklyCheckInFeelings, type WeeklyCheckInFeeling} from '../services/weeklyFeelingService';
 import {getReviewCoverSummary} from '../services/reviewCoverSummaryService';
+import {getPrayerCaptureCountLabel} from '../services/reviewCaptureSummaryService';
 import {useFloatingKeyboardButton} from '../hooks/useFloatingKeyboardButton';
 import {claimFaithfulRhythmCelebration, FAITHFUL_RHYTHM_UPDATED} from '../services/faithfulRhythmService';
+import {saveWeeklyGratitudeMoment} from '../services/weeklyGratitudeService';
+import {
+  getWeeklyGratitudeInputCount,
+  getWeeklyGratitudeItems,
+  isWeeklyGratitudeAnswerKey,
+  weeklyGratitudeAnswerKey,
+} from '../utils/weeklyGratitudeAnswers';
+import {Logger} from '../utils/ProductionLogger';
 
-const AnimatedTouchableOpacity =
-  Animated.createAnimatedComponent(TouchableOpacity);
-
-const BotanicalMark = () => (
-  <View style={styles.botanicalMark} accessibilityElementsHidden>
-    <View style={styles.botanicalStem} />
-    <Ionicons name="leaf-outline" size={22} color={Colors.text} style={styles.botanicalLeafTop} />
-    <Ionicons name="leaf-outline" size={20} color={Colors.text} style={styles.botanicalLeafLeft} />
-    <Ionicons name="leaf-outline" size={19} color={Colors.text} style={styles.botanicalLeafRight} />
-  </View>
-);
+if (Platform.OS === 'android') {
+  UIManager.setLayoutAnimationEnabledExperimental?.(true);
+}
 
 const REVIEW_STAGE_STAGGER_MS = 52;
+const REVIEW_PILL_BASE_DELAY_MS = 140;
+const REVIEW_PILL_STAGGER_MS = 42;
+const WEEKLY_COVER_METRIC_LIMIT = 6;
 
 type StaggeredReviewStageProps = ViewProps & {
   animationKey: string;
@@ -187,6 +211,77 @@ const StaggeredReviewStage = ({
   );
 };
 
+/**
+ * Cascades a single "How did this week feel?" pill in after the stage blocks
+ * have started appearing. Keyed by feeling name so selection and the
+ * show-more toggle never replay the entrance.
+ */
+const StaggeredFeelingPill = ({delay, exiting = false, exitDelay = 0, children}: {delay: number; exiting?: boolean; exitDelay?: number; children: React.ReactNode}) => {
+  const progress = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (exiting) {return;}
+    let active = true;
+    let entrance: Animated.CompositeAnimation | null = null;
+
+    AccessibilityInfo.isReduceMotionEnabled()
+      .then(reduceMotion => {
+        if (!active) {return;}
+        if (reduceMotion) {
+          progress.setValue(1);
+          return;
+        }
+        entrance = Animated.spring(progress, {
+          toValue: 1,
+          delay,
+          stiffness: 240,
+          damping: 15,
+          mass: 0.72,
+          useNativeDriver: true,
+        });
+        entrance.start();
+      })
+      .catch(() => {
+        if (active) {progress.setValue(1);}
+      });
+
+    return () => {
+      active = false;
+      entrance?.stop();
+      progress.stopAnimation();
+    };
+  }, [delay, exiting, progress]);
+
+  useEffect(() => {
+    if (!exiting) {return;}
+    const exit = Animated.timing(progress, {
+      toValue: 0,
+      duration: 200,
+      delay: exitDelay,
+      easing: Easing.in(Easing.quad),
+      useNativeDriver: true,
+    });
+    exit.start();
+    return () => exit.stop();
+  }, [exiting, exitDelay, progress]);
+
+  return (
+    <Animated.View
+      style={{
+        alignSelf: 'flex-start',
+        opacity: progress,
+        transform: [{
+          translateY: progress.interpolate({
+            inputRange: [0, 1],
+            outputRange: [10, 0],
+          }),
+        }],
+      }}>
+      {children}
+    </Animated.View>
+  );
+};
+
 type ReviewStage = number;
 
 const CATEGORY_LABELS: Record<ReviewCaptureKind, string> = {
@@ -201,26 +296,59 @@ const CATEGORY_LABELS: Record<ReviewCaptureKind, string> = {
   evening: 'Evening',
 };
 
-const WEEKLY_SPIRITUAL_REFLECTION_WORDS = [
-  'Blessed',
-  'Still learning',
-  'God felt near',
-  'Wrestling',
+const WEEKLY_FEELING_WORDS = [
+  'Hopeful',
   'Faithful',
-  'Waiting',
   'Strengthened',
+  'Tired',
+  'Wrestling',
+  'Spiritually dry',
+  'Still learning',
+  'Growing',
+  'Being refined',
+  'Peaceful',
+  'Joyful',
+  'Overwhelmed',
+  'Lonely',
+  'Waiting',
+  'Seeking',
+  'Anxious',
+  'Content',
+  'Sad',
+  'Grateful',
+  'Blessed',
+  'God felt near',
   'Uncertain',
   'Held',
-  'Spiritually dry',
   'Guided',
   'God felt distant',
-  'Grateful',
-  'Being refined',
-  'Growing',
   'Surrendering',
   'Awakened',
-  'Seeking',
 ] as const;
+const WEEKLY_FEELINGS_PREVIEW_COUNT = 9;
+
+const WEEKLY_LIFE_CHECK_IN_OPTIONS = [
+  {value: 'struggling', label: 'Struggling'},
+  {value: 'okay', label: 'Okay'},
+  {value: 'well', label: 'Well'},
+] as const;
+
+const WEEKLY_GOD_FAITHFULNESS_OPTIONS = [
+  'Provided for me',
+  'Gave me strength',
+  'Guided me',
+  'Comforted me',
+  'Protected me',
+  'Through someone',
+  'Answered a prayer',
+  'Helped me grow',
+  'Gave me peace',
+  'In the ordinary',
+  'I’m still looking',
+] as const;
+
+const isGodFaithfulnessChoice = (value: string): boolean =>
+  WEEKLY_GOD_FAITHFULNESS_OPTIONS.some(option => option === value);
 
 const CAPTURE_PRESENTATION_GROUPS: Array<{presentation: ReviewCapturePresentation; title: string}> = [
   {presentation: 'morning_check_in', title: 'Morning check-ins'},
@@ -327,6 +455,24 @@ const capturedMomentCopy = (item: ReviewCaptureItem): string => {
   return `${title} — ${text}`;
 };
 
+const memorableReferenceFor = (item: ReviewCaptureItem): ReviewMemorableItem => ({
+  kind: item.kind,
+  id: item.id,
+  selectedDate: item.selectedDate,
+  canonicalIds: [...new Set([
+    item.id,
+    item.prayerId,
+    item.requestId,
+  ].filter((id): id is string => Boolean(id)))],
+});
+
+const carryForwardHeading = (type: ReviewType): string => {
+  if (type === 'monthly') {return 'FROM YOUR WEEKLY REVIEWS';}
+  if (type === 'quarterly') {return 'FROM YOUR MONTHLY REVIEWS';}
+  if (type === 'year_end') {return 'FROM YOUR QUARTERLY REVIEWS';}
+  return 'CARRIED FORWARD';
+};
+
 const HEART_JOURNAL_COUNT_LABELS: Record<string, [string, string]> = {
   Thoughts: ['thought', 'thoughts'],
   Notes: ['note', 'notes'],
@@ -371,6 +517,9 @@ const heartJournalCountLabel = (items: ReviewCaptureItem[]): string => {
 const captureGroupCountLabel = (presentation: ReviewCapturePresentation, items: ReviewCaptureItem[]): string => {
   if (presentation === 'heart_journal') {
     return heartJournalCountLabel(items);
+  }
+  if (presentation === 'prayer') {
+    return getPrayerCaptureCountLabel(items);
   }
   if (presentation === 'morning_check_in') {
     const reflectionCount = items.filter(item => {
@@ -458,7 +607,7 @@ const WeeklyMomentCard = ({
   );
   const commonProps = {
     accessibilityRole: 'checkbox' as const,
-    accessibilityLabel: `${date}. ${capturedMomentCopy(item)}`,
+    accessibilityLabel: `${selected ? 'Remove from remembered' : 'Remember this'}. ${date}. ${capturedMomentCopy(item)}`,
     accessibilityState: {checked: selected},
     activeOpacity: 0.76,
     onPress,
@@ -476,11 +625,17 @@ const WeeklyMomentCard = ({
   );
 
   if (item.presentation === 'prayer') {
-    const status = item.answered ? 'ANSWERED' : item.prayerEventType === 'still_carrying' ? 'STILL PRAYING' : 'PRAYED FOR';
+    const prayerType = item.prayerTypeLabel
+      || (item.prayerActivityType === 'request' ? 'PRAYER REQUEST'
+        : item.prayerActivityType === 'cast' ? 'CAST PRAYER'
+          : item.prayerActivityType === 'open' ? 'OPEN PRAYER'
+            : item.prayerActivityType === 'need' ? 'PRAYER NEED'
+              : item.prayerActivityType === 'person' ? 'PRAYED FOR'
+                : 'PRAYER');
     return shell(<>
       <View style={styles.momentMetaRow}>
         <Ionicons name="heart-outline" size={15} color={Colors.sage}/>
-        <ThemedText weight="semiBold" style={styles.prayerCardEyebrow}>{status}</ThemedText>
+        <ThemedText weight="semiBold" style={styles.prayerCardEyebrow}>{prayerType}</ThemedText>
         <ThemedText style={styles.momentDate}>{date}</ThemedText>
       </View>
       <ThemedText weight="bold" style={styles.prayerCardTitle} numberOfLines={2}>{item.title}</ThemedText>
@@ -753,41 +908,132 @@ const ReviewScreen: React.FC = () => {
   const route = useRoute<any>();
   const insets = useSafeAreaInsets();
   const topInset = Math.max(insets.top, Platform.OS === 'android' ? StatusBar.currentHeight ?? 0 : 0);
-  const {bottom: floatingActionBottom, keyboardVisible} = useFloatingKeyboardButton(insets.bottom);
+  const {bottom: floatingActionBottom, keyboardVisible, keyboardHeight} = useFloatingKeyboardButton(insets.bottom);
   const {height: screenHeight, width: screenWidth} = useWindowDimensions();
   const scrollRef = useRef<ScrollView>(null);
   const customFeelingInputRef = useRef<TextInput>(null);
+  const pendingCustomFeelingFocusRef = useRef(false);
+  const godFaithfulnessInputRef = useRef<TextInput>(null);
+  const pendingGodFaithfulnessFocusRef = useRef(false);
+  const weeklyCareInputRef = useRef<TextInput>(null);
+  const weeklyCareOtherInputRef = useRef<TextInput>(null);
+  const pendingWeeklyCareOtherFocusRef = useRef(false);
+  const weeklyChallengeOtherInputRef = useRef<TextInput>(null);
+  const weeklyPrayerInputRef = useRef<TextInput>(null);
+  const weeklyPriorityInputsRef = useRef<FocusPriorityInputsHandle>(null);
+  const editingWeeklySummaryRef = useRef(false);
+  const weeklyGratitudeInputRefs = useRef<Array<TextInput | null>>([]);
   const completingReviewRef = useRef<string | null>(null);
+  const loadedReviewIdRef = useRef<string | null>(null);
 
-  const revealCustomFeelingInput = useCallback(() => {
-    const inputHandle = customFeelingInputRef.current
-      ? findNodeHandle(customFeelingInputRef.current)
-      : null;
-    if (!inputHandle) {return;}
+  const revealCustomReviewInput = useCallback(() => {
+    const input = [
+      customFeelingInputRef.current,
+      godFaithfulnessInputRef.current,
+      weeklyCareOtherInputRef.current,
+      weeklyCareInputRef.current,
+    ].find(candidate => candidate?.isFocused());
+    if (!input) {return;}
     scrollRef.current?.scrollResponderScrollNativeHandleToKeyboard(
-      inputHandle,
+      input,
       80,
       true,
     );
   }, []);
 
+  const revealWeeklyChallengeOtherInput = useCallback(() => {
+    const input = weeklyChallengeOtherInputRef.current;
+    if (!input?.isFocused()) {return;}
+    const handle = findNodeHandle(input);
+    if (handle) {scrollRef.current?.scrollResponderScrollNativeHandleToKeyboard(handle, 80, true);}
+  }, []);
+
+  const revealWeeklyClosingInput = useCallback(() => {
+    const input = weeklyPrayerInputRef.current;
+    if (!input?.isFocused()) {return;}
+    const handle = findNodeHandle(input);
+    if (handle) {scrollRef.current?.scrollResponderScrollNativeHandleToKeyboard(handle, 80, true);}
+  }, []);
+
   const [stage, setStage] = useState<ReviewStage>(1);
+  const [weeklySummaryTab, setWeeklySummaryTab] = useState<WeeklyReviewSummaryTab>('back');
   const [review, setReview] = useState<LocalReviewEntry | null>(null);
+  const [isLoadingReview, setIsLoadingReview] = useState(true);
+  const [reviewLoadError, setReviewLoadError] = useState(false);
+  const [reviewLoadAttempt, setReviewLoadAttempt] = useState(0);
   const [reviewType, setReviewType] = useState<ReviewType>('weekly');
   const [periodStart, setPeriodStart] = useState<string>('');
   const [periodEnd, setPeriodEnd] = useState<string>('');
   const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [isFinishingWeeklyReview, setIsFinishingWeeklyReview] = useState(false);
+  const [weeklyCompletionError, setWeeklyCompletionError] = useState(false);
   const [memorableItems, setMemorableItems] = useState(review?.memorableItems ?? []);
   const [capture, setCapture] = useState<ReviewCapture | null>(null);
   const [weeklyRhythm, setWeeklyRhythm] = useState<WeeklyRhythm | null>(null);
   const [weeklyCheckInFeelings, setWeeklyCheckInFeelings] = useState<WeeklyCheckInFeeling[]>([]);
+  const [showAllWeeklySummary, setShowAllWeeklySummary] = useState(false);
   const [showCustomFeelingInput, setShowCustomFeelingInput] = useState(false);
   const [showAllWeeklyFeelings, setShowAllWeeklyFeelings] = useState(false);
+  const [showGodFaithfulnessInput, setShowGodFaithfulnessInput] = useState(false);
+  const [weeklyGratitudeInputCount, setWeeklyGratitudeInputCount] = useState(1);
+  const [weeklyPriorityInputCount, setWeeklyPriorityInputCount] = useState(1);
+  const [showWeeklyGratitudeLookBack, setShowWeeklyGratitudeLookBack] = useState(false);
+  const [closingFeelings, setClosingFeelings] = useState<string[] | null>(null);
+  const feelingsCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const weeklyGratitudeSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingWeeklyGratitudeRef = useRef<{
+    items: string[];
+    periodStart: string;
+    periodEnd: string;
+    reviewId: string;
+  } | null>(null);
+
+  useEffect(() => () => {
+    if (feelingsCloseTimerRef.current) {clearTimeout(feelingsCloseTimerRef.current);}
+    if (weeklyGratitudeSaveTimerRef.current) {clearTimeout(weeklyGratitudeSaveTimerRef.current);}
+    const pendingWeeklyGratitude = pendingWeeklyGratitudeRef.current;
+    pendingWeeklyGratitudeRef.current = null;
+    if (pendingWeeklyGratitude) {
+      saveWeeklyGratitudeMoment(pendingWeeklyGratitude).catch(error => {
+        Logger.error('Failed to save Weekly Gratitude Moment', error as Error, {
+          component: 'ReviewScreen',
+          reviewId: pendingWeeklyGratitude.reviewId,
+        });
+      });
+    }
+  }, []);
 
   const stages = useMemo(() => getReviewStages(reviewType), [reviewType]);
   const stageCount = stages.length;
-  const isFeelingsStage = stages[stage - 1]?.kind === 'feelings';
-  const isCapturedStage = stages[stage - 1]?.kind === 'captured';
+  const currentStageKind = stages[stage - 1]?.kind;
+  const isWeeklyCoverStage = reviewType === 'weekly' && currentStageKind === 'cover';
+  const reviewProgressStepCount = Math.max(1, reviewType === 'weekly' ? stageCount - 2 : stageCount);
+  const reviewProgressStep = Math.min(
+    reviewProgressStepCount,
+    Math.max(0, reviewType === 'weekly' ? stage - 1 : stage),
+  );
+  const isFeelingsStage = currentStageKind === 'feelings';
+  const isWeeklyGodFaithfulnessStage = reviewType === 'weekly'
+    && stages[stage - 1]?.key === 'god';
+  const isWeeklyCareStage = reviewType === 'weekly'
+    && stages[stage - 1]?.key === 'dont_forget';
+  const hasAutoScrollingReviewInput = isFeelingsStage || isWeeklyGodFaithfulnessStage || isWeeklyCareStage;
+  const isLifeCheckInStage = currentStageKind === 'life_check_in';
+  const isCapturedStage = currentStageKind === 'captured';
+  const isRememberedStage = currentStageKind === 'remembered';
+  const isWeeklyLookingAheadStage = reviewType === 'weekly'
+    && stages[stage - 1]?.key === 'looking_ahead';
+  const isWeeklyPriorityStage = reviewType === 'weekly' && currentStageKind === 'priorities';
+  const isWeeklyLookingForwardWalkthrough = reviewType === 'weekly'
+    && ['looking_forward_feeling', 'looking_forward'].includes(stages[stage - 1]?.key ?? '');
+  const hasFloatingNavigation = currentStageKind !== undefined
+    && currentStageKind !== 'cover'
+    && currentStageKind !== 'ready';
+  const showsStandardNextButton = hasFloatingNavigation
+    && !isFeelingsStage
+    && !isCapturedStage
+    && !isWeeklyLookingAheadStage;
+  const hasHorizontalMomentCarousels = isCapturedStage || (reviewType === 'weekly' && isRememberedStage);
   const hasSavedProgress = review?.status === 'draft' && (
     memorableItems.length > 0 ||
     Object.values(answers).some(answer => answer.trim().length > 0)
@@ -797,9 +1043,10 @@ const ReviewScreen: React.FC = () => {
   const startFromRoute = route.params?.periodStart as string | undefined;
   const endFromRoute = route.params?.periodEnd as string | undefined;
 
-  const loadReview = useCallback(async () => {
+  const loadReview = useCallback(async (isActive: () => boolean) => {
     const anchor = toLocalDateString(new Date());
     const settings = await getReviewSettings(weekStart);
+    if (!isActive()) {return;}
     let type: ReviewType = typeFromRoute ?? 'weekly';
     let start = '';
     let end = '';
@@ -842,36 +1089,89 @@ const ReviewScreen: React.FC = () => {
       periodStart: start,
       periodEnd: end,
     });
+    if (!isActive()) {return;}
 
     const [captured, rhythm, checkInFeelings] = await Promise.all([
       getReviewCapture(start, end, type),
       type === 'weekly' ? getWeeklyRhythm(start, end, end) : Promise.resolve(null),
       type === 'weekly' ? getWeeklyCheckInFeelings(start, end) : Promise.resolve([]),
     ]);
+    if (!isActive()) {return;}
 
+    if (loadedReviewIdRef.current !== existing.id) {
+      setStage(1);
+      setWeeklySummaryTab('back');
+      editingWeeklySummaryRef.current = false;
+    }
+    loadedReviewIdRef.current = existing.id;
     setReview(existing);
     setReviewType(type);
     setPeriodStart(existing.periodStart);
     setPeriodEnd(existing.periodEnd);
     setAnswers(existing.answers);
+    setWeeklyPriorityInputCount(['priority_1', 'priority_2', 'priority_3']
+      .reduce((count, key, index) => existing.answers[key]?.trim() ? index + 1 : count, 1));
+    setWeeklyGratitudeInputCount(getWeeklyGratitudeInputCount(existing.answers));
+    setShowWeeklyGratitudeLookBack(false);
     setShowCustomFeelingInput(Boolean(existing.answers.week_feeling_other?.trim()));
+    const savedGodChoices = (existing.answers.god || '').split('|').filter(isGodFaithfulnessChoice);
+    const legacyGodResponse = Boolean(existing.answers.god?.trim()) && savedGodChoices.length === 0;
+    setShowGodFaithfulnessInput(Boolean(existing.answers.god_faithfulness_other?.trim()) || legacyGodResponse);
     setMemorableItems(existing.memorableItems);
     setCapture(captured);
     setWeeklyRhythm(rhythm);
     setWeeklyCheckInFeelings(checkInFeelings);
+    setShowAllWeeklySummary(false);
+    const existingWeeklyGratitude = getWeeklyGratitudeItems(existing.answers);
+    if (type === 'weekly' && existingWeeklyGratitude.length > 0) {
+      saveWeeklyGratitudeMoment({
+        items: existingWeeklyGratitude,
+        periodStart: existing.periodStart,
+        periodEnd: existing.periodEnd,
+        reviewId: existing.id,
+      }).catch(error => {
+        Logger.error('Failed to sync Weekly Gratitude Moment', error as Error, {
+          component: 'ReviewScreen',
+          reviewId: existing.id,
+        });
+      });
+    }
   }, [typeFromRoute, startFromRoute, endFromRoute, weekStart]);
 
-  useEffect(() => {
-    loadReview();
-  }, [loadReview]);
+  // Tab navigation can reuse this screen for the same period after new entries
+  // are saved. Reload on every focus and ignore reads from a previous visit.
+  useFocusEffect(useCallback(() => {
+    let active = true;
+    setIsLoadingReview(true);
+    setReviewLoadError(false);
+    void loadReview(() => active).catch(error => {
+      if (!active) {return;}
+      setReviewLoadError(true);
+      Logger.error('Failed to load review', error as Error, {
+        component: 'ReviewScreen', attempt: reviewLoadAttempt,
+      });
+    }).finally(() => {
+      if (active) {setIsLoadingReview(false);}
+    });
+    return () => {active = false;};
+  }, [loadReview, reviewLoadAttempt]));
 
   useEffect(() => {
-    if (!keyboardVisible || !showCustomFeelingInput) {return;}
+    if (!keyboardVisible) {return;}
     const frame = requestAnimationFrame(() => {
-      revealCustomFeelingInput();
+      revealCustomReviewInput();
     });
     return () => cancelAnimationFrame(frame);
-  }, [keyboardVisible, revealCustomFeelingInput, showCustomFeelingInput]);
+  }, [keyboardHeight, keyboardVisible, revealCustomReviewInput, showCustomFeelingInput, showGodFaithfulnessInput]);
+
+  useEffect(() => {
+    if (!keyboardVisible) {return;}
+    const frame = requestAnimationFrame(() => {
+      revealWeeklyChallengeOtherInput();
+      revealWeeklyClosingInput();
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [keyboardVisible, revealWeeklyChallengeOtherInput, revealWeeklyClosingInput]);
 
   const saveReview = useCallback(
     async (patch: Partial<Pick<LocalReviewEntry, 'answers' | 'memorableItems' | 'prayerSnapshot' | 'status' | 'completedAt'>>) => {
@@ -888,13 +1188,14 @@ const ReviewScreen: React.FC = () => {
   );
 
   useEffect(() => {
+    if (isLoadingReview || reviewLoadError || reviewType === 'weekly') {return;}
     if (stage === stageCount && review && review.status !== 'completed') {
       const completionKey = `${review.type}:${review.id}`;
       if (completingReviewRef.current === completionKey) {return;}
       completingReviewRef.current = completionKey;
       const prayerSnapshot: ReviewPrayerSnapshotItem[] = (capture?.items || [])
         .filter(item => item.kind === 'prayer' && item.prayerEventType && item.prayerId)
-        .map(item => ({ id: item.id, prayerId: item.prayerId!, needId: item.needId, requestId: item.requestId, eventType: item.prayerEventType!, eventDate: item.selectedDate, title: item.title, subtitle: item.subtitle || 'Prayer', text: item.text }));
+        .map(item => ({ id: item.id, prayerId: item.prayerId!, needId: item.needId, requestId: item.requestId, eventType: item.prayerEventType!, eventDate: item.selectedDate, title: item.title, subtitle: item.subtitle || 'Prayer', text: item.text, prayerTypeLabel: item.prayerTypeLabel }));
       const completeReview = async () => {
         await saveReview({ status: 'completed', completedAt: new Date().toISOString(), prayerSnapshot });
         DeviceEventEmitter.emit(FAITHFUL_RHYTHM_UPDATED, {rhythm: 'reviews', selectedDate: review.periodEnd});
@@ -909,7 +1210,37 @@ const ReviewScreen: React.FC = () => {
         completingReviewRef.current = null;
       });
     }
-  }, [stage, stageCount, review, capture, saveReview, navigation, weekStart]);
+  }, [stage, stageCount, review, reviewType, capture, saveReview, navigation, weekStart, isLoadingReview, reviewLoadError]);
+
+  const finishWeeklyReview = useCallback(async () => {
+    if (!review || completingReviewRef.current === review.id) {return;}
+    completingReviewRef.current = review.id;
+    setIsFinishingWeeklyReview(true);
+    setWeeklyCompletionError(false);
+    triggerLightHaptic();
+    try {
+      const prayerSnapshot: ReviewPrayerSnapshotItem[] = (capture?.items || [])
+        .filter(item => item.kind === 'prayer' && item.prayerEventType && item.prayerId)
+        .map(item => ({id: item.id, prayerId: item.prayerId!, needId: item.needId, requestId: item.requestId, eventType: item.prayerEventType!, eventDate: item.selectedDate, title: item.title, subtitle: item.subtitle || 'Prayer', text: item.text, prayerTypeLabel: item.prayerTypeLabel}));
+      if (Object.keys(answers).some(isWeeklyLookingForwardAnswerKey)) {
+        await saveWeeklyLookingForwardMoment({answers, periodStart: review.periodStart, periodEnd: review.periodEnd, reviewId: review.id});
+      }
+      await saveReview({answers, memorableItems, status: 'completed', completedAt: review.completedAt ?? new Date().toISOString(), prayerSnapshot});
+      DeviceEventEmitter.emit(FAITHFUL_RHYTHM_UPDATED, {rhythm: 'reviews', selectedDate: review.periodEnd});
+      const celebrate = review.status !== 'completed'
+        && await claimFaithfulRhythmCelebration('reviews', review.periodEnd, weekStart);
+      if (celebrate) {
+        navigation.navigate('StreakPlan', {rhythm: 'reviews', source: 'review_complete'});
+      } else {
+        navigation.goBack();
+      }
+    } catch {
+      setWeeklyCompletionError(true);
+    } finally {
+      completingReviewRef.current = null;
+      setIsFinishingWeeklyReview(false);
+    }
+  }, [review, capture, answers, memorableItems, saveReview, weekStart, navigation]);
 
   const goTo = useCallback(
     (next: ReviewStage) => {
@@ -917,14 +1248,18 @@ const ReviewScreen: React.FC = () => {
       triggerLightHaptic();
       Keyboard.dismiss();
       scrollRef.current?.scrollTo({y: 0, animated: false});
-      setStage(next);
+      const continuingWalkthrough = editingWeeklySummaryRef.current
+        && stages[stage - 1]?.key === 'looking_forward_feeling' && next === stage + 1;
+      const returnToSummary = editingWeeklySummaryRef.current && !continuingWalkthrough && next === stage + 1;
+      if (!continuingWalkthrough) {editingWeeklySummaryRef.current = false;}
+      setStage(returnToSummary ? stageCount : next);
     },
-    [stageCount],
+    [stage, stageCount, stages],
   );
 
   const stageRef = useRef(stage);
   const stageCountRef = useRef(stageCount);
-  const capturedStageRef = useRef(isCapturedStage);
+  const capturedStageRef = useRef(hasHorizontalMomentCarousels);
 
   useEffect(() => {
     stageRef.current = stage;
@@ -935,8 +1270,8 @@ const ReviewScreen: React.FC = () => {
   }, [stageCount]);
 
   useEffect(() => {
-    capturedStageRef.current = isCapturedStage;
-  }, [isCapturedStage]);
+    capturedStageRef.current = hasHorizontalMomentCarousels;
+  }, [hasHorizontalMomentCarousels]);
 
   const panResponder = useMemo(
     () =>
@@ -981,6 +1316,8 @@ const ReviewScreen: React.FC = () => {
     return `${startText} – ${endText}`;
   }, [periodStart,periodEnd]);
 
+  const weeklyLookingAheadPeriodLabel = useMemo(() => formatWeeklyLookingAheadPeriod(periodEnd), [periodEnd]);
+
   const weeklyCoverSummary = useMemo(
     () => capture ? getReviewCoverSummary(
       capture,
@@ -988,15 +1325,72 @@ const ReviewScreen: React.FC = () => {
     ) : [],
     [capture, weeklyRhythm],
   );
+  const visibleWeeklyCoverSummary = showAllWeeklySummary
+    ? weeklyCoverSummary
+    : weeklyCoverSummary.slice(0, WEEKLY_COVER_METRIC_LIMIT);
+  const hiddenWeeklyCoverMetricCount = Math.max(
+    0,
+    weeklyCoverSummary.length - visibleWeeklyCoverSummary.length,
+  );
+
+  const weeklyGratitudeDates = useMemo(
+    () => [...new Set((capture?.items ?? [])
+      .filter(item => item.presentation === 'gratitude_list' && item.lines?.some(line => line.trim()))
+      .map(item => item.selectedDate))].sort(),
+    [capture],
+  );
+
+  const revealWeeklyGratitudeInput = useCallback((index: number) => {
+    const input = weeklyGratitudeInputRefs.current[index];
+    const inputHandle = input ? findNodeHandle(input) : null;
+    if (!inputHandle) {return;}
+    scrollRef.current?.scrollResponderScrollNativeHandleToKeyboard(inputHandle, 80, true);
+  }, []);
+
+  const addWeeklyPriorityInput = useCallback(() => {
+    if (weeklyPriorityInputCount >= 3) {return;}
+    triggerLightHaptic();
+    const index = weeklyPriorityInputCount;
+    setWeeklyPriorityInputCount(count => Math.min(3, count + 1));
+    requestAnimationFrame(() => weeklyPriorityInputsRef.current?.focus(index));
+  }, [weeklyPriorityInputCount]);
 
   const onAnswerChange = (beat: string, text: string) => {
     const next = { ...answers, [beat]: text };
     setAnswers(next);
     // Autosave draft
     saveReview({ answers: next });
+    if (reviewType === 'weekly' && review && isWeeklyLookingForwardAnswerKey(beat)) {
+      saveWeeklyLookingForwardMoment({answers: next, periodStart, periodEnd, reviewId: review.id})
+        .catch(error => Logger.error('Failed to save weekly Looking Forward', error as Error, {component: 'ReviewScreen', reviewId: review.id}));
+    }
+    if (isWeeklyGratitudeAnswerKey(beat) && reviewType === 'weekly' && review && periodStart && periodEnd) {
+      if (weeklyGratitudeSaveTimerRef.current) {
+        clearTimeout(weeklyGratitudeSaveTimerRef.current);
+      }
+      pendingWeeklyGratitudeRef.current = {
+        items: getWeeklyGratitudeItems(next),
+        periodStart,
+        periodEnd,
+        reviewId: review.id,
+      };
+      weeklyGratitudeSaveTimerRef.current = setTimeout(() => {
+        weeklyGratitudeSaveTimerRef.current = null;
+        const pendingWeeklyGratitude = pendingWeeklyGratitudeRef.current;
+        pendingWeeklyGratitudeRef.current = null;
+        if (!pendingWeeklyGratitude) {return;}
+        saveWeeklyGratitudeMoment(pendingWeeklyGratitude).catch(error => {
+          Logger.error('Failed to save Weekly Gratitude Moment', error as Error, {
+            component: 'ReviewScreen',
+            reviewId: pendingWeeklyGratitude.reviewId,
+          });
+        });
+      }, 350);
+    }
   };
 
-  const toggleMemorable = (item: { kind: ReviewMemorableItem['kind']; id: string; selectedDate: string }) => {
+  const toggleMemorable = (item: ReviewCaptureItem) => {
+    triggerLightHaptic();
     const exists = memorableItems.find(
       m => m.id === item.id && m.selectedDate === item.selectedDate,
     );
@@ -1004,12 +1398,13 @@ const ReviewScreen: React.FC = () => {
       ? memorableItems.filter(
           m => !(m.id === item.id && m.selectedDate === item.selectedDate),
         )
-      : [...memorableItems, { kind: item.kind, id: item.id, selectedDate: item.selectedDate }];
+      : [...memorableItems, memorableReferenceFor(item)];
     setMemorableItems(next);
     saveReview({ memorableItems: next });
   };
 
-  const toggleMemorableGroup = (items: Array<{kind: ReviewMemorableItem['kind']; id: string; selectedDate: string}>) => {
+  const toggleMemorableGroup = (items: ReviewCaptureItem[]) => {
+    triggerLightHaptic();
     const itemKeys = new Set(items.map(item => `${item.id}:${item.selectedDate}`));
     const allSelected = items.every(item => memorableItems.some(
       memorable => memorable.id === item.id && memorable.selectedDate === item.selectedDate,
@@ -1017,7 +1412,7 @@ const ReviewScreen: React.FC = () => {
     const retained = memorableItems.filter(item => !itemKeys.has(`${item.id}:${item.selectedDate}`));
     const next = allSelected
       ? retained
-      : [...retained, ...items.map(item => ({kind: item.kind, id: item.id, selectedDate: item.selectedDate}))];
+      : [...retained, ...items.map(memorableReferenceFor)];
     setMemorableItems(next);
     saveReview({memorableItems: next});
   };
@@ -1028,56 +1423,123 @@ const ReviewScreen: React.FC = () => {
 
     if (current.kind === 'cover') {
       const eyebrow = current.eyebrow ?? `${reviewType.replace('_', ' ').toUpperCase()} REVIEW`;
-      if(reviewType==='weekly'){
-        const denseSummary = weeklyCoverSummary.length > 12;
-        return <StaggeredReviewStage
-          animationKey={current.key}
-          enabled
-          style={[styles.stage,styles.weeklyCoverStage,{minHeight:Math.max(0,screenHeight-topInset-insets.bottom-64)}]}>
-          <View style={styles.weeklyCoverHero}>
-            <BotanicalMark />
-            <ThemedText weight="semiBold" style={styles.weeklyCoverEyebrow}>WEEKLY REVIEW</ThemedText>
-            <ThemedText weight="bold" style={styles.weeklyCoverTitle}>Your week</ThemedText>
-            <ThemedText weight="bold" style={styles.weeklyCoverPeriod}>{weeklyPeriodLabel}</ThemedText>
-            <ThemedText style={styles.weeklyCoverSubtitle}>Pause. Look back. Look ahead.{`\n`}See what matters.</ThemedText>
-          </View>
-
-          <View style={styles.weeklyShowedUpCard}>
-            <View style={styles.weeklyShowedUpHeader}>
-              <View style={styles.weeklyShowedUpIcon}><Ionicons name="leaf-outline" size={18} color={Colors.text}/></View>
-              <View style={styles.weeklyShowedUpCopy}>
-                <ThemedText weight="semiBold" style={styles.weeklyShowedUpLabel}>You showed up</ThemedText>
-                <ThemedText weight="semiBold" style={styles.weeklyShowedUpTotal}>{weeklyRhythm?.activeDays??0} days this week</ThemedText>
+      if (reviewType === 'weekly') {
+        const activeDays = weeklyRhythm?.activeDays ?? 0;
+        const activeDayLabel = `${activeDays} ${activeDays === 1 ? 'day' : 'days'} this week`;
+        return <View
+          style={[
+            styles.stage,
+            styles.weeklyCoverStage,
+            {minHeight: Math.max(0, screenHeight - topInset - insets.bottom - 64)},
+          ]}>
+          <StaggeredReviewStage
+            animationKey={current.key}
+            enabled
+            style={styles.weeklyCoverContent}>
+            <Image
+              accessible={false}
+              resizeMode="contain"
+              source={require('../../assets/images/reviews/weekly-cover-looking-back-v2.png')}
+              style={styles.weeklyCoverArtwork}
+            />
+            <View style={styles.weeklyCoverHero}>
+              <View style={styles.weeklyCoverLabelRow}>
+                <Ionicons name="leaf-outline" size={15} color={Colors.sage}/>
+                <ThemedText weight="semiBold" style={styles.weeklyCoverEyebrow}>WEEKLY REVIEW</ThemedText>
               </View>
+              <ThemedText weight="bold" style={styles.weeklyCoverTitle}>Now, let’s look back.</ThemedText>
+              <ThemedText weight="semiBold" style={styles.weeklyCoverPeriod}>{weeklyPeriodLabel}</ThemedText>
+              <ThemedText style={styles.weeklyCoverSubtitle}>Pause. Notice what mattered. Carry it forward.</ThemedText>
             </View>
-            <View style={styles.weeklyDayChart}>
-              {(weeklyRhythm?.days??[]).map(day=>{
-                const [year,month,date]=day.date.split('-').map(Number);
-                const label=new Date(year,month-1,date,12).toLocaleDateString(undefined,{weekday:'narrow'});
-                const height=day.active?Math.min(26,7+day.activity*3):6;
-                return <View key={day.date} style={styles.weeklyDayColumn}>
-                  <View style={[styles.weeklyDayTrack,{height:26}]}><View style={[styles.weeklyDayBar,{height},day.active?styles.weeklyDayBarActive:styles.weeklyDayBarQuiet]}/></View>
-                  <ThemedText weight="semiBold" style={styles.weeklyDayLabel}>{label}</ThemedText>
-                </View>;
-              })}
-            </View>
-            {weeklyCoverSummary.length > 0 && <View style={styles.weeklySummarySection}>
-              <ThemedText weight="semiBold" style={styles.weeklySummaryEyebrow}>YOUR WEEK IN NUMBERS</ThemedText>
-              <View style={styles.weeklySummaryMetrics}>
-                {weeklyCoverSummary.map(item=><View key={item.key} style={styles.weeklySummaryMetricSlot}>
-                  <View style={[styles.weeklySummaryPill,denseSummary&&styles.weeklySummaryPillDense]}>
-                    <ThemedText weight="bold" style={[styles.weeklySummaryCount,denseSummary&&styles.weeklySummaryCountDense]}>{item.count}</ThemedText>
-                    <ThemedText style={[styles.weeklySummaryLabel,denseSummary&&styles.weeklySummaryLabelDense]}>{item.label}</ThemedText>
-                  </View>
-                </View>)}
-              </View>
-            </View>}
-          </View>
 
-          <TouchableOpacity style={[styles.primaryButton,styles.weeklyBeginButton]} onPress={()=>goTo(2)} activeOpacity={0.8}>
-            <ThemedText weight="bold" style={styles.weeklyBeginText}>{hasSavedProgress?'Continue':'Begin'}</ThemedText>
+            <View style={styles.weeklyShowedUpCard}>
+              <View style={styles.weeklyShowedUpHeader}>
+                <View style={styles.weeklyShowedUpIcon}>
+                  <Ionicons name="leaf-outline" size={19} color={Colors.sage}/>
+                </View>
+                <View style={styles.weeklyShowedUpCopy}>
+                  <ThemedText weight="semiBold" style={styles.weeklyShowedUpLabel}>YOU SHOWED UP</ThemedText>
+                  <ThemedText weight="semiBold" style={styles.weeklyShowedUpTotal}>{activeDayLabel}</ThemedText>
+                </View>
+                <View style={styles.weeklyShowedUpBadge}>
+                  <ThemedText weight="bold" style={styles.weeklyShowedUpBadgeValue}>{activeDays}</ThemedText>
+                  <ThemedText style={styles.weeklyShowedUpBadgeTotal}>/ 7</ThemedText>
+                </View>
+              </View>
+              <View style={styles.weeklyDayChart}>
+                {(weeklyRhythm?.days ?? []).map(day => {
+                  const [year, month, date] = day.date.split('-').map(Number);
+                  const label = new Date(year, month - 1, date, 12)
+                    .toLocaleDateString(undefined, {weekday: 'narrow'});
+                  const height = day.active ? Math.min(28, 8 + day.activity * 3) : 5;
+                  return <View
+                    accessible
+                    accessibilityLabel={`${label}, ${day.active ? `${day.activity} activities` : 'no activity'}`}
+                    key={day.date}
+                    style={styles.weeklyDayColumn}>
+                    <View style={styles.weeklyDayTrack}>
+                      <View style={[
+                        styles.weeklyDayBar,
+                        {height},
+                        day.active ? styles.weeklyDayBarActive : styles.weeklyDayBarQuiet,
+                      ]}/>
+                    </View>
+                    <ThemedText
+                      weight="semiBold"
+                      style={[styles.weeklyDayLabel, day.active && styles.weeklyDayLabelActive]}>
+                      {label}
+                    </ThemedText>
+                  </View>;
+                })}
+              </View>
+              {weeklyCoverSummary.length > 0 && <View style={styles.weeklySummarySection}>
+                <View style={styles.weeklySummaryHeading}>
+                  <ThemedText weight="semiBold" style={styles.weeklySummaryEyebrow}>YOUR WEEK AT A GLANCE</ThemedText>
+                  <View style={styles.weeklySummaryRule}/>
+                </View>
+                <View style={styles.weeklySummaryMetrics}>
+                  {visibleWeeklyCoverSummary.map(item => (
+                    <View key={item.key} style={styles.weeklySummaryMetricSlot}>
+                      <View style={styles.weeklySummaryPill}>
+                        <ThemedText weight="bold" style={styles.weeklySummaryCount}>{item.count}</ThemedText>
+                        <ThemedText style={styles.weeklySummaryLabel}>{item.label}</ThemedText>
+                      </View>
+                    </View>
+                  ))}
+                </View>
+                {weeklyCoverSummary.length > WEEKLY_COVER_METRIC_LIMIT && <TouchableOpacity
+                  accessibilityRole="button"
+                  accessibilityLabel={showAllWeeklySummary ? 'Show fewer weekly highlights' : `Show ${hiddenWeeklyCoverMetricCount} more weekly highlights`}
+                  activeOpacity={0.7}
+                  onPress={() => {
+                    triggerLightHaptic();
+                    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+                    setShowAllWeeklySummary(value => !value);
+                  }}
+                  style={styles.weeklySummaryToggle}>
+                  <ThemedText weight="semiBold" style={styles.weeklySummaryToggleText}>
+                    {showAllWeeklySummary ? 'Show less' : `${hiddenWeeklyCoverMetricCount} more from your week`}
+                  </ThemedText>
+                  <Ionicons
+                    name={showAllWeeklySummary ? 'chevron-up' : 'chevron-down'}
+                    size={15}
+                    color={Colors.sage}/>
+                </TouchableOpacity>}
+              </View>}
+            </View>
+          </StaggeredReviewStage>
+
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel={hasSavedProgress ? 'Continue weekly review' : 'Begin weekly review'}
+            style={[styles.primaryButton, styles.weeklyBeginButton]}
+            onPress={() => goTo(2)}
+            activeOpacity={0.8}>
+            <ThemedText weight="bold" style={styles.weeklyBeginText}>
+              {hasSavedProgress ? 'Continue review' : 'Begin review'}
+            </ThemedText>
           </TouchableOpacity>
-        </StaggeredReviewStage>;
+        </View>;
       }
       return (
         <View style={styles.stage}>
@@ -1139,100 +1601,155 @@ const ReviewScreen: React.FC = () => {
       );
     }
 
-    if (current.kind === 'captured') {
-      if (reviewType === 'weekly') {
-        const moments = [...(capture?.items ?? [])]
-          .sort((a, b) => a.selectedDate.localeCompare(b.selectedDate));
-        const heartJournalGroup = {
-          key: 'heart-journal',
-          presentation: 'heart_journal' as ReviewCapturePresentation,
-          title: 'Heart Journal',
-          items: moments.filter(item => HEART_JOURNAL_PRESENTATIONS.has(item.presentation)),
-        };
-        const presentationGroups = CAPTURE_PRESENTATION_GROUPS.map(group => ({
-            ...group,
-            key: group.presentation,
-            items: moments.filter(item => item.presentation === group.presentation),
-          }));
-        const momentGroups = [
-          ...presentationGroups.slice(0, 8),
-          heartJournalGroup,
-          ...presentationGroups.slice(8),
-        ].filter(group => group.items.length > 0);
-        const carouselCardWidth = Math.min(310, Math.max(240, screenWidth - 76));
-        return (
-          <StaggeredReviewStage
-            animationKey={current.key}
-            enabled
-            style={[styles.stage, styles.weeklyCapturedStage]}>
+    if (reviewType === 'weekly' && (current.kind === 'captured' || current.kind === 'remembered')) {
+      const showingRemembered = current.kind === 'remembered';
+      const rememberedKeys = new Set(
+        memorableItems.map(item => `${item.id}:${item.selectedDate}`),
+      );
+      const moments = [...(capture?.items ?? [])]
+        .filter(item => !showingRemembered || rememberedKeys.has(`${item.id}:${item.selectedDate}`))
+        .sort((a, b) => a.selectedDate.localeCompare(b.selectedDate));
+      const heartJournalGroup = {
+        key: 'heart-journal',
+        presentation: 'heart_journal' as ReviewCapturePresentation,
+        title: 'Heart Journal',
+        items: moments.filter(item => HEART_JOURNAL_PRESENTATIONS.has(item.presentation)),
+      };
+      const presentationGroups = CAPTURE_PRESENTATION_GROUPS.map(group => ({
+          ...group,
+          key: group.presentation,
+          items: moments.filter(item => item.presentation === group.presentation),
+        }));
+      const momentGroups = [
+        ...presentationGroups.slice(0, 8),
+        heartJournalGroup,
+        ...presentationGroups.slice(8),
+      ].filter(group => group.items.length > 0);
+      const carouselCardWidth = Math.min(310, Math.max(240, screenWidth - 76));
+      return (
+        <WeeklyReviewMomentsList
+          key={current.key}
+          groups={momentGroups}
+          cardWidth={carouselCardWidth}
+          contentContainerStyle={[
+            styles.weeklyCapturedStage,
+            {paddingTop: topInset + 64, paddingBottom: keyboardVisible ? 320 : insets.bottom + 112},
+          ]}
+          header={
             <View style={styles.weeklyCapturedHeading}>
               <View style={styles.feelingsLabelRow}>
                 <Ionicons name="leaf-outline" size={15} color={Colors.sage}/>
                 <ThemedText weight="semiBold" style={styles.feelingsLabel}>LOOKING BACK</ThemedText>
               </View>
-              <ThemedText weight="bold" style={styles.weeklyCapturedTitle}>Moments from this week</ThemedText>
+              <ThemedText weight="bold" style={styles.weeklyCapturedTitle}>
+                {showingRemembered ? 'What you want to remember' : 'Moments from this week'}
+              </ThemedText>
               <ThemedText style={styles.weeklyCapturedSubtitle}>
-                Here are the moments you captured.{`\n`}Tap any that stood out to you.
+                {showingRemembered
+                  ? 'These are the moments you bookmarked to carry forward.'
+                  : <>Here are the moments you captured.{`\n`}Tap the bookmark on anything you want to carry forward.</>}
               </ThemedText>
             </View>
-
-            {momentGroups.length > 0 ? momentGroups.map(group => (
-              <View key={group.key} style={styles.weeklyMomentGroup}>
-                <View style={styles.weeklyMomentGroupHeader}>
-                  <View style={styles.weeklyMomentGroupTitleRow}>
-                    <CaptureGroupIcon presentation={group.presentation}/>
-                    <ThemedText weight="semiBold" style={styles.weeklyMomentGroupTitle}>{group.title}</ThemedText>
-                  </View>
-                  {!!captureGroupCountLabel(group.presentation, group.items) && <ThemedText style={styles.weeklyMomentGroupCount}>
-                    {captureGroupCountLabel(group.presentation, group.items)}
-                  </ThemedText>}
-                </View>
-                <ScrollView
-                  horizontal
-                  nestedScrollEnabled
-                  style={styles.weeklyMomentCarouselViewport}
-                  showsHorizontalScrollIndicator={false}
-                  decelerationRate="fast"
-                  snapToInterval={carouselCardWidth + 12}
-                  disableIntervalMomentum
-                  contentContainerStyle={[
-                    styles.weeklyMomentCarousel,
-                    group.presentation === 'heart_journal' && styles.weeklyHeartJournalCarousel,
-                  ]}>
-                  {(group.presentation === 'todo'
-                    ? [...new Set(group.items.map(todo => todo.selectedDate))].map(selectedDate => {
-                      const relatedItems = group.items.filter(todo => todo.selectedDate === selectedDate);
-                      return {item: relatedItems[0], relatedItems, key: `todos-${selectedDate}`};
-                    })
-                    : group.items.map(item => ({item, relatedItems: [item], key: `${item.kind}-${item.id}-${item.selectedDate}`}))
-                  ).map(({item, relatedItems, key}) => {
-                    const isSelected = relatedItems.every(related => memorableItems.some(
-                      memorable => memorable.id === related.id && memorable.selectedDate === related.selectedDate,
-                    ));
-                    return (
-                      <WeeklyMomentCard
-                        key={key}
-                        item={item}
-                        selected={isSelected}
-                        width={carouselCardWidth}
-                        relatedItems={relatedItems}
-                        onPress={() => relatedItems.length > 1 ? toggleMemorableGroup(relatedItems) : toggleMemorable(item)}
-                      />
-                    );
-                  })}
-                </ScrollView>
+          }
+          renderGroupHeader={group => (
+            <View style={styles.weeklyMomentGroupHeader}>
+              <View style={styles.weeklyMomentGroupTitleRow}>
+                <CaptureGroupIcon presentation={group.presentation}/>
+                <ThemedText weight="semiBold" style={styles.weeklyMomentGroupTitle}>{group.title}</ThemedText>
               </View>
-            )) : (
-              <View style={styles.weeklyMomentsCard}>
-                <View style={styles.weeklyMomentsEmpty}>
-                  <ThemedText style={styles.weeklyMomentsEmptyText}>No journal moments were captured this week.</ThemedText>
-                </View>
+              {!!captureGroupCountLabel(group.presentation, group.items) && <ThemedText style={styles.weeklyMomentGroupCount}>
+                {captureGroupCountLabel(group.presentation, group.items)}
+              </ThemedText>}
+            </View>
+          )}
+          renderCard={({item, relatedItems}) => {
+            const isSelected = relatedItems.every(related => memorableItems.some(
+              memorable => memorable.id === related.id && memorable.selectedDate === related.selectedDate,
+            ));
+            return (
+              <WeeklyMomentCard
+                item={item}
+                selected={isSelected}
+                width={carouselCardWidth}
+                relatedItems={relatedItems}
+                onPress={() => relatedItems.length > 1 ? toggleMemorableGroup(relatedItems) : toggleMemorable(item)}
+              />
+            );
+          }}
+          empty={
+            <View style={styles.weeklyMomentsCard}>
+              <View style={styles.weeklyMomentsEmpty}>
+                <ThemedText style={styles.weeklyMomentsEmptyText}>
+                  {showingRemembered
+                    ? 'You didn’t bookmark any moments from this week.'
+                    : 'No journal moments were captured this week.'}
+                </ThemedText>
               </View>
-            )}
+            </View>
+          }
+          footer={showingRemembered ? (
+            <View style={styles.weeklyAdditionalMemory}>
+              <ThemedText weight="semiBold" style={styles.weeklyAdditionalMemoryTitle}>
+                Anything else you want to remember?
+              </ThemedText>
+              <ThemedText style={styles.weeklyAdditionalMemoryHint}>
+                Optional. A moment that mattered, even if you didn’t write it down during the week.
+              </ThemedText>
+              <TextInput
+                style={[styles.input, styles.weeklyAdditionalMemoryInput]}
+                multiline
+                scrollEnabled={false}
+                textAlignVertical="top"
+                value={answers.week_memory_other ?? ''}
+                onChangeText={text => onAnswerChange('week_memory_other', text)}
+                placeholder="I also want to remember…"
+                placeholderTextColor={Colors.textGray}
+                accessibilityLabel="Anything else you want to remember?"
+              />
+            </View>
+          ) : undefined}
+        />
+      );
+    }
 
-          </StaggeredReviewStage>
+    if (current.kind === 'captured') {
+      const carriedForwardItems = capture?.items.filter(item => item.carriedForwardFrom?.length) ?? [];
+      const otherItems = capture?.items.filter(item => !item.carriedForwardFrom?.length) ?? [];
+      const renderCaptureItem = (item: ReviewCaptureItem) => {
+        const isSel = memorableItems.some(
+          memorable => memorable.id === item.id && memorable.selectedDate === item.selectedDate,
         );
-      }
+        return (
+          <View key={`${item.kind}-${item.id}`} style={styles.captureItem}>
+            <View style={styles.captureItemHeader}>
+              <ThemedText weight="semiBold" style={styles.captureItemTitle}>
+                {item.title}
+              </ThemedText>
+              {item.subtitle ? (
+                <ThemedText style={styles.captureItemSubtitle}>
+                  {item.subtitle} · {item.selectedDate}
+                </ThemedText>
+              ) : null}
+            </View>
+            <TouchableOpacity
+              accessibilityRole="checkbox"
+              accessibilityState={{checked: isSel}}
+              accessibilityLabel={`${isSel ? 'Remove from remembered' : 'Remember this'}: ${item.title}`}
+              style={[
+                styles.rememberButton,
+                isSel && styles.rememberButtonActive,
+              ]}
+              onPress={() => toggleMemorable(item)}
+              activeOpacity={0.8}>
+              <Ionicons
+                name={isSel ? 'bookmark' : 'bookmark-outline'}
+                size={18}
+                color={isSel ? Colors.hopeWhite : Colors.sage}
+              />
+            </TouchableOpacity>
+          </View>
+        );
+      };
       return (
         <View style={styles.stage}>
           <ThemedText weight="bold" style={styles.title}>
@@ -1240,49 +1757,27 @@ const ReviewScreen: React.FC = () => {
           </ThemedText>
           <ThemedText style={styles.subtitle}>
             {capture
-              ? `${capture.items.length} moments from your ${reviewType.replace('_', ' ')}.`
+              ? `${capture.items.length} moments from your ${reviewType.replace('_', ' ')}. Remember what you want to carry forward.`
               : 'Loading…'}
           </ThemedText>
-          {capture?.items.map(item => {
-            const isSel = memorableItems.some(
-              m => m.id === item.id && m.selectedDate === item.selectedDate,
-            );
-            return (
-              <View key={`${item.kind}-${item.id}`} style={styles.captureItem}>
-                <View style={styles.captureItemHeader}>
-                  <ThemedText weight="semiBold" style={styles.captureItemTitle}>
-                    {item.title}
-                  </ThemedText>
-                  {item.subtitle ? (
-                    <ThemedText style={styles.captureItemSubtitle}>
-                      {item.subtitle} · {item.selectedDate}
-                    </ThemedText>
-                  ) : null}
-                </View>
-                <TouchableOpacity
-                  style={[
-                    styles.rememberButton,
-                    isSel && styles.rememberButtonActive,
-                  ]}
-                  onPress={() => toggleMemorable(item)}
-                  activeOpacity={0.8}>
-                  <Ionicons
-                    name={isSel ? 'heart' : 'heart-outline'}
-                    size={14}
-                    color={isSel ? Colors.hopeWhite : Colors.sage}
-                  />
-                  <ThemedText
-                    weight="semiBold"
-                    style={[
-                      styles.rememberButtonText,
-                      isSel && styles.rememberButtonTextActive,
-                    ]}>
-                    {isSel ? 'Remembered' : 'Remember this'}
-                  </ThemedText>
-                </TouchableOpacity>
+          {carriedForwardItems.length > 0 ? (
+            <View style={styles.carryForwardSection}>
+              <View style={styles.carryForwardHeadingRow}>
+                <Ionicons name="bookmark" size={15} color={Colors.sage}/>
+                <ThemedText weight="semiBold" style={styles.carryForwardEyebrow}>
+                  {carryForwardHeading(reviewType)}
+                </ThemedText>
               </View>
-            );
-          })}
+              <ThemedText style={styles.carryForwardCopy}>
+                You marked these as meaningful before. Choose what still deserves to move forward.
+              </ThemedText>
+              {carriedForwardItems.map(renderCaptureItem)}
+            </View>
+          ) : null}
+          {otherItems.length > 0 && carriedForwardItems.length > 0 ? (
+            <ThemedText weight="semiBold" style={styles.allMomentsHeading}>ALL MOMENTS</ThemedText>
+          ) : null}
+          {otherItems.map(renderCaptureItem)}
         </View>
       );
     }
@@ -1294,10 +1789,11 @@ const ReviewScreen: React.FC = () => {
       const hasCustomChoice=showCustomFeelingInput||hasCustomFeeling;
       const selectionCount=selected.length+(hasCustomChoice?1:0);
       const uniqueWords=(words:readonly string[])=>words.filter((item,index,all)=>item.toLocaleLowerCase()!=='other'&&all.findIndex(other=>other.toLocaleLowerCase()===item.toLocaleLowerCase())===index);
-      const suggestedNames=uniqueWords([...WEEKLY_SPIRITUAL_REFLECTION_WORDS,...selected]);
-      const visibleNames=showAllWeeklyFeelings
+      const suggestedNames=uniqueWords([...WEEKLY_FEELING_WORDS,...selected]);
+      const collapsedNames=uniqueWords([...suggestedNames.slice(0,WEEKLY_FEELINGS_PREVIEW_COUNT),...selected]);
+      const visibleNames=showAllWeeklyFeelings||closingFeelings!==null
         ? suggestedNames
-        : uniqueWords([...suggestedNames.slice(0,10),...selected]);
+        : collapsedNames;
       const optionNames=[...visibleNames,'Other'];
       const toggleFeeling=(feeling:string)=>{
         const isSelected=selected.includes(feeling);
@@ -1309,6 +1805,7 @@ const ReviewScreen: React.FC = () => {
       const toggleCustomFeeling=()=>{
         if(hasCustomChoice){
           triggerLightHaptic();
+          pendingCustomFeelingFocusRef.current=false;
           Keyboard.dismiss();
           setShowCustomFeelingInput(false);
           onAnswerChange('week_feeling_other','');
@@ -1316,10 +1813,8 @@ const ReviewScreen: React.FC = () => {
         }
         if(selectionCount>=3)return;
         triggerLightHaptic();
+        pendingCustomFeelingFocusRef.current=true;
         setShowCustomFeelingInput(true);
-        requestAnimationFrame(()=>{
-          customFeelingInputRef.current?.focus();
-        });
       };
       return <StaggeredReviewStage
         animationKey={current.key}
@@ -1345,22 +1840,60 @@ const ReviewScreen: React.FC = () => {
           <ThemedText style={styles.feelingsSubtitle}>Choose or write up to 3 words.</ThemedText>
         </View>
         <View style={styles.feelingsGrid}>
-          {optionNames.map(feeling=>{
+          {optionNames.map((feeling,pillIndex)=>{
             const isOther=feeling==='Other';
             const isSelected=selected.includes(feeling);
             const isOtherActive=isOther&&hasCustomChoice;
             const atLimit=isOther?!isOtherActive&&selectionCount>=3:!isSelected&&selectionCount>=3;
             const active=isOther?isOtherActive:isSelected;
-            return <TouchableOpacity key={feeling} accessibilityRole="button" accessibilityState={{selected:active,disabled:atLimit}} disabled={atLimit} activeOpacity={0.8} style={[styles.feelingPill,active&&styles.feelingPillSelected,atLimit&&styles.feelingPillDisabled]} onPress={()=>isOther?toggleCustomFeeling():toggleFeeling(feeling)}>
-              <ThemedText weight="semiBold" style={[styles.feelingPillText,active&&styles.feelingPillTextSelected]}>{feeling}</ThemedText>
-            </TouchableOpacity>;
+            const exitingIndex=closingFeelings?closingFeelings.indexOf(feeling):-1;
+            const isExiting=exitingIndex>=0;
+            const pillDelay=showAllWeeklyFeelings
+              ? Math.max(0,pillIndex-collapsedNames.length)*REVIEW_PILL_STAGGER_MS
+              : REVIEW_PILL_BASE_DELAY_MS+pillIndex*REVIEW_PILL_STAGGER_MS;
+            return <StaggeredFeelingPill key={feeling} delay={pillDelay} exiting={isExiting} exitDelay={isExiting?((closingFeelings?.length??1)-1-exitingIndex)*REVIEW_PILL_STAGGER_MS:0}>
+              <TouchableOpacity accessibilityRole="button" accessibilityState={{selected:active,disabled:atLimit}} disabled={atLimit} activeOpacity={0.8} style={[styles.feelingPill,active&&styles.feelingPillSelected,atLimit&&styles.feelingPillDisabled]} onPress={()=>isOther?toggleCustomFeeling():toggleFeeling(feeling)}>
+                <ThemedText weight="semiBold" style={[styles.feelingPillText,active&&styles.feelingPillTextSelected]}>{feeling}</ThemedText>
+              </TouchableOpacity>
+            </StaggeredFeelingPill>;
           })}
         </View>
-        {suggestedNames.length>10?<TouchableOpacity
+        {suggestedNames.length>WEEKLY_FEELINGS_PREVIEW_COUNT?<TouchableOpacity
           accessibilityRole="button"
           accessibilityState={{expanded:showAllWeeklyFeelings}}
           activeOpacity={0.7}
-          onPress={()=>{triggerLightHaptic();setShowAllWeeklyFeelings(value=>!value);}}
+          onPress={()=>{
+            triggerLightHaptic();
+            if(feelingsCloseTimerRef.current){clearTimeout(feelingsCloseTimerRef.current);feelingsCloseTimerRef.current=null;}
+            if(showAllWeeklyFeelings){
+              const staying=new Set([...collapsedNames,'Other']);
+              const exiting=optionNames.filter(name=>!staying.has(name));
+              AccessibilityInfo.isReduceMotionEnabled().then(reduceMotion=>{
+                if(reduceMotion||exiting.length===0){
+                  LayoutAnimation.configureNext(LayoutAnimation.Presets.spring);
+                  setClosingFeelings(null);
+                  setShowAllWeeklyFeelings(false);
+                  return;
+                }
+                setClosingFeelings(exiting);
+                setShowAllWeeklyFeelings(false);
+                const totalExit=(exiting.length-1)*REVIEW_PILL_STAGGER_MS+260;
+                feelingsCloseTimerRef.current=setTimeout(()=>{
+                  feelingsCloseTimerRef.current=null;
+                  LayoutAnimation.configureNext(LayoutAnimation.Presets.spring);
+                  setClosingFeelings(null);
+                },totalExit);
+              }).catch(()=>{
+                LayoutAnimation.configureNext(LayoutAnimation.Presets.spring);
+                setClosingFeelings(null);
+                setShowAllWeeklyFeelings(false);
+              });
+              return;
+            }
+            LayoutAnimation.configureNext(LayoutAnimation.Presets.spring);
+            setClosingFeelings(null);
+            setShowAllWeeklyFeelings(true);
+          }}
           style={styles.feelingsShowMore}>
           <ThemedText weight="semiBold" style={styles.feelingsShowMoreText}>{showAllWeeklyFeelings?'Show less':'Show more'}</ThemedText>
         </TouchableOpacity>:null}
@@ -1375,10 +1908,87 @@ const ReviewScreen: React.FC = () => {
           multiline
           editable={selected.length<3||hasCustomFeeling}
           textAlignVertical="top"
-          onFocus={()=>requestAnimationFrame(revealCustomFeelingInput)}
+          onLayout={()=>{
+            if(pendingCustomFeelingFocusRef.current){
+              pendingCustomFeelingFocusRef.current=false;
+              customFeelingInputRef.current?.focus();
+            }
+            revealCustomReviewInput();
+          }}
+          onFocus={()=>requestAnimationFrame(revealCustomReviewInput)}
           accessibilityLabel="Write it in your own words"
         />:null}
       </StaggeredReviewStage>;
+    }
+
+    if (current.kind === 'life_check_in') {
+      return (
+        <StaggeredReviewStage
+          animationKey={current.key}
+          enabled
+          style={[styles.stage, styles.lifeCheckInStage]}>
+          <View style={styles.lifeCheckInHeading}>
+            <View style={styles.feelingsLabelRow}>
+              <Ionicons name="leaf-outline" size={15} color={Colors.sage}/>
+              <ThemedText weight="semiBold" style={styles.feelingsLabel}>LOOKING BACK</ThemedText>
+            </View>
+            <ThemedText weight="bold" style={styles.lifeCheckInQuestion}>
+              {current.question}
+            </ThemedText>
+            <ThemedText style={styles.lifeCheckInSubtitle}>
+              {current.subtitle}
+            </ThemedText>
+          </View>
+
+          {WEEKLY_LIFE_AREAS.map(area => {
+            const selectedValue = answers[area.answerKey] ?? '';
+            return (
+              <View key={area.key} style={styles.lifeCheckInRow}>
+                <View style={styles.lifeCheckInIcon} accessibilityElementsHidden>
+                  <MaterialCommunityIcons name={area.icon} size={24} color={Colors.sage}/>
+                </View>
+                <View style={styles.lifeCheckInContent}>
+                  <ThemedText weight="medium" style={styles.lifeCheckInAreaLabel}>
+                    {area.label}
+                  </ThemedText>
+                  <View style={styles.lifeCheckInOptions}>
+                    {WEEKLY_LIFE_CHECK_IN_OPTIONS.map(option => {
+                      const isSelected = selectedValue === option.value;
+                      return (
+                        <TouchableOpacity
+                          key={option.value}
+                          accessibilityRole="button"
+                          accessibilityLabel={`${area.label}: ${option.label}`}
+                          accessibilityState={{selected: isSelected}}
+                          activeOpacity={0.78}
+                          onPress={() => {
+                            triggerLightHaptic();
+                            onAnswerChange(area.answerKey, option.value);
+                          }}
+                          style={[
+                            styles.feelingPill,
+                            styles.lifeCheckInPill,
+                            isSelected && styles.feelingPillSelected,
+                          ]}>
+                          <ThemedText
+                            weight="semiBold"
+                            style={[
+                              styles.feelingPillText,
+                              styles.lifeCheckInPillText,
+                              isSelected && styles.feelingPillTextSelected,
+                            ]}>
+                            {option.label}
+                          </ThemedText>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </View>
+              </View>
+            );
+          })}
+        </StaggeredReviewStage>
+      );
     }
 
     if (current.kind === 'remembered') {
@@ -1392,7 +2002,7 @@ const ReviewScreen: React.FC = () => {
               ? `You chose ${memorableItems.length} thing${
                   memorableItems.length === 1 ? '' : 's'
                 } to carry with this review.`
-              : 'Tap the heart on anything you want to carry with this review.'}
+              : 'Go back and tap the bookmark on anything you want to carry with this review.'}
           </ThemedText>
           {memorableItems
             .map(m => capture?.items.find(i => i.id === m.id && i.selectedDate === m.selectedDate))
@@ -1415,47 +2025,556 @@ const ReviewScreen: React.FC = () => {
       );
     }
 
-    if (current.kind === 'question') {
+    if (current.kind === 'question' && current.key === 'notice' && reviewType === 'weekly') {
       return (
-        <StaggeredReviewStage animationKey={current.key} enabled={reviewType === 'weekly'} style={styles.stage}>
+        <StaggeredReviewStage
+          animationKey={current.key}
+          enabled
+          style={[styles.stage, styles.weeklyGratitudeStage]}>
+          <View style={styles.weeklyGratitudeLabelContainer}>
+            <Ionicons name="heart-outline" size={16} color={Colors.sage}/>
+            <ThemedText weight="semiBold" style={styles.weeklyGratitudeLabel}>
+              WEEKLY GRATITUDE
+            </ThemedText>
+          </View>
+          <ThemedText weight="semiBold" style={styles.weeklyGratitudeTitle}>
+            {current.question}
+          </ThemedText>
+          <ThemedText style={styles.weeklyGratitudeSubtitle}>
+            {current.subtitle}
+          </ThemedText>
+
+          {weeklyGratitudeDates.length > 0 ? (
+            <View style={styles.weeklyGratitudeLookBack}>
+              <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityState={{expanded: showWeeklyGratitudeLookBack}}
+                onPress={() => {
+                  triggerLightHaptic();
+                  setShowWeeklyGratitudeLookBack(show => !show);
+                }}
+                activeOpacity={0.7}
+                style={styles.weeklyGratitudeLookBackToggle}>
+                <Ionicons name="calendar-outline" size={18} color={Colors.sage}/>
+                <ThemedText weight="medium" style={styles.weeklyGratitudeLookBackTitle}>
+                  Look back at your week
+                </ThemedText>
+                <Ionicons
+                  name={showWeeklyGratitudeLookBack ? 'chevron-up' : 'chevron-down'}
+                  size={18}
+                  color={Colors.sage}
+                />
+              </TouchableOpacity>
+              {showWeeklyGratitudeLookBack ? (
+                <Pressable
+                  accessible={false}
+                  onPress={() => {
+                    triggerLightHaptic();
+                    setShowWeeklyGratitudeLookBack(false);
+                  }}
+                  style={styles.weeklyGratitudeLookBackContent}>
+                  <ThemedText style={styles.weeklyGratitudeLookBackHint}>
+                    Your daily gratitude from this week.
+                  </ThemedText>
+                  <MomentsPaletteContext.Provider value={true}>
+                    {weeklyGratitudeDates.map(date => {
+                      const [entryYear, entryMonth, entryDay] = date.split('-').map(Number);
+                      return (
+                        <View key={date} style={styles.weeklyGratitudeLookBackDay}>
+                          <View style={styles.weeklyGratitudeLookBackDatePill}>
+                            <ThemedText weight="semiBold" style={styles.weeklyGratitudeLookBackDate}>
+                              {formatCapturedDate(date)}
+                            </ThemedText>
+                          </View>
+                          <GratitudeListReactQuery
+                            selectedDate={new Date(entryYear, entryMonth - 1, entryDay, 12)}
+                            viewMode="moments"
+                            readOnly
+                            cardStyle={styles.weeklyGratitudeLookBackCard}
+                            iconColor={Colors.sage}
+                            title="Gratitude"
+                            iconPosition="top"
+                          />
+                        </View>
+                      );
+                    })}
+                  </MomentsPaletteContext.Provider>
+                </Pressable>
+              ) : null}
+            </View>
+          ) : null}
+
+          <View style={styles.weeklyGratitudeInputs}>
+            {Array.from({length: weeklyGratitudeInputCount}, (_, index) => {
+              const answerKey = weeklyGratitudeAnswerKey(index);
+              return (
+                <TextInput
+                  key={answerKey}
+                  ref={input => {weeklyGratitudeInputRefs.current[index] = input;}}
+                  style={styles.weeklyGratitudeInput}
+                  autoFocus={index === 0}
+                  underlineColorAndroid="transparent"
+                  multiline
+                  scrollEnabled={false}
+                  textAlignVertical="top"
+                  value={answers[answerKey] ?? ''}
+                  onChangeText={text => onAnswerChange(answerKey, text)}
+                  onFocus={() => revealWeeklyGratitudeInput(index)}
+                  placeholder={current.placeholder}
+                  placeholderTextColor={Colors.textGray}
+                  accessibilityLabel={index === 0 ? 'Your weekly prayer of thanks' : `Additional weekly reflection ${index}`}
+                />
+              );
+            })}
+          </View>
+        </StaggeredReviewStage>
+      );
+    }
+
+    if (current.kind === 'question' && current.key === 'god' && reviewType === 'weekly') {
+      const rawAnswer = answers.god ?? '';
+      const selectedChoices = rawAnswer.split('|').filter(isGodFaithfulnessChoice);
+      const legacyResponse = rawAnswer.trim() && selectedChoices.length === 0 ? rawAnswer.trim() : '';
+      const customResponse = answers.god_faithfulness_other ?? legacyResponse;
+      const hasCustomChoice = showGodFaithfulnessInput || Boolean(customResponse.trim());
+      const selectionCount = selectedChoices.length + (hasCustomChoice ? 1 : 0);
+      const saveGodAnswers = (patch: Record<string, string>) => {
+        const next = {...answers, ...patch};
+        setAnswers(next);
+        saveReview({answers: next});
+      };
+      const toggleChoice = (choice: string) => {
+        const isSelected = selectedChoices.includes(choice);
+        if (!isSelected && selectionCount >= 3) {return;}
+        triggerLightHaptic();
+        const nextChoices = choice === 'I’m still looking'
+          ? (isSelected ? [] : [choice])
+          : isSelected
+            ? selectedChoices.filter(item => item !== choice)
+            : [...selectedChoices.filter(item => item !== 'I’m still looking'), choice];
+        saveGodAnswers({
+          god: nextChoices.join('|'),
+          ...(legacyResponse && answers.god_faithfulness_other === undefined
+            ? {god_faithfulness_other: legacyResponse}
+            : {}),
+        });
+      };
+      const toggleCustomChoice = () => {
+        if (hasCustomChoice) {
+          triggerLightHaptic();
+          pendingGodFaithfulnessFocusRef.current = false;
+          Keyboard.dismiss();
+          setShowGodFaithfulnessInput(false);
+          saveGodAnswers({
+            god: selectedChoices.join('|'),
+            god_faithfulness_other: '',
+          });
+          return;
+        }
+        if (selectionCount >= 3) {return;}
+        triggerLightHaptic();
+        pendingGodFaithfulnessFocusRef.current = true;
+        setShowGodFaithfulnessInput(true);
+      };
+
+      return (
+        <StaggeredReviewStage
+          animationKey={current.key}
+          enabled
+          style={[styles.stage, styles.godFaithfulnessStage]}>
+          <View style={styles.labelRow}>
+            <Ionicons name="sparkles-outline" size={16} color={Colors.sage}/>
+            <ThemedText weight="semiBold" style={styles.label}>{current.label}</ThemedText>
+          </View>
+          <ThemedText weight="bold" style={styles.godFaithfulnessQuestion}>
+            {current.question}
+          </ThemedText>
+          <ThemedText style={styles.godFaithfulnessSubtitle}>
+            {current.subtitle}
+          </ThemedText>
+
+          <View style={styles.godFaithfulnessGrid}>
+            {[...WEEKLY_GOD_FAITHFULNESS_OPTIONS, 'Write my own'].map((choice, index) => {
+              const isCustom = choice === 'Write my own';
+              const isSelected = isCustom ? hasCustomChoice : selectedChoices.includes(choice);
+              const atLimit = !isSelected && selectionCount >= 3;
+              return (
+                <StaggeredFeelingPill
+                  key={choice}
+                  delay={REVIEW_PILL_BASE_DELAY_MS + index * REVIEW_PILL_STAGGER_MS}>
+                  <TouchableOpacity
+                    accessibilityRole="button"
+                    accessibilityState={{selected: isSelected, disabled: atLimit}}
+                    disabled={atLimit}
+                    activeOpacity={0.8}
+                    onPress={() => isCustom ? toggleCustomChoice() : toggleChoice(choice)}
+                    style={[
+                      styles.feelingPill,
+                      isSelected && styles.feelingPillSelected,
+                      atLimit && styles.feelingPillDisabled,
+                    ]}>
+                    <ThemedText
+                      weight="semiBold"
+                      style={[
+                        styles.feelingPillText,
+                        isSelected && styles.feelingPillTextSelected,
+                      ]}>
+                      {choice}
+                    </ThemedText>
+                  </TouchableOpacity>
+                </StaggeredFeelingPill>
+              );
+            })}
+          </View>
+
+          {hasCustomChoice ? (
+            <TextInput
+              ref={godFaithfulnessInputRef}
+              style={styles.godFaithfulnessInput}
+              underlineColorAndroid="transparent"
+              multiline
+              scrollEnabled={false}
+              value={customResponse}
+              onChangeText={text => saveGodAnswers({
+                god: selectedChoices.join('|'),
+                god_faithfulness_other: text,
+              })}
+              onLayout={() => {
+                if (pendingGodFaithfulnessFocusRef.current) {
+                  pendingGodFaithfulnessFocusRef.current = false;
+                  godFaithfulnessInputRef.current?.focus();
+                }
+                revealCustomReviewInput();
+              }}
+              onFocus={() => requestAnimationFrame(revealCustomReviewInput)}
+              placeholder="Write how God met you this week…"
+              placeholderTextColor={Colors.textGray}
+              maxLength={320}
+              textAlignVertical="top"
+              accessibilityLabel="Write how God met you this week"
+            />
+          ) : null}
+        </StaggeredReviewStage>
+      );
+    }
+
+    if (current.kind === 'question' && current.key === 'dont_forget' && reviewType === 'weekly') {
+      const selectedCareAreas = new Set(getWeeklyCareAreas(answers).map(area => area.key));
+      return (
+        <StaggeredReviewStage animationKey={current.key} enabled style={[styles.stage, styles.weeklyCareStage]}>
+          <View style={styles.labelRow}>
+            <Ionicons name="heart-outline" size={16} color={Colors.sage}/>
+            <ThemedText weight="semiBold" style={styles.label}>{current.label}</ThemedText>
+          </View>
+          <ThemedText weight="semiBold" style={styles.weeklyGratitudeTitle}>
+            {current.question}
+          </ThemedText>
+          <ThemedText style={styles.weeklyGratitudeSubtitle}>{current.subtitle}</ThemedText>
+          <View style={styles.weeklyCareAreas}>
+            {WEEKLY_CARE_AREAS.map(area => {
+              const isSelected = selectedCareAreas.has(area.key);
+              return (
+                <View key={area.key} style={styles.weeklyCareAreaSlot}>
+                  <TouchableOpacity
+                    accessibilityRole="button"
+                    accessibilityLabel={area.label}
+                    accessibilityState={{selected: isSelected}}
+                    activeOpacity={0.8}
+                    onPress={() => {
+                      triggerLightHaptic();
+                      const next = new Set(selectedCareAreas);
+                      if (area.key === 'other') {pendingWeeklyCareOtherFocusRef.current = !isSelected;}
+                      if (isSelected) {next.delete(area.key);} else {next.add(area.key);}
+                      onAnswerChange('week_care_areas', WEEKLY_CARE_AREAS
+                        .filter(candidate => next.has(candidate.key))
+                        .map(candidate => candidate.key).join('|'));
+                    }}
+                    style={[styles.weeklyCareArea, isSelected && styles.weeklyCareAreaSelected]}>
+                    <MaterialCommunityIcons name={area.icon} size={22} color={isSelected ? Colors.hopeWhite : Colors.sage}/>
+                    <ThemedText
+                      weight="medium"
+                      style={[styles.weeklyCareAreaLabel, isSelected && styles.weeklyCareAreaLabelSelected]}>
+                      {area.label}
+                    </ThemedText>
+                  </TouchableOpacity>
+                </View>
+              );
+            })}
+          </View>
+          <View style={styles.weeklyCareNote}>
+            {selectedCareAreas.has('other') && (
+              <View style={styles.weeklyCareOther}>
+                <ThemedText weight="medium" style={styles.weeklyCareNoteLabel}>
+                  What else needs care?
+                </ThemedText>
+                <TextInput
+                  ref={weeklyCareOtherInputRef}
+                  style={[styles.weeklyCareInput, styles.weeklyCareOtherInput]}
+                  multiline
+                  scrollEnabled={false}
+                  underlineColorAndroid="transparent"
+                  value={answers.week_care_other ?? ''}
+                  onChangeText={text => onAnswerChange('week_care_other', text)}
+                  onLayout={() => {
+                    if (pendingWeeklyCareOtherFocusRef.current) {
+                      pendingWeeklyCareOtherFocusRef.current = false;
+                      weeklyCareOtherInputRef.current?.focus();
+                    }
+                    revealCustomReviewInput();
+                  }}
+                  onFocus={() => requestAnimationFrame(revealCustomReviewInput)}
+                  placeholder="Write your own area…"
+                  placeholderTextColor={Colors.textGray}
+                  textAlignVertical="top"
+                  accessibilityLabel="Other area that needs care this week"
+                />
+              </View>
+            )}
+            <ThemedText weight="medium" style={styles.weeklyCareNoteLabel}>
+              A note for this week
+            </ThemedText>
+            <TextInput
+              ref={weeklyCareInputRef}
+              style={styles.weeklyCareInput}
+              multiline
+              scrollEnabled={false}
+              underlineColorAndroid="transparent"
+              value={answers.dont_forget ?? ''}
+              onChangeText={text => onAnswerChange('dont_forget', text)}
+              onFocus={() => requestAnimationFrame(revealCustomReviewInput)}
+              onLayout={revealCustomReviewInput}
+              placeholder={current.placeholder}
+              placeholderTextColor={Colors.textGray}
+              textAlignVertical="top"
+              accessibilityLabel="A note about what needs care this week"
+            />
+          </View>
+        </StaggeredReviewStage>
+      );
+    }
+
+    if (current.kind === 'question' && current.key === 'watch_for' && reviewType === 'weekly') {
+      const selectedChoices = getWeeklyChallengeChoices(answers);
+      const selectedKeys = new Set(selectedChoices.map(option => option.key));
+      const saveChallengeAnswers = (patch: Record<string, string>) => {
+        const next = {...answers, ...patch};
+        setAnswers(next);
+        saveReview({answers: next});
+      };
+      return (
+        <StaggeredReviewStage animationKey={current.key} enabled style={[styles.stage, styles.weeklyChallengeStage]}>
+          <View style={styles.labelRow}>
+            <Ionicons name="arrow-forward-outline" size={16} color={Colors.sage}/>
+            <ThemedText weight="semiBold" style={styles.label}>{current.label}</ThemedText>
+          </View>
+          <ThemedText weight="semiBold" style={styles.weeklyChallengeTitle}>
+            {current.question}
+          </ThemedText>
+          <ThemedText style={styles.weeklyChallengeSubtitle}>{current.subtitle}</ThemedText>
+          <View style={styles.weeklyChallengeChoices}>
+            {getWeeklyChallengeOptions(answers).map(option => {
+              const isSelected = selectedKeys.has(option.key);
+              return (
+                <TouchableOpacity
+                  key={option.key}
+                  accessibilityRole="button"
+                  accessibilityLabel={option.label}
+                  accessibilityState={{selected: isSelected}}
+                  activeOpacity={0.8}
+                  onPress={() => {
+                    triggerLightHaptic();
+                    saveChallengeAnswers({week_challenge_choices: toggleWeeklyChallengeChoice(answers, option.key)});
+                    if (option.key === 'other' && !isSelected) {
+                      requestAnimationFrame(() => weeklyChallengeOtherInputRef.current?.focus());
+                    }
+                  }}
+                  style={[styles.feelingPill, styles.weeklyChallengePill, isSelected && styles.feelingPillSelected]}>
+                  <ThemedText
+                    weight="medium"
+                    style={[styles.feelingPillText, isSelected && styles.feelingPillTextSelected]}>
+                    {option.label}
+                  </ThemedText>
+                  <Ionicons
+                    accessible={false}
+                    name={isSelected ? 'close' : 'add'}
+                    size={16}
+                    color={isSelected ? Colors.hopeWhite : Colors.sage}
+                  />
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+          <View>
+            {selectedKeys.has('other') && (
+              <View style={styles.weeklyChallengeOther}>
+                <ThemedText weight="medium" style={styles.weeklyCareNoteLabel}>
+                  Something else to be mindful of
+                </ThemedText>
+                <TextInput
+                  ref={weeklyChallengeOtherInputRef}
+                  style={[styles.weeklyCareInput, styles.weeklyChallengeInput]}
+                  autoFocus
+                  multiline
+                  scrollEnabled={false}
+                  underlineColorAndroid="transparent"
+                  value={answers.watch_for ?? ''}
+                  onChangeText={text => saveChallengeAnswers({
+                    week_challenge_choices: selectedChoices.map(option => option.key).join('|'),
+                    watch_for: text,
+                  })}
+                  onFocus={() => requestAnimationFrame(revealWeeklyChallengeOtherInput)}
+                  placeholder={current.placeholder}
+                  placeholderTextColor={Colors.textGray}
+                  textAlignVertical="top"
+                  accessibilityLabel="Something else that could make this week difficult"
+                />
+              </View>
+            )}
+          </View>
+        </StaggeredReviewStage>
+      );
+    }
+
+    if (reviewType === 'weekly' && current.key === 'looking_forward_feeling') {
+      return (
+        <LookingForwardEmotionStep
+          weekly
+          embedded
+          selectedEmotion={getWeeklyLookingForwardEmotion(answers)}
+          onSelect={emotion => onAnswerChange('week_looking_forward_emotion', emotion?.id ?? '')}
+          onNext={() => goTo(stage + 1)}
+          insets={{top: topInset + 36, bottom: insets.bottom}}
+          customEmotion={answers.week_looking_forward_other ?? ''}
+          setCustomEmotion={text => onAnswerChange('week_looking_forward_other', text)}
+          dateContext="today"
+        />
+      );
+    }
+
+    if (reviewType === 'weekly' && current.key === 'looking_forward') {
+      return (
+        <LookingForwardWritingStep
+          weekly
+          embedded
+          emotion={getWeeklyLookingForwardEmotion(answers)}
+          lookingAheadText={answers.week_looking_forward ?? ''}
+          onChange={text => onAnswerChange('week_looking_forward', text)}
+          onNext={() => goTo(stage + 1)}
+          insets={{top: topInset + 36, bottom: insets.bottom}}
+          customEmotion={answers.week_looking_forward_other ?? ''}
+          dateContext="today"
+        />
+      );
+    }
+
+    if (reviewType === 'weekly' && current.key === 'prayer_ahead') {
+      const savedPrayerWords = getWeeklySupportChoices(answers).filter(option => option.key !== 'other');
+      return (
+        <StaggeredReviewStage animationKey={current.key} enabled style={[styles.stage, styles.weeklyClosingStage]}>
+          <View style={styles.labelRow}>
+            <PrayerHandsIcon size={18} color={Colors.sage}/>
+            <ThemedText weight="semiBold" style={styles.label}>{current.label}</ThemedText>
+          </View>
+          <ThemedText weight="semiBold" style={styles.weeklyChallengeTitle}>{current.question}</ThemedText>
+          <ThemedText style={styles.weeklyChallengeSubtitle}>{current.subtitle}</ThemedText>
+          <View style={styles.weeklyClosingNote}>
+            {savedPrayerWords.length > 0 && <ThemedText style={styles.weeklyCareNoteLabel}>{savedPrayerWords.map(option => option.label).join(' · ')}</ThemedText>}
+            <TextInput
+              ref={weeklyPrayerInputRef}
+              style={styles.weeklyPrayerInput}
+              autoFocus
+              multiline
+              scrollEnabled={false}
+              underlineColorAndroid="transparent"
+              value={answers.prayer_ahead ?? ''}
+              onChangeText={text => onAnswerChange('prayer_ahead', text)}
+              onFocus={() => requestAnimationFrame(revealWeeklyClosingInput)}
+              placeholder={current.placeholder}
+              placeholderTextColor={Colors.textGray}
+              textAlignVertical="top"
+              accessibilityLabel="Your words to God (optional)"
+            />
+          </View>
+        </StaggeredReviewStage>
+      );
+    }
+
+    if (current.kind === 'question') {
+      const isWeeklyDifficulty = reviewType === 'weekly' && current.key === 'difficulty';
+      const isWeeklyLearning = reviewType === 'weekly' && current.key === 'learning';
+      return (
+        <StaggeredReviewStage
+          animationKey={current.key}
+          enabled={reviewType === 'weekly'}
+          style={[styles.stage, isWeeklyDifficulty && styles.weeklyDifficultyStage]}>
           <View style={styles.labelRow}>
             {current.icon && <Ionicons name={current.icon as any} size={16} color={Colors.sage} />}
             <ThemedText weight="semiBold" style={styles.label}>
               {current.label}
             </ThemedText>
           </View>
-          <ThemedText weight="bold" style={styles.question}>
+          <ThemedText
+            weight="bold"
+            style={[styles.question, current.subtitle && styles.questionWithSubtitle]}>
             {current.question}
           </ThemedText>
+          {current.subtitle ? (
+            <ThemedText style={styles.questionSubtitle}>{current.subtitle}</ThemedText>
+          ) : null}
           <TextInput
             style={styles.input}
+            autoFocus={isWeeklyDifficulty || isWeeklyLearning}
+            underlineColorAndroid={isWeeklyDifficulty ? 'transparent' : undefined}
             multiline
             value={answers[current.answerKey!] ?? ''}
             onChangeText={t => onAnswerChange(current.answerKey!, t)}
             placeholder={current.placeholder ?? 'Start writing...'}
             placeholderTextColor={Colors.textGray}
             textAlignVertical="top"
+            accessibilityLabel={current.question}
           />
+          {reviewType === 'weekly' && current.key === 'learning' && answers.prayer?.trim() ? (
+            <View style={styles.weeklySavedPrayer}>
+              <ThemedText weight="semiBold" style={styles.weeklyAdditionalMemoryTitle}>
+                Your saved prayer from this review
+              </ThemedText>
+              <ThemedText style={styles.weeklySavedPrayerBody}>{answers.prayer}</ThemedText>
+            </View>
+          ) : null}
         </StaggeredReviewStage>
       );
     }
 
     if (current.kind === 'priorities') {
+      const isWeeklyPriority = reviewType === 'weekly';
       return (
         <StaggeredReviewStage animationKey={current.key} enabled={reviewType === 'weekly'} style={styles.stage}>
           <View style={styles.labelRow}>
-            {current.icon && <Ionicons name={current.icon as any} size={16} color={Colors.sage} />}
+            {isWeeklyPriority ? (
+              <MaterialIcons name="filter-center-focus" size={16} color={Colors.sage} />
+            ) : current.icon && <Ionicons name={current.icon as any} size={16} color={Colors.sage} />}
             <ThemedText weight="semiBold" style={styles.label}>
               {current.label}
             </ThemedText>
           </View>
-          <ThemedText weight="bold" style={styles.question}>
+          <ThemedText
+            weight="bold"
+            style={[styles.question, isWeeklyPriority && current.subtitle && styles.questionWithSubtitle]}>
             {current.question}
           </ThemedText>
           {current.subtitle ? (
-            <ThemedText style={styles.subtitle}>{current.subtitle}</ThemedText>
+            <ThemedText style={isWeeklyPriority ? styles.questionSubtitle : styles.subtitle}>
+              {current.subtitle}
+            </ThemedText>
           ) : null}
-          {current.answerKeys!.map((key, index) => (
+          {isWeeklyPriority ? (
+            <FocusPriorityInputs
+              ref={weeklyPriorityInputsRef}
+              visibleCount={weeklyPriorityInputCount}
+              priorities={current.answerKeys!.map(key => answers[key] ?? '')}
+              onChange={(index, text) => onAnswerChange(current.answerKeys![index], text)}
+            />
+          ) : current.answerKeys!.map((key, index) => (
             <TextInput
               key={key}
               style={[styles.input, styles.shortInput]}
@@ -1470,6 +2589,42 @@ const ReviewScreen: React.FC = () => {
     }
 
     if (current.kind === 'transition') {
+      if (reviewType === 'weekly' && current.key === 'looking_ahead') {
+        return (
+          <StaggeredReviewStage
+            animationKey={current.key}
+            enabled
+            style={[
+              styles.stage,
+              styles.weeklyLookingAheadStage,
+              {minHeight: Math.max(480, screenHeight - topInset - insets.bottom - 172)},
+            ]}>
+            <Image
+              accessible={false}
+              resizeMode="contain"
+              source={require('../../assets/images/reviews/weekly-looking-ahead-sunrise-v2.png')}
+              style={styles.weeklyLookingAheadArtwork}
+            />
+            <View style={styles.weeklyLookingAheadCopy}>
+              <View style={styles.weeklyLookingAheadLabelRow}>
+                <Ionicons name="leaf-outline" size={15} color={Colors.sage} />
+                <ThemedText weight="semiBold" style={styles.weeklyLookingAheadLabel}>
+                  {current.label}
+                </ThemedText>
+              </View>
+              <ThemedText weight="bold" style={styles.weeklyLookingAheadTitle}>
+                {current.title}
+              </ThemedText>
+              <ThemedText style={styles.weeklyLookingAheadSubtitle}>
+                {current.subtitle}
+              </ThemedText>
+              <ThemedText weight="medium" style={styles.weeklyAheadDates}>{weeklyLookingAheadPeriodLabel}</ThemedText>
+              <ThemedText style={styles.weeklyAheadOptional}>Answer what helps. You can skip any step.</ThemedText>
+            </View>
+          </StaggeredReviewStage>
+        );
+      }
+
       return (
         <StaggeredReviewStage animationKey={current.key} enabled={reviewType === 'weekly'} style={styles.stage}>
           <View style={styles.labelRow}>
@@ -1728,6 +2883,63 @@ const ReviewScreen: React.FC = () => {
     return null;
   };
 
+  if (isLoadingReview || reviewLoadError) {
+    return (
+      <SafeAreaView style={styles.safeArea} edges={['left', 'right']}>
+        <StatusBar barStyle="dark-content" backgroundColor={Colors.lightBackground} translucent={false}/>
+        <HeaderBackButton
+          style={[styles.backButton, {top: topInset + 8}]}
+          onPress={() => {
+            triggerLightHaptic();
+            navigation.goBack();
+          }}
+          accessibilityLabel="Back"
+          color={Colors.text}
+        />
+        <View style={styles.reviewLoadState}>
+          {isLoadingReview ? <>
+            <ActivityIndicator color={Colors.sage}/>
+            <ThemedText>Loading your review…</ThemedText>
+          </> : <>
+            <ThemedText>We couldn’t load your review.</ThemedText>
+            <TouchableOpacity
+              accessibilityRole="button"
+              style={styles.primaryButton}
+              onPress={() => setReviewLoadAttempt(attempt => attempt + 1)}>
+              <ThemedText weight="bold" style={styles.primaryButtonText}>Try again</ThemedText>
+            </TouchableOpacity>
+          </>}
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (reviewType === 'weekly' && currentStageKind === 'ready' && review) {
+    return (
+      <SafeAreaView style={styles.safeArea} edges={['left', 'right']}>
+        <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent/>
+        <WeeklyReviewSummary
+          topInset={topInset}
+          backAccessibilityLabel="Previous review step"
+          onBack={() => goTo(stage - 1)}
+          onClose={() => {triggerLightHaptic(); navigation.goBack();}}
+          review={{...review, answers, memorableItems}}
+          capture={capture}
+          activeTab={weeklySummaryTab}
+          onTabChange={setWeeklySummaryTab}
+          onEdit={stageKey => {
+            goTo(stages.findIndex(item => item.key === stageKey) + 1);
+            editingWeeklySummaryRef.current = true;
+          }}
+          onFinish={finishWeeklyReview}
+          saving={isFinishingWeeklyReview}
+          saveError={weeklyCompletionError}
+          bottomInset={insets.bottom}
+        />
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.safeArea} edges={['left', 'right']}>
       <StatusBar barStyle="dark-content" backgroundColor={Colors.lightBackground} translucent={false} />
@@ -1743,74 +2955,72 @@ const ReviewScreen: React.FC = () => {
         style={[styles.topChromeBlend, {height: topInset + 74}]}
       />
 
-      {stage > 1 && (
+      {!isWeeklyCoverStage && <View
+        testID="review-progress-bar"
+        style={[
+          styles.actionProgressBar,
+          { top: topInset + 25 },
+        ]}
+        pointerEvents="none">
         <View
+          testID="review-progress-fill"
           style={[
-            styles.actionProgressBar,
-            { top: topInset + 25 },
+            styles.actionProgressFill,
+            { width: `${(reviewProgressStep / reviewProgressStepCount) * 100}%` },
           ]}
-          pointerEvents="none">
-          <View
-            style={[
-              styles.actionProgressFill,
-              { width: `${((stage - 1) / Math.max(1, stageCount - 1)) * 100}%` },
-            ]}
-          />
-        </View>
-      )}
+        />
+      </View>}
 
       <HeaderBackButton
         style={[styles.backButton, { top: topInset + 8 }]}
-        onPress={() => stage > 1 ? goTo(stage - 1) : navigation.goBack()}
+        onPress={() => {
+          if (stage > 1) {
+            goTo(stage - 1);
+            return;
+          }
+          triggerLightHaptic();
+          navigation.goBack();
+        }}
         accessibilityLabel={stage > 1 ? 'Previous review step' : 'Back'}
         color={Colors.text}
       />
 
-      <TouchableOpacity
+      <HeaderCloseButton
         style={[styles.closeButton, { top: topInset + 8 }]}
         onPress={() => {
           triggerLightHaptic();
           Keyboard.dismiss();
           navigation.goBack();
         }}
-        activeOpacity={0.7}
-        hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}
-        accessibilityRole="button"
-        accessibilityLabel="Close review">
-        <Ionicons name="close" size={17} color={Colors.sage} />
-      </TouchableOpacity>
+        accessibilityLabel="Close review"
+      />
 
       <View style={{ flex: 1 }} {...panResponder.panHandlers}>
-        <ScrollView
-          ref={scrollRef}
-          style={{ flex: 1 }}
-          scrollEnabled={!(stage === 1 && reviewType === 'weekly')}
-          bounces={!(stage === 1 && reviewType === 'weekly')}
-          contentContainerStyle={{
-            paddingTop: topInset + 36,
-            paddingBottom: keyboardVisible
-              ? 320
-              : insets.bottom + (isFeelingsStage || isCapturedStage || (stage >= 4 && stage < stageCount) ? 88 : 28),
-          }}
-          keyboardShouldPersistTaps="always"
-          keyboardDismissMode="interactive"
-          showsVerticalScrollIndicator={false}>
-          {renderCurrentStage()}
-        </ScrollView>
+        {reviewType === 'weekly' && (hasHorizontalMomentCarousels || isWeeklyLookingForwardWalkthrough) ? renderCurrentStage() : (
+          <ScrollView
+            ref={scrollRef}
+            style={{ flex: 1 }}
+            bounces={!(stage === 1 && reviewType === 'weekly')}
+            contentContainerStyle={{
+              flexGrow: (stage === 1 && reviewType === 'weekly') || isLifeCheckInStage ? 1 : undefined,
+              paddingTop: topInset + 36,
+              paddingBottom: keyboardVisible
+                ? (hasAutoScrollingReviewInput ? keyboardHeight + 88 : 320)
+                : insets.bottom + (hasFloatingNavigation ? 88 : 28),
+            }}
+            onContentSizeChange={hasAutoScrollingReviewInput ? revealCustomReviewInput : undefined}
+            keyboardShouldPersistTaps="always"
+            keyboardDismissMode="interactive"
+            showsVerticalScrollIndicator={false}>
+            {renderCurrentStage()}
+          </ScrollView>
+        )}
       </View>
 
       {isFeelingsStage && (
         <Animated.View
           pointerEvents="box-none"
           style={[styles.feelingsFooter, {bottom: floatingActionBottom}]}>
-          <TouchableOpacity
-            accessibilityRole="button"
-            accessibilityLabel="Skip this step"
-            onPress={()=>goTo(stage+1)}
-            activeOpacity={0.7}
-            style={styles.feelingsSkipButton}>
-            <ThemedText weight="semiBold" style={styles.feelingsSkip}>Skip</ThemedText>
-          </TouchableOpacity>
           <TouchableOpacity
             accessibilityRole="button"
             accessibilityLabel="Next"
@@ -1837,19 +3047,54 @@ const ReviewScreen: React.FC = () => {
         </Animated.View>
       )}
 
-      {stage >= 4 && stage < stageCount && (
-        <AnimatedTouchableOpacity
-          style={[styles.fab, { bottom: floatingActionBottom }]}
-          activeOpacity={0.7}
-          onPress={() => goTo(stage + 1)}>
-          <Ionicons name="chevron-forward" size={24} color={Colors.hopeWhite} />
-        </AnimatedTouchableOpacity>
+      {isWeeklyLookingAheadStage && (
+        <Animated.View
+          pointerEvents="box-none"
+          style={[styles.weeklyLookingAheadFooter, {bottom: floatingActionBottom}]}>
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel="Continue to weekly priorities"
+            activeOpacity={0.8}
+            onPress={() => goTo(stage + 1)}
+            style={styles.weeklyLookingAheadContinueButton}>
+            <ThemedText weight="bold" style={styles.weeklyLookingAheadContinueText}>
+              Continue
+            </ThemedText>
+            <Ionicons name="arrow-forward" size={22} color={Colors.hopeWhite} />
+          </TouchableOpacity>
+        </Animated.View>
+      )}
+
+      {showsStandardNextButton && (
+        <Animated.View
+          pointerEvents="box-none"
+          style={[styles.feelingsFooter, {bottom: floatingActionBottom}]}>
+          {isWeeklyPriorityStage && weeklyPriorityInputCount < 3 && (
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel="Add another priority"
+              onPress={addWeeklyPriorityInput}
+              activeOpacity={0.7}
+              style={[styles.feelingsNext, styles.weeklyPriorityAdd]}>
+              <Ionicons name="add" size={24} color={Colors.sage}/>
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel="Next"
+            style={styles.feelingsNext}
+            activeOpacity={0.7}
+            onPress={() => goTo(stage + 1)}>
+            <Ionicons name="chevron-forward" size={24} color={Colors.hopeWhite} />
+          </TouchableOpacity>
+        </Animated.View>
       )}
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  reviewLoadState: {flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, gap: 16},
   safeArea: {
     flex: 1,
     backgroundColor: Colors.lightBackground,
@@ -1879,14 +3124,8 @@ const styles = StyleSheet.create({
   },
   closeButton: {
     position: 'absolute',
-    right: 18,
+    right: 20,
     zIndex: 21,
-    width: 42,
-    height: 42,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: Colors.cardBackground,
-    borderRadius: 999,
   },
   backButton: {
     position: 'absolute',
@@ -1903,133 +3142,151 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   weeklyCoverStage: {
-    paddingTop: 12,
-    paddingHorizontal: 24,
-    paddingBottom: 6,
+    flexGrow: 1,
+    justifyContent: 'space-between',
+    paddingTop: 26,
+    paddingHorizontal: 20,
+    paddingBottom: 0,
+  },
+  weeklyCoverContent: {
+    width: '100%',
+  },
+  weeklyCoverArtwork: {
+    width: '100%',
+    height: 128,
   },
   weeklyCoverHero: {
     alignItems: 'center',
+    marginTop: 7,
   },
-  botanicalMark: {
-    width: 56,
-    height: 58,
-    marginBottom: 2,
-  },
-  botanicalStem: {
-    position: 'absolute',
-    width: 1.5,
-    height: 42,
-    left: 27,
-    top: 14,
-    backgroundColor: Colors.text,
-    borderRadius: 2,
-    transform: [{rotate: '14deg'}],
-  },
-  botanicalLeafTop: {
-    position: 'absolute',
-    left: 24,
-    top: 0,
-    transform: [{rotate: '-24deg'}],
-  },
-  botanicalLeafLeft: {
-    position: 'absolute',
-    left: 10,
-    top: 25,
-    transform: [{rotate: '-72deg'}],
-  },
-  botanicalLeafRight: {
-    position: 'absolute',
-    right: 8,
-    top: 31,
-    transform: [{rotate: '18deg'}],
+  weeklyCoverLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
   },
   weeklyCoverEyebrow: {
     color: Colors.sage,
-    fontSize: 9,
-    lineHeight: 13,
+    fontSize: 10,
+    lineHeight: 15,
     letterSpacing: 1.8,
   },
   weeklyCoverTitle: {
     color: Colors.text,
-    fontFamily: Fonts.lora.bold,
-    fontSize: 34,
-    lineHeight: 40,
-    marginTop: 7,
+    fontFamily: Fonts.bold,
+    fontSize: 29,
+    lineHeight: 37,
+    textAlign: 'center',
+    marginTop: 10,
   },
   weeklyCoverPeriod: {
-    color: Colors.text,
-    fontSize: 20,
-    lineHeight: 26,
-    marginTop: 0,
+    color: Colors.sage,
+    fontSize: 15,
+    lineHeight: 21,
+    marginTop: 3,
   },
   weeklyCoverSubtitle: {
     color: Colors.textGray,
-    fontSize: 12,
-    lineHeight: 17,
+    fontSize: 13,
+    lineHeight: 19,
     textAlign: 'center',
-    marginTop: 7,
+    marginTop: 8,
+    paddingHorizontal: 12,
   },
   weeklyShowedUpCard: {
     width: '100%',
     backgroundColor: Colors.cardBackground,
-    borderRadius: 20,
-    paddingHorizontal: 13,
-    paddingTop: 12,
-    paddingBottom: 10,
-    marginTop: 12,
+    borderRadius: 24,
+    paddingHorizontal: 18,
+    paddingTop: 17,
+    paddingBottom: 15,
+    marginTop: 18,
+    borderWidth: 1,
+    borderColor: 'rgba(223, 228, 221, 0.72)',
     shadowColor: Colors.darkBackground,
-    shadowOffset: {width: 0, height: 5},
-    shadowOpacity: 0.05,
-    shadowRadius: 16,
+    shadowOffset: {width: 0, height: 7},
+    shadowOpacity: 0.045,
+    shadowRadius: 18,
     elevation: 2,
   },
   weeklyShowedUpHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 9,
+    gap: 11,
   },
   weeklyShowedUpIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 11,
+    width: 42,
+    height: 42,
+    borderRadius: 14,
     backgroundColor: Colors.anchorBlueLight,
     alignItems: 'center',
     justifyContent: 'center',
   },
   weeklyShowedUpCopy: {
-    minWidth: 138,
+    flex: 1,
   },
   weeklyShowedUpLabel: {
-    color: Colors.text,
-    fontSize: 12,
-    lineHeight: 16,
+    color: Colors.sage,
+    fontSize: 9,
+    lineHeight: 13,
+    letterSpacing: 1.3,
   },
   weeklyShowedUpTotal: {
     color: Colors.text,
-    fontSize: 15,
-    lineHeight: 20,
+    fontSize: 17,
+    lineHeight: 23,
+    marginTop: 1,
+  },
+  weeklyShowedUpBadge: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    justifyContent: 'center',
+    paddingTop: 10,
+    backgroundColor: 'rgba(82, 106, 91, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(82, 106, 91, 0.12)',
+  },
+  weeklyShowedUpBadgeValue: {
+    color: Colors.sage,
+    fontSize: 18,
+    lineHeight: 23,
+  },
+  weeklyShowedUpBadgeTotal: {
+    color: Colors.textGray,
+    fontSize: 9,
+    lineHeight: 13,
+    marginLeft: 1,
   },
   weeklyDayChart: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-end',
-    marginTop: 10,
-    paddingHorizontal: 4,
+    marginTop: 15,
+    paddingHorizontal: 7,
+    paddingTop: 9,
+    paddingBottom: 8,
+    borderRadius: 14,
+    backgroundColor: 'rgba(246, 245, 239, 0.82)',
   },
   weeklyDayColumn: {
     flex: 1,
     alignItems: 'center',
   },
   weeklyDayTrack: {
-    width: 17,
+    width: 8,
+    height: 28,
     justifyContent: 'flex-end',
     alignItems: 'center',
+    overflow: 'hidden',
+    borderRadius: 5,
+    backgroundColor: 'rgba(82, 106, 91, 0.08)',
   },
   weeklyDayBar: {
-    width: 11,
-    borderRadius: 6,
-    minHeight: 6,
+    width: 8,
+    borderRadius: 5,
+    minHeight: 5,
   },
   weeklyDayBarActive: {
     backgroundColor: Colors.sage,
@@ -2038,77 +3295,97 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.anchorBlueLight,
   },
   weeklyDayLabel: {
+    color: Colors.textGray,
+    fontSize: 10,
+    lineHeight: 14,
+    marginTop: 5,
+  },
+  weeklyDayLabelActive: {
     color: Colors.text,
-    fontSize: 9,
-    lineHeight: 12,
-    marginTop: 3,
   },
   weeklySummarySection: {
     borderTopWidth: 1,
     borderTopColor: Colors.cardBorder,
-    marginTop: 11,
-    paddingTop: 9,
+    marginTop: 17,
+    paddingTop: 15,
+  },
+  weeklySummaryHeading: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
   },
   weeklySummaryEyebrow: {
-    color: Colors.textGray,
-    fontSize: 8,
-    lineHeight: 11,
-    letterSpacing: 1.3,
-    textAlign: 'center',
+    color: Colors.sage,
+    fontSize: 9,
+    lineHeight: 13,
+    letterSpacing: 1.4,
+  },
+  weeklySummaryRule: {
+    flex: 1,
+    height: 1,
+    backgroundColor: Colors.cardBorder,
   },
   weeklySummaryMetrics: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginTop: 6,
-    marginHorizontal: -3,
+    marginTop: 8,
+    marginHorizontal: -4,
   },
   weeklySummaryMetricSlot: {
-    width: '25%',
-    padding: 3,
+    width: '50%',
+    padding: 4,
   },
   weeklySummaryPill: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 12,
-    backgroundColor: Colors.anchorBlueLight,
-    paddingHorizontal: 4,
-    paddingVertical: 5,
-    minHeight: 48,
-  },
-  weeklySummaryPillDense: {
-    minHeight: 42,
-    paddingVertical: 3,
+    borderRadius: 14,
+    backgroundColor: 'rgba(230, 235, 229, 0.72)',
+    paddingHorizontal: 11,
+    paddingVertical: 9,
+    minHeight: 53,
   },
   weeklySummaryCount: {
     color: Colors.text,
-    fontSize: 17,
-    lineHeight: 20,
-  },
-  weeklySummaryCountDense: {
-    fontSize: 15,
-    lineHeight: 18,
+    width: 30,
+    fontSize: 19,
+    lineHeight: 24,
   },
   weeklySummaryLabel: {
+    flex: 1,
     color: Colors.textGray,
-    fontSize: 9,
-    lineHeight: 11,
-    textAlign: 'center',
+    fontSize: 10,
+    lineHeight: 14,
   },
-  weeklySummaryLabelDense: {
-    fontSize: 8,
-    lineHeight: 10,
+  weeklySummaryToggle: {
+    minHeight: 35,
+    alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+    marginTop: 5,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+  },
+  weeklySummaryToggleText: {
+    color: Colors.sage,
+    fontSize: 11,
+    lineHeight: 16,
   },
   weeklyBeginButton: {
-    flexDirection: 'row',
-    gap: 10,
-    marginTop: 'auto',
-    minHeight: 50,
-    height: 50,
-    borderRadius: 25,
+    marginTop: 18,
+    minHeight: 56,
+    height: 56,
+    borderRadius: 28,
+    shadowColor: Colors.darkBackground,
+    shadowOffset: {width: 0, height: 5},
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    elevation: 3,
   },
   weeklyBeginText: {
     color: Colors.hopeWhite,
-    fontSize: 17,
+    fontSize: 16,
   },
   feelingsStage: {
     paddingTop: 28,
@@ -2251,17 +3528,9 @@ const styles = StyleSheet.create({
     right: 0,
     flexDirection: 'row',
     alignItems: 'flex-end',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-end',
     paddingHorizontal: 20,
     zIndex: 30,
-  },
-  feelingsSkipButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-  },
-  feelingsSkip: {
-    color: Colors.textGray,
-    fontSize: 15,
   },
   feelingsNext: {
     width: 40,
@@ -2276,14 +3545,169 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 8,
   },
+  lifeCheckInStage: {
+    flexGrow: 1,
+    justifyContent: 'space-between',
+    gap: 3,
+    paddingTop: 4,
+    paddingHorizontal: 20,
+    paddingBottom: 0,
+  },
+  lifeCheckInHeading: {
+    alignItems: 'center',
+  },
+  lifeCheckInQuestion: {
+    color: Colors.text,
+    fontSize: 24,
+    lineHeight: 28,
+    textAlign: 'center',
+    marginTop: 6,
+  },
+  lifeCheckInSubtitle: {
+    color: Colors.textGray,
+    fontSize: 13,
+    lineHeight: 18,
+    textAlign: 'center',
+    marginTop: 4,
+  },
+  lifeCheckInRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  lifeCheckInIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.anchorBlueLight,
+    borderWidth: 1,
+    borderColor: 'rgba(82, 106, 91, 0.12)',
+  },
+  lifeCheckInContent: {
+    flex: 1,
+    minWidth: 0,
+  },
+  lifeCheckInAreaLabel: {
+    color: Colors.text,
+    fontSize: 15,
+    lineHeight: 18,
+    marginBottom: 2,
+  },
+  lifeCheckInOptions: {
+    width: '100%',
+    flexDirection: 'row',
+    gap: 6,
+  },
+  lifeCheckInPill: {
+    flex: 1,
+    minWidth: 0,
+    minHeight: 40,
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+    borderRadius: 20,
+  },
+  lifeCheckInPillText: {
+    fontSize: 14,
+    lineHeight: 18,
+  },
   weeklyCapturedStage: {
     paddingTop: 28,
     paddingHorizontal: 22,
     paddingBottom: 24,
   },
+  weeklyCareStage: {
+    paddingTop: 28,
+    paddingHorizontal: 20,
+    paddingBottom: 16,
+  },
+  weeklyCareAreas: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginHorizontal: -6,
+    marginTop: 24,
+  },
+  weeklyCareAreaSlot: {width: '50%', padding: 6},
+  weeklyCareArea: {
+    flex: 1,
+    minHeight: 64,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    borderRadius: 18,
+    backgroundColor: Colors.anchorBlueLight,
+  },
+  weeklyCareAreaSelected: {backgroundColor: Colors.sage},
+  weeklyCareAreaLabel: {flex: 1, fontSize: 15, lineHeight: 21, color: Colors.text},
+  weeklyCareAreaLabelSelected: {color: Colors.hopeWhite},
+  weeklyCareNote: {marginTop: 24},
+  weeklyCareOther: {marginBottom: 20},
+  weeklyCareOtherInput: {minHeight: 56},
+  weeklyChallengeStage: {paddingTop: 28, paddingHorizontal: 24, paddingBottom: 24},
+  weeklyChallengeTitle: {fontSize: 26, lineHeight: 34, textAlign: 'center', color: Colors.text},
+  weeklyChallengeSubtitle: {fontSize: 15, lineHeight: 23, textAlign: 'center', color: Colors.textGray, marginTop: 12},
+  weeklyChallengeChoices: {flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 28},
+  weeklyChallengePill: {
+    maxWidth: '100%',
+    flexDirection: 'row',
+    gap: 8,
+    minHeight: 44,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  weeklyChallengeOther: {marginTop: 24},
+  weeklyChallengeInput: {minHeight: 72},
+  weeklyClosingStage: {paddingTop: 28, paddingHorizontal: 24, paddingBottom: 24},
+  weeklyClosingNote: {marginTop: 28},
+  weeklyPrayerInput: {minHeight: 180, marginTop: 8, paddingVertical: 12, fontFamily: Fonts.regular, fontSize: 17, lineHeight: 26, color: Colors.text},
+  weeklyAheadDates: {fontSize: 14, lineHeight: 21, color: Colors.sage, textAlign: 'center', marginTop: 16},
+  weeklyAheadOptional: {fontSize: 13, lineHeight: 20, color: Colors.textGray, textAlign: 'center', marginTop: 12},
+  weeklyCareNoteLabel: {fontSize: 13, lineHeight: 19, color: Colors.textGray},
+  weeklyCareInput: {
+    minHeight: 96,
+    marginTop: 8,
+    paddingHorizontal: 0,
+    paddingVertical: 8,
+    fontFamily: Fonts.regular,
+    fontSize: 17,
+    lineHeight: 24,
+    color: Colors.text,
+  },
   weeklyCapturedHeading: {
     alignItems: 'center',
     marginBottom: 22,
+  },
+  weeklyAdditionalMemory: {
+    marginTop: 24,
+  },
+  weeklyAdditionalMemoryTitle: {
+    color: Colors.text,
+    fontSize: 17,
+    lineHeight: 24,
+  },
+  weeklyAdditionalMemoryHint: {
+    color: Colors.textGray,
+    fontSize: 14,
+    lineHeight: 21,
+    marginTop: 6,
+  },
+  weeklyAdditionalMemoryInput: {
+    minHeight: 120,
+  },
+  weeklySavedPrayer: {
+    backgroundColor: Colors.cardBackground,
+    borderRadius: 17,
+    padding: 17,
+    marginTop: 24,
+  },
+  weeklySavedPrayerBody: {
+    color: Colors.textGray,
+    fontSize: 15,
+    lineHeight: 23,
+    marginTop: 8,
   },
   weeklyCapturedTitle: {
     color: Colors.text,
@@ -2309,9 +3733,6 @@ const styles = StyleSheet.create({
     shadowRadius: 14,
     elevation: 1,
   },
-  weeklyMomentGroup: {
-    marginBottom: 24,
-  },
   weeklyMomentGroupHeader: {
     alignItems: 'flex-start',
     paddingHorizontal: 2,
@@ -2335,16 +3756,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 17,
     marginTop: 2,
-  },
-  weeklyMomentCarousel: {
-    paddingHorizontal: 22,
-    gap: 12,
-  },
-  weeklyHeartJournalCarousel: {
-    alignItems: 'flex-start',
-  },
-  weeklyMomentCarouselViewport: {
-    marginHorizontal: -22,
   },
   momentTypeCard: {
     minHeight: 196,
@@ -2624,12 +4035,226 @@ const styles = StyleSheet.create({
     color: Colors.sage,
     textTransform: 'uppercase' as const,
   },
+  weeklyLookingAheadStage: {
+    paddingTop: 68,
+    paddingHorizontal: 24,
+    paddingBottom: 24,
+  },
+  weeklyLookingAheadArtwork: {
+    width: '100%',
+    height: 164,
+  },
+  weeklyLookingAheadCopy: {
+    alignItems: 'center',
+    marginTop: 24,
+  },
+  weeklyLookingAheadLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+  },
+  weeklyLookingAheadLabel: {
+    color: Colors.sage,
+    fontSize: 10,
+    lineHeight: 15,
+    letterSpacing: 1.8,
+  },
+  weeklyLookingAheadTitle: {
+    color: Colors.text,
+    fontFamily: Fonts.bold,
+    fontSize: 29,
+    lineHeight: 38,
+    textAlign: 'center',
+    marginTop: 15,
+  },
+  weeklyLookingAheadSubtitle: {
+    maxWidth: 340,
+    color: Colors.textGray,
+    fontSize: 16,
+    lineHeight: 25,
+    textAlign: 'center',
+    marginTop: 10,
+  },
+  weeklyLookingAheadFooter: {
+    position: 'absolute',
+    left: 24,
+    right: 24,
+    zIndex: 30,
+  },
+  weeklyLookingAheadContinueButton: {
+    height: 58,
+    borderRadius: 29,
+    backgroundColor: Colors.sage,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    shadowColor: Colors.darkBackground,
+    shadowOffset: {width: 0, height: 5},
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 3,
+  },
+  weeklyLookingAheadContinueText: {
+    color: Colors.hopeWhite,
+    fontSize: 17,
+    lineHeight: 22,
+  },
+  weeklyGratitudeStage: {
+    paddingTop: 34,
+    paddingHorizontal: 20,
+  },
+  weeklyDifficultyStage: {
+    paddingTop: 34,
+  },
+  weeklyGratitudeLabelContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    marginBottom: 10,
+  },
+  weeklyGratitudeLabel: {
+    fontSize: 11,
+    lineHeight: 16,
+    letterSpacing: 1,
+    color: Colors.sageMuted,
+  },
+  weeklyGratitudeTitle: {
+    color: Colors.text,
+    fontSize: 24,
+    lineHeight: 31,
+    textAlign: 'center',
+  },
+  weeklyGratitudeSubtitle: {
+    color: Colors.textGray,
+    fontSize: 14,
+    lineHeight: 21,
+    textAlign: 'center',
+    marginTop: 12,
+  },
+  weeklyGratitudeLookBack: {
+    marginTop: 22,
+    borderRadius: 16,
+    backgroundColor: Colors.anchorBlueLight,
+  },
+  weeklyGratitudeLookBackToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    minHeight: 48,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  weeklyGratitudeLookBackTitle: {
+    flex: 1,
+    color: Colors.sage,
+    fontSize: 14,
+    lineHeight: 21,
+  },
+  weeklyGratitudeLookBackContent: {
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+    gap: 12,
+  },
+  weeklyGratitudeLookBackHint: {
+    color: Colors.textGray,
+    fontSize: 13,
+    lineHeight: 20,
+  },
+  weeklyGratitudeLookBackDay: {gap: 6},
+  weeklyGratitudeLookBackCard: {
+    backgroundColor: Colors.anchorBlueLight,
+    minHeight: 0,
+    paddingVertical: 0,
+    marginBottom: 0,
+  },
+  weeklyGratitudeLookBackDatePill: {
+    alignSelf: 'flex-end',
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    backgroundColor: 'rgba(82, 106, 91, 0.12)',
+  },
+  weeklyGratitudeLookBackDate: {
+    color: Colors.sage,
+    fontSize: 12,
+    lineHeight: 18,
+  },
+  weeklyGratitudeInputs: {
+    gap: 14,
+    marginTop: 22,
+  },
+  weeklyGratitudeInput: {
+    borderRadius: 18,
+    backgroundColor: Colors.inputBackground,
+    paddingHorizontal: 16,
+    paddingVertical: 0,
+    includeFontPadding: false,
+    fontFamily: Fonts.regular,
+    fontSize: 17,
+    lineHeight: 24,
+    color: Colors.text,
+  },
+  weeklyPriorityAdd: {
+    marginRight: 12,
+    backgroundColor: Colors.anchorBlueLight,
+  },
+  godFaithfulnessStage: {
+    paddingTop: 34,
+    paddingHorizontal: 24,
+  },
+  godFaithfulnessQuestion: {
+    fontFamily: Fonts.lora.bold,
+    color: Colors.text,
+    fontSize: 28,
+    lineHeight: 36,
+    textAlign: 'center',
+    marginTop: 4,
+  },
+  godFaithfulnessSubtitle: {
+    color: Colors.textGray,
+    fontSize: 14,
+    lineHeight: 21,
+    textAlign: 'center',
+    marginTop: 8,
+  },
+  godFaithfulnessGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 12,
+    marginTop: 28,
+  },
+  godFaithfulnessInput: {
+    width: '100%',
+    minHeight: 112,
+    marginTop: 22,
+    borderRadius: 18,
+    backgroundColor: Colors.inputBackground,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontFamily: Fonts.regular,
+    fontSize: 17,
+    lineHeight: 24,
+    color: Colors.text,
+  },
   question: {
     fontFamily: Fonts.lora.bold,
     fontSize: 24,
     lineHeight: 30,
     textAlign: 'center' as const,
     color: Colors.text,
+    marginBottom: 24,
+  },
+  questionWithSubtitle: {
+    marginBottom: 8,
+  },
+  questionSubtitle: {
+    color: Colors.textGray,
+    fontSize: 14,
+    lineHeight: 21,
+    textAlign: 'center',
     marginBottom: 24,
   },
   input: {
@@ -2645,22 +4270,6 @@ const styles = StyleSheet.create({
     minHeight: 56,
     paddingVertical: 12,
     marginBottom: 12,
-  },
-  fab: {
-    position: 'absolute',
-    right: 20,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: Colors.sage,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#29342E',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
-    zIndex: 30,
   },
   captureStats: {
     backgroundColor: Colors.cardBackground,
@@ -2693,6 +4302,40 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 12,
   },
+  carryForwardSection: {
+    backgroundColor: 'rgba(82, 106, 91, 0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(82, 106, 91, 0.18)',
+    borderRadius: 18,
+    padding: 14,
+    marginBottom: 22,
+  },
+  carryForwardHeadingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+  },
+  carryForwardEyebrow: {
+    color: Colors.sage,
+    fontSize: 10,
+    lineHeight: 15,
+    letterSpacing: 1.3,
+  },
+  carryForwardCopy: {
+    color: Colors.textGray,
+    fontSize: 13,
+    lineHeight: 20,
+    marginTop: 7,
+    marginBottom: 13,
+  },
+  allMomentsHeading: {
+    color: Colors.textGray,
+    fontSize: 10,
+    lineHeight: 15,
+    letterSpacing: 1.3,
+    marginBottom: 10,
+    marginLeft: 2,
+  },
   captureItemHeader: {
     gap: 4,
   },
@@ -2705,13 +4348,12 @@ const styles = StyleSheet.create({
     color: Colors.textGray,
   },
   rememberButton: {
-    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     alignSelf: 'flex-start',
-    gap: 6,
     marginTop: 12,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
+    width: 32,
+    height: 32,
     borderRadius: 16,
     borderWidth: 1,
     borderColor: Colors.sage,
@@ -2719,13 +4361,6 @@ const styles = StyleSheet.create({
   rememberButtonActive: {
     backgroundColor: Colors.sage,
     borderColor: Colors.sage,
-  },
-  rememberButtonText: {
-    fontSize: 12,
-    color: Colors.sage,
-  },
-  rememberButtonTextActive: {
-    color: Colors.hopeWhite,
   },
   summaryCard: {
     backgroundColor: Colors.cardBackground,

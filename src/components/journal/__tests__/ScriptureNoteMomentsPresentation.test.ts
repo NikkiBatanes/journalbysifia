@@ -1,0 +1,38 @@
+import fs from 'fs';
+import path from 'path';
+
+describe('Scripture Note Moments presentation', () => {
+  const source = fs.readFileSync(
+    path.resolve(__dirname, '../ScriptureNoteReactQuery.tsx'),
+    'utf8',
+  );
+
+  it('uses the saved-view block renderer instead of flattening structured notes', () => {
+    expect(source).toContain(
+      "import SavedReflectionBlocks from './SavedReflectionBlocks'",
+    );
+    expect(source).toContain('reflection.metadata?.journalBlocks');
+    expect(source).toContain(
+      '<SavedReflectionBlocks blocks={journalBlocks} compact />',
+    );
+    expect(source).toContain('journalBlocks.length > 0');
+  });
+
+  it('gives Scripture Notes a reference-led card with reading controls', () => {
+    expect(source).toContain("import {JournalCard} from './JournalCard'");
+    expect(source).toContain('title="SCRIPTURE NOTE"');
+    expect(source).toContain('viewMode={viewMode}');
+    expect(source).not.toContain(
+      'style={styles.eyebrow}>SCRIPTURE NOTE</ThemedText>',
+    );
+    expect(source).toContain('styles.referenceAccent');
+    expect(source).toContain('fontFamily: Fonts.lora.bold');
+    expect(source).toContain('Read verse');
+    expect(source).toContain('useMomentsPalette()');
+  });
+
+  it('keeps older plain-text Scripture Notes readable', () => {
+    expect(source).toContain('!!reflection.content?.trim()');
+    expect(source).toContain('{reflection.content.trim()}');
+  });
+});

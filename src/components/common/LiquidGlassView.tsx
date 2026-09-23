@@ -6,6 +6,7 @@ type LiquidGlassViewProps = ViewProps & {
   tintColor?: ColorValue;
   cornerRadius?: number;
   fadesToTransparent?: boolean;
+  isInteractive?: boolean;
 };
 
 type LiquidGlassRuntime = typeof globalThis & {
@@ -24,12 +25,20 @@ const NativeLiquidGlassView = hasNativeLiquidGlass
     (liquidGlassRuntime.__sifiaLiquidGlassView = requireNativeComponent<LiquidGlassViewProps>('LiquidGlassView'))
   : null;
 
-const LiquidGlassView = ({ tintColor, cornerRadius, fadesToTransparent = false, style, ...props }: LiquidGlassViewProps) => NativeLiquidGlassView ? (
+const LiquidGlassView = ({
+  tintColor,
+  cornerRadius,
+  fadesToTransparent = false,
+  isInteractive = false,
+  style,
+  ...props
+}: LiquidGlassViewProps) => NativeLiquidGlassView ? (
   <NativeLiquidGlassView
     {...props}
     tintColor={tintColor}
     cornerRadius={cornerRadius}
     fadesToTransparent={fadesToTransparent}
+    isInteractive={isInteractive}
     style={[styles.transparent, style]}
   />
 ) : Platform.OS === 'ios' ? (

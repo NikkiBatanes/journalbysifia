@@ -101,12 +101,14 @@ describe('Prayer V2 demo safety', () => {
     expect(gallery).toContain('onSave={changes => save(open.prayer, changes)}');
   });
 
-  it('guards both UI entry points with __DEV__', () => {
+  it('keeps the demo route DEV-only without exposing a Today launcher', () => {
     const root = path.resolve(__dirname, '../..');
     const today = fs.readFileSync(path.join(root, 'screens/TodayScreen.tsx'), 'utf8');
     const navigator = fs.readFileSync(path.join(root, 'navigation/JournalStackNavigator.tsx'), 'utf8');
     const screen = fs.readFileSync(path.join(root, 'dev/PrayerV2DemoScreen.tsx'), 'utf8');
-    expect(today).toMatch(/\{__DEV__ && \([\s\S]*key="prayer-v2-demo"/);
+    expect(today).not.toContain('prayer-v2-demo');
+    expect(today).not.toContain('Prayer V2 demo data');
+    expect(today).not.toContain("screen: 'PrayerV2Demo'");
     expect(navigator).toMatch(/\{__DEV__ && <Stack\.Screen[\s\S]*name="PrayerV2Demo"/);
     expect(screen).toContain('if (!__DEV__) return null');
     expect(screen).toContain("['return', 'Load Return Scenario']");

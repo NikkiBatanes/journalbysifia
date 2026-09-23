@@ -18,6 +18,7 @@ import {
 import { ScrollView } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { Trash2 } from 'lucide-react-native';
 
 import ThemedText from '../components/common/ThemedText';
 import { BibleCopyrightModal } from '../components/BibleCopyrightModal';
@@ -29,12 +30,13 @@ import {
   getLocalReflection,
   updateLocalReflection,
 } from '../storage/reflectionStorage';
+import { useDeleteReflection } from '../services/hooks/useReflectionData';
 import { getScripturePassage, type ScriptureReaderResult } from '../services/scriptureReaderService';
 import { styles as s } from '../components/journal/reflectionStyles';
 import { Colors } from '../theme/colors';
 import { getFontFamily } from '../theme/fonts';
 import { useTheme } from '../hooks/useTheme';
-import { toLocalDateString } from '../utils/date';
+import { fromLocalDateString, toLocalDateString } from '../utils/date';
 import { triggerLightHaptic, triggerMediumHaptic } from '../utils/haptics';
 import { useSuccessModal } from '../hooks/useSuccessModal';
 import { Logger } from '../utils/ProductionLogger';
@@ -42,10 +44,29 @@ import { claimFaithfulRhythmCelebration, FAITHFUL_RHYTHM_UPDATED } from '../serv
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFloatingKeyboardButton } from '../hooks/useFloatingKeyboardButton';
 import { JournalComposerBar, JournalPickerMenu } from '../components/journal/shared/JournalComposer';
-import { JournalInlineBlock } from '../components/journal/shared/JournalInlineBlock';
-import { JOURNAL_BLOCKS } from '../components/journal/shared/journalBlocks';
+import DraggableJournalBlock from '../components/journal/shared/DraggableJournalBlock';
 import {
-  GUIDED_NOTE_TYPES,
+  reorderJournalBlock,
+  resolveJournalBlockDropIndex,
+} from '../components/journal/shared/journalBlockOperations';
+import { JournalInlineBlock } from '../components/journal/shared/JournalInlineBlock';
+import JournalTextInput from '../components/journal/shared/JournalTextInput';
+import { JournalColumnBlock } from '../components/journal/shared/JournalColumnBlock';
+import { JournalListBlock } from '../components/journal/shared/JournalListBlock';
+import { JournalTableBlock } from '../components/journal/shared/JournalTableBlock';
+import JournalNestedBlockEditor from '../components/journal/shared/JournalNestedBlockEditor';
+import ReflectionSpecialBlock from '../components/journal/ReflectionSpecialBlock';
+import { pickImageLocal } from '../services/avatarService';
+import {
+  JOURNAL_BLOCKS,
+  JournalBlockIcon,
+  formatJournalAttribution,
+  hasMeaningfulJournalBlock,
+  prepareJournalBlocksForSave,
+  type JournalBlock,
+} from '../components/journal/shared/journalBlocks';
+import {
+  REFLECTION_NOTE_TYPES,
   createGuidedNoteId,
   type GuidedReflectionNote,
 } from '../types/guidedReflection';
@@ -65,11 +86,45 @@ const stripWrappingQuotationMarks = (text: string) =>
 
 const blocksToPlainText = (blocks: GuidedReflectionNote[]) =>
   blocks
+    .filter(hasMeaningfulJournalBlock)
     .map(block => {
-      if (block.kind === 'text') return block.text.trim();
-      return [JOURNAL_BLOCKS[block.kind].label, block.reference?.trim(), block.text.trim(), block.secondary?.trim()]
-        .filter(Boolean)
-        .join('\n');
+      const text = block.text.trim();
+      const reference = block.reference?.trim();
+      const secondary =
+        block.kind === 'quote'
+          ? formatJournalAttribution(block.secondary?.trim())
+          : block.secondary?.trim();
+      if (block.kind === 'column') return '';
+      if (block.kind === 'table') {
+        return (block.tableRows || [])
+          .map(row => row.map(cell => cell.trim()).join('\t'))
+          .join('\n');
+      }
+      if (block.kind === 'bullets' || block.kind === 'numbered') {
+        const list = (block.points || [])
+          .filter(point => point.trim())
+          .map((point, index) =>
+            block.kind === 'numbered'
+              ? `${index + 1}. ${point.trim()}`
+              : `• ${point.trim()}`,
+          )
+          .join('\n');
+        return [text, list].filter(Boolean).join('\n');
+      }
+      if (block.kind === 'text') return text;
+      const label =
+        block.kind === 'section' ? 'SECTION' :
+        block.kind === 'action' ? 'ACTION' :
+        block.kind === 'photo' ? 'PHOTO' :
+        block.kind === 'voice' ? 'VOICE NOTE' : JOURNAL_BLOCKS[block.kind].label;
+      if (block.kind === 'scripture') {
+        return [
+          label,
+          block.scriptureReference?.trim() || reference || text,
+          block.scriptureText?.trim(),
+        ].filter(Boolean).join('\n');
+      }
+      return [label, reference, text, secondary].filter(Boolean).join('\n');
     })
     .filter(Boolean)
     .join('\n\n');
@@ -85,9 +140,10 @@ const ScriptureNoteEditorScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const { bottom: composerBottom } = useFloatingKeyboardButton(insets.bottom);
 
-  const selectedDate = params.selectedDate ? new Date(params.selectedDate) : new Date();
+  const selectedDate = params.selectedDate ? fromLocalDateString(params.selectedDate) : new Date();
   const dateStr = toLocalDateString(selectedDate);
 
+  const deleteMutation = useDeleteReflection();
   const [isSaving, setIsSaving] = useState(false);
   const [editingId] = useState<string | null>(params.existingReflection?.id || null);
   const [reference, setReference] = useState<string>(params.existingReflection?.title || '');
@@ -107,7 +163,15 @@ const ScriptureNoteEditorScreen: React.FC = () => {
   const [shareComposerOpen, setShareComposerOpen] = useState(false);
   const [showCopyright, setShowCopyright] = useState(false);
   const [notePickerOpen, setNotePickerOpen] = useState(false);
-  const notePickerAnimations = useRef(GUIDED_NOTE_TYPES.map(() => new Animated.Value(0))).current;
+  const [columnTarget, setColumnTarget] = useState<{ columnId: string; side: 'left' | 'right' } | null>(null);
+  const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
+  const [dragPreview, setDragPreview] = useState<{
+    blockId: string;
+    fromIndex: number;
+    targetIndex: number;
+    blockHeight: number;
+  } | null>(null);
+  const notePickerAnimations = useRef(REFLECTION_NOTE_TYPES.map(() => new Animated.Value(0))).current;
   const plusRotation = useRef(new Animated.Value(0)).current;
   const pickerColorAnim = useRef(new Animated.Value(0)).current;
   const actionAnimations = useRef([0, 1, 2, 3].map(() => new Animated.Value(1))).current;
@@ -176,7 +240,9 @@ const ScriptureNoteEditorScreen: React.FC = () => {
   const searchInputRef = useRef<TextInput>(null);
   const scrollRef = useRef<ScrollView>(null);
   const blockInputRefs = useRef(new Map<string, TextInput>());
+  const journalBlockLayoutsRef = useRef(new Map<string, { y: number; height: number }>());
   const pendingFocusBlockIdRef = useRef<string | null>(null);
+  const pendingFocusShouldScrollEndRef = useRef(true);
   const focusRetryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lookupVersionRef = useRef(0);
 
@@ -198,7 +264,12 @@ const ScriptureNoteEditorScreen: React.FC = () => {
     if (!blockId) return;
     const frame = requestAnimationFrame(() => {
       blockInputRefs.current.get(blockId)?.focus();
-      scrollRef.current?.scrollToEnd({ animated: true });
+      const layout = journalBlockLayoutsRef.current.get(blockId);
+      if (layout && !pendingFocusShouldScrollEndRef.current) {
+        scrollRef.current?.scrollTo({ y: Math.max(0, layout.y - 20), animated: true });
+      } else {
+        scrollRef.current?.scrollToEnd({ animated: true });
+      }
       if (focusRetryTimerRef.current) clearTimeout(focusRetryTimerRef.current);
       focusRetryTimerRef.current = setTimeout(() => {
         blockInputRefs.current.get(blockId)?.focus();
@@ -216,11 +287,128 @@ const ScriptureNoteEditorScreen: React.FC = () => {
     setHasChanges(true);
   }, []);
 
-  const addBlock = useCallback((kind: GuidedReflectionNote['kind'], text = '') => {
-    const block = { id: createGuidedNoteId(), kind, text };
+  const addBlock = useCallback((kind: GuidedReflectionNote['kind'], extra: Partial<GuidedReflectionNote> = {}) => {
+    const selectedBlock = selectedBlockId
+      ? journalBlocks.find(item => item.id === selectedBlockId)
+      : undefined;
+    const destination =
+      selectedBlock?.parentColumnId && selectedBlock.columnSide
+        ? { columnId: selectedBlock.parentColumnId, side: selectedBlock.columnSide }
+        : columnTarget;
+    if (destination && (kind === 'column' || kind === 'table')) { return; }
+    const block: GuidedReflectionNote = {
+      id: createGuidedNoteId(),
+      kind,
+      text: '',
+      ...(kind === 'table'
+        ? {
+            tableRows: [['', ''], ['', '']],
+            tableCellAlignments: [['left', 'left'], ['left', 'left']] as Array<Array<'left' | 'center' | 'right'>>,
+            tableEditing: true,
+          }
+        : {}),
+      ...(kind === 'bullets' || kind === 'numbered' ? { points: [''] } : {}),
+      ...(kind === 'action' ? { completed: false } : {}),
+      ...(destination
+        ? { parentColumnId: destination.columnId, columnSide: destination.side }
+        : {}),
+      ...extra,
+    };
+    let selectedIndex = selectedBlockId
+      ? journalBlocks.findIndex(item => item.id === selectedBlockId)
+      : -1;
+    if (destination && selectedBlock?.parentColumnId !== destination.columnId) {
+      selectedIndex = -1;
+    }
+    if (destination && selectedIndex < 0) {
+      for (let i = journalBlocks.length - 1; i >= 0; i -= 1) {
+        const item = journalBlocks[i];
+        if (item.parentColumnId === destination.columnId && item.columnSide === destination.side) {
+          selectedIndex = i;
+          break;
+        }
+      }
+      if (selectedIndex < 0) {
+        selectedIndex = journalBlocks.findIndex(item => item.id === destination.columnId);
+      }
+    }
+    const nextBlocks = [...journalBlocks];
+    if (selectedIndex >= 0) {
+      nextBlocks.splice(selectedIndex + 1, 0, block);
+      pendingFocusShouldScrollEndRef.current = selectedIndex === journalBlocks.length - 1;
+    } else {
+      nextBlocks.push(block);
+      pendingFocusShouldScrollEndRef.current = true;
+    }
     pendingFocusBlockIdRef.current = block.id;
-    commitBlocks([...journalBlocks, block]);
+    commitBlocks(nextBlocks);
+    setColumnTarget(kind === 'column' ? { columnId: block.id, side: 'left' } : destination || null);
+  }, [commitBlocks, columnTarget, journalBlocks, selectedBlockId]);
+
+  const insertActionAfter = useCallback((index: number) => {
+    const block: GuidedReflectionNote = {
+      id: createGuidedNoteId(),
+      kind: 'action',
+      text: '',
+      completed: false,
+    };
+    const nextBlocks = [...journalBlocks];
+    nextBlocks.splice(index + 1, 0, block);
+    pendingFocusBlockIdRef.current = block.id;
+    pendingFocusShouldScrollEndRef.current = index === journalBlocks.length - 1;
+    setSelectedBlockId(block.id);
+    commitBlocks(nextBlocks);
   }, [commitBlocks, journalBlocks]);
+
+  const handleDragJournalBlockStart = useCallback(
+    (blockId: string) => {
+      const fromIndex = journalBlocks.findIndex(block => block.id === blockId);
+      const layout = journalBlockLayoutsRef.current.get(blockId);
+      if (fromIndex < 0 || !layout) { return; }
+      setDragPreview({
+        blockId,
+        fromIndex,
+        targetIndex: fromIndex,
+        blockHeight: layout.height,
+      });
+    },
+    [journalBlocks],
+  );
+
+  const handleDragJournalBlockMove = useCallback(
+    (blockId: string, deltaY: number) => {
+      const targetIndex = resolveJournalBlockDropIndex(
+        journalBlocks,
+        journalBlockLayoutsRef.current,
+        blockId,
+        deltaY,
+      );
+      setDragPreview(current =>
+        !current || current.blockId !== blockId || current.targetIndex === targetIndex
+          ? current
+          : { ...current, targetIndex },
+      );
+    },
+    [journalBlocks],
+  );
+
+  const handleDragJournalBlock = useCallback(
+    (blockId: string, deltaY: number) => {
+      const targetIndex = resolveJournalBlockDropIndex(
+        journalBlocks,
+        journalBlockLayoutsRef.current,
+        blockId,
+        deltaY,
+      );
+      setDragPreview(null);
+      const nextBlocks = reorderJournalBlock(journalBlocks, blockId, targetIndex);
+      if (nextBlocks !== journalBlocks) {
+        setSelectedBlockId(blockId);
+        commitBlocks(nextBlocks);
+      }
+    },
+    [commitBlocks, journalBlocks],
+  );
 
   // Debounced scripture lookup — resolves the typed reference so we can
   // preview the verse and confirm it exists before the user writes.
@@ -277,6 +465,33 @@ const ScriptureNoteEditorScreen: React.FC = () => {
   const handleCancel = () => {
     Keyboard.dismiss();
     closeEditor();
+  };
+
+  const handleDelete = () => {
+    triggerLightHaptic();
+    if (!editingId) { return; }
+    Alert.alert(
+      'Delete Scripture Note',
+      'Are you sure you want to delete this scripture note? This action cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => {
+            triggerLightHaptic();
+            deleteMutation.mutateAsync(editingId)
+              .then(() => closeEditor())
+              .catch(deleteError => {
+                Logger.error('Failed to delete scripture note', deleteError as Error, {
+                  component: 'ScriptureNoteEditorScreen',
+                });
+                Alert.alert('Error', 'Failed to delete scripture note. Please try again.');
+              });
+          },
+        },
+      ],
+    );
   };
 
   const openReader = () => {
@@ -388,7 +603,7 @@ const ScriptureNoteEditorScreen: React.FC = () => {
               reference: trimmedReference,
               chapter_verse: chapterVerse,
               version: resolvedVerse?.version || params.version || existing.metadata?.version || 'NASB',
-              journalBlocks,
+              journalBlocks: prepareJournalBlocksForSave(journalBlocks),
             },
             updated_at: new Date().toISOString(),
             version: (existing.version || 1) + 1,
@@ -400,7 +615,7 @@ const ScriptureNoteEditorScreen: React.FC = () => {
             type: 'scripture',
             source: 'scripture_note',
             selected_date: dateStr,
-            metadata: { book, reference: trimmedReference, chapter_verse: chapterVerse, version: resolvedVerse?.version || params.version || 'NASB', journalBlocks },
+            metadata: { book, reference: trimmedReference, chapter_verse: chapterVerse, version: resolvedVerse?.version || params.version || 'NASB', journalBlocks: prepareJournalBlocksForSave(journalBlocks) },
           });
         }
       } else {
@@ -410,7 +625,7 @@ const ScriptureNoteEditorScreen: React.FC = () => {
           type: 'scripture',
           source: 'scripture_note',
           selected_date: dateStr,
-          metadata: { book, reference: trimmedReference, chapter_verse: chapterVerse, version: resolvedVerse?.version || params.version || 'NASB', journalBlocks },
+          metadata: { book, reference: trimmedReference, chapter_verse: chapterVerse, version: resolvedVerse?.version || params.version || 'NASB', journalBlocks: prepareJournalBlocksForSave(journalBlocks) },
         });
       }
 
@@ -483,11 +698,23 @@ const ScriptureNoteEditorScreen: React.FC = () => {
   return (
     <View style={s.container}>
       <StatusBar hidden />
-      <View style={[s.backgroundContainer, styles.headerBackdrop]} />
+      <View style={s.backgroundContainer} />
 
-      <View style={[s.header, styles.header]}>
-        <ThemedText weight="bold" style={[s.title, styles.headerDate]}>{dateString}</ThemedText>
-        <Animated.View style={[s.modeToggle, editorHeaderEntranceStyle]}>
+      <View style={s.header}>
+        <ThemedText weight="bold" style={s.title}>{dateString}</ThemedText>
+        <Animated.View style={[s.headerActions, editorHeaderEntranceStyle]}>
+          {editingId && (
+            <TouchableOpacity
+              style={s.headerPlainButton}
+              onPress={handleDelete}
+              activeOpacity={0.7}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              accessibilityRole="button"
+              accessibilityLabel="Delete scripture note"
+            >
+              <Trash2 size={22} color={Colors.sage} strokeWidth={1.5} />
+            </TouchableOpacity>
+          )}
           <TouchableOpacity
             style={s.headerCloseButton}
             onPress={() => {
@@ -522,7 +749,7 @@ const ScriptureNoteEditorScreen: React.FC = () => {
             {/* Scripture search bar — takes the place of the title input */}
             <View style={styles.searchBar}>
               <Ionicons name="search" size={18} color="rgba(255,255,255,0.6)" style={styles.searchIcon} />
-              <TextInput
+              <JournalTextInput
                 ref={searchInputRef}
                 autoFocus
                 style={[s.entryInput, s.titleInput, s.transparentInput, styles.searchInput, { fontFamily: fontFamilyBold }]}
@@ -576,40 +803,185 @@ const ScriptureNoteEditorScreen: React.FC = () => {
               </View>
             )}
 
-            {journalBlocks.map((block, index) => {
+            {journalBlocks.filter(block => !block.parentColumnId).map(block => {
+              const index = journalBlocks.findIndex(item => item.id === block.id);
               const updateBlock = (changes: Partial<GuidedReflectionNote>) =>
                 commitBlocks(journalBlocks.map(item =>
                   item.id === block.id ? { ...item, ...changes } : item,
                 ));
-              return (
-                <JournalInlineBlock
+              const removeBlock = () =>
+                commitBlocks(journalBlocks.filter(item => item.id !== block.id));
+              const registerBlockInput = (input: TextInput | null) => {
+                if (input) {
+                  blockInputRefs.current.set(block.id, input);
+                  if (index === 0) contentInputRef.current = input;
+                } else {
+                  blockInputRefs.current.delete(block.id);
+                }
+              };
+              const selectBlock = () => {
+                setSelectedBlockId(block.id);
+                setColumnTarget(null);
+              };
+              const wrapBlock = (content: React.ReactNode) => (
+                <DraggableJournalBlock
                   key={block.id}
+                  blockId={block.id}
+                  tone="onDark"
+                  selected={selectedBlockId === block.id}
+                  shiftY={(() => {
+                    if (!dragPreview || dragPreview.blockId === block.id) {
+                      return 0;
+                    }
+                    if (
+                      dragPreview.targetIndex > dragPreview.fromIndex &&
+                      index > dragPreview.fromIndex &&
+                      index <= dragPreview.targetIndex
+                    ) {
+                      return -dragPreview.blockHeight;
+                    }
+                    if (
+                      dragPreview.targetIndex < dragPreview.fromIndex &&
+                      index >= dragPreview.targetIndex &&
+                      index < dragPreview.fromIndex
+                    ) {
+                      return dragPreview.blockHeight;
+                    }
+                    return 0;
+                  })()}
+                  onSelect={selectBlock}
+                  onLayout={layout =>
+                    journalBlockLayoutsRef.current.set(block.id, layout)
+                  }
+                  onDragStart={handleDragJournalBlockStart}
+                  onDragMove={handleDragJournalBlockMove}
+                  onDragEnd={handleDragJournalBlock}>
+                  {content}
+                </DraggableJournalBlock>
+              );
+
+              if (block.kind === 'column') {
+                const nestedBlocks = journalBlocks.filter(
+                  item => item.parentColumnId === block.id,
+                );
+                const renderNestedBlock = (nestedBlock: JournalBlock) => (
+                  <JournalNestedBlockEditor
+                    key={nestedBlock.id}
+                    block={nestedBlock}
+                    tone="onDark"
+                    onFocus={() => {
+                      setSelectedBlockId(nestedBlock.id);
+                      if (nestedBlock.columnSide) {
+                        setColumnTarget({ columnId: block.id, side: nestedBlock.columnSide });
+                      }
+                    }}
+                    onChange={changes =>
+                      commitBlocks(journalBlocks.map(item =>
+                        item.id === nestedBlock.id
+                          ? { ...item, ...(changes as Partial<GuidedReflectionNote>) }
+                          : item,
+                      ))
+                    }
+                    onDelete={() =>
+                      commitBlocks(journalBlocks.filter(item => item.id !== nestedBlock.id))
+                    }
+                    registerInput={input => {
+                      if (input) blockInputRefs.current.set(nestedBlock.id, input);
+                      else blockInputRefs.current.delete(nestedBlock.id);
+                    }}
+                  />
+                );
+                return wrapBlock(
+                  <JournalColumnBlock
+                    leftBlocks={nestedBlocks.filter(item => item.columnSide === 'left') as JournalBlock[]}
+                    rightBlocks={nestedBlocks.filter(item => item.columnSide === 'right') as JournalBlock[]}
+                    activeSide={columnTarget?.columnId === block.id ? columnTarget.side : null}
+                    tone="onDark"
+                    renderBlock={renderNestedBlock}
+                    onSelectSide={side => {
+                      setSelectedBlockId(block.id);
+                      setColumnTarget({ columnId: block.id, side });
+                    }}
+                    onDelete={() =>
+                      commitBlocks(journalBlocks.filter(
+                        item => item.id !== block.id && item.parentColumnId !== block.id,
+                      ))
+                    }
+                  />,
+                );
+              }
+              if (block.kind === 'bullets' || block.kind === 'numbered') {
+                return wrapBlock(
+                  <JournalListBlock
+                    kind={block.kind}
+                    title={block.text}
+                    points={block.points}
+                    tone="onDark"
+                    onFocus={selectBlock}
+                    onChangeTitle={text => updateBlock({ text })}
+                    onChangePoints={points => updateBlock({ points })}
+                    onDelete={removeBlock}
+                    registerInput={registerBlockInput}
+                  />,
+                );
+              }
+              if (block.kind === 'table') {
+                return wrapBlock(
+                  <JournalTableBlock
+                    rows={block.tableRows}
+                    cellAlignments={block.tableCellAlignments}
+                    editing={block.tableEditing}
+                    tone="onDark"
+                    onFocus={selectBlock}
+                    onChangeRows={(tableRows, tableCellAlignments) =>
+                      updateBlock({
+                        tableRows,
+                        ...(tableCellAlignments ? { tableCellAlignments } : {}),
+                      })
+                    }
+                    onChangeCellAlignments={tableCellAlignments =>
+                      updateBlock({ tableCellAlignments })
+                    }
+                    onChangeEditing={tableEditing => updateBlock({ tableEditing })}
+                    onDelete={removeBlock}
+                    registerInput={registerBlockInput}
+                  />,
+                );
+              }
+              if (['section', 'action', 'photo', 'voice'].includes(block.kind)) {
+                return wrapBlock(
+                  <ReflectionSpecialBlock
+                    block={block}
+                    onChange={updateBlock}
+                    onFocus={selectBlock}
+                    onDelete={removeBlock}
+                    onCreateNextAction={block.kind === 'action' ? () => insertActionAfter(index) : undefined}
+                    registerInput={registerBlockInput}
+                  />,
+                );
+              }
+              return wrapBlock(
+                <JournalInlineBlock
                   block={{ id: block.id, kind: block.kind, text: block.text, secondary: block.secondary }}
                   configOverride={block.kind === 'text' ? undefined : JOURNAL_BLOCKS[block.kind]}
                   tone="onDark"
                   textPlaceholder="Write about this passage…"
                   styles={blockStyles}
-                  registerInput={input => {
-                    if (input) {
-                      blockInputRefs.current.set(block.id, input);
-                      if (index === 0) contentInputRef.current = input;
-                    } else {
-                      blockInputRefs.current.delete(block.id);
-                    }
-                  }}
+                  registerInput={registerBlockInput}
                   onChangeText={text => updateBlock({ text })}
                   onChangeSecondary={secondary => updateBlock({ secondary })}
-                  onDelete={() => commitBlocks(journalBlocks.filter(item => item.id !== block.id))}
+                  onFocus={selectBlock}
+                  onDelete={removeBlock}
                   renderScripture={block.kind === 'scripture' ? () => (
                     <View>
-                      <TextInput
+                      <JournalTextInput
                         style={[blockStyles.captureInput, styles.scriptureReference]}
                         value={block.reference || ''}
                         onChangeText={nextReference => updateBlock({ reference: nextReference })}
                         placeholder="Scripture reference"
                         placeholderTextColor="rgba(255,255,255,0.45)"
                       />
-                      <TextInput
+                      <JournalTextInput
                         ref={input => {
                           if (input) blockInputRefs.current.set(block.id, input);
                         }}
@@ -637,15 +1009,37 @@ const ScriptureNoteEditorScreen: React.FC = () => {
           <Animated.View style={[styles.floatingComposerEntrance, editorActionsEntranceStyle]}>
             {notePickerOpen && (
               <JournalPickerMenu
-                items={GUIDED_NOTE_TYPES.map(item => ({
-                  key: item.kind,
-                  label: item.label,
-                  icon: <Ionicons name={item.icon as any} size={13} color={Colors.sage} />,
-                }))}
+                items={REFLECTION_NOTE_TYPES
+                  .filter(
+                    item =>
+                      !columnTarget ||
+                      (item.kind !== 'column' && item.kind !== 'table'),
+                  )
+                  .map(item => ({
+                    key: item.kind,
+                    label: item.label,
+                    icon: (
+                      <JournalBlockIcon
+                        config={JOURNAL_BLOCKS[item.kind as keyof typeof JOURNAL_BLOCKS]}
+                        size={16}
+                        color={Colors.sage}
+                      />
+                    ),
+                  }))}
                 animations={notePickerAnimations}
-                onSelect={kind => {
+                onSelect={async kind => {
                   triggerMediumHaptic();
-                  closeNotePicker(() => addBlock(kind));
+                  if (kind === 'photo') {
+                    closeNotePicker();
+                    try {
+                      const photo = await pickImageLocal();
+                      if (photo) addBlock('photo', { uri: photo.uri });
+                    } catch {
+                      Alert.alert('Could not add photo', 'Please try choosing your photo again.');
+                    }
+                  } else {
+                    closeNotePicker(() => addBlock(kind));
+                  }
                 }}
               />
             )}
@@ -713,17 +1107,6 @@ const ScriptureNoteEditorScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  headerBackdrop: {
-    backgroundColor: Colors.lightBackground,
-  },
-  header: {
-    backgroundColor: Colors.lightBackground,
-    paddingBottom: 0,
-  },
-  headerDate: {
-    flex: 1,
-    flexShrink: 1,
-  },
   floatingComposer: {
     position: 'absolute',
     left: 18,

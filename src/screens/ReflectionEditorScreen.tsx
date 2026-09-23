@@ -542,9 +542,11 @@ const ReflectionEditorScreen: React.FC = () => {
           selectedDate={dateStr}
           existingContent={existingReflection?.content}
           existingPathId={structuredJourney?.pathId}
+          entryId={editingId || undefined}
           isSaving={isLoading}
           onCancel={handleCancel}
           onCloseJourney={existingReflection ? handleCancel : guidedFromChooser ? () => setGuidedFromChooser(false) : undefined}
+          onDelete={editingId ? handleDelete : undefined}
           onSelectQuestion={(prompt, topic) => {
             setSingleGuidedTopic(topic);
             setSingleGuidedPrompt(prompt);

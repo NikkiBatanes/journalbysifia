@@ -4,6 +4,7 @@ import Animated, { FadeInUp } from 'react-native-reanimated';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
 import ScriptureReaderModal from '../ScriptureReaderModal';
+import ShareComposer from '../TruthToCarryShareComposer';
 import ThemedText from '../common/ThemedText';
 import { Colors } from '../../theme/colors';
 
@@ -23,6 +24,8 @@ const DashboardHeaderScripture: React.FC<DashboardHeaderScriptureProps> = ({ dat
   const [failedKey, setFailedKey] = useState<string | null>(null);
   const [retry, setRetry] = useState(0);
   const [modalVisible, setModalVisible] = useState(false);
+  const [shareComposerOpen, setShareComposerOpen] = useState(false);
+  const [shareComposerText, setShareComposerText] = useState('');
 
   const isEvening = now.getHours() >= 17;
   const scripture = useMemo(
@@ -113,7 +116,16 @@ const DashboardHeaderScripture: React.FC<DashboardHeaderScriptureProps> = ({ dat
         initialIndex={0}
         version={bibleVersion}
         onClose={() => { setModalVisible(false); }}
+        onShareScripture={shareText => {
+          setShareComposerText(shareText);
+          setShareComposerOpen(true);
+        }}
       />}
+      <ShareComposer
+        visible={shareComposerOpen}
+        text={shareComposerText}
+        onClose={() => setShareComposerOpen(false)}
+      />
     </>
   );
 };

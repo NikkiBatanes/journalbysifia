@@ -25,6 +25,8 @@ import { streakTrackingService } from '../services/streakTrackingService';
 
 export type LocalJournalContentType =
   | 'gratitude'
+  | 'weekly_gratitude'
+  | 'weekly_looking_forward'
   | 'todo'
   | 'todays_focus'
   | 'today_win'

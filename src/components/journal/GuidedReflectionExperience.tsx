@@ -22,7 +22,7 @@ import {
   View,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import {BookHeart, Pencil} from 'lucide-react-native';
+import {BookHeart, Pencil, Trash2} from 'lucide-react-native';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {useFloatingKeyboardButton} from '../../hooks/useFloatingKeyboardButton';
 import ScriptureReaderModal from '../ScriptureReaderModal';
@@ -90,9 +90,11 @@ interface Props {
   selectedDate: string;
   existingContent?: unknown;
   existingPathId?: string;
+  entryId?: string;
   isSaving?: boolean;
   onCancel: () => void;
   onCloseJourney?: () => void;
+  onDelete?: (entryId: string) => Promise<void> | void;
   onSelectQuestion: (prompt: string, topic: GuidedQuestionTopic) => void;
   onSave: (entry: {
     title: string;
@@ -121,9 +123,11 @@ const GuidedReflectionExperience: React.FC<Props> = ({
   selectedDate,
   existingContent,
   existingPathId,
+  entryId,
   isSaving,
   onCancel,
   onCloseJourney,
+  onDelete,
   onSelectQuestion,
   onSave,
 }) => {
@@ -999,6 +1003,26 @@ const GuidedReflectionExperience: React.FC<Props> = ({
     Keyboard.dismiss();
   };
 
+  const deleteSavedJourney = () => {
+    if (!entryId || !onDelete) {return;}
+    triggerLightHaptic();
+    Alert.alert(
+      'Delete Guided Reflection',
+      'Are you sure you want to delete this guided reflection? This action cannot be undone.',
+      [
+        {text: 'Cancel', style: 'cancel'},
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => {
+            triggerLightHaptic();
+            void onDelete(entryId);
+          },
+        },
+      ],
+    );
+  };
+
   const openGuidedPath = async (selectedPath: (typeof GUIDED_REFLECTION_PATHS)[number]) => {
     triggerLightHaptic();
     // Flashing-light regression note:
@@ -1799,6 +1823,18 @@ const GuidedReflectionExperience: React.FC<Props> = ({
       <View style={reflectionEditorStyles.header}>
         <ThemedText weight="bold" style={reflectionEditorStyles.title}>{journeyDate}</ThemedText>
         <Animated.View style={[reflectionEditorStyles.headerActions, journeyHeaderActionEntranceStyle]}>
+          {entryId && onDelete && (
+            <TouchableOpacity
+              disabled={isSaving}
+              onPress={deleteSavedJourney}
+              accessibilityRole="button"
+              accessibilityLabel="Delete guided reflection"
+              hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}
+              activeOpacity={0.7}
+              style={reflectionEditorStyles.headerPlainButton}>
+              <Trash2 size={22} color={Colors.sage} strokeWidth={1.5} />
+            </TouchableOpacity>
+          )}
           <TouchableOpacity
             onPress={closeJourney}
             accessibilityRole="button"

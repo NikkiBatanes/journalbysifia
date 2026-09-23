@@ -1,11 +1,9 @@
-import { getGratitudeVerse } from '../../data/getGratitudeVerse';
 import { useFloatingKeyboardButton } from '../../hooks/useFloatingKeyboardButton';
-import React, { useRef, useEffect, useImperativeHandle, useCallback, useState } from 'react';
+import React, { useRef, useEffect, useImperativeHandle, useCallback } from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import {
   View,
   TextInput,
-  Text,
   TouchableOpacity,
   ScrollView,
   KeyboardAvoidingView,
@@ -14,7 +12,6 @@ import {
   Keyboard,
   ActivityIndicator,
   Animated,
-  StyleSheet,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../../theme/colors';
@@ -27,6 +24,7 @@ import PlaybookMetaSection from './PlaybookMetaSection';
 import StepFadeIn from '../common/StepFadeIn';
 import { isToday, isYesterday, startOfDay } from 'date-fns';
 import { useRoutineDraft } from '../../hooks/useRoutineDraft';
+import GratitudeVerse from './GratitudeVerse';
 
 interface GratitudeLogEditorProps {
   onSave: (data: {
@@ -63,26 +61,6 @@ export interface GratitudeLogEditorRef {
   focusInput: (skipScroll?: boolean) => void;
   reset: () => void;
 }
-
-const verseStyles = StyleSheet.create({
-  text: {
-    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
-    fontStyle: 'italic',
-    fontSize: 16,
-    lineHeight: 25,
-    color: Colors.textGray,
-    textAlign: 'center',
-  },
-  reference: {
-    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
-    fontSize: 12,
-    lineHeight: 18,
-    color: Colors.textGray,
-    textAlign: 'center',
-    marginTop: 8,
-    marginBottom: 20,
-  },
-});
 
 const defaultStyles = {
   container: {
@@ -264,7 +242,6 @@ const GratitudeLogEditorInner = (
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';
   const fontRegular = getFontFamily(fontKey, 'regular');
-  const gratitudeVerse = getGratitudeVerse(selectedDate);
   const insets = useSafeAreaInsets();
 
   const s = { ...defaultStyles, ...styles };
@@ -460,8 +437,7 @@ const GratitudeLogEditorInner = (
 
             <StepFadeIn delay={120} style={[s.prioritiesContainer, { marginTop: 32 }]}>
               <StepFadeIn delay={0}>
-                <Text style={verseStyles.text}>{gratitudeVerse.text}</Text>
-                <Text style={verseStyles.reference}>— {gratitudeVerse.reference}</Text>
+                <GratitudeVerse selectedDate={selectedDate}/>
               </StepFadeIn>
               {gratitudeItems.map((item, index) => (
                 <View key={index} style={s.priorityInputRow}>

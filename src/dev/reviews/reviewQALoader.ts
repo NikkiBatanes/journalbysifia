@@ -12,11 +12,13 @@ import {seedWeeklyMorningFlow} from './reviewQAWeeklyMorningData';
 import {seedWeeklyEveningFlow} from './reviewQAWeeklyEveningData';
 import {seedWeeklyHeartJournal} from './reviewQAWeeklyHeartJournalData';
 import {seedWeeklyGuidedReflections} from './reviewQAWeeklyGuidedReflectionData';
+import {seedWeeklyPrayers} from './reviewQAWeeklyPrayerData';
+import {seedWeeklyScriptureNotes} from './reviewQAWeeklyScriptureNoteData';
 import {DAILY_SCRIPTURE_SEQUENCE_OVERRIDE_KEY} from '../../services/dailyScriptureSequence';
 
 const MANIFEST = `${REVIEW_QA_PREFIX}manifest`;
 const REVIEW_PERIODS = `${REVIEW_QA_PREFIX}periods`;
-const WEEKLY_DATASET_VERSION = 'weekly-routines-heart-journal-guided-v7';
+const WEEKLY_DATASET_VERSION = 'weekly-routines-heart-journal-prayer-v2-scripture-notes-v9';
 
 type Manifest = {
   keys: string[];
@@ -174,6 +176,8 @@ export const loadReviewQAScenario = async (scenarioId: ReviewQAScenario) => {
   await seedWeeklyEveningFlow({keys: manifest.keys, restores: manifest.restores});
   await seedWeeklyHeartJournal({keys: manifest.keys, restores: manifest.restores});
   await seedWeeklyGuidedReflections({keys: manifest.keys, restores: manifest.restores});
+  await seedWeeklyPrayers({keys: manifest.keys, restores: manifest.restores});
+  await seedWeeklyScriptureNotes({keys: manifest.keys, restores: manifest.restores});
   manifest.keys.push(DAILY_SCRIPTURE_SEQUENCE_OVERRIDE_KEY);
   await AsyncStorage.setItem(DAILY_SCRIPTURE_SEQUENCE_OVERRIDE_KEY, scenario.period.periodStart);
   await AsyncStorage.setItem(MANIFEST, JSON.stringify(manifest));

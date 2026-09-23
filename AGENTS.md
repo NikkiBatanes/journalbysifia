@@ -59,22 +59,26 @@
 #### Weekly
 
 **Look Back**
-- NOTICE: What stands out as you look back on this week?
-- GOD: Where did you notice God’s faithfulness this week?
-- HEART: What was happening in your heart this week?
-- SCRIPTURE: What truth from Scripture do you want to carry with you?
-- PRAYER: What are you still bringing to God?
+- FEELINGS: How did this week feel? (up to 3 everyday or spiritual words, or write your own)
+- LIFE CHECK-IN: How did these areas of life feel this week? Mind, Body, Relationships, Work / School, Finances, Responsibilities, Rest, and Life with God share the catalog in `src/data/weeklyLifeAreas.ts`.
+- MOMENTS: Moments from this week — browse and bookmark.
+- REMEMBERED: What you want to remember — keep this as a separate page after Moments, with an optional “Anything else you want to remember?” field for unlogged memories (`week_memory_other`).
+- THE HARD PARTS: What felt difficult this week? (optional, `week_difficulty`)
+- WEEKLY GRATITUDE: Looking back on this week, what do you want to thank God for?
+- GOD’S FAITHFULNESS: How did God meet you this week? (choose up to 3 or write your own)
+- WHAT YOU’RE LEARNING: What are you learning through this week? (`week_learning`)
+
+Weekly Look Back reflection answers stay in the review. New learning answers must not create Open Prayers. Legacy `answers.prayer` remains preserved and readable in the editor/reader; existing canonical prayers are left intact. Weekly gratitude retains its existing Gratitude Moment integration.
 
 **Look Ahead (Step into next week)**
-- PRIORITY: What matters most this week? (up to 3)
-- DON’T FORGET: What needs your attention this week?
-- PEOPLE: Who do you want to make room for this week?
-- PRAYER: What do you want to keep bringing to God this week?
-- REST: Where will you make room to rest?
-- WATCH FOR: Is there anything you need to be mindful of this week?
-- FAITHFUL STEP: What is one faithful step you want to take this week?
+- PRIORITY: What matters most this week? Start with one input; the icon-only floating plus beside Next adds and focuses another, up to three.
+- NEEDS CARE: What needs care this week? Select any of the shared life areas or Other (`week_care_areas`). Other reveals its own text field (`week_care_other`); one shared optional note retains the legacy `dont_forget` answer key.
+- CHALLENGES AHEAD: What could make this week difficult? Reuses `watch_for` immediately after Needs Care. Suggestions are stored in `week_challenge_choices`; Other keeps the legacy `watch_for` text. Older written answers open as Other. Deselection preserves the text for re-selection.
+- LOOKING FORWARD: Reuses the daily Looking Forward walkthrough’s emotion and writing steps with weekly wording. Answers use `week_looking_forward`, `week_looking_forward_emotion`, and `week_looking_forward_other`. It saves a distinct `weekly_looking_forward` Moment titled `Looking forward to this week`, using the reviewed period end as its timeline date and the upcoming seven days on its card. Daily Looking Forward entries remain separate.
+- PRAYER: `Pray over your week` is its own page immediately after the walkthrough, using `prayer_ahead`. Earlier `week_support_choices` remain readable; new reviews use free writing. Prayer answers stay in the review.
+- People, Rest, and Faithful Step are no longer separate weekly questions. Existing answers remain readable in the recap and Past Reviews.
 
-Closing: `YOUR WEEK IS READY` with chosen priorities, carried Scripture, active prayers, and one faithful step.
+Closing: a shared `WeeklyReviewSummary` shows **Looking Back / Looking Ahead** tabs at the end of the editor and when opening a completed weekly review. Looking Back starts selected; editing returns to the same tab, and editing Looking Forward goes through both walkthrough steps. Daily activity and category counts come from unique captured moments inside the saved period; life-area ratings come directly from answers. See [Weekly review summary](docs/weekly-review-summary.md). Weekly completion happens only on `Finish review`, after saving; reaching the recap leaves a draft open. All Looking Ahead steps are optional.
 
 #### Monthly
 

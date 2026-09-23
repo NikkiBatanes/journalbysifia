@@ -3,7 +3,7 @@ import { useNavigation } from '@react-navigation/native';
 import { Logger } from '../../utils/ProductionLogger';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { View, TextInput, StyleSheet, TouchableOpacity, Alert, Animated, DeviceEventEmitter } from 'react-native';
+import { View, TextInput, StyleSheet, TouchableOpacity, Alert, Animated, DeviceEventEmitter, type StyleProp, type ViewStyle } from 'react-native';
 import { useMomentsPalette } from '../../context/MomentsPaletteContext';
 import { JournalCard } from './JournalCard';
 import { Colors } from '../../theme/colors';
@@ -52,9 +52,14 @@ interface GratitudeListProps {
   expanded?: boolean;
   onExpand?: () => void;
   onBegin?: (existingEntry?: any, selectedDate?: Date) => void;
+  readOnly?: boolean;
+  cardStyle?: StyleProp<ViewStyle>;
+  iconColor?: string;
+  title?: string;
+  iconPosition?: 'left' | 'top';
 }
 
-export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selectedDate = new Date(), viewMode, expanded, onExpand, onBegin }) => {
+export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selectedDate = new Date(), viewMode, expanded, onExpand, onBegin, readOnly = false, cardStyle, iconColor = Colors.alertCoral, title = 'GRATITUDE LIST', iconPosition = 'left' }) => {
   const navigation = useNavigation();
   // Global edit mode context (only for inline view)
   // Global edit mode context - safe version that handles missing provider
@@ -100,7 +105,7 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
   const closeButtonScale = useRef(new Animated.Value(1)).current;
 
   // Determine if we should be in adding mode
-  const shouldShowAddingMode = isAdding || isEditing || ((viewMode === 'inline' || viewMode === 'carousel') && globalEditMode?.isGlobalEditMode);
+  const shouldShowAddingMode = !readOnly && (isAdding || isEditing || ((viewMode === 'inline' || viewMode === 'carousel') && globalEditMode?.isGlobalEditMode));
 
   // Show add (+) button only when the 3rd input field has content
   const shouldShowAddButton = (newItems[2]?.trim().length ?? 0) > 0;
@@ -286,7 +291,7 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
 
   // Handle global edit mode activation
   React.useEffect(() => {
-    if ((viewMode === 'inline' || viewMode === 'carousel') && globalEditMode?.isGlobalEditMode && !isAdding && !isEditing) {
+    if (!readOnly && (viewMode === 'inline' || viewMode === 'carousel') && globalEditMode?.isGlobalEditMode && !isAdding && !isEditing) {
       // If there are existing gratitude items, start editing them
       if (gratitudeItems.length > 0) {
         startEditing();
@@ -295,7 +300,7 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
         startAdding();
       }
     }
-  }, [globalEditMode?.isGlobalEditMode, gratitudeItems.length, viewMode, isAdding, isEditing, startEditing, startAdding]);
+  }, [readOnly, globalEditMode?.isGlobalEditMode, gratitudeItems.length, viewMode, isAdding, isEditing, startEditing, startAdding]);
 
   const cancelAdding = () => {
     triggerSelectionHaptic();
@@ -479,11 +484,12 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
   const showLess = useCallback(() => {
     triggerLightHaptic();
     setVisibleCount(5);
+    if (readOnly) {return;}
     // Scroll to reflect section (contains gratitude) when showing less
     setTimeout(() => {
       scrollToSection('reflect-carousel', -100);
     }, 100);
-  }, [scrollToSection]);
+  }, [readOnly, scrollToSection]);
 
   const displayGratitudeList = () => {
     if (isAdding || isEditing) {return null;}
@@ -498,7 +504,7 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
               color={Colors.textGray}
               style={styles.emptyStateIcon}
             />
-            <ThemedText weight="semiBold" style={styles.sectionLabel} accessibilityRole="text">GRATITUDE LIST</ThemedText>
+            <ThemedText weight="semiBold" style={styles.sectionLabel} accessibilityRole="text">{title}</ThemedText>
           </View>
           <View style={styles.titleContainer}>
             <ThemedText
@@ -605,16 +611,19 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
     return (
       <ErrorBoundary name="GratitudeListReactQuery">
         <JournalCard
+          style={cardStyle}
+          viewMode={viewMode}
+          iconPosition={iconPosition}
           icon={
             <LuHandHeart
               size={24}
-              color={Colors.alertCoral}
+              color={iconColor}
               strokeWidth={2.5}
             />
           }
-          title="GRATITUDE LIST"
+          title={title}
           subtitle="Reflect on your gratitude today"
-          showAddButton={true}
+          showAddButton={!readOnly}
           onAdd={() => {}} // Disabled during loading
         >
           <View
@@ -633,7 +642,7 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
   const hasContent = gratitudeItems.length > 0;
 
   // Hide empty component in inline and moments view
-  if ((viewMode === 'inline' || viewMode === 'moments') && !isLoading && !error && gratitudeItems.length === 0) {
+  if ((readOnly || viewMode === 'inline' || viewMode === 'moments') && !isLoading && !error && gratitudeItems.length === 0) {
     return null;
   }
 
@@ -658,16 +667,18 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
   return (
     <ErrorBoundary name="GratitudeListReactQuery">
       <JournalCard
+        style={cardStyle}
+        iconPosition={iconPosition}
         icon={(hasContent || shouldShowAddingMode) ? (
           <MaterialCommunityIcons
             name="heart-circle-outline"
             size={24}
-            color={Colors.alertCoral}
+            color={iconColor}
           />
         ) : undefined}
-        title={(hasContent || shouldShowAddingMode) ? 'GRATITUDE LIST' : undefined}
+        title={(hasContent || shouldShowAddingMode) ? title : undefined}
         subtitle={dynamicSubtitle}
-        showAddButton={hasContent ? !shouldShowAddingMode : false}
+        showAddButton={!readOnly && hasContent && !shouldShowAddingMode}
         onAdd={() => {
           if (onBegin) {
             // Pass all gratitude items from all entries for editing

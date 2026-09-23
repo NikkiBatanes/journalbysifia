@@ -1,14 +1,24 @@
 import {FILTER_OPTIONS} from '../../components/moments/momentFilterOptions';
-import {matchesMomentCategoryFilter, narrowRoutineMomentToFilters} from '../momentFilterService';
+import {matchesMomentCategoryFilter, narrowRoutineMomentToFilters, narrowRoutineMomentToRemembered} from '../momentFilterService';
 import type {MomentTimelineItem} from '../momentTimelineService';
 
 describe('Moments category filters', () => {
+  it('includes weekly Looking Forward under Looking Forward without treating it as an evening routine', () => {
+    expect(matchesMomentCategoryFilter({kind: 'weekly_looking_forward', pluginId: 'weeklylookingforward'}, 'lookingForward')).toBe(true);
+    expect(matchesMomentCategoryFilter({kind: 'weekly_looking_forward'}, 'eveningProverbs')).toBe(false);
+  });
   it('offers every routine and journal category users need to find', () => {
     expect(FILTER_OPTIONS.map(option => option.key)).toEqual(expect.arrayContaining([
       'morningCheckIns', 'morningPsalms', 'todaysFocus', 'todos', 'gratitude',
       'todaysWin', 'eveningProverbs', 'lookingForward', 'reflectionJournals',
       'bibleStudy', 'scriptureNotes', 'sessionNotes', 'prayers', 'prayerRequests',
+      'remembered',
     ]));
+  });
+
+  it('matches moments deliberately remembered in a review', () => {
+    expect(matchesMomentCategoryFilter({isRemembered: true},'remembered')).toBe(true);
+    expect(matchesMomentCategoryFilter({isRemembered: false},'remembered')).toBe(false);
   });
 
   it('finds canonical Morning and Evening sections inside routine moments', () => {
@@ -44,5 +54,19 @@ describe('Moments category filters', () => {
     expect(narrowed.preview.lines).toEqual(['Righteous']);
     expect(narrowed.searchText).not.toContain('hopeful');
     expect(narrowed.searchText).not.toContain('work');
+  });
+
+  it('shows only remembered sections inside an aggregated routine moment', () => {
+    const item: MomentTimelineItem = {
+      key:'evening:2026-09-14',kind:'evening',selectedDate:'2026-09-14',canonicalSource:'journal',
+      canonicalIds:['gratitude','win'],savedAt:'2026-09-14T20:00:00.000Z',searchText:'evening grateful finished',
+      preview:{title:'Evening',lines:['Grateful','Finished'],sections:[
+        {kind:'gratitude',label:'Gratitude',canonicalSource:'journal',canonicalIds:['gratitude'],lines:['Grateful']},
+        {kind:'win',label:'Win',canonicalSource:'journal',canonicalIds:['win'],lines:['Finished']},
+      ]},metadata:{sectionKinds:['gratitude','win']},
+    };
+    const narrowed = narrowRoutineMomentToRemembered(item,['win']);
+    expect(narrowed.preview.sections?.map(section => section.kind)).toEqual(['win']);
+    expect(narrowed.canonicalIds).toEqual(['win']);
   });
 });

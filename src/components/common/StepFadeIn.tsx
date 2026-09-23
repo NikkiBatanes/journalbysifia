@@ -13,8 +13,7 @@ const StepFadeIn: React.FC<StepFadeInProps> = ({ delay = 0, children, style }) =
   const translateY = useRef(new Animated.Value(16)).current;
 
   useEffect(() => {
-    const t = setTimeout(() => {
-      Animated.parallel([
+    const animation = Animated.parallel([
         Animated.timing(opacity, {
           toValue: 1,
           duration: 340,
@@ -26,9 +25,12 @@ const StepFadeIn: React.FC<StepFadeInProps> = ({ delay = 0, children, style }) =
           friction: 10,
           useNativeDriver: true,
         }),
-      ]).start();
-    }, delay);
-    return () => clearTimeout(t);
+    ]);
+    const t = setTimeout(() => animation.start(), delay);
+    return () => {
+      clearTimeout(t);
+      animation.stop();
+    };
   }, [delay, opacity, translateY]);
 
   return (

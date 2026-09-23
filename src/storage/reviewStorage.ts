@@ -1,5 +1,4 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Logger } from '../utils/ProductionLogger';
 import { safeJsonParse } from '../utils/safeJsonParse';
 import { toLocalDateString } from '../utils/date';
 
@@ -43,6 +42,12 @@ export interface ReviewMemorableItem {
     | 'evening';
   id: string;
   selectedDate: string; // YYYY-MM-DD
+  /**
+   * Stable source records represented by this review item. Most items have
+   * one canonical ID; grouped to-dos and prayer events may point to several.
+   * Optional so every review saved before this field remains valid.
+   */
+  canonicalIds?: string[];
 }
 
 export interface ReviewPrayerSnapshotItem {
@@ -55,6 +60,8 @@ export interface ReviewPrayerSnapshotItem {
   title: string;
   subtitle: string;
   text?: string;
+  /** Canonical Prayer source type captured for stable recap presentation. */
+  prayerTypeLabel?: string;
 }
 
 export interface ReviewAnswers {
@@ -178,6 +185,12 @@ export const getLocalReviewsByType = async (
     }
   }
   return entries.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+};
+
+export const getAllLocalReviews = async (): Promise<LocalReviewEntry[]> => {
+  const types: ReviewType[] = ['weekly', 'monthly', 'quarterly', 'year_end', 'begin_year'];
+  const groups = await Promise.all(types.map(type => getLocalReviewsByType(type)));
+  return groups.flat().sort((a, b) => a.createdAt.localeCompare(b.createdAt));
 };
 
 export const getLocalReviewForPeriod = async (

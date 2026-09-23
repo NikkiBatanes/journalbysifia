@@ -109,6 +109,9 @@ export function getPrayerTypePresentation(prayer: PrayerApiEntry, need?: PrayerN
   if (source === 'devotional' || prayer.prayer_type === 'devotional') return {
     label: `Devotional Prayer${first(prayer.day_title, prayer.day_number ? `Day ${prayer.day_number}` : undefined, metadata.devotional_title) ? ` · ${first(prayer.day_title, prayer.day_number ? `Day ${prayer.day_number}` : undefined, metadata.devotional_title)}` : ''}`, detailLabel: 'Devotional Prayer', detailContext: first(prayer.day_title, prayer.day_number ? `Day ${prayer.day_number}` : undefined, metadata.devotional_title), content: prayer.content,
   };
+  if (source === 'weekly_review' && (style === 'open' || prayer.journal_category === 'personal_prayer')) return {
+    label: 'Weekly · Open Prayer', detailLabel: 'Weekly Open Prayer', originLabel: 'From your Weekly Review', content: prayer.content,
+  };
   if (style === 'open' || prayer.journal_category === 'personal_prayer') return { label: 'Open Prayer', detailLabel: 'Open Prayer', content: prayer.content };
   if (prayer.journal_category && ['adoration', 'confession', 'thanksgiving', 'supplication'].includes(prayer.journal_category)) return {
     label: `${cleanCategory(prayer.journal_category)} Prayer`, detailLabel: `${cleanCategory(prayer.journal_category)} Prayer`, content: prayer.content,
@@ -128,7 +131,6 @@ export function getPrayerRequestJourneyPresentation(
   const directLinkedIsValid = !!origin && !prayer.is_prayer_request && prayer.metadata?.original_request_id === origin.id;
   const linked = suppliedLinkedIsValid ? linkedPrayer : directLinkedIsValid ? prayer : undefined;
   const isRequestJourney = !!origin && (origin.is_prayer_request === true || prayer.is_prayer_request === true || !!prayer.metadata?.original_request_id);
-  const metadata = linked?.metadata || prayer.metadata || origin?.metadata || {};
   const hasAnswer = answerHistory(linked || prayer).length > 0;
   const letGo = isPrayerLetGo(linked || prayer);
   const prayed = !!linked?.prayed || (linked?.prayer_count || 0) > 0 || origin?.prayed === true

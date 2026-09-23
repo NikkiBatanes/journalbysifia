@@ -21,8 +21,11 @@ import { heartJournalClassificationLabel } from '../types/heartJournal';
 import { resolveSessionNoteType, sessionNoteSearchMetadata, sessionNoteTypeLabel } from '../types/sessionNotes';
 import { adaptSifiaPrayer, adaptSifiaReflection } from '../compatibility/sifiaReadCompatibility';
 import {resolveSavedProverbNumber, resolveSavedPsalmNumber} from './dailyScriptureSequence';
+import {formatWeeklyGratitudePeriod} from '../utils/weeklyGratitudePeriod';
+import {formatWeeklyLookingAheadPeriod} from '../utils/weeklyLookingAheadPeriod';
+import {WEEKLY_LOOKING_FORWARD_TITLE} from '../utils/weeklyLookingForwardAnswers';
 
-export type MomentTimelineKind = 'morning' | 'evening' | 'bible_study' | 'scripture_note' | 'sermon' | 'reflection' | 'prayer';
+export type MomentTimelineKind = 'morning' | 'evening' | 'weekly_gratitude' | 'weekly_looking_forward' | 'bible_study' | 'scripture_note' | 'sermon' | 'reflection' | 'prayer';
 export type MomentCanonicalSource = 'journal' | 'reflection' | 'prayer';
 export type RoutineSectionKind = 'check_in' | 'psalm' | 'focus' | 'priorities' | 'gratitude' | 'win' | 'proverbs' | 'looking_forward';
 
@@ -175,6 +178,58 @@ export const buildMomentTimeline = ({ journalEntries, reflections, bibleStudies,
       result.push({ key: `evening:${selectedDate}`, kind: 'evening', selectedDate, canonicalSource: 'journal', canonicalIds: ids, savedAt, preview: { title: 'Evening', lines, sections: eveningSections }, searchText: itemSearchText('Evening', lines), metadata: { sectionKinds: eveningSections.map(section => section.kind), serverIds: serverIds([...dayJournal, ...dayScripture]) } });
     }
   });
+
+  journalEntries
+    .filter(entry => !entry.deleted && entry.content_type === 'weekly_gratitude')
+    .forEach(entry => {
+      const content = parseJournalContent(entry);
+      const gratitudeItems = Array.isArray(content.items)
+        ? text(content.items)
+        : text(content.text);
+      if (gratitudeItems.length === 0) {return;}
+      const periodStart = text(content.periodStart, entry.metadata?.periodStart)[0] || entry.selected_date;
+      const periodEnd = text(content.periodEnd, entry.metadata?.periodEnd)[0] || entry.selected_date;
+      const periodLabel = formatWeeklyGratitudePeriod(periodStart, periodEnd);
+      result.push({
+        key: `weekly-gratitude:${entry.id}`,
+        kind: 'weekly_gratitude',
+        selectedDate: entry.selected_date,
+        canonicalSource: 'journal',
+        canonicalIds: [entry.id],
+        savedAt: entry.updated_at,
+        preview: {title: 'Weekly Gratitude', lines: gratitudeItems},
+        searchText: itemSearchText('Weekly Gratitude', [periodLabel, ...gratitudeItems]),
+        metadata: {
+          periodStart,
+          periodEnd,
+          periodLabel,
+          serverIds: serverIds([entry]),
+        },
+      });
+    });
+
+  journalEntries
+    .filter(entry => !entry.deleted && entry.content_type === 'weekly_looking_forward')
+    .forEach(entry => {
+      const content = parseJournalContent(entry);
+      const lookingForwardText = text(content.entry?.text)[0] || '';
+      const emotionName = text(content.emotionName)[0] || '';
+      const lines = text(lookingForwardText, emotionName);
+      if (!lines.length) {return;}
+      const periodEnd = text(content.periodEnd, entry.metadata?.periodEnd)[0] || entry.selected_date;
+      const periodLabel = formatWeeklyLookingAheadPeriod(periodEnd);
+      result.push({
+        key: `weekly-looking-forward:${entry.id}`,
+        kind: 'weekly_looking_forward',
+        selectedDate: entry.selected_date,
+        canonicalSource: 'journal',
+        canonicalIds: [entry.id],
+        savedAt: entry.updated_at,
+        preview: {title: WEEKLY_LOOKING_FORWARD_TITLE, lines},
+        searchText: itemSearchText(WEEKLY_LOOKING_FORWARD_TITLE, [periodLabel, ...lines]),
+        metadata: {periodLabel, lookingForwardText, emotionName, emotionIcon: content.emotionIcon, serverIds: serverIds([entry])},
+      });
+    });
 
   const bibleIds = new Set(bibleStudies.map(entry => entry.id));
   bibleStudies.forEach(reflection => {

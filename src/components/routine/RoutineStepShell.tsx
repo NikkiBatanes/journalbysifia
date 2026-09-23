@@ -11,11 +11,11 @@ import {
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Ionicons from 'react-native-vector-icons/Ionicons';
 
 import { Colors } from '../../theme/colors';
 import ThemedText from '../common/ThemedText';
 import StepFadeIn from '../common/StepFadeIn';
+import HeaderCloseButton from '../common/HeaderCloseButton';
 import { useFloatingKeyboardButton } from '../../hooks/useFloatingKeyboardButton';
 import { triggerLightHaptic } from '../../utils/haptics';
 
@@ -31,6 +31,7 @@ interface RoutineStepShellProps {
   onSkip?: () => void;
   backgroundColor?: string;
   rightControl?: React.ReactNode;
+  stickyRightControls?: boolean;
   scrollWithHeader?: boolean;
   manageStatusBar?: boolean;
   extraScrollBottomPadding?: number;
@@ -51,6 +52,7 @@ const RoutineStepShell: React.FC<RoutineStepShellProps> = ({
   onSkip,
   backgroundColor = Colors.sage,
   rightControl,
+  stickyRightControls = false,
   scrollWithHeader = false,
   manageStatusBar = true,
   extraScrollBottomPadding = 0,
@@ -85,6 +87,22 @@ const RoutineStepShell: React.FC<RoutineStepShellProps> = ({
   const textColor = isLight ? Colors.text : Colors.hopeWhite;
   const mutedColor = isLight ? Colors.sageMuted : Colors.hopeWhite;
 
+  const closeControl = onBack ? (
+    <HeaderCloseButton
+      onPress={() => { triggerLightHaptic(); onBack(); }}
+      accessibilityLabel="Close"
+    />
+  ) : (
+    <View style={styles.backPlaceholder} />
+  );
+
+  const headerControls = (
+    <View style={styles.headerControls}>
+      {rightControl}
+      {closeControl}
+    </View>
+  );
+
   const header = (
     <View style={[styles.topRow, { paddingTop: insets.top + 8 }, { marginHorizontal: -24 }]}>
       <View style={[styles.backPlaceholder, rightControl ? { width: 92 } : null]} />
@@ -94,23 +112,9 @@ const RoutineStepShell: React.FC<RoutineStepShellProps> = ({
         <ThemedText weight="semiBold" style={[styles.eyebrow, { color: mutedColor }]}>{eyebrow}</ThemedText>
       </StepFadeIn>
 
-      <View style={styles.headerControls}>
-        {rightControl}
-      {onBack ? (
-        <TouchableOpacity
-          onPress={() => { triggerLightHaptic(); onBack(); }}
-          style={styles.closeButton}
-          activeOpacity={0.7}
-          accessibilityRole="button"
-          accessibilityLabel="Close"
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-        >
-          <Ionicons name="close" size={17} color={Colors.sage} />
-        </TouchableOpacity>
-      ) : (
-        <View style={styles.backPlaceholder} />
-      )}
-      </View>
+      {stickyRightControls
+        ? <View style={{width: rightControl ? 92 : 42}} />
+        : headerControls}
     </View>
   );
 
@@ -133,6 +137,14 @@ const RoutineStepShell: React.FC<RoutineStepShellProps> = ({
         ) : null}
         {children}
       </ScrollView>
+      {stickyRightControls ? (
+        <View
+          testID="routine-sticky-header-controls"
+          style={[styles.stickyHeaderControls, {top: insets.top + 8}]}
+        >
+          {headerControls}
+        </View>
+      ) : null}
       <Animated.View pointerEvents="box-none" style={[styles.footer, { position: 'absolute', bottom: buttonBottom, left: 0, right: 0, justifyContent: onSkip ? 'space-between' : 'flex-end' }]}>
         {onSkip && (
           <TouchableOpacity
@@ -176,13 +188,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
   },
-  closeButton: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: Colors.cardBackground,
-    alignItems: 'center',
-    justifyContent: 'center',
+  stickyHeaderControls: {
+    position: 'absolute',
+    right: 20,
+    zIndex: 100,
   },
   backPlaceholder: {
     width: 42,
