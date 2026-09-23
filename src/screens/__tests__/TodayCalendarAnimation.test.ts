@@ -20,6 +20,8 @@ describe('Today calendar animation', () => {
     expect(source).toContain('const SIDE_REGION_TOP_SPACING = 20');
     expect(source).toContain('windowWidth - insets.left - insets.right');
     expect(source).toContain('{ paddingLeft: calendarLeadingPadding, paddingRight: topCalendarTrailingPadding }');
+    expect(source).toContain('<View style={styles.readableRail}>');
+    expect(source).not.toContain('styles.readableRail, { paddingLeft: insets.left, paddingRight: insets.right }');
     expect(source).toContain('style={usesTopCalendarRail ? styles.dateRow : undefined}');
     expect(source).toContain('style={styles.sideCalendarButton}');
     expect(source).not.toContain('IPHONE_DUO_MIN_WIDTH');

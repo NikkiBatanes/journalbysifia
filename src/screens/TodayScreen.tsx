@@ -606,7 +606,7 @@ const TodayScreen = () => {
             ) : null}
           </View>
         ) : null}
-        <View style={[styles.readableRail, { paddingLeft: insets.left, paddingRight: insets.right }]}>
+        <View style={styles.readableRail}>
           <View style={styles.readableContent}>
             <View style={styles.headerColumn}>
               {!usesTopCalendarRail ? calendarSheet : null}
