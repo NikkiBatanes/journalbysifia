@@ -18,7 +18,9 @@ describe('Today calendar animation', () => {
   it('uses the live asymmetric safe area instead of front and inside screen guesses', () => {
     expect(source).toContain("Platform.OS === 'ios' && insets.left !== insets.right");
     expect(source).toContain('const SIDE_REGION_TOP_SPACING = 20');
-    expect(source).toContain('windowWidth - insets.left - insets.right');
+    expect(source).toContain('Math.min(TODAY_READABLE_MAX_WIDTH, windowWidth)');
+    expect(source).toContain('const readableLeadingPadding');
+    expect(source).toContain('insets.left + TODAY_HORIZONTAL_MARGIN');
     expect(source).toContain('{ paddingLeft: calendarLeadingPadding, paddingRight: topCalendarTrailingPadding }');
     expect(source).toContain('<View style={styles.readableRail}>');
     expect(source).not.toContain('styles.readableRail, { paddingLeft: insets.left, paddingRight: insets.right }');

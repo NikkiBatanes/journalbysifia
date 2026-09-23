@@ -149,11 +149,13 @@ const TodayScreen = () => {
     && sizeClasses.vertical === 'regular'
     && !usesSideSystemRegion;
   const usesTopCalendarRail = usesSideSystemRegion || usesInnerPortraitRail;
-  const safeContentWidth = Math.max(0, windowWidth - insets.left - insets.right);
-  const readableOuterWidth = Math.min(TODAY_READABLE_MAX_WIDTH, safeContentWidth);
-  const calendarLeadingPadding = insets.left
-    + Math.max(0, (safeContentWidth - readableOuterWidth) / 2)
+  const readableOuterWidth = Math.min(TODAY_READABLE_MAX_WIDTH, windowWidth);
+  const readableLeadingPadding = Math.max(0, (windowWidth - readableOuterWidth) / 2)
     + TODAY_HORIZONTAL_MARGIN;
+  const calendarLeadingPadding = Math.max(
+    readableLeadingPadding,
+    insets.left + TODAY_HORIZONTAL_MARGIN,
+  );
   const calendarTrailingPadding = insets.right + TODAY_HORIZONTAL_MARGIN;
   const topCalendarTrailingPadding = usesInnerPortraitRail
     ? Math.max(calendarTrailingPadding, insets.right + INNER_PORTRAIT_STATUS_CLEARANCE)
