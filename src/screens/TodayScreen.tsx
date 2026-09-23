@@ -45,6 +45,7 @@ const TODAY_HORIZONTAL_MARGIN = 18;
 const SIDE_REGION_TOP_SPACING = 20;
 const INNER_PORTRAIT_TOP_SPACING = 16;
 const INNER_PORTRAIT_STATUS_CLEARANCE = 184;
+const INNER_PORTRAIT_CALENDAR_CONTROL_WIDTH = 52;
 
 const SectionHeading = ({ title, detail, compactTop = false }: { title: string; detail: string; compactTop?: boolean }) => (
   <View style={[styles.sectionHeading, compactTop && styles.sectionHeadingCompact]}>
@@ -166,7 +167,10 @@ const TodayScreen = () => {
   );
   const calendarTrailingPadding = insets.right + TODAY_HORIZONTAL_MARGIN;
   const topCalendarTrailingPadding = usesInnerPortraitRail
-    ? Math.max(calendarTrailingPadding, insets.right + INNER_PORTRAIT_STATUS_CLEARANCE)
+    ? Math.max(
+        calendarTrailingPadding,
+        insets.right + INNER_PORTRAIT_STATUS_CLEARANCE + INNER_PORTRAIT_CALENDAR_CONTROL_WIDTH,
+      )
     : calendarTrailingPadding;
   const scrollTopPadding = usesInnerPortraitRail
     ? INNER_PORTRAIT_TOP_SPACING
@@ -606,13 +610,25 @@ const TodayScreen = () => {
             ]}
           >
             {calendarSheet}
+            {usesInnerPortraitRail ? (
+              <TouchableOpacity
+                style={styles.innerPortraitCalendarButton}
+                activeOpacity={0.7}
+                onPress={toggleCalendar}
+                accessibilityRole="button"
+                accessibilityLabel={calendarVisible ? 'Close calendar' : 'Open calendar'}
+                accessibilityState={{ expanded: calendarVisible }}
+              >
+                <CalendarDays size={24} color={Colors.text} strokeWidth={1.6} />
+              </TouchableOpacity>
+            ) : null}
           </View>
         ) : null}
         <View style={styles.readableRail}>
           <View style={styles.readableContent} onLayout={handleReadableContentLayout}>
             <View style={styles.headerColumn}>
               {!usesTopCalendarRail ? calendarSheet : null}
-              {!usesSideSystemRegion ? <View style={styles.headerIconsRow}>
+              {!usesTopCalendarRail ? <View style={styles.headerIconsRow}>
               <TouchableOpacity
                 style={styles.calendarButton}
                 activeOpacity={0.7}
@@ -972,6 +988,7 @@ const styles = StyleSheet.create({
   calendarSheet: { width: '100%', backgroundColor: Colors.hopeWhite, borderRadius: 22, overflow: 'hidden' },
   sideCalendarRail: { width: '100%' },
   innerPortraitCalendarRail: { height: CALENDAR_SHEET_HEIGHT, justifyContent: 'center' },
+  innerPortraitCalendarButton: { position: 'absolute', right: INNER_PORTRAIT_STATUS_CLEARANCE, top: 8, width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   sectionHeading: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, marginTop: 24, marginBottom: 10, paddingHorizontal: 2 },
   sectionHeadingCompact: { marginTop: 0 },
   eyebrow: { color: Colors.text, fontFamily: Fonts.bold, fontSize: 12, lineHeight: 16, letterSpacing: 2 },

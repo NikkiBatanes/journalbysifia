@@ -49,8 +49,10 @@ describe('Today calendar animation', () => {
     expect(source).toContain('!Platform.isPad');
     expect(source).toContain('const INNER_PORTRAIT_TOP_SPACING = 16');
     expect(source).toContain('const INNER_PORTRAIT_STATUS_CLEARANCE = 184');
+    expect(source).toContain('const INNER_PORTRAIT_CALENDAR_CONTROL_WIDTH = 52');
     expect(source).toContain('usesInnerPortraitRail && styles.innerPortraitCalendarRail');
-    expect(source).toContain('{!usesSideSystemRegion ? <View style={styles.headerIconsRow}>');
-    expect(source).not.toContain('innerPortraitCalendarButton');
+    expect(source).toContain('style={styles.innerPortraitCalendarButton}');
+    expect(source).toContain('right: INNER_PORTRAIT_STATUS_CLEARANCE');
+    expect(source).toContain('{!usesTopCalendarRail ? <View style={styles.headerIconsRow}>');
   });
 });
