@@ -606,25 +606,13 @@ const TodayScreen = () => {
             ]}
           >
             {calendarSheet}
-            {usesInnerPortraitRail && !calendarVisible ? (
-              <TouchableOpacity
-                style={styles.innerPortraitCalendarButton}
-                activeOpacity={0.7}
-                onPress={toggleCalendar}
-                accessibilityRole="button"
-                accessibilityLabel="Open calendar"
-                accessibilityState={{ expanded: false }}
-              >
-                <CalendarDays size={24} color={Colors.text} strokeWidth={1.6} />
-              </TouchableOpacity>
-            ) : null}
           </View>
         ) : null}
         <View style={styles.readableRail}>
           <View style={styles.readableContent} onLayout={handleReadableContentLayout}>
             <View style={styles.headerColumn}>
               {!usesTopCalendarRail ? calendarSheet : null}
-              {!usesTopCalendarRail ? <View style={styles.headerIconsRow}>
+              {!usesSideSystemRegion ? <View style={styles.headerIconsRow}>
               <TouchableOpacity
                 style={styles.calendarButton}
                 activeOpacity={0.7}
@@ -637,9 +625,9 @@ const TodayScreen = () => {
               </TouchableOpacity>
               </View> : null}
               <View style={styles.headerGreeting}>
-                <View style={usesTopCalendarRail ? styles.dateRow : undefined}>
+                <View style={usesSideSystemRegion ? styles.dateRow : undefined}>
                   <ThemedText style={styles.date}>{format(displayDate, 'EEE, MMM d').toUpperCase()}</ThemedText>
-                  {usesSideSystemRegion || (usesInnerPortraitRail && calendarVisible) ? (
+                  {usesSideSystemRegion ? (
                     <TouchableOpacity
                       style={styles.sideCalendarButton}
                       hitSlop={{ top: 6, right: 6, bottom: 6, left: 6 }}
@@ -984,7 +972,6 @@ const styles = StyleSheet.create({
   calendarSheet: { width: '100%', backgroundColor: Colors.hopeWhite, borderRadius: 22, overflow: 'hidden' },
   sideCalendarRail: { width: '100%' },
   innerPortraitCalendarRail: { height: CALENDAR_SHEET_HEIGHT, justifyContent: 'center' },
-  innerPortraitCalendarButton: { alignSelf: 'flex-end', width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   sectionHeading: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, marginTop: 24, marginBottom: 10, paddingHorizontal: 2 },
   sectionHeadingCompact: { marginTop: 0 },
   eyebrow: { color: Colors.text, fontFamily: Fonts.bold, fontSize: 12, lineHeight: 16, letterSpacing: 2 },

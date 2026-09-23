@@ -27,16 +27,16 @@ describe('Today calendar animation', () => {
     expect(source).toContain('{ paddingLeft: calendarLeadingPadding, paddingRight: topCalendarTrailingPadding }');
     expect(source).toContain('<View style={styles.readableRail}>');
     expect(source).not.toContain('styles.readableRail, { paddingLeft: insets.left, paddingRight: insets.right }');
-    expect(source).toContain('style={usesTopCalendarRail ? styles.dateRow : undefined}');
+    expect(source).toContain('style={usesSideSystemRegion ? styles.dateRow : undefined}');
     expect(source).toContain('style={styles.sideCalendarButton}');
     expect(source).not.toContain('IPHONE_DUO_MIN_WIDTH');
     expect(source).not.toContain('IPHONE_DUO_INSIDE_MIN_WIDTH');
     expect(source).not.toContain("width: '114%'");
     expect(source.indexOf('styles.sideCalendarRail,')).toBeLessThan(
-      source.indexOf('style={usesTopCalendarRail ? styles.dateRow : undefined}'),
+      source.indexOf('style={usesSideSystemRegion ? styles.dateRow : undefined}'),
     );
     expect(source.indexOf('{!usesTopCalendarRail ? calendarSheet : null}')).toBeLessThan(
-      source.indexOf('style={usesTopCalendarRail ? styles.dateRow : undefined}'),
+      source.indexOf('style={usesSideSystemRegion ? styles.dateRow : undefined}'),
     );
   });
 
@@ -50,6 +50,7 @@ describe('Today calendar animation', () => {
     expect(source).toContain('const INNER_PORTRAIT_TOP_SPACING = 16');
     expect(source).toContain('const INNER_PORTRAIT_STATUS_CLEARANCE = 184');
     expect(source).toContain('usesInnerPortraitRail && styles.innerPortraitCalendarRail');
-    expect(source).toContain('style={styles.innerPortraitCalendarButton}');
+    expect(source).toContain('{!usesSideSystemRegion ? <View style={styles.headerIconsRow}>');
+    expect(source).not.toContain('innerPortraitCalendarButton');
   });
 });
