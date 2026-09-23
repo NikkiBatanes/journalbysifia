@@ -22,6 +22,7 @@ import { getAllLocalReflectionsByType } from '../storage/reflectionStorage';
 import { getSavedBibleStudyReflections, parseSavedBibleStudy } from '../storage/bibleStudyMomentsStorage';
 import { useScroll } from '../context/ScrollContext';
 import {useExpandTabBarOnScrollEnd} from '../hooks/useExpandTabBarOnScrollEnd';
+import {useIOSSizeClasses} from '../hooks/useIOSSizeClasses';
 
 // Enable LayoutAnimation on Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -37,11 +38,20 @@ export const MomentsScreen: React.FC = () => {
   const IS_IPAD = Platform.OS === 'ios' && (Platform as any).isPad === true;
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
+  const sizeClasses = useIOSSizeClasses();
   const usesSideSystemRegion = Platform.OS === 'ios' && insets.left !== insets.right;
-  const isDuoLandscape = usesSideSystemRegion && width > height;
-  const duoLandscapeActionOffset = isDuoLandscape
-    ? Math.max(0, (width - insets.left - insets.right - MOMENTS_PAGE_MAX_WIDTH) / 2)
-    : 0;
+  const hasOpenLandscapeSizeClasses = sizeClasses.horizontal === 'regular'
+    && sizeClasses.vertical === 'regular'
+    && width > height;
+  const hasOpenLandscapeProportions = sizeClasses.horizontal === 'unspecified'
+    && sizeClasses.vertical === 'unspecified'
+    && width > height
+    && height / width > 0.58;
+  const isDuoLandscape = Platform.OS === 'ios'
+    && !Platform.isPad
+    && width > height
+    && (usesSideSystemRegion || hasOpenLandscapeSizeClasses || hasOpenLandscapeProportions);
+  const usesDuoLayout = usesSideSystemRegion || isDuoLandscape;
   const navigation = useNavigation();
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';
@@ -250,6 +260,37 @@ export const MomentsScreen: React.FC = () => {
       endDate: new Date(now.getFullYear(), now.getMonth() + 6, now.getDate()), label: 'Upcoming' };
   }, [filterType, selectedDate, selectedRange, activeFilters, refreshKey]);
 
+  const headerActionButtons = (
+    <>
+      <TouchableOpacity
+        style={styles.statusDropdownBtn}
+        onPress={() => { triggerLightHaptic(); groupingRef.current?.open(); }}
+        activeOpacity={0.75}
+      >
+        <ThemedText weight="semiBold" style={[styles.statusDropdownBtnText, { fontFamily: fontRegular, color: Colors.text }]}>
+          {groupingMode === 'day' ? 'Days' : groupingMode === 'week' ? 'Weeks' : groupingMode === 'month' ? 'Months' : 'Years'}
+        </ThemedText>
+        <ChevronDown size={14} color={Colors.text} />
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={styles.dateFilterCircleButton}
+        onPress={() => { triggerLightHaptic(); filterRef.current?.open(); }}
+        activeOpacity={0.75}
+      >
+        <MaterialCommunityIcons name="tune" size={16} color={Colors.text} />
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={styles.searchCircleButton}
+        onPress={toggleSearch}
+        activeOpacity={0.75}
+      >
+        <Ionicons name={showSearch ? 'close' : 'search'} size={17} color={Colors.text} />
+      </TouchableOpacity>
+    </>
+  );
+
   const screenContent = (
     <>
       <StatusBar
@@ -261,7 +302,7 @@ export const MomentsScreen: React.FC = () => {
       <View style={[
         styles.headerBar,
         IS_IPAD && styles.headerBarPad,
-        usesSideSystemRegion && {
+        usesDuoLayout && {
           paddingTop: insets.top + MOMENTS_DUO_HEADER_TOP_SPACING,
           paddingLeft: insets.left,
           paddingRight: insets.right,
@@ -275,40 +316,7 @@ export const MomentsScreen: React.FC = () => {
               <Feather size={20} color={Colors.text} />
               <ThemedText weight="bold" onLongPress={__DEV__ ? showBibleStudyDiagnostics : undefined} style={[styles.headerTitle, styles.marginLeft8, { fontFamily: fontBold, color: Colors.text }]}>Moments</ThemedText>
             </View>
-            <View style={[
-              styles.headerActions,
-              isDuoLandscape && { transform: [{ translateX: duoLandscapeActionOffset }] },
-            ]}>
-              {/* Days pill with arrow down */}
-              <TouchableOpacity
-                style={styles.statusDropdownBtn}
-                onPress={() => { triggerLightHaptic(); groupingRef.current?.open(); }}
-                activeOpacity={0.75}
-              >
-                <ThemedText weight="semiBold" style={[styles.statusDropdownBtnText, { fontFamily: fontRegular, color: Colors.text }]}>
-                  {groupingMode === 'day' ? 'Days' : groupingMode === 'week' ? 'Weeks' : groupingMode === 'month' ? 'Months' : 'Years'}
-                </ThemedText>
-                <ChevronDown size={14} color={Colors.text} />
-              </TouchableOpacity>
-
-              {/* Filter icon button */}
-              <TouchableOpacity
-                style={styles.dateFilterCircleButton}
-                onPress={() => { triggerLightHaptic(); filterRef.current?.open(); }}
-                activeOpacity={0.75}
-              >
-                <MaterialCommunityIcons name="tune" size={16} color={Colors.text} />
-              </TouchableOpacity>
-
-              {/* Search circle button */}
-              <TouchableOpacity
-                style={styles.searchCircleButton}
-                onPress={toggleSearch}
-                activeOpacity={0.75}
-              >
-                <Ionicons name={showSearch ? 'close' : 'search'} size={17} color={Colors.text} />
-              </TouchableOpacity>
-            </View>
+            {!isDuoLandscape && <View style={styles.headerActions}>{headerActionButtons}</View>}
           </View>
 
           {/* Subtitle - hidden when search is open */}
@@ -344,6 +352,18 @@ export const MomentsScreen: React.FC = () => {
           )}
           {!showSearch && <View style={styles.searchBarCollapsedSpacer} />}
         </View>
+        {isDuoLandscape && (
+          <View style={[
+            styles.headerActions,
+            styles.duoLandscapeHeaderActions,
+            {
+              top: insets.top + MOMENTS_DUO_HEADER_TOP_SPACING + 6,
+              right: 18,
+            },
+          ]}>
+            {headerActionButtons}
+          </View>
+        )}
       </View>
 
       {/* GroupingSelect and FilterSelect - rendered off-screen for ref functionality */}
@@ -383,7 +403,7 @@ export const MomentsScreen: React.FC = () => {
           onScrollEndDrag={handleTabBarScrollEndDrag}
           onMomentumScrollBegin={handleTabBarMomentumScrollBegin}
           onMomentumScrollEnd={handleTabBarMomentumScrollEnd}
-          sectionHorizontalInsets={usesSideSystemRegion ? { left: insets.left, right: insets.right } : undefined}
+          sectionHorizontalInsets={usesDuoLayout ? { left: insets.left, right: insets.right } : undefined}
           headerComponents={[]}
           refreshControl={
             <RefreshControl
@@ -398,7 +418,7 @@ export const MomentsScreen: React.FC = () => {
     </>
   );
 
-  if (usesSideSystemRegion) {
+  if (usesDuoLayout) {
     return <View style={styles.container}>{screenContent}</View>;
   }
 
@@ -451,6 +471,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
     marginLeft: 'auto',
+  },
+  duoLandscapeHeaderActions: {
+    position: 'absolute',
   },
   statusDropdownBtn: {
     flexDirection: 'row',

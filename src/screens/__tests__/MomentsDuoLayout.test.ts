@@ -12,14 +12,17 @@ describe('Moments iPhone Duo layout', () => {
     expect(screen).toContain('const MOMENTS_DUO_HEADER_TOP_SPACING = 12');
     expect(screen).toContain("Platform.OS === 'ios' && insets.left !== insets.right");
     expect(screen).toContain('paddingTop: insets.top + MOMENTS_DUO_HEADER_TOP_SPACING');
-    expect(screen).toContain('sectionHorizontalInsets={usesSideSystemRegion');
+    expect(screen).toContain('sectionHorizontalInsets={usesDuoLayout');
     expect(screen).toContain('return <View style={styles.container}>{screenContent}</View>;');
   });
 
   it('places landscape filters beside the side status region', () => {
-    expect(screen).toContain('const isDuoLandscape = usesSideSystemRegion && width > height');
-    expect(screen).toContain('width - insets.left - insets.right - MOMENTS_PAGE_MAX_WIDTH');
-    expect(screen).toContain('translateX: duoLandscapeActionOffset');
+    expect(screen).toContain("sizeClasses.horizontal === 'regular'");
+    expect(screen).toContain('height / width > 0.58');
+    expect(screen).toContain('!Platform.isPad');
+    expect(screen).toContain('!isDuoLandscape && <View style={styles.headerActions}>');
+    expect(screen).toContain('styles.duoLandscapeHeaderActions');
+    expect(screen).toContain('right: 18');
   });
 
   it('keeps the inset on date headers while moment content remains full width', () => {
