@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { addDays, addWeeks, format, isSameDay, isToday, startOfWeek } from 'date-fns';
 
@@ -26,6 +26,7 @@ const JournalCalendarStrip: React.FC<JournalCalendarStripProps> = ({
   const scrollViewRef = useRef<ScrollView>(null);
   const [headerWidth, setHeaderWidth] = useState(0);
   const scrollX = useRef(0);
+  const userPagingRef = useRef(false);
 
   const weeks = useMemo(() => {
     const weeksArray: Date[][] = [];
@@ -51,15 +52,22 @@ const JournalCalendarStrip: React.FC<JournalCalendarStripProps> = ({
     [currentDate, weekStartsOn],
   );
 
-  useEffect(() => {
+  const scrollToCurrentWeek = useCallback(() => {
+    // Width changes during rotation can emit scroll-end events. Mark this as a
+    // layout correction so it can never be mistaken for a user week swipe.
+    userPagingRef.current = false;
     if (scrollViewRef.current && headerWidth > 0 && currentWeekIndex >= 0) {
       const scrollTo = currentWeekIndex * headerWidth;
       if (Math.abs(scrollX.current - scrollTo) > 1) {
-        scrollViewRef.current.scrollTo({ x: scrollTo, animated: false });
         scrollX.current = scrollTo;
+        scrollViewRef.current.scrollTo({ x: scrollTo, animated: false });
       }
     }
   }, [currentWeekIndex, headerWidth]);
+
+  useEffect(() => {
+    scrollToCurrentWeek();
+  }, [scrollToCurrentWeek]);
 
   const handleScroll = (event: any) => {
     const offsetX = event?.nativeEvent?.contentOffset?.x ?? 0;
@@ -69,6 +77,8 @@ const JournalCalendarStrip: React.FC<JournalCalendarStripProps> = ({
   const handleMomentumScrollEnd = (event: any) => {
     const offsetX = event?.nativeEvent?.contentOffset?.x ?? 0;
     scrollX.current = offsetX;
+    if (!userPagingRef.current) { return; }
+    userPagingRef.current = false;
     if (headerWidth === 0) { return; }
     const weekIndex = Math.round(offsetX / headerWidth);
     if (weekIndex >= 0 && weekIndex < weeks.length) {
@@ -152,7 +162,9 @@ const JournalCalendarStrip: React.FC<JournalCalendarStripProps> = ({
           decelerationRate="fast"
           pagingEnabled
           onScroll={handleScroll}
+          onScrollBeginDrag={() => { userPagingRef.current = true; }}
           onMomentumScrollEnd={handleMomentumScrollEnd}
+          onContentSizeChange={scrollToCurrentWeek}
           scrollEventThrottle={16}
         >
           {weeks.map((week, index) => renderWeek(week, index))}
