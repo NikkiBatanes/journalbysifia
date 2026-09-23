@@ -16,6 +16,12 @@ describe('Moments iPhone Duo layout', () => {
     expect(screen).toContain('return <View style={styles.container}>{screenContent}</View>;');
   });
 
+  it('places landscape filters beside the side status region', () => {
+    expect(screen).toContain('const isDuoLandscape = usesSideSystemRegion && width > height');
+    expect(screen).toContain('width - insets.left - insets.right - MOMENTS_PAGE_MAX_WIDTH');
+    expect(screen).toContain('translateX: duoLandscapeActionOffset');
+  });
+
   it('keeps the inset on date headers while moment content remains full width', () => {
     expect(renderer).toContain('sectionHorizontalInsets?: { left: number; right: number }');
     expect(renderer).toContain('style={[styles.sectionHeader, sectionHorizontalInsetStyle]}');

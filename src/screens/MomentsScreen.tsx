@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, StyleSheet, RefreshControl, StatusBar, DeviceEventEmitter, TextInput, TouchableOpacity, LayoutAnimation, Platform, UIManager, Alert } from 'react-native';
+import { View, StyleSheet, RefreshControl, StatusBar, DeviceEventEmitter, TextInput, TouchableOpacity, LayoutAnimation, Platform, UIManager, Alert, useWindowDimensions } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { Feather, ChevronDown } from 'lucide-react-native';
@@ -31,11 +31,17 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 type PrayerAnswerFilter = 'all' | 'answered' | 'unanswered';
 
 const MOMENTS_DUO_HEADER_TOP_SPACING = 12;
+const MOMENTS_PAGE_MAX_WIDTH = 760;
 
 export const MomentsScreen: React.FC = () => {
   const IS_IPAD = Platform.OS === 'ios' && (Platform as any).isPad === true;
   const insets = useSafeAreaInsets();
+  const { width, height } = useWindowDimensions();
   const usesSideSystemRegion = Platform.OS === 'ios' && insets.left !== insets.right;
+  const isDuoLandscape = usesSideSystemRegion && width > height;
+  const duoLandscapeActionOffset = isDuoLandscape
+    ? Math.max(0, (width - insets.left - insets.right - MOMENTS_PAGE_MAX_WIDTH) / 2)
+    : 0;
   const navigation = useNavigation();
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';
@@ -269,7 +275,10 @@ export const MomentsScreen: React.FC = () => {
               <Feather size={20} color={Colors.text} />
               <ThemedText weight="bold" onLongPress={__DEV__ ? showBibleStudyDiagnostics : undefined} style={[styles.headerTitle, styles.marginLeft8, { fontFamily: fontBold, color: Colors.text }]}>Moments</ThemedText>
             </View>
-            <View style={styles.headerActions}>
+            <View style={[
+              styles.headerActions,
+              isDuoLandscape && { transform: [{ translateX: duoLandscapeActionOffset }] },
+            ]}>
               {/* Days pill with arrow down */}
               <TouchableOpacity
                 style={styles.statusDropdownBtn}
@@ -415,12 +424,12 @@ const styles = StyleSheet.create({
   },
   pageInner: {
     width: '100%',
-    maxWidth: 760,
+    maxWidth: MOMENTS_PAGE_MAX_WIDTH,
     alignSelf: 'center',
     paddingHorizontal: 18,
   },
   pageInnerPad: {
-    maxWidth: 760,
+    maxWidth: MOMENTS_PAGE_MAX_WIDTH,
     paddingHorizontal: 18,
   },
   headerTopRow: {
