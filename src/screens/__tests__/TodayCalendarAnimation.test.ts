@@ -43,6 +43,9 @@ describe('Today calendar animation', () => {
   it('uses the open Duo portrait top rail beside the status region', () => {
     expect(source).toContain("sizeClasses.horizontal === 'regular'");
     expect(source).toContain("sizeClasses.vertical === 'regular'");
+    expect(source).toContain("sizeClasses.horizontal === 'unspecified'");
+    expect(source).toContain('windowWidth / windowHeight > 0.58');
+    expect(source).toContain('hasInnerPortraitSizeClasses || hasInnerPortraitProportions');
     expect(source).toContain('!Platform.isPad');
     expect(source).toContain('const INNER_PORTRAIT_TOP_SPACING = 16');
     expect(source).toContain('const INNER_PORTRAIT_STATUS_CLEARANCE = 184');

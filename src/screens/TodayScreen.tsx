@@ -115,7 +115,7 @@ const buildPreviewReview = (type: ReviewType, periodStart: string, periodEnd: st
 
 const TodayScreen = () => {
   const insets = useSafeAreaInsets();
-  const { width: windowWidth } = useWindowDimensions();
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const sizeClasses = useIOSSizeClasses();
   const navigation = useNavigation();
   const { user, preferences: appPreferences, profile } = useAuth();
@@ -142,13 +142,20 @@ const TodayScreen = () => {
   // Duo exposes its camera/status-bar side as an asymmetric safe area. Key the
   // layout to that live environment instead of guessing a display from width.
   const usesSideSystemRegion = Platform.OS === 'ios' && insets.left !== insets.right;
-  // The open Duo in portrait is the only phone environment with regular size
-  // classes in both directions. Keep iPad on its existing layout.
+  const hasInnerPortraitSizeClasses = sizeClasses.horizontal === 'regular'
+    && sizeClasses.vertical === 'regular';
+  // Compatibility path for a running JS bundle that predates the native size-
+  // class bridge. The open portrait is taller than wide but much squarer than
+  // an outer iPhone screen; the asymmetric outer screen is excluded below.
+  const hasInnerPortraitProportions = sizeClasses.horizontal === 'unspecified'
+    && sizeClasses.vertical === 'unspecified'
+    && windowHeight > windowWidth
+    && windowWidth / windowHeight > 0.58;
+  // Keep this treatment on the open Duo phone rather than regular-size iPads.
   const usesInnerPortraitRail = Platform.OS === 'ios'
     && !Platform.isPad
-    && sizeClasses.horizontal === 'regular'
-    && sizeClasses.vertical === 'regular'
-    && !usesSideSystemRegion;
+    && !usesSideSystemRegion
+    && (hasInnerPortraitSizeClasses || hasInnerPortraitProportions);
   const usesTopCalendarRail = usesSideSystemRegion || usesInnerPortraitRail;
   const readableOuterWidth = Math.min(TODAY_READABLE_MAX_WIDTH, windowWidth);
   const readableLeadingPadding = Math.max(0, (windowWidth - readableOuterWidth) / 2)
