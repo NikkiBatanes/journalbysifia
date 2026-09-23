@@ -82,6 +82,7 @@ interface EnhancedMomentsRendererProps {
   onMomentumScrollEnd?: (event: any) => void;
   entranceRun?: number;
   onContentReady?: () => void;
+  sectionHorizontalInsets?: { left: number; right: number };
 }
 
 interface MomentEntry {
@@ -531,6 +532,7 @@ const EnhancedMomentsContent: React.FC<EnhancedMomentsRendererProps> = ({
   onMomentumScrollEnd,
   entranceRun = 0,
   onContentReady,
+  sectionHorizontalInsets,
 }) => {
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';
@@ -545,6 +547,10 @@ const EnhancedMomentsContent: React.FC<EnhancedMomentsRendererProps> = ({
 
   // Use memoized styles with dynamic fonts
   const styles = useMemo(() => createStyles(fonts), [fonts]);
+  const sectionHorizontalInsetStyle = useMemo(() => sectionHorizontalInsets ? {
+    paddingLeft: sectionHorizontalInsets.left,
+    paddingRight: sectionHorizontalInsets.right,
+  } : undefined, [sectionHorizontalInsets]);
 
   const { user, preferences: appPreferences } = useAuth();
   // Removed unused insets variable
@@ -2054,7 +2060,7 @@ const EnhancedMomentsContent: React.FC<EnhancedMomentsRendererProps> = ({
     // Flat date grouping: simple header
     if (groupBy === 'date') {
       return (
-        <View style={styles.sectionHeader}>
+        <View style={[styles.sectionHeader, sectionHorizontalInsetStyle]}>
           <View style={styles.sectionHeaderInner}>
             <ThemedText weight="semiBold" style={styles.sectionTitle}>
               {section.title}
@@ -2091,7 +2097,7 @@ const EnhancedMomentsContent: React.FC<EnhancedMomentsRendererProps> = ({
       };
       return (
         <TouchableOpacity onPress={onPress} activeOpacity={0.8} accessibilityRole="button" hitSlop={{ top: 8, left: 8, right: 8, bottom: 8 }}>
-          <View style={styles.sectionHeader}>
+          <View style={[styles.sectionHeader, sectionHorizontalInsetStyle]}>
             <View style={styles.sectionHeaderInner}>
               <View style={styles.sectionHeaderRow}>
                 <StickyChevron sectionKey={section.key} label="Back to months" styles={styles} />
@@ -2112,7 +2118,7 @@ const EnhancedMomentsContent: React.FC<EnhancedMomentsRendererProps> = ({
       };
       return (
         <TouchableOpacity onPress={onPress} activeOpacity={0.8} accessibilityRole="button" hitSlop={{ top: 8, left: 8, right: 8, bottom: 8 }}>
-          <View style={styles.sectionHeader}>
+          <View style={[styles.sectionHeader, sectionHorizontalInsetStyle]}>
             <View style={styles.sectionHeaderInner}>
               <View style={styles.sectionHeaderRow}>
                 <StickyChevron sectionKey={section.key} label="Back to weeks" styles={styles} />
@@ -2126,7 +2132,7 @@ const EnhancedMomentsContent: React.FC<EnhancedMomentsRendererProps> = ({
       );
     }
     return (
-      <View style={styles.sectionHeader}>
+      <View style={[styles.sectionHeader, sectionHorizontalInsetStyle]}>
         <View style={styles.sectionHeaderInner}>
           <ThemedText weight="semiBold" style={styles.sectionTitle}>
             {section.title}

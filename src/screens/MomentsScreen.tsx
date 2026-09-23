@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { View, StyleSheet, RefreshControl, StatusBar, DeviceEventEmitter, TextInput, TouchableOpacity, LayoutAnimation, Platform, UIManager, Alert } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { Feather, ChevronDown } from 'lucide-react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -30,8 +30,12 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 
 type PrayerAnswerFilter = 'all' | 'answered' | 'unanswered';
 
+const MOMENTS_DUO_HEADER_TOP_SPACING = 12;
+
 export const MomentsScreen: React.FC = () => {
   const IS_IPAD = Platform.OS === 'ios' && (Platform as any).isPad === true;
+  const insets = useSafeAreaInsets();
+  const usesSideSystemRegion = Platform.OS === 'ios' && insets.left !== insets.right;
   const navigation = useNavigation();
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';
@@ -248,7 +252,16 @@ export const MomentsScreen: React.FC = () => {
         translucent={false}
       />
 
-      <View style={[styles.headerBar, IS_IPAD && styles.headerBarPad, { backgroundColor: Colors.lightBackground }]}>
+      <View style={[
+        styles.headerBar,
+        IS_IPAD && styles.headerBarPad,
+        usesSideSystemRegion && {
+          paddingTop: insets.top + MOMENTS_DUO_HEADER_TOP_SPACING,
+          paddingLeft: insets.left,
+          paddingRight: insets.right,
+        },
+        { backgroundColor: Colors.lightBackground },
+      ]}>
         <View style={[styles.pageInner, IS_IPAD && styles.pageInnerPad]}>
           {/* Row 1: Title with icon left, actions right */}
           <View style={styles.headerTopRow}>
@@ -361,6 +374,7 @@ export const MomentsScreen: React.FC = () => {
           onScrollEndDrag={handleTabBarScrollEndDrag}
           onMomentumScrollBegin={handleTabBarMomentumScrollBegin}
           onMomentumScrollEnd={handleTabBarMomentumScrollEnd}
+          sectionHorizontalInsets={usesSideSystemRegion ? { left: insets.left, right: insets.right } : undefined}
           headerComponents={[]}
           refreshControl={
             <RefreshControl
@@ -375,11 +389,11 @@ export const MomentsScreen: React.FC = () => {
     </>
   );
 
-  return (
-    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
-      {screenContent}
-    </SafeAreaView>
-  );
+  if (usesSideSystemRegion) {
+    return <View style={styles.container}>{screenContent}</View>;
+  }
+
+  return <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>{screenContent}</SafeAreaView>;
 };
 
 const styles = StyleSheet.create({
