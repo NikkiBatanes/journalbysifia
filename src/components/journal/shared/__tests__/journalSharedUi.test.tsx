@@ -665,6 +665,31 @@ describe('shared Journal UI extraction', () => {
     );
   });
 
+  it('visually distinguishes a disabled Next or Save action', () => {
+    const onNext = jest.fn();
+    const view = render(
+      <JournalComposerBar
+        onBack={jest.fn()}
+        onWrite={jest.fn()}
+        onAdd={jest.fn()}
+        onNext={onNext}
+        addOpen={false}
+        plusRotation={new Animated.Value(0)}
+        pickerColorAnim={new Animated.Value(0)}
+        actionAnimations={[0, 1, 2, 3].map(() => new Animated.Value(1))}
+        nextIcon="checkmark"
+        nextLabel="Save reflection"
+        nextDisabled
+        tone="onDark"
+      />,
+    );
+    const save = view.getByLabelText('Save reflection');
+    expect(save.props.accessibilityState).toEqual({disabled: true});
+    expect(StyleSheet.flatten(save.props.style)).toMatchObject({opacity: 0.4});
+    fireEvent.press(save);
+    expect(onNext).not.toHaveBeenCalled();
+  });
+
   it('renders the extracted approved question card and Reflect callback', () => {
     const onReflect = jest.fn();
     const styles = StyleSheet.create({

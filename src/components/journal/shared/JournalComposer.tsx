@@ -721,10 +721,12 @@ export const JournalComposerBar = ({
       <TouchableOpacity
         accessibilityRole="button"
         accessibilityLabel={nextLabel}
+        accessibilityState={{disabled: nextDisabled}}
         disabled={nextDisabled}
         style={[
           styles.circleButton,
           tone === 'onDark' && styles.actionButtonOnDark,
+          nextDisabled && styles.disabledButton,
         ]}
         onPress={onNext}>
         <Ionicons name={nextIcon as any} size={21} color={Colors.hopeWhite} />
