@@ -7,6 +7,7 @@
   <meta name="description" content="A private, pressure-free walkthrough of the Gospel, shared through Journal by SiFia." />
   <meta name="theme-color" content="#e8eee8" />
   <meta name="robots" content="noindex, nofollow, noarchive" />
+  <link rel="icon" href="/assets/images/journalbysifia-app-icon.png" />
   <style>
     :root {
       --ink: #24342c;
@@ -28,6 +29,7 @@
     }
     button, input { font: inherit; }
     button:focus-visible, input:focus-visible { outline: 3px solid rgba(96,121,103,.4); outline-offset: 3px; }
+    .screen h1[tabindex="-1"]:focus, .screen h2[tabindex="-1"]:focus { outline: none; }
     .stage { width: 100%; min-height: 100vh; min-height: 100dvh; background: var(--ivory); }
     .phone {
       position: relative;
@@ -152,6 +154,7 @@
     .consent-row input { width: 18px; height: 18px; accent-color: var(--sage); }
     .name-input { width: 100%; box-sizing: border-box; border: 1px solid #d8e0d9; border-radius: 13px; padding: 12px; margin-top: 13px; font: inherit; color: var(--ink); background: #fffdfa; }
     .app-mark { display: grid; place-items: center; width: 72px; height: 72px; margin-bottom: 22px; border-radius: 23px; background: var(--sage-dark); color: white; font-family: Georgia, serif; font-size: 31px; font-style: italic; box-shadow: var(--shadow); }
+    .app-mark-image { display: block; object-fit: cover; }
     .features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 20px; }
     .feature { padding: 13px 8px; border-radius: 18px; background: rgba(255,253,248,.85); color: var(--sage-dark); font-size: 11px; font-weight: 700; text-align: center; box-shadow: 0 9px 26px rgba(19,37,27,.08); }
     .fine { margin: 12px 0 0; color: var(--muted); font-size: 11px; line-height: 1.5; text-align: center; }
@@ -182,12 +185,12 @@
   <main class="stage">
     <section class="phone" aria-label="The Gospel">
       <div class="status active" id="loadingState" role="status">
-        <div class="app-mark">S</div>
+        <img class="app-mark app-mark-image" src="/assets/images/journalbysifia-app-icon.png" alt="Journal by SiFia" />
         <h2>Opening your private invitation…</h2>
         <p>Please wait a moment.</p>
       </div>
       <div class="status" id="unavailableState" role="alert">
-        <div class="app-mark">S</div>
+        <img class="app-mark app-mark-image" src="/assets/images/journalbysifia-app-icon.png" alt="Journal by SiFia" />
         <p class="eyebrow">Link unavailable</p>
         <h2>This private Gospel link is no longer available.</h2>
         <p>It may have expired or been withdrawn. You can ask the person who sent it to share a new link.</p>
@@ -203,7 +206,7 @@
         <div class="shared-by"><span class="avatar" id="senderInitial">N</span> <span><span id="senderName">Nikki</span> shared this with you</span></div>
         <p class="eyebrow">A private invitation</p>
         <h1>You can explore this at your own pace.</h1>
-        <p>There is no pressure to respond to Nikki. This short experience explains the Gospel and gives you space to decide what you believe.</p>
+        <p><span data-sender-name>Nikki</span> shared this with you so you can discover the love of Jesus—a love that offers forgiveness, hope, and eternal life.</p>
         <div class="privacy">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#607967" stroke-width="2"><rect x="4" y="10" width="16" height="11" rx="3"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
           <p>Your reading activity and private answers are not visible to the sender. You decide whether to share your final response.</p>
@@ -214,7 +217,7 @@
         </div>
       </article>
 
-      <article class="screen center" data-screen="intro" style="background-image:url('/assets/images/gospel/9.png')">
+      <article class="screen center" data-screen="intro" style="background-image:url('/assets/images/gospel/01-best-decision.png')">
         <p class="eyebrow">Begin here</p>
         <h1>What is the best decision you’ve made in your life?</h1>
         <p>Some decisions are simple. Some are significant. Some change the direction of our lives.</p>
@@ -224,7 +227,7 @@
         </div>
       </article>
 
-      <article class="screen" data-screen="1" style="background-image:url('/assets/images/gospel/11.png')">
+      <article class="screen" data-screen="1" style="background-image:url('/assets/images/gospel/02-god-loves-you.png')">
         <p class="eyebrow">Truth 1</p>
         <h1>God loves you and desires that you…</h1>
         <p>His desire for you includes both:</p>
@@ -235,7 +238,7 @@
         </div>
       </article>
 
-      <article class="screen" data-screen="2" style="background-image:url('/assets/images/gospel/1.png')">
+      <article class="screen" data-screen="2" style="background-image:url('/assets/images/gospel/03-sin-separates-us.png')">
         <p class="eyebrow">Truth 2</p>
         <h1>We have a sin problem that separates us from God.</h1>
         <div class="surface bottom">
@@ -245,7 +248,7 @@
         </div>
       </article>
 
-      <article class="screen" data-screen="3" style="background-image:url('/assets/images/gospel/1.png')">
+      <article class="screen" data-screen="3" style="background-image:url('/assets/images/gospel/03-sin-separates-us.png')">
         <p class="eyebrow">Our problem</p>
         <h1>The penalty of sin is death.</h1>
         <div class="surface bottom">
@@ -255,7 +258,7 @@
         </div>
       </article>
 
-      <article class="screen" data-screen="death-kinds" style="background-image:url('/assets/images/gospel/12.png')">
+      <article class="screen" data-screen="death-kinds" style="background-image:url('/assets/images/gospel/04-consequence-of-sin.png')">
         <p class="eyebrow">The consequence</p>
         <h1>The Bible talks about different kinds of <span class="serif italic">death.</span></h1>
         <div class="truth-grid bottom">
@@ -265,7 +268,7 @@
         </div>
       </article>
 
-      <article class="screen" data-screen="4" style="background-image:url('/assets/images/gospel/7.png')">
+      <article class="screen" data-screen="4" style="background-image:url('/assets/images/gospel/05-human-efforts-cannot-save.png')">
         <p class="eyebrow">Our efforts</p>
         <h1>Can we make ourselves right with God?</h1>
         <p>Religion, good works, and good morals cannot pay the penalty for sin or erase our guilt.</p>
@@ -277,7 +280,7 @@
         <div class="bottom"><button class="button next">See God’s solution <span class="arrow">→</span></button></div>
       </article>
 
-      <article class="screen" data-screen="5" style="background-image:url('/assets/images/gospel/3.png')">
+      <article class="screen" data-screen="5" style="background-image:url('/assets/images/gospel/06-jesus-is-the-only-way.png')">
         <p class="eyebrow">Truth 3</p>
         <h1>Jesus Christ is God’s only way to eternal life.</h1>
         <p>He completely paid the penalty for our sins.</p>
@@ -288,7 +291,7 @@
         </div>
       </article>
 
-      <article class="screen center" data-screen="6" style="background-image:url('/assets/images/gospel/3.png')">
+      <article class="screen center" data-screen="6" style="background-image:url('/assets/images/gospel/06-jesus-is-the-only-way.png')">
         <h1>He is the <span class="serif italic">only way.</span></h1>
         <div class="surface bottom">
           <p class="scripture">In John 14:6, Jesus answered him, “I am the way, the truth, and the life; no one goes to the Father except by me.”</p>
@@ -297,7 +300,7 @@
         </div>
       </article>
 
-      <article class="screen" data-screen="risen" style="background-image:url('/assets/images/gospel/3.png')">
+      <article class="screen" data-screen="risen" style="background-image:url('/assets/images/gospel/06-jesus-is-the-only-way.png')">
         <h1><span class="serif italic">Jesus rose</span> from the dead.</h1>
         <p>His resurrection proves that He is the Son of God, the Messiah, the only Savior.</p>
         <div class="surface bottom">
@@ -307,7 +310,7 @@
         </div>
       </article>
 
-      <article class="screen" data-screen="7" style="background-image:url('/assets/images/gospel/3.png')">
+      <article class="screen" data-screen="7" style="background-image:url('/assets/images/gospel/06-jesus-is-the-only-way.png')">
         <p class="eyebrow">Truth 4</p>
         <h1>We must place our faith in Jesus Christ to save us.</h1>
         <p>Merely knowing what Christ has done is not enough.</p>
@@ -318,12 +321,12 @@
         </div>
       </article>
 
-      <article class="screen" data-screen="8" style="background-image:url('/assets/images/gospel/5.png')">
+      <article class="screen" data-screen="8" style="background-image:url('/assets/images/gospel/07-faith-in-jesus.png')">
         <h1>We are saved by God’s grace through faith in Jesus Christ <span class="serif italic">alone.</span></h1>
         <div class="bottom"><button class="button next">Continue <span class="arrow">→</span></button></div>
       </article>
 
-      <article class="screen center" data-screen="understanding" style="background-image:url('/assets/images/gospel/5.png')">
+      <article class="screen center" data-screen="understanding" style="background-image:url('/assets/images/gospel/07-faith-in-jesus.png')">
         <p class="eyebrow">Think about it</p>
         <h1>Which one is true?</h1>
         <div class="choices" id="salvationChoices">
@@ -337,7 +340,7 @@
         </div>
       </article>
 
-      <article class="screen" data-screen="9" style="background-image:url('/assets/images/gospel/5.png')">
+      <article class="screen" data-screen="9" style="background-image:url('/assets/images/gospel/07-faith-in-jesus.png')">
         <p class="eyebrow">Responding</p>
         <h1>What does trusting Jesus look like?</h1>
         <div class="point-list">
@@ -348,7 +351,7 @@
         <div class="bottom"><button class="button next">Consider your response <span class="arrow">→</span></button></div>
       </article>
 
-      <article class="screen center" data-screen="promise" style="background-image:url('/assets/images/gospel/8.png')">
+      <article class="screen center" data-screen="promise" style="background-image:url('/assets/images/gospel/07-faith-in-jesus.png')">
         <p class="eyebrow">God’s promise</p>
         <h1>You can know today that you have eternal life.</h1>
         <h2 class="serif italic">When you trust in Jesus.</h2>
@@ -359,7 +362,7 @@
         </div>
       </article>
 
-      <article class="screen" data-screen="10" style="background-image:url('/assets/images/gospel/5.png')">
+      <article class="screen" data-screen="10" style="background-image:url('/assets/images/gospel/07-faith-in-jesus.png')">
         <p class="eyebrow">This is personal</p>
         <p>This will determine your eternal destiny.</p>
         <h2>Are you willing to trust and follow <span class="serif italic">Jesus as your Lord and Savior?</span></h2>
@@ -372,17 +375,17 @@
         </div>
       </article>
 
-      <article class="screen center" data-screen="prayer" style="background-image:url('/assets/images/gospel/8.png')">
-        <p class="eyebrow">Pray this in faith</p>
+      <article class="screen center" data-screen="prayer" style="background-image:url('/assets/images/gospel/07-faith-in-jesus.png')">
+        <p class="eyebrow">Pray this aloud in faith</p>
         <h1>Talk to Jesus.</h1>
-        <p>Prayer doesn’t earn salvation. It can express the faith, repentance, and surrender of your heart.</p>
+        <p>Prayer doesn’t earn salvation. If this expresses the faith of your heart, pray it aloud—confess with your mouth that Jesus is Lord. (Romans 10:9)</p>
         <div class="surface bottom">
           <p class="scripture">Lord Jesus,<br>thank You so much for loving me. I confess that I have sinned against you. Thank You for dying on the cross for my sins.<br><br>Today, I put my trust in You as my Lord and Savior. I accept Your free gift of eternal life and <strong>I surrender my life to You.</strong><br><br>Thank You for forgiving my sins. From this day on, <strong>I choose to follow You.</strong><br><br>Amen.</p>
           <button class="button next">I trust Jesus today <span class="arrow">→</span></button>
         </div>
       </article>
 
-      <article class="screen center" data-screen="assurance-intro" style="background-image:url('/assets/images/gospel/8.png')">
+      <article class="screen center" data-screen="assurance-intro" style="background-image:url('/assets/images/gospel/08-new-life-with-jesus.png')">
         <div class="app-mark">☀</div>
         <h1>Your eternal life with God begins today.</h1>
         <div class="surface bottom">
@@ -392,7 +395,7 @@
         </div>
       </article>
 
-      <article class="screen center" data-screen="assurance" style="background-image:url('/assets/images/gospel/8.png')">
+      <article class="screen center" data-screen="assurance" style="background-image:url('/assets/images/gospel/08-new-life-with-jesus.png')">
         <div class="app-mark">☀</div>
         <h1>Your eternal life with God begins today.</h1>
         <div class="bottom">
@@ -403,7 +406,7 @@
         </div>
       </article>
 
-      <article class="screen" data-screen="next-steps" style="background-image:url('/assets/images/gospel/8.png')">
+      <article class="screen" data-screen="next-steps" style="background-image:url('/assets/images/gospel/08-new-life-with-jesus.png')">
         <h1>You now have a very <span class="serif italic">personal and permanent</span> relationship with the Lord Jesus Christ.</h1>
         <p>To grow in your relationship with Him:</p>
         <div class="point-list">
@@ -416,7 +419,7 @@
         <div class="bottom"><button class="button next">Continue <span class="arrow">→</span></button></div>
       </article>
 
-      <article class="screen center" data-screen="birthday" style="background-image:url('/assets/images/gospel/8.png')">
+      <article class="screen center" data-screen="birthday" style="background-image:url('/assets/images/gospel/08-new-life-with-jesus.png')">
         <p class="eyebrow">Today</p>
         <h1>I trusted in Jesus to be my Lord and Savior.</h1>
         <p class="scripture">I accepted His free gift of eternal life. From now on, I will follow Jesus for the rest of my life.</p>
@@ -427,14 +430,14 @@
         </div>
       </article>
 
-      <article class="screen center" data-screen="other-response" style="background-image:url('/assets/images/gospel/8.png')">
+      <article class="screen center" data-screen="other-response">
         <p class="eyebrow">Thank you for answering</p>
         <h1 id="otherResponseTitle">Your questions matter.</h1>
         <p id="otherResponseBody">You can keep exploring what the Bible says about Jesus before making a decision.</p>
         <div class="surface bottom"><p>No pressure to manufacture a response. You can ask questions, read Scripture, talk with the person who shared this with you, and return whenever you want.</p><button class="button" data-target="consent">Continue <span class="arrow">→</span></button></div>
       </article>
 
-      <article class="screen" id="consentScreen" data-screen="11" style="background-image:url('/assets/images/gospel/8.png')">
+      <article class="screen" id="consentScreen" data-screen="11" style="background-image:url('/assets/images/gospel/08-new-life-with-jesus.png')">
         <p class="eyebrow">Your response is yours</p>
         <h2>Would you like to share your response with <span data-sender-name>Nikki</span>?</h2>
         <p>Keeping it private will not notify the sender. Sharing it sends only the response shown below—not your reading progress or other activity.</p>
@@ -452,7 +455,7 @@
         </div>
       </article>
 
-      <article class="screen" id="confirmationScreen" data-screen="12" style="background-image:url('/assets/images/gospel/8.png')">
+      <article class="screen" id="confirmationScreen" data-screen="12" style="background-image:url('/assets/images/gospel/08-new-life-with-jesus.png')">
         <p class="eyebrow" id="confirmationEyebrow">Response shared</p>
         <h1 id="confirmationTitle"><span data-sender-name>Nikki</span> can now see the response you chose to share.</h1>
         <p id="confirmationBody">Nothing else from your Gospel experience was shared.</p>
@@ -460,8 +463,8 @@
         <div class="bottom"><button class="button" id="continueInApp" hidden>Save this in Journal by SiFia <span class="arrow">↗</span></button><button class="button next">Continue <span class="arrow">→</span></button></div>
       </article>
 
-      <article class="screen" data-screen="13" style="background-image:url('/assets/images/gospel/10.png')">
-        <div class="app-mark">S</div>
+      <article class="screen" data-screen="13" style="background-image:url('/assets/images/gospel/09-continue-growing.png')">
+        <img class="app-mark app-mark-image" src="/assets/images/journalbysifia-app-icon.png" alt="Journal by SiFia" />
         <p class="eyebrow">Continue growing</p>
         <h1>A private place to grow in your relationship with God.</h1>
         <p>Journal by SiFia can help you pray, read Scripture, reflect, and remember what God is doing in your life.</p>

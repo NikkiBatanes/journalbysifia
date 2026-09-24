@@ -11,6 +11,7 @@ import {
   JournalBlockIcon,
   type JournalBlock,
 } from './journalBlocks';
+import {getNoteBlockVisuals} from './noteBlockTheme';
 
 type ColumnSide = 'left' | 'right';
 
@@ -31,9 +32,10 @@ export const JournalColumnBlock = ({
   activeSide?: ColumnSide | null;
   tone?: 'default' | 'onDark';
 }) => {
-  const onDark = tone === 'onDark';
-  const muted = onDark ? 'rgba(255,255,255,0.58)' : Colors.textGray;
-  const border = onDark ? 'rgba(255,255,255,0.25)' : Colors.cardBorder;
+  const visuals = getNoteBlockVisuals('column', tone);
+  const onDark = visuals.tone === 'sage';
+  const muted = visuals.muted;
+  const border = visuals.border;
   const activeSurface = onDark
     ? 'rgba(255,255,255,0.06)'
     : Colors.anchorBlueLight;
@@ -58,7 +60,9 @@ export const JournalColumnBlock = ({
         {blocks.length ? (
           blocks.map(renderBlock)
         ) : (
-          <ThemedText style={[styles.emptyText, {color: muted}]}>Tap to select</ThemedText>
+          <ThemedText style={[styles.emptyText, {color: muted}]}>
+            {selected ? 'Selected' : 'Tap to select'}
+          </ThemedText>
         )}
       </Pressable>
     );
@@ -71,12 +75,12 @@ export const JournalColumnBlock = ({
           <JournalBlockIcon
             config={JOURNAL_BLOCKS.column}
             size={14}
-            color={onDark ? Colors.hopeWhite : Colors.sage}
+            color={visuals.accent}
           />
           <ThemedText
             weight="bold"
-            style={[styles.title, {color: onDark ? Colors.hopeWhite : Colors.sage}]}>
-            COLUMN
+            style={[styles.title, {color: visuals.accent}]}>
+            {JOURNAL_BLOCKS.column.label}
           </ThemedText>
         </View>
         <TouchableOpacity

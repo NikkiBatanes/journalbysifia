@@ -29,7 +29,7 @@ export const useMonthlyReviewStats = (
       }
     };
     void load();
-    const listeners = ['reflection_saved', 'prayerSaved', 'prayerDeleted', 'gospelShareSaved'].map(event =>
+    const listeners = ['reflection_saved', 'prayerSaved', 'prayerDeleted', 'gospelShareChanged'].map(event =>
       DeviceEventEmitter.addListener(event, () => {void load();}));
     return () => {
       active = false;

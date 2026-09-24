@@ -112,6 +112,17 @@ export function getPrayerTypePresentation(prayer: PrayerApiEntry, need?: PrayerN
   if (source === 'weekly_review' && (style === 'open' || prayer.journal_category === 'personal_prayer')) return {
     label: 'Weekly · Open Prayer', detailLabel: 'Weekly Open Prayer', originLabel: 'From your Weekly Review', content: prayer.content,
   };
+  if (
+    source === 'monthly_review' &&
+    (style === 'open' || prayer.journal_category === 'personal_prayer')
+  ) {
+    return {
+      label: 'Monthly · Open Prayer',
+      detailLabel: 'Monthly Open Prayer',
+      originLabel: 'From your Monthly Review',
+      content: prayer.content,
+    };
+  }
   if (style === 'open' || prayer.journal_category === 'personal_prayer') return { label: 'Open Prayer', detailLabel: 'Open Prayer', content: prayer.content };
   if (prayer.journal_category && ['adoration', 'confession', 'thanksgiving', 'supplication'].includes(prayer.journal_category)) return {
     label: `${cleanCategory(prayer.journal_category)} Prayer`, detailLabel: `${cleanCategory(prayer.journal_category)} Prayer`, content: prayer.content,

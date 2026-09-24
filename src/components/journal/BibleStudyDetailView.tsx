@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { AccessibilityInfo, Alert, Animated, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
-import { FileText, Leaf, Pencil, Sparkles, Trash2, X } from 'lucide-react-native';
+import { FileText, Leaf, Pencil, Sparkles, X } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { format } from 'date-fns';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -37,11 +37,10 @@ interface Props {
   translation?: string;
   content: BibleStudyContent;
   onEdit: () => Promise<void> | void;
-  onDelete: () => Promise<void>;
   onClose: () => void;
 }
 
-export default function BibleStudyDetailView({ reference, selectedDate, translation = 'NASB', content, onEdit, onDelete, onClose }: Props) {
+export default function BibleStudyDetailView({ reference, selectedDate, translation = 'NASB', content, onEdit, onClose }: Props) {
   const [readerOpen, setReaderOpen] = useState(false);
   const insets = useSafeAreaInsets();
   const [headerCollapsed, setHeaderCollapsed] = useState(false);
@@ -76,14 +75,6 @@ export default function BibleStudyDetailView({ reference, selectedDate, translat
     catch { Alert.alert('Unable to edit', 'The original study session could not be loaded. Your saved study is unchanged.'); }
     finally {setBusy(false);}
   };
-  const remove = () => Alert.alert('Delete Bible Study?', 'This removes the saved study. Any prayer you saved to Prayer Journal will be kept.', [
-    { text: 'Cancel', style: 'cancel' },
-    { text: 'Delete', style: 'destructive', onPress: async () => {
-      setBusy(true);
-      try {await onDelete();}
-      catch {Alert.alert('Unable to delete', 'Please try again.'); setBusy(false);}
-    } },
-  ]);
   const section = (label: string, key: 'observation' | 'understanding' | 'response' | 'prayer') => (
     <View style={styles.section}>
       <ThemedText weight="bold" style={styles.sectionLabel}>{label.toUpperCase()}</ThemedText>
@@ -124,9 +115,10 @@ export default function BibleStudyDetailView({ reference, selectedDate, translat
           {(['study', 'response', 'prayer'] as const).map((key, index) => {
             const Icon = key === 'study' ? FileText : key === 'response' ? Sparkles : Leaf;
             return <DetailReveal key={key} delay={100 + index * 45} reduceMotion={reduceMotion} style={styles.pillSlot}><TouchableOpacity accessibilityRole="tab" accessibilityState={{ selected: tab === key }}
-              onPress={() => { triggerLightHaptic(); setTab(key); }} style={[styles.pill, tab === key && styles.pillActive]}>
-              <Icon size={17} color={tab === key ? Colors.hopeWhite : Colors.sage} />
-              <ThemedText weight="medium" style={[styles.pillText, tab === key && styles.pillTextActive]}>{key[0].toUpperCase() + key.slice(1)}</ThemedText>
+              activeOpacity={0.7} onPress={() => { triggerLightHaptic(); setTab(key); }} style={[styles.pill, tab === key && styles.pillActive]}>
+              <Icon size={17} color={tab === key ? Colors.hopeWhite : Colors.text} />
+              <ThemedText weight="medium" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}
+                style={[styles.pillText, tab === key && styles.pillTextActive]}>{key[0].toUpperCase() + key.slice(1)}</ThemedText>
             </TouchableOpacity></DetailReveal>;
           })}
         </View>
@@ -173,14 +165,15 @@ export default function BibleStudyDetailView({ reference, selectedDate, translat
           },
         ]}
       >
-        <TouchableOpacity accessibilityLabel="Delete Bible Study" disabled={busy} onPress={remove} style={styles.circle}><Trash2 size={18} color={Colors.textGray} /></TouchableOpacity>
+        <View />
         <View style={styles.actions}>
-          <TouchableOpacity accessibilityLabel="Edit Bible Study" disabled={busy}
-            onPress={() => { triggerLightHaptic(); return edit(); }} style={styles.circle}>
-            <Pencil size={20} color={Colors.sage} />
+          <TouchableOpacity accessibilityRole="button" accessibilityLabel="Edit Bible Study" disabled={busy}
+            activeOpacity={0.7} hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}
+            onPress={() => { triggerLightHaptic(); return edit(); }} style={styles.cornerActionButton}>
+            <Pencil size={17} color={Colors.sage} strokeWidth={1.8} />
           </TouchableOpacity>
           <TouchableOpacity accessibilityRole="button" accessibilityLabel="Close Bible Study" disabled={busy} onPress={close}
-            activeOpacity={0.7} hitSlop={{top: 8, bottom: 8, left: 8, right: 8}} style={styles.closeCircle}>
+            activeOpacity={0.7} hitSlop={{top: 8, bottom: 8, left: 8, right: 8}} style={styles.cornerActionButton}>
             <X size={17} color={Colors.sage} />
           </TouchableOpacity>
         </View>
@@ -201,13 +194,12 @@ const styles = StyleSheet.create({
   subtitle: { fontSize: 14, color: Colors.textGray },
   topBar: { position: 'absolute', top: 0, left: 20, right: 20, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 12 },
   actions: { flexDirection: 'row', gap: 10 },
-  circle: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: Colors.cardBorder, backgroundColor: Colors.cardBackground, shadowColor: Colors.text, shadowOpacity: 0.1, shadowRadius: 9, shadowOffset: { width: 0, height: 4 }, elevation: 5 },
-  closeCircle: { width: 42, height: 42, borderRadius: 999, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.cardBackground },
+  cornerActionButton: { width: 42, height: 42, borderRadius: 999, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.cardBackground },
   pills: { flexDirection: 'row', gap: 8, marginHorizontal: 16, paddingVertical: 6 },
   pillSlot: { flex: 1 },
-  pill: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 11, paddingHorizontal: 8, backgroundColor: 'rgba(82,106,91,0.08)', borderRadius: 22, borderWidth: 1, borderColor: 'rgba(82,106,91,0.2)' },
-  pillActive: { backgroundColor: Colors.sage, borderColor: Colors.sage },
-  pillText: { fontSize: 13, color: Colors.sage },
+  pill: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 14, paddingHorizontal: 18, backgroundColor: 'rgba(82,106,91,0.08)', borderRadius: 28, borderWidth: 0.5, borderColor: 'rgba(82,106,91,0.2)' },
+  pillActive: { backgroundColor: Colors.sageMuted, borderColor: Colors.sage },
+  pillText: { fontSize: 15, color: Colors.text },
   pillTextActive: { color: Colors.hopeWhite },
   savedChoices: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12, marginBottom: 12 },
   savedChoice: { backgroundColor: 'rgba(82,106,91,0.08)', borderColor: 'rgba(82,106,91,0.2)', borderWidth: 1, borderRadius: 22, paddingVertical: 8, paddingHorizontal: 14 },

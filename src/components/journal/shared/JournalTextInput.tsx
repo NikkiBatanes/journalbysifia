@@ -1,11 +1,14 @@
 import React, {useCallback, useRef} from 'react';
 import {TextInput, type ColorValue, type TextInputProps} from 'react-native';
-import ThemedTextInput from '../../common/ThemedTextInput';
+import ThemedTextInput, {
+  type ThemedWeight,
+} from '../../common/ThemedTextInput';
 import {Colors} from '../../../theme/colors';
 
 type Props = Omit<TextInputProps, 'selectionColor' | 'cursorColor' | 'selectionHandleColor'> & {
   accentColor?: ColorValue;
   themed?: boolean;
+  weight?: ThemedWeight;
 };
 
 /** Shared by titles, writing fields and every nested block, not just the first
@@ -13,7 +16,17 @@ type Props = Omit<TextInputProps, 'selectionColor' | 'cursorColor' | 'selectionH
  * Keep the native ref intact for focus, selection and keyboard scrolling.
  */
 const JournalTextInput = React.forwardRef<TextInput, Props>(
-  ({accentColor = Colors.hopeWhite, themed = false, onFocus, onPressIn, ...props}, forwardedRef) => {
+  (
+    {
+      accentColor = Colors.hopeWhite,
+      themed = false,
+      weight = 'regular',
+      onFocus,
+      onPressIn,
+      ...props
+    },
+    forwardedRef,
+  ) => {
     const inputRef = useRef<TextInput | null>(null);
     const applyAccent = useCallback((input: TextInput | null) => {
       input?.setNativeProps({
@@ -32,23 +45,35 @@ const JournalTextInput = React.forwardRef<TextInput, Props>(
         forwardedRef.current = input;
       }
     }, [applyAccent, forwardedRef]);
-    const Input = themed ? ThemedTextInput : TextInput;
+    const sharedProps = {
+      ...props,
+      selectionColor: accentColor,
+      cursorColor: accentColor,
+      selectionHandleColor: accentColor,
+      onPressIn: (event: Parameters<NonNullable<TextInputProps['onPressIn']>>[0]) => {
+        applyAccent(inputRef.current);
+        onPressIn?.(event);
+      },
+      onFocus: (event: Parameters<NonNullable<TextInputProps['onFocus']>>[0]) => {
+        applyAccent(inputRef.current);
+        onFocus?.(event);
+      },
+    };
+
+    if (themed) {
+      return (
+        <ThemedTextInput
+          {...sharedProps}
+          ref={registerInput}
+          weight={weight}
+        />
+      );
+    }
 
     return (
-      <Input
-        {...props}
+      <TextInput
+        {...sharedProps}
         ref={registerInput}
-        selectionColor={accentColor}
-        cursorColor={accentColor}
-        selectionHandleColor={accentColor}
-        onPressIn={event => {
-          applyAccent(inputRef.current);
-          onPressIn?.(event);
-        }}
-        onFocus={event => {
-          applyAccent(inputRef.current);
-          onFocus?.(event);
-        }}
       />
     );
   },

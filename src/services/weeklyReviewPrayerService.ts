@@ -31,7 +31,7 @@ const weeklyTags = (prayer?: PrayerApiEntry): string[] => {
 };
 
 /**
- * Persists the Weekly Review's closing prayer as one canonical Open Prayer.
+ * Persists the Weekly Review's closing prayer as one canonical Moments prayer.
  * Calls for the same review are serialized so autosave cannot create duplicates.
  */
 export const saveWeeklyReviewPrayer = (

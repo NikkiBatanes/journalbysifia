@@ -8,8 +8,10 @@ import ShareComposer from '../TruthToCarryShareComposer';
 import ThemedText from '../common/ThemedText';
 import { Colors } from '../../theme/colors';
 
-import { getCachedScripturePassage, getScripturePassage, preloadScripturePassages } from '../../services/scriptureReaderService';
+import { getCachedScripturePassage, getScripturePassage } from '../../services/scriptureReaderService';
 import { getDashboardHeaderScripture } from '../../data/dashboardHeaderScriptures';
+import {prefetchDashboardScriptures} from '../../services/dashboardScripturePrefetchService';
+import {triggerLightHaptic} from '../../utils/haptics';
 
 interface DashboardHeaderScriptureProps {
   date?: Date;
@@ -55,17 +57,10 @@ const DashboardHeaderScripture: React.FC<DashboardHeaderScriptureProps> = ({ dat
     if (!text) { return; }
     // Warm the next daily passages only after the visible verse is ready.
     const timer = setTimeout(() => {
-      const tomorrow = new Date(now);
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      const references = [
-        getDashboardHeaderScripture(now, !isEvening).passageReference,
-        getDashboardHeaderScripture(tomorrow, false).passageReference,
-        getDashboardHeaderScripture(tomorrow, true).passageReference,
-      ];
-      void preloadScripturePassages([...new Set(references)], bibleVersion);
+      prefetchDashboardScriptures(bibleVersion, now).catch(() => {});
     }, 1000);
     return () => clearTimeout(timer);
-  }, [text, now, isEvening, bibleVersion]);
+  }, [text, now, bibleVersion]);
 
   if (error) {
     return <TouchableOpacity
@@ -88,7 +83,10 @@ const DashboardHeaderScripture: React.FC<DashboardHeaderScriptureProps> = ({ dat
     <>
       <TouchableOpacity
         activeOpacity={1}
-        onPress={() => { setModalVisible(true); }}
+        onPress={() => {
+          triggerLightHaptic();
+          setModalVisible(true);
+        }}
         accessibilityRole="button"
         accessibilityLabel={`Open ${scripture.displayReference} in Scripture Reader`}
         style={[styles.container, centered && styles.containerCentered]}

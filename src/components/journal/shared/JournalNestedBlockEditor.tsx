@@ -2,13 +2,14 @@ import React from 'react';
 import {StyleSheet, TextInput, TouchableOpacity, View} from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
-import ThemedText from '../../common/ThemedText';
 import JournalTextInput from './JournalTextInput';
+import {ScriptureLookupInput} from './ScriptureLookupInput';
 import ReflectionSpecialBlock from '../ReflectionSpecialBlock';
-import {Colors} from '../../../theme/colors';
+import {getNoteBlockVisuals} from './noteBlockTheme';
+import NoteBlockFrame from './NoteBlockFrame';
 import {
+  JOURNAL_BLOCK_GAP,
   JOURNAL_BLOCKS,
-  JournalBlockIcon,
   formatJournalAttribution,
   type JournalBlock,
 } from './journalBlocks';
@@ -22,6 +23,7 @@ export const JournalNestedBlockEditor = ({
   onFocus,
   registerInput,
   tone = 'default',
+  bibleVersion = 'NASB',
 }: {
   block: JournalBlock;
   onChange: (changes: Partial<JournalBlock>) => void;
@@ -29,6 +31,7 @@ export const JournalNestedBlockEditor = ({
   onFocus: () => void;
   registerInput?: (input: TextInput | null) => void;
   tone?: 'default' | 'onDark';
+  bibleVersion?: string;
 }) => {
   if (block.kind === 'bullets' || block.kind === 'numbered') {
     return (
@@ -81,12 +84,10 @@ export const JournalNestedBlockEditor = ({
     );
   }
 
-  const onDark = tone === 'onDark';
-  const foreground = onDark ? Colors.hopeWhite : Colors.text;
-  const muted = onDark ? 'rgba(255,255,255,0.48)' : Colors.textGray;
-  const accent = onDark ? Colors.hopeWhite : Colors.sage;
-  const border = onDark ? 'rgba(255,255,255,0.24)' : Colors.cardBorder;
-  const surface = onDark ? 'rgba(255,255,255,0.06)' : Colors.cardBackground;
+  const visuals = getNoteBlockVisuals(block.kind, tone);
+  const foreground = visuals.foreground;
+  const muted = visuals.muted;
+  const accent = visuals.accent;
 
   if (block.kind === 'text') {
     return (
@@ -109,20 +110,51 @@ export const JournalNestedBlockEditor = ({
     );
   }
 
+  if (block.kind === 'scripture') {
+    return (
+      <NoteBlockFrame
+        kind="scripture"
+        tone={tone}
+        compact
+        onDelete={onDelete}
+        style={styles.block}>
+        <ScriptureLookupInput
+          value={block.reference || block.scriptureReference || block.text}
+          placeholder={JOURNAL_BLOCKS.scripture.placeholder}
+          version={block.scriptureVersion || bibleVersion}
+          tone={tone}
+          style={styles.input}
+          registerInput={registerInput}
+          onFocus={onFocus}
+          onChange={text =>
+            onChange({
+              text,
+              reference: undefined,
+              scriptureText: undefined,
+              scriptureReference: undefined,
+              scriptureVersion: undefined,
+            })
+          }
+          onResolved={result =>
+            onChange({
+              scriptureText: result?.text,
+              scriptureReference: result?.reference,
+              scriptureVersion: result?.version,
+            })
+          }
+        />
+      </NoteBlockFrame>
+    );
+  }
+
   const config = JOURNAL_BLOCKS[block.kind];
   return (
-    <View style={[styles.block, {borderColor: border, backgroundColor: surface}]}>
-      <View style={styles.header}>
-        <View style={styles.labelRow}>
-          <JournalBlockIcon config={config} size={12} color={accent} />
-          <ThemedText weight="bold" style={[styles.label, {color: accent}]}>
-            {config.label}
-          </ThemedText>
-        </View>
-        <TouchableOpacity onPress={onDelete} hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}>
-          <Ionicons name="close" size={15} color={muted} />
-        </TouchableOpacity>
-      </View>
+    <NoteBlockFrame
+      kind={block.kind}
+      tone={tone}
+      compact
+      onDelete={onDelete}
+      style={styles.block}>
       <JournalTextInput themed
         ref={registerInput}
         value={block.text}
@@ -151,14 +183,14 @@ export const JournalNestedBlockEditor = ({
           style={[styles.secondaryInput, {color: foreground}]}
         />
       )}
-    </View>
+    </NoteBlockFrame>
   );
 };
 
 const styles = StyleSheet.create({
   textRow: {flexDirection: 'row', alignItems: 'flex-start', gap: 4, marginBottom: 10},
   textInput: {flex: 1, minHeight: 46, fontSize: 13, lineHeight: 19, paddingVertical: 5},
-  block: {borderWidth: 1, borderRadius: 12, padding: 9, marginBottom: 10},
+  block: {marginBottom: JOURNAL_BLOCK_GAP},
   header: {flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between'},
   labelRow: {flex: 1, flexDirection: 'row', alignItems: 'center', gap: 5},
   label: {fontSize: 8, letterSpacing: 0.8},

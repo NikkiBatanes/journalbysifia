@@ -29,11 +29,13 @@ import { useScroll } from '../../context/ScrollContext';
 import { useMomentsPalette } from '../../context/MomentsPaletteContext';
 import { heartJournalClassificationLabel, type HeartJournalClassification } from '../../types/heartJournal';
 import {
+  guidedReflectionAnswerPreview,
   guidedEntryKind,
   parseGuidedReflection,
   type GuidedReflectionNote,
 } from '../../types/guidedReflection';
 import SavedReflectionBlocks from './SavedReflectionBlocks';
+import {GuidedReflectionMomentPreview} from './GuidedReflectionMomentPreview';
 
 // Define styles at the top to avoid hoisting issues
 const styles = StyleSheet.create({
@@ -273,6 +275,7 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: Colors.textGray,
     fontFamily: Fonts.regular,
+    flexShrink: 0,
   },
   promptCardText: {
     color: Colors.hopeWhite,
@@ -312,6 +315,8 @@ const styles = StyleSheet.create({
     color: Colors.sage,
   },
   guidedStackedPromptContainer: {
+    flexShrink: 1,
+    minWidth: 0,
     alignItems: 'flex-start',
     borderRadius: 12,
     borderWidth: 1,
@@ -331,32 +336,6 @@ const styles = StyleSheet.create({
   },
   guidedPathLabelPalette: {
     color: Colors.text,
-  },
-  guidedSelections: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 7,
-    marginBottom: 14,
-  },
-  guidedSelectionPill: {
-    borderRadius: 16,
-    paddingHorizontal: 11,
-    paddingVertical: 7,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
-  },
-  guidedSelectionPillPalette: {
-    backgroundColor: 'rgba(82,106,91,0.1)',
-    borderColor: 'rgba(82,106,91,0.2)',
-  },
-  guidedSelectionText: {
-    color: Colors.hopeWhite,
-    fontSize: 12,
-    lineHeight: 16,
-  },
-  guidedSelectionTextPalette: {
-    color: Colors.sage,
   },
   playbookPromptContainerPalette: {
     backgroundColor: 'rgba(82, 106, 91, 0.1)',
@@ -458,6 +437,10 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
   const { user } = useAuth();
   const dateStr = toLocalDateString(selectedDate);
   const { scrollToSection } = useScroll();
+  const requestedReflectionIds = React.useMemo(
+    () => reflectionIds || (reflectionId ? [reflectionId] : undefined),
+    [reflectionId, reflectionIds],
+  );
 
   // Guided prompt gating for consistent lock state
   const guidedPromptGating = useGuidedPromptGating({
@@ -498,7 +481,7 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
     error,
     refetch,
     // isRefetching, // Unused
-  } = useReflectionData(user?.id || '', dateStr);
+  } = useReflectionData(user?.id || '', dateStr, requestedReflectionIds);
 
   const deleteMutation = useDeleteReflection();
 
@@ -538,9 +521,10 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
     }));
     // The canonical Moments timeline has already selected a stable record.
     // Do not let one timeline card render every reflection from that day.
-    const exactIds = reflectionIds || (reflectionId ? [reflectionId] : null);
-    return exactIds ? mapped.filter(entry => exactIds.includes(entry.id)) : mapped;
-  }, [reflectionEntries, normalizeIncoming, reflectionId, reflectionIds]);
+    return requestedReflectionIds
+      ? mapped.filter(entry => requestedReflectionIds.includes(entry.id))
+      : mapped;
+  }, [reflectionEntries, normalizeIncoming, requestedReflectionIds]);
 
   // Determine if there's content for the selected date
   const hasContentForSelectedDate = React.useMemo(() => {
@@ -992,9 +976,9 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
     const guidedContext = guidedJourney && guidedTitle !== guidedJourney.pathTitle
       ? guidedJourney.pathTitle
       : entry.question_topic;
-    const guidedSelections = guidedJourney
-      ? Array.from(new Set(guidedJourney.answers.flatMap(answer => answer.selected || [])))
-      : [];
+    const legacyGuidedAnswerText = entry.type === 'guided' && !guidedJourney
+      ? guidedReflectionAnswerPreview(entry.content)
+      : '';
 
     return (
     <TouchableOpacity
@@ -1071,50 +1055,38 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
         <ThemedText style={[styles.promptCardText, styles.normalTitleText, momentsPalette && styles.promptCardTextPalette]}>{entry.title}</ThemedText>
       ) : null}
 
-      {guidedSelections.length ? (
-        <View style={styles.guidedSelections}>
-          {guidedSelections.map(selection => (
-            <View
-              key={selection}
-              style={[
-                styles.guidedSelectionPill,
-                momentsPalette && styles.guidedSelectionPillPalette,
-              ]}>
-              <ThemedText
-                style={[
-                  styles.guidedSelectionText,
-                  momentsPalette && styles.guidedSelectionTextPalette,
-                ]}>
-                {selection}
-              </ThemedText>
-            </View>
-          ))}
-        </View>
-      ) : null}
-
-      {entry.journal_blocks?.length ? (
-        <SavedReflectionBlocks
-          blocks={entry.journal_blocks}
+      {!!guidedJourney && (
+        <GuidedReflectionMomentPreview
+          journey={guidedJourney}
           onDark={!momentsPalette}
-          compact
+          showDisclosureIndicator
         />
-      ) : (
+      )}
+
+      {!!legacyGuidedAnswerText && (
         <ThemedText
           style={[styles.entryContent, momentsPalette && styles.entryContentPalette]}
           numberOfLines={3}
           ellipsizeMode="tail">
-          {(() => {
-            const journey = entry.type === 'guided' ? parseGuidedReflection(entry.content) : null;
-            if (!journey) {return typeof entry.content === 'string' ? normalizeIncoming(entry.content) : JSON.stringify(entry.content);}
-            return journey.answers.flatMap(answer => [
-              answer.text || '',
-              answer.optionalText || '',
-              ...Object.values(answer.fields || {}),
-              ...answer.notes.map(note => note.text),
-            ]).filter(Boolean).join(' · ');
-          })()}
+          {normalizeIncoming(legacyGuidedAnswerText)}
         </ThemedText>
       )}
+
+      {!guidedJourney && entry.journal_blocks?.length ? (
+        <SavedReflectionBlocks
+          blocks={entry.journal_blocks}
+          onDark={!momentsPalette}
+          compact
+          embedded
+        />
+      ) : entry.type !== 'guided' ? (
+        <ThemedText
+          style={[styles.entryContent, momentsPalette && styles.entryContentPalette]}
+          numberOfLines={3}
+          ellipsizeMode="tail">
+          {typeof entry.content === 'string' ? normalizeIncoming(entry.content) : JSON.stringify(entry.content)}
+        </ThemedText>
+      ) : null}
 
       {/* Removed lower right tags - only show upper left type tags (FREE FORM, PLAYBOOK, GUIDED PROMPT) */}
     </TouchableOpacity>

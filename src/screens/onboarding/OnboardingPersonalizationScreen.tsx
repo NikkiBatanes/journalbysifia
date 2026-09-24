@@ -271,6 +271,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
 
   const openBirthdayPicker = useCallback(() => {
     try { triggerLightHaptic(); } catch {}
+    Keyboard.dismiss();
     if (birthDate) {
       const bparts = birthDate.split('-').map(Number);
       const bdate = bparts.length === 3 ? new Date(bparts[0], bparts[1] - 1, bparts[2]) : null;

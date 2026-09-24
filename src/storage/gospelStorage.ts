@@ -1,6 +1,10 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {DeviceEventEmitter} from 'react-native';
 import {GOSPEL_CONTENT_VERSION} from '../data/gospelContent';
+import {
+  queueGospelImpactForShare,
+  queueGospelImpactRetraction,
+} from '../services/journalImpactAnalyticsService';
 
 const PEOPLE_KEY = 'journal:gospel:people:v1';
 const RESPONSE_KEY = 'journal:gospel:self-response:v1';
@@ -33,6 +37,8 @@ export type SavedGospelResponse = {
 export type ForMeDaySettings = {
   spiritualBirthday: string;
   originalStory?: string;
+  testimonyWrittenAt?: string;
+  testimonyUpdatedAt?: string;
   reminderEnabled: boolean;
   reminderTime: string;
   showInMoments: boolean;
@@ -43,6 +49,7 @@ export type ForMeDaySettings = {
 export type GospelShareMethod =
   | 'link'
   | 'together'
+  | 'shared_openly'
   | 'outside_app'
   | 'in_person'
   | 'phone'
@@ -54,17 +61,24 @@ export type GospelShareEvent = {
   sharedAt: string;
   method: GospelShareMethod;
   personId?: string;
+  responderName?: string;
+  response?: GospelResponse;
+  spiritualBirthday?: string;
 };
 
 export type GospelShareEventInput = {
   sharedAt?: string;
   method?: GospelShareMethod;
   personId?: string;
+  responderName?: string;
+  response?: GospelResponse;
+  spiritualBirthday?: string;
 };
 
 const GOSPEL_SHARE_METHODS: GospelShareMethod[] = [
   'link',
   'together',
+  'shared_openly',
   'outside_app',
   'in_person',
   'phone',
@@ -119,6 +133,15 @@ const parseShareEvents = (value: string | null): GospelShareEvent[] => {
         // Every event stored before methods were introduced came from a link.
         method: GOSPEL_SHARE_METHODS.includes(event.method) ? event.method : 'link',
         ...(typeof event.personId === 'string' ? {personId: event.personId} : {}),
+        ...(typeof event.responderName === 'string' && event.responderName.trim()
+          ? {responderName: event.responderName.trim()}
+          : {}),
+        ...(['trusted_jesus_today', 'has_questions', 'not_ready', 'already_follows_jesus'].includes(event.response)
+          ? {response: event.response as GospelResponse}
+          : {}),
+        ...(typeof event.spiritualBirthday === 'string'
+          ? {spiritualBirthday: event.spiritualBirthday}
+          : {}),
       }));
   } catch {
     return [];
@@ -137,11 +160,35 @@ export const gospelStorage = {
       sharedAt: details.sharedAt || new Date().toISOString(),
       method: details.method || 'link',
       ...(details.personId ? {personId: details.personId} : {}),
+      ...(details.responderName?.trim() ? {responderName: details.responderName.trim()} : {}),
+      ...(details.response ? {response: details.response} : {}),
+      ...(details.spiritualBirthday ? {spiritualBirthday: details.spiritualBirthday} : {}),
     };
     const events = await this.getShareEvents();
     await AsyncStorage.setItem(GOSPEL_SHARE_EVENTS_KEY, JSON.stringify([event, ...events]));
-    DeviceEventEmitter.emit('gospelShareSaved', event);
+    await queueGospelImpactForShare(event).catch(() => {});
+    DeviceEventEmitter.emit('gospelShareChanged', event);
     return event;
+  },
+
+  async removeShareEvent(eventId: string): Promise<void> {
+    const events = await this.getShareEvents();
+    const removed = events.find(event => event.id === eventId);
+    const remaining = events.filter(event => event.id !== eventId);
+    if (remaining.length === events.length) {return;}
+    await AsyncStorage.setItem(GOSPEL_SHARE_EVENTS_KEY, JSON.stringify(remaining));
+    if (removed) {await queueGospelImpactRetraction(removed).catch(() => {});}
+    DeviceEventEmitter.emit('gospelShareChanged', {id: eventId, removed: true});
+  },
+
+  async linkShareEventToPerson(eventId: string, personId: string): Promise<void> {
+    const events = await this.getShareEvents();
+    const index = events.findIndex(event => event.id === eventId);
+    if (index < 0) {return;}
+    const next = [...events];
+    next[index] = {...next[index], personId};
+    await AsyncStorage.setItem(GOSPEL_SHARE_EVENTS_KEY, JSON.stringify(next));
+    DeviceEventEmitter.emit('gospelShareChanged', next[index]);
   },
 
   async getResponse(): Promise<SavedGospelResponse | null> {
@@ -166,9 +213,14 @@ export const gospelStorage = {
       try {
         const parsed = JSON.parse(raw);
         if (parsed?.spiritualBirthday) {
-          return {
+          const settings = {
             ...defaultForMeDaySettings(parsed.spiritualBirthday),
             ...parsed,
+          };
+          return {
+            ...settings,
+            testimonyWrittenAt: settings.testimonyWrittenAt ||
+              (settings.originalStory?.trim() ? settings.updatedAt : undefined),
           };
         }
       } catch {}
@@ -181,7 +233,24 @@ export const gospelStorage = {
   async saveForMeDaySettings(
     settings: Omit<ForMeDaySettings, 'updatedAt'>,
   ): Promise<ForMeDaySettings> {
-    const saved = {...settings, updatedAt: new Date().toISOString()};
+    const current = await this.getForMeDaySettings();
+    const nextTestimony = settings.originalStory?.trim() || '';
+    const currentTestimony = current?.originalStory?.trim() || '';
+    const now = new Date().toISOString();
+    const testimonyWrittenAt = nextTestimony
+      ? settings.testimonyWrittenAt || current?.testimonyWrittenAt || now
+      : undefined;
+    const testimonyUpdatedAt = !nextTestimony
+      ? undefined
+      : currentTestimony && nextTestimony !== currentTestimony
+        ? now
+        : settings.testimonyUpdatedAt || current?.testimonyUpdatedAt;
+    const saved = {
+      ...settings,
+      testimonyWrittenAt,
+      testimonyUpdatedAt,
+      updatedAt: now,
+    };
     await AsyncStorage.setItem(FOR_ME_DAY_SETTINGS_KEY, JSON.stringify(saved));
     return saved;
   },

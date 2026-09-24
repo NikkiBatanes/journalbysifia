@@ -42,6 +42,7 @@
 		AAMW00000000000000000121 /* MorningWidgetBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAMW00000000000000000113 /* MorningWidgetBridge.swift */; };
 		AAMW00000000000000000122 /* MorningWidgetBridge.m in Sources */ = {isa = PBXBuildFile; fileRef = AAMW00000000000000000114 /* MorningWidgetBridge.m */; };
 		AAMW00000000000000000123 /* SiFiaMorningWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = AAMW00000000000000000107 /* SiFiaMorningWidget.appex */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		AAMW00000000000000000128 /* journalbysifiaheartv2sage.png in Resources */ = {isa = PBXBuildFile; fileRef = AAMW00000000000000000129 /* journalbysifiaheartv2sage.png */; };
 		AFC685DFDB184B2AA9A3469B /* Lexend-SemiBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 43D1FCFBE4BC418F8F1B879C /* Lexend-SemiBold.ttf */; };
 		B8CE4D9A00F44E6791846BFA /* OleoScriptSwashCaps-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 3FC4D19ABE124930A1FA5919 /* OleoScriptSwashCaps-Regular.ttf */; };
 		DEC88A0E5D7A4B109D7344A9 /* IndieFlower.ttf in Resources */ = {isa = PBXBuildFile; fileRef = B87BB3F4758C430CAFB73965 /* IndieFlower.ttf */; };
@@ -115,6 +116,7 @@
 		AAMW00000000000000000114 /* MorningWidgetBridge.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = JournalBySiFia/MorningWidgetBridge.m; sourceTree = "<group>"; };
 		AAMW00000000000000000115 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		AAMW00000000000000000116 /* SiFiaMorningWidget.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = SiFiaMorningWidget.entitlements; sourceTree = "<group>"; };
+		AAMW00000000000000000129 /* journalbysifiaheartv2sage.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = journalbysifiaheartv2sage.png; path = ../../assets/images/journalbysifiaheartv2sage.png; sourceTree = "<group>"; };
 		AD38D622C38A421A8B70F4F6 /* OleoScriptSwashCaps-Bold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "OleoScriptSwashCaps-Bold.ttf"; path = "../assets/fonts/OleoScriptSwashCaps/OleoScriptSwashCaps-Bold.ttf"; sourceTree = "<group>"; };
 		B62E77873B8CF9FD8510DFED /* libPods-JournalBySiFia.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-JournalBySiFia.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		B87BB3F4758C430CAFB73965 /* IndieFlower.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = IndieFlower.ttf; path = ../assets/fonts/IndieFlower/IndieFlower.ttf; sourceTree = "<group>"; };
@@ -224,6 +226,7 @@
 			children = (
 				AAMW00000000000000000110 /* SiFiaMorningWidget.swift */,
 				AAMW00000000000000000111 /* SelectFeelingIntent.swift */,
+				AAMW00000000000000000129 /* journalbysifiaheartv2sage.png */,
 				AAMW00000000000000000115 /* Info.plist */,
 				AAMW00000000000000000116 /* SiFiaMorningWidget.entitlements */,
 			);
@@ -392,6 +395,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AAMW00000000000000000128 /* journalbysifiaheartv2sage.png in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

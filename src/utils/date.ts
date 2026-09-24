@@ -25,6 +25,36 @@ export function formatLocalDateLong(value: string | Date): string {
   return format(date, 'MMMM d, yyyy');
 }
 
+const SESSION_NOTE_WEEKDAYS = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+const SESSION_NOTE_MONTHS = [
+  'JAN',
+  'FEB',
+  'MAR',
+  'APR',
+  'MAY',
+  'JUN',
+  'JUL',
+  'AUG',
+  'SEPT',
+  'OCT',
+  'NOV',
+  'DEC',
+];
+
+export function formatSessionNoteHeaderDate(
+  value: string | Date,
+  referenceDate = new Date(),
+): string {
+  const date = typeof value === 'string' ? fromLocalDateString(value) : value;
+  if (!Number.isFinite(date.getTime())) {return '';}
+  const base = `${SESSION_NOTE_WEEKDAYS[date.getDay()]}, ${
+    SESSION_NOTE_MONTHS[date.getMonth()]
+  } ${date.getDate()}`;
+  return date.getFullYear() === referenceDate.getFullYear()
+    ? base
+    : `${base}, ${date.getFullYear()}`;
+}
+
 export type PrayerDateContext = { dateLabel: string; relativeLabel: string; combinedLabel: string };
 
 const parsePrayerDate = (value: string | Date | null | undefined): Date | undefined => {

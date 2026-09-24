@@ -2,6 +2,8 @@ import {getLocalJournalSingleton} from '../../storage/journalStorage';
 import {getLocalReviewsByType} from '../../storage/reviewStorage';
 import {
   getMonthlyCheckInFeelings,
+  getMonthlyLifeCheckInSummary,
+  getMonthlyLookingForwardFeelings,
   getMonthlyWeeklyReviewFeelings,
   getWeeklyCheckInFeelings,
 } from '../weeklyFeelingService';
@@ -133,5 +135,140 @@ describe('weekly check-in feelings', () => {
         {name: 'Stretched', count: 1, dates: ['2026-08-16']},
       ],
     });
+  });
+
+  it('interprets Weekly Whole-life answers as monthly area patterns', async () => {
+    (getLocalReviewsByType as jest.Mock).mockResolvedValue([
+      {
+        status: 'completed',
+        periodEnd: '2026-08-16',
+        answers: {
+          week_check_in_mind: 'struggling',
+          week_check_in_rest: 'struggling',
+        },
+      },
+      {
+        status: 'completed',
+        periodEnd: '2026-08-09',
+        answers: {
+          week_check_in_mind: 'okay',
+          week_check_in_rest: 'struggling',
+        },
+      },
+      {
+        status: 'completed',
+        periodEnd: '2026-08-23',
+        answers: {
+          week_check_in_mind: 'well',
+          week_check_in_rest: 'okay',
+        },
+      },
+      {
+        status: 'completed',
+        periodEnd: '2026-08-30',
+        answers: {
+          week_check_in_mind: 'well',
+          week_check_in_rest: 'well',
+        },
+      },
+    ]);
+
+    const summary = await getMonthlyLifeCheckInSummary(
+      '2026-08-01',
+      '2026-08-31',
+    );
+
+    expect(summary.reviewCount).toBe(4);
+    expect(summary.areas.find(area => area.key === 'mind')).toMatchObject({
+      values: ['okay', 'struggling', 'well', 'well'],
+      counts: {struggling: 1, okay: 1, well: 2},
+      interpretation: 'Mostly well',
+      trend: 'improving',
+      trendLabel: 'Improved by month’s end',
+    });
+    expect(summary.areas.find(area => area.key === 'rest')).toMatchObject({
+      counts: {struggling: 2, okay: 1, well: 1},
+      interpretation: 'Often needed care',
+      trend: 'improving',
+    });
+    expect(summary.insight).toBe(
+      'Mind was the most supported. Rest needed the most care. Rest strengthened by month’s end.',
+    );
+  });
+
+  it('keeps missing Weekly Whole-life answers visible without inventing a pattern', async () => {
+    (getLocalReviewsByType as jest.Mock).mockResolvedValue([
+      {
+        status: 'completed',
+        periodEnd: '2026-08-09',
+        answers: {
+          week_check_in_mind: 'well',
+          week_check_in_body: 'well',
+        },
+      },
+      {
+        status: 'completed',
+        periodEnd: '2026-08-16',
+        answers: {},
+      },
+      {
+        status: 'completed',
+        periodEnd: '2026-08-23',
+        answers: {week_check_in_mind: 'okay'},
+      },
+    ]);
+
+    const summary = await getMonthlyLifeCheckInSummary(
+      '2026-08-01',
+      '2026-08-31',
+    );
+
+    expect(summary.areas.find(area => area.key === 'mind')).toMatchObject({
+      values: ['well', null, 'okay'],
+      answeredWeeks: 2,
+      interpretation: 'Mixed through the month',
+      trend: 'declining',
+    });
+    expect(summary.areas.find(area => area.key === 'body')).toMatchObject({
+      values: ['well', null, null],
+      answeredWeeks: 1,
+      interpretation: 'One check-in only',
+      trend: 'insufficient',
+      trendLabel: 'Not enough to see a pattern',
+    });
+    expect(summary.areas.find(area => area.key === 'rest')).toMatchObject({
+      values: [null, null, null],
+      answeredWeeks: 0,
+      interpretation: 'No check-ins yet',
+      trend: 'insufficient',
+    });
+    expect(summary.insight).toBe(
+      'Mind was the only area with enough weekly answers to interpret this month.',
+    );
+  });
+
+  it('collates daily Looking Forward emotions for the month', async () => {
+    const byDate: Record<string, string> = {
+      '2026-08-03': 'Hopeful',
+      '2026-08-11': 'Trusting',
+      '2026-08-17': 'Hopeful',
+    };
+    (getLocalJournalSingleton as jest.Mock).mockImplementation(
+      async (type: string, date: string) =>
+        type === 'looking_forward' && byDate[date]
+          ? {content: JSON.stringify({emotionName: byDate[date]})}
+          : null,
+    );
+
+    await expect(
+      getMonthlyLookingForwardFeelings('2026-08-01', '2026-08-31'),
+    ).resolves.toEqual([
+      {
+        name: 'Hopeful',
+        count: 2,
+        dates: ['2026-08-03', '2026-08-17'],
+      },
+      {name: 'Trusting', count: 1, dates: ['2026-08-11']},
+    ]);
   });
 });

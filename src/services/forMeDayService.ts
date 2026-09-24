@@ -68,7 +68,7 @@ export const scheduleForMeDayReminder = async (
   await pushNotificationService.scheduleLocalNotification(
     {
       id: `for-me-day-${format(next, 'yyyy')}`,
-      title: 'Today is your For Me Day ✦',
+      title: 'Today is your New Life Day ✦',
       message:
         'Celebrate the day you accepted Jesus as your Lord and Savior and began following Him.',
       priority: 'high',

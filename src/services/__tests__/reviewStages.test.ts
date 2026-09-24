@@ -69,6 +69,125 @@ describe('Review stages', () => {
     }
   });
 
+  it('adds a read-only Whole-life synthesis to Monthly Review', () => {
+    const stages = getReviewStages('monthly');
+    const patternsIndex = stages.findIndex(stage => stage.key === 'notice');
+
+    expect(stages[patternsIndex + 1]).toMatchObject({
+      key: 'monthly_life_summary',
+      kind: 'life_summary',
+      question: 'How were you this month?',
+      subtitle: 'A synthesis of your weekly Whole-life check-ins.',
+    });
+  });
+
+  it('follows the Monthly Whole-life synthesis with life-giving and draining choices', () => {
+    const stages = getReviewStages('monthly');
+    const lifeIndex = stages.findIndex(
+      stage => stage.key === 'monthly_life_summary',
+    );
+
+    expect(stages.slice(lifeIndex + 1, lifeIndex + 3)).toMatchObject([
+      {
+        key: 'monthly_life_giving',
+        kind: 'pill_choices',
+        question: 'What gave you life this month?',
+        answerKey: 'month_life_giving',
+        otherAnswerKey: 'month_life_giving_other',
+        selectionLimit: 3,
+      },
+      {
+        key: 'monthly_draining',
+        kind: 'pill_choices',
+        question: 'What drained you this month?',
+        answerKey: 'month_draining',
+        otherAnswerKey: 'month_draining_other',
+        selectionLimit: 3,
+      },
+    ]);
+  });
+
+  it('adds a read-only wins reminder after Whole-life only when wins exist', () => {
+    const withoutWins = getReviewStages('monthly');
+    const withWins = getReviewStages('monthly', {
+      includeMonthlyWins: true,
+    });
+    const lifeIndex = withWins.findIndex(
+      stage => stage.key === 'monthly_life_summary',
+    );
+
+    expect(
+      withoutWins.some(stage => stage.key === 'monthly_wins'),
+    ).toBe(false);
+    expect(withWins[lifeIndex + 1]).toMatchObject({
+      key: 'monthly_wins',
+      kind: 'wins',
+      icon: 'leaf-outline',
+      label: 'LOOKING BACK',
+      title: 'You had wins worth remembering.',
+    });
+    expect(withWins[lifeIndex + 2].key).toBe('monthly_life_giving');
+  });
+
+  it('ends Monthly Looking Back with God’s faithfulness without a release page', () => {
+    const stages = getReviewStages('monthly');
+    const transitionIndex = stages.findIndex(
+      stage => stage.key === 'step_into',
+    );
+
+    expect(
+      stages
+        .slice(transitionIndex - 3, transitionIndex)
+        .map(stage => stage.key),
+    ).toEqual(['formation', 'prayer', 'god']);
+    expect(stages[transitionIndex - 2]).toMatchObject({
+      label: 'PRAYERS',
+      question: 'This month in prayer',
+    });
+    expect(stages[transitionIndex - 1]).toMatchObject({
+      question: 'Where did you see God’s faithfulness this month?',
+    });
+    expect(stages.some(stage => stage.key === 'release')).toBe(false);
+  });
+
+  it('adds the testimony faithfulness page only when one was written that month', () => {
+    const defaultStages = getReviewStages('monthly');
+    const stages = getReviewStages('monthly', {
+      includeMonthlyTestimony: true,
+    });
+    const godIndex = stages.findIndex(stage => stage.key === 'god');
+
+    expect(
+      defaultStages.some(stage => stage.key === 'monthly_testimony'),
+    ).toBe(false);
+    expect(stages[godIndex - 1]).toMatchObject({
+      key: 'monthly_testimony',
+      kind: 'testimony',
+      icon: 'leaf-outline',
+      label: 'GOD’S FAITHFULNESS',
+      title: 'Also this month, you wrote your testimony.',
+    });
+  });
+
+  it('uses one unfilled plant marker throughout Monthly Looking Back', () => {
+    const stages = getReviewStages('monthly', {includeMonthlyWins: true});
+    const keys = [
+      'monthly_feelings',
+      'notice',
+      'monthly_life_summary',
+      'monthly_wins',
+      'monthly_life_giving',
+      'monthly_draining',
+      'formation',
+      'prayer',
+      'god',
+    ];
+
+    expect(
+      stages.filter(stage => keys.includes(stage.key)).map(stage => stage.icon),
+    ).toEqual(keys.map(() => 'leaf-outline'));
+  });
+
   it('distills Weekly gratitude and removes the Heart and Scripture pages', () => {
     const stages = getReviewStages('weekly');
     const gratitude = stages.find(stage => stage.key === 'notice');
@@ -213,20 +332,104 @@ describe('Review stages', () => {
       title: 'Now, let’s look ahead.',
     });
     expect(stages.slice(transitionIndex + 1).map(stage => stage.key)).toEqual([
+      'monthly_more_room',
+      'monthly_care',
+      'monthly_leave_behind',
       'priority',
-      'attention',
-      'continue',
-      'simplify_or_stop',
-      'people',
-      'rhythm',
       'prayer_for_month',
       'ready',
     ]);
+    expect(stages[transitionIndex + 1]).toMatchObject({
+      question: 'What do you want to make more room for?',
+      kind: 'pill_choices',
+      answerKey: 'month_more_room',
+      otherAnswerKey: 'month_more_room_other',
+      selectionLimit: 3,
+    });
+    const moreRoom = stages[transitionIndex + 1];
+    expect(moreRoom.choiceDetails).toHaveLength(8);
+    expect(
+      moreRoom.choiceDetails?.find(
+        detail => detail.choice === 'Time with God',
+      ),
+    ).toMatchObject({
+      answerKey: 'month_more_room_with_god',
+      selectionLimit: 3,
+      choices: expect.arrayContaining([
+        'Prayer',
+        'Scripture reading',
+        'Bible study',
+        'Worship',
+        'Church community',
+        'Discipleship',
+      ]),
+    });
+    expect(
+      moreRoom.choiceDetails?.every(
+        detail => detail.choices.length > 0 && detail.selectionLimit === 3,
+      ),
+    ).toBe(true);
+    expect(stages[transitionIndex + 2]).toMatchObject({
+      question: 'What needs care next month?',
+      answerKey: 'month_care_areas',
+      selectionLimit: 3,
+      subtitle:
+        'Based on your weekly Whole-life check-ins, these areas may need more attention next month. Choose up to 3.',
+    });
+    expect(stages[transitionIndex + 3]).toMatchObject({
+      question: 'What do you want to leave behind?',
+      kind: 'pill_choices',
+      answerKey: 'month_leave_behind',
+      otherAnswerKey: 'month_leave_behind_other',
+      selectionLimit: 3,
+    });
+    const leaveBehind = stages[transitionIndex + 3];
+    expect(
+      leaveBehind.choiceDetails?.find(
+        detail => detail.choice === 'Comparison',
+      ),
+    ).toMatchObject({
+      answerKey: 'month_leave_behind_comparison',
+      selectionLimit: 3,
+      choices: expect.arrayContaining([
+        'Comparing timelines',
+        'Social media comparison',
+        'Comparing spiritual growth',
+      ]),
+    });
+    expect(
+      leaveBehind.choiceDetails?.find(
+        detail => detail.choice === 'Mental noise',
+      ),
+    ).toMatchObject({
+      answerKey: 'month_leave_behind_mental_noise',
+      selectionLimit: 3,
+    });
+    expect(
+      leaveBehind.choiceDetails?.find(
+        detail => detail.choice === 'Striving and self-reliance',
+      ),
+    ).toMatchObject({
+      answerKey: 'month_leave_behind_self_reliance',
+      choices: expect.arrayContaining([
+        'Carrying what belongs to God',
+        'Performing instead of abiding',
+      ]),
+    });
+    expect(leaveBehind.choices).toEqual(
+      expect.arrayContaining([
+        'Striving and self-reliance',
+        'Shame and condemnation',
+        'Resentment or unforgiveness',
+      ]),
+    );
     expect(
       stages.find(stage => stage.key === 'prayer_for_month'),
     ).toMatchObject({
       label: 'WITH GOD',
-      question: 'What are you praying for in the month ahead?',
+      question: 'Pray over your month',
+      subtitle: 'Bring the month ahead to God.',
+      answerKeys: ['month_prayer_ids', 'prayer_for_month'],
     });
   });
 

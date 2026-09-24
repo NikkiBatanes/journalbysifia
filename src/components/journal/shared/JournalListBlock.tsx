@@ -1,18 +1,17 @@
 import React, {useRef} from 'react';
-import {StyleSheet, TextInput, TouchableOpacity, View} from 'react-native';
-import Ionicons from 'react-native-vector-icons/Ionicons';
+import {StyleSheet, TextInput, View} from 'react-native';
 
 import ThemedText from '../../common/ThemedText';
 import JournalTextInput from './JournalTextInput';
 import {useTheme} from '../../../hooks/useTheme';
 import {getFontFamily} from '../../../theme/fonts';
-import {Colors} from '../../../theme/colors';
-import {triggerLightHaptic} from '../../../utils/haptics';
 import {
   JOURNAL_BLOCK_GAP,
   JOURNAL_BLOCKS,
   JournalBlockIcon,
 } from './journalBlocks';
+import {getNoteBlockVisuals} from './noteBlockTheme';
+import NoteBlockFrame from './NoteBlockFrame';
 
 type ListKind = 'bullets' | 'numbered';
 
@@ -42,12 +41,10 @@ export const JournalListBlock = ({
   const fontFamily = getFontFamily(currentFont || 'lexend', 'regular');
   const titleFontFamily = getFontFamily(currentFont || 'lexend', 'bold');
   const items = points?.length ? points : [''];
-  const onDark = tone === 'onDark';
-  const foreground = onDark ? Colors.hopeWhite : Colors.text;
-  const muted = onDark ? 'rgba(255,255,255,0.48)' : Colors.textGray;
-  const accent = onDark ? Colors.hopeWhite : Colors.sage;
-  const border = onDark ? 'rgba(255,255,255,0.24)' : Colors.cardBorder;
-  const surface = onDark ? 'rgba(255,255,255,0.06)' : Colors.cardBackground;
+  const visuals = getNoteBlockVisuals(kind, tone);
+  const foreground = visuals.foreground;
+  const muted = visuals.muted;
+  const accent = visuals.accent;
   const config = JOURNAL_BLOCKS[kind];
 
   const updateItem = (index: number, value: string) => {
@@ -76,8 +73,12 @@ export const JournalListBlock = ({
   };
 
   return (
-    <View style={[styles.block, {borderColor: border, backgroundColor: surface}]}>
-      <View style={styles.header}>
+    <NoteBlockFrame
+      kind={kind}
+      tone={tone}
+      style={styles.block}
+      onDelete={onDelete}
+      headerContent={
         <View style={styles.labelRow}>
           <JournalBlockIcon config={config} size={14} color={accent} />
           <JournalTextInput
@@ -96,15 +97,7 @@ export const JournalListBlock = ({
             ]}
           />
         </View>
-        <TouchableOpacity
-          onPress={() => {
-            triggerLightHaptic();
-            onDelete();
-          }}
-          hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}>
-          <Ionicons name="close" size={17} color={muted} />
-        </TouchableOpacity>
-      </View>
+      }>
 
       {items.map((item, index) => (
         <View key={`${kind}-${index}`} style={styles.itemRow}>
@@ -138,16 +131,13 @@ export const JournalListBlock = ({
           />
         </View>
       ))}
-    </View>
+    </NoteBlockFrame>
   );
 };
 
 const styles = StyleSheet.create({
   block: {
     marginBottom: JOURNAL_BLOCK_GAP,
-    padding: 12,
-    borderWidth: 1,
-    borderRadius: 14,
   },
   header: {
     flexDirection: 'row',

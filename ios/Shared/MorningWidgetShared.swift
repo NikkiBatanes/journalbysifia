@@ -27,9 +27,15 @@ struct MorningWidgetSnapshot: Codable {
     var selectedPsalmAttributes: [String]?
     var focus: String?
     var personalFocus: String?
+    var focusCategory: String?
+    var focusIcon: String?
+    var focusIconType: String?
     var priorities: [MorningWidgetPriority]?
     var todoCount: Int?
     var openTodoCount: Int?
+    var prayerId: String?
+    var weeklyActiveDays: [Bool]?
+    var weeklyActiveCount: Int?
 }
 
 struct EveningWidgetSnapshot: Codable {
@@ -129,9 +135,15 @@ enum MorningWidgetStore {
             selectedPsalmAttributes: nil,
             focus: nil,
             personalFocus: nil,
+            focusCategory: nil,
+            focusIcon: nil,
+            focusIconType: nil,
             priorities: nil,
             todoCount: nil,
-            openTodoCount: nil
+            openTodoCount: nil,
+            prayerId: nil,
+            weeklyActiveDays: nil,
+            weeklyActiveCount: nil
         )
         snapshot.date = today
         snapshot.routineStarted = true

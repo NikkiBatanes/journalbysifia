@@ -61,20 +61,45 @@ const reflectionMetadata = (entry: Partial<ReflectionApiEntry>): Record<string, 
   ...(entry.journal_blocks !== undefined ? { journalBlocks: entry.journal_blocks } : {}),
 });
 
-// Hook for getting reflection entries for a specific date
-export const useReflectionData = (userId: string, date: string) => {
+export const loadLocalReflectionData = async (
+  date: string,
+  reflectionIds?: readonly string[],
+): Promise<ReflectionApiEntry[]> => {
+  const exactIds = reflectionIds?.length
+    ? Array.from(new Set(reflectionIds))
+    : null;
+  const entries = exactIds
+    ? (await Promise.all(exactIds.map(id => findLocalReflection(id))))
+      .filter((entry): entry is LocalReflectionEntry => !!entry)
+    : (await Promise.all([
+      getLocalReflections('free', date),
+      getLocalReflections('guided', date),
+    ])).flat();
+
+  return entries
+    .filter(entry => entry.selected_date === date)
+    .map(toReflectionApiEntry)
+    .sort((a, b) => b.created_at.localeCompare(a.created_at));
+};
+
+// Hook for getting reflection entries for a specific date. Moments passes its
+// canonical IDs so reflection types outside the standard Heart Journal list
+// (such as a For Me Day testimony) can still be rendered exactly once.
+export const useReflectionData = (
+  userId: string,
+  date: string,
+  reflectionIds?: readonly string[],
+) => {
+  const exactIds = reflectionIds?.length
+    ? Array.from(new Set(reflectionIds)).sort()
+    : undefined;
+
   return useQuery({
     ...queryOptionsPresets.critical, // Use critical instead of realtime for better caching
-    queryKey: queryKeys.reflections.byDate(userId, date),
-    queryFn: async () => {
-      const [free, guided] = await Promise.all([
-        getLocalReflections('free', date),
-        getLocalReflections('guided', date),
-      ]);
-      return [...free, ...guided]
-        .map(toReflectionApiEntry)
-        .sort((a, b) => b.created_at.localeCompare(a.created_at));
-    },
+    queryKey: exactIds
+      ? [...queryKeys.reflections.byDate(userId, date), 'exact', ...exactIds]
+      : queryKeys.reflections.byDate(userId, date),
+    queryFn: () => loadLocalReflectionData(date, exactIds),
     enabled: !!date,
     initialData: [], // Provide empty array as initial data
     refetchOnMount: true, // Always refetch on mount to ensure fresh data

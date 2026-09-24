@@ -1,4 +1,4 @@
-export const GOSPEL_CONTENT_VERSION = '2026-09-18.43';
+export const GOSPEL_CONTENT_VERSION = '2026-09-24.44';
 
 export type GospelPage = {
   id: string;

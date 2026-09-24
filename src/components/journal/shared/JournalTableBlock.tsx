@@ -13,16 +13,17 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import ThemedText from '../../common/ThemedText';
 import JournalTextInput from './JournalTextInput';
 import {Colors} from '../../../theme/colors';
-import {Fonts} from '../../../theme/fonts';
+import {getFontFamily} from '../../../theme/fonts';
+import {useTheme} from '../../../hooks/useTheme';
 import {triggerLightHaptic} from '../../../utils/haptics';
 import {
   JOURNAL_BLOCK_GAP,
-  JOURNAL_BLOCKS,
-  JournalBlockIcon,
   resolveJournalTableCellAlignments,
   type JournalTableAlignment,
   type JournalTableCellAlignments,
 } from './journalBlocks';
+import {getNoteBlockVisuals} from './noteBlockTheme';
+import NoteBlockFrame from './NoteBlockFrame';
 
 const EMPTY_TABLE = [
   ['', ''],
@@ -55,6 +56,9 @@ export const JournalTableBlock = ({
   onFocus?: () => void;
   tone?: 'default' | 'onDark';
 }) => {
+  const {currentFont} = useTheme();
+  const regularFontFamily = getFontFamily(currentFont || 'lexend', 'regular');
+  const boldFontFamily = getFontFamily(currentFont || 'lexend', 'bold');
   const tableRows = rows?.length ? rows : EMPTY_TABLE;
   const columnCount = tableRows[0].length;
   const [activeCell, setActiveCell] = React.useState({
@@ -76,15 +80,14 @@ export const JournalTableBlock = ({
   const fitsWidth = (columnCount === 2 || columnCount === 3) &&
     tableRows.every(row => row.length === columnCount);
   const fittedCellStyle = fitsWidth && {width: `${100 / columnCount}%` as const};
-  const onDark = tone === 'onDark';
-  const foreground = onDark ? Colors.hopeWhite : Colors.text;
-  const muted = onDark ? 'rgba(255,255,255,0.65)' : Colors.textGray;
-  const accent = onDark ? Colors.hopeWhite : Colors.sage;
-  const border = onDark ? 'rgba(255,255,255,0.24)' : Colors.cardBorder;
-  const surface = onDark ? 'rgba(255,255,255,0.06)' : Colors.cardBackground;
-  const headerSurface = onDark
-    ? 'rgba(220,232,222,0.14)'
-    : Colors.anchorBlueLight;
+  const visuals = getNoteBlockVisuals('table', tone);
+  const onDark = visuals.tone === 'sage';
+  const foreground = visuals.foreground;
+  const muted = visuals.muted;
+  const accent = visuals.accent;
+  const border = visuals.border;
+  const surface = visuals.surface;
+  const headerSurface = visuals.headerSurface;
   const activeAlignmentSurface = onDark
     ? 'rgba(255,255,255,0.14)'
     : Colors.anchorBlueLight;
@@ -103,29 +106,11 @@ export const JournalTableBlock = ({
   };
 
   return (
-    <View style={[styles.capture, {borderColor: border, backgroundColor: surface}]}>
-      <View style={styles.captureHeader}>
-        <View style={styles.captureLabelRow}>
-          <JournalBlockIcon
-            config={JOURNAL_BLOCKS.table}
-            size={14}
-            color={accent}
-          />
-          <ThemedText weight="bold" style={[styles.captureLabel, {color: accent}]}>
-            {JOURNAL_BLOCKS.table.label}
-          </ThemedText>
-        </View>
-        {editing && (
-          <TouchableOpacity
-            onPress={() => {
-              triggerLightHaptic();
-              onDelete();
-            }}
-            hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}>
-            <Ionicons name="close" size={17} color={muted} />
-          </TouchableOpacity>
-        )}
-      </View>
+    <NoteBlockFrame
+      kind="table"
+      tone={tone}
+      style={styles.capture}
+      onDelete={editing ? onDelete : undefined}>
 
       {editing ? (
         <>
@@ -153,6 +138,8 @@ export const JournalTableBlock = ({
                       style={[
                         styles.editingCell,
                         {
+                          fontFamily:
+                            rowIndex === 0 ? boldFontFamily : regularFontFamily,
                           color: foreground,
                           borderColor: border,
                           backgroundColor:
@@ -334,7 +321,7 @@ export const JournalTableBlock = ({
           </ScrollView>
         </TouchableOpacity>
       )}
-    </View>
+    </NoteBlockFrame>
   );
 };
 
@@ -367,9 +354,6 @@ const TableAction = ({
 
 const styles = StyleSheet.create({
   capture: {
-    borderWidth: 1,
-    borderRadius: 14,
-    padding: 12,
     marginBottom: JOURNAL_BLOCK_GAP,
   },
   captureHeader: {
@@ -395,12 +379,11 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRightWidth: 1,
     borderBottomWidth: 1,
-    fontFamily: Fonts.regular,
     fontSize: 12,
     lineHeight: 17,
     textAlignVertical: 'top',
   },
-  headerCell: {minHeight: 40, fontFamily: Fonts.bold},
+  headerCell: {minHeight: 40},
   savedCell: {
     width: 126,
     minHeight: 34,

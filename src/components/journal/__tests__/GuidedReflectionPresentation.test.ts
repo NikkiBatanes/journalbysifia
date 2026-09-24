@@ -6,6 +6,9 @@ const tabSource = fs.readFileSync(path.resolve(__dirname, '../../../navigation/B
 const screenSource = fs.readFileSync(path.resolve(__dirname, '../../../screens/ReflectionEditorScreen.tsx'), 'utf8');
 const editorSource = fs.readFileSync(path.resolve(__dirname, '../ReflectionLogEditor.tsx'), 'utf8');
 const logSource = fs.readFileSync(path.resolve(__dirname, '../ReflectionLogReactQuery.tsx'), 'utf8');
+const momentPreviewSource = fs.readFileSync(path.resolve(__dirname, '../GuidedReflectionMomentPreview.tsx'), 'utf8');
+const reviewSource = fs.readFileSync(path.resolve(__dirname, '../../../screens/ReviewScreen.tsx'), 'utf8');
+const reviewCaptureSource = fs.readFileSync(path.resolve(__dirname, '../../../services/reviewCaptureService.ts'), 'utf8');
 const legacyPromptModalSource = fs.readFileSync(path.resolve(__dirname, '../../../screens/SmartJournalingReflectionModal.tsx'), 'utf8');
 const composerSource = fs.readFileSync(path.resolve(__dirname, '../shared/JournalComposer.tsx'), 'utf8');
 const inlineBlockSource = fs.readFileSync(path.resolve(__dirname, '../shared/JournalInlineBlock.tsx'), 'utf8');
@@ -15,7 +18,7 @@ const reflectionStylesSource = fs.readFileSync(path.resolve(__dirname, '../refle
 describe('Guided Reflection presentation contract', () => {
   it('uses an ivory cursor and selection across every guided reflection input', () => {
     const guidedInputs = guidedSource.match(/<JournalTextInput(?=\s)[\s\S]*?\/>/g) || [];
-    expect(guidedInputs).toHaveLength(7);
+    expect(guidedInputs).toHaveLength(5);
     // All fields must use the same mount-time policy, including fields whose
     // refs are not registered with the parent (list rows, table cells, authors).
     const inputSources = [guidedSource, editorSource, screenSource,
@@ -26,7 +29,9 @@ describe('Guided Reflection presentation contract', () => {
     ];
     inputSources.forEach(source => {
       expect(source).toContain('<JournalTextInput');
-      expect(source).not.toMatch(/<(?:TextInput|ThemedTextInput|IvoryTextInput)(?=\s)/);
+      expect(source).not.toMatch(
+        /(?<!useRef)<(?:TextInput|ThemedTextInput|IvoryTextInput)(?:\s+[a-zA-Z][\w]*=|\s*\/?>)/,
+      );
     });
     expect(guidedSource).toMatch(
       /<JournalTextInput[\s\S]*?placeholder="Write here\.\.\."[\s\S]*?\/>/,
@@ -89,6 +94,7 @@ describe('Guided Reflection presentation contract', () => {
 
   it('reopens a saved Guided Reflection in its original walkthrough for editing', () => {
     expect(guidedSource).toContain('const editSavedJourney = () => {');
+    expect(guidedSource).toContain('prepareGuidedReflectionForBlockEditing(');
     expect(guidedSource).toMatch(/editSavedJourney[\s\S]*?setStepIndex\(0\)[\s\S]*?setShowSavedView\(false\)/);
     expect(guidedSource).toContain('onPress={editSavedJourney}');
     expect(guidedSource).toContain('const returnToSavedJourney = () => {');
@@ -96,6 +102,16 @@ describe('Guided Reflection presentation contract', () => {
       /returnToSavedJourney[\s\S]*?setPayload\(savedPayloadRef\.current\)/,
     );
     expect(guidedSource).toMatch(/editingSavedJourney[\s\S]*?returnToSavedJourney\(\)/);
+  });
+
+  it('lets saved guided-response blocks move without entering edit mode', () => {
+    expect(guidedSource).toContain('const savedViewPayload = useMemo(');
+    expect(guidedSource).toContain('const reorderSavedJourneyBlocks = async (');
+    expect(guidedSource).toContain('persistJourney(nextPayload, {silent: true})');
+    expect(screenSource).toContain('onUpdate={entry => handleSave(entry, {silent: true})}');
+    expect(guidedSource).toMatch(
+      /<SavedReflectionBlocks[\s\S]*?onReorderBlocks=\{blocks =>[\s\S]*?reorderSavedJourneyBlocks\(/,
+    );
   });
 
   it('allows a saved journey title to change without losing its guided path', () => {
@@ -138,10 +154,27 @@ describe('Guided Reflection presentation contract', () => {
     expect(guidedSource).toContain('inlineNotes: {marginTop: 18}');
   });
 
-  it('shows guided selections as pills in Heart Journal even when note blocks exist', () => {
-    expect(logSource).toContain('const guidedSelections = guidedJourney');
-    expect(logSource).toContain('styles.guidedSelectionPill');
-    expect(logSource).toMatch(/guidedSelections\.length[\s\S]*?entry\.journal_blocks\?\.length/);
+  it('previews guided answers beneath their walkthrough questions in Heart Journal', () => {
+    expect(logSource).toContain('<GuidedReflectionMomentPreview');
+    expect(momentPreviewSource).toContain('getGuidedReflectionPath(journey.pathId)');
+    expect(momentPreviewSource).toContain('guidedReflectionStepQuestion(step)');
+    expect(momentPreviewSource).not.toContain('{step?.eyebrow || `QUESTION');
+    expect(momentPreviewSource).toContain('const visibleAnswers = orderedAnswers.slice(0, 2)');
+    expect(momentPreviewSource).toContain('visibleSelections.map(selection =>');
+    expect(momentPreviewSource).toContain('styles.pill');
+    expect(momentPreviewSource).toContain('visibleResponses.map(response =>');
+    expect(momentPreviewSource).toContain('blocks={visibleNotes}');
+    expect(momentPreviewSource).toContain('const hiddenNoteCount = Math.max(0, topLevelNotes.length - 1)');
+    expect(momentPreviewSource).toContain("hiddenQuestionCount === 1 ? 'question' : 'questions'");
+    expect(logSource).not.toMatch(/guidedJourney\.answers\.flatMap\(answer => answer\.selected/);
+  });
+
+  it('shares the compact question-first preview with Weekly and Monthly Review cards', () => {
+    expect(reviewCaptureSource).toContain('guidedJourney?: GuidedReflectionPayload');
+    expect(reviewCaptureSource).toContain('guidedJourney = journey');
+    expect(reviewSource).toContain("item.presentation === 'guided_reflection' && item.guidedJourney");
+    expect(reviewSource).toContain('<GuidedReflectionMomentPreview journey={item.guidedJourney} />');
+    expect(reviewSource).toMatch(/const WeeklyMomentCard[\s\S]*?<GuidedReflectionMomentPreview/);
   });
 
   it('opens a focused Write block for Something else where the full-mind path offers it', () => {
@@ -253,7 +286,7 @@ describe('Guided Reflection presentation contract', () => {
   });
 
   it('renders saved note types with the Sermon Notes inline block interface', () => {
-    expect(guidedSource).toContain('<JournalInlineBlock');
+    expect(guidedSource).toContain('<JournalBlockEditor');
     expect(guidedSource).toContain('tone="onDark"');
     expect(guidedSource).toMatch(/capture:\s*\{[\s\S]*?borderRadius: 14,[\s\S]*?padding: 12/);
     expect(guidedSource).toContain("configOverride={note.kind === 'text' ? undefined : config}");
@@ -268,10 +301,13 @@ describe('Guided Reflection presentation contract', () => {
     expect(guidedSource).toContain('notePickerColorAnim');
     expect(guidedSource).toContain('Animated.stagger(\n          38');
     expect(composerSource).toContain("outputRange: ['0deg', '45deg']");
-    expect(guidedSource).toContain("import {JournalComposerBar, JournalPickerMenu}");
+    expect(guidedSource).toMatch(
+      /import\s*\{[\s\S]*?JournalComposerBar,[\s\S]*?JournalPickerMenu,[\s\S]*?\}\s*from '\.\/shared\/JournalComposer'/,
+    );
     expect(guidedSource).toContain('Keyboard.dismiss()');
     expect(guidedSource).not.toContain('styles.menuDim');
-    expect(composerSource).toContain('styles.floatingTools');
+    expect(composerSource).toContain('styles.pickerBar');
+    expect(composerSource).toContain('Browse all note blocks');
   });
 
   it('keeps guided content scrollable above the open note picker', () => {
@@ -298,17 +334,14 @@ describe('Guided Reflection presentation contract', () => {
     expect(composerSource).toContain("tone === 'onDark' ? '#64796C' : Colors.sage");
   });
 
-  it('offers the full Reflection note registry without Sermon-only types', () => {
+  it('offers the universal note registry in Guided Reflection', () => {
     expect(guidedSource).toContain('items={REFLECTION_NOTE_TYPES');
-    expect(guidedSource).toContain('<JournalListBlock');
-    expect(guidedSource).toContain('<JournalTableBlock');
+    expect(guidedSource).toContain('<JournalBlockEditor');
     expect(guidedSource).toContain('<JournalColumnBlock');
-    expect(guidedSource).toContain('<ReflectionSpecialBlock');
     expect(guidedSource).toContain("kind === 'photo'");
     expect(guidedSource).toContain('pickImageLocal()');
-    for (const sermonOnly of ['Bible Character', 'Historical Context', 'Language Note', 'Message Outline', 'Worship Song', 'Book to Read']) {
-      expect(guidedSource).not.toContain(sermonOnly);
-    }
+    expect(guidedSource).toContain('createJournalBlock(kind, id)');
+    expect(guidedSource).toContain('JOURNAL_BLOCKS[item.kind].allowInColumn');
   });
 
   it('keeps topics horizontal and restores boxy Reflect cards', () => {
@@ -391,7 +424,7 @@ describe('Guided Reflection presentation contract', () => {
     expect(editorSource).toMatch(/source === 'guided' \|\| source === 'guided_prompt'[\s\S]*?createManagedTimeout\(\(\) => \{[\s\S]*?contentInputRef\.current\.focus\(\)/);
     expect(editorSource).toContain('<JournalComposerBar');
     expect(editorSource).toContain('<JournalPickerMenu');
-    expect(editorSource).toContain('<JournalInlineBlock');
+    expect(editorSource).toContain('<JournalBlockEditor');
     expect(editorSource).not.toContain('contentInputRef.current.setSelection(cursor, cursor)');
     expect(guidedSource).toContain('noteFocusTimerRef');
     expect(guidedSource).toContain('noteFocusFrameRef');

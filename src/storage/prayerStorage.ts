@@ -1,6 +1,11 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { toLocalDateString } from '../utils/date';
 import { safeJsonParse } from '../utils/safeJsonParse';
+import {
+  queuePrayerAnsweredImpact,
+  queuePrayerCreatedImpact,
+  queuePrayerImpactRetraction,
+} from '../services/journalImpactQueue';
 
 export type PrayerType = 'journal' | 'people' | 'devotional' | 'guided_playbook';
 export type JournalCategory = 'adoration' | 'confession' | 'thanksgiving' | 'supplication' | 'personal_prayer';
@@ -104,6 +109,8 @@ export const createLocalPrayer = async (
     await writePrayerIndex(selectedDate, index);
   }
 
+  await queuePrayerCreatedImpact(entry).catch(() => {});
+
   return entry;
 };
 
@@ -176,7 +183,14 @@ export const updateLocalPrayer = async (
     sync_status: 'pending',
   };
   const key = getPrayerKey(selectedDate, updated.id);
+  const existingRaw = await AsyncStorage.getItem(key);
+  const existing = existingRaw
+    ? safeJsonParse<LocalPrayerEntry>(existingRaw, {fallback: null})
+    : null;
   await AsyncStorage.setItem(key, JSON.stringify(updated));
+  if (updated.status === 'answered' && existing?.status !== 'answered') {
+    await queuePrayerAnsweredImpact(updated).catch(() => {});
+  }
   return updated;
 };
 
@@ -201,4 +215,5 @@ export const deleteLocalPrayer = async (
   const index = await readPrayerIndex(selectedDate);
   const nextIndex = index.filter(itemId => itemId !== id);
   await writePrayerIndex(selectedDate, nextIndex);
+  await queuePrayerImpactRetraction(id).catch(() => {});
 };

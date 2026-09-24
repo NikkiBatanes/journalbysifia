@@ -30,7 +30,7 @@ const ForMeDayCard = ({settings}: {settings: ForMeDaySettings}) => {
         navigation.navigate('ForMeDay', {mode: 'celebrate'});
       }}
       accessibilityRole="button"
-      accessibilityLabel="Open your For Me Day">
+      accessibilityLabel="Open My New Life Day">
       <View style={styles.top}>
         <ThemedText style={styles.eyebrow}>
           ✦ YOUR SPIRITUAL BIRTHDAY
@@ -39,7 +39,7 @@ const ForMeDayCard = ({settings}: {settings: ForMeDaySettings}) => {
           <Ionicons name="sparkles-outline" size={22} color={Colors.faithGold} />
         </Animated.View>
       </View>
-      <ThemedText style={styles.title}>Happy For Me Day.</ThemedText>
+      <ThemedText style={styles.title}>Happy New Life Day.</ThemedText>
       <ThemedText style={styles.body}>
         {isFirstDay
           ? 'Today, you accepted Jesus as your Lord and Savior and began following Him.'

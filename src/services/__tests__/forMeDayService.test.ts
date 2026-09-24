@@ -5,6 +5,11 @@ jest.mock('../pushNotificationService', () => ({
   },
 }));
 
+jest.mock('../journalImpactAnalyticsService', () => ({
+  queueGospelImpactForShare: jest.fn(),
+  queueGospelImpactRetraction: jest.fn(),
+}));
+
 import {
   getForMeDayYears,
   getNextForMeDay,
@@ -51,5 +56,16 @@ describe('For Me Day date behavior', () => {
     expect(
       pushNotificationService.scheduleLocalNotification,
     ).not.toHaveBeenCalled();
+  });
+
+  it('uses New Life Day in the annual reminder', async () => {
+    await scheduleForMeDayReminder(settings);
+
+    expect(
+      pushNotificationService.scheduleLocalNotification,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({title: 'Today is your New Life Day ✦'}),
+      expect.any(Date),
+    );
   });
 });

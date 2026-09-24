@@ -19,8 +19,11 @@ export const MONTHLY_QA_PERIOD = {
 } as const;
 
 export const MONTHLY_QA_WEEKLY_PERIODS = [
+  {periodStart: '2026-07-27', periodEnd: '2026-08-02'},
   {periodStart: '2026-08-03', periodEnd: '2026-08-09'},
   {periodStart: '2026-08-10', periodEnd: '2026-08-16'},
+  {periodStart: '2026-08-17', periodEnd: '2026-08-23'},
+  {periodStart: '2026-08-24', periodEnd: '2026-08-30'},
 ] as const;
 
 export const MONTHLY_QA_RICH_MOMENT_DATES = [
@@ -39,32 +42,21 @@ const MONTHLY_RICH_SCOPE: ReviewQASeedScope = {
   referenceDate: new Date(2026, 7, 30, 12),
 };
 
-const MORNING_DATES = [
-  '2026-08-01',
-  '2026-08-03',
-  '2026-08-05',
-  '2026-08-07',
-  '2026-08-09',
-  '2026-08-11',
-  '2026-08-13',
-  '2026-08-15',
-  '2026-08-17',
-  '2026-08-19',
-  '2026-08-21',
-  '2026-08-23',
-] as const;
+export const MONTHLY_QA_DAILY_DATES = Array.from(
+  {length: 31},
+  (_, index) => `2026-08-${String(index + 1).padStart(2, '0')}`,
+);
 
-const EVENING_DATES = [
-  '2026-08-01',
-  '2026-08-02',
-  '2026-08-03',
-  '2026-08-04',
-  '2026-08-05',
-  '2026-08-06',
-  '2026-08-08',
-  '2026-08-10',
-  '2026-08-12',
-] as const;
+const MONTHLY_QA_DAILY_SCOPES: ReviewQASeedScope[] = Array.from(
+  {length: 5},
+  (_, index) => ({
+    dates: MONTHLY_QA_DAILY_DATES.slice(index * 7, index * 7 + 7),
+    namespace: `monthly-daily-${index + 1}`,
+  }),
+);
+
+const MORNING_DATES = MONTHLY_QA_DAILY_DATES;
+const EVENING_DATES = MONTHLY_QA_DAILY_DATES;
 
 const PRAYER_DATES = [
   '2026-08-01',
@@ -111,7 +103,16 @@ const JOURNAL_COPY = [
   'I am ending this stretch more open-handed than I began it.',
 ] as const;
 
-const REMEMBERED_JOURNAL_INDEXES = [1, 4, 7] as const;
+const REMEMBERED_JOURNAL_INDEXES = [0, 4, 7] as const;
+
+export const MONTHLY_QA_TESTIMONY = {
+  id: `${REVIEW_QA_PREFIX}monthly:testimony:1`,
+  selectedDate: '2026-08-18',
+  writtenAt: '2026-08-18T11:42:00.000Z',
+  title: 'My testimony',
+  content:
+    'Jesus met me when I was tired of trying to hold everything together on my own. In His grace, I found forgiveness, a new beginning, and a steady hope that did not depend on my circumstances. I am still learning to trust Him one faithful step at a time, but I know my life is no longer mine alone. He has been patient, present, and faithful through every season.',
+} as const;
 
 const rememberReplacement = async (
   manifest: ReviewQASeedManifest,
@@ -210,6 +211,39 @@ const seedJournalEntries = async (
   }
 };
 
+const seedTestimony = async (
+  manifest: ReviewQASeedManifest,
+): Promise<void> => {
+  const testimony = MONTHLY_QA_TESTIMONY;
+  await putNamespacedRecord(
+    manifest,
+    `reflection_local:gospel_anniversary:${testimony.selectedDate}:${testimony.id}`,
+    `reflection_local_index:gospel_anniversary:${testimony.selectedDate}`,
+    testimony.id,
+    {
+      id: testimony.id,
+      server_id: null,
+      title: testimony.title,
+      content: testimony.content,
+      type: 'gospel_anniversary',
+      source: 'for_me_day',
+      selected_date: testimony.selectedDate,
+      tags: ['monthly-review-qa'],
+      metadata: {
+        journalClassification: 'milestone',
+        forMeDayEntry: 'testimony',
+        testimonyWrittenAt: testimony.writtenAt,
+        spiritualBirthday: '2014-05-18',
+      },
+      created_at: testimony.writtenAt,
+      updated_at: testimony.writtenAt,
+      version: 1,
+      sync_status: 'local',
+      deleted: false,
+    },
+  );
+};
+
 const seedPrayers = async (manifest: ReviewQASeedManifest): Promise<void> => {
   for (const [index, date] of PRAYER_DATES.entries()) {
     const id = `${REVIEW_QA_PREFIX}monthly:prayer:${date}:${index + 1}`;
@@ -268,8 +302,68 @@ const seedWeeklyMemories = async (
   manifest: ReviewQASeedManifest,
 ): Promise<void> => {
   const memoryGroups = [
-    REMEMBERED_JOURNAL_INDEXES.slice(0, 2),
+    REMEMBERED_JOURNAL_INDEXES.slice(0, 1),
+    REMEMBERED_JOURNAL_INDEXES.slice(1, 2),
     REMEMBERED_JOURNAL_INDEXES.slice(2),
+    [],
+    [],
+  ];
+  const weeklyReviewAnswers = [
+    {
+      week_feelings: 'Hopeful|Tired|Peaceful',
+      week_check_in_mind: 'okay',
+      week_check_in_body: 'okay',
+      week_check_in_relationships: 'well',
+      week_check_in_work: 'okay',
+      week_check_in_finances: 'okay',
+      week_check_in_responsibilities: 'well',
+      week_check_in_rest: 'struggling',
+      week_check_in_with_god: 'well',
+    },
+    {
+      week_feelings: 'Hopeful|Overwhelmed|Growing',
+      week_check_in_mind: 'struggling',
+      week_check_in_body: 'okay',
+      week_check_in_relationships: 'well',
+      week_check_in_work: 'struggling',
+      week_check_in_finances: 'okay',
+      week_check_in_responsibilities: 'okay',
+      week_check_in_rest: 'struggling',
+      week_check_in_with_god: 'well',
+    },
+    {
+      week_feelings: 'Peaceful|Grateful|Tired',
+      week_check_in_mind: 'well',
+      week_check_in_body: 'struggling',
+      week_check_in_relationships: 'well',
+      week_check_in_work: 'okay',
+      week_check_in_finances: 'well',
+      week_check_in_responsibilities: 'okay',
+      week_check_in_rest: 'okay',
+      week_check_in_with_god: 'well',
+    },
+    {
+      week_feelings: 'Hopeful|Faithful|Overwhelmed',
+      week_check_in_mind: 'okay',
+      week_check_in_body: 'well',
+      week_check_in_relationships: 'okay',
+      week_check_in_work: 'well',
+      week_check_in_finances: 'okay',
+      week_check_in_responsibilities: 'well',
+      week_check_in_rest: 'okay',
+      week_check_in_with_god: 'well',
+    },
+    {
+      week_feelings: 'Peaceful|Grateful|Hopeful',
+      week_check_in_mind: 'well',
+      week_check_in_body: 'well',
+      week_check_in_relationships: 'well',
+      week_check_in_work: 'well',
+      week_check_in_finances: 'okay',
+      week_check_in_responsibilities: 'okay',
+      week_check_in_rest: 'well',
+      week_check_in_with_god: 'well',
+    },
   ];
   for (const [index, period] of MONTHLY_QA_WEEKLY_PERIODS.entries()) {
     const id = `${REVIEW_QA_PREFIX}monthly:weekly-review:${index + 1}`;
@@ -290,7 +384,7 @@ const seedWeeklyMemories = async (
         periodEnd: period.periodEnd,
         status: 'completed',
         memorableItems,
-        answers: {},
+        answers: weeklyReviewAnswers[index],
         createdAt: `${period.periodEnd}T20:00:00.000Z`,
         updatedAt: `${period.periodEnd}T20:30:00.000Z`,
         completedAt: `${period.periodEnd}T20:30:00.000Z`,
@@ -330,9 +424,12 @@ export const seedMonthlyReviewData = async (
 ): Promise<void> => {
   await seedRoutines(manifest);
   await seedJournalEntries(manifest);
+  await seedTestimony(manifest);
   await seedPrayers(manifest);
-  await seedWeeklyMorningFlow(manifest, MONTHLY_RICH_SCOPE);
-  await seedWeeklyEveningFlow(manifest, MONTHLY_RICH_SCOPE);
+  for (const scope of MONTHLY_QA_DAILY_SCOPES) {
+    await seedWeeklyMorningFlow(manifest, scope);
+    await seedWeeklyEveningFlow(manifest, scope);
+  }
   await seedWeeklyHeartJournal(manifest, MONTHLY_RICH_SCOPE);
   await seedWeeklyGuidedReflections(manifest, MONTHLY_RICH_SCOPE);
   await seedWeeklyPrayers(manifest, MONTHLY_RICH_SCOPE);

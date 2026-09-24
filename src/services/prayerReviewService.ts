@@ -18,11 +18,17 @@ export interface PrayerReviewItem {
   title: string;
   subtitle: string;
   text?: string;
+  prayerTypeLabel?: string;
 }
 
 export interface PrayerReviewSummary {
   items: PrayerReviewItem[];
   counts: Partial<Record<PrayerReviewEventType, number>>;
+}
+
+export interface MonthlyPrayerReflection {
+  answered: PrayerReviewItem[];
+  waiting: PrayerReviewItem[];
 }
 
 const ymd = (value: unknown): string | null => {
@@ -147,4 +153,120 @@ export function derivePrayerReview(
 
   const result = unique(items).sort((a, b) => a.eventDate.localeCompare(b.eventDate) || a.id.localeCompare(b.id));
   return { items: result, counts: result.reduce<PrayerReviewSummary['counts']>((counts, item) => ({ ...counts, [item.eventType]: (counts[item.eventType] || 0) + 1 }), {}) };
+}
+
+const prayerWasPrayed = (prayer: PrayerApiEntry | undefined) =>
+  !!prayer &&
+  (prayer.prayed === true ||
+    (prayer.prayer_count || 0) > 0 ||
+    !!ymd(prayer.last_prayed_at));
+
+const prayerActivityDate = (prayer: PrayerApiEntry, fallback: string) =>
+  ymd(prayer.last_prayed_at) ||
+  ymd(prayer.updated_at) ||
+  ymd(prayer.selected_date) ||
+  ymd(prayer.created_at) ||
+  fallback;
+
+/**
+ * Complete inventory for the Monthly Review prayer page. Answer events stay
+ * inside the reviewed month. Waiting items include every active canonical
+ * prayer that existed by month end, except Prayer Requests not yet prayed for.
+ */
+export function deriveMonthlyPrayerReflection(
+  prayers: PrayerApiEntry[],
+  periodStart: string,
+  periodEnd: string,
+): MonthlyPrayerReflection {
+  const answered = derivePrayerReview(
+    prayers,
+    periodStart,
+    periodEnd,
+    'monthly',
+  ).items
+    .filter(
+      item =>
+        item.eventType === 'answer_recorded' ||
+        item.eventType === 'need_answer_recorded',
+    )
+    .sort(
+      (a, b) =>
+        b.eventDate.localeCompare(a.eventDate) || a.id.localeCompare(b.id),
+    );
+  const byId = new Map(prayers.map(prayer => [prayer.id, prayer]));
+  const linkedRequestIds = new Set(
+    prayers
+      .map(prayer => prayer.metadata?.original_request_id)
+      .filter((id): id is string => typeof id === 'string' && !!id),
+  );
+  const waiting = new Map<string, PrayerReviewItem>();
+  const ordered = [...prayers].sort((a, b) =>
+    prayerActivityDate(b, periodEnd).localeCompare(
+      prayerActivityDate(a, periodEnd),
+    ),
+  );
+
+  for (const prayer of ordered) {
+    const createdDate = ymd(prayer.selected_date) || ymd(prayer.created_at);
+    if (!createdDate || createdDate > periodEnd || !isPrayerActive(prayer)) {
+      continue;
+    }
+    if (prayer.is_prayer_request && linkedRequestIds.has(prayer.id)) {
+      continue;
+    }
+
+    const requestId =
+      typeof prayer.metadata?.original_request_id === 'string'
+        ? prayer.metadata.original_request_id
+        : prayer.is_prayer_request
+        ? prayer.id
+        : undefined;
+    const request = requestId ? byId.get(requestId) : undefined;
+    const hasPrayedResponse = !!requestId && prayer.id !== requestId;
+    if (
+      requestId &&
+      !hasPrayedResponse &&
+      !prayerWasPrayed(prayer) &&
+      !prayerWasPrayed(request)
+    ) {
+      continue;
+    }
+
+    const needs = prayerNeeds(prayer);
+    const activeNeeds = needs.filter(need =>
+      need.active === undefined ? need.status === 'pending' : need.active,
+    );
+    const sources = needs.length ? activeNeeds : [undefined];
+    for (const need of sources) {
+      const identity = `${requestId || prayer.id}:${need?.id || ''}`;
+      if (waiting.has(identity)) {
+        continue;
+      }
+      const title = line(
+        need?.text ||
+          request?.person_name ||
+          prayer.person_name ||
+          prayer.content,
+        need ? 'Prayer Need' : requestId ? 'Prayer Request' : 'Prayer',
+      );
+      const text = need?.text || request?.content || prayer.content;
+      waiting.set(identity, {
+        id: eventId('still_carrying', prayer.id, periodEnd, need?.id),
+        prayerId: prayer.id,
+        ...(need ? {needId: need.id} : {}),
+        ...(requestId ? {requestId} : {}),
+        eventType: 'still_carrying',
+        eventDate: periodEnd,
+        title,
+        subtitle: need
+          ? 'Prayer Need · Still waiting'
+          : requestId
+          ? 'Prayer Request · Still waiting'
+          : 'Still waiting',
+        ...(text.trim() && text.trim() !== title ? {text: text.trim()} : {}),
+      });
+    }
+  }
+
+  return {answered, waiting: [...waiting.values()]};
 }

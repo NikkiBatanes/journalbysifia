@@ -1,29 +1,18 @@
+import {
+  getGenericInlineBlockDefinitions,
+  getNoteBlockDefinitionsForContext,
+  type JournalBlockKindForContext,
+} from '../components/journal/shared/noteBlockRegistry';
+import type {JournalBlock} from '../components/journal/shared/journalBlocks';
+
 export const GUIDED_REFLECTION_FORMAT = 'guided_reflection_v1' as const;
 
 export type GuidedInteractionType = 'write' | 'single_select' | 'multi_select' | 'paired_write' | 'options' | 'scripture_reflection';
-export type GuidedNoteKind = 'text' | 'section' | 'action' | 'bullets' | 'numbered' | 'column' | 'table' | 'photo' | 'voice' | 'scripture' | 'quote' | 'key' | 'remember' | 'question' | 'response';
+export type GuidedNoteKind = JournalBlockKindForContext<'reflection'>;
 
-export interface GuidedReflectionNote {
-  id: string;
+export interface GuidedReflectionNote extends Omit<JournalBlock, 'kind'> {
   kind: GuidedNoteKind;
-  text: string;
-  secondary?: string;
-  reference?: string;
-  scriptureText?: string;
-  scriptureReference?: string;
-  scriptureVersion?: string;
   anchorId?: string;
-  uri?: string;
-  durationMillis?: number;
-  completed?: boolean;
-  points?: string[];
-  tableRows?: string[][];
-  tableCellAlignments?:
-    | Array<Array<'left' | 'center' | 'right'>>
-    | Array<'left' | 'center' | 'right'>;
-  tableEditing?: boolean;
-  parentColumnId?: string;
-  columnSide?: 'left' | 'right';
 }
 
 export interface GuidedReflectionStepDefinition {
@@ -67,36 +56,27 @@ export interface GuidedReflectionPayload {
   answers: GuidedStepAnswer[];
 }
 
-export const GUIDED_NOTE_TYPES: ReadonlyArray<{ kind: GuidedNoteKind; label: string; icon: string }> = [
-  { kind: 'scripture', label: 'Scripture', icon: 'book-outline' },
-  { kind: 'quote', label: 'Quote', icon: 'chatbox-outline' },
-  { kind: 'key', label: 'Key Point', icon: 'star-outline' },
-  { kind: 'remember', label: 'Remember', icon: 'heart-outline' },
-  { kind: 'question', label: 'Question', icon: 'help-circle-outline' },
-  { kind: 'response', label: 'Response', icon: 'arrow-forward-outline' },
-];
+export const GUIDED_NOTE_TYPES: ReadonlyArray<{
+  kind: Exclude<GuidedNoteKind, 'text'>;
+  label: string;
+  icon: string;
+}> = getGenericInlineBlockDefinitions().map(definition => ({
+  kind: definition.kind as Exclude<GuidedNoteKind, 'text'>,
+  label: definition.pickerLabel,
+  icon: definition.icon,
+}));
 
 export const REFLECTION_NOTE_TYPES: ReadonlyArray<{
   kind: GuidedNoteKind;
   label: string;
   icon: string;
   iconFamily?: 'Ionicons' | 'MaterialCommunityIcons';
-}> = [
-  { kind: 'section', label: 'Section', icon: 'text-outline' },
-  { kind: 'action', label: 'Action', icon: 'checkbox-outline' },
-  { kind: 'bullets', label: 'Bullets', icon: 'list-outline' },
-  { kind: 'numbered', label: 'Numbered', icon: 'list-circle-outline' },
-  {
-    kind: 'column',
-    label: 'Column',
-    icon: 'view-column-outline',
-    iconFamily: 'MaterialCommunityIcons',
-  },
-  { kind: 'table', label: 'Table', icon: 'grid-outline' },
-  { kind: 'photo', label: 'Photo', icon: 'image-outline' },
-  { kind: 'voice', label: 'Voice Note', icon: 'mic-outline' },
-  ...GUIDED_NOTE_TYPES,
-];
+}> = getNoteBlockDefinitionsForContext('reflection').map(definition => ({
+  kind: definition.kind as Exclude<GuidedNoteKind, 'text'>,
+  label: definition.pickerLabel,
+  icon: definition.icon,
+  ...(definition.iconFamily ? {iconFamily: definition.iconFamily} : {}),
+}));
 
 export const createGuidedNoteId = (): string => `guided-note-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 
@@ -111,6 +91,27 @@ export const parseGuidedReflection = (content: unknown): GuidedReflectionPayload
   } catch {
     return null;
   }
+};
+
+/**
+ * Builds the compact written-response preview used by Moments. Note-block text
+ * is intentionally excluded because those blocks are rendered separately.
+ */
+export const guidedReflectionAnswerPreview = (content: unknown): string => {
+  const journey = parseGuidedReflection(content);
+  if (!journey) {
+    return typeof content === 'string' ? content.trim() : '';
+  }
+
+  return journey.answers
+    .flatMap(answer => [
+      answer.text,
+      answer.optionalText,
+      ...Object.values(answer.fields || {}),
+    ])
+    .filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
+    .map(value => value.trim())
+    .join(' · ');
 };
 
 export type GuidedEntryKind = 'prompt' | 'reflection';

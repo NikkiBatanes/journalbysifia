@@ -1133,7 +1133,10 @@ const PrayersForPeopleWalkthroughScreen: React.FC<Props> = ({ navigation, route 
 
   // State for walkthrough steps
   const shouldSkipStep0 = route.params?.initialPrayerType || route.params?.initialPersonName;
-  const [currentStep, setCurrentStep] = useState(fromNotificationAnsweredCheck ? 2 : shouldSkipStep0 ? 1 : 0);
+  const shouldSkipPersonName = route.params?.skipPersonName === true
+    && !!route.params?.initialPersonName
+    && !!route.params?.initialPrayerType;
+  const [currentStep, setCurrentStep] = useState(fromNotificationAnsweredCheck || shouldSkipPersonName ? 2 : shouldSkipStep0 ? 1 : 0);
   const [selectedType, setSelectedType] = useState<PrayerType | null>(null);
   const [personName, setPersonName] = useState('');
   const [prayerNeed, setPrayerNeed] = useState('');
@@ -1205,14 +1208,14 @@ const PrayersForPeopleWalkthroughScreen: React.FC<Props> = ({ navigation, route 
       const type = PRAYER_TYPES.find(t => t.id === route.params?.initialPrayerType);
       if (type) {
         setSelectedType(type);
-        setCurrentStep(fromNotificationAnsweredCheck ? 2 : 1);
+        setCurrentStep(fromNotificationAnsweredCheck || shouldSkipPersonName ? 2 : 1);
       }
     }
     // Skip step 0 (prayer type selection) when coming from notification with person name
     if (route.params?.initialPersonName && !route.params?.initialPrayerType) {
       setCurrentStep(fromNotificationAnsweredCheck ? 2 : 1);
     }
-  }, [route.params, fromNotificationAnsweredCheck]);
+  }, [route.params, fromNotificationAnsweredCheck, shouldSkipPersonName]);
 
   // Use selectedDate from route params or today's date
   const currentDate = new Date();
@@ -1234,16 +1237,18 @@ const PrayersForPeopleWalkthroughScreen: React.FC<Props> = ({ navigation, route 
     loadedDraftKey.current = draftKey;
     setDraftReady(false);
     getPrayerDraft(draftKey).then((draft) => {
-      if (draft) {
-        setPersonName(draft.data.personName || '');
+      const draftMatchesKnownPerson = !shouldSkipPersonName
+        || draft?.data.personName?.trim().toLocaleLowerCase() === route.params?.initialPersonName?.trim().toLocaleLowerCase();
+      if (draft && draftMatchesKnownPerson) {
+        setPersonName(shouldSkipPersonName ? route.params?.initialPersonName || '' : draft.data.personName || '');
         setPrayerNeed(draft.data.prayerNeed || '');
         setPrayerText(draft.data.prayerText || '');
         setTrackAnswered(draft.data.trackAnswered !== false);
-        setCurrentStep(draft.data.currentStep || 1);
+        setCurrentStep(shouldSkipPersonName ? 2 : draft.data.currentStep || 1);
       }
       setDraftReady(true);
     });
-  }, [draftKey, editingPrayerId, fromNotificationAnsweredCheck]);
+  }, [draftKey, editingPrayerId, fromNotificationAnsweredCheck, route.params?.initialPersonName, shouldSkipPersonName]);
 
   useEffect(() => {
     if (!draftKey || !draftType || !draftReady || editingPrayerId || fromNotificationAnsweredCheck) {return;}
@@ -1419,12 +1424,16 @@ const PrayersForPeopleWalkthroughScreen: React.FC<Props> = ({ navigation, route 
   }, [currentStep, selectedType, personName, prayerNeed, prayerText]);
 
   const handleBack = useCallback(() => {
+    if (currentStep === 2 && shouldSkipPersonName) {
+      navigation.goBack();
+      return;
+    }
     if (currentStep > 0) {
       setCurrentStep(currentStep - 1);
     } else {
       navigation.goBack();
     }
-  }, [currentStep, navigation]);
+  }, [currentStep, navigation, shouldSkipPersonName]);
 
   const handleMarkAnsweredFromNotification = useCallback(async () => {
     if (!editingPrayerId) {

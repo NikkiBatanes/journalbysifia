@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import NetInfo from '@react-native-community/netinfo';
 import { supabase } from '../supabaseClient';
-import { getCachedScripturePassage, getScripturePassage, preloadScripturePassages } from '../scriptureReaderService';
+import { getCachedScripturePassage, getScripturePassage, hydrateStoredScripturePassages, preloadScripturePassages } from '../scriptureReaderService';
 
 jest.mock('@react-native-community/netinfo', () => ({ fetch: jest.fn() }));
 jest.mock('../supabaseClient', () => ({ supabase: { functions: { invoke: jest.fn() } } }));
@@ -44,4 +44,15 @@ it('shares requests between preloading and opening Today', async () => {
   ]);
   expect(supabase.functions.invoke).toHaveBeenCalledTimes(1);
   expect(getCachedScripturePassage('Psalm 62:5', 'AMP')?.text).toBe('Upcoming verse');
+});
+
+it('hydrates saved passages for first-frame rendering without using the network', async () => {
+  const saved = { text: 'Ready at launch', reference: 'Psalm 121:4', version: 'NLT' };
+  (AsyncStorage.getItem as jest.Mock).mockResolvedValue(JSON.stringify(saved));
+
+  await hydrateStoredScripturePassages(['Psalm 121:4'], 'NLT');
+
+  expect(getCachedScripturePassage('Psalm 121:4', 'NLT')).toEqual(saved);
+  expect(NetInfo.fetch).not.toHaveBeenCalled();
+  expect(supabase.functions.invoke).not.toHaveBeenCalled();
 });

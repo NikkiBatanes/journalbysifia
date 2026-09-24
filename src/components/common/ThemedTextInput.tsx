@@ -14,12 +14,14 @@ const ThemedTextInput = React.forwardRef<TextInput, ThemedTextInputProps>(({ wei
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';
   const fontFamily = getFontFamily(fontKey, weight);
-  const isUnsupportedAndroidItalic = fontKey !== 'system' && StyleSheet.flatten(style)?.fontStyle === 'italic';
+  const flattenedStyle = StyleSheet.flatten(style);
+  const isUnsupportedAndroidItalic =
+    fontKey !== 'system' && flattenedStyle?.fontStyle === 'italic';
   const themedFontStyle: TextStyle = Platform.OS === 'android'
     ? {
         fontFamily,
         fontWeight: 'normal',
-        includeFontPadding: false,
+        includeFontPadding: flattenedStyle?.includeFontPadding ?? false,
         ...(isUnsupportedAndroidItalic ? { fontStyle: 'normal' as const } : {}),
       }
     : { fontFamily };

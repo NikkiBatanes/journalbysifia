@@ -1,19 +1,16 @@
 import React from 'react';
-import {TextInput, TouchableOpacity, View} from 'react-native';
-import Ionicons from 'react-native-vector-icons/Ionicons';
-import ThemedText from '../../common/ThemedText';
+import {TextInput} from 'react-native';
 import JournalTextInput from './JournalTextInput';
-import {Colors} from '../../../theme/colors';
-import {triggerLightHaptic} from '../../../utils/haptics';
 import {useTheme} from '../../../hooks/useTheme';
 import {getFontFamily} from '../../../theme/fonts';
 import {
   JOURNAL_BLOCKS,
-  JournalBlockIcon,
   formatJournalAttribution,
   type JournalBlock,
   type JournalBlockConfig,
 } from './journalBlocks';
+import {getNoteBlockVisuals} from './noteBlockTheme';
+import NoteBlockFrame from './NoteBlockFrame';
 
 export const JournalInlineBlock = ({
   block,
@@ -47,19 +44,19 @@ export const JournalInlineBlock = ({
     currentFont || 'lexend',
     'regular',
   );
-  const accent = tone === 'onDark' ? Colors.hopeWhite : Colors.sage;
+  const visuals = getNoteBlockVisuals(block.kind, tone);
+  const accent = visuals.accent;
 
   if (block.kind === 'text' && !configOverride) {
     return (
       <JournalTextInput
+        themed
         ref={registerInput}
         accentColor={accent}
         style={styles.freeText}
         multiline
         placeholder={textPlaceholder}
-        placeholderTextColor={
-          tone === 'onDark' ? 'rgba(255,255,255,0.45)' : Colors.textGray
-        }
+        placeholderTextColor={visuals.placeholder}
         value={block.text}
         onChangeText={value =>
           value || !block.text ? onChangeText(value) : onDelete()
@@ -84,35 +81,18 @@ export const JournalInlineBlock = ({
   const config =
     configOverride || JOURNAL_BLOCKS[block.kind as keyof typeof JOURNAL_BLOCKS];
   return (
-    <View
-      style={[styles.capture, styles[`${block.kind}Capture`]]}
-      onLayout={event => onLayout?.(event.nativeEvent.layout)}>
-      <View style={styles.captureHeader}>
-        <View style={styles.captureLabelRow}>
-          <JournalBlockIcon
-            config={config}
-            size={14}
-            color={tone === 'onDark' ? Colors.hopeWhite : Colors.sage}
-          />
-          <ThemedText weight="bold" style={styles.captureLabel}>
-            {config.label}
-          </ThemedText>
-        </View>
-        <TouchableOpacity
-          onPress={() => {triggerLightHaptic(); onDelete();}}
-          hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}>
-          <Ionicons
-            name="close"
-            size={17}
-            color={tone === 'onDark' ? 'rgba(255,255,255,0.65)' : Colors.textGray}
-          />
-        </TouchableOpacity>
-      </View>
+    <NoteBlockFrame
+      kind={block.kind}
+      tone={tone}
+      onDelete={() => onDelete()}
+      onLayout={onLayout}
+      style={[styles.capture, styles[`${block.kind}Capture`]]}>
       {block.kind === 'scripture' ? (
         renderScripture?.()
       ) : (
         <>
           <JournalTextInput
+            themed={block.kind !== 'quote'}
             ref={registerInput}
             accentColor={accent}
             style={[
@@ -121,9 +101,7 @@ export const JournalInlineBlock = ({
             ]}
             multiline
             placeholder={config.placeholder}
-            placeholderTextColor={
-              tone === 'onDark' ? 'rgba(255,255,255,0.45)' : Colors.textGray
-            }
+            placeholderTextColor={visuals.placeholder}
             value={block.text}
             onChangeText={onChangeText}
             onFocus={onFocus}
@@ -132,15 +110,14 @@ export const JournalInlineBlock = ({
           />
           {block.kind === 'quote' && onChangeSecondary && (
             <JournalTextInput
+              themed
               accentColor={accent}
               style={[
                 styles.secondaryInput,
                 {fontFamily: attributionFontFamily},
               ]}
               placeholder="— Speaker / Author"
-              placeholderTextColor={
-                tone === 'onDark' ? 'rgba(255,255,255,0.45)' : Colors.textGray
-              }
+              placeholderTextColor={visuals.placeholder}
               value={formatJournalAttribution(block.secondary)}
               onChangeText={value =>
                 onChangeSecondary(formatJournalAttribution(value))
@@ -152,6 +129,6 @@ export const JournalInlineBlock = ({
           )}
         </>
       )}
-    </View>
+    </NoteBlockFrame>
   );
 };

@@ -60,6 +60,9 @@ const PrayerCard = ({
   const isWeeklyReviewPrayer = prayer.metadata?.source === 'weekly_review'
     || prayer.metadata?.weeklyReviewId
     || prayer.metadata?.tags?.includes?.('weekly');
+  const isMonthlyReviewPrayer = prayer.metadata?.source === 'monthly_review'
+    || prayer.metadata?.monthlyReviewId
+    || prayer.metadata?.tags?.includes?.('monthly');
   const hasRequestOrigin = !!prayer.metadata?.original_request_id || !!prayer.metadata?.original_request_content || !!prayer.metadata?.prayer_request_display;
   const typeLabel = prayer.metadata?.prayer_need ? 'PRAYER NEED'
     : isPrayerRequest ? prayer.prayed ? 'PRAYED FOR' : 'PRAYER REQUEST'
@@ -67,7 +70,7 @@ const PrayerCard = ({
         : isPrayerLetGo(prayer) && hasRequestOrigin ? 'LET GO'
           : hasRequestOrigin ? 'PRAYED FOR'
             : isCast ? 'CAST PRAYER'
-              : isOpen ? isWeeklyReviewPrayer ? 'WEEKLY · OPEN PRAYER' : 'OPEN PRAYER' : 'PRAYED FOR';
+              : isOpen ? isWeeklyReviewPrayer ? 'WEEKLY · OPEN PRAYER' : isMonthlyReviewPrayer ? 'MONTHLY · OPEN PRAYER' : 'OPEN PRAYER' : 'PRAYED FOR';
   const title = prayer.metadata?.prayer_need
     ? prayer.person_name || prayer.content?.split('\n')[0] || 'My prayer need'
     : isCast ? 'CAST Prayer' : isOpen ? 'Open Prayer' : prayer.person_name || 'Prayer';

@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 import WidgetKit
 
 private enum Palette {
@@ -19,7 +20,7 @@ private struct Eyebrow: View {
     let text: String
     var color = Palette.sageMuted
     var body: some View {
-        Text(text).font(.system(size: 10, weight: .semibold)).tracking(1.7)
+        Text(text).font(.system(size: 11, weight: .semibold)).tracking(1.3)
             .foregroundColor(color).lineLimit(1)
     }
 }
@@ -178,25 +179,6 @@ private func morningState(_ snapshot: MorningWidgetSnapshot?, _ date: Date) -> M
     return morningSteps.first(where: { !completed.contains($0.id) })?.state ?? .closing
 }
 
-private struct MorningEntry: TimelineEntry { let date: Date; let snapshot: MorningWidgetSnapshot? }
-private struct MorningProvider: TimelineProvider {
-    func placeholder(in context: Context) -> MorningEntry { MorningEntry(date: Date(), snapshot: nil) }
-    func getSnapshot(in context: Context, completion: @escaping (MorningEntry) -> Void) {
-        completion(MorningEntry(date: Date(), snapshot: MorningWidgetStore.loadSnapshot()))
-    }
-    func getTimeline(in context: Context, completion: @escaping (Timeline<MorningEntry>) -> Void) {
-        completion(dailyTimeline(snapshot: MorningWidgetStore.loadSnapshot()))
-    }
-    private func dailyTimeline(snapshot: MorningWidgetSnapshot?) -> Timeline<MorningEntry> {
-        let now = Date()
-        var entries = [MorningEntry(date: now, snapshot: snapshot)]
-        if let midnight = Calendar.current.nextDate(after: now, matching: DateComponents(hour: 0), matchingPolicy: .nextTime) {
-            entries.append(MorningEntry(date: midnight, snapshot: nil))
-        }
-        return Timeline(entries: entries, policy: .atEnd)
-    }
-}
-
 private struct FeelingPill: View {
     let id: String; let name: String
     var body: some View {
@@ -216,27 +198,142 @@ private struct FeelingPill: View {
     }
 }
 
-private struct MorningSmallView: View {
-    let state: MorningStepState; let snapshot: MorningWidgetSnapshot?
+private func focusSymbol(for snapshot: MorningWidgetSnapshot?) -> String {
+    let key = (snapshot?.focusIcon?.isEmpty == false ? snapshot?.focusIcon : snapshot?.focusCategory)?
+        .lowercased() ?? ""
+    switch key {
+    case "hands-pray", "prayer": return "hands.sparkles.fill"
+    case "script-text", "bible-reading", "reader", "reading", "book-open-page-variant", "study": return "book.closed.fill"
+    case "church": return "building.columns.fill"
+    case "weather-night", "sabbath": return "moon.stars.fill"
+    case "people-circle-outline", "discipleship": return "person.2.fill"
+    case "home-heart", "family", "home": return "house.fill"
+    case "cash", "finances": return "banknote.fill"
+    case "spa", "self-care": return "leaf.fill"
+    case "briefcase", "work": return "briefcase.fill"
+    case "school": return "graduationcap.fill"
+    case "dumbbell", "workout": return "figure.walk"
+    case "bed", "rest": return "bed.double.fill"
+    case "heart-pulse", "health", "heart", "relationships": return "heart.fill"
+    case "hand-heart", "volunteer": return "hand.raised.fill"
+    case "water", "prayer-fasting": return "drop.fill"
+    case "utensils", "nutrition": return "fork.knife"
+    case "building", "business": return "building.2.fill"
+    case "baby", "motherhood": return "person.2.fill"
+    case "palette", "creative": return "paintpalette.fill"
+    case "music", "worship": return "music.note"
+    case "cross", "ministry": return "cross.fill"
+    case "airplane", "travel": return "airplane"
+    case "calendar", "events": return "calendar"
+    case "paw", "pet-care": return "pawprint.fill"
+    case "help-circle", "decision": return "questionmark.circle.fill"
+    case "check-circle", "follow-through": return "checkmark.circle.fill"
+    case "cart", "groceries": return "cart.fill"
+    case "store", "errands": return "bag.fill"
+    case "plus-circle", "other": return "plus.circle.fill"
+    default: return "scope"
+    }
+}
+
+private struct WidgetBrandLogo: View {
+    let size: CGFloat
+
+    private static let image: UIImage? = {
+        guard let url = Bundle.main.url(forResource: "journalbysifiaheartv2sage", withExtension: "png") else {
+            return nil
+        }
+        return UIImage(contentsOfFile: url.path)
+    }()
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 7) {
-            HStack { Image(systemName: state.icon).foregroundColor(Palette.sage); Spacer()
-                if state == .done { Image(systemName: "checkmark.circle.fill").foregroundColor(Palette.sage) } }
-            Spacer(minLength: 0)
-            Eyebrow(text: state.eyebrow)
-            Text(displayTitle).font(.system(size: 17, weight: .bold, design: .serif))
-                .foregroundColor(Palette.ink).lineLimit(3).minimumScaleFactor(0.8).privacySensitive()
-            if state != .done { Text("\(completedCount) of \(morningSteps.count)")
-                .font(.system(size: 10, weight: .medium)).foregroundColor(Palette.gray) }
-        }.widgetURL(state.destination)
+        logoImage
+        .scaledToFit()
+        .frame(width: size, height: size)
+        .accessibilityHidden(true)
     }
-    private var displayTitle: String {
-        if state == .done, let focus = snapshot?.focus, !focus.isEmpty { return focus }
-        if state == .underneath, let feeling = snapshot?.feeling, !feeling.isEmpty { return "\(feeling). What’s underneath?" }
-        return state.title
+
+    @ViewBuilder private var logoImage: some View {
+        if let image = Self.image {
+            if #available(iOSApplicationExtension 18.0, *) {
+                Image(uiImage: image)
+                    .renderingMode(.original)
+                    .resizable()
+                    .widgetAccentedRenderingMode(.fullColor)
+                    .widgetAccentable(false)
+            } else if #available(iOSApplicationExtension 16.0, *) {
+                Image(uiImage: image)
+                    .renderingMode(.original)
+                    .resizable()
+                    .widgetAccentable(false)
+            } else {
+                Image(uiImage: image)
+                    .renderingMode(.original)
+                    .resizable()
+            }
+        } else {
+            Image(systemName: "pencil.and.scribble")
+                .resizable()
+                .scaledToFit()
+                .foregroundColor(Palette.sage)
+        }
     }
-    private var completedCount: Int {
-        let done = Set(snapshot?.completedSteps ?? []); return morningSteps.filter { done.contains($0.id) }.count
+}
+
+private struct SmallEditorialCard: View {
+    let symbol: String
+    let eyebrow: String
+    let title: String
+    let action: String
+    let actionColor: Color
+    let destination: URL
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: 6) {
+                WidgetBrandLogo(size: 26)
+                Spacer(minLength: 4)
+                Image(systemName: symbol)
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundColor(actionColor)
+                    .frame(width: 24, height: 24)
+                    .background(actionColor.opacity(0.09))
+                    .clipShape(Circle())
+            }
+            Spacer(minLength: 6)
+            Text(eyebrow)
+                .font(.system(size: 9, weight: .bold))
+                .tracking(1.1)
+                .foregroundColor(Palette.sageMuted)
+                .lineLimit(1)
+                .minimumScaleFactor(0.85)
+                .padding(.bottom, 3)
+            Text(title)
+                .font(.system(size: 19, weight: .semibold, design: .serif))
+                .foregroundColor(Palette.ink)
+                .lineLimit(2)
+                .minimumScaleFactor(0.76)
+                .privacySensitive()
+            Spacer(minLength: 5)
+            HStack {
+                Spacer(minLength: 0)
+                Link(destination: destination) {
+                    HStack(spacing: 6) {
+                        Text(action)
+                            .font(.system(size: 10, weight: .semibold))
+                            .lineLimit(1)
+                        Image(systemName: "arrow.right")
+                            .font(.system(size: 9, weight: .bold))
+                    }
+                    .foregroundColor(Palette.card)
+                    .padding(.horizontal, 12)
+                    .frame(height: 31)
+                    .background(actionColor)
+                    .clipShape(Capsule())
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .widgetURL(destination)
     }
 }
 
@@ -336,21 +433,6 @@ private struct MorningDoneView: View {
     }
 }
 
-private struct SiFiaMorningWidgetEntryView: View {
-    @Environment(\.widgetFamily) private var family
-    let entry: MorningEntry
-    var body: some View {
-        let state = morningState(entry.snapshot, entry.date)
-        Group {
-            if family == .systemSmall { MorningSmallView(state: state, snapshot: entry.snapshot) }
-            else if state == .done, let snapshot = entry.snapshot { MorningDoneView(snapshot: snapshot, large: family == .systemLarge) }
-            else if family == .systemLarge { MorningLargeView(state: state, snapshot: entry.snapshot) }
-            else if state == .checkIn { MorningCheckInView() }
-            else { MorningStepView(state: state, snapshot: entry.snapshot) }
-        }.padding(16).frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading).widgetBackground(Palette.cream)
-    }
-}
-
 // MARK: Evening
 
 private enum EveningLink {
@@ -358,6 +440,12 @@ private enum EveningLink {
     static var gratitude: URL { url("gratitude") }; static var win: URL { url("win") }
     static var proverbs: URL { url("proverbs") }; static var wisdom: URL { url("wisdom") }
     static var lookingForward: URL { url("looking-forward") }; static var closing: URL { url("closing") }
+}
+
+private enum PrayerLink {
+    static func url(_ prayerId: String) -> URL {
+        URL(string: "sifia://prayer/\(prayerId)")!
+    }
 }
 
 private enum EveningStepState {
@@ -396,40 +484,6 @@ private func eveningState(_ snapshot: EveningWidgetSnapshot?, _ date: Date) -> E
     let done = Set(snapshot.completedSteps); return eveningSteps.first(where: { !done.contains($0.id) })?.state ?? .closing
 }
 
-private struct EveningEntry: TimelineEntry { let date: Date; let snapshot: EveningWidgetSnapshot? }
-private struct EveningProvider: TimelineProvider {
-    func placeholder(in context: Context) -> EveningEntry { EveningEntry(date: Date(), snapshot: nil) }
-    func getSnapshot(in context: Context, completion: @escaping (EveningEntry) -> Void) {
-        completion(EveningEntry(date: Date(), snapshot: MorningWidgetStore.loadEveningSnapshot()))
-    }
-    func getTimeline(in context: Context, completion: @escaping (Timeline<EveningEntry>) -> Void) {
-        let now = Date(); var entries = [EveningEntry(date: now, snapshot: MorningWidgetStore.loadEveningSnapshot())]
-        if let midnight = Calendar.current.nextDate(after: now, matching: DateComponents(hour: 0), matchingPolicy: .nextTime) {
-            entries.append(EveningEntry(date: midnight, snapshot: nil))
-        }
-        completion(Timeline(entries: entries, policy: .atEnd))
-    }
-}
-
-private struct EveningSmallView: View {
-    let state: EveningStepState; let snapshot: EveningWidgetSnapshot?
-    var body: some View {
-        VStack(alignment: .leading, spacing: 7) {
-            HStack { Image(systemName: state.icon).foregroundColor(state == .done ? Palette.moon : Palette.dusk); Spacer()
-                if state == .done { Image(systemName: "checkmark.circle.fill").foregroundColor(Palette.dusk) } }
-            Spacer(minLength: 0); Eyebrow(text: state.eyebrow, color: Palette.duskMuted)
-            Text(displayTitle).font(.system(size: 17, weight: .bold, design: .serif)).foregroundColor(Palette.ink)
-                .lineLimit(3).minimumScaleFactor(0.8).privacySensitive()
-            if state != .done { Text("\(completedCount) of \(eveningSteps.count)").font(.system(size: 10, weight: .medium)).foregroundColor(Palette.gray) }
-        }.widgetURL(state.destination)
-    }
-    private var displayTitle: String {
-        if state == .done { if let text = snapshot?.lookingForward, !text.isEmpty { return text }; if let win = snapshot?.win, !win.isEmpty { return win } }
-        if state == .proverbs, let number = snapshot?.proverbNumber { return "Proverbs \(number)" }; return state.title
-    }
-    private var completedCount: Int { let done = Set(snapshot?.completedSteps ?? []); return eveningSteps.filter { done.contains($0.id) }.count }
-}
-
 private struct EveningStepView: View {
     let state: EveningStepState; let snapshot: EveningWidgetSnapshot?
     private var completed: Set<String> { Set(snapshot?.completedSteps ?? []) }
@@ -448,6 +502,42 @@ private struct EveningStepView: View {
         }
     }
     private var title: String { state == .proverbs && snapshot?.proverbNumber != nil ? "Proverbs \(snapshot!.proverbNumber!)" : state.title }
+}
+
+private struct PrayerStepView: View {
+    let prayerId: String
+    let large: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: large ? 13 : 9) {
+            BrandHeader()
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Eyebrow(text: "PRAY AGAIN")
+                    Text("A prayer worth returning to.")
+                        .font(.system(size: large ? 22 : 19, weight: .bold, design: .serif))
+                        .foregroundColor(Palette.ink)
+                        .lineLimit(2)
+                    Text("Visit it again and bring it back to God today.")
+                        .font(.system(size: 12))
+                        .foregroundColor(Palette.gray)
+                        .lineLimit(2)
+                }
+                Spacer(minLength: 8)
+                Link(destination: PrayerLink.url(prayerId)) {
+                    ActionLabel(title: "Visit Prayer")
+                }
+            }
+            if large {
+                Spacer(minLength: 0)
+                Text("Return without pressure. Let the prayer meet you where today finds you.")
+                    .font(.system(size: 14, design: .serif))
+                    .foregroundColor(Palette.ink)
+                    .lineSpacing(3)
+            }
+        }
+        .widgetURL(PrayerLink.url(prayerId))
+    }
 }
 
 private struct EveningLargeView: View {
@@ -503,38 +593,617 @@ private struct EveningDoneView: View {
     }
 }
 
-private struct SiFiaEveningWidgetEntryView: View {
-    @Environment(\.widgetFamily) private var family
-    let entry: EveningEntry
+// MARK: Daily Flow
+
+private let prayerStartHour = 14
+private let eveningStartHour = 18
+
+private struct DailyFlowEntry: TimelineEntry {
+    let date: Date
+    let morning: MorningWidgetSnapshot?
+    let evening: EveningWidgetSnapshot?
+}
+
+private enum DailyFlowMode {
+    case morning(MorningStepState)
+    case daytime
+    case prayer(String)
+    case evening(EveningStepState)
+}
+
+private func validMorningSnapshot(_ snapshot: MorningWidgetSnapshot?, on date: Date) -> MorningWidgetSnapshot? {
+    guard snapshot?.date == MorningWidgetStore.localDateString(date) else { return nil }
+    return snapshot
+}
+
+private func validEveningSnapshot(_ snapshot: EveningWidgetSnapshot?, on date: Date) -> EveningWidgetSnapshot? {
+    guard snapshot?.date == MorningWidgetStore.localDateString(date) else { return nil }
+    return snapshot
+}
+
+private func dailyFlowMode(for entry: DailyFlowEntry) -> DailyFlowMode {
+    let calendar = Calendar.current
+    let morning = validMorningSnapshot(entry.morning, on: entry.date)
+    let evening = validEveningSnapshot(entry.evening, on: entry.date)
+    let eveningWasStarted = evening.map {
+        $0.routineStarted || $0.routineCompleted || !$0.completedSteps.isEmpty
+    } ?? false
+
+    if calendar.component(.hour, from: entry.date) >= eveningStartHour || eveningWasStarted {
+        return .evening(eveningState(evening, entry.date))
+    }
+
+    let state = morningState(morning, entry.date)
+    guard state == .done else { return .morning(state) }
+
+    if calendar.component(.hour, from: entry.date) >= prayerStartHour,
+       let prayerId = morning?.prayerId,
+       !prayerId.isEmpty {
+        return .prayer(prayerId)
+    }
+    return .daytime
+}
+
+private struct DailyFlowProvider: TimelineProvider {
+    func placeholder(in context: Context) -> DailyFlowEntry {
+        DailyFlowEntry(date: Date(), morning: nil, evening: nil)
+    }
+
+    func getSnapshot(in context: Context, completion: @escaping (DailyFlowEntry) -> Void) {
+        completion(currentEntry(at: Date()))
+    }
+
+    func getTimeline(in context: Context, completion: @escaping (Timeline<DailyFlowEntry>) -> Void) {
+        let now = Date()
+        let calendar = Calendar.current
+        let morning = MorningWidgetStore.loadSnapshot()
+        let evening = MorningWidgetStore.loadEveningSnapshot()
+        var entries = [DailyFlowEntry(date: now, morning: morning, evening: evening)]
+
+        if let prayerBoundary = calendar.date(
+            bySettingHour: prayerStartHour,
+            minute: 0,
+            second: 0,
+            of: now
+        ), prayerBoundary > now {
+            entries.append(DailyFlowEntry(date: prayerBoundary, morning: morning, evening: evening))
+        }
+
+        if let eveningBoundary = calendar.date(
+            bySettingHour: eveningStartHour,
+            minute: 0,
+            second: 0,
+            of: now
+        ), eveningBoundary > now {
+            entries.append(DailyFlowEntry(date: eveningBoundary, morning: morning, evening: evening))
+        }
+
+        if let midnight = calendar.nextDate(
+            after: now,
+            matching: DateComponents(hour: 0, minute: 0, second: 0),
+            matchingPolicy: .nextTime
+        ) {
+            entries.append(DailyFlowEntry(date: midnight, morning: nil, evening: nil))
+        }
+
+        completion(Timeline(entries: entries, policy: .atEnd))
+    }
+
+    private func currentEntry(at date: Date) -> DailyFlowEntry {
+        DailyFlowEntry(
+            date: date,
+            morning: MorningWidgetStore.loadSnapshot(),
+            evening: MorningWidgetStore.loadEveningSnapshot()
+        )
+    }
+}
+
+private struct DailyFlowSmallView: View {
+    let mode: DailyFlowMode
+    let morning: MorningWidgetSnapshot?
+    let evening: EveningWidgetSnapshot?
+
     var body: some View {
-        let state = eveningState(entry.snapshot, entry.date)
+        switch mode {
+        case .morning(let state):
+            SmallEditorialCard(
+                symbol: "sun.max.fill",
+                eyebrow: morningEyebrow(state),
+                title: morningTitle(state),
+                action: morningAction(state),
+                actionColor: Palette.sage,
+                destination: state.destination
+            )
+
+        case .daytime:
+            SmallEditorialCard(
+                symbol: focusSymbol(for: morning),
+                eyebrow: "UP NEXT · FOCUS",
+                title: morning?.focus?.isEmpty == false ? morning!.focus! : "Carry this into today.",
+                action: "Open",
+                actionColor: Palette.sage,
+                destination: MorningLink.focus
+            )
+
+        case .prayer(let prayerId):
+            SmallEditorialCard(
+                symbol: "heart.fill",
+                eyebrow: "UP NEXT · PRAYER",
+                title: "Pray again.",
+                action: "Revisit",
+                actionColor: Palette.sage,
+                destination: PrayerLink.url(prayerId)
+            )
+
+        case .evening(let state):
+            SmallEditorialCard(
+                symbol: "moon.stars.fill",
+                eyebrow: eveningEyebrow(state),
+                title: eveningTitle(state),
+                action: eveningAction(state),
+                actionColor: Palette.dusk,
+                destination: state.destination
+            )
+        }
+    }
+
+    private func morningEyebrow(_ state: MorningStepState) -> String {
+        if state == .checkIn && morning?.routineStarted != true { return "MORNING" }
+        return "UP NEXT"
+    }
+
+    private func morningTitle(_ state: MorningStepState) -> String {
+        if state == .checkIn && morning?.routineStarted != true { return "Begin with God." }
+        switch state {
+        case .checkIn: return "How do you feel?"
+        case .underneath: return "What’s beneath it?"
+        case .psalm: return morning?.psalmNumber.map { "Read Psalm \($0)." } ?? "Read today’s Psalm."
+        case .carry: return "Notice God here."
+        case .focus: return "Choose your focus."
+        case .todos: return "Plan what matters."
+        case .closing: return "Ready to begin."
+        case .done: return "Carry this today."
+        }
+    }
+
+    private func morningAction(_ state: MorningStepState) -> String {
+        if state == .checkIn && morning?.routineStarted != true { return "Start" }
+        if state == .closing { return "Save" }
+        return "Continue"
+    }
+
+    private func eveningEyebrow(_ state: EveningStepState) -> String {
+        if state == .gratitude && evening?.routineStarted != true { return "UP NEXT · EVENING" }
+        return "UP NEXT"
+    }
+
+    private func eveningTitle(_ state: EveningStepState) -> String {
+        if state == .gratitude && evening?.routineStarted != true { return "End with God." }
+        switch state {
+        case .gratitude: return "Name one gift."
+        case .win: return "What went well?"
+        case .proverbs: return evening?.proverbNumber.map { "Read Proverbs \($0)." } ?? "Read today’s Proverbs."
+        case .wisdom: return "Carry one truth."
+        case .lookingForward: return "Hope for tomorrow?"
+        case .closing: return "Ready to rest."
+        case .done: return "Rest well."
+        }
+    }
+
+    private func eveningAction(_ state: EveningStepState) -> String {
+        if state == .gratitude && evening?.routineStarted != true { return "Reflect" }
+        if state == .closing { return "Save" }
+        if state == .done { return "View" }
+        return "Continue"
+    }
+}
+
+private struct ExpandedPresentation {
+    let symbol: String
+    let eyebrow: String
+    let title: String
+    let summary: String
+    let action: String
+    let color: Color
+    let destination: URL
+}
+
+private func expandedPresentation(
+    for mode: DailyFlowMode,
+    morning: MorningWidgetSnapshot?,
+    evening: EveningWidgetSnapshot?
+) -> ExpandedPresentation {
+    switch mode {
+    case .morning(let state):
+        let hasStarted = morning?.routineStarted == true
+        let title: String
+        if !hasStarted && state == .checkIn {
+            title = "Begin with God."
+        } else if state == .underneath, let feeling = morning?.feeling, !feeling.isEmpty {
+            title = "\(feeling). What’s underneath?"
+        } else if state == .psalm, let number = morning?.psalmNumber {
+            title = "Sit with Psalm \(number)."
+        } else {
+            title = state.title
+        }
+        return ExpandedPresentation(
+            symbol: "sun.max.fill",
+            eyebrow: hasStarted ? "UP NEXT" : "TODAY WITH GOD",
+            title: title,
+            summary: hasStarted ? state.subtitle : "Take a quiet moment to notice what you’re carrying and set your heart for the day.",
+            action: !hasStarted ? "Begin Morning" : (state == .closing ? "Save Morning" : "Continue"),
+            color: Palette.sage,
+            destination: state.destination
+        )
+
+    case .daytime:
+        return ExpandedPresentation(
+            symbol: focusSymbol(for: morning),
+            eyebrow: "UP NEXT · TODAY’S FOCUS",
+            title: morning?.focus?.isEmpty == false ? morning!.focus! : "Carry this into today.",
+            summary: "Return to the focus you chose this morning and carry it into the rest of your day.",
+            action: "View Focus",
+            color: Palette.sage,
+            destination: MorningLink.focus
+        )
+
+    case .prayer(let prayerId):
+        return ExpandedPresentation(
+            symbol: "heart.fill",
+            eyebrow: "UP NEXT · PRAY AGAIN",
+            title: "A prayer worth returning to.",
+            summary: "A prayer you wrote before is ready to revisit today.",
+            action: "Visit Prayer",
+            color: Palette.sage,
+            destination: PrayerLink.url(prayerId)
+        )
+
+    case .evening(let state):
+        if state == .done, morning?.routineCompleted == true {
+            return ExpandedPresentation(
+                symbol: "checkmark",
+                eyebrow: "TODAY WITH GOD",
+                title: "You showed up today.",
+                summary: "Morning and evening are complete. Your journal is here whenever you want to return to what God showed you today.",
+                action: "Open Today",
+                color: Palette.sage,
+                destination: URL(string: "sifia://dashboard")!
+            )
+        }
+        if state == .done {
+            return ExpandedPresentation(
+                symbol: "moon.stars.fill",
+                eyebrow: "EVENING SAVED",
+                title: "Rest well.",
+                summary: "Your evening reflection is saved. Return whenever you want to revisit what today held.",
+                action: "View Evening",
+                color: Palette.dusk,
+                destination: state.destination
+            )
+        }
+        let hasStarted = evening?.routineStarted == true
+        let title: String
+        if !hasStarted && state == .gratitude {
+            title = "End with God."
+        } else if state == .proverbs, let number = evening?.proverbNumber {
+            title = "Read Proverbs \(number)."
+        } else {
+            title = state.title
+        }
+        return ExpandedPresentation(
+            symbol: "moon.stars.fill",
+            eyebrow: hasStarted ? "UP NEXT" : "UP NEXT · EVENING",
+            title: title,
+            summary: hasStarted ? state.subtitle : "Reflect on what mattered, what you’re grateful for, and what you can leave with Him.",
+            action: !hasStarted ? "Begin Reflection" : (state == .closing ? "Save Evening" : "Continue"),
+            color: Palette.dusk,
+            destination: state.destination
+        )
+    }
+}
+
+private enum JourneyStageStatus {
+    case complete, active, upcoming
+}
+
+private struct JourneyStageRow: View {
+    let number: Int
+    let label: String
+    let status: JourneyStageStatus
+    let large: Bool
+
+    var body: some View {
+        HStack(spacing: large ? 10 : 6) {
+            ZStack {
+                Circle()
+                    .fill(status == .complete ? Palette.sage.opacity(0.11) : Color.clear)
+                Circle()
+                    .stroke(status == .active ? Palette.sage : Palette.border, lineWidth: status == .active ? 1.5 : 1)
+                if status == .complete {
+                    Image(systemName: "checkmark")
+                        .font(.system(size: large ? 11 : 8, weight: .bold))
+                } else {
+                    Text("\(number)")
+                        .font(.system(size: large ? 11 : 8, weight: .semibold))
+                }
+            }
+            .foregroundColor(status == .upcoming ? Palette.gray.opacity(0.7) : Palette.sage)
+            .frame(width: large ? 25 : 18, height: large ? 25 : 18)
+
+            Text(label)
+                .font(.system(size: large ? 13 : 10, weight: status == .active ? .semibold : .medium))
+                .foregroundColor(status == .upcoming ? Palette.ink.opacity(0.78) : Palette.ink)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+            Spacer(minLength: 0)
+            if status == .active {
+                Text("UP NEXT")
+                    .font(.system(size: large ? 8 : 6, weight: .bold))
+                    .tracking(0.5)
+                    .foregroundColor(Palette.sage)
+                    .padding(.horizontal, large ? 6 : 4)
+                    .frame(height: large ? 18 : 13)
+                    .background(Palette.sage.opacity(0.09))
+                    .clipShape(Capsule())
+            }
+        }
+    }
+}
+
+private struct WeeklyDots: View {
+    let days: [Bool]
+    let large: Bool
+
+    var body: some View {
+        HStack(spacing: large ? 6 : 4) {
+            ForEach(0..<7, id: \.self) { index in
+                Circle()
+                    .fill(index < days.count && days[index] ? Palette.sageMuted : Palette.border)
+                    .frame(width: large ? 9 : 6, height: large ? 9 : 6)
+            }
+        }
+        .accessibilityLabel("\(days.filter { $0 }.count) active days this week")
+    }
+}
+
+private struct TodayJourneyPanel: View {
+    let mode: DailyFlowMode
+    let morning: MorningWidgetSnapshot?
+    let evening: EveningWidgetSnapshot?
+    let weeklyDays: [Bool]
+    let weeklyCount: Int
+    let large: Bool
+
+    private let labels = ["Morning", "Today’s Focus", "Pray Again", "Evening"]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: large ? 8 : 3) {
+            Text("TODAY")
+                .font(.system(size: large ? 11 : 9, weight: .semibold))
+                .foregroundColor(Palette.gray)
+            ForEach(Array(labels.enumerated()), id: \.offset) { index, label in
+                JourneyStageRow(
+                    number: index + 1,
+                    label: label,
+                    status: status(for: index + 1),
+                    large: large
+                )
+            }
+            Divider().overlay(Palette.border)
+            HStack(spacing: 6) {
+                Text("THIS WEEK")
+                    .font(.system(size: large ? 10 : 8, weight: .medium))
+                    .foregroundColor(Palette.gray)
+                WeeklyDots(days: weeklyDays, large: large)
+                Spacer(minLength: 2)
+                Text("\(weeklyCount) \(weeklyCount == 1 ? "day" : "days")")
+                    .font(.system(size: large ? 10 : 8, weight: .medium))
+                    .foregroundColor(Palette.gray)
+            }
+        }
+    }
+
+    private func status(for stage: Int) -> JourneyStageStatus {
+        switch stage {
+        case 1:
+            if morning?.routineCompleted == true { return .complete }
+            if case .morning = mode { return .active }
+        case 2:
+            if case .daytime = mode { return .active }
+            if morning?.routineCompleted == true {
+                if case .prayer = mode { return .complete }
+                if case .evening = mode { return .complete }
+            }
+        case 3:
+            if case .prayer = mode { return .active }
+            if case .evening = mode { return .complete }
+        case 4:
+            if evening?.routineCompleted == true { return .complete }
+            if case .evening = mode { return .active }
+        default:
+            break
+        }
+        return .upcoming
+    }
+}
+
+private struct WeeklySummaryPanel: View {
+    let days: [Bool]
+    let count: Int
+    let large: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: large ? 10 : 5) {
+            Text("THIS WEEK")
+                .font(.system(size: large ? 11 : 9, weight: .medium))
+                .foregroundColor(Palette.gray)
+            Text("\(count) \(count == 1 ? "day" : "days")")
+                .font(.system(size: large ? 30 : 23, weight: .medium, design: .serif))
+                .foregroundColor(Palette.ink)
+            if large {
+                Text("You’ve made space with God this week.")
+                    .font(.system(size: 12))
+                    .foregroundColor(Palette.gray)
+                    .lineLimit(2)
+            }
+            Spacer(minLength: 0)
+            WeeklyDots(days: days, large: large)
+        }
+        .padding(large ? 16 : 11)
+        .background(Palette.card.opacity(0.74))
+        .clipShape(RoundedRectangle(cornerRadius: large ? 20 : 15, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: large ? 20 : 15, style: .continuous)
+                .stroke(Palette.border, lineWidth: 0.7)
+        )
+    }
+}
+
+private struct DailyFlowExpandedView: View {
+    let mode: DailyFlowMode
+    let morning: MorningWidgetSnapshot?
+    let evening: EveningWidgetSnapshot?
+    let large: Bool
+
+    private var presentation: ExpandedPresentation {
+        expandedPresentation(for: mode, morning: morning, evening: evening)
+    }
+
+    private var weeklyDays: [Bool] {
+        let days = morning?.weeklyActiveDays ?? []
+        return days.count == 7 ? days : Array(repeating: false, count: 7)
+    }
+
+    private var weeklyCount: Int {
+        morning?.weeklyActiveCount ?? weeklyDays.filter { $0 }.count
+    }
+
+    private var everythingDone: Bool {
+        morning?.routineCompleted == true && evening?.routineCompleted == true
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: large ? 18 : 8) {
+            HStack(spacing: large ? 9 : 6) {
+                WidgetBrandLogo(size: large ? 34 : 28)
+                Spacer(minLength: 4)
+                Image(systemName: presentation.symbol)
+                    .font(.system(size: large ? 12 : 10, weight: .semibold))
+                    .foregroundColor(presentation.color)
+                    .frame(width: large ? 30 : 24, height: large ? 30 : 24)
+                    .background(presentation.color.opacity(0.09))
+                    .clipShape(Circle())
+            }
+
+            HStack(alignment: .top, spacing: large ? 20 : 12) {
+                VStack(alignment: .leading, spacing: large ? 8 : 4) {
+                    Text(presentation.eyebrow)
+                        .font(.system(size: large ? 12 : 9, weight: .bold))
+                        .tracking(large ? 1.5 : 1.1)
+                        .foregroundColor(Palette.sageMuted)
+                        .lineLimit(1)
+                    Text(presentation.title)
+                        .font(.system(size: large ? 33 : 23, weight: .semibold, design: .serif))
+                        .foregroundColor(Palette.ink)
+                        .lineLimit(large ? 3 : 2)
+                        .minimumScaleFactor(0.72)
+                        .privacySensitive()
+                    if large {
+                        Text(presentation.summary)
+                            .font(.system(size: 13))
+                            .foregroundColor(Palette.gray)
+                            .lineLimit(3)
+                            .lineSpacing(2)
+                    }
+                    Spacer(minLength: large ? 8 : 2)
+                    Link(destination: presentation.destination) {
+                        HStack(spacing: 8) {
+                            Text(presentation.action)
+                                .font(.system(size: large ? 13 : 10, weight: .semibold))
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.8)
+                            Spacer(minLength: 4)
+                            Image(systemName: "arrow.right")
+                                .font(.system(size: large ? 11 : 9, weight: .bold))
+                        }
+                        .foregroundColor(Palette.card)
+                        .padding(.horizontal, large ? 15 : 11)
+                        .frame(maxWidth: large ? 190 : 140, minHeight: large ? 42 : 31)
+                        .background(presentation.color)
+                        .clipShape(RoundedRectangle(cornerRadius: large ? 14 : 11, style: .continuous))
+                    }
+                    .buttonStyle(.plain)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+
+                Rectangle()
+                    .fill(Palette.border)
+                    .frame(width: 1)
+
+                Group {
+                    if everythingDone {
+                        WeeklySummaryPanel(days: weeklyDays, count: weeklyCount, large: large)
+                    } else {
+                        TodayJourneyPanel(
+                            mode: mode,
+                            morning: morning,
+                            evening: evening,
+                            weeklyDays: weeklyDays,
+                            weeklyCount: weeklyCount,
+                            large: large
+                        )
+                    }
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            }
+        }
+        .widgetURL(presentation.destination)
+    }
+}
+
+private struct DailyFlowEntryView: View {
+    @Environment(\.widgetFamily) private var family
+    let entry: DailyFlowEntry
+
+    var body: some View {
+        let mode = dailyFlowMode(for: entry)
         Group {
-            if family == .systemSmall { EveningSmallView(state: state, snapshot: entry.snapshot) }
-            else if state == .done, let snapshot = entry.snapshot { EveningDoneView(snapshot: snapshot, large: family == .systemLarge) }
-            else if family == .systemLarge { EveningLargeView(state: state, snapshot: entry.snapshot) }
-            else { EveningStepView(state: state, snapshot: entry.snapshot) }
-        }.padding(16).frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading).widgetBackground(Palette.eveningWash)
+            if family == .systemSmall {
+                DailyFlowSmallView(
+                    mode: mode,
+                    morning: validMorningSnapshot(entry.morning, on: entry.date),
+                    evening: validEveningSnapshot(entry.evening, on: entry.date)
+                )
+            } else {
+                DailyFlowExpandedView(
+                    mode: mode,
+                    morning: validMorningSnapshot(entry.morning, on: entry.date),
+                    evening: validEveningSnapshot(entry.evening, on: entry.date),
+                    large: family == .systemLarge
+                )
+            }
+        }
+        .padding(family == .systemSmall ? 12 : (family == .systemLarge ? 20 : 12))
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .widgetBackground(backgroundColor(for: mode))
+    }
+
+    private func backgroundColor(for mode: DailyFlowMode) -> Color {
+        if case .evening = mode { return Palette.eveningWash }
+        return Palette.cream
     }
 }
 
 struct SiFiaMorningWidget: Widget {
     var body: some WidgetConfiguration {
-        StaticConfiguration(kind: MorningWidgetStore.widgetKind, provider: MorningProvider()) { SiFiaMorningWidgetEntryView(entry: $0) }
-            .configurationDisplayName("Morning Flow")
-            .description("Begin gently, continue your morning flow, and keep today’s focus close.")
+        StaticConfiguration(kind: MorningWidgetStore.widgetKind, provider: DailyFlowProvider()) { DailyFlowEntryView(entry: $0) }
+            .configurationDisplayName("Daily Flow")
+            .description("Move naturally from your morning check-in to today’s focus, prayer, and evening reflection.")
             .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
-    }
-}
-
-struct SiFiaEveningWidget: Widget {
-    var body: some WidgetConfiguration {
-        StaticConfiguration(kind: MorningWidgetStore.eveningWidgetKind, provider: EveningProvider()) { SiFiaEveningWidgetEntryView(entry: $0) }
-            .configurationDisplayName("Evening Flow")
-            .description("Reflect on today, continue your evening flow, and carry hope into tomorrow.")
-            .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
+            .contentMarginsDisabled()
     }
 }
 
 @main struct SiFiaWidgetBundle: WidgetBundle {
-    var body: some Widget { SiFiaMorningWidget(); SiFiaEveningWidget() }
+    var body: some Widget { SiFiaMorningWidget() }
 }

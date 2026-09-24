@@ -5,84 +5,36 @@ import {
   Animated,
   DeviceEventEmitter,
   Easing,
-  Linking,
-  ScrollView,
   StyleSheet,
   TouchableOpacity,
   View,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { format } from 'date-fns';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { Pencil, Trash2, FileText, Sparkles, Leaf } from 'lucide-react-native';
+import { Pencil, FileText, Sparkles, Leaf } from 'lucide-react-native';
 import { Colors } from '../theme/colors';
 import ThemedText from '../components/common/ThemedText';
-import { deleteLocalReflection, getLocalReflection, updateLocalReflection } from '../storage/reflectionStorage';
+import { getLocalReflection, updateLocalReflection } from '../storage/reflectionStorage';
 import { safeJsonParse } from '../utils/safeJsonParse';
 import { triggerLightHaptic } from '../utils/haptics';
 import { getScripturePassage } from '../services/scriptureReaderService';
 import { useNetworkStore } from '../services/network/networkManager';
 import { formatBibleVerse } from '../utils/textFormatting';
+import { formatSessionNoteHeaderDate } from '../utils/date';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import ScriptureReaderModal from '../components/ScriptureReaderModal';
-import { BLOCKS, BlockIcon, SermonNotesStyles } from './SermonNotesScreen';
+import { SermonNotesStyles } from './SermonNotesScreen';
 import { getSessionNoteConfig, getSessionNoteContext, resolveSessionNoteType, sessionNoteTypeLabel } from '../types/sessionNotes';
 import SavedReflectionBlocks from '../components/journal/SavedReflectionBlocks';
 import {
-  formatJournalAttribution,
-  getJournalTableCellAlignment,
+  hasMeaningfulJournalBlock,
   prepareJournalBlocksForSave,
   type JournalBlock,
-  type JournalTableCellAlignments,
 } from '../components/journal/shared/journalBlocks';
-import DraggableJournalBlock from '../components/journal/shared/DraggableJournalBlock';
-import {
-  reorderJournalBlock,
-  resolveJournalBlockDropIndex,
-} from '../components/journal/shared/journalBlockOperations';
 
-type NoteBlock = {
-  id: string;
-  kind: string;
-  text: string;
-  secondary?: string;
-  note?: string;
-  reference?: string;
-  scriptureText?: string;
-  scriptureReference?: string;
-  points?: string[];
-  outlineStyle?: 'numbered' | 'acronym' | 'simple';
-  historyTypes?: string[];
-  eraPeriod?: 'BC' | 'AD';
-  languageKind?: string;
-  languageDetails?: string[];
-  meaning?: string;
-  origin?: string;
-  tableRows?: string[][];
-  tableCellAlignments?: JournalTableCellAlignments;
-  uri?: string;
-  durationMillis?: number;
-  completed?: boolean;
-  parentColumnId?: string;
-  columnSide?: 'left' | 'right';
-};
-
-const hasNoteBlockContent = (block: NoteBlock) =>
-  Boolean(
-    block.text?.trim() ||
-      block.secondary?.trim() ||
-      block.note?.trim() ||
-      block.reference?.trim() ||
-      block.scriptureText?.trim() ||
-      block.scriptureReference?.trim() ||
-      block.meaning?.trim() ||
-      block.origin?.trim() ||
-      block.points?.some(point => point.trim()) ||
-      block.tableRows?.some(row => row.some(cell => cell.trim())) ||
-      block.uri,
-  );
+type NoteBlock = JournalBlock;
 
 const TAB_ICONS = {
   notes: FileText,
@@ -113,17 +65,7 @@ const SermonNotesDetailScreen: React.FC = () => {
   const [contentY, setContentY] = useState(0);
   const [tabsFloating, setTabsFloating] = useState(false);
   const [scrollEnabled, setScrollEnabled] = useState(true);
-  const [selectedSavedBlockId, setSelectedSavedBlockId] = useState<string | null>(null);
-  const [savedDragPreview, setSavedDragPreview] = useState<{
-    blockId: string;
-    fromIndex: number;
-    targetIndex: number;
-    blockHeight: number;
-  } | null>(null);
   const scrollViewRef = useRef<any>(null);
-  const savedBlockLayoutsRef = useRef(
-    new Map<string, {y: number; height: number}>(),
-  );
   const snapStarted = useRef(false);
   const snapAnimation = useRef<Animated.CompositeAnimation | null>(null);
   const snapOffset = useRef(new Animated.Value(0)).current;
@@ -186,9 +128,7 @@ const SermonNotesDetailScreen: React.FC = () => {
   const dateStr = useMemo(() => {
     const raw = entry?.selected_date || selectedDate;
     if (!raw) {return '';}
-    const [year, month, day] = String(raw).split('-').map(Number);
-    const date = new Date(year, month - 1, day);
-    return format(date, 'MMMM d, yyyy').toUpperCase();
+    return formatSessionNoteHeaderDate(String(raw));
   }, [entry, selectedDate]);
 
   const sessionType = useMemo(() => resolveSessionNoteType(entry), [entry]);
@@ -232,22 +172,17 @@ const SermonNotesDetailScreen: React.FC = () => {
     return preparedBlocks.filter(
       (b: NoteBlock) =>
         !b.parentColumnId &&
-        (b.kind === 'column' || hasNoteBlockContent(b)) &&
+        (b.kind === 'column' || hasMeaningfulJournalBlock(b)) &&
         !reflectionKinds.includes(b.kind) &&
         b.kind !== 'prayer',
     );
   }, [preparedBlocks, reflectionKinds]);
   const reflectionBlocks = useMemo(() => {
-    return preparedBlocks.filter((b: NoteBlock) => !b.parentColumnId && hasNoteBlockContent(b) && reflectionKinds.includes(b.kind));
+    return preparedBlocks.filter((b: NoteBlock) => !b.parentColumnId && hasMeaningfulJournalBlock(b) && reflectionKinds.includes(b.kind));
   }, [preparedBlocks, reflectionKinds]);
   const prayerBlocks = useMemo(() => {
-    return preparedBlocks.filter((b: NoteBlock) => !b.parentColumnId && hasNoteBlockContent(b) && b.kind === 'prayer');
+    return preparedBlocks.filter((b: NoteBlock) => !b.parentColumnId && hasMeaningfulJournalBlock(b) && b.kind === 'prayer');
   }, [preparedBlocks]);
-  const activeSavedBlocks = activeTab === 'notes'
-    ? notesBlocks
-    : activeTab === 'reflection'
-    ? reflectionBlocks
-    : prayerBlocks;
   const reflectionQuestions = useMemo(() => {
     return [
       { key: 'notice', question: 'What stayed with you?' },
@@ -268,15 +203,6 @@ const SermonNotesDetailScreen: React.FC = () => {
   const hasNotes = notesBlocks.length > 0;
   const hasReflection = reflectionQuestions.length > 0 || reflectionBlocks.length > 0;
   const hasPrayer = prayerQuestions.length > 0 || prayerBlocks.length > 0;
-
-  const normalizeLink = (text: string) => {
-    if (!text) {return null;}
-    let url = text.trim();
-    if (!/^https?:\/\//i.test(url) && !/^mailto:/i.test(url)) {
-      url = `https://${url}`;
-    }
-    return url;
-  };
 
   const handleToggleSavedAction = async (blockId: string) => {
     if (!entry) {return;}
@@ -349,390 +275,27 @@ const SermonNotesDetailScreen: React.FC = () => {
     }
   };
 
-  const handleSavedDragStart = (blockId: string) => {
-    const fromIndex = activeSavedBlocks.findIndex(block => block.id === blockId);
-    const layout = savedBlockLayoutsRef.current.get(blockId);
-    if (fromIndex < 0 || !layout) {return;}
-    setSavedDragPreview({
-      blockId,
-      fromIndex,
-      targetIndex: fromIndex,
-      blockHeight: layout.height,
-    });
-  };
-
-  const handleSavedDragMove = (blockId: string, deltaY: number) => {
-    const targetIndex = resolveJournalBlockDropIndex(
-      activeSavedBlocks,
-      savedBlockLayoutsRef.current,
-      blockId,
-      deltaY,
+  const renderMovableBlocks = (tabBlocks: NoteBlock[]) => {
+    const tabBlockIds = new Set(tabBlocks.map(block => block.id));
+    const blocksWithChildren = preparedBlocks.filter(
+      block =>
+        tabBlockIds.has(block.id) ||
+        Boolean(block.parentColumnId && tabBlockIds.has(block.parentColumnId)),
     );
-    setSavedDragPreview(current =>
-      !current || current.blockId !== blockId || current.targetIndex === targetIndex
-        ? current
-        : {...current, targetIndex},
-    );
-  };
-
-  const handleSavedDragEnd = (blockId: string, deltaY: number) => {
-    const targetIndex = resolveJournalBlockDropIndex(
-      activeSavedBlocks,
-      savedBlockLayoutsRef.current,
-      blockId,
-      deltaY,
-    );
-    setSavedDragPreview(null);
-    const reorderedBlocks = reorderJournalBlock(
-      activeSavedBlocks,
-      blockId,
-      targetIndex,
-    );
-    if (reorderedBlocks === activeSavedBlocks) {return;}
-    setSelectedSavedBlockId(blockId);
-    persistReorderedSavedBlocks(reorderedBlocks);
-  };
-
-  const renderNoteBlock = (block: NoteBlock) => {
-    if (block.kind === 'column') {
-      const nestedBlocks = preparedBlocks.filter(
-        child => child.parentColumnId === block.id,
-      );
-      return (
-        <SavedReflectionBlocks
-          key={block.id}
-          blocks={[block, ...nestedBlocks] as JournalBlock[]}
-          onToggleAction={handleToggleSavedAction}
-        />
-      );
-    }
-    if (
-      ['section', 'action', 'bullets', 'numbered', 'photo', 'voice'].includes(
-        block.kind,
-      )
-    ) {
-      return (
-        <SavedReflectionBlocks
-          key={block.id}
-          blocks={[block as JournalBlock]}
-          onToggleAction={handleToggleSavedAction}
-        />
-      );
-    }
-    if (block.kind === 'text') {
-      return (
-        <ThemedText key={block.id} style={SermonNotesStyles.freeText}>
-          {block.text}
-        </ThemedText>
-      );
-    }
-    const config = (BLOCKS as any)[block.kind];
-    const captureStyle = (SermonNotesStyles as any)[`${block.kind}Capture`] || {};
-
-    const renderContent = () => {
-      switch (block.kind) {
-        case 'scripture':
-          return (
-            <View>
-              <ThemedText style={SermonNotesStyles.captureInput}>{block.text}</ThemedText>
-              {!!block.scriptureText && (
-                <View style={SermonNotesStyles.scripturePreview}>
-                  <ThemedText style={SermonNotesStyles.scripturePreviewText}>{block.scriptureText}</ThemedText>
-                  {!!(block.scriptureReference || block.text) && (
-                    <View style={SermonNotesStyles.scripturePreviewReferenceRow}>
-                      <ThemedText style={SermonNotesStyles.scripturePreviewReference}>
-                        {(block.scriptureReference || block.text).toUpperCase()} NASB
-                      </ThemedText>
-                    </View>
-                  )}
-                </View>
-              )}
-            </View>
-          );
-        case 'outline':
-          return (
-            <>
-              <ThemedText style={[SermonNotesStyles.captureInput, SermonNotesStyles.outlineTitleInput]}>
-                {block.text}
-              </ThemedText>
-              {(block.points || []).map((point, index) => (
-                <View key={`${block.id}-p-${index}`} style={SermonNotesStyles.outlinePointRow}>
-                  <ThemedText weight="bold" style={SermonNotesStyles.outlineMarker}>
-                    {block.outlineStyle === 'numbered'
-                      ? `${index + 1}.`
-                      : block.outlineStyle === 'acronym'
-                      ? `${point.trim().charAt(0).toUpperCase() || '•'} —`
-                      : '•'}
-                  </ThemedText>
-                  <ThemedText style={SermonNotesStyles.outlinePointInput}>{point}</ThemedText>
-                </View>
-              ))}
-            </>
-          );
-        case 'table': {
-          const tableRows = block.tableRows || [];
-          const columnCount = tableRows[0]?.length || 0;
-          const fitsWidth = (columnCount === 2 || columnCount === 3) &&
-            tableRows.every(row => row.length === columnCount);
-          const fittedCellStyle = fitsWidth && {width: `${100 / columnCount}%` as const};
-          return (
-            <ScrollView
-              horizontal
-              scrollEnabled={!fitsWidth}
-              showsHorizontalScrollIndicator={false}
-              style={SermonNotesStyles.savedTableHorizontalScroll}
-              contentContainerStyle={[
-                SermonNotesStyles.savedTableGrid,
-                fitsWidth && styles.fullWidthTable,
-              ]}>
-              <View style={fitsWidth && styles.fullWidthTable}>
-                {tableRows.map((row, rowIndex) => (
-                  <View key={rowIndex} style={SermonNotesStyles.savedTableRow}>
-                    {row.map((cell, columnIndex) => (
-                      <ThemedText
-                        key={columnIndex}
-                        weight={rowIndex === 0 ? 'bold' : 'regular'}
-                        style={[
-                          SermonNotesStyles.savedTableCell,
-                          fittedCellStyle,
-                          {
-                            textAlign: getJournalTableCellAlignment(
-                              block.tableCellAlignments,
-                              rowIndex,
-                              columnIndex,
-                            ),
-                          },
-                          rowIndex === 0 && SermonNotesStyles.savedTableHeaderCell,
-                        ]}>
-                        {cell}
-                      </ThemedText>
-                    ))}
-                  </View>
-                ))}
-              </View>
-            </ScrollView>
-          );
-        }
-        case 'history':
-          return (
-            <View>
-              <ThemedText style={SermonNotesStyles.captureInput}>{block.text}</ThemedText>
-              {!!block.historyTypes?.length && (
-                <View style={[SermonNotesStyles.historyChoices, {marginTop: 10}]}>
-                  {block.historyTypes.map(type => (
-                    <View key={type} style={SermonNotesStyles.historyChoiceActive}>
-                      <ThemedText style={SermonNotesStyles.historyChoiceTextActive}>
-                        {type[0].toUpperCase() + type.slice(1)}
-                      </ThemedText>
-                    </View>
-                  ))}
-                </View>
-              )}
-              {!!block.eraPeriod && (
-                <ThemedText style={[SermonNotesStyles.secondaryInput, {marginTop: 10}]}>
-                  {block.secondary} {block.eraPeriod}
-                </ThemedText>
-              )}
-            </View>
-          );
-        case 'language':
-          return (
-            <View>
-              {!!block.languageKind && (
-                <View style={[SermonNotesStyles.languageKindChoices, {marginBottom: 10}]}>
-                  <View style={SermonNotesStyles.languageKindChoiceActive}>
-                    <ThemedText style={SermonNotesStyles.languageKindTextActive}>
-                      {block.languageKind === 'hebrew'
-                        ? 'א Hebrew'
-                        : block.languageKind === 'greek'
-                        ? 'α Greek'
-                        : block.languageKind === 'aramaic'
-                        ? '𐡀 Aramaic'
-                        : 'L Latin'}
-                    </ThemedText>
-                  </View>
-                </View>
-              )}
-              <ThemedText style={SermonNotesStyles.captureInput}>{block.text}</ThemedText>
-              {!!block.languageDetails?.length && (
-                <View style={[SermonNotesStyles.languageKindChoices, {marginTop: 10}]}>
-                  {block.languageDetails.map(d => (
-                    <View key={d} style={SermonNotesStyles.languageKindChoiceActive}>
-                      <ThemedText style={SermonNotesStyles.languageKindTextActive}>
-                        {d === 'origin' ? 'Word Origin' : d[0].toUpperCase() + d.slice(1)}
-                      </ThemedText>
-                    </View>
-                  ))}
-                </View>
-              )}
-              {!!block.meaning && (
-                <ThemedText style={SermonNotesStyles.secondaryInput}>Meaning: {block.meaning}</ThemedText>
-              )}
-              {!!block.origin && (
-                <ThemedText style={SermonNotesStyles.secondaryInput}>Origin: {block.origin}</ThemedText>
-              )}
-            </View>
-          );
-        case 'link':
-          const url = normalizeLink(block.text);
-          return (
-            <View>
-              <ThemedText style={SermonNotesStyles.captureInput}>{block.text}</ThemedText>
-              {url && (
-                <TouchableOpacity
-                  onPress={() => {
-                    Linking.openURL(url).catch(() =>
-                      Alert.alert('Could not open link', 'Please check the address.'),
-                    );
-                  }}
-                  style={SermonNotesStyles.openLink}>
-                  <Ionicons name="open-outline" size={15} color={Colors.sage} />
-                  <ThemedText weight="bold" style={SermonNotesStyles.openLinkText}>
-                    Open link
-                  </ThemedText>
-                </TouchableOpacity>
-              )}
-            </View>
-          );
-        case 'character':
-          return (
-            <View>
-              <ThemedText style={SermonNotesStyles.characterName}>{block.text}</ThemedText>
-              {!!block.note && (
-                <ThemedText style={SermonNotesStyles.characterReflection}>{block.note}</ThemedText>
-              )}
-              {!!(block.secondary || block.reference) && (
-                <ThemedText style={[SermonNotesStyles.secondaryInput, SermonNotesStyles.characterScripture]}>
-                  {block.secondary || block.reference}
-                </ThemedText>
-              )}
-            </View>
-          );
-        case 'reflection_question':
-          return (
-            <View>
-              <ThemedText style={SermonNotesStyles.captureInput}>{block.text}</ThemedText>
-              {!!block.note && (
-                <>
-                  <ThemedText
-                    weight="bold"
-                    style={[SermonNotesStyles.detailLabel, {marginTop: 12}]}>
-                    ANSWER
-                  </ThemedText>
-                  <ThemedText style={SermonNotesStyles.captureInput}>{block.note}</ThemedText>
-                </>
-              )}
-            </View>
-          );
-        default:
-          return (
-            <View>
-              <ThemedText
-                style={[
-                  SermonNotesStyles.captureInput,
-                  (block.kind === 'quote' || block.kind === 'prayer') && SermonNotesStyles.serifInput,
-                  block.kind === 'character' && SermonNotesStyles.characterName,
-                ]}>
-                {block.text}
-              </ThemedText>
-              {!!block.secondary && (['quote', 'song', 'book'].includes(block.kind)) && (
-                <ThemedText style={SermonNotesStyles.secondaryInput}>
-                  {block.kind === 'quote'
-                    ? formatJournalAttribution(block.secondary)
-                    : block.secondary}
-                </ThemedText>
-              )}
-            </View>
-          );
-      }
-    };
-
-    if (block.kind === 'table') {
-      return <React.Fragment key={block.id}>{renderContent()}</React.Fragment>;
-    }
 
     return (
-      <View
-        key={block.id}
-        style={[SermonNotesStyles.capture, captureStyle]}>
-        {config && (
-          <View style={SermonNotesStyles.captureHeader}>
-            <View style={SermonNotesStyles.captureLabelRow}>
-              <BlockIcon config={config} size={14} color={Colors.sage} />
-              <ThemedText weight="bold" style={SermonNotesStyles.captureLabel}>
-                {config.label}
-              </ThemedText>
-            </View>
-          </View>
-        )}
-        {renderContent()}
-      </View>
+      <SavedReflectionBlocks
+        blocks={blocksWithChildren}
+        embedded
+        onToggleAction={handleToggleSavedAction}
+        onReorderBlocks={reorderedBlocks =>
+          persistReorderedSavedBlocks(
+            reorderedBlocks.filter(block => !block.parentColumnId),
+          )
+        }
+      />
     );
   };
-
-  const renderMovableBlocks = (tabBlocks: NoteBlock[]) =>
-    tabBlocks.map((block, index) => {
-      const shiftY = (() => {
-        if (!savedDragPreview || savedDragPreview.blockId === block.id) {
-          return 0;
-        }
-        if (
-          savedDragPreview.targetIndex > savedDragPreview.fromIndex &&
-          index > savedDragPreview.fromIndex &&
-          index <= savedDragPreview.targetIndex
-        ) {
-          return -savedDragPreview.blockHeight;
-        }
-        if (
-          savedDragPreview.targetIndex < savedDragPreview.fromIndex &&
-          index >= savedDragPreview.targetIndex &&
-          index < savedDragPreview.fromIndex
-        ) {
-          return savedDragPreview.blockHeight;
-        }
-        return 0;
-      })();
-      return (
-        <DraggableJournalBlock
-          key={block.id}
-          blockId={block.id}
-          selected={selectedSavedBlockId === block.id}
-          shiftY={shiftY}
-          onSelect={() => setSelectedSavedBlockId(block.id)}
-          onLayout={layout => savedBlockLayoutsRef.current.set(block.id, layout)}
-          onDragStart={handleSavedDragStart}
-          onDragMove={handleSavedDragMove}
-          onDragEnd={handleSavedDragEnd}>
-          {renderNoteBlock(block)}
-        </DraggableJournalBlock>
-      );
-    });
-
-  const handleDelete = () => {
-    triggerLightHaptic();
-    Alert.alert(
-      'Delete sermon note?',
-      'This cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              if (reflectionId) {
-                await deleteLocalReflection(reflectionId, 'sermon', selectedDate);
-              }
-              navigation.goBack();
-            } catch (error) {
-              console.warn('Error deleting sermon note:', error);
-            }
-          },
-        },
-      ],
-    );
-  };
-
   const handleEdit = () => {
     triggerLightHaptic();
     const params: any = { reflectionId, selectedDate };
@@ -869,9 +432,6 @@ const SermonNotesDetailScreen: React.FC = () => {
               ],
             },
           ]}>
-          {!!dateStr && (
-            <ThemedText style={SermonNotesStyles.sermonDate}>{dateStr}</ThemedText>
-          )}
           <ThemedText weight="bold" style={SermonNotesStyles.sermonEyebrow}>
             {sessionNoteTypeLabel(sessionType).toUpperCase()}
           </ThemedText>
@@ -884,6 +444,9 @@ const SermonNotesDetailScreen: React.FC = () => {
             <ThemedText weight="bold" style={SermonNotesStyles.sermonPastor}>
               {speaker}
             </ThemedText>
+          )}
+          {!!dateStr && (
+            <ThemedText style={SermonNotesStyles.sermonDate}>{dateStr}</ThemedText>
           )}
 
           {hasAdditionalDetails && (
@@ -1036,9 +599,7 @@ const SermonNotesDetailScreen: React.FC = () => {
       </Animated.ScrollView>
 
       <View style={[styles.topBar, {top: insets.top + 16}]}>
-        <TouchableOpacity onPress={handleDelete} style={styles.cornerActionButton} activeOpacity={0.7} hitSlop={{top: 8, bottom: 8, left: 8, right: 8}} accessibilityRole="button" accessibilityLabel="Delete sermon notes">
-          <Trash2 size={17} color={Colors.textGray} />
-        </TouchableOpacity>
+        <View style={styles.topBarSpacer} />
         <Animated.View
           pointerEvents={tabsFloating ? 'auto' : 'none'}
           style={[
@@ -1093,7 +654,6 @@ const SermonNotesDetailScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  fullWidthTable: {width: '100%'},
   screen: {
     flex: 1,
     backgroundColor: Colors.lightBackground,
@@ -1121,6 +681,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
+  },
+  topBarSpacer: {
+    width: 94,
   },
   cornerActionButton: {
     width: 42,

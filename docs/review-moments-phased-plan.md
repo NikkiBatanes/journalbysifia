@@ -119,7 +119,7 @@ Use a review-specific group component with the Morning/Evening spacing and visua
 | --- | --- |
 | Weekly End | `week_feelings`, custom feeling, all seven `week_check_in_*` fields, remembered references, `notice` plus every `weekly_gratitude_*` response, God's faithfulness selections/custom response, `prayer`, saved prayer-event snapshot where present. |
 | Weekly Begin | Three priorities, `dont_forget`, `people`, `prayer_ahead`, `rest`, `watch_for`, `faithful_step`, and explicitly selected carried references. |
-| Monthly End | Remember, notice, faithfulness, formation, prayer, release, and remembered references. |
+| Monthly End | Remember, notice, formation, prayer, God’s faithfulness, and remembered references. Legacy release answers remain readable. |
 | Monthly Begin | Three next-month priorities, attention, continue, simplify/stop, people, rhythm, and prayer. |
 | Quarterly End | Season name, patterns, growth, faithfulness, prayer, release, continue, and remembered references. |
 | Quarterly Begin | Three quarter priorities, less attention, decision, relationship, rhythm, postponing, and faithfulness. |

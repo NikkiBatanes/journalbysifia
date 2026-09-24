@@ -24,7 +24,12 @@ describe('Review periods close before becoming available', () => {
 
   it('does not expose month, quarter, or year before closure', () => {
     expect(getMonthlyPeriodFor('2026-09-30')).toMatchObject({periodStart: '2026-08-01', periodEnd: '2026-08-31'});
-    expect(getMonthlyPeriodFor('2026-10-01')).toMatchObject({periodStart: '2026-09-01', periodEnd: '2026-09-30'});
+    expect(getMonthlyPeriodFor('2026-10-01')).toMatchObject({
+      periodStart: '2026-09-01',
+      periodEnd: '2026-09-30',
+      availableFrom: '2026-10-01',
+      availableUntil: '2026-10-08',
+    });
     expect(getQuarterlyPeriodFor('2026-09-30')).toMatchObject({periodStart: '2026-04-01', periodEnd: '2026-06-30'});
     expect(getQuarterlyPeriodFor('2026-10-01')).toMatchObject({periodStart: '2026-07-01', periodEnd: '2026-09-30'});
     expect(getYearEndPeriodFor('2026-12-31')).toBeNull();

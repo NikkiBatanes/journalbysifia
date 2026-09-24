@@ -16,6 +16,7 @@ import {
 import { Colors } from '../theme/colors';
 import { Fonts } from '../theme/fonts';
 import { triggerLightHaptic } from '../utils/haptics';
+import {returnToMainTab} from '../navigation/returnToMainTab';
 
 const DAILY_RHYTHMS: FaithfulRhythmId[] = ['morning', 'evening', 'heart_journal', 'prayer'];
 const WEEKLY_RHYTHMS: FaithfulRhythmId[] = ['bible_study'];
@@ -45,7 +46,7 @@ const RhythmSection = ({
   </View>
 );
 
-const FaithfulRhythmsScreen: React.FC = () => {
+const FaithfulRhythmsScreen: React.FC<any> = ({route}) => {
   const navigation = useNavigation<any>();
   const insets = useSafeAreaInsets();
   const {preferences} = useAuth();
@@ -133,8 +134,13 @@ const FaithfulRhythmsScreen: React.FC = () => {
         style={[styles.closeButton, {top: insets.top + 8}]}
         onPress={() => {
           triggerLightHaptic();
-          if (navigation.canGoBack()) {navigation.goBack();}
-          else {navigation.navigate('MainTabs');}
+          if (route?.params?.returnTo === 'More') {
+            returnToMainTab(navigation, 'More');
+          } else if (navigation.canGoBack()) {
+            navigation.goBack();
+          } else {
+            navigation.navigate('MainTabs');
+          }
         }}
         accessibilityRole="button"
         accessibilityLabel="Close faithful rhythms"

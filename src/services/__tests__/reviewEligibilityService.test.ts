@@ -63,6 +63,33 @@ describe('read-only Review eligibility', () => {
     expect(getValidJournalHistoryStart).not.toHaveBeenCalled();
   });
 
+  it('keeps the prior monthly review actionable only through the first seven days', async () => {
+    const monthlyOnly = {...settings, enabledCadences: {...settings.enabledCadences, weekly: false, quarterly: false, year_end: false, begin_year: false}};
+    const options = {settingsOverride: monthlyOnly, historyStartOverride: '2025-01-01'};
+
+    expect((await getReviewEligibility('2026-10-07', undefined, options)).allActive.map(item => item.type)).toEqual(['monthly']);
+    expect((await getReviewEligibility('2026-10-08', undefined, options)).allActive.map(item => item.type)).toEqual([]);
+  });
+
+  it('does not delete or return an expired monthly draft as actionable', async () => {
+    const monthlyOnly = {...settings, enabledCadences: {...settings.enabledCadences, weekly: false, quarterly: false, year_end: false, begin_year: false}};
+    (getLocalReviewForPeriod as jest.Mock).mockResolvedValue({
+      id: 'monthly-draft',
+      type: 'monthly',
+      periodStart: '2026-09-01',
+      periodEnd: '2026-09-30',
+      status: 'draft',
+    });
+
+    const result = await getReviewEligibility('2026-10-08', undefined, {
+      settingsOverride: monthlyOnly,
+      historyStartOverride: '2025-01-01',
+    });
+
+    expect(result.allActive).toEqual([]);
+    expect(getLocalReviewForPeriod).not.toHaveBeenCalled();
+  });
+
   it('removes completed higher-priority Reviews before selecting main', async () => {
     (getValidJournalHistoryStart as jest.Mock).mockResolvedValue('2025-01-01');
     (getLocalReviewForPeriod as jest.Mock).mockImplementation(async (type: string, start: string, end: string) =>

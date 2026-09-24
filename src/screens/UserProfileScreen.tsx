@@ -20,7 +20,7 @@ import {
   TextInput,
   Modal,
   Pressable,
-  // Switch removed - using custom toggle
+  Switch,
   Image,
   Keyboard,
 } from 'react-native';
@@ -47,12 +47,26 @@ import { useScreenStatusBar } from '../hooks/useScreenStatusBar';
 // POST-LAUNCH: import { useFamilySubscription } from '../hooks/useFamilySubscription';
 import { reportBug } from '../services/bugReportService';
 import { reportFeature } from '../services/featureRequestService';
-import { triggerLightHaptic, triggerSuccessHaptic } from '../utils/haptics';
+import { triggerLightHaptic, triggerSelectionHaptic, triggerSuccessHaptic } from '../utils/haptics';
 import { pushNotificationService } from '../services/pushNotificationService';
 import { navigateFromRoot } from '../utils/navigationHelpers';
 import { openStoreReview } from '../services/reviewPromptService';
 import { replaceStoredUserNameInPlaybooks } from '../services/supabaseApiNormalized';
 import { useQueryClient } from '@tanstack/react-query';
+import {prefetchDashboardScriptures} from '../services/dashboardScripturePrefetchService';
+import {getJournalOnboardingSetup, saveJournalOnboardingSetup} from '../services/journalOnboardingState';
+import {gospelStorage} from '../storage/gospelStorage';
+import {getNewLifeDayCopy} from '../utils/newLifeDayCopy';
+import {
+  noteBlockPreferences,
+  useNoteBlockPreferences,
+} from '../services/noteBlockPreferences';
+import {
+  NOTE_BLOCK_CATEGORIES,
+  NOTE_BLOCK_REGISTRY,
+  type SelectableJournalBlockKind,
+} from '../components/journal/shared/journalBlocks';
+import {NoteBlockCatalogPreview} from '../components/journal/shared/NoteBlockCatalogPreview';
 
 const { width } = Dimensions.get('window');
 
@@ -63,12 +77,16 @@ const APPLE_APP_ID = '6751785713';
 const ANDROID_PACKAGE = 'app.journal.sifia';
 const MORE_ENTRY_COUNT = 11;
 const MORE_ENTRY_STAGGER_MS = 55;
+const PERSONALIZABLE_NOTE_BLOCKS = Object.values(NOTE_BLOCK_REGISTRY).filter(
+  definition => definition.selectable,
+);
 
 interface Props {
   navigation: any;
 }
 
 const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
+  const noteBlockPreferenceSnapshot = useNoteBlockPreferences();
   const { user, signOut, updatePreferences, preferences: savedPreferences, profile: savedProfile, updateProfile } = useAuth();
   const queryClient = useQueryClient();
   const insets = useSafeAreaInsets();
@@ -86,6 +104,8 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
   const entryAnimations = useRef(
     Array.from({ length: MORE_ENTRY_COUNT }, () => new Animated.Value(0))
   ).current;
+  const [hasSavedNewLifeDayDate, setHasSavedNewLifeDayDate] = useState(false);
+  const newLifeDayCopy = getNewLifeDayCopy(hasSavedNewLifeDayDate);
 
   // Replay the entrance whenever More becomes the active tab. Each content
   // group rises and overshoots slightly, producing a quick staggered bounce.
@@ -93,6 +113,14 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
     useCallback(() => {
       let active = true;
       let entrance: Animated.CompositeAnimation | null = null;
+
+      gospelStorage.getForMeDaySettings()
+        .then(settings => {
+          if (active) {
+            setHasSavedNewLifeDayDate(Boolean(settings?.spiritualBirthday));
+          }
+        })
+        .catch(() => {});
 
       entryAnimations.forEach(value => {
         value.stopAnimation();
@@ -238,7 +266,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
   // Optimistic toggle update for notification preferences
   const updatePref = useCallback(
     async (key: keyof NotificationPreferences, value: boolean) => {
-      try { triggerLightHaptic(); } catch {}
+      try { triggerSelectionHaptic(); } catch {}
       if (!notificationPrefs || !user?.id) {
 
         return;
@@ -467,6 +495,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
   const [showTabLabelsEnabled, setShowTabLabelsEnabled] = useState(true);
   const [isSavingCalendarAutoSync, setIsSavingCalendarAutoSync] = useState(false);
   const [settingsModal, setSettingsModal] = useState(false);
+  const [noteBlocksModal, setNoteBlocksModal] = useState(false);
   const [weekStartModal, setWeekStartModal] = useState(false);
   const [weekStartDraft, setWeekStartDraft] = useState<UserPreferences['weekStart']>('monday');
   // Bible Version modal and draft
@@ -1088,6 +1117,12 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
       if (result.success) {
         setPreferences(updatedPreferences);
         setBibleVersionModal(false);
+        prefetchDashboardScriptures(bibleVersionDraft).catch(() => {});
+        // Keep the local startup hint aligned with the canonical preference so
+        // the next cold launch hydrates the correct translation before Today.
+        getJournalOnboardingSetup()
+          .then(setup => saveJournalOnboardingSetup({...setup, bibleVersion: bibleVersionDraft}))
+          .catch(() => {});
       } else {
         Logger.error('[UserProfile] Failed to save Bible version', result.error as Error, {
         component: 'UserProfileScreen',
@@ -1111,7 +1146,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
     }
 
     try {
-      try { triggerLightHaptic(); } catch {}
+      try { triggerSelectionHaptic(); } catch {}
       setIsSavingCalendarAutoSync(true);
 
       const currentValue = preferences.calendar?.autoSync || false;
@@ -1341,12 +1376,12 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
             try { triggerLightHaptic(); } catch {}
             navigateFromRoot(navigation, 'JournalOnboarding', { mode: 'replay' });
           }}
-          accessibilityLabel="Open How to use Journal"
+          accessibilityLabel="Open Onboarding"
         >
           <View style={styles.menuIconBox}>
             <Ionicons name="compass" size={18} color={Colors.sage} />
           </View>
-          <Text style={[styles.menuText, font]}>How to use Journal</Text>
+          <Text style={[styles.menuText, font]}>Onboarding</Text>
           <Ionicons name="chevron-forward" size={20} color={theme.colors.chevronColor} />
         </TouchableOpacity>
 
@@ -1405,31 +1440,19 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           <Ionicons name="chevron-forward" size={20} color={theme.colors.chevronColor} />
         </TouchableOpacity>
 
-        <TouchableOpacity
-          style={[styles.menuItem, styles.menuItemSpaced]}
-          onPress={handleToggleCalendarAutoSync}
-          disabled={isSavingCalendarAutoSync}
-        >
+        <View style={[styles.menuItem, styles.menuItemSpaced]}>
           <View style={styles.menuIconBox}>
             <Ionicons name="calendar-outline" size={18} color={Colors.sage} />
           </View>
           <Text style={[styles.menuText, font]}>Auto-sync to Calendar</Text>
-          <TouchableOpacity
-            onPress={handleToggleCalendarAutoSync}
+          <Switch
+            value={preferences.calendar?.autoSync || false}
+            onValueChange={handleToggleCalendarAutoSync}
             disabled={isSavingCalendarAutoSync}
-            style={styles.switchContainer}
-          >
-            <View style={[
-              styles.switchTrack,
-              (preferences.calendar?.autoSync || false) ? styles.switchTrackActive : styles.switchTrackInactive,
-            ]}>
-              <View style={[
-                styles.switchThumb,
-                { transform: [{ translateX: (preferences.calendar?.autoSync || false) ? 20 : 0 }] },
-              ]} />
-            </View>
-          </TouchableOpacity>
-        </TouchableOpacity>
+            trackColor={{false: Colors.lightGray, true: Colors.sageMuted}}
+            thumbColor={Colors.hopeWhite}
+          />
+        </View>
 
         <TouchableOpacity
           style={styles.menuItem}
@@ -1487,75 +1510,71 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
 
         <TouchableOpacity
           style={[styles.menuItem, styles.menuItemSpaced]}
-          onPress={() => { try { triggerLightHaptic(); } catch {} setSettingsModal(true); }}
-        >
+          onPress={() => {
+            try { triggerLightHaptic(); } catch {}
+            setNoteBlocksModal(true);
+          }}
+          accessibilityRole="button"
+          accessibilityLabel="Customize note blocks">
+          <View style={styles.menuIconBox}>
+            <Ionicons name="grid" size={18} color={Colors.sage} />
+          </View>
+          <View style={styles.featureMenuCopy}>
+            <Text style={[styles.featureMenuTitle, font]}>Note Blocks</Text>
+            <Text style={[styles.featureMenuSubtitle, font]}>
+              Choose visible formats and favorites
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={theme.colors.chevronColor} />
+        </TouchableOpacity>
+
+        <View style={[styles.menuItem, styles.menuItemSpaced]}>
           <View style={styles.menuIconBox}>
             <Ionicons name="pulse" size={18} color={Colors.sage} />
           </View>
           <Text style={[styles.menuText, font]}>Haptics</Text>
-          <TouchableOpacity
-            onPress={() => { try { triggerLightHaptic(); } catch {} onToggleHaptics(!hapticsEnabled); }}
-            style={styles.switchContainer}
-          >
-            <View style={[
-              styles.switchTrack,
-              hapticsEnabled ? styles.switchTrackActive : styles.switchTrackInactive,
-            ]}>
-              <View style={[
-                styles.switchThumb,
-                { transform: [{ translateX: hapticsEnabled ? 20 : 0 }] },
-              ]} />
-            </View>
-          </TouchableOpacity>
-        </TouchableOpacity>
+          <Switch
+            value={hapticsEnabled}
+            onValueChange={value => {
+              try { triggerSelectionHaptic(); } catch {}
+              onToggleHaptics(value);
+            }}
+            trackColor={{false: Colors.lightGray, true: Colors.sageMuted}}
+            thumbColor={Colors.hopeWhite}
+          />
+        </View>
 
-        <TouchableOpacity
-          style={[styles.menuItem, styles.menuItemSpaced]}
-          onPress={() => { try { triggerLightHaptic(); } catch {} setSettingsModal(true); }}
-        >
+        <View style={[styles.menuItem, styles.menuItemSpaced]}>
           <View style={styles.menuIconBox}>
             <Ionicons name="volume-high" size={18} color={Colors.sage} />
           </View>
           <Text style={[styles.menuText, font]}>Sounds</Text>
-          <TouchableOpacity
-            onPress={() => { try { triggerLightHaptic(); } catch {} onToggleSounds(!soundsEnabled); }}
-            style={styles.switchContainer}
-          >
-            <View style={[
-              styles.switchTrack,
-              soundsEnabled ? styles.switchTrackActive : styles.switchTrackInactive,
-            ]}>
-              <View style={[
-                styles.switchThumb,
-                { transform: [{ translateX: soundsEnabled ? 20 : 0 }] },
-              ]} />
-            </View>
-          </TouchableOpacity>
-        </TouchableOpacity>
+          <Switch
+            value={soundsEnabled}
+            onValueChange={value => {
+              try { triggerSelectionHaptic(); } catch {}
+              onToggleSounds(value);
+            }}
+            trackColor={{false: Colors.lightGray, true: Colors.sageMuted}}
+            thumbColor={Colors.hopeWhite}
+          />
+        </View>
 
-        <TouchableOpacity
-          style={[styles.menuItem, styles.menuItemSpaced]}
-          onPress={() => { try { triggerLightHaptic(); } catch {} onToggleShowTabLabels(!showTabLabelsEnabled); }}
-        >
+        <View style={[styles.menuItem, styles.menuItemSpaced]}>
           <View style={styles.menuIconBox}>
             <Ionicons name="albums" size={18} color={Colors.sage} />
           </View>
           <Text style={[styles.menuText, font]}>Show Tab Labels</Text>
-          <TouchableOpacity
-            onPress={() => { try { triggerLightHaptic(); } catch {} onToggleShowTabLabels(!showTabLabelsEnabled); }}
-            style={styles.switchContainer}
-          >
-            <View style={[
-              styles.switchTrack,
-              showTabLabelsEnabled ? styles.switchTrackActive : styles.switchTrackInactive,
-            ]}>
-              <View style={[
-                styles.switchThumb,
-                { transform: [{ translateX: showTabLabelsEnabled ? 20 : 0 }] },
-              ]} />
-            </View>
-          </TouchableOpacity>
-        </TouchableOpacity>
+          <Switch
+            value={showTabLabelsEnabled}
+            onValueChange={value => {
+              try { triggerSelectionHaptic(); } catch {}
+              onToggleShowTabLabels(value);
+            }}
+            trackColor={{false: Colors.lightGray, true: Colors.sageMuted}}
+            thumbColor={Colors.hopeWhite}
+          />
+        </View>
       </View>
     </View>
   );
@@ -1568,7 +1587,10 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           style={[styles.menuItem, styles.menuItemSpaced]}
           onPress={() => {
             try { triggerLightHaptic(); } catch {}
-            navigation.navigate('Journal', {screen: 'PastReviews'});
+            navigation.navigate('Journal', {
+              screen: 'PastReviews',
+              params: isMoreTab ? {returnTo: 'More'} : undefined,
+            });
           }}
           accessibilityLabel="Open Reviews">
           <View style={styles.menuIconBox}><Ionicons name="time" size={18} color={Colors.sage} /></View>
@@ -1590,7 +1612,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           style={[styles.menuItem, styles.menuItemSpaced]}
           onPress={() => {
             try { triggerLightHaptic(); } catch {}
-            navigation.navigate('Gospel');
+            navigation.navigate('Gospel', isMoreTab ? {returnTo: 'More'} : undefined);
           }}
           accessibilityRole="button"
           accessibilityLabel="Open Gospel">
@@ -1607,16 +1629,19 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           style={[styles.menuItem, styles.menuItemSpaced]}
           onPress={() => {
             try { triggerLightHaptic(); } catch {}
-            navigation.navigate('ForMeDay', { mode: 'settings' });
+            navigation.navigate('ForMeDay', {
+              mode: 'settings',
+              ...(isMoreTab ? {returnTo: 'More'} : {}),
+            });
           }}
           accessibilityRole="button"
-          accessibilityLabel="Set up My For Me Day">
+          accessibilityLabel={`Open ${newLifeDayCopy.title}`}>
           <View style={styles.menuIconBox}>
             <Ionicons name="gift" size={18} color={Colors.sage} />
           </View>
           <View style={styles.featureMenuCopy}>
-            <Text style={[styles.featureMenuTitle, font]}>My For Me Day</Text>
-            <Text style={[styles.featureMenuSubtitle, font]}>Your spiritual birthday with Jesus</Text>
+            <Text style={[styles.featureMenuTitle, font]}>{newLifeDayCopy.title}</Text>
+            <Text style={[styles.featureMenuSubtitle, font]}>{newLifeDayCopy.subtitle}</Text>
           </View>
           <Ionicons name="chevron-forward" size={20} color={theme.colors.chevronColor} />
         </TouchableOpacity>
@@ -1639,7 +1664,10 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
         <View style={styles.menuContainer}>
           <TouchableOpacity
             style={styles.menuItem}
-            onPress={() => { try { triggerLightHaptic(); } catch {} navigation.navigate('AdminDashboard'); }}
+            onPress={() => {
+              try { triggerLightHaptic(); } catch {}
+              navigation.navigate('AdminDashboard', isMoreTab ? {returnTo: 'More'} : undefined);
+            }}
             accessibilityLabel="Open Admin Dashboard"
           >
             <View style={styles.menuIconBox}>
@@ -2165,6 +2193,168 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
     </PlatformPageSheetModal>
   );
 
+  const renderNoteBlocksModal = () => (
+    <PlatformPageSheetModal
+      visible={noteBlocksModal}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={() => setNoteBlocksModal(false)}>
+      <SafeAreaView style={styles.modalContainer}>
+        <View style={styles.modalHeader}>
+          <HeaderBackButton
+            color={Colors.text}
+            onPress={() => {
+              try { triggerLightHaptic(); } catch {}
+              setNoteBlocksModal(false);
+            }}
+          />
+          <Text style={[styles.modalTitle, font]}>Note Blocks</Text>
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel="Reset note block preferences"
+            onPress={() => {
+              try { triggerLightHaptic(); } catch {}
+              noteBlockPreferences.reset().catch(() => undefined);
+            }}
+            style={styles.noteBlockResetButton}>
+            <Text style={[styles.noteBlockResetText, font]}>Reset</Text>
+          </TouchableOpacity>
+        </View>
+
+        <ScrollView
+          style={styles.modalContent}
+          contentContainerStyle={styles.noteBlockModalContent}
+          showsVerticalScrollIndicator={false}>
+          <View style={styles.noteBlockIntro}>
+            <View style={styles.noteBlockIntroIcon}>
+              <Ionicons name="grid" size={21} color={Colors.sage} />
+            </View>
+            <View style={styles.noteBlockIntroCopy}>
+              <Text style={[styles.noteBlockIntroTitle, font]}>
+                Make the picker yours
+              </Text>
+              <Text style={[styles.noteBlockIntroText, font]}>
+                Visible blocks appear wherever that format is supported. Star as many favorites as you like for the initial bar.
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.noteBlockSelectionSummary}>
+            <Ionicons name="star" size={18} color={Colors.faithGold} />
+            <Text style={[styles.noteBlockSelectionSummaryText, font]}>
+              {noteBlockPreferenceSnapshot.favoriteKinds.length}{' '}
+              {noteBlockPreferenceSnapshot.favoriteKinds.length === 1
+                ? 'favorite'
+                : 'favorites'}{' '}
+              selected
+            </Text>
+            <View style={styles.noteBlockVisibilitySummary}>
+              <Ionicons name="eye-outline" size={16} color={Colors.sageMuted} />
+              <Text style={[styles.noteBlockVisibilitySummaryText, font]}>
+                {noteBlockPreferenceSnapshot.enabledKinds.length} visible
+              </Text>
+            </View>
+          </View>
+
+          {NOTE_BLOCK_CATEGORIES.map(category => {
+            const definitions = PERSONALIZABLE_NOTE_BLOCKS.filter(
+              definition => definition.category === category.id,
+            );
+            if (!definitions.length) {return null;}
+            return (
+              <View key={category.id} style={styles.noteBlockCategory}>
+                <Text style={[styles.noteBlockCategoryLabel, font]}>
+                  {category.label.toUpperCase()}
+                </Text>
+                <View style={styles.noteBlockGrid}>
+                  {[0, 1].map(columnIndex => (
+                    <View key={columnIndex} style={styles.noteBlockMasonryColumn}>
+                      {definitions
+                        .filter((_, index) => index % 2 === columnIndex)
+                        .map(definition => {
+                          const kind = definition.kind as SelectableJournalBlockKind;
+                          const enabled = noteBlockPreferenceSnapshot.enabledKinds.includes(kind);
+                          const favorite = noteBlockPreferenceSnapshot.favoriteKinds.includes(kind);
+                          return (
+                            <View
+                              key={kind}
+                              style={[
+                                styles.noteBlockPreviewTile,
+                                favorite && styles.noteBlockPreviewTileSelected,
+                              ]}>
+                              <TouchableOpacity
+                                activeOpacity={0.8}
+                                disabled={!enabled}
+                                style={!enabled && styles.noteBlockFavoriteDisabled}
+                                onPress={async () => {
+                                  try { triggerSelectionHaptic(); } catch {}
+                                  await noteBlockPreferences.toggleFavoriteKind(kind);
+                                }}
+                                accessibilityRole="checkbox"
+                                accessibilityState={{checked: favorite, disabled: !enabled}}
+                                accessibilityLabel={`${definition.pickerLabel}. ${definition.description}`}>
+                                <View style={styles.noteBlockTileHeading}>
+                                  <Text
+                                    numberOfLines={1}
+                                    style={[
+                                      styles.noteBlockTileTitle,
+                                      favorite && styles.noteBlockTileTitleSelected,
+                                      font,
+                                    ]}>
+                                    {definition.pickerLabel}
+                                  </Text>
+                                  <Ionicons
+                                    name={favorite ? 'star' : 'star-outline'}
+                                    size={17}
+                                    color={favorite ? Colors.faithGold : Colors.textGray}
+                                  />
+                                </View>
+                                <NoteBlockCatalogPreview definition={definition} />
+                              </TouchableOpacity>
+
+                              <View style={styles.noteBlockVisibilityRow}>
+                                <View style={styles.noteBlockVisibilityLabel}>
+                                  <Ionicons
+                                    name={enabled ? 'eye-outline' : 'eye-off-outline'}
+                                    size={14}
+                                    color={enabled ? Colors.sage : Colors.textGray}
+                                  />
+                                  <Text style={[styles.noteBlockVisibilityText, font]}>
+                                    {enabled ? 'Visible' : 'Hidden'}
+                                  </Text>
+                                </View>
+                                <Switch
+                                  accessibilityLabel={`Show ${definition.pickerLabel} block`}
+                                  value={enabled}
+                                  trackColor={{false: Colors.lightGray, true: Colors.sageMuted}}
+                                  thumbColor={Colors.hopeWhite}
+                                  style={styles.noteBlockVisibilitySwitch}
+                                  onValueChange={async value => {
+                                    try { triggerSelectionHaptic(); } catch {}
+                                    const changed = await noteBlockPreferences.setKindEnabled(kind, value);
+                                    if (!changed) {
+                                      Alert.alert(
+                                        'Keep one block available',
+                                        'At least one note block must remain available in every editor.',
+                                      );
+                                    }
+                                  }}
+                                />
+                              </View>
+                            </View>
+                          );
+                        })}
+                    </View>
+                  ))}
+                </View>
+              </View>
+            );
+          })}
+        </ScrollView>
+      </SafeAreaView>
+    </PlatformPageSheetModal>
+  );
+
   const renderSettingsModal = () => (
     <PlatformPageSheetModal
       visible={settingsModal}
@@ -2211,78 +2401,46 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.settingGroup}>
             <View style={styles.settingItem}>
               <Text style={[styles.settingLabel, font]}>Prayer Reminders</Text>
-              <TouchableOpacity
-                onPress={() => updatePref('prayer_reminders', !(notificationPrefs?.prayer_reminders ?? false))}
+              <Switch
+                value={notificationPrefs?.prayer_reminders ?? false}
+                onValueChange={value => updatePref('prayer_reminders', value)}
                 disabled={!notificationPrefs}
-                style={styles.switchContainer}
-              >
-                <View style={[
-                  styles.switchTrack,
-                  (notificationPrefs?.prayer_reminders ?? false) ? styles.switchTrackActive : styles.switchTrackInactive,
-                ]}>
-                  <View style={[
-                    styles.switchThumb,
-                    { transform: [{ translateX: (notificationPrefs?.prayer_reminders ?? false) ? 20 : 0 }] },
-                  ]} />
-                </View>
-              </TouchableOpacity>
+                trackColor={{false: Colors.lightGray, true: Colors.sageMuted}}
+                thumbColor={Colors.hopeWhite}
+              />
             </View>
 
             <View style={styles.settingItem}>
               <Text style={[styles.settingLabel, font]}>Journal Prompts</Text>
-              <TouchableOpacity
-                onPress={() => updatePref('journal_prompts', !(notificationPrefs?.journal_prompts ?? false))}
+              <Switch
+                value={notificationPrefs?.journal_prompts ?? false}
+                onValueChange={value => updatePref('journal_prompts', value)}
                 disabled={!notificationPrefs}
-                style={styles.switchContainer}
-              >
-                <View style={[
-                  styles.switchTrack,
-                  (notificationPrefs?.journal_prompts ?? false) ? styles.switchTrackActive : styles.switchTrackInactive,
-                ]}>
-                  <View style={[
-                    styles.switchThumb,
-                    { transform: [{ translateX: (notificationPrefs?.journal_prompts ?? false) ? 20 : 0 }] },
-                  ]} />
-                </View>
-              </TouchableOpacity>
+                trackColor={{false: Colors.lightGray, true: Colors.sageMuted}}
+                thumbColor={Colors.hopeWhite}
+              />
             </View>
 
             <View style={styles.settingItem}>
               <Text style={[styles.settingLabel, font]}>Progress Updates</Text>
-              <TouchableOpacity
-                onPress={() => updatePref('milestone_celebrations', !(notificationPrefs?.milestone_celebrations ?? false))}
+              <Switch
+                value={notificationPrefs?.milestone_celebrations ?? false}
+                onValueChange={value => updatePref('milestone_celebrations', value)}
                 disabled={!notificationPrefs}
-                style={styles.switchContainer}
-              >
-                <View style={[
-                  styles.switchTrack,
-                  (notificationPrefs?.milestone_celebrations ?? false) ? styles.switchTrackActive : styles.switchTrackInactive,
-                ]}>
-                  <View style={[
-                    styles.switchThumb,
-                    { transform: [{ translateX: (notificationPrefs?.milestone_celebrations ?? false) ? 20 : 0 }] },
-                  ]} />
-                </View>
-              </TouchableOpacity>
+                trackColor={{false: Colors.lightGray, true: Colors.sageMuted}}
+                thumbColor={Colors.hopeWhite}
+              />
             </View>
 
             <View style={styles.settingItem}>
               <Text style={[styles.settingLabel, font]}>Prayer Request Alerts</Text>
-              <TouchableOpacity
-                onPress={() => updatePref('prayer_request_alerts', !(notificationPrefs?.prayer_request_alerts ?? false))}
+              <Switch
+                value={notificationPrefs?.prayer_request_alerts ?? false}
+                onValueChange={value => updatePref('prayer_request_alerts', value)}
                 disabled={!notificationPrefs}
-                style={styles.switchContainer}
-              >
-                <View style={[
-                  styles.switchTrack,
-                  (notificationPrefs?.prayer_request_alerts ?? false) ? styles.switchTrackActive : styles.switchTrackInactive,
-                ]}>
-                  <View style={[
-                    styles.switchThumb,
-                    { transform: [{ translateX: (notificationPrefs?.prayer_request_alerts ?? false) ? 20 : 0 }] },
-                  ]} />
-                </View>
-              </TouchableOpacity>
+                trackColor={{false: Colors.lightGray, true: Colors.sageMuted}}
+                thumbColor={Colors.hopeWhite}
+              />
             </View>
 
           </View>
@@ -2318,7 +2476,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
             {renderProfileHeader()}
           </View>)}
           {renderEntry(1, <View style={styles.streakSection}>
-            <FaithfulRhythmsCard variant="profile" />
+            <FaithfulRhythmsCard variant="profile" returnToMore={isMoreTab} />
           </View>)}
           {renderEntry(2, renderGospelSection())}
           {renderEntry(3, renderReflectionSection())}
@@ -2339,6 +2497,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
       {renderWeekStartModal()}
       {renderBibleVersionModal()}
       {renderAppearanceModal()}
+      {renderNoteBlocksModal()}
       {renderSystemPermissionsModal()}
       {renderSettingsModal()}
       {renderReportBugModal()}
@@ -3461,34 +3620,120 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.text,
   },
-  // Custom toggle styles matching TimeBlockLogEditor
-  switchContainer: {
-    padding: 4,
-  },
-  switchTrack: {
-    width: 50,
-    height: 30,
-    borderRadius: 15,
+  noteBlockResetButton: {
+    minWidth: 48,
+    minHeight: 36,
+    alignItems: 'flex-end',
     justifyContent: 'center',
-    paddingHorizontal: 2,
   },
-  switchThumb: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    backgroundColor: Colors.hopeWhite,
-    shadowColor: '#29342E',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
-    elevation: 2,
+  noteBlockResetText: {fontSize: 13, color: Colors.sage, fontWeight: '600'},
+  noteBlockModalContent: {paddingBottom: 42},
+  noteBlockIntro: {
+    flexDirection: 'row',
+    gap: 12,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+    borderRadius: 18,
+    backgroundColor: Colors.lightBackground,
   },
-  switchTrackActive: {
-    backgroundColor: Colors.sage,
+  noteBlockIntroIcon: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 12,
+    backgroundColor: Colors.anchorBlueLight,
   },
-  switchTrackInactive: {
-    backgroundColor: '#DFE4DD',
+  noteBlockIntroCopy: {flex: 1},
+  noteBlockIntroTitle: {fontSize: 15, fontWeight: '700', color: Colors.text},
+  noteBlockIntroText: {
+    marginTop: 3,
+    fontSize: 12,
+    lineHeight: 18,
+    color: Colors.textGray,
   },
+  noteBlockSelectionSummary: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 9,
+    minHeight: 46,
+    marginTop: 14,
+    paddingHorizontal: 14,
+    borderRadius: 15,
+    backgroundColor: Colors.anchorBlueLight,
+  },
+  noteBlockSelectionSummaryText: {fontSize: 12, color: Colors.sage},
+  noteBlockVisibilitySummary: {
+    marginLeft: 'auto',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  noteBlockVisibilitySummaryText: {fontSize: 10, color: Colors.sageMuted},
+  noteBlockCategory: {marginTop: 22},
+  noteBlockCategoryLabel: {
+    marginBottom: 8,
+    marginLeft: 4,
+    fontSize: 10,
+    lineHeight: 15,
+    letterSpacing: 1.1,
+    color: Colors.sageMuted,
+    fontWeight: '700',
+  },
+  noteBlockGrid: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+  },
+  noteBlockMasonryColumn: {flex: 1, gap: 10},
+  noteBlockPreviewTile: {
+    width: '100%',
+    padding: 9,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+    backgroundColor: Colors.cardBackground,
+  },
+  noteBlockPreviewTileSelected: {
+    borderWidth: 2,
+    borderColor: Colors.sage,
+    backgroundColor: Colors.anchorBlueLight,
+    padding: 8,
+  },
+  noteBlockFavoriteDisabled: {opacity: 0.48},
+  noteBlockTileHeading: {
+    height: 25,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 5,
+  },
+  noteBlockTileTitle: {
+    flex: 1,
+    color: Colors.text,
+    fontSize: 11,
+    lineHeight: 15,
+    fontWeight: '600',
+  },
+  noteBlockTileTitleSelected: {color: Colors.sage},
+  noteBlockVisibilityRow: {
+    minHeight: 35,
+    marginTop: 7,
+    paddingTop: 7,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: Colors.cardBorder,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  noteBlockVisibilityLabel: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  noteBlockVisibilityText: {fontSize: 10, color: Colors.textGray},
+  noteBlockVisibilitySwitch: {transform: [{scaleX: 0.72}, {scaleY: 0.72}]},
 });  // Removed test button styles
 
 export default withErrorBoundary(UserProfileScreen, 'UserProfileScreen');

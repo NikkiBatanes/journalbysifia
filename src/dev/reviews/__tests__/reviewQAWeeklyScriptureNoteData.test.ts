@@ -1,18 +1,18 @@
 import {buildWeeklyScriptureNoteFixtures} from '../reviewQAWeeklyScriptureNoteData';
 
 describe('Weekly Review QA Scripture Note data', () => {
-  it('adds one canonical standalone Scripture Note to every day of September 14–20', () => {
+  it('adds one canonical standalone Scripture Note to every day of September 21–27', () => {
     const fixtures = buildWeeklyScriptureNoteFixtures();
 
     expect(fixtures).toHaveLength(7);
     expect(fixtures.map(item => item.selected_date)).toEqual([
-      '2026-09-14',
-      '2026-09-15',
-      '2026-09-16',
-      '2026-09-17',
-      '2026-09-18',
-      '2026-09-19',
-      '2026-09-20',
+      '2026-09-21',
+      '2026-09-22',
+      '2026-09-23',
+      '2026-09-24',
+      '2026-09-25',
+      '2026-09-26',
+      '2026-09-27',
     ]);
     expect(fixtures.every(item => (
       item.id.startsWith('dev-review-v2:weekly:scripture-note:')

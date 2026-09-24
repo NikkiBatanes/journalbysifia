@@ -18,6 +18,38 @@ const randomToken = () => {
   return btoa(String.fromCharCode(...bytes)).replaceAll('+', '-').replaceAll('/', '_').replaceAll('=', '')
 }
 
+type SenderNameFields = {
+  first_name?: unknown
+  last_name?: unknown
+  full_name?: unknown
+  display_name?: unknown
+}
+
+const cleanName = (value: unknown) => typeof value === 'string' ? value.trim().replace(/\s+/g, ' ') : ''
+
+const joinedName = (source?: SenderNameFields | null) => {
+  const firstName = cleanName(source?.first_name)
+  const lastName = cleanName(source?.last_name)
+  return firstName && lastName ? `${firstName} ${lastName}` : ''
+}
+
+const resolveSenderName = (provided: unknown, profile?: SenderNameFields | null, metadata?: SenderNameFields | null) => {
+  const providedName = cleanName(provided)
+  const candidates = [
+    joinedName(profile),
+    joinedName(metadata),
+    providedName.includes(' ') ? providedName : '',
+    cleanName(profile?.full_name),
+    cleanName(metadata?.full_name),
+    cleanName(profile?.display_name),
+    cleanName(metadata?.display_name),
+    providedName,
+    cleanName(profile?.first_name),
+    cleanName(metadata?.first_name),
+  ]
+  return candidates.find(Boolean)?.slice(0, 80) || ''
+}
+
 serve(async req => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
   if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405)
@@ -25,7 +57,7 @@ serve(async req => {
   const url = Deno.env.get('SUPABASE_URL') ?? ''
   const anonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? ''
   const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-  const body = await req.json().catch(() => ({})) as { action?: 'responses'; personId?: string; ownerKey?: string; senderName?: string }
+  const body = await req.json().catch(() => ({})) as { action?: 'responses' | 'link-person'; personId?: string; linkId?: string; ownerKey?: string; senderName?: string }
   // Older app builds did not send an owner key. They can still share safely;
   // current builds persist one locally so future sender-response views can use it.
   const ownerKey = body.ownerKey && body.ownerKey.length >= 32 ? body.ownerKey : randomToken()
@@ -35,6 +67,20 @@ serve(async req => {
   const accessToken = authorization?.replace(/^Bearer\s+/i, '')
   const { data: { user } } = accessToken ? await authClient.auth.getUser(accessToken) : { data: { user: null } }
   const admin = createClient(url, serviceKey)
+
+  if (body.action === 'link-person') {
+    if (!body.linkId || !body.personId) return json({ error: 'A response and person are required' }, 400)
+    const { data: linked, error: linkError } = await admin
+      .from('gospel_share_links')
+      .update({ person_id: body.personId })
+      .eq('id', body.linkId)
+      .eq('owner_key_hash', await hashToken(ownerKey))
+      .select('id')
+      .maybeSingle()
+    if (linkError) return json({ error: 'Unable to connect this response' }, 500)
+    if (!linked) return json({ error: 'Response not found' }, 404)
+    return json({ linked: true })
+  }
 
   if (body.action === 'responses') {
     const { data: links, error: linksError } = await admin
@@ -54,7 +100,13 @@ serve(async req => {
   }
 
   const token = randomToken()
-  const displayName = String(body.senderName || user?.user_metadata?.display_name || user?.user_metadata?.full_name || 'Someone').slice(0, 80)
+  const { data: profile } = user ? await admin
+    .from('user_profiles')
+    .select('first_name,last_name,full_name,display_name')
+    .eq('id', user.id)
+    .maybeSingle() : { data: null }
+  const displayName = resolveSenderName(body.senderName, profile, user?.user_metadata)
+  if (!displayName) return json({ error: 'Add your first and last name in Profile before sharing the Gospel.' }, 400)
   const { error } = await admin.from('gospel_share_links').insert({
     sender_user_id: user?.id || null,
     sender_display_name: displayName,

@@ -12,6 +12,36 @@ const hashToken = async (token: string) => {
   return Array.from(new Uint8Array(digest)).map(value => value.toString(16).padStart(2, '0')).join('')
 }
 
+type SenderNameFields = {
+  first_name?: unknown
+  last_name?: unknown
+  full_name?: unknown
+  display_name?: unknown
+}
+
+const cleanName = (value: unknown) => typeof value === 'string' ? value.trim().replace(/\s+/g, ' ') : ''
+
+const joinedName = (source?: SenderNameFields | null) => {
+  const firstName = cleanName(source?.first_name)
+  const lastName = cleanName(source?.last_name)
+  return firstName && lastName ? `${firstName} ${lastName}` : ''
+}
+
+const resolveSenderName = (stored: unknown, profile?: SenderNameFields | null, metadata?: SenderNameFields | null) => {
+  const storedName = cleanName(stored)
+  return [
+    joinedName(profile),
+    joinedName(metadata),
+    cleanName(profile?.full_name),
+    cleanName(metadata?.full_name),
+    cleanName(profile?.display_name),
+    cleanName(metadata?.display_name),
+    storedName === 'Someone' ? '' : storedName,
+    cleanName(profile?.first_name),
+    cleanName(metadata?.first_name),
+  ].find(Boolean) || 'Someone'
+}
+
 serve(async req => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
   if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405)
@@ -31,10 +61,26 @@ serve(async req => {
   }
 
   if (!body.token || body.token.length < 32) return json({ error: 'Invalid link' }, 400)
-  const { data: link } = await admin.from('gospel_share_links').select('id,sender_display_name,expires_at,revoked_at').eq('token_hash', await hashToken(body.token)).maybeSingle()
+  const { data: link } = await admin.from('gospel_share_links').select('id,sender_user_id,sender_display_name,expires_at,revoked_at').eq('token_hash', await hashToken(body.token)).maybeSingle()
   if (!link || link.revoked_at || new Date(link.expires_at).getTime() <= Date.now()) return json({ error: 'This Gospel link is no longer available' }, 404)
 
-  if (body.action === 'resolve') return json({ senderDisplayName: link.sender_display_name || 'Someone' })
+  if (body.action === 'resolve') {
+    let profile: SenderNameFields | null = null
+    let metadata: SenderNameFields | null = null
+    if (link.sender_user_id) {
+      const [profileResult, userResult] = await Promise.all([
+        admin.from('user_profiles').select('first_name,last_name,full_name,display_name').eq('id', link.sender_user_id).maybeSingle(),
+        admin.auth.admin.getUserById(link.sender_user_id),
+      ])
+      profile = profileResult.data
+      metadata = userResult.data.user?.user_metadata as SenderNameFields | undefined || null
+    }
+    const senderDisplayName = resolveSenderName(link.sender_display_name, profile, metadata)
+    if (senderDisplayName !== link.sender_display_name && senderDisplayName !== 'Someone') {
+      await admin.from('gospel_share_links').update({ sender_display_name: senderDisplayName }).eq('id', link.id)
+    }
+    return json({ senderDisplayName })
+  }
   if (body.action !== 'respond') return json({ error: 'Invalid action' }, 400)
   if (!body.consent) return json({ shared: false })
 
@@ -42,10 +88,11 @@ serve(async req => {
   if (!body.response || !allowed.includes(body.response)) return json({ error: 'Invalid response' }, 400)
   const message = body.optionalMessage?.trim().slice(0, 1000) || null
   const responderName = body.shareName ? body.responderName?.trim().slice(0, 80) || null : null
-  const spiritualBirthday = body.response === 'trusted_jesus_today' ? new Date().toISOString().slice(0, 10) : null
+  const consentedAt = new Date().toISOString()
+  const spiritualBirthday = body.response === 'trusted_jesus_today' ? consentedAt.slice(0, 10) : null
   const claimToken = crypto.getRandomValues(new Uint8Array(32))
   const rawClaimToken = btoa(String.fromCharCode(...claimToken)).replaceAll('+', '-').replaceAll('/', '_').replaceAll('=', '')
-  const { error } = await admin.from('gospel_shared_responses').upsert({
+  const { data: savedResponse, error } = await admin.from('gospel_shared_responses').upsert({
     share_link_id: link.id,
     response: body.response,
     optional_message: message,
@@ -53,8 +100,22 @@ serve(async req => {
     spiritual_birthday: spiritualBirthday,
     claim_token_hash: await hashToken(rawClaimToken),
     claimed_at: null,
-    consented_at: new Date().toISOString(),
-  }, { onConflict: 'share_link_id' })
+    consented_at: consentedAt,
+  }, { onConflict: 'share_link_id' }).select('id').single()
   if (error) return json({ error: 'Unable to share response' }, 500)
+  const impactEventId = `gospel-web-response:${savedResponse.id}:accepted`
+  if (body.response === 'trusted_jesus_today') {
+    const { error: impactError } = await admin.from('journal_impact_events').upsert({
+      client_event_id: impactEventId,
+      event_type: 'accepted_jesus',
+      occurred_at: consentedAt,
+      method: 'link',
+      platform: 'web',
+      user_id: link.sender_user_id || null,
+    }, { onConflict: 'client_event_id', ignoreDuplicates: true })
+    if (impactError) console.error('Unable to record Gospel acceptance impact', impactError)
+  } else {
+    await admin.from('journal_impact_events').delete().eq('client_event_id', impactEventId)
+  }
   return json({ shared: true, claimUrl: `sifia://gospel/claim/${rawClaimToken}` })
 })

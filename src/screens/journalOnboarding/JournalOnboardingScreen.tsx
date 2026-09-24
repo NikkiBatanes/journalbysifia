@@ -7,6 +7,7 @@ import React, {useEffect, useRef, useState} from 'react';
 import {
   ActivityIndicator,
   Image,
+  Keyboard,
   KeyboardAvoidingView,
   Linking,
   PanResponder,
@@ -26,6 +27,16 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import {BookHeart, BookOpen, Brain, Clock3, Compass, File, HandHeart, Heart, Pencil, RefreshCw, Sprout, SunMoon} from 'lucide-react-native';
 
 import ThemedText from '../../components/common/ThemedText';
+import {SavedReflectionBlocks} from '../../components/journal/SavedReflectionBlocks';
+import {JournalAdvancedBlockEditor} from '../../components/journal/shared/JournalAdvancedBlockEditor';
+import {JournalTableBlock} from '../../components/journal/shared/JournalTableBlock';
+import {
+  NOTE_BLOCK_CATEGORIES,
+  NOTE_BLOCK_REGISTRY,
+  type JournalBlock,
+  type NoteBlockDefinition,
+  type SelectableJournalBlockKind,
+} from '../../components/journal/shared/journalBlocks';
 import {useAuth} from '../../context/IndustryStandardAuthContext';
 import type {RootStackParamList} from '../../navigation/types';
 import {
@@ -39,12 +50,17 @@ import {
 import {Colors} from '../../theme/colors';
 import {Fonts} from '../../theme/fonts';
 import {triggerLightHaptic, triggerSuccessHaptic} from '../../utils/haptics';
+import {prefetchDashboardScriptures} from '../../services/dashboardScripturePrefetchService';
+import {
+  noteBlockPreferences,
+  useNoteBlockPreferences,
+} from '../../services/noteBlockPreferences';
 
 type JournalOnboardingRoute = RouteProp<RootStackParamList, 'JournalOnboarding'>;
 type ChoiceIcon = string | React.ComponentType<{size?: number; color?: string; strokeWidth?: number}>;
 type GuidePoint = {icon: ChoiceIcon; heading: string; detail: string};
 
-const TOTAL_STEPS = 14;
+const TOTAL_STEPS = 15;
 const BIBLE_VERSIONS = [
   {key: 'NIV', name: 'New International Version'},
   {key: 'NLT', name: 'New Living Translation'},
@@ -90,6 +106,120 @@ const OTHER_WEEK_DAYS: {key: JournalWeekStart; label: string}[] = [
   {key: 'friday', label: 'Friday'},
 ];
 
+const ONBOARDING_NOTE_BLOCKS = (Object.values(
+  NOTE_BLOCK_REGISTRY,
+) as NoteBlockDefinition[]).filter(definition => definition.selectable);
+
+const onboardingPhotoUri = Image.resolveAssetSource(
+  require('../../../assets/images/reviews/weekly-cover-looking-back-v2.png'),
+).uri;
+
+const NOTE_BLOCK_MOCKUPS: Record<SelectableJournalBlockKind, JournalBlock[]> = {
+  section: [{id: 'mock-section', kind: 'section', text: 'What I’m learning'}],
+  action: [
+    {id: 'mock-action-1', kind: 'action', text: 'Pause before I respond', completed: true},
+    {id: 'mock-action-2', kind: 'action', text: 'Pray for wisdom', completed: false},
+    {id: 'mock-action-3', kind: 'action', text: 'Encourage someone today', completed: false},
+  ],
+  bullets: [{id: 'mock-bullets', kind: 'bullets', text: 'What stood out', points: ['Grace meets me here', 'God is present in the waiting', 'I can respond with trust']}],
+  numbered: [{id: 'mock-numbered', kind: 'numbered', text: 'Practice this truth', points: ['Pause and listen', 'Write what comes to mind', 'Choose one faithful response']}],
+  column: [
+    {id: 'mock-column', kind: 'column', text: ''},
+    {id: 'mock-column-left', kind: 'photo', text: 'A quiet reminder', uri: onboardingPhotoUri, parentColumnId: 'mock-column', columnSide: 'left'},
+    {id: 'mock-column-right-bullets', kind: 'bullets', text: 'Ways to respond', points: ['Pause', 'Pray', 'Trust'], parentColumnId: 'mock-column', columnSide: 'right'},
+    {id: 'mock-column-right-quote', kind: 'quote', text: 'Faith is to believe what you do not see; the reward of this faith is to see what you believe.', secondary: 'Augustine', parentColumnId: 'mock-column', columnSide: 'right'},
+    {id: 'mock-column-right-voice', kind: 'voice', text: 'Prayer after today’s reading', uri: 'mock://column-voice-note', durationMillis: 18000, parentColumnId: 'mock-column', columnSide: 'right'},
+  ],
+  photo: [{id: 'mock-photo', kind: 'photo', text: 'A moment worth keeping', uri: onboardingPhotoUri}],
+  voice: [{id: 'mock-voice', kind: 'voice', text: 'A thought I wanted to capture', uri: 'mock://voice-note', durationMillis: 24000}],
+  scripture: [{id: 'mock-scripture', kind: 'scripture', text: 'Psalm 46:10', scriptureText: 'Be still, and know that I am God.', scriptureReference: 'Psalm 46:10', scriptureVersion: 'NIV'}],
+  key: [{id: 'mock-key', kind: 'key', text: 'Grace changes how I respond.'}],
+  quote: [{id: 'mock-quote', kind: 'quote', text: 'You have made us for yourself, O Lord, and our heart is restless until it rests in you.', secondary: 'Augustine, Confessions'}],
+  song: [{id: 'mock-song', kind: 'song', text: 'Goodness of God', secondary: 'CeCe Winans'}],
+  outline: [{id: 'mock-outline', kind: 'outline', text: 'Living with trust', outlineStyle: 'numbered', points: ['Remember who God is', 'Respond with faith']}],
+  character: [{id: 'mock-character', kind: 'character', text: 'Ruth', note: 'Faithful in uncertainty and generous in love.', secondary: 'Ruth 1:16'}],
+  language: [{id: 'mock-language', kind: 'language', text: 'חֶסֶד · hesed', languageKind: 'hebrew', languageDetails: ['meaning', 'transliteration', 'origin', 'scripture'], meaning: 'Steadfast, covenant love', secondary: 'HEH-sed', origin: 'A loyal love expressed through action', reference: 'Psalm 136:1'}],
+  link: [{id: 'mock-link', kind: 'link', text: 'sifia.app/resource'}],
+  table: [{id: 'mock-table', kind: 'table', text: '', tableRows: [['Notice', 'Respond'], ['God is near', 'Choose trust']], tableCellAlignments: [['left', 'left'], ['left', 'left']]}],
+  history: [{id: 'mock-history', kind: 'history', text: '', historyTypes: ['era', 'culture'], secondary: 'First century', eraPeriod: 'AD', note: 'House churches lived out their faith within the Roman world.', reference: 'Romans 12:1–2'}],
+  remember: [{id: 'mock-remember', kind: 'remember', text: 'God met me in an ordinary moment.'}],
+  response: [{id: 'mock-response', kind: 'response', text: 'I want to walk this out with patience.'}],
+  question: [{id: 'mock-question', kind: 'question', text: 'What is God inviting me to notice?'}],
+  reflection_question: [{id: 'mock-reflection-question', kind: 'reflection_question', text: 'Where did I notice grace today?', note: 'In a conversation I almost rushed past.'}],
+  revisit: [{id: 'mock-revisit', kind: 'revisit', text: 'Come back to this truth later this week.', secondary: 'Friday'}],
+  prayer: [{id: 'mock-prayer', kind: 'prayer', text: 'God, help me carry this truth into today.'}],
+  book: [{id: 'mock-book', kind: 'book', text: 'Mere Christianity', secondary: '— C. S. Lewis'}],
+};
+
+const OnboardingNoteBlockPreview = ({
+  definition,
+}: {
+  definition: NoteBlockDefinition;
+}) => {
+  const kind = definition.kind as SelectableJournalBlockKind;
+  const fallbackPreviewHeight = kind === 'outline'
+    ? 220
+    : kind === 'history'
+    ? 220
+    : kind === 'character'
+    ? 180
+    : kind === 'column'
+    ? 250
+    : kind === 'language' || kind === 'table'
+    ? 190
+    : 150;
+  const [measuredPreviewHeight, setMeasuredPreviewHeight] = useState(0);
+  const previewHeight = measuredPreviewHeight || fallbackPreviewHeight;
+  const tableMockup = kind === 'table' ? NOTE_BLOCK_MOCKUPS.table[0] : null;
+  const advancedMockup = kind === 'outline' || kind === 'history' || kind === 'character'
+    ? NOTE_BLOCK_MOCKUPS[kind][0]
+    : null;
+
+  return (
+    <View
+      pointerEvents="none"
+      style={[styles.noteBlockPreviewViewport, {height: previewHeight}]}
+    >
+      <View
+        style={styles.noteBlockPreviewScale}
+        onLayout={({nativeEvent}) => {
+          const scaledContentHeight = Math.ceil(nativeEvent.layout.height * 0.6);
+          const nextHeight = Math.max(72, scaledContentHeight + 24);
+          setMeasuredPreviewHeight(current => current === nextHeight ? current : nextHeight);
+        }}
+      >
+        {tableMockup ? (
+          <JournalTableBlock
+            rows={tableMockup.tableRows}
+            cellAlignments={tableMockup.tableCellAlignments}
+            editing
+            onChangeRows={() => undefined}
+            onChangeCellAlignments={() => undefined}
+            onChangeEditing={() => undefined}
+            onDelete={() => undefined}
+            registerInput={() => undefined}
+          />
+        ) : advancedMockup ? (
+          <JournalAdvancedBlockEditor
+            block={advancedMockup}
+            onChange={() => undefined}
+            onDelete={() => undefined}
+            onFocus={() => undefined}
+            onCreateSection={advancedMockup.kind === 'outline' ? () => undefined : undefined}
+            registerInput={() => undefined}
+          />
+        ) : (
+          <SavedReflectionBlocks
+            blocks={NOTE_BLOCK_MOCKUPS[kind]}
+            compact
+            embedded
+          />
+        )}
+      </View>
+    </View>
+  );
+};
+
 const dateOnly = (date: Date): string => {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -115,7 +245,10 @@ const JournalOnboardingScreen: React.FC = () => {
   const route = useRoute<JournalOnboardingRoute>();
   const insets = useSafeAreaInsets();
   const {profile, preferences, updateProfile, updatePreferences} = useAuth();
+  const noteBlockPreferenceSnapshot = useNoteBlockPreferences();
   const hydrated = useRef(false);
+  const noteBlockSelectionHydrated = useRef(false);
+  const noteBlockSelectionChanged = useRef(false);
   const [stepIndex, setStepIndex] = useState(0);
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -127,8 +260,12 @@ const JournalOnboardingScreen: React.FC = () => {
   const [bibleVersion, setBibleVersion] = useState('NASB');
   const [faithGoal, setFaithGoal] = useState<JournalFaithGoal | null>(null);
   const [rhythmBarrier, setRhythmBarrier] = useState<JournalRhythmBarrier | null>(null);
+  const [favoriteNoteBlocks, setFavoriteNoteBlocks] = useState<SelectableJournalBlockKind[]>(
+    () => [...noteBlockPreferenceSnapshot.favoriteKinds],
+  );
   const [validationMessage, setValidationMessage] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [footerHeight, setFooterHeight] = useState(0);
 
   const isReplay = route.params?.mode === 'replay';
   const isLastStep = stepIndex === TOTAL_STEPS - 1;
@@ -148,6 +285,19 @@ const JournalOnboardingScreen: React.FC = () => {
       setRhythmBarrier(saved.rhythmBarrier);
     });
   }, [preferences, profile]);
+
+  useEffect(() => {
+    if (
+      !noteBlockPreferenceSnapshot.loaded
+      || noteBlockSelectionHydrated.current
+    ) {
+      return;
+    }
+    noteBlockSelectionHydrated.current = true;
+    if (!noteBlockSelectionChanged.current) {
+      setFavoriteNoteBlocks([...noteBlockPreferenceSnapshot.favoriteKinds]);
+    }
+  }, [noteBlockPreferenceSnapshot.favoriteKinds, noteBlockPreferenceSnapshot.loaded]);
 
   const validateSetup = () => {
     if (!firstName.trim()) {
@@ -223,6 +373,17 @@ const JournalOnboardingScreen: React.FC = () => {
     if (stepIndex === 9) {
       if (!validateSetup()) {return;}
       await persistSetup();
+    }
+    if (stepIndex === 12) {
+      // The final summary gives this request time to finish before Today opens.
+      prefetchDashboardScriptures(bibleVersion).catch(() => {});
+    }
+    if (stepIndex === 13) {
+      if (!favoriteNoteBlocks.length) {
+        setValidationMessage('Choose at least one favorite note block.');
+        return;
+      }
+      await noteBlockPreferences.setFavoriteKinds(favoriteNoteBlocks);
     }
     if (isLastStep) {
       await enterJournal();
@@ -536,6 +697,7 @@ const JournalOnboardingScreen: React.FC = () => {
                   style={styles.dateInput}
                   onPress={() => {
                     triggerLightHaptic();
+                    Keyboard.dismiss();
                     setShowBirthDatePicker(value => !value);
                   }}
                   accessibilityRole="button"
@@ -653,7 +815,11 @@ const JournalOnboardingScreen: React.FC = () => {
               {BIBLE_VERSIONS.map(version => {
                 const selected = bibleVersion === version.key;
                 return (
-                  <TouchableOpacity key={version.key} style={[styles.versionChip, selected && styles.versionChipSelected]} onPress={() => {triggerLightHaptic(); setBibleVersion(version.key);}} accessibilityRole="radio" accessibilityState={{selected}} accessibilityLabel={`${version.key}, ${version.name}`}>
+                  <TouchableOpacity key={version.key} style={[styles.versionChip, selected && styles.versionChipSelected]} onPress={() => {
+                    triggerLightHaptic();
+                    setBibleVersion(version.key);
+                    prefetchDashboardScriptures(version.key).catch(() => {});
+                  }} accessibilityRole="radio" accessibilityState={{selected}} accessibilityLabel={`${version.key}, ${version.name}`}>
                     <ThemedText weight="semiBold" style={[styles.versionKey, selected && styles.versionKeySelected]}>{version.key}</ThemedText>
                     {selected ? <Ionicons name="checkmark-circle" size={17} color={Colors.hopeWhite} /> : null}
                   </TouchableOpacity>
@@ -663,6 +829,78 @@ const JournalOnboardingScreen: React.FC = () => {
             <View style={styles.selectedTranslationCard}>
               <ThemedText style={styles.planEyebrow}>SELECTED TRANSLATION</ThemedText>
               <ThemedText weight="semiBold" style={styles.planTitle}>{BIBLE_VERSIONS.find(version => version.key === bibleVersion)?.name || bibleVersion}</ThemedText>
+            </View>
+          </View>
+        );
+      case 13:
+        return (
+          <View>
+            <ThemedText style={styles.eyebrow}>YOUR NOTE BLOCKS</ThemedText>
+            <ThemedText weight="bold" style={styles.title}>What will you use most when you journal?</ThemedText>
+            <ThemedText style={styles.bodyText}>Each preview shows how a saved block will actually appear in your journal. Choose as many as you like and we’ll keep them quick to reach.</ThemedText>
+            <View style={styles.noteBlockSelectionSummary}>
+              <Ionicons name="star" size={18} color={Colors.faithGold} />
+              <ThemedText weight="semiBold" style={styles.noteBlockSelectionSummaryText}>
+                {favoriteNoteBlocks.length} {favoriteNoteBlocks.length === 1 ? 'favorite' : 'favorites'} selected
+              </ThemedText>
+            </View>
+            {NOTE_BLOCK_CATEGORIES.map(category => {
+              const enabledKinds = new Set(noteBlockPreferenceSnapshot.enabledKinds);
+              const definitions = ONBOARDING_NOTE_BLOCKS.filter(
+                definition => definition.category === category.id
+                  && enabledKinds.has(definition.kind as SelectableJournalBlockKind),
+              );
+              if (!definitions.length) {return null;}
+              return (
+                <View key={category.id} style={styles.noteBlockCategory}>
+                  <ThemedText weight="semiBold" style={styles.noteBlockCategoryLabel}>{category.label.toUpperCase()}</ThemedText>
+                  <View style={styles.noteBlockGrid}>
+                    {[0, 1].map(columnIndex => (
+                      <View key={columnIndex} style={styles.noteBlockMasonryColumn}>
+                        {definitions
+                          .filter((_, index) => index % 2 === columnIndex)
+                          .map(definition => {
+                            const kind = definition.kind as SelectableJournalBlockKind;
+                            const selected = favoriteNoteBlocks.includes(kind);
+                            return (
+                              <TouchableOpacity
+                                key={kind}
+                                style={[styles.noteBlockPreviewTile, selected && styles.noteBlockPreviewTileSelected]}
+                                activeOpacity={0.8}
+                                onPress={() => {
+                                  triggerLightHaptic();
+                                  noteBlockSelectionChanged.current = true;
+                                  setValidationMessage('');
+                                  setFavoriteNoteBlocks(current => current.includes(kind)
+                                    ? current.filter(item => item !== kind)
+                                    : [...current, kind]);
+                                }}
+                                accessibilityRole="checkbox"
+                                accessibilityState={{checked: selected}}
+                                accessibilityLabel={`${definition.pickerLabel}. ${definition.description}`}
+                              >
+                                <View style={styles.noteBlockTileHeading}>
+                                  <ThemedText numberOfLines={1} weight="semiBold" style={[styles.noteBlockTileTitle, selected && styles.noteBlockTileTitleSelected]}>{definition.pickerLabel}</ThemedText>
+                                  <Ionicons
+                                    name={selected ? 'star' : 'star-outline'}
+                                    size={17}
+                                    color={selected ? Colors.faithGold : Colors.textGray}
+                                  />
+                                </View>
+                                <OnboardingNoteBlockPreview definition={definition} />
+                              </TouchableOpacity>
+                            );
+                          })}
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              );
+            })}
+            {validationMessage ? <ThemedText style={styles.choiceValidation}>{validationMessage}</ThemedText> : null}
+            <View style={styles.noteBlockChangeNote}>
+              <Ionicons name="options-outline" size={18} color={Colors.sage} />
+              <ThemedText style={styles.noteBlockChangeNoteText}>You can add, remove, or change favorites anytime in More → Note Blocks.</ThemedText>
             </View>
           </View>
         );
@@ -682,6 +920,8 @@ const JournalOnboardingScreen: React.FC = () => {
               <View style={styles.summaryRow}><Ionicons name="calendar-outline" size={19} color={Colors.sage} /><ThemedText style={styles.summaryLabel}>Week begins</ThemedText><ThemedText weight="semiBold" style={styles.summaryValue}>{weekStart.charAt(0).toUpperCase() + weekStart.slice(1)}</ThemedText></View>
               <View style={styles.summaryDivider} />
               <View style={styles.summaryRow}><Ionicons name="book-outline" size={19} color={Colors.sage} /><ThemedText style={styles.summaryLabel}>Bible version</ThemedText><ThemedText weight="semiBold" style={styles.summaryValue}>{bibleVersion}</ThemedText></View>
+              <View style={styles.summaryDivider} />
+              <View style={styles.summaryRow}><Ionicons name="star-outline" size={19} color={Colors.sage} /><ThemedText style={styles.summaryLabel}>Favorite note blocks</ThemedText><ThemedText weight="semiBold" style={styles.summaryValue}>{favoriteNoteBlocks.length}</ThemedText></View>
             </View>
           </View>
         );
@@ -694,25 +934,43 @@ const JournalOnboardingScreen: React.FC = () => {
       ? 'Choose my version'
       : stepIndex === 12
         ? 'Use this version'
+        : stepIndex === 13
+          ? 'Add to favorites'
         : isLastStep
           ? 'Begin Today'
           : 'Continue';
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
-      <StatusBar barStyle="dark-content" backgroundColor={Colors.lightBackground} />
+    <SafeAreaView style={styles.safeArea} edges={['left', 'right']}>
+      <StatusBar translucent barStyle="dark-content" backgroundColor="transparent" />
       <KeyboardAvoidingView style={styles.keyboardView} behavior={Platform.OS === 'ios' ? 'padding' : undefined} {...swipeResponder.panHandlers}>
         {stepIndex > 0 ? (
-          <View style={styles.header}>
+          <View pointerEvents="none" style={[styles.header, {top: insets.top}]}>
             <View style={styles.progressTrack} accessibilityRole="progressbar" accessibilityValue={{min: 1, max: TOTAL_STEPS - 1, now: stepIndex}}>
               <View style={[styles.progressFill, {width: `${(stepIndex / (TOTAL_STEPS - 1)) * 100}%`}]} />
             </View>
           </View>
         ) : null}
-        <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-          {renderStep()}
+        <ScrollView
+          key={stepIndex}
+          style={styles.scrollView}
+          contentContainerStyle={[
+            styles.scrollContent,
+            {
+              paddingTop: insets.top + (stepIndex > 0 ? 32 : 0),
+              paddingBottom: footerHeight + 24,
+            },
+          ]}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          contentInsetAdjustmentBehavior="never"
+        >
+          <View style={styles.stepContent}>{renderStep()}</View>
         </ScrollView>
-        <View style={[styles.footer, {paddingBottom: Math.max(insets.bottom, 14)}]}>
+        <View
+          onLayout={({nativeEvent}) => setFooterHeight(nativeEvent.layout.height)}
+          style={[styles.footer, {paddingBottom: Math.max(insets.bottom, 14)}]}
+        >
           <TouchableOpacity style={[styles.primaryButton, isSaving && styles.primaryButtonDisabled]} activeOpacity={0.86} accessibilityRole="button" accessibilityLabel={ctaLabel} disabled={isSaving} onPress={handlePrimaryCta}>
             {isSaving ? <ActivityIndicator color={Colors.hopeWhite} /> : (
               <>
@@ -730,11 +988,12 @@ const JournalOnboardingScreen: React.FC = () => {
 const styles = StyleSheet.create({
   safeArea: {flex: 1, backgroundColor: Colors.lightBackground},
   keyboardView: {flex: 1},
-  header: {paddingTop: 14, paddingBottom: 12, alignItems: 'center'},
+  header: {position: 'absolute', left: 0, right: 0, zIndex: 10, paddingTop: 14, paddingBottom: 12, alignItems: 'center'},
   progressTrack: {height: 6, width: 120, borderRadius: 3, backgroundColor: Colors.lightGray, overflow: 'hidden'},
   progressFill: {height: '100%', borderRadius: 2, backgroundColor: Colors.sage},
   scrollView: {flex: 1},
-  scrollContent: {flexGrow: 1, justifyContent: 'center', paddingHorizontal: 26, paddingVertical: 24},
+  scrollContent: {flexGrow: 1},
+  stepContent: {flexGrow: 1, justifyContent: 'center', paddingHorizontal: 26, paddingVertical: 24},
   heroContent: {alignItems: 'flex-start'},
   heroLogo: {width: 68, height: 68, borderRadius: 21, marginBottom: 28},
   eyebrow: {color: Colors.sageMuted, fontFamily: Fonts.semiBold, fontSize: 11, lineHeight: 15, letterSpacing: 1.8, marginBottom: 12},
@@ -863,6 +1122,21 @@ const styles = StyleSheet.create({
   versionKey: {color: Colors.text, fontSize: 13},
   versionKeySelected: {color: Colors.hopeWhite},
   selectedTranslationCard: {marginTop: 18, padding: 16, borderRadius: 17, backgroundColor: Colors.anchorBlueLight},
+  noteBlockSelectionSummary: {marginTop: 18, paddingHorizontal: 14, minHeight: 46, borderRadius: 15, backgroundColor: Colors.anchorBlueLight, flexDirection: 'row', alignItems: 'center', gap: 9},
+  noteBlockSelectionSummaryText: {color: Colors.sage, fontSize: 12, lineHeight: 17},
+  noteBlockCategory: {marginTop: 22},
+  noteBlockCategoryLabel: {color: Colors.sageMuted, fontSize: 10, lineHeight: 15, letterSpacing: 1.2, marginBottom: 8},
+  noteBlockGrid: {flexDirection: 'row', alignItems: 'flex-start', gap: 10},
+  noteBlockMasonryColumn: {flex: 1, gap: 10},
+  noteBlockPreviewTile: {width: '100%', padding: 9, borderRadius: 16, borderWidth: 1, borderColor: Colors.cardBorder, backgroundColor: Colors.cardBackground},
+  noteBlockPreviewTileSelected: {borderWidth: 2, borderColor: Colors.sage, backgroundColor: Colors.anchorBlueLight, padding: 8},
+  noteBlockTileHeading: {height: 25, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 5},
+  noteBlockTileTitle: {flex: 1, color: Colors.text, fontSize: 11, lineHeight: 15},
+  noteBlockTileTitleSelected: {color: Colors.sage},
+  noteBlockPreviewViewport: {borderRadius: 11, backgroundColor: Colors.lightBackground, overflow: 'hidden', padding: 6},
+  noteBlockPreviewScale: {width: '166.6667%', transform: [{scale: 0.6}], transformOrigin: 'top left'},
+  noteBlockChangeNote: {marginTop: 20, padding: 14, borderRadius: 15, backgroundColor: Colors.anchorBlueLight, flexDirection: 'row', alignItems: 'flex-start', gap: 9},
+  noteBlockChangeNoteText: {flex: 1, color: Colors.sageMuted, fontSize: 11, lineHeight: 16},
   points: {marginTop: 26, gap: 14},
   pointRow: {flexDirection: 'row', alignItems: 'flex-start', gap: 13, padding: 15, borderRadius: 18, backgroundColor: Colors.cardBackground, borderWidth: 1, borderColor: Colors.cardBorder},
   pointIcon: {width: 42, height: 42, borderRadius: 14, backgroundColor: Colors.anchorBlueLight, alignItems: 'center', justifyContent: 'center'},
@@ -882,7 +1156,7 @@ const styles = StyleSheet.create({
   summaryLabel: {flex: 1, color: Colors.textGray, fontSize: 13},
   summaryValue: {color: Colors.text, fontSize: 13},
   summaryDivider: {height: StyleSheet.hairlineWidth, backgroundColor: Colors.cardBorder, marginLeft: 29},
-  footer: {paddingTop: 10, paddingHorizontal: 26, backgroundColor: Colors.lightBackground},
+  footer: {position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 10, paddingTop: 10, paddingHorizontal: 26},
   primaryButton: {backgroundColor: Colors.sage, borderRadius: 28, height: 56, alignItems: 'center', justifyContent: 'center'},
   primaryButtonDisabled: {opacity: 0.65},
   primaryButtonText: {color: Colors.hopeWhite, fontSize: 16},

@@ -43,6 +43,23 @@ describe('canonical Prayer type presentation', () => {
     });
   });
 
+  it('identifies an Open Prayer created by a Monthly Review', () => {
+    const monthlyPrayer = {
+      ...byId('return'),
+      journal_category: 'personal_prayer' as const,
+      metadata: {
+        ...byId('return').metadata,
+        prayer_style: 'open',
+        source: 'monthly_review',
+      },
+    };
+    expect(getPrayerTypePresentation(monthlyPrayer)).toMatchObject({
+      label: 'Monthly · Open Prayer',
+      detailLabel: 'Monthly Open Prayer',
+      originLabel: 'From your Monthly Review',
+    });
+  });
+
   it('distinguishes an incoming Request from its prayed linked Prayer', () => {
     const request = byId('request-unprayed');
     const linked = byId('request-charles-response');

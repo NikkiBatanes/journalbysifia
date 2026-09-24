@@ -42,6 +42,7 @@ import LinearGradient from 'react-native-linear-gradient';
 
 import ThemedText from '../components/common/ThemedText';
 import SavedReflectionBlocks from '../components/journal/SavedReflectionBlocks';
+import {GuidedReflectionMomentPreview} from '../components/journal/GuidedReflectionMomentPreview';
 import {
   SCRIPTURE_NOTE_ICON,
   SCRIPTURE_NOTE_SECTION_LABEL,
@@ -69,6 +70,8 @@ import {
   MonthlyReviewSummary,
   type MonthlyReviewSummaryTab,
 } from '../components/reviews/MonthlyReviewSummary';
+import {MonthlyReviewPrayerOverview} from '../components/reviews/MonthlyReviewPrayerOverview';
+import {ReviewPrayerMomentCard} from '../components/reviews/ReviewPrayerMomentCard';
 import ProverbVerseExcerpt from '../components/scripture/ProverbVerseExcerpt';
 import PrayerHandsIcon from '../components/common/PrayerHandsIcon';
 import {Colors} from '../theme/colors';
@@ -109,23 +112,34 @@ import {
 } from '../utils/weeklyChallengeAnswers';
 import {getWeeklySupportChoices} from '../utils/weeklyLookingAheadAnswers';
 import {formatWeeklyLookingAheadPeriod} from '../utils/weeklyLookingAheadPeriod';
+import {formatWeeklyGratitudePeriod} from '../utils/weeklyGratitudePeriod';
+import {
+  formatNextMonthPeriod,
+  formatReviewedMonthPeriod,
+} from '../utils/reviewMonthPeriod';
 import {
   getWeeklyLookingForwardEmotion,
   isWeeklyLookingForwardAnswerKey,
 } from '../utils/weeklyLookingForwardAnswers';
 import {saveWeeklyLookingForwardMoment} from '../services/weeklyLookingForwardService';
+import {saveMonthlyReviewPrayer} from '../services/monthlyReviewPrayerService';
+import {saveWeeklyReviewPrayer} from '../services/weeklyReviewPrayerService';
 import {
   getWeeklyRhythm,
   type WeeklyRhythm,
 } from '../services/weeklyRhythmService';
 import {
   getMonthlyCheckInFeelings,
+  getMonthlyLifeCheckInSummary,
+  getMonthlyLookingForwardFeelings,
   getMonthlyWeeklyReviewFeelings,
   getWeeklyCheckInFeelings,
   type MonthlyCheckInFeeling,
+  type MonthlyLifeCheckInSummary,
   type MonthlyWeeklyReviewFeelings,
   type WeeklyCheckInFeeling,
 } from '../services/weeklyFeelingService';
+import {summarizeMonthlyPatterns} from '../services/monthlyPatternSummaryService';
 import {getReviewCoverSummary} from '../services/reviewCoverSummaryService';
 import {getPrayerCaptureCountLabel} from '../services/reviewCaptureSummaryService';
 import {useFloatingKeyboardButton} from '../hooks/useFloatingKeyboardButton';
@@ -401,13 +415,57 @@ const WEEKLY_FEELING_WORDS = [
 ] as const;
 const WEEKLY_FEELINGS_PREVIEW_COUNT = 9;
 
-const MONTHLY_PATTERN_BAR_COLORS = [
-  Colors.sage,
-  '#E6B98D',
-  '#D7A57C',
-  Colors.sageMuted,
-  '#8FA99A',
+const MONTHLY_PATTERN_ALERT_CORAL = Colors.alertCoral;
+const MONTHLY_PATTERN_NEEDS_CARE_WORDS = [
+  'angry',
+  'anxious',
+  'bored',
+  'discouraged',
+  'frustrated',
+  'god felt distant',
+  'grumpy',
+  'heavy',
+  'hesitant',
+  'hopeless',
+  'lonely',
+  'nervous',
+  'overwhelmed',
+  'reluctant',
+  'restless',
+  'sad',
+  'spiritually dry',
+  'stressed',
+  'stuck',
+  'tired',
+  'uncertain',
+  'unprepared',
+  'unsure',
+  'worried',
+  'wrestling',
 ] as const;
+
+const getMonthlyPatternFeelingColor = (feeling: string): string => {
+  const normalizedFeeling = feeling.trim().toLowerCase();
+  const needsCare = MONTHLY_PATTERN_NEEDS_CARE_WORDS.some(word =>
+    normalizedFeeling.includes(word),
+  );
+  return needsCare ? MONTHLY_PATTERN_ALERT_CORAL : Colors.sageMuted;
+};
+
+const getMonthlyLifeRatingColor = (
+  value: 'struggling' | 'okay' | 'well' | null,
+): string => {
+  if (value === 'well') {
+    return Colors.sageMuted;
+  }
+  if (value === 'struggling') {
+    return MONTHLY_PATTERN_ALERT_CORAL;
+  }
+  if (value === 'okay') {
+    return '#CFC5AE';
+  }
+  return '#ECECE7';
+};
 
 const WEEKLY_LIFE_CHECK_IN_OPTIONS = [
   {value: 'struggling', label: 'Struggling'},
@@ -444,6 +502,8 @@ const CAPTURE_PRESENTATION_GROUPS: Array<{
   {presentation: 'evening_proverb', title: 'Evening Proverbs'},
   {presentation: 'today_win', title: 'Wins'},
   {presentation: 'looking_forward', title: 'Looking forward'},
+  {presentation: 'testimony', title: 'Your testimony'},
+  {presentation: 'for_me_day_reflection', title: 'New Life Day reflections'},
   {presentation: 'prayer', title: 'Prayers'},
   {presentation: 'bible_study', title: 'Bible studies'},
   {presentation: 'scripture_reflection', title: SCRIPTURE_NOTE_SECTION_LABEL},
@@ -462,6 +522,8 @@ const CAPTURE_GROUP_ICONS: Record<ReviewCapturePresentation, string> = {
   guided_reflection: 'heart-outline',
   devotional_reflection: 'heart-outline',
   playbook_reflection: 'heart-outline',
+  testimony: 'sparkles-outline',
+  for_me_day_reflection: 'gift-outline',
   morning_check_in: 'sunny-outline',
   morning_psalm: 'sunny-outline',
   evening_proverb: 'moon-outline',
@@ -681,6 +743,12 @@ const captureGroupCountLabel = (
   if (presentation === 'scripture_reflection') {
     return `${items.length} ${items.length === 1 ? 'note' : 'notes'}`;
   }
+  if (presentation === 'testimony') {
+    return items.length === 1 ? '1 testimony' : `${items.length} testimonies`;
+  }
+  if (presentation === 'for_me_day_reflection') {
+    return `${items.length} ${items.length === 1 ? 'yearly reflection' : 'yearly reflections'}`;
+  }
   if (presentation === 'morning_check_in') {
     const reflectionCount = items.filter(item => {
       const text = item.text?.trim();
@@ -789,12 +857,14 @@ const WeeklyMomentCard = ({
   width,
   relatedItems = [item],
   onPress,
+  selectionAppearance = 'bookmark',
 }: {
   item: ReviewCaptureItem;
   selected: boolean;
   width: number;
   relatedItems?: ReviewCaptureItem[];
   onPress: () => void;
+  selectionAppearance?: 'bookmark' | 'heart';
 }) => {
   const [showAllLines, setShowAllLines] = useState(false);
   const [underneathOverflows, setUnderneathOverflows] = useState(false);
@@ -808,25 +878,48 @@ const WeeklyMomentCard = ({
     item.presentation === 'morning_psalm' ||
     item.presentation === 'evening_proverb' ||
     item.presentation === 'looking_forward';
+  const usesHeartSelection = selectionAppearance === 'heart';
   const selection = (
     <View
       style={[
         styles.momentRemember,
         usesScriptureCardPalette && !selected && styles.psalmRemember,
-        selected && styles.momentRememberSelected,
+        usesHeartSelection && styles.momentHeart,
+        selected &&
+          (usesHeartSelection
+            ? styles.momentHeartSelected
+            : styles.momentRememberSelected),
       ]}>
       <Ionicons
-        name={selected ? 'bookmark' : 'bookmark-outline'}
+        name={
+          usesHeartSelection
+            ? selected
+              ? 'heart'
+              : 'heart-outline'
+            : selected
+            ? 'bookmark'
+            : 'bookmark-outline'
+        }
         size={18}
-        color={selected ? Colors.hopeWhite : Colors.sage}
+        color={
+          usesHeartSelection
+            ? Colors.alertCoral
+            : selected
+            ? Colors.hopeWhite
+            : Colors.sage
+        }
       />
     </View>
   );
   const commonProps = {
     accessibilityRole: 'checkbox' as const,
-    accessibilityLabel: `${
-      selected ? 'Remove from remembered' : 'Remember this'
-    }. ${date}. ${capturedMomentCopy(item)}`,
+    accessibilityLabel: usesHeartSelection
+      ? `${selected ? 'Remove heart' : 'Heart this moment'}. ${date}. ${capturedMomentCopy(
+          item,
+        )}`
+      : `${
+          selected ? 'Remove from remembered' : 'Remember this'
+        }. ${date}. ${capturedMomentCopy(item)}`,
     accessibilityState: {checked: selected},
     activeOpacity: 0.76,
     onPress,
@@ -837,7 +930,10 @@ const WeeklyMomentCard = ({
       style={[
         styles.momentTypeCard,
         extraStyle,
-        selected && styles.momentTypeCardSelected,
+        selected &&
+          (usesHeartSelection
+            ? styles.momentTypeCardHearted
+            : styles.momentTypeCardSelected),
         {width},
       ]}>
       {selection}
@@ -846,51 +942,14 @@ const WeeklyMomentCard = ({
   );
 
   if (item.presentation === 'prayer') {
-    const prayerType =
-      item.prayerTypeLabel ||
-      (item.prayerActivityType === 'request'
-        ? 'PRAYER REQUEST'
-        : item.prayerActivityType === 'cast'
-        ? 'CAST PRAYER'
-        : item.prayerActivityType === 'open'
-        ? 'OPEN PRAYER'
-        : item.prayerActivityType === 'need'
-        ? 'PRAYER NEED'
-        : item.prayerActivityType === 'person'
-        ? 'PRAYED FOR'
-        : 'PRAYER');
-    return shell(
-      <>
-        <View style={styles.momentMetaRow}>
-          <Ionicons name="heart-outline" size={15} color={Colors.sage} />
-          <ThemedText weight="semiBold" style={styles.prayerCardEyebrow}>
-            {prayerType}
-          </ThemedText>
-          <ThemedText style={styles.momentDate}>{date}</ThemedText>
-        </View>
-        <ThemedText
-          weight="bold"
-          style={styles.prayerCardTitle}
-          numberOfLines={2}>
-          {item.title}
-        </ThemedText>
-        {!!distinctBody && (
-          <ThemedText style={styles.prayerCardBody} numberOfLines={4}>
-            {distinctBody}
-          </ThemedText>
-        )}
-        <View style={styles.prayerStatusPill}>
-          <Ionicons
-            name={item.answered ? 'sparkles-outline' : 'leaf-outline'}
-            size={14}
-            color={Colors.sage}
-          />
-          <ThemedText weight="semiBold" style={styles.prayerStatusText}>
-            {item.answered ? 'God answered' : 'Carry in prayer'}
-          </ThemedText>
-        </View>
-      </>,
-      styles.prayerReviewCard,
+    return (
+      <ReviewPrayerMomentCard
+        item={item}
+        selected={selected}
+        width={width}
+        onPress={onPress}
+        selectionAppearance={selectionAppearance}
+      />
     );
   }
 
@@ -950,6 +1009,53 @@ const WeeklyMomentCard = ({
           </TouchableOpacity>
         )}
       </>,
+    );
+  }
+
+  if (
+    item.presentation === 'testimony' ||
+    item.presentation === 'for_me_day_reflection'
+  ) {
+    const isTestimony = item.presentation === 'testimony';
+    return shell(
+      <>
+        <View style={styles.forMeDayReviewHeader}>
+          <View style={styles.forMeDayReviewMark}>
+            <Ionicons
+              name={isTestimony ? 'sparkles-outline' : 'gift-outline'}
+              size={18}
+              color={Colors.sage}
+            />
+          </View>
+          <View style={styles.forMeDayReviewHeadingCopy}>
+            <ThemedText weight="semiBold" style={styles.forMeDayReviewEyebrow}>
+              MY NEW LIFE DAY
+            </ThemedText>
+            <ThemedText style={styles.forMeDayReviewDate}>{date}</ThemedText>
+          </View>
+        </View>
+        <View style={styles.forMeDayReviewPill}>
+          <ThemedText weight="semiBold" style={styles.forMeDayReviewPillText}>
+            {isTestimony ? 'TESTIMONY' : 'YEARLY REFLECTION'}
+          </ThemedText>
+        </View>
+        <Text style={styles.forMeDayReviewTitle} numberOfLines={2}>
+          {isTestimony ? 'Your testimony' : item.title}
+        </Text>
+        {!!distinctBody && (
+          <Text style={styles.forMeDayReviewBody} numberOfLines={4}>
+            {distinctBody}
+          </Text>
+        )}
+        <View style={styles.forMeDayReviewDivider} />
+        <View style={styles.forMeDayReviewFooter}>
+          <Ionicons name="sparkles" size={13} color={Colors.sage} />
+          <ThemedText style={styles.forMeDayReviewFooterText} numberOfLines={1}>
+            {item.detail || "A marker of God's faithfulness"}
+          </ThemedText>
+        </View>
+      </>,
+      styles.forMeDayReviewCard,
     );
   }
 
@@ -1098,7 +1204,11 @@ const WeeklyMomentCard = ({
               {item.detail}
             </ThemedText>
           )}
-        {hasJournalBlocks ? (
+        {item.presentation === 'guided_reflection' && item.guidedJourney ? (
+          <View pointerEvents="none" style={styles.reflectionBlocksPreview}>
+            <GuidedReflectionMomentPreview journey={item.guidedJourney} />
+          </View>
+        ) : hasJournalBlocks ? (
           <View pointerEvents="none" style={styles.reflectionBlocksPreview}>
             <SavedReflectionBlocks blocks={item.journalBlocks!} compact />
           </View>
@@ -1513,6 +1623,11 @@ const ReviewScreen: React.FC = () => {
   const scrollRef = useRef<ScrollView>(null);
   const reviewMomentsListRef = useRef<ReviewMomentsListHandle>(null);
   const weeklyAdditionalMemoryInputRef = useRef<TextInput>(null);
+  const monthlyPatternInputRef = useRef<TextInput>(null);
+  const monthlyPatternInputFocusedRef = useRef(false);
+  const monthlyPillOtherInputRef = useRef<TextInput>(null);
+  const monthlyPrayerInputRef = useRef<TextInput>(null);
+  const monthlyFormationInputRef = useRef<TextInput>(null);
   const customFeelingInputRef = useRef<TextInput>(null);
   const pendingCustomFeelingFocusRef = useRef(false);
   const godFaithfulnessInputRef = useRef<TextInput>(null);
@@ -1531,18 +1646,42 @@ const ReviewScreen: React.FC = () => {
   const revealCustomReviewInput = useCallback(() => {
     const input = [
       customFeelingInputRef.current,
+      monthlyFormationInputRef.current,
       godFaithfulnessInputRef.current,
       weeklyCareOtherInputRef.current,
       weeklyCareInputRef.current,
+      monthlyPillOtherInputRef.current,
+      monthlyPrayerInputRef.current,
     ].find(candidate => candidate?.isFocused());
     if (!input) {
       return;
     }
-    scrollRef.current?.scrollResponderScrollNativeHandleToKeyboard(
-      input,
-      80,
-      true,
-    );
+    const inputHandle = findNodeHandle(input);
+    if (inputHandle) {
+      scrollRef.current?.scrollResponderScrollNativeHandleToKeyboard(
+        inputHandle,
+        80,
+        true,
+      );
+    }
+  }, []);
+
+  const revealMonthlyPatternInput = useCallback(() => {
+    const input = monthlyPatternInputRef.current;
+    if (!input || !monthlyPatternInputFocusedRef.current) {
+      return;
+    }
+    const inputHandle = findNodeHandle(input);
+    if (inputHandle) {
+      scrollRef.current?.scrollResponderScrollNativeHandleToKeyboard(
+        inputHandle,
+        112,
+        true,
+      );
+    }
+    // This is the final field on the page, so the end position is also the
+    // safest fallback while the keyboard changes the ScrollView's height.
+    scrollRef.current?.scrollToEnd({animated: true});
   }, []);
 
   const revealWeeklyChallengeOtherInput = useCallback(() => {
@@ -1610,9 +1749,12 @@ const ReviewScreen: React.FC = () => {
       if (weeklyAdditionalMemoryInputRef.current?.isFocused()) {
         requestAnimationFrame(revealWeeklyAdditionalMemoryInput);
       }
+      if (monthlyPatternInputFocusedRef.current) {
+        requestAnimationFrame(revealMonthlyPatternInput);
+      }
     });
     return () => subscription.remove();
-  }, [revealWeeklyAdditionalMemoryInput]);
+  }, [revealMonthlyPatternInput, revealWeeklyAdditionalMemoryInput]);
 
   useEffect(() => {
     if (
@@ -1624,12 +1766,20 @@ const ReviewScreen: React.FC = () => {
     requestAnimationFrame(revealWeeklyAdditionalMemoryInput);
   }, [keyboardVisible, revealWeeklyAdditionalMemoryInput]);
 
+  useEffect(() => {
+    if (!keyboardVisible || !monthlyPatternInputFocusedRef.current) {
+      return;
+    }
+    requestAnimationFrame(revealMonthlyPatternInput);
+  }, [keyboardVisible, revealMonthlyPatternInput]);
+
   const [stage, setStage] = useState<ReviewStage>(1);
   const [weeklySummaryTab, setWeeklySummaryTab] =
     useState<WeeklyReviewSummaryTab>('back');
   const [monthlySummaryTab, setMonthlySummaryTab] =
     useState<MonthlyReviewSummaryTab>('back');
   const [review, setReview] = useState<LocalReviewEntry | null>(null);
+  const reviewRef = useRef<LocalReviewEntry | null>(null);
   const [isLoadingReview, setIsLoadingReview] = useState(true);
   const [reviewLoadError, setReviewLoadError] = useState(false);
   const [reviewLoadAttempt, setReviewLoadAttempt] = useState(0);
@@ -1649,12 +1799,36 @@ const ReviewScreen: React.FC = () => {
   const [monthlyMomentsView, setMonthlyMomentsView] = useState<
     'weekly_bookmarks' | 'all'
   >('all');
+  const [monthlyPatternsView, setMonthlyPatternsView] = useState<
+    'morning' | 'weekly' | 'looking_forward'
+  >('morning');
   const [weeklyRhythm, setWeeklyRhythm] = useState<WeeklyRhythm | null>(null);
   const [checkInFeelings, setCheckInFeelings] = useState<
     Array<WeeklyCheckInFeeling | MonthlyCheckInFeeling>
   >([]);
   const [monthlyWeeklyReviewFeelings, setMonthlyWeeklyReviewFeelings] =
     useState<MonthlyWeeklyReviewFeelings>({reviewCount: 0, feelings: []});
+  const [monthlyLookingForwardFeelings, setMonthlyLookingForwardFeelings] =
+    useState<WeeklyCheckInFeeling[]>([]);
+  const [monthlyLifeCheckInSummary, setMonthlyLifeCheckInSummary] =
+    useState<MonthlyLifeCheckInSummary>({
+      reviewCount: 0,
+      areas: [],
+      insight: '',
+    });
+  const monthlyPatternSummary = useMemo(
+    () =>
+      summarizeMonthlyPatterns({
+        morning: checkInFeelings,
+        weekly: monthlyWeeklyReviewFeelings,
+        lookingForward: monthlyLookingForwardFeelings,
+      }),
+    [
+      checkInFeelings,
+      monthlyLookingForwardFeelings,
+      monthlyWeeklyReviewFeelings,
+    ],
+  );
   const [expandedMonthlyFeeling, setExpandedMonthlyFeeling] = useState<
     string | null
   >(null);
@@ -1707,7 +1881,25 @@ const ReviewScreen: React.FC = () => {
     [],
   );
 
-  const stages = useMemo(() => getReviewStages(reviewType), [reviewType]);
+  const monthlyTestimony = useMemo(
+    () => capture?.items.find(item => item.presentation === 'testimony') ?? null,
+    [capture],
+  );
+  const monthlyWins = useMemo(
+    () =>
+      capture?.items.filter(item => item.presentation === 'today_win') ?? [],
+    [capture],
+  );
+  const stages = useMemo(
+    () =>
+      getReviewStages(reviewType, {
+        includeMonthlyTestimony:
+          reviewType === 'monthly' && Boolean(monthlyTestimony),
+        includeMonthlyWins:
+          reviewType === 'monthly' && monthlyWins.length > 0,
+      }),
+    [monthlyTestimony, monthlyWins.length, reviewType],
+  );
   const stageCount = stages.length;
   const currentStageKind = stages[stage - 1]?.kind;
   const isDesignedReview = reviewType === 'weekly' || reviewType === 'monthly';
@@ -1723,15 +1915,26 @@ const ReviewScreen: React.FC = () => {
   const isFeelingsStage = currentStageKind === 'feelings';
   const isWeeklyGodFaithfulnessStage =
     reviewType === 'weekly' && stages[stage - 1]?.key === 'god';
+  const isMonthlyGodFaithfulnessStage =
+    reviewType === 'monthly' && stages[stage - 1]?.key === 'god';
+  const isMonthlyFormationStage =
+    reviewType === 'monthly' && stages[stage - 1]?.key === 'formation';
   const isWeeklyCareStage =
     reviewType === 'weekly' && stages[stage - 1]?.key === 'dont_forget';
   const isMonthlyPatternsStage =
     reviewType === 'monthly' && stages[stage - 1]?.key === 'notice';
+  const isMonthlyPrayerAheadStage =
+    reviewType === 'monthly' &&
+    stages[stage - 1]?.key === 'prayer_for_month';
   const hasAutoScrollingReviewInput =
     isFeelingsStage ||
     isWeeklyGodFaithfulnessStage ||
+    isMonthlyGodFaithfulnessStage ||
+    isMonthlyFormationStage ||
     isWeeklyCareStage ||
-    isMonthlyPatternsStage;
+    isMonthlyPatternsStage ||
+    isMonthlyPrayerAheadStage ||
+    currentStageKind === 'pill_choices';
   const isLifeCheckInStage = currentStageKind === 'life_check_in';
   const isCapturedStage = currentStageKind === 'captured';
   const isRememberedStage = currentStageKind === 'remembered';
@@ -1759,14 +1962,20 @@ const ReviewScreen: React.FC = () => {
     !isDesignedLookingAheadStage;
   const hasHorizontalMomentCarousels =
     isDesignedReview && (isCapturedStage || isRememberedStage);
+  const disablesPageSwipe =
+    hasHorizontalMomentCarousels && reviewType !== 'monthly';
   const hasSavedProgress =
     review?.status === 'draft' &&
-    (memorableItems.length > 0 ||
+    (stages.some(
+      item => item.key === review.lastStageKey && item.kind !== 'cover',
+    ) ||
+      memorableItems.length > 0 ||
       Object.values(answers).some(answer => answer.trim().length > 0));
 
   const typeFromRoute = route.params?.type as ReviewType | undefined;
   const startFromRoute = route.params?.periodStart as string | undefined;
   const endFromRoute = route.params?.periodEnd as string | undefined;
+  const resumeFromRoute = route.params?.resumeLastStage === true;
 
   const loadReview = useCallback(
     async (isActive: () => boolean) => {
@@ -1826,6 +2035,8 @@ const ReviewScreen: React.FC = () => {
         rhythm,
         loadedCheckInFeelings,
         loadedMonthlyWeeklyReviewFeelings,
+        loadedMonthlyLookingForwardFeelings,
+        loadedMonthlyLifeCheckInSummary,
       ] = await Promise.all([
         getReviewCapture(start, end, type),
         type === 'weekly'
@@ -1839,18 +2050,42 @@ const ReviewScreen: React.FC = () => {
         type === 'monthly'
           ? getMonthlyWeeklyReviewFeelings(start, end)
           : Promise.resolve({reviewCount: 0, feelings: []}),
+        type === 'monthly'
+          ? getMonthlyLookingForwardFeelings(start, end)
+          : Promise.resolve([]),
+        type === 'monthly'
+          ? getMonthlyLifeCheckInSummary(start, end)
+          : Promise.resolve({reviewCount: 0, areas: [], insight: ''}),
       ]);
       if (!isActive()) {
         return;
       }
 
       if (loadedReviewIdRef.current !== existing.id) {
-        setStage(1);
+        const loadedStages = getReviewStages(type, {
+          includeMonthlyTestimony:
+            type === 'monthly' &&
+            captured.items.some(item => item.presentation === 'testimony'),
+          includeMonthlyWins:
+            type === 'monthly' &&
+            captured.items.some(item => item.presentation === 'today_win'),
+        });
+        const savedStageIndex = existing.lastStageKey
+          ? loadedStages.findIndex(item => item.key === existing.lastStageKey)
+          : -1;
+        setStage(
+          resumeFromRoute && existing.status === 'draft'
+            ? savedStageIndex > 0
+              ? savedStageIndex + 1
+              : 2
+            : 1,
+        );
         setWeeklySummaryTab('back');
         setMonthlySummaryTab('back');
         editingReviewSummaryRef.current = false;
       }
       loadedReviewIdRef.current = existing.id;
+      reviewRef.current = existing;
       setReview(existing);
       setReviewType(type);
       setPeriodStart(existing.periodStart);
@@ -1900,9 +2135,12 @@ const ReviewScreen: React.FC = () => {
           ? 'weekly_bookmarks'
           : 'all',
       );
+      setMonthlyPatternsView('morning');
       setWeeklyRhythm(rhythm);
       setCheckInFeelings(loadedCheckInFeelings);
       setMonthlyWeeklyReviewFeelings(loadedMonthlyWeeklyReviewFeelings);
+      setMonthlyLookingForwardFeelings(loadedMonthlyLookingForwardFeelings);
+      setMonthlyLifeCheckInSummary(loadedMonthlyLifeCheckInSummary);
       setExpandedMonthlyFeeling(null);
       setShowAllWeeklySummary(false);
       const existingWeeklyGratitude = getWeeklyGratitudeItems(existing.answers);
@@ -1924,7 +2162,13 @@ const ReviewScreen: React.FC = () => {
         });
       }
     },
-    [typeFromRoute, startFromRoute, endFromRoute, weekStart],
+    [
+      typeFromRoute,
+      startFromRoute,
+      endFromRoute,
+      resumeFromRoute,
+      weekStart,
+    ],
   );
 
   // Tab navigation can reuse this screen for the same period after new entries
@@ -1998,21 +2242,28 @@ const ReviewScreen: React.FC = () => {
           | 'status'
           | 'completedAt'
           | 'monthlyWeeklyBookmarksInitialized'
+          | 'lastStageKey'
         >
       >,
     ) => {
-      if (!review) {
+      const currentReview = reviewRef.current;
+      if (!currentReview) {
         return;
       }
-      const updated = {
-        ...review,
+      const updated: LocalReviewEntry = {
+        ...currentReview,
         ...patch,
         updatedAt: new Date().toISOString(),
       };
-      await updateLocalReview(updated);
+      reviewRef.current = updated;
       setReview(updated);
+      const persisted = await updateLocalReview(updated);
+      if (reviewRef.current === updated) {
+        reviewRef.current = persisted;
+        setReview(persisted);
+      }
     },
-    [review],
+    [],
   );
 
   useEffect(() => {
@@ -2121,6 +2372,12 @@ const ReviewScreen: React.FC = () => {
           reviewId: review.id,
         });
       }
+      await saveWeeklyReviewPrayer({
+        text: answers.prayer_ahead ?? '',
+        periodStart: review.periodStart,
+        periodEnd: review.periodEnd,
+        reviewId: review.id,
+      });
       await saveReview({
         answers,
         memorableItems,
@@ -2172,7 +2429,9 @@ const ReviewScreen: React.FC = () => {
     setMonthlyCompletionError(false);
     triggerLightHaptic();
     try {
-      const prayerSnapshot: ReviewPrayerSnapshotItem[] = (capture?.items || [])
+      const capturedPrayerSnapshot: ReviewPrayerSnapshotItem[] = (
+        capture?.items || []
+      )
         .filter(
           item =>
             item.kind === 'prayer' && item.prayerEventType && item.prayerId,
@@ -2189,8 +2448,41 @@ const ReviewScreen: React.FC = () => {
           text: item.text,
           prayerTypeLabel: item.prayerTypeLabel,
         }));
+      const completeMonthlyPrayerSnapshot: ReviewPrayerSnapshotItem[] = [
+        ...(capture?.monthlyPrayerReflection?.answered ?? []),
+        ...(capture?.monthlyPrayerReflection?.waiting ?? []),
+      ].map(item => ({
+        id: item.id,
+        prayerId: item.prayerId,
+        needId: item.needId,
+        requestId: item.requestId,
+        eventType: item.eventType,
+        eventDate: item.eventDate,
+        title: item.title,
+        subtitle: item.subtitle,
+        text: item.text,
+      }));
+      const prayerSnapshot = [
+        ...new Map(
+          [...completeMonthlyPrayerSnapshot, ...capturedPrayerSnapshot].map(
+            item => [item.id, item],
+          ),
+        ).values(),
+      ];
+      await saveMonthlyReviewPrayer({
+        text: answers.prayer_for_month ?? '',
+        periodStart: review.periodStart,
+        periodEnd: review.periodEnd,
+        reviewId: review.id,
+      });
+      const completedAnswers = {
+        ...answers,
+        ...(monthlyPatternSummary
+          ? {month_pattern_summary: monthlyPatternSummary}
+          : {}),
+      };
       await saveReview({
-        answers,
+        answers: completedAnswers,
         memorableItems,
         status: 'completed',
         completedAt: review.completedAt ?? new Date().toISOString(),
@@ -2225,6 +2517,7 @@ const ReviewScreen: React.FC = () => {
     review,
     capture,
     answers,
+    monthlyPatternSummary,
     memorableItems,
     saveReview,
     weekStart,
@@ -2250,10 +2543,32 @@ const ReviewScreen: React.FC = () => {
       if (!continuingWalkthrough) {
         editingReviewSummaryRef.current = false;
       }
-      setStage(returnToSummary ? stageCount : next);
+      const destination = returnToSummary ? stageCount : next;
+      const destinationStage = stages[destination - 1];
+      if (
+        reviewRef.current?.status === 'draft' &&
+        destinationStage &&
+        destinationStage.kind !== 'cover'
+      ) {
+        saveReview({lastStageKey: destinationStage.key}).catch(error =>
+          Logger.error('Failed to save Review resume position', error as Error, {
+            component: 'ReviewScreen',
+            reviewId: reviewRef.current?.id,
+            stageKey: destinationStage.key,
+          }),
+        );
+      }
+      setStage(destination);
     },
-    [stage, stageCount, stages],
+    [saveReview, stage, stageCount, stages],
   );
+
+  const resumeReview = useCallback(() => {
+    const savedStageIndex = review?.lastStageKey
+      ? stages.findIndex(item => item.key === review.lastStageKey)
+      : -1;
+    goTo(savedStageIndex > 0 ? savedStageIndex + 1 : 2);
+  }, [goTo, review?.lastStageKey, stages]);
 
   const beginMonthlyReview = useCallback(() => {
     if (review && !review.monthlyWeeklyBookmarksInitialized) {
@@ -2265,15 +2580,11 @@ const ReviewScreen: React.FC = () => {
         .filter(item => !existingKeys.has(`${item.id}:${item.selectedDate}`))
         .map(memorableReferenceFor);
       const initializedMemorableItems = [...memorableItems, ...weeklyBookmarks];
-      const initializedReview: LocalReviewEntry = {
-        ...review,
+      setMemorableItems(initializedMemorableItems);
+      saveReview({
         memorableItems: initializedMemorableItems,
         monthlyWeeklyBookmarksInitialized: true,
-        updatedAt: new Date().toISOString(),
-      };
-      setMemorableItems(initializedMemorableItems);
-      setReview(initializedReview);
-      updateLocalReview(initializedReview).catch(error =>
+      }).catch(error =>
         Logger.error(
           'Failed to initialize Monthly Review weekly bookmarks',
           error as Error,
@@ -2281,15 +2592,17 @@ const ReviewScreen: React.FC = () => {
         ),
       );
     }
-    goTo(2);
-  }, [capture, goTo, memorableItems, review]);
+    resumeReview();
+  }, [capture, memorableItems, resumeReview, review, saveReview]);
 
   const stageRef = useRef(stage);
   const stageCountRef = useRef(stageCount);
-  const capturedStageRef = useRef(hasHorizontalMomentCarousels);
+  const pageSwipeDisabledRef = useRef(disablesPageSwipe);
+  const horizontalCarouselGestureRef = useRef(false);
 
   useEffect(() => {
     stageRef.current = stage;
+    horizontalCarouselGestureRef.current = false;
   }, [stage]);
 
   useEffect(() => {
@@ -2297,15 +2610,16 @@ const ReviewScreen: React.FC = () => {
   }, [stageCount]);
 
   useEffect(() => {
-    capturedStageRef.current = hasHorizontalMomentCarousels;
-  }, [hasHorizontalMomentCarousels]);
+    pageSwipeDisabledRef.current = disablesPageSwipe;
+  }, [disablesPageSwipe]);
 
   const panResponder = useMemo(
     () =>
       PanResponder.create({
         onStartShouldSetPanResponder: () => false,
         onMoveShouldSetPanResponder: (_e, g) =>
-          !capturedStageRef.current &&
+          !pageSwipeDisabledRef.current &&
+          !horizontalCarouselGestureRef.current &&
           Math.abs(g.dx) > 12 &&
           Math.abs(g.dy) < Math.abs(g.dx),
         onPanResponderRelease: (_e, g) => {
@@ -2340,53 +2654,42 @@ const ReviewScreen: React.FC = () => {
     return `${month} ${start.getDate()}–${end.getDate()}`;
   }, [periodStart, periodEnd]);
 
-  const weeklyPeriodLabel = useMemo(() => {
-    if (!periodStart || !periodEnd) {
-      return '';
-    }
-    const parseLocal = (value: string) => {
-      const [year, month, day] = value.split('-').map(Number);
-      return new Date(year, month - 1, day, 12);
-    };
-    const start = parseLocal(periodStart);
-    const end = parseLocal(periodEnd);
-    const startText = start.toLocaleDateString(undefined, {
-      month: 'short',
-      day: 'numeric',
-    });
-    const endText = end.toLocaleDateString(
-      undefined,
-      start.getMonth() === end.getMonth()
-        ? {day: 'numeric'}
-        : {month: 'short', day: 'numeric'},
-    );
-    return `${startText} – ${endText}`;
-  }, [periodStart, periodEnd]);
+  const currentYear = new Date().getFullYear();
 
-  const weeklyLookingAheadPeriodLabel = useMemo(
-    () => formatWeeklyLookingAheadPeriod(periodEnd),
-    [periodEnd],
+  const weeklyPeriodLabel = useMemo(
+    () =>
+      periodStart && periodEnd
+        ? formatWeeklyGratitudePeriod(periodStart, periodEnd, currentYear)
+        : '',
+    [currentYear, periodEnd, periodStart],
   );
 
-  const monthlyPeriodLabel = useMemo(() => {
-    if (!periodStart) {
-      return '';
-    }
-    const [year, month, day] = periodStart.split('-').map(Number);
-    return new Date(year, month - 1, day, 12).toLocaleDateString(undefined, {
-      month: 'long',
-      year: 'numeric',
-    });
-  }, [periodStart]);
+  const weeklyLookingAheadPeriodLabel = useMemo(
+    () => formatWeeklyLookingAheadPeriod(periodEnd, currentYear),
+    [currentYear, periodEnd],
+  );
 
-  const monthlyLookingAheadPeriodLabel = useMemo(() => {
+  const monthlyPeriodLabel = useMemo(
+    () =>
+      periodStart
+        ? formatReviewedMonthPeriod(periodStart, currentYear)
+        : '',
+    [currentYear, periodStart],
+  );
+
+  const monthlyLookingAheadPeriodLabel = useMemo(
+    () =>
+      periodEnd ? formatNextMonthPeriod(periodEnd, currentYear) : '',
+    [currentYear, periodEnd],
+  );
+
+  const monthlyLookingAheadMonthName = useMemo(() => {
     if (!periodEnd) {
-      return '';
+      return 'next month';
     }
     const [year, month] = periodEnd.split('-').map(Number);
     return new Date(year, month, 1, 12).toLocaleDateString(undefined, {
       month: 'long',
-      year: 'numeric',
     });
   }, [periodEnd]);
 
@@ -2619,11 +2922,18 @@ const ReviewScreen: React.FC = () => {
                     WEEKLY REVIEW
                   </ThemedText>
                 </View>
-                <ThemedText weight="bold" style={styles.weeklyCoverTitle}>
-                  Now, let’s look back.
-                </ThemedText>
-                <ThemedText weight="semiBold" style={styles.weeklyCoverPeriod}>
+                <ThemedText
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.78}
+                  numberOfLines={2}
+                  weight="bold"
+                  style={styles.reviewPeriodHeadline}>
                   {weeklyPeriodLabel}
+                </ThemedText>
+                <ThemedText
+                  weight="semiBold"
+                  style={styles.reviewDirectionPrompt}>
+                  Now, let’s look back.
                 </ThemedText>
                 <ThemedText style={styles.weeklyCoverSubtitle}>
                   Pause. Notice what mattered. Carry it forward.
@@ -2781,7 +3091,7 @@ const ReviewScreen: React.FC = () => {
                   : 'Begin weekly review'
               }
               style={[styles.primaryButton, styles.weeklyBeginButton]}
-              onPress={() => goTo(2)}
+              onPress={resumeReview}
               activeOpacity={0.8}>
               <ThemedText weight="bold" style={styles.weeklyBeginText}>
                 {hasSavedProgress ? 'Continue review' : 'Begin review'}
@@ -2797,6 +3107,7 @@ const ReviewScreen: React.FC = () => {
             style={[
               styles.stage,
               styles.weeklyCoverStage,
+              styles.monthlyCoverStage,
               {
                 minHeight: Math.max(
                   0,
@@ -2812,9 +3123,9 @@ const ReviewScreen: React.FC = () => {
                 accessible={false}
                 resizeMode="contain"
                 source={require('../../assets/images/reviews/weekly-cover-looking-back-v2.png')}
-                style={styles.weeklyCoverArtwork}
+                style={[styles.weeklyCoverArtwork, styles.monthlyCoverArtwork]}
               />
-              <View style={styles.weeklyCoverHero}>
+              <View style={[styles.weeklyCoverHero, styles.monthlyCoverHero]}>
                 <View style={styles.weeklyCoverLabelRow}>
                   <Ionicons name="leaf-outline" size={15} color={Colors.sage} />
                   <ThemedText
@@ -2823,18 +3134,26 @@ const ReviewScreen: React.FC = () => {
                     MONTHLY REVIEW
                   </ThemedText>
                 </View>
-                <ThemedText weight="bold" style={styles.weeklyCoverTitle}>
-                  Now, let’s look back.
-                </ThemedText>
-                <ThemedText weight="semiBold" style={styles.weeklyCoverPeriod}>
+                <ThemedText weight="bold" style={styles.reviewPeriodHeadline}>
                   {monthlyPeriodLabel}
                 </ThemedText>
-                <ThemedText style={styles.weeklyCoverSubtitle}>
-                  Step back. Notice the patterns. Carry forward what matters.
+                <ThemedText
+                  weight="semiBold"
+                  style={styles.reviewDirectionPrompt}>
+                  Now, let’s look back.
+                </ThemedText>
+                <ThemedText
+                  style={[
+                    styles.weeklyCoverSubtitle,
+                    styles.monthlyCoverSubtitle,
+                  ]}>
+                  Notice what shaped you, where God met you, and what you want
+                  to carry forward.
                 </ThemedText>
               </View>
 
-              <View style={styles.weeklyShowedUpCard}>
+              <View
+                style={[styles.weeklyShowedUpCard, styles.monthlyShowedUpCard]}>
                 <View style={styles.weeklyShowedUpHeader}>
                   <View style={styles.weeklyShowedUpIcon}>
                     <Ionicons
@@ -2868,7 +3187,7 @@ const ReviewScreen: React.FC = () => {
                     </ThemedText>
                   </View>
                 </View>
-                <View style={styles.weeklyDayChart}>
+                <View style={[styles.weeklyDayChart, styles.monthlyDayChart]}>
                   {monthlyWeekActivity.map((count, index) => {
                     const height =
                       count > 0 ? 7 + (count / maxWeekActivity) * 22 : 5;
@@ -2904,7 +3223,11 @@ const ReviewScreen: React.FC = () => {
                   })}
                 </View>
                 {weeklyCoverSummary.length > 0 && (
-                  <View style={styles.weeklySummarySection}>
+                  <View
+                    style={[
+                      styles.weeklySummarySection,
+                      styles.monthlySummarySection,
+                    ]}>
                     <View style={styles.weeklySummaryHeading}>
                       <ThemedText
                         weight="semiBold"
@@ -2913,15 +3236,29 @@ const ReviewScreen: React.FC = () => {
                       </ThemedText>
                       <View style={styles.weeklySummaryRule} />
                     </View>
-                    <View style={styles.weeklySummaryMetrics}>
+                    <View
+                      style={[
+                        styles.weeklySummaryMetrics,
+                        styles.monthlySummaryMetrics,
+                      ]}>
                       {visibleWeeklyCoverSummary.map(item => (
                         <View
                           key={item.key}
                           style={styles.weeklySummaryMetricSlot}>
-                          <View style={styles.weeklySummaryPill}>
+                          <View
+                            style={[
+                              styles.weeklySummaryPill,
+                              styles.monthlySummaryPill,
+                            ]}>
                             <ThemedText
                               weight="bold"
-                              style={styles.weeklySummaryCount}>
+                              numberOfLines={1}
+                              adjustsFontSizeToFit
+                              minimumFontScale={0.82}
+                              style={[
+                                styles.weeklySummaryCount,
+                                styles.monthlySummaryCount,
+                              ]}>
                               {item.count}
                             </ThemedText>
                             <ThemedText style={styles.weeklySummaryLabel}>
@@ -2947,7 +3284,10 @@ const ReviewScreen: React.FC = () => {
                           );
                           setShowAllWeeklySummary(value => !value);
                         }}
-                        style={styles.weeklySummaryToggle}>
+                        style={[
+                          styles.weeklySummaryToggle,
+                          styles.monthlySummaryToggle,
+                        ]}>
                         <ThemedText
                           weight="semiBold"
                           style={styles.weeklySummaryToggleText}>
@@ -2976,7 +3316,11 @@ const ReviewScreen: React.FC = () => {
                   ? 'Continue monthly review'
                   : 'Begin monthly review'
               }
-              style={[styles.primaryButton, styles.weeklyBeginButton]}
+              style={[
+                styles.primaryButton,
+                styles.weeklyBeginButton,
+                styles.monthlyBeginButton,
+              ]}
               onPress={beginMonthlyReview}
               activeOpacity={0.8}>
               <ThemedText weight="bold" style={styles.weeklyBeginText}>
@@ -3105,9 +3449,9 @@ const ReviewScreen: React.FC = () => {
         items: moments.filter(item => item.presentation === group.presentation),
       }));
       const momentGroups = [
-        ...presentationGroups.slice(0, 8),
+        ...presentationGroups.slice(0, 10),
         heartJournalGroup,
-        ...presentationGroups.slice(8),
+        ...presentationGroups.slice(10),
       ].filter(group => group.items.length > 0);
       const carouselCardWidth = Math.min(310, Math.max(240, screenWidth - 76));
       return (
@@ -3116,6 +3460,20 @@ const ReviewScreen: React.FC = () => {
           key={current.key}
           groups={momentGroups}
           cardWidth={carouselCardWidth}
+          onCarouselTouchStart={
+            reviewType === 'monthly'
+              ? () => {
+                  horizontalCarouselGestureRef.current = true;
+                }
+              : undefined
+          }
+          onCarouselTouchEnd={
+            reviewType === 'monthly'
+              ? () => {
+                  horizontalCarouselGestureRef.current = false;
+                }
+              : undefined
+          }
           contentContainerStyle={[
             styles.weeklyCapturedStage,
             {
@@ -3126,7 +3484,11 @@ const ReviewScreen: React.FC = () => {
           header={
             <View style={styles.weeklyCapturedHeading}>
               <View style={styles.feelingsLabelRow}>
-                <Ionicons name="leaf-outline" size={15} color={Colors.sage} />
+                <Ionicons
+                  name="leaf-outline"
+                  size={reviewType === 'monthly' ? 17 : 15}
+                  color={Colors.sage}
+                />
                 <ThemedText weight="semiBold" style={styles.feelingsLabel}>
                   LOOKING BACK
                 </ThemedText>
@@ -3146,13 +3508,15 @@ const ReviewScreen: React.FC = () => {
                 ) : showingMonthlyWeeklyBookmarks ? (
                   <>
                     {
-                      'These were bookmarked in your weekly reviews.\nChoose what still matters enough to carry forward.'
+                      'These were bookmarked in your weekly reviews and are already hearted.\nUnheart anything you do not want to carry forward.'
                     }
                   </>
                 ) : (
                   <>
                     {
-                      'Here are the moments you captured.\nTap the bookmark on anything you want to carry forward.'
+                      reviewType === 'monthly'
+                        ? 'Here are the moments you captured.\nTap the heart on anything that shaped your month.'
+                        : 'Here are the moments you captured.\nTap the bookmark on anything you want to carry forward.'
                     }
                   </>
                 )}
@@ -3207,9 +3571,9 @@ const ReviewScreen: React.FC = () => {
                 ) : (
                   <View style={styles.monthlyMomentsFallback}>
                     <Ionicons
-                      name="bookmark-outline"
+                      name="heart-outline"
                       size={16}
-                      color={Colors.sage}
+                      color={Colors.alertCoral}
                     />
                     <ThemedText style={styles.monthlyMomentsFallbackText}>
                       No weekly bookmarks yet, so all moments are shown.
@@ -3250,6 +3614,9 @@ const ReviewScreen: React.FC = () => {
                 selected={isSelected}
                 width={carouselCardWidth}
                 relatedItems={relatedItems}
+                selectionAppearance={
+                  reviewType === 'monthly' ? 'heart' : 'bookmark'
+                }
                 onPress={() =>
                   relatedItems.length > 1
                     ? toggleMemorableGroup(relatedItems)
@@ -3263,11 +3630,13 @@ const ReviewScreen: React.FC = () => {
               <View style={styles.weeklyMomentsEmpty}>
                 <ThemedText style={styles.weeklyMomentsEmptyText}>
                   {showingRemembered
-                    ? `You didn’t bookmark any moments from this ${periodWord}.`
+                    ? reviewType === 'monthly'
+                      ? `You didn’t heart any moments from this ${periodWord}.`
+                      : `You didn’t bookmark any moments from this ${periodWord}.`
                     : reviewType === 'monthly' &&
                       hasWeeklyBookmarks &&
                       monthlyMomentsView === 'all'
-                    ? 'Every captured moment was already bookmarked in a weekly review.'
+                    ? 'Every captured moment was already hearted from a weekly review.'
                     : `No journal moments were captured this ${periodWord}.`}
                 </ThemedText>
               </View>
@@ -3466,7 +3835,11 @@ const ReviewScreen: React.FC = () => {
           ]}>
           <View style={styles.feelingsHeading}>
             <View style={styles.feelingsLabelRow}>
-              <Ionicons name="leaf-outline" size={15} color={Colors.sage} />
+              <Ionicons
+                name="leaf-outline"
+                size={reviewType === 'monthly' ? 17 : 15}
+                color={Colors.sage}
+              />
               <ThemedText weight="semiBold" style={styles.feelingsLabel}>
                 LOOKING BACK
               </ThemedText>
@@ -3841,6 +4214,602 @@ const ReviewScreen: React.FC = () => {
       );
     }
 
+    if (current.kind === 'life_summary' && reviewType === 'monthly') {
+      const hasLifeCheckIns = monthlyLifeCheckInSummary.areas.some(
+        area => area.answeredWeeks > 0,
+      );
+      const hasMissingLifeAnswers = monthlyLifeCheckInSummary.areas.some(area =>
+        area.values.some(value => value === null),
+      );
+      return (
+        <StaggeredReviewStage
+          animationKey={current.key}
+          enabled
+          style={[styles.stage, styles.monthlyLifeSummaryStage]}>
+          <View style={styles.monthlyLifeSummaryHeading}>
+            <View style={styles.monthlyPatternsLabelRow}>
+              <Ionicons name="leaf-outline" size={17} color={Colors.sage} />
+              <ThemedText weight="semiBold" style={styles.monthlyPatternsLabel}>
+                LOOKING BACK
+              </ThemedText>
+            </View>
+            <ThemedText weight="bold" style={styles.monthlyLifeSummaryTitle}>
+              {current.question}
+            </ThemedText>
+            <ThemedText style={styles.monthlyLifeSummarySubtitle}>
+              {monthlyLifeCheckInSummary.reviewCount > 0
+                ? `A synthesis of ${
+                    monthlyLifeCheckInSummary.reviewCount
+                  } weekly Whole-life ${
+                    monthlyLifeCheckInSummary.reviewCount === 1
+                      ? 'check-in'
+                      : 'check-ins'
+                  }.`
+                : current.subtitle}
+            </ThemedText>
+          </View>
+
+          {hasLifeCheckIns ? (
+            <>
+              {monthlyLifeCheckInSummary.insight ? (
+                <View style={styles.monthlyLifeInsight}>
+                  <Ionicons
+                    name="sparkles-outline"
+                    size={18}
+                    color={Colors.sage}
+                  />
+                  <ThemedText style={styles.monthlyLifeInsightText}>
+                    {monthlyLifeCheckInSummary.insight}
+                  </ThemedText>
+                </View>
+              ) : null}
+
+              <View style={styles.monthlyLifeLegend}>
+                {[
+                  {label: 'Well', color: Colors.sageMuted},
+                  {label: 'Okay', color: '#CFC5AE'},
+                  {label: 'Needs care', color: MONTHLY_PATTERN_ALERT_CORAL},
+                  ...(hasMissingLifeAnswers
+                    ? [{label: 'No answer', color: '#ECECE7'}]
+                    : []),
+                ].map(item => (
+                  <View key={item.label} style={styles.monthlyLifeLegendItem}>
+                    <View
+                      style={[
+                        styles.monthlyLifeLegendDot,
+                        {backgroundColor: item.color},
+                      ]}
+                    />
+                    <ThemedText style={styles.monthlyLifeLegendText}>
+                      {item.label}
+                    </ThemedText>
+                  </View>
+                ))}
+              </View>
+
+              <View style={styles.monthlyLifeAreaList}>
+                {monthlyLifeCheckInSummary.areas.map(area => {
+                  const counts = [
+                    area.counts.well ? `${area.counts.well}× Well` : '',
+                    area.counts.okay ? `${area.counts.okay}× Okay` : '',
+                    area.counts.struggling
+                      ? `${area.counts.struggling}× Needs care`
+                      : '',
+                  ].filter(Boolean);
+                  const trendIcon =
+                    area.trend === 'improving'
+                      ? 'trending-up-outline'
+                      : area.trend === 'declining'
+                      ? 'trending-down-outline'
+                      : area.trend === 'varied'
+                      ? 'swap-horizontal-outline'
+                      : area.trend === 'steady'
+                      ? 'remove-outline'
+                      : 'information-circle-outline';
+                  return (
+                    <View key={area.key} style={styles.monthlyLifeArea}>
+                      <View style={styles.monthlyLifeAreaHeading}>
+                        <View style={styles.monthlyLifeAreaIdentity}>
+                          <MaterialCommunityIcons
+                            name={area.icon}
+                            size={22}
+                            color={Colors.sage}
+                          />
+                          <ThemedText
+                            weight="semiBold"
+                            style={styles.monthlyLifeAreaLabel}>
+                            {area.label}
+                          </ThemedText>
+                        </View>
+                        <ThemedText
+                          weight="semiBold"
+                          style={styles.monthlyLifeInterpretation}>
+                          {area.interpretation}
+                        </ThemedText>
+                      </View>
+
+                      <View style={styles.monthlyLifeWeeks}>
+                        {area.values.map((value, index) => (
+                          <View
+                            key={`${area.key}-${index}`}
+                            accessible
+                            accessibilityLabel={`Week ${index + 1}: ${
+                              value === 'struggling'
+                                ? 'Needs care'
+                                : value
+                                ? value[0].toUpperCase() + value.slice(1)
+                                : 'No answer'
+                            }`}
+                            style={[
+                              styles.monthlyLifeWeek,
+                              {
+                                backgroundColor:
+                                  getMonthlyLifeRatingColor(value),
+                              },
+                            ]}
+                          />
+                        ))}
+                      </View>
+
+                      <View style={styles.monthlyLifeAreaFooter}>
+                        <View>
+                          <ThemedText style={styles.monthlyLifeCounts}>
+                            {counts.join('  ·  ') || 'No weekly answers'}
+                          </ThemedText>
+                          <ThemedText style={styles.monthlyLifeCoverage}>
+                            {area.answeredWeeks} of{' '}
+                            {monthlyLifeCheckInSummary.reviewCount}{' '}
+                            {monthlyLifeCheckInSummary.reviewCount === 1
+                              ? 'week'
+                              : 'weeks'}{' '}
+                            answered
+                          </ThemedText>
+                        </View>
+                        <View style={styles.monthlyLifeTrend}>
+                          <Ionicons
+                            name={trendIcon}
+                            size={14}
+                            color={Colors.textGray}
+                          />
+                          <ThemedText style={styles.monthlyLifeTrendText}>
+                            {area.trendLabel}
+                          </ThemedText>
+                        </View>
+                      </View>
+                    </View>
+                  );
+                })}
+              </View>
+            </>
+          ) : (
+            <View style={styles.monthlyLifeEmpty}>
+              <ThemedText style={styles.monthlyLifeEmptyText}>
+                No Weekly Whole-life check-ins were completed this month.
+                There’s nothing to interpret yet.
+              </ThemedText>
+            </View>
+          )}
+        </StaggeredReviewStage>
+      );
+    }
+
+    if (current.kind === 'pill_choices' && reviewType === 'monthly') {
+      const drainingChoices = [
+        ...(answers.month_draining ?? '')
+          .split('|')
+          .map(value => value.trim())
+          .filter(value => value && value !== 'Other'),
+        ...(answers.month_draining_other?.trim()
+          ? [answers.month_draining_other.trim()]
+          : []),
+      ];
+      const choices = [
+        ...new Set([
+          ...(current.key === 'monthly_leave_behind'
+            ? drainingChoices
+            : []),
+          ...(current.choices ?? []),
+        ]),
+      ];
+      const selectionLimit = current.selectionLimit ?? 3;
+      const answerKey = current.answerKey!;
+      const otherAnswerKey = current.otherAnswerKey!;
+      const selectedChoices = (answers[answerKey] ?? '')
+        .split('|')
+        .map(value => value.trim())
+        .filter(Boolean);
+      const customChoice = answers[otherAnswerKey] ?? '';
+      const hasOther =
+        selectedChoices.includes('Other') || Boolean(customChoice.trim());
+      const selectionCount = selectedChoices.length;
+      const saveChoices = (patch: Record<string, string>) => {
+        const next = {...answers, ...patch};
+        setAnswers(next);
+        saveReview({answers: next});
+      };
+      const toggleChoice = (choice: string) => {
+        const isSelected = selectedChoices.includes(choice);
+        if (!isSelected && selectionCount >= selectionLimit) {
+          return;
+        }
+        triggerLightHaptic();
+        if (isSelected) {
+          saveChoices({
+            [answerKey]: selectedChoices
+              .filter(item => item !== choice)
+              .join('|'),
+            ...(choice === 'Other' ? {[otherAnswerKey]: ''} : {}),
+          });
+          return;
+        }
+        saveChoices({[answerKey]: [...selectedChoices, choice].join('|')});
+      };
+
+      return (
+        <StaggeredReviewStage
+          animationKey={current.key}
+          enabled
+          style={[styles.stage, styles.monthlyChoiceStage]}>
+          <View style={styles.monthlyChoiceHeading}>
+            <View style={styles.monthlyPatternsLabelRow}>
+              <Ionicons name="leaf-outline" size={17} color={Colors.sage} />
+              <ThemedText weight="semiBold" style={styles.monthlyPatternsLabel}>
+                {current.label}
+              </ThemedText>
+            </View>
+            <ThemedText weight="bold" style={styles.monthlyChoiceTitle}>
+              {current.question}
+            </ThemedText>
+            <ThemedText style={styles.monthlyChoiceSubtitle}>
+              {current.subtitle}
+            </ThemedText>
+          </View>
+
+          <View style={styles.monthlyChoiceGrid}>
+            {[...choices, 'Other'].map(choice => {
+              const isSelected = selectedChoices.includes(choice);
+              const disabled = !isSelected && selectionCount >= selectionLimit;
+              return (
+                <TouchableOpacity
+                  key={choice}
+                  accessibilityRole="button"
+                  accessibilityLabel={choice}
+                  accessibilityState={{selected: isSelected, disabled}}
+                  activeOpacity={0.76}
+                  disabled={disabled}
+                  onPress={() => toggleChoice(choice)}
+                  style={[
+                    styles.monthlyChoicePill,
+                    isSelected && styles.monthlyChoicePillSelected,
+                    disabled && styles.monthlyChoicePillDisabled,
+                  ]}>
+                  {choice === 'Other' ? (
+                    <Ionicons
+                      name="add"
+                      size={17}
+                      color={isSelected ? Colors.hopeWhite : Colors.sage}
+                    />
+                  ) : null}
+                  <ThemedText
+                    weight="semiBold"
+                    style={[
+                      styles.monthlyChoicePillText,
+                      isSelected && styles.monthlyChoicePillTextSelected,
+                    ]}>
+                    {choice}
+                  </ThemedText>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
+          {current.choiceDetails?.some(detail =>
+            selectedChoices.includes(detail.choice),
+          ) ? (
+            <View style={styles.monthlyChoiceDetails}>
+              <ThemedText
+                weight="semiBold"
+                style={styles.monthlyChoiceDetailsTitle}>
+                Make it more specific
+              </ThemedText>
+              <ThemedText style={styles.monthlyChoiceDetailsSubtitle}>
+                Optional · choose up to 3 for each area.
+              </ThemedText>
+              {current.choiceDetails
+                .filter(detail => selectedChoices.includes(detail.choice))
+                .map(detail => {
+                  const detailSelections = (answers[detail.answerKey] ?? '')
+                    .split('|')
+                    .map(value => value.trim())
+                    .filter(Boolean);
+                  const detailLimit = detail.selectionLimit ?? 3;
+                  return (
+                    <View
+                      key={detail.answerKey}
+                      style={styles.monthlyChoiceDetailSection}>
+                      <ThemedText
+                        weight="semiBold"
+                        style={styles.monthlyChoiceDetailLabel}>
+                        {detail.choice}
+                      </ThemedText>
+                      <View style={styles.monthlyChoiceDetailGrid}>
+                        {detail.choices.map(detailChoice => {
+                          const isSelected =
+                            detailSelections.includes(detailChoice);
+                          const disabled =
+                            !isSelected &&
+                            detailSelections.length >= detailLimit;
+                          return (
+                            <TouchableOpacity
+                              key={detailChoice}
+                              accessibilityRole="button"
+                              accessibilityLabel={`${detail.choice}: ${detailChoice}`}
+                              accessibilityState={{
+                                selected: isSelected,
+                                disabled,
+                              }}
+                              activeOpacity={0.76}
+                              disabled={disabled}
+                              onPress={() => {
+                                triggerLightHaptic();
+                                saveChoices({
+                                  [detail.answerKey]: isSelected
+                                    ? detailSelections
+                                        .filter(value => value !== detailChoice)
+                                        .join('|')
+                                    : [...detailSelections, detailChoice].join(
+                                        '|',
+                                      ),
+                                });
+                              }}
+                              style={[
+                                styles.monthlyChoiceDetailPill,
+                                isSelected &&
+                                  styles.monthlyChoiceDetailPillSelected,
+                                disabled && styles.monthlyChoicePillDisabled,
+                              ]}>
+                              <ThemedText
+                                weight="medium"
+                                style={[
+                                  styles.monthlyChoiceDetailPillText,
+                                  isSelected &&
+                                    styles.monthlyChoiceDetailPillTextSelected,
+                                ]}>
+                                {detailChoice}
+                              </ThemedText>
+                            </TouchableOpacity>
+                          );
+                        })}
+                      </View>
+                    </View>
+                  );
+                })}
+            </View>
+          ) : null}
+
+          {hasOther ? (
+            <TextInput
+              ref={monthlyPillOtherInputRef}
+              autoFocus
+              multiline
+              scrollEnabled={false}
+              underlineColorAndroid="transparent"
+              textAlignVertical="top"
+              value={customChoice}
+              onChangeText={text => saveChoices({[otherAnswerKey]: text})}
+              onFocus={() => requestAnimationFrame(revealCustomReviewInput)}
+              onLayout={() => requestAnimationFrame(revealCustomReviewInput)}
+              placeholder="Add your own…"
+              placeholderTextColor={Colors.textGray}
+              accessibilityLabel={`${current.question} Other`}
+              style={styles.monthlyChoiceOtherInput}
+            />
+          ) : null}
+        </StaggeredReviewStage>
+      );
+    }
+
+    if (current.key === 'monthly_care' && reviewType === 'monthly') {
+      const answerKey = current.answerKey!;
+      const otherAnswerKey = current.otherAnswerKey!;
+      const selectionLimit = current.selectionLimit ?? 3;
+      const selectedAreas = (answers[answerKey] ?? '')
+        .split('|')
+        .map(value => value.trim())
+        .filter(Boolean);
+      const customCare = answers[otherAnswerKey] ?? '';
+      const summaryByKey = new Map(
+        monthlyLifeCheckInSummary.areas.map(area => [area.key, area]),
+      );
+      const orderedAreas = [...WEEKLY_LIFE_AREAS].sort((left, right) => {
+        const rightCount = summaryByKey.get(right.key)?.counts.struggling ?? 0;
+        const leftCount = summaryByKey.get(left.key)?.counts.struggling ?? 0;
+        return rightCount - leftCount;
+      });
+      const saveCare = (patch: Record<string, string>) => {
+        const next = {...answers, ...patch};
+        setAnswers(next);
+        saveReview({answers: next});
+      };
+      const toggleArea = (key: string) => {
+        const isSelected = selectedAreas.includes(key);
+        if (!isSelected && selectedAreas.length >= selectionLimit) {
+          return;
+        }
+        triggerLightHaptic();
+        saveCare({
+          [answerKey]: isSelected
+            ? selectedAreas.filter(value => value !== key).join('|')
+            : [...selectedAreas, key].join('|'),
+          ...(key === 'other' && isSelected ? {[otherAnswerKey]: ''} : {}),
+        });
+      };
+
+      return (
+        <StaggeredReviewStage
+          animationKey={current.key}
+          enabled
+          style={[styles.stage, styles.monthlyChoiceStage]}>
+          <View style={styles.monthlyChoiceHeading}>
+            <View style={styles.monthlyPatternsLabelRow}>
+              <Ionicons name="leaf-outline" size={17} color={Colors.sage} />
+              <ThemedText weight="semiBold" style={styles.monthlyPatternsLabel}>
+                {current.label}
+              </ThemedText>
+            </View>
+            <ThemedText weight="bold" style={styles.monthlyChoiceTitle}>
+              {current.question}
+            </ThemedText>
+            <ThemedText style={styles.monthlyChoiceSubtitle}>
+              {monthlyLifeCheckInSummary.reviewCount > 0
+                ? current.subtitle
+                : 'There is no Whole-life pattern yet. Choose any area you want to care for intentionally.'}
+            </ThemedText>
+          </View>
+
+          <View style={styles.monthlyCareList}>
+            {[...orderedAreas, WEEKLY_CARE_AREAS[WEEKLY_CARE_AREAS.length - 1]].map(
+              area => {
+                const isSelected = selectedAreas.includes(area.key);
+                const disabled =
+                  !isSelected && selectedAreas.length >= selectionLimit;
+                const strugglingCount =
+                  area.key === 'other'
+                    ? 0
+                    : summaryByKey.get(area.key)?.counts.struggling ?? 0;
+                const careSignal =
+                  strugglingCount > 0
+                    ? `Needs attention. Appeared in ${strugglingCount} weekly ${
+                        strugglingCount === 1 ? 'check-in' : 'check-ins'
+                      }`
+                    : '';
+                return (
+                  <TouchableOpacity
+                    key={area.key}
+                    accessibilityRole="checkbox"
+                    accessibilityLabel={
+                      careSignal ? `${area.label}. ${careSignal}` : area.label
+                    }
+                    accessibilityState={{checked: isSelected, disabled}}
+                    activeOpacity={0.72}
+                    disabled={disabled}
+                    onPress={() => toggleArea(area.key)}
+                    style={[
+                      styles.monthlyCareRow,
+                      disabled && styles.monthlyChoicePillDisabled,
+                    ]}>
+                    <View style={styles.monthlyCareIdentity}>
+                      <MaterialCommunityIcons
+                        name={area.icon as any}
+                        size={24}
+                        color={Colors.sage}
+                      />
+                      <View style={styles.monthlyCareCopy}>
+                        <ThemedText
+                          weight="semiBold"
+                          style={styles.monthlyCareLabel}>
+                          {area.label}
+                        </ThemedText>
+                        {careSignal ? (
+                          <View style={styles.monthlyCareSignalRow}>
+                            <ThemedText
+                              weight="semiBold"
+                              style={styles.monthlyCareSignal}>
+                              Needs attention
+                            </ThemedText>
+                            <ThemedText style={styles.monthlyCareEvidence}>
+                              · Appeared in {strugglingCount} weekly{' '}
+                              {strugglingCount === 1
+                                ? 'check-in'
+                                : 'check-ins'}
+                            </ThemedText>
+                          </View>
+                        ) : null}
+                      </View>
+                    </View>
+                    <View style={styles.monthlyCareMeta}>
+                      <View
+                        style={[
+                          styles.monthlyChoiceCheck,
+                          isSelected && styles.monthlyChoiceCheckSelected,
+                        ]}>
+                        {isSelected ? (
+                          <Ionicons
+                            name="checkmark"
+                            size={16}
+                            color={Colors.hopeWhite}
+                          />
+                        ) : null}
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                );
+              },
+            )}
+          </View>
+
+          {selectedAreas.includes('other') ? (
+            <TextInput
+              ref={monthlyPillOtherInputRef}
+              autoFocus
+              multiline
+              scrollEnabled={false}
+              underlineColorAndroid="transparent"
+              textAlignVertical="top"
+              value={customCare}
+              onChangeText={text => saveCare({[otherAnswerKey]: text})}
+              onFocus={() => requestAnimationFrame(revealCustomReviewInput)}
+              onLayout={() => requestAnimationFrame(revealCustomReviewInput)}
+              placeholder="What else needs care?"
+              placeholderTextColor={Colors.textGray}
+              accessibilityLabel="Other area that needs care"
+              style={styles.monthlyChoiceOtherInput}
+            />
+          ) : null}
+        </StaggeredReviewStage>
+      );
+    }
+
+    if (current.key === 'prayer_for_month' && reviewType === 'monthly') {
+      return (
+        <StaggeredReviewStage
+          animationKey={current.key}
+          enabled
+          style={[styles.stage, styles.weeklyClosingStage]}>
+          <View style={styles.labelRow}>
+            <PrayerHandsIcon size={18} color={Colors.sage} />
+            <ThemedText weight="semiBold" style={styles.label}>
+              {current.label}
+            </ThemedText>
+          </View>
+          <ThemedText weight="semiBold" style={styles.weeklyChallengeTitle}>
+            {current.question}
+          </ThemedText>
+          <ThemedText style={styles.weeklyChallengeSubtitle}>
+            {current.subtitle}
+          </ThemedText>
+          <View style={styles.weeklyClosingNote}>
+            <TextInput
+              ref={monthlyPrayerInputRef}
+              style={styles.weeklyPrayerInput}
+              autoFocus
+              multiline
+              scrollEnabled={false}
+              underlineColorAndroid="transparent"
+              value={answers.prayer_for_month ?? ''}
+              onChangeText={text => onAnswerChange('prayer_for_month', text)}
+              onFocus={() => requestAnimationFrame(revealCustomReviewInput)}
+              onLayout={() => requestAnimationFrame(revealCustomReviewInput)}
+              placeholder={current.placeholder}
+              placeholderTextColor={Colors.textGray}
+              textAlignVertical="top"
+              accessibilityLabel="Your words to God for the month (optional)"
+            />
+          </View>
+        </StaggeredReviewStage>
+      );
+    }
+
     if (
       current.kind === 'question' &&
       current.key === 'notice' &&
@@ -3859,6 +4828,38 @@ const ReviewScreen: React.FC = () => {
         ...monthlyWeeklyReviewFeelings.feelings.map(item => item.count),
       );
       const weeklyReviewCount = monthlyWeeklyReviewFeelings.reviewCount;
+      const totalLookingForwardFeelings = monthlyLookingForwardFeelings.reduce(
+        (total, item) => total + item.count,
+        0,
+      );
+      const largestLookingForwardFeelingCount = Math.max(
+        1,
+        ...monthlyLookingForwardFeelings.map(item => item.count),
+      );
+      const hasMonthlyPatternSources =
+        totalCheckIns > 0 ||
+        weeklyReviewCount > 0 ||
+        totalLookingForwardFeelings > 0;
+      const patternTabs = [
+        {
+          key: 'morning',
+          count: totalCheckIns,
+          label: 'Morning check-ins',
+          shortLabel: 'Morning',
+        },
+        {
+          key: 'weekly',
+          count: weeklyReviewCount,
+          label: 'Weekly check-ins',
+          shortLabel: 'Weekly',
+        },
+        {
+          key: 'looking-forward',
+          count: totalLookingForwardFeelings,
+          label: 'Looking Forward reflections',
+          shortLabel: 'Next day',
+        },
+      ] as const;
 
       return (
         <StaggeredReviewStage
@@ -3876,75 +4877,100 @@ const ReviewScreen: React.FC = () => {
               {current.question}
             </ThemedText>
             <ThemedText style={styles.monthlyPatternsSubtitle}>
-              {totalCheckIns > 0
-                ? `Here’s what showed up across your ${totalCheckIns} morning ${
-                    totalCheckIns === 1 ? 'check-in' : 'check-ins'
-                  }${
-                    weeklyReviewCount > 0
-                      ? ` and ${weeklyReviewCount} weekly ${
-                          weeklyReviewCount === 1 ? 'review' : 'reviews'
-                        }`
-                      : ''
-                  }.`
-                : weeklyReviewCount > 0
-                ? `Here’s what showed up across your ${weeklyReviewCount} weekly ${
-                    weeklyReviewCount === 1 ? 'review' : 'reviews'
-                  }.`
-                : 'There were no Morning Check-ins or completed Weekly Reviews recorded this month. You can still name what you noticed.'}
+              {hasMonthlyPatternSources
+                ? 'Here’s what showed up across the month.'
+                : 'There were no check-ins or Looking Forward reflections recorded this month. You can still name what you noticed.'}
             </ThemedText>
+            <View accessibilityRole="tablist" style={styles.monthlyMomentsTabs}>
+              {patternTabs.map(tab => {
+                const tabKey =
+                  tab.key === 'looking-forward' ? 'looking_forward' : tab.key;
+                const selected = monthlyPatternsView === tabKey;
+                return (
+                  <TouchableOpacity
+                    key={tab.key}
+                    accessibilityRole="tab"
+                    accessibilityLabel={`${tab.label}, ${tab.count}`}
+                    accessibilityState={{selected}}
+                    activeOpacity={0.78}
+                    onPress={() => {
+                      triggerLightHaptic();
+                      setMonthlyPatternsView(tabKey);
+                    }}
+                    style={[
+                      styles.monthlyMomentsTab,
+                      selected && styles.monthlyMomentsTabActive,
+                    ]}>
+                    <ThemedText
+                      weight="semiBold"
+                      style={[
+                        styles.monthlyMomentsTabText,
+                        selected && styles.monthlyMomentsTabTextActive,
+                      ]}>
+                      {tab.shortLabel} · {tab.count}
+                    </ThemedText>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
           </View>
 
-          {checkInFeelings.length > 0 ? (
+          {monthlyPatternsView === 'morning' ? (
             <View style={styles.monthlyPatternSection}>
               <View style={styles.monthlyPatternSectionHeading}>
                 <Ionicons name="sunny-outline" size={17} color={Colors.sage} />
                 <ThemedText
                   weight="semiBold"
                   style={styles.monthlyPatternSectionTitle}>
-                  FROM YOUR MORNINGS
+                  MORNING CHECK-INS
                 </ThemedText>
               </View>
-              <View style={styles.monthlyPatternList}>
-                {checkInFeelings.map((item, index) => (
-                  <View key={item.name} style={styles.monthlyPatternRow}>
-                    <View style={styles.monthlyPatternLabelRow}>
-                      <ThemedText
-                        weight="semiBold"
-                        style={styles.monthlyPatternName}>
-                        {item.name}
-                      </ThemedText>
-                      <ThemedText
-                        weight="semiBold"
-                        style={styles.monthlyPatternCount}>
-                        {item.count} {item.count === 1 ? 'day' : 'days'}
-                      </ThemedText>
+              {checkInFeelings.length > 0 ? (
+                <View style={styles.monthlyPatternList}>
+                  {checkInFeelings.map(item => (
+                    <View key={item.name} style={styles.monthlyPatternRow}>
+                      <View style={styles.monthlyPatternLabelRow}>
+                        <ThemedText
+                          weight="semiBold"
+                          style={styles.monthlyPatternName}>
+                          {item.name}
+                        </ThemedText>
+                        <ThemedText
+                          weight="semiBold"
+                          style={styles.monthlyPatternCount}>
+                          {item.count} {item.count === 1 ? 'day' : 'days'}
+                        </ThemedText>
+                      </View>
+                      <View style={styles.monthlyPatternTrack}>
+                        <View
+                          testID={`monthly-pattern-bar-morning-${item.name
+                            .toLowerCase()
+                            .replace(/\s+/g, '-')}`}
+                          style={[
+                            styles.monthlyPatternFill,
+                            {
+                              width: `${
+                                (item.count / largestFeelingCount) * 100
+                              }%`,
+                              backgroundColor: getMonthlyPatternFeelingColor(
+                                item.name,
+                              ),
+                            },
+                          ]}
+                        />
+                      </View>
                     </View>
-                    <View style={styles.monthlyPatternTrack}>
-                      <View
-                        testID={`monthly-pattern-bar-morning-${item.name
-                          .toLowerCase()
-                          .replace(/\s+/g, '-')}`}
-                        style={[
-                          styles.monthlyPatternFill,
-                          {
-                            width: `${
-                              (item.count / largestFeelingCount) * 100
-                            }%`,
-                            backgroundColor:
-                              MONTHLY_PATTERN_BAR_COLORS[
-                                index % MONTHLY_PATTERN_BAR_COLORS.length
-                              ],
-                          },
-                        ]}
-                      />
-                    </View>
-                  </View>
-                ))}
-              </View>
+                  ))}
+                </View>
+              ) : (
+                <ThemedText style={styles.monthlyPatternEmptyText}>
+                  No morning feelings were recorded this month.
+                </ThemedText>
+              )}
             </View>
           ) : null}
 
-          {monthlyWeeklyReviewFeelings.feelings.length > 0 ? (
+          {monthlyPatternsView === 'weekly' ? (
             <View style={styles.monthlyPatternSection}>
               <View style={styles.monthlyPatternSectionHeading}>
                 <Ionicons
@@ -3955,45 +4981,131 @@ const ReviewScreen: React.FC = () => {
                 <ThemedText
                   weight="semiBold"
                   style={styles.monthlyPatternSectionTitle}>
-                  FROM YOUR WEEKLY REVIEWS
+                  WEEKLY CHECK-INS
                 </ThemedText>
               </View>
-              <View style={styles.monthlyPatternList}>
-                {monthlyWeeklyReviewFeelings.feelings.map((item, index) => (
-                  <View key={item.name} style={styles.monthlyPatternRow}>
-                    <View style={styles.monthlyPatternLabelRow}>
-                      <ThemedText
-                        weight="semiBold"
-                        style={styles.monthlyPatternName}>
-                        {item.name}
-                      </ThemedText>
-                      <ThemedText
-                        weight="semiBold"
-                        style={styles.monthlyPatternCount}>
-                        {item.count} {item.count === 1 ? 'week' : 'weeks'}
-                      </ThemedText>
+              {monthlyWeeklyReviewFeelings.feelings.length > 0 ? (
+                <View style={styles.monthlyPatternList}>
+                  {monthlyWeeklyReviewFeelings.feelings.map(item => (
+                    <View key={item.name} style={styles.monthlyPatternRow}>
+                      <View style={styles.monthlyPatternLabelRow}>
+                        <ThemedText
+                          weight="semiBold"
+                          style={styles.monthlyPatternName}>
+                          {item.name}
+                        </ThemedText>
+                        <ThemedText
+                          weight="semiBold"
+                          style={styles.monthlyPatternCount}>
+                          {item.count}×
+                        </ThemedText>
+                      </View>
+                      <View style={styles.monthlyPatternTrack}>
+                        <View
+                          testID={`monthly-pattern-bar-weekly-${item.name
+                            .toLowerCase()
+                            .replace(/\s+/g, '-')}`}
+                          style={[
+                            styles.monthlyPatternFill,
+                            {
+                              width: `${
+                                (item.count / largestWeeklyFeelingCount) * 100
+                              }%`,
+                              backgroundColor: getMonthlyPatternFeelingColor(
+                                item.name,
+                              ),
+                            },
+                          ]}
+                        />
+                      </View>
                     </View>
-                    <View style={styles.monthlyPatternTrack}>
-                      <View
-                        testID={`monthly-pattern-bar-weekly-${item.name
-                          .toLowerCase()
-                          .replace(/\s+/g, '-')}`}
-                        style={[
-                          styles.monthlyPatternFill,
-                          {
-                            width: `${
-                              (item.count / largestWeeklyFeelingCount) * 100
-                            }%`,
-                            backgroundColor:
-                              MONTHLY_PATTERN_BAR_COLORS[
-                                index % MONTHLY_PATTERN_BAR_COLORS.length
-                              ],
-                          },
-                        ]}
-                      />
+                  ))}
+                </View>
+              ) : (
+                <ThemedText style={styles.monthlyPatternEmptyText}>
+                  No weekly feelings were recorded this month.
+                </ThemedText>
+              )}
+            </View>
+          ) : null}
+
+          {monthlyPatternsView === 'looking_forward' ? (
+            <View style={styles.monthlyPatternSection}>
+              <View style={styles.monthlyPatternSectionHeading}>
+                <Ionicons
+                  name="arrow-forward-circle-outline"
+                  size={17}
+                  color={Colors.sage}
+                />
+                <ThemedText
+                  weight="semiBold"
+                  style={styles.monthlyPatternSectionTitle}>
+                  LOOKING FORWARD TO THE NEXT DAY, YOU FELT…
+                </ThemedText>
+              </View>
+              {monthlyLookingForwardFeelings.length > 0 ? (
+                <View style={styles.monthlyPatternList}>
+                  {monthlyLookingForwardFeelings.map(item => (
+                    <View key={item.name} style={styles.monthlyPatternRow}>
+                      <View style={styles.monthlyPatternLabelRow}>
+                        <ThemedText
+                          weight="semiBold"
+                          style={styles.monthlyPatternName}>
+                          {item.name}
+                        </ThemedText>
+                        <ThemedText
+                          weight="semiBold"
+                          style={styles.monthlyPatternCount}>
+                          {item.count} {item.count === 1 ? 'day' : 'days'}
+                        </ThemedText>
+                      </View>
+                      <View style={styles.monthlyPatternTrack}>
+                        <View
+                          testID={`monthly-pattern-bar-looking-forward-${item.name
+                            .toLowerCase()
+                            .replace(/\s+/g, '-')}`}
+                          style={[
+                            styles.monthlyPatternFill,
+                            {
+                              width: `${
+                                (item.count /
+                                  largestLookingForwardFeelingCount) *
+                                100
+                              }%`,
+                              backgroundColor: getMonthlyPatternFeelingColor(
+                                item.name,
+                              ),
+                            },
+                          ]}
+                        />
+                      </View>
                     </View>
-                  </View>
-                ))}
+                  ))}
+                </View>
+              ) : (
+                <ThemedText style={styles.monthlyPatternEmptyText}>
+                  No Looking Forward feelings were recorded this month.
+                </ThemedText>
+              )}
+            </View>
+          ) : null}
+
+          {monthlyPatternSummary ? (
+            <View style={styles.monthlyPatternInsight}>
+              <Ionicons
+                name="sparkles-outline"
+                size={18}
+                color={Colors.sage}
+              />
+              <View style={styles.monthlyPatternInsightCopy}>
+                <ThemedText
+                  weight="semiBold"
+                  style={styles.monthlyPatternInsightLabel}>
+                  WHAT YOUR CHECK-INS SHOW
+                </ThemedText>
+                <ThemedText style={styles.monthlyPatternInsightText}>
+                  {monthlyPatternSummary}
+                </ThemedText>
               </View>
             </View>
           ) : null}
@@ -4005,6 +5117,7 @@ const ReviewScreen: React.FC = () => {
               What do you notice?
             </ThemedText>
             <TextInput
+              ref={monthlyPatternInputRef}
               style={styles.monthlyPatternInput}
               multiline
               scrollEnabled={false}
@@ -4012,6 +5125,13 @@ const ReviewScreen: React.FC = () => {
               textAlignVertical="top"
               value={answers.notice_month ?? ''}
               onChangeText={text => onAnswerChange('notice_month', text)}
+              onFocus={() => {
+                monthlyPatternInputFocusedRef.current = true;
+                requestAnimationFrame(revealMonthlyPatternInput);
+              }}
+              onBlur={() => {
+                monthlyPatternInputFocusedRef.current = false;
+              }}
               placeholder="Start writing…"
               placeholderTextColor={Colors.textGray}
               accessibilityLabel="What do you notice?"
@@ -4149,6 +5269,44 @@ const ReviewScreen: React.FC = () => {
               );
             })}
           </View>
+        </StaggeredReviewStage>
+      );
+    }
+
+    if (
+      current.kind === 'question' &&
+      current.key === 'prayer' &&
+      reviewType === 'monthly'
+    ) {
+      return (
+        <StaggeredReviewStage
+          animationKey={current.key}
+          enabled
+          style={[styles.stage, styles.monthlyPrayerStage]}>
+          <View style={styles.labelRow}>
+            <Ionicons name="leaf-outline" size={17} color={Colors.sage} />
+            <ThemedText weight="semiBold" style={styles.label}>
+              {current.label}
+            </ThemedText>
+          </View>
+          <ThemedText
+            weight="bold"
+            style={[styles.question, styles.questionWithSubtitle]}>
+            {current.question}
+          </ThemedText>
+          <ThemedText style={styles.questionSubtitle}>
+            {current.subtitle}
+          </ThemedText>
+
+          <MonthlyReviewPrayerOverview
+            reflection={capture?.monthlyPrayerReflection}
+            onCarouselTouchStart={() => {
+              horizontalCarouselGestureRef.current = true;
+            }}
+            onCarouselTouchEnd={() => {
+              horizontalCarouselGestureRef.current = false;
+            }}
+          />
         </StaggeredReviewStage>
       );
     }
@@ -4644,11 +5802,205 @@ const ReviewScreen: React.FC = () => {
       );
     }
 
+    if (
+      current.kind === 'testimony' &&
+      reviewType === 'monthly' &&
+      monthlyTestimony
+    ) {
+      return (
+        <StaggeredReviewStage
+          animationKey={current.key}
+          enabled
+          style={[styles.stage, styles.monthlyTestimonyStage]}>
+          <View style={styles.monthlyTestimonyHeading}>
+            <View style={styles.labelRow}>
+              <Ionicons name="leaf-outline" size={17} color={Colors.sage} />
+              <ThemedText weight="semiBold" style={styles.label}>
+                {current.label}
+              </ThemedText>
+            </View>
+            <View style={styles.monthlyTestimonyEmblem}>
+              <Ionicons
+                name="sparkles-outline"
+                size={22}
+                color={Colors.sage}
+              />
+            </View>
+            <ThemedText weight="bold" style={styles.monthlyTestimonyTitle}>
+              {current.title}
+            </ThemedText>
+            <ThemedText style={styles.monthlyTestimonySubtitle}>
+              {current.subtitle}
+            </ThemedText>
+          </View>
+
+          <View style={styles.monthlyTestimonyCard}>
+            <View style={styles.monthlyTestimonyCardHeading}>
+              <View style={styles.monthlyTestimonyIcon}>
+                <Ionicons
+                  name="sparkles-outline"
+                  size={18}
+                  color={Colors.sage}
+                />
+              </View>
+              <ThemedText
+                weight="semiBold"
+                style={styles.monthlyTestimonyCardTitle}>
+                My testimony
+              </ThemedText>
+              {!!monthlyTestimony.detail && (
+                <View style={styles.monthlyTestimonyDatePill}>
+                  <Ionicons name="time-outline" size={12} color={Colors.sage} />
+                  <ThemedText
+                    numberOfLines={1}
+                    style={styles.monthlyTestimonyDateText}>
+                    {monthlyTestimony.detail}
+                  </ThemedText>
+                </View>
+              )}
+            </View>
+            <View style={styles.monthlyTestimonyRule} />
+            <ThemedText
+              numberOfLines={5}
+              style={styles.monthlyTestimonyBody}>
+              {monthlyTestimony.text?.trim()}
+            </ThemedText>
+          </View>
+
+          <ThemedText style={styles.monthlyTestimonyFootnote}>
+            This is part of the story of God’s faithfulness in your life.
+          </ThemedText>
+        </StaggeredReviewStage>
+      );
+    }
+
+    if (reviewType === 'monthly' && current.kind === 'wins') {
+      const wins = [...monthlyWins].sort((left, right) =>
+        left.selectedDate.localeCompare(right.selectedDate),
+      );
+      const columnCount = Math.min(
+        wins.length,
+        screenWidth >= 700 ? 3 : screenWidth >= 350 ? 2 : 1,
+      );
+      const gridGap = 12;
+      const gridWidth = screenWidth - 44;
+      const columnWidth =
+        (gridWidth - gridGap * Math.max(0, columnCount - 1)) / columnCount;
+      const winColumns = Array.from({length: columnCount}, () => ({
+        estimatedHeight: 0,
+        items: [] as ReviewCaptureItem[],
+      }));
+      wins.forEach(win => {
+        const shortestColumn = winColumns.reduce(
+          (shortest, column, index, columns) =>
+            column.estimatedHeight < columns[shortest].estimatedHeight
+              ? index
+              : shortest,
+          0,
+        );
+        const charactersPerLine = Math.max(
+          12,
+          Math.floor((columnWidth - 30) / 7),
+        );
+        const copyLength =
+          (win.detail?.trim().length ?? 0) +
+          (win.text?.trim().length ?? win.title.trim().length);
+        const estimatedLines = Math.max(
+          1,
+          Math.ceil(copyLength / charactersPerLine),
+        );
+        winColumns[shortestColumn].items.push(win);
+        winColumns[shortestColumn].estimatedHeight +=
+          126 + estimatedLines * 21 + gridGap;
+      });
+      return (
+        <StaggeredReviewStage
+          animationKey={current.key}
+          enabled
+          style={[styles.stage, styles.monthlyWinsStage]}>
+          <View style={styles.weeklyCapturedHeading}>
+            <View style={styles.feelingsLabelRow}>
+              <Ionicons name="leaf-outline" size={17} color={Colors.sage} />
+              <ThemedText weight="semiBold" style={styles.feelingsLabel}>
+                {current.label}
+              </ThemedText>
+            </View>
+            <ThemedText weight="bold" style={styles.weeklyCapturedTitle}>
+              {current.title}
+            </ThemedText>
+            <ThemedText style={styles.weeklyCapturedSubtitle}>
+              {current.subtitle}
+            </ThemedText>
+          </View>
+
+          <View style={styles.monthlyWinsCountRow}>
+            <Ionicons name="trophy-outline" size={18} color={Colors.sage} />
+            <ThemedText weight="semiBold" style={styles.monthlyWinsCount}>
+              {wins.length} {wins.length === 1 ? 'win' : 'wins'} recorded
+            </ThemedText>
+          </View>
+
+          <View style={styles.monthlyWinsGrid}>
+            {winColumns.map((column, columnIndex) => (
+              <View
+                key={`monthly-win-column-${columnIndex}`}
+                style={styles.monthlyWinsColumn}>
+                {column.items.map(win => {
+                  const winType = win.detail?.trim();
+                  const winText = win.text?.trim() || win.title.trim();
+                  return (
+                    <View
+                      key={`${win.id}:${win.selectedDate}`}
+                      style={styles.monthlyWinGridCard}>
+                      <View style={styles.monthlyWinGridMeta}>
+                        <View style={styles.monthlyWinGridIcon}>
+                          <Ionicons
+                            name="trophy-outline"
+                            size={16}
+                            color={Colors.sage}
+                          />
+                        </View>
+                        <ThemedText style={styles.monthlyWinGridDate}>
+                          {formatCapturedDate(win.selectedDate)}
+                        </ThemedText>
+                      </View>
+                      {!!winType && (
+                        <ThemedText
+                          weight="semiBold"
+                          style={styles.monthlyWinGridType}>
+                          {winType}
+                        </ThemedText>
+                      )}
+                      <View style={styles.monthlyWinGridRule} />
+                      <ThemedText
+                        weight="semiBold"
+                        style={styles.monthlyWinGridLabel}>
+                        QUIET WIN
+                      </ThemedText>
+                      <ThemedText style={styles.monthlyWinGridText}>
+                        {winText}
+                      </ThemedText>
+                    </View>
+                  );
+                })}
+              </View>
+            ))}
+          </View>
+        </StaggeredReviewStage>
+      );
+    }
+
     if (current.kind === 'question') {
       const isWeeklyDifficulty =
         reviewType === 'weekly' && current.key === 'difficulty';
       const isWeeklyLearning =
         reviewType === 'weekly' && current.key === 'learning';
+      const isMonthlyGodFaithfulness =
+        reviewType === 'monthly' && current.key === 'god';
+      const isMonthlyFormation =
+        reviewType === 'monthly' && current.key === 'formation';
+      const isActiveMonthlyReflection =
+        isMonthlyFormation || isMonthlyGodFaithfulness;
       return (
         <StaggeredReviewStage
           animationKey={current.key}
@@ -4660,8 +6012,12 @@ const ReviewScreen: React.FC = () => {
           <View style={styles.labelRow}>
             {current.icon && (
               <Ionicons
-                name={current.icon as any}
-                size={16}
+                name={
+                  isActiveMonthlyReflection
+                    ? 'leaf-outline'
+                    : (current.icon as any)
+                }
+                size={isActiveMonthlyReflection ? 17 : 16}
                 color={Colors.sage}
               />
             )}
@@ -4683,14 +6039,36 @@ const ReviewScreen: React.FC = () => {
             </ThemedText>
           ) : null}
           <TextInput
+            ref={
+              isMonthlyFormation
+                ? monthlyFormationInputRef
+                : isMonthlyGodFaithfulness
+                ? godFaithfulnessInputRef
+                : undefined
+            }
             style={styles.input}
-            autoFocus={isWeeklyDifficulty || isWeeklyLearning}
+            autoFocus={
+              isWeeklyDifficulty ||
+              isWeeklyLearning ||
+              isActiveMonthlyReflection
+            }
             underlineColorAndroid={
-              isWeeklyDifficulty ? 'transparent' : undefined
+              isWeeklyDifficulty || isActiveMonthlyReflection
+                ? 'transparent'
+                : undefined
             }
             multiline
+            scrollEnabled={!isActiveMonthlyReflection}
             value={answers[current.answerKey!] ?? ''}
             onChangeText={t => onAnswerChange(current.answerKey!, t)}
+            onFocus={
+              isActiveMonthlyReflection
+                ? () => requestAnimationFrame(revealCustomReviewInput)
+                : undefined
+            }
+            onLayout={
+              isActiveMonthlyReflection ? revealCustomReviewInput : undefined
+            }
             placeholder={current.placeholder ?? 'Start writing...'}
             placeholderTextColor={Colors.textGray}
             textAlignVertical="top"
@@ -4723,7 +6101,9 @@ const ReviewScreen: React.FC = () => {
           enabled={isDesignedPriority}
           style={styles.stage}>
           <View style={styles.labelRow}>
-            {isDesignedPriority ? (
+            {reviewType === 'monthly' ? (
+              <Ionicons name="leaf-outline" size={17} color={Colors.sage} />
+            ) : isDesignedPriority ? (
               <MaterialIcons
                 name="filter-center-focus"
                 size={16}
@@ -4750,7 +6130,9 @@ const ReviewScreen: React.FC = () => {
                 current.subtitle &&
                 styles.questionWithSubtitle,
             ]}>
-            {current.question}
+            {reviewType === 'monthly'
+              ? `What matters most in ${monthlyLookingAheadMonthName}?`
+              : current.question}
           </ThemedText>
           {current.subtitle ? (
             <ThemedText
@@ -4820,16 +6202,23 @@ const ReviewScreen: React.FC = () => {
                   {current.label}
                 </ThemedText>
               </View>
-              <ThemedText weight="bold" style={styles.weeklyLookingAheadTitle}>
+              <ThemedText
+                adjustsFontSizeToFit
+                minimumFontScale={0.72}
+                numberOfLines={2}
+                weight="bold"
+                style={styles.reviewPeriodHeadline}>
+                {isMonthlyTransition
+                  ? monthlyLookingAheadPeriodLabel
+                  : weeklyLookingAheadPeriodLabel}
+              </ThemedText>
+              <ThemedText
+                weight="semiBold"
+                style={styles.reviewDirectionPrompt}>
                 {current.title}
               </ThemedText>
               <ThemedText style={styles.weeklyLookingAheadSubtitle}>
                 {current.subtitle}
-              </ThemedText>
-              <ThemedText weight="medium" style={styles.weeklyAheadDates}>
-                {isMonthlyTransition
-                  ? monthlyLookingAheadPeriodLabel
-                  : weeklyLookingAheadPeriodLabel}
               </ThemedText>
               <ThemedText style={styles.weeklyAheadOptional}>
                 Answer what helps. You can skip any step.
@@ -5211,6 +6600,7 @@ const ReviewScreen: React.FC = () => {
           }}
           review={{...review, answers, memorableItems}}
           capture={capture}
+          patternSummary={monthlyPatternSummary}
           activeTab={monthlySummaryTab}
           onTabChange={setMonthlySummaryTab}
           onEdit={stageKey => {
@@ -5309,7 +6699,11 @@ const ReviewScreen: React.FC = () => {
                 : insets.bottom + (hasFloatingNavigation ? 88 : 28),
             }}
             onContentSizeChange={
-              hasAutoScrollingReviewInput ? revealCustomReviewInput : undefined
+              isMonthlyPatternsStage
+                ? revealMonthlyPatternInput
+                : hasAutoScrollingReviewInput
+                ? revealCustomReviewInput
+                : undefined
             }
             keyboardShouldPersistTaps="always"
             keyboardDismissMode="interactive"
@@ -5368,7 +6762,7 @@ const ReviewScreen: React.FC = () => {
             accessibilityRole="button"
             accessibilityLabel={
               reviewType === 'monthly'
-                ? 'Continue to monthly priorities'
+                ? 'Continue to monthly looking ahead'
                 : 'Continue to weekly priorities'
             }
             activeOpacity={0.8}
@@ -5379,7 +6773,13 @@ const ReviewScreen: React.FC = () => {
               style={styles.weeklyLookingAheadContinueText}>
               Continue
             </ThemedText>
-            <Ionicons name="arrow-forward" size={22} color={Colors.hopeWhite} />
+            {reviewType !== 'monthly' && (
+              <Ionicons
+                name="arrow-forward"
+                size={22}
+                color={Colors.hopeWhite}
+              />
+            )}
           </TouchableOpacity>
         </Animated.View>
       )}
@@ -5477,6 +6877,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 0,
   },
+  monthlyCoverStage: {
+    paddingTop: 6,
+  },
   weeklyCoverContent: {
     width: '100%',
   },
@@ -5484,9 +6887,15 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 128,
   },
+  monthlyCoverArtwork: {
+    height: 100,
+  },
   weeklyCoverHero: {
     alignItems: 'center',
     marginTop: 7,
+  },
+  monthlyCoverHero: {
+    marginTop: 0,
   },
   weeklyCoverLabelRow: {
     flexDirection: 'row',
@@ -5499,19 +6908,19 @@ const styles = StyleSheet.create({
     lineHeight: 15,
     letterSpacing: 1.8,
   },
-  weeklyCoverTitle: {
+  reviewPeriodHeadline: {
     color: Colors.text,
-    fontFamily: Fonts.bold,
-    fontSize: 29,
-    lineHeight: 37,
+    fontFamily: Fonts.lora.bold,
+    fontSize: 35,
+    lineHeight: 43,
     textAlign: 'center',
-    marginTop: 10,
+    marginTop: 8,
   },
-  weeklyCoverPeriod: {
+  reviewDirectionPrompt: {
     color: Colors.sage,
-    fontSize: 15,
-    lineHeight: 21,
-    marginTop: 3,
+    fontSize: 17,
+    lineHeight: 23,
+    textAlign: 'center',
   },
   weeklyCoverSubtitle: {
     color: Colors.textGray,
@@ -5520,6 +6929,9 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 8,
     paddingHorizontal: 12,
+  },
+  monthlyCoverSubtitle: {
+    marginTop: 5,
   },
   weeklyShowedUpCard: {
     width: '100%',
@@ -5536,6 +6948,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.045,
     shadowRadius: 18,
     elevation: 2,
+  },
+  monthlyShowedUpCard: {
+    marginTop: 12,
+    paddingTop: 14,
+    paddingBottom: 11,
   },
   weeklyShowedUpHeader: {
     flexDirection: 'row',
@@ -5599,6 +7016,11 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     backgroundColor: 'rgba(246, 245, 239, 0.82)',
   },
+  monthlyDayChart: {
+    marginTop: 11,
+    paddingTop: 7,
+    paddingBottom: 6,
+  },
   weeklyDayColumn: {
     flex: 1,
     alignItems: 'center',
@@ -5638,6 +7060,10 @@ const styles = StyleSheet.create({
     marginTop: 17,
     paddingTop: 15,
   },
+  monthlySummarySection: {
+    marginTop: 12,
+    paddingTop: 11,
+  },
   weeklySummaryHeading: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -5660,6 +7086,9 @@ const styles = StyleSheet.create({
     marginTop: 8,
     marginHorizontal: -4,
   },
+  monthlySummaryMetrics: {
+    marginTop: 6,
+  },
   weeklySummaryMetricSlot: {
     width: '50%',
     padding: 4,
@@ -5673,11 +7102,19 @@ const styles = StyleSheet.create({
     paddingVertical: 9,
     minHeight: 53,
   },
+  monthlySummaryPill: {
+    minHeight: 48,
+    paddingVertical: 7,
+  },
   weeklySummaryCount: {
     color: Colors.text,
     width: 30,
     fontSize: 19,
     lineHeight: 24,
+  },
+  monthlySummaryCount: {
+    width: 42,
+    flexShrink: 0,
   },
   weeklySummaryLabel: {
     flex: 1,
@@ -5696,6 +7133,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 7,
   },
+  monthlySummaryToggle: {
+    minHeight: 31,
+    marginTop: 2,
+    paddingVertical: 5,
+  },
   weeklySummaryToggleText: {
     color: Colors.sage,
     fontSize: 11,
@@ -5711,6 +7153,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.12,
     shadowRadius: 10,
     elevation: 3,
+  },
+  monthlyBeginButton: {
+    marginTop: 12,
   },
   weeklyBeginText: {
     color: Colors.hopeWhite,
@@ -6079,13 +7524,6 @@ const styles = StyleSheet.create({
     lineHeight: 26,
     color: Colors.text,
   },
-  weeklyAheadDates: {
-    fontSize: 14,
-    lineHeight: 21,
-    color: Colors.sage,
-    textAlign: 'center',
-    marginTop: 16,
-  },
   weeklyAheadOptional: {
     fontSize: 13,
     lineHeight: 20,
@@ -6107,6 +7545,86 @@ const styles = StyleSheet.create({
   weeklyCapturedHeading: {
     alignItems: 'center',
     marginBottom: 22,
+  },
+  monthlyWinsStage: {
+    paddingTop: 28,
+    paddingHorizontal: 22,
+  },
+  monthlyWinsCountRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    paddingBottom: 12,
+    marginBottom: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.borderLight,
+  },
+  monthlyWinsCount: {
+    color: Colors.text,
+    fontSize: 15,
+    lineHeight: 21,
+  },
+  monthlyWinsGrid: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+  },
+  monthlyWinsColumn: {
+    flex: 1,
+    minWidth: 0,
+    gap: 12,
+  },
+  monthlyWinGridCard: {
+    width: '100%',
+    padding: 15,
+    backgroundColor: Colors.cardBackground,
+    borderWidth: 1,
+    borderColor: Colors.inputBorder,
+    borderRadius: 20,
+  },
+  monthlyWinGridMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+    marginBottom: 12,
+  },
+  monthlyWinGridIcon: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(82, 106, 91, 0.09)',
+  },
+  monthlyWinGridDate: {
+    flexShrink: 1,
+    color: Colors.textGray,
+    fontSize: 10,
+    lineHeight: 14,
+    textAlign: 'right',
+  },
+  monthlyWinGridType: {
+    color: Colors.text,
+    fontSize: 16,
+    lineHeight: 22,
+  },
+  monthlyWinGridRule: {
+    height: 1,
+    backgroundColor: Colors.borderLight,
+    marginVertical: 12,
+  },
+  monthlyWinGridLabel: {
+    color: Colors.sage,
+    fontSize: 9,
+    lineHeight: 13,
+    letterSpacing: 1.1,
+    marginBottom: 6,
+  },
+  monthlyWinGridText: {
+    color: Colors.text,
+    fontSize: 13,
+    lineHeight: 20,
   },
   weeklyAdditionalMemory: {
     marginTop: 24,
@@ -6245,8 +7763,93 @@ const styles = StyleSheet.create({
     borderColor: Colors.sage,
     backgroundColor: 'rgba(82, 106, 91, 0.06)',
   },
+  momentTypeCardHearted: {
+    borderColor: Colors.alertCoral,
+    backgroundColor: 'rgba(217, 120, 114, 0.07)',
+  },
   heartJournalReviewCard: {
     alignSelf: 'flex-start',
+  },
+  forMeDayReviewCard: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#FBF7EE',
+    borderColor: 'rgba(185, 149, 98, 0.38)',
+  },
+  forMeDayReviewHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingRight: 38,
+    marginBottom: 14,
+  },
+  forMeDayReviewMark: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(185, 149, 98, 0.14)',
+  },
+  forMeDayReviewHeadingCopy: {
+    flex: 1,
+  },
+  forMeDayReviewEyebrow: {
+    color: Colors.sage,
+    fontSize: 9,
+    lineHeight: 13,
+    letterSpacing: 1.4,
+  },
+  forMeDayReviewDate: {
+    color: Colors.textGray,
+    fontSize: 10,
+    lineHeight: 14,
+    marginTop: 1,
+  },
+  forMeDayReviewPill: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: 999,
+    backgroundColor: 'rgba(82, 106, 91, 0.1)',
+    marginBottom: 9,
+  },
+  forMeDayReviewPillText: {
+    color: Colors.sage,
+    fontSize: 9,
+    lineHeight: 12,
+    letterSpacing: 1.05,
+  },
+  forMeDayReviewTitle: {
+    color: Colors.text,
+    fontFamily: Platform.select({ios: 'Georgia-Bold', android: 'serif'}),
+    fontWeight: '700',
+    fontSize: 20,
+    lineHeight: 27,
+    marginBottom: 9,
+    paddingRight: 12,
+  },
+  forMeDayReviewBody: {
+    color: Colors.text,
+    fontFamily: Platform.select({ios: 'Georgia', android: 'serif'}),
+    fontSize: 14,
+    lineHeight: 22,
+  },
+  forMeDayReviewDivider: {
+    height: 1,
+    width: '100%',
+    backgroundColor: 'rgba(185, 149, 98, 0.24)',
+    marginVertical: 14,
+  },
+  forMeDayReviewFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  forMeDayReviewFooterText: {
+    flex: 1,
+    color: Colors.textGray,
+    fontSize: 11,
+    lineHeight: 16,
   },
   momentRemember: {
     position: 'absolute',
@@ -6265,6 +7868,13 @@ const styles = StyleSheet.create({
   momentRememberSelected: {
     backgroundColor: Colors.sage,
     borderColor: Colors.sage,
+  },
+  momentHeart: {
+    borderColor: 'rgba(217, 120, 114, 0.42)',
+  },
+  momentHeartSelected: {
+    backgroundColor: 'rgba(217, 120, 114, 0.16)',
+    borderColor: Colors.alertCoral,
   },
   psalmRemember: {
     backgroundColor: 'rgba(232, 237, 232, 0.72)',
@@ -6332,38 +7942,6 @@ const styles = StyleSheet.create({
   reflectionBlocksPreview: {
     marginTop: 2,
   },
-  prayerReviewCard: {
-    backgroundColor: Colors.cardBackground,
-  },
-  prayerCardEyebrow: {
-    color: Colors.sage,
-    fontSize: 10,
-    lineHeight: 14,
-    letterSpacing: 1.4,
-  },
-  prayerCardTitle: {
-    color: Colors.text,
-    fontSize: 16,
-    lineHeight: 22,
-    marginBottom: 7,
-  },
-  prayerCardBody: {
-    color: Colors.textGray,
-    fontSize: 14,
-    lineHeight: 21,
-    marginBottom: 14,
-  },
-  prayerStatusPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 18,
-    backgroundColor: Colors.actionBackground,
-  },
-  prayerStatusText: {color: Colors.sage, fontSize: 11, lineHeight: 15},
   gratitudeCardEyebrow: {
     color: Colors.sage,
     fontSize: 10,
@@ -6751,14 +8329,6 @@ const styles = StyleSheet.create({
     lineHeight: 15,
     letterSpacing: 1.8,
   },
-  weeklyLookingAheadTitle: {
-    color: Colors.text,
-    fontFamily: Fonts.bold,
-    fontSize: 29,
-    lineHeight: 38,
-    textAlign: 'center',
-    marginTop: 15,
-  },
   weeklyLookingAheadSubtitle: {
     maxWidth: 340,
     color: Colors.textGray,
@@ -6795,6 +8365,438 @@ const styles = StyleSheet.create({
   weeklyGratitudeStage: {
     paddingTop: 34,
     paddingHorizontal: 20,
+  },
+  monthlyLifeSummaryStage: {
+    paddingTop: 34,
+    paddingHorizontal: 24,
+  },
+  monthlyLifeSummaryHeading: {
+    alignItems: 'center',
+  },
+  monthlyLifeSummaryTitle: {
+    color: Colors.text,
+    fontFamily: Fonts.lora.bold,
+    fontSize: 30,
+    lineHeight: 38,
+    textAlign: 'center',
+    marginTop: 14,
+  },
+  monthlyLifeSummarySubtitle: {
+    maxWidth: 330,
+    color: Colors.textGray,
+    fontSize: 15,
+    lineHeight: 22,
+    textAlign: 'center',
+    marginTop: 10,
+  },
+  monthlyLifeInsight: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    marginTop: 28,
+    paddingHorizontal: 16,
+    paddingVertical: 15,
+    borderRadius: 18,
+    backgroundColor: 'rgba(82, 106, 91, 0.07)',
+  },
+  monthlyLifeInsightText: {
+    flex: 1,
+    color: Colors.text,
+    fontSize: 14,
+    lineHeight: 21,
+  },
+  monthlyLifeLegend: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    flexWrap: 'wrap',
+    gap: 14,
+    marginTop: 22,
+  },
+  monthlyLifeLegendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  monthlyLifeLegendDot: {
+    width: 9,
+    height: 9,
+    borderRadius: 5,
+  },
+  monthlyLifeLegendText: {
+    color: Colors.textGray,
+    fontSize: 11,
+    lineHeight: 16,
+  },
+  monthlyLifeAreaList: {
+    marginTop: 12,
+  },
+  monthlyLifeArea: {
+    paddingVertical: 18,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.borderLight,
+  },
+  monthlyLifeAreaHeading: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  monthlyLifeAreaIdentity: {
+    flex: 1,
+    minWidth: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 9,
+  },
+  monthlyLifeAreaLabel: {
+    flex: 1,
+    color: Colors.text,
+    fontSize: 15,
+    lineHeight: 21,
+  },
+  monthlyLifeInterpretation: {
+    maxWidth: 150,
+    color: Colors.sage,
+    fontSize: 12,
+    lineHeight: 17,
+    textAlign: 'right',
+  },
+  monthlyLifeWeeks: {
+    flexDirection: 'row',
+    gap: 5,
+    height: 9,
+    marginTop: 14,
+  },
+  monthlyLifeWeek: {
+    flex: 1,
+    borderRadius: 999,
+  },
+  monthlyLifeAreaFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 9,
+  },
+  monthlyLifeCounts: {
+    color: Colors.textGray,
+    fontSize: 11,
+    lineHeight: 16,
+  },
+  monthlyLifeCoverage: {
+    color: Colors.textGray,
+    fontSize: 11,
+    lineHeight: 16,
+    marginTop: 2,
+  },
+  monthlyLifeTrend: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  monthlyLifeTrendText: {
+    color: Colors.textGray,
+    fontSize: 11,
+    lineHeight: 16,
+  },
+  monthlyLifeEmpty: {
+    marginTop: 30,
+    paddingVertical: 26,
+  },
+  monthlyLifeEmptyText: {
+    color: Colors.textGray,
+    fontSize: 15,
+    lineHeight: 23,
+    textAlign: 'center',
+  },
+  monthlyChoiceStage: {
+    paddingTop: 34,
+    paddingHorizontal: 24,
+  },
+  monthlyChoiceHeading: {
+    alignItems: 'center',
+  },
+  monthlyChoiceTitle: {
+    maxWidth: 340,
+    color: Colors.text,
+    fontFamily: Fonts.lora.bold,
+    fontSize: 30,
+    lineHeight: 38,
+    textAlign: 'center',
+    marginTop: 14,
+  },
+  monthlyChoiceSubtitle: {
+    maxWidth: 330,
+    color: Colors.textGray,
+    fontSize: 15,
+    lineHeight: 22,
+    textAlign: 'center',
+    marginTop: 10,
+  },
+  monthlyChoiceGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 10,
+    marginTop: 32,
+  },
+  monthlyChoicePill: {
+    minHeight: 46,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+    paddingHorizontal: 16,
+    paddingVertical: 11,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: Colors.borderLight,
+    backgroundColor: Colors.cardBackground,
+  },
+  monthlyChoicePillSelected: {
+    borderColor: Colors.sage,
+    backgroundColor: Colors.sage,
+  },
+  monthlyChoicePillDisabled: {
+    opacity: 0.42,
+  },
+  monthlyChoicePillText: {
+    color: Colors.text,
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  monthlyChoicePillTextSelected: {
+    color: Colors.hopeWhite,
+  },
+  monthlyChoiceDetails: {
+    marginTop: 34,
+    paddingTop: 24,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: Colors.borderLight,
+  },
+  monthlyChoiceDetailsTitle: {
+    color: Colors.text,
+    fontSize: 17,
+    lineHeight: 23,
+  },
+  monthlyChoiceDetailsSubtitle: {
+    color: Colors.textGray,
+    fontSize: 13,
+    lineHeight: 19,
+    marginTop: 3,
+  },
+  monthlyChoiceDetailSection: {
+    marginTop: 22,
+  },
+  monthlyChoiceDetailLabel: {
+    color: Colors.sage,
+    fontSize: 13,
+    lineHeight: 19,
+  },
+  monthlyChoiceDetailGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 10,
+  },
+  monthlyChoiceDetailPill: {
+    minHeight: 38,
+    justifyContent: 'center',
+    paddingHorizontal: 13,
+    paddingVertical: 8,
+    borderRadius: 19,
+    borderWidth: 1,
+    borderColor: Colors.borderLight,
+    backgroundColor: Colors.cardBackground,
+  },
+  monthlyChoiceDetailPillSelected: {
+    borderColor: Colors.sageMuted,
+    backgroundColor: Colors.anchorBlueLight,
+  },
+  monthlyChoiceDetailPillText: {
+    color: Colors.textGray,
+    fontSize: 12,
+    lineHeight: 17,
+  },
+  monthlyChoiceDetailPillTextSelected: {
+    color: Colors.text,
+  },
+  monthlyChoiceOtherInput: {
+    minHeight: 108,
+    marginTop: 24,
+    paddingHorizontal: 0,
+    paddingVertical: 8,
+    color: Colors.text,
+    fontFamily: Fonts.regular,
+    fontSize: 16,
+    lineHeight: 23,
+  },
+  monthlyCareList: {
+    marginTop: 28,
+  },
+  monthlyCareRow: {
+    minHeight: 62,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 16,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: Colors.borderLight,
+    paddingVertical: 12,
+  },
+  monthlyCareIdentity: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  monthlyCareCopy: {
+    flex: 1,
+    minWidth: 0,
+  },
+  monthlyCareLabel: {
+    color: Colors.text,
+    fontSize: 15,
+    lineHeight: 21,
+  },
+  monthlyCareSignalRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: 3,
+    marginTop: 2,
+  },
+  monthlyCareSignal: {
+    color: Colors.alertCoral,
+    fontSize: 11,
+    lineHeight: 17,
+  },
+  monthlyCareEvidence: {
+    color: Colors.textGray,
+    fontSize: 11,
+    lineHeight: 17,
+  },
+  monthlyCareMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  monthlyChoiceCheck: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    borderWidth: 1.5,
+    borderColor: Colors.borderLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  monthlyChoiceCheckSelected: {
+    borderColor: Colors.sage,
+    backgroundColor: Colors.sage,
+  },
+  monthlyPrayerStage: {
+    paddingTop: 34,
+    paddingHorizontal: 28,
+  },
+  monthlyTestimonyStage: {
+    paddingTop: 34,
+    paddingHorizontal: 24,
+  },
+  monthlyTestimonyHeading: {
+    alignItems: 'center',
+  },
+  monthlyTestimonyEmblem: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 4,
+    marginBottom: 17,
+    backgroundColor: '#EBEEE2',
+  },
+  monthlyTestimonyTitle: {
+    maxWidth: 320,
+    color: Colors.text,
+    fontFamily: Fonts.lora.bold,
+    fontSize: 25,
+    lineHeight: 33,
+    textAlign: 'center',
+  },
+  monthlyTestimonySubtitle: {
+    maxWidth: 330,
+    color: Colors.textGray,
+    fontSize: 14,
+    lineHeight: 22,
+    textAlign: 'center',
+    marginTop: 9,
+  },
+  monthlyTestimonyCard: {
+    marginTop: 24,
+    paddingHorizontal: 18,
+    paddingVertical: 18,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#E7E4D8',
+    backgroundColor: '#FBF7EE',
+  },
+  monthlyTestimonyCardHeading: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 9,
+  },
+  monthlyTestimonyIcon: {
+    width: 30,
+    height: 30,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#EBEEE2',
+  },
+  monthlyTestimonyCardTitle: {
+    flex: 1,
+    color: Colors.text,
+    fontFamily: Fonts.lora.bold,
+    fontSize: 15,
+    lineHeight: 21,
+  },
+  monthlyTestimonyDatePill: {
+    flexShrink: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 999,
+    backgroundColor: '#E9EEE4',
+  },
+  monthlyTestimonyDateText: {
+    flexShrink: 1,
+    color: Colors.sage,
+    fontSize: 8.5,
+    lineHeight: 12,
+  },
+  monthlyTestimonyRule: {
+    height: StyleSheet.hairlineWidth,
+    marginTop: 14,
+    backgroundColor: '#E7E4D8',
+  },
+  monthlyTestimonyBody: {
+    color: Colors.text,
+    fontFamily: Fonts.lora.regular,
+    fontSize: 14,
+    lineHeight: 23,
+    marginTop: 14,
+  },
+  monthlyTestimonyFootnote: {
+    maxWidth: 310,
+    alignSelf: 'center',
+    color: Colors.textGray,
+    fontSize: 12,
+    lineHeight: 19,
+    textAlign: 'center',
+    marginTop: 14,
   },
   monthlyPatternsStage: {
     paddingTop: 34,
@@ -6848,6 +8850,12 @@ const styles = StyleSheet.create({
     lineHeight: 15,
     letterSpacing: 1.3,
   },
+  monthlyPatternEmptyText: {
+    color: Colors.textGray,
+    fontSize: 14,
+    lineHeight: 21,
+    marginTop: 12,
+  },
   monthlyPatternRow: {
     gap: 9,
   },
@@ -6869,7 +8877,7 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   monthlyPatternTrack: {
-    height: 10,
+    height: 9,
     borderRadius: 999,
     backgroundColor: Colors.inputBackground,
     overflow: 'hidden',
@@ -6879,16 +8887,31 @@ const styles = StyleSheet.create({
     minWidth: 10,
     borderRadius: 999,
   },
-  monthlyPatternNote: {
-    minHeight: 154,
-    marginTop: 38,
-    paddingHorizontal: 20,
+  monthlyPatternInsight: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    marginTop: 30,
     paddingTop: 18,
-    paddingBottom: 14,
-    borderRadius: 24,
-    backgroundColor: Colors.cardBackground,
-    borderWidth: 1,
-    borderColor: Colors.borderLight,
+    borderTopWidth: 1,
+    borderTopColor: Colors.cardBorder,
+  },
+  monthlyPatternInsightCopy: {flex: 1},
+  monthlyPatternInsightLabel: {
+    color: Colors.sage,
+    fontSize: 10,
+    lineHeight: 15,
+    letterSpacing: 1.35,
+  },
+  monthlyPatternInsightText: {
+    color: Colors.text,
+    fontSize: 14,
+    lineHeight: 22,
+    marginTop: 6,
+  },
+  monthlyPatternNote: {
+    minHeight: 132,
+    marginTop: 38,
   },
   monthlyPatternNoteTitle: {
     color: Colors.text,

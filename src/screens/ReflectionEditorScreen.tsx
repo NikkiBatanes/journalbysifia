@@ -263,8 +263,13 @@ const ReflectionEditorScreen: React.FC = () => {
     return text.replace(/<br\s*\/?\s*>/gi, '\n').replace(/\r\n/g, '\n');
   }, []);
 
-  const handleSave = async (entryData: any) => {
-    triggerLightHaptic();
+  const handleSave = async (
+    entryData: any,
+    options: {silent?: boolean} = {},
+  ) => {
+    if (!options.silent) {
+      triggerLightHaptic();
+    }
 
     try {
       // Determine the type
@@ -317,7 +322,7 @@ const ReflectionEditorScreen: React.FC = () => {
 
         // Track update analytics
         const existingEntry = reflectionEntries.find(e => e.id === editingId);
-        user && analytics.trackReflectionEvent('reflection_updated', {
+        !options.silent && user && analytics.trackReflectionEvent('reflection_updated', {
           reflection_id: editingId,
           title_length: saveData.title.length,
           content_length: saveData.content.length,
@@ -370,18 +375,20 @@ const ReflectionEditorScreen: React.FC = () => {
       const successLabel = normalizedType === 'guided'
         ? determinedSource === 'guided_prompt' ? 'Guided Prompt' : 'Guided Reflection'
         : classificationLabel || 'Reflection';
-      setTimeout(() => {
-        successModal.showSuccess({
-          title: `${successLabel} ${editingId ? 'Updated' : 'Saved'}`,
-          message: editingId
-            ? 'Your entry has been updated in your journal.'
-            : 'Your entry has been saved to your journal.',
-          showEditButton: true,
-        });
-      }, 100);
+      if (!options.silent) {
+        setTimeout(() => {
+          successModal.showSuccess({
+            title: `${successLabel} ${editingId ? 'Updated' : 'Saved'}`,
+            message: editingId
+              ? 'Your entry has been updated in your journal.'
+              : 'Your entry has been saved to your journal.',
+            showEditButton: true,
+          });
+        }, 100);
+      }
 
       // Close global edit mode if active
-      if (globalEditMode?.isGlobalEditMode) {
+      if (!options.silent && globalEditMode?.isGlobalEditMode) {
         globalEditMode.setGlobalEditMode(false);
       }
       return true;
@@ -552,6 +559,7 @@ const ReflectionEditorScreen: React.FC = () => {
             setSingleGuidedPrompt(prompt);
           }}
           onSave={handleSave}
+          onUpdate={entry => handleSave(entry, {silent: true})}
         />
 
         <NewSuccessModal

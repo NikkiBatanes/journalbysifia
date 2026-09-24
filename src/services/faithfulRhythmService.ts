@@ -330,7 +330,7 @@ export const buildWeeklyRhythmSnapshot = (
     const complete = activeWeeks.has(date);
     return {
       date,
-      label: index === 6 ? 'Now' : week.toLocaleDateString('en-US', {month: 'short', day: 'numeric'}),
+      label: `Wk${index + 1}`,
       status: complete ? 'complete' : 'open',
       progress: complete ? 100 : 0,
     };
@@ -467,16 +467,24 @@ export const buildReviewRhythmSnapshot = (reviews: LocalReviewEntry[]): RoutineR
   const recent = [...reviews]
     .sort((left, right) => left.periodEnd.localeCompare(right.periodEnd))
     .slice(-7);
-  const days: RhythmDay[] = recent.map(review => ({
-    date: review.periodEnd,
-    label: review.type === 'year_end'
-      ? 'Year'
-      : review.type === 'begin_year'
-        ? 'Begin'
-        : review.type.charAt(0).toUpperCase() + review.type.slice(1, 3),
-    status: review.status === 'completed' ? 'complete' : 'open',
-    progress: review.status === 'completed' ? 100 : 0,
-  }));
+  const labelPrefixes: Record<ReviewType, string> = {
+    weekly: 'Wk',
+    monthly: 'M',
+    quarterly: 'Q',
+    year_end: 'Yr',
+    begin_year: 'Beg',
+  };
+  const labelCounts = new Map<ReviewType, number>();
+  const days: RhythmDay[] = recent.map(review => {
+    const count = (labelCounts.get(review.type) ?? 0) + 1;
+    labelCounts.set(review.type, count);
+    return {
+      date: review.periodEnd,
+      label: `${labelPrefixes[review.type]}${count}`,
+      status: review.status === 'completed' ? 'complete' : 'open',
+      progress: review.status === 'completed' ? 100 : 0,
+    };
+  });
   const completed = days.filter(day => day.status === 'complete').length;
   let currentStreak = 0;
   for (let index = days.length - 1; index >= 0 && days[index].status === 'complete'; index -= 1) {

@@ -23,6 +23,7 @@ import { adminDashboardService, DashboardMetrics } from '../services/adminDashbo
 import ThemedText from '../components/common/ThemedText';
 import HeaderBackButton from '../components/common/HeaderBackButton';
 import { Logger } from '../utils/ProductionLogger';
+import {returnToMainTab} from '../navigation/returnToMainTab';
 
 const ADMIN_EMAILS = ['nikki.batanes@sifia.app', 'nikkibatanes@gmail.com', 'bynikkib@gmail.com', 'pzgttqh2gh@privaterelay.appleid.com'];
 const ADMIN_USER_IDS = ['f683eb02-c824-4c24-991c-69b8b5397ca3'];
@@ -158,6 +159,19 @@ interface UserActivitySummary {
   last_activity_at: string | null;
   last_event: string;
   activity_summary: string;
+}
+
+interface JournalImpactSummary {
+  gospelShared: number;
+  acceptedJesus: number;
+  morningCompleted: number;
+  eveningCompleted: number;
+  prayersCreated: number;
+  prayersAnswered: number;
+  bibleStudiesCreated: number;
+  bibleStudiesCompleted: number;
+  gratitudeSaved: number;
+  winsSaved: number;
 }
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -403,9 +417,10 @@ const StepFadeIn: React.FC<StepFadeInProps> = ({ delay = 0, children, style }) =
 
 interface Props {
   navigation: any;
+  route?: any;
 }
 
-export default function AdminDashboardScreen({ navigation }: Props) {
+export default function AdminDashboardScreen({ navigation, route }: Props) {
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState<FilterTab>('overview');
@@ -431,6 +446,18 @@ export default function AdminDashboardScreen({ navigation }: Props) {
   const [showQuickActions, setShowQuickActions] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState<MonthRange>('all');
   const [userContentStats, setUserContentStats] = useState<Map<string, { playbooks: number; guidance: number; refinements: number }>>(new Map());
+  const [journalImpact, setJournalImpact] = useState<JournalImpactSummary>({
+    gospelShared: 0,
+    acceptedJesus: 0,
+    morningCompleted: 0,
+    eveningCompleted: 0,
+    prayersCreated: 0,
+    prayersAnswered: 0,
+    bibleStudiesCreated: 0,
+    bibleStudiesCompleted: 0,
+    gratitudeSaved: 0,
+    winsSaved: 0,
+  });
 
   const userEmail = (user as any)?.email || '';
   const isAdmin = ADMIN_EMAILS.includes(userEmail) || ADMIN_USER_IDS.includes(user?.id ?? '');
@@ -525,7 +552,7 @@ export default function AdminDashboardScreen({ navigation }: Props) {
     const metrics = await adminDashboardService.getAllDashboardMetrics(startDate, endDate);
     setDashboardMetrics(metrics);
 
-    const [subscriptionResult, eventsResult, activityResult, contentStatsResult, paymentResult] = await Promise.all([
+    const [subscriptionResult, eventsResult, activityResult, contentStatsResult, paymentResult, journalImpactResult] = await Promise.all([
       supabase.rpc('admin_get_subscriptions', { p_filter: 'all' }),
       supabase
         .from('analytics_events')
@@ -548,6 +575,13 @@ export default function AdminDashboardScreen({ navigation }: Props) {
         .eq('status', 'success')
         .order('created_at', { ascending: false })
         .limit(1000),
+      supabase.functions.invoke('journal-impact', {
+        body: {
+          action: 'summary',
+          start: startDate.toISOString(),
+          end: endDate.toISOString(),
+        },
+      }),
     ]);
 
     if (!subscriptionResult.error) {
@@ -579,6 +613,20 @@ export default function AdminDashboardScreen({ navigation }: Props) {
     }
     if (!activityResult.error) {
       setDailyActivity((activityResult.data as DailyActivityRow[]) || []);
+    }
+    if (!journalImpactResult.error && journalImpactResult.data) {
+      setJournalImpact({
+        gospelShared: Number(journalImpactResult.data.gospelShared) || 0,
+        acceptedJesus: Number(journalImpactResult.data.acceptedJesus) || 0,
+        morningCompleted: Number(journalImpactResult.data.morningCompleted) || 0,
+        eveningCompleted: Number(journalImpactResult.data.eveningCompleted) || 0,
+        prayersCreated: Number(journalImpactResult.data.prayersCreated) || 0,
+        prayersAnswered: Number(journalImpactResult.data.prayersAnswered) || 0,
+        bibleStudiesCreated: Number(journalImpactResult.data.bibleStudiesCreated) || 0,
+        bibleStudiesCompleted: Number(journalImpactResult.data.bibleStudiesCompleted) || 0,
+        gratitudeSaved: Number(journalImpactResult.data.gratitudeSaved) || 0,
+        winsSaved: Number(journalImpactResult.data.winsSaved) || 0,
+      });
     }
 
     // Build per-user content stats from admin RPC (bypasses RLS)
@@ -1292,6 +1340,106 @@ export default function AdminDashboardScreen({ navigation }: Props) {
         </View>
       </StepFadeIn>
 
+      {/* GOSPEL IMPACT */}
+      <StepFadeIn delay={125}>
+        <ThemedText weight="semiBold" style={styles.newSectionLabel}>Gospel Impact</ThemedText>
+        <View style={[styles.healthRow, {marginBottom: 32}]}>
+          <View style={[styles.healthCard, {flex: 1}]}>
+            <ThemedText weight="bold" style={styles.healthCardHeroValue}>{journalImpact.gospelShared.toLocaleString()}</ThemedText>
+            <ThemedText weight="regular" style={styles.healthCardLabel}>Gospel shared</ThemedText>
+            <View style={styles.healthCardTrend}>
+              <Ionicons name="paper-plane" size={13} color={Colors.growthGreen} />
+              <ThemedText weight="regular" style={styles.healthCardTrendText}>{rangeLabel}</ThemedText>
+            </View>
+          </View>
+          <View style={[styles.healthCard, {flex: 1}]}>
+            <ThemedText weight="bold" style={styles.healthCardHeroValue}>{journalImpact.acceptedJesus.toLocaleString()}</ThemedText>
+            <ThemedText weight="regular" style={styles.healthCardLabel}>Accepted Jesus</ThemedText>
+            <View style={styles.healthCardTrend}>
+              <Ionicons name="heart" size={13} color={Colors.growthGreen} />
+              <ThemedText weight="regular" style={styles.healthCardTrendText}>{rangeLabel}</ThemedText>
+            </View>
+          </View>
+        </View>
+      </StepFadeIn>
+
+      {/* JOURNAL ACTIVITY */}
+      <StepFadeIn delay={128}>
+        <ThemedText weight="semiBold" style={styles.newSectionLabel}>Journal Activity</ThemedText>
+        <View style={[styles.healthRow, {marginBottom: 12}]}>
+          <View style={[styles.healthCard, {flex: 1}]}>
+            <ThemedText weight="bold" style={styles.healthCardHeroValue}>{journalImpact.morningCompleted.toLocaleString()}</ThemedText>
+            <ThemedText weight="regular" style={styles.healthCardLabel}>Morning routines</ThemedText>
+            <View style={styles.healthCardTrend}>
+              <Ionicons name="sunny-outline" size={13} color={Colors.growthGreen} />
+              <ThemedText weight="regular" style={styles.healthCardTrendText}>{rangeLabel}</ThemedText>
+            </View>
+          </View>
+          <View style={[styles.healthCard, {flex: 1}]}>
+            <ThemedText weight="bold" style={styles.healthCardHeroValue}>{journalImpact.eveningCompleted.toLocaleString()}</ThemedText>
+            <ThemedText weight="regular" style={styles.healthCardLabel}>Evening reflections</ThemedText>
+            <View style={styles.healthCardTrend}>
+              <Ionicons name="moon-outline" size={13} color={Colors.growthGreen} />
+              <ThemedText weight="regular" style={styles.healthCardTrendText}>{rangeLabel}</ThemedText>
+            </View>
+          </View>
+        </View>
+        <View style={[styles.healthRow, {marginBottom: 12}]}>
+          <View style={[styles.healthCard, {flex: 1}]}>
+            <ThemedText weight="bold" style={styles.healthCardHeroValue}>{journalImpact.prayersCreated.toLocaleString()}</ThemedText>
+            <ThemedText weight="regular" style={styles.healthCardLabel}>Prayers saved</ThemedText>
+            <View style={styles.healthCardTrend}>
+              <Ionicons name="book-outline" size={13} color={Colors.growthGreen} />
+              <ThemedText weight="regular" style={styles.healthCardTrendText}>{rangeLabel}</ThemedText>
+            </View>
+          </View>
+          <View style={[styles.healthCard, {flex: 1}]}>
+            <ThemedText weight="bold" style={styles.healthCardHeroValue}>{journalImpact.prayersAnswered.toLocaleString()}</ThemedText>
+            <ThemedText weight="regular" style={styles.healthCardLabel}>Answered prayers</ThemedText>
+            <View style={styles.healthCardTrend}>
+              <Ionicons name="checkmark-circle-outline" size={13} color={Colors.growthGreen} />
+              <ThemedText weight="regular" style={styles.healthCardTrendText}>{rangeLabel}</ThemedText>
+            </View>
+          </View>
+        </View>
+        <View style={[styles.healthRow, {marginBottom: 12}]}>
+          <View style={[styles.healthCard, {flex: 1}]}>
+            <ThemedText weight="bold" style={styles.healthCardHeroValue}>{journalImpact.bibleStudiesCreated.toLocaleString()}</ThemedText>
+            <ThemedText weight="regular" style={styles.healthCardLabel}>Bible studies created</ThemedText>
+            <View style={styles.healthCardTrend}>
+              <Ionicons name="library-outline" size={13} color={Colors.growthGreen} />
+              <ThemedText weight="regular" style={styles.healthCardTrendText}>{rangeLabel}</ThemedText>
+            </View>
+          </View>
+          <View style={[styles.healthCard, {flex: 1}]}>
+            <ThemedText weight="bold" style={styles.healthCardHeroValue}>{journalImpact.bibleStudiesCompleted.toLocaleString()}</ThemedText>
+            <ThemedText weight="regular" style={styles.healthCardLabel}>Bible studies finished</ThemedText>
+            <View style={styles.healthCardTrend}>
+              <Ionicons name="checkmark-done-circle-outline" size={13} color={Colors.growthGreen} />
+              <ThemedText weight="regular" style={styles.healthCardTrendText}>{rangeLabel}</ThemedText>
+            </View>
+          </View>
+        </View>
+        <View style={[styles.healthRow, {marginBottom: 32}]}>
+          <View style={[styles.healthCard, {flex: 1}]}>
+            <ThemedText weight="bold" style={styles.healthCardHeroValue}>{journalImpact.gratitudeSaved.toLocaleString()}</ThemedText>
+            <ThemedText weight="regular" style={styles.healthCardLabel}>Gratitude entries</ThemedText>
+            <View style={styles.healthCardTrend}>
+              <Ionicons name="heart-outline" size={13} color={Colors.growthGreen} />
+              <ThemedText weight="regular" style={styles.healthCardTrendText}>{rangeLabel}</ThemedText>
+            </View>
+          </View>
+          <View style={[styles.healthCard, {flex: 1}]}>
+            <ThemedText weight="bold" style={styles.healthCardHeroValue}>{journalImpact.winsSaved.toLocaleString()}</ThemedText>
+            <ThemedText weight="regular" style={styles.healthCardLabel}>Wins recorded</ThemedText>
+            <View style={styles.healthCardTrend}>
+              <Ionicons name="trophy-outline" size={13} color={Colors.growthGreen} />
+              <ThemedText weight="regular" style={styles.healthCardTrendText}>{rangeLabel}</ThemedText>
+            </View>
+          </View>
+        </View>
+      </StepFadeIn>
+
       {/* SECTION 2 - GOALS */}
       <StepFadeIn delay={130}>
         <ThemedText weight="semiBold" style={styles.newSectionLabel}>Goals</ThemedText>
@@ -1885,7 +2033,11 @@ export default function AdminDashboardScreen({ navigation }: Props) {
           <TouchableOpacity
             onPress={() => {
               triggerLightHaptic();
-              navigation.goBack();
+              if (route?.params?.returnTo === 'More') {
+                returnToMainTab(navigation, 'More');
+              } else {
+                navigation.goBack();
+              }
             }}
             style={styles.headerCloseButton}
             activeOpacity={0.7}

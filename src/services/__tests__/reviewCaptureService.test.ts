@@ -187,6 +187,13 @@ it('retains distinct presentation types for thoughts, guided reflections, Bible 
     title: 'Where is God inviting trust?',
     detail: 'Trust',
     text: 'Release the outcome.',
+    guidedJourney: {
+      format: 'guided_reflection_v1',
+      pathId: 'trust',
+      answers: [
+        {stepId: 'notice', text: 'Release the outcome.', notes: []},
+      ],
+    },
   });
   expect(
     classifyReflection({
@@ -297,6 +304,75 @@ it('retains distinct presentation types for thoughts, guided reflections, Bible 
     subtitle: 'Meeting Notes',
     detail: 'Weekly planning · Product team',
     text: 'Choose the next faithful priority.',
+  });
+});
+
+it('captures a For Me Day testimony in the month it was written', async () => {
+  const writtenAt = new Date(2026, 7, 18, 19, 42).toISOString();
+  (getLocalReflections as jest.Mock).mockImplementation(
+    async (type: string, date: string) =>
+      type === 'gospel_anniversary' && date === '2026-08-18'
+        ? [
+            {
+              id: 'for-me-day-testimony',
+              type: 'gospel_anniversary',
+              source: 'for_me_day',
+              title: 'My testimony',
+              content: 'Jesus met me with grace and gave me a new beginning.',
+              selected_date: '2026-08-18',
+              metadata: {
+                forMeDayEntry: 'testimony',
+                testimonyWrittenAt: writtenAt,
+              },
+            },
+          ]
+        : [],
+  );
+
+  const capture = await getReviewCapture(
+    '2026-08-01',
+    '2026-08-31',
+    'monthly',
+  );
+
+  expect(
+    capture.items.find(item => item.id === 'for-me-day-testimony'),
+  ).toMatchObject({
+    kind: 'reflection',
+    presentation: 'testimony',
+    title: 'My testimony',
+    subtitle: 'My New Life Day',
+    text: 'Jesus met me with grace and gave me a new beginning.',
+    selectedDate: '2026-08-18',
+    detail: expect.stringContaining('Written'),
+  });
+  expect(getLocalReflections).toHaveBeenCalledWith(
+    'gospel_anniversary',
+    '2026-08-18',
+  );
+});
+
+it('keeps a yearly New Life Day reflection out of generic Heart Journal thoughts', () => {
+  expect(
+    classifyReflection({
+      id: 'new-life-day-reflection',
+      type: 'gospel_anniversary',
+      source: 'for_me_day',
+      title: 'My 12th New Life Day',
+      content: 'God carried me with patience and grace this year.',
+      selected_date: '2026-08-18',
+      metadata: {
+        forMeDayEntry: 'annual_reflection',
+        anniversaryNumber: 12,
+        reflectionYear: 2026,
+      },
+    }),
+  ).toMatchObject({
+    kind: 'reflection',
+    presentation: 'for_me_day_reflection',
+    title: 'My 12th New Life Day',
+    subtitle: 'My New Life Day',
+    detail: '12 years with Jesus',
   });
 });
 

@@ -2,8 +2,10 @@ import React, { useCallback, useState } from 'react';
 import { DeviceEventEmitter, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import {Flame} from 'lucide-react-native';
 
 import ThemedText from '../common/ThemedText';
+import PrayerHandsIcon from '../common/PrayerHandsIcon';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
@@ -20,6 +22,7 @@ import {
 
 interface FaithfulRhythmsCardProps {
   variant?: 'today' | 'profile';
+  returnToMore?: boolean;
 }
 
 const dayStyle = (day: RhythmDay) => {
@@ -29,11 +32,10 @@ const dayStyle = (day: RhythmDay) => {
   return styles.dayOpen;
 };
 
-const RHYTHM_ICONS: Record<FaithfulRhythmId, string> = {
+const RHYTHM_ICONS: Record<Exclude<FaithfulRhythmId, 'prayer'>, string> = {
   morning: 'sunny-outline',
   evening: 'moon-outline',
   heart_journal: 'heart-outline',
-  prayer: 'heart-circle-outline',
   bible_study: 'library-outline',
   session_notes: 'document-text-outline',
   reviews: 'refresh-circle-outline',
@@ -58,7 +60,11 @@ export const FaithfulRhythmRow = ({ rhythm, expanded = false }: { rhythm: Routin
     <View style={styles.rhythmRow} accessibilityLabel={`${rhythm.label}: ${windowLabel}, ${streakLabel}`}>
       <View style={styles.rhythmHeading}>
         <View style={styles.iconCircle}>
-          <Ionicons name={RHYTHM_ICONS[rhythm.id]} size={17} color={Colors.sage} />
+          {rhythm.id === 'prayer' ? (
+            <PrayerHandsIcon size={20} color={Colors.sage} strokeWidth={2.2} />
+          ) : (
+            <Ionicons name={RHYTHM_ICONS[rhythm.id]} size={17} color={Colors.sage} />
+          )}
         </View>
         <View style={styles.rhythmCopy}>
           <ThemedText weight="semiBold" style={styles.rhythmLabel}>{rhythm.label}</ThemedText>
@@ -69,7 +75,7 @@ export const FaithfulRhythmRow = ({ rhythm, expanded = false }: { rhythm: Routin
       {rhythm.days.length ? (
         <View style={styles.daysRow}>
           {rhythm.days.map(day => (
-            <View key={`${rhythm.id}:${day.date}`} style={styles.dayColumn}>
+            <View key={`${rhythm.id}:${day.date}:${day.label}`} style={styles.dayColumn}>
               <ThemedText numberOfLines={1} style={[styles.dayLabel, expanded && styles.dayLabelExpanded]}>{day.label}</ThemedText>
               <View style={[styles.dayDot, dayStyle(day)]} />
             </View>
@@ -82,7 +88,10 @@ export const FaithfulRhythmRow = ({ rhythm, expanded = false }: { rhythm: Routin
   );
 };
 
-const FaithfulRhythmsCard: React.FC<FaithfulRhythmsCardProps> = ({ variant = 'today' }) => {
+const FaithfulRhythmsCard: React.FC<FaithfulRhythmsCardProps> = ({
+  variant = 'today',
+  returnToMore = false,
+}) => {
   const navigation = useNavigation<any>();
   const { preferences } = useAuth();
   const [snapshot, setSnapshot] = useState<FaithfulRhythmsSnapshot | null>(null);
@@ -126,20 +135,23 @@ const FaithfulRhythmsCard: React.FC<FaithfulRhythmsCardProps> = ({ variant = 'to
   const accessibilitySummary = bestRhythm.currentStreak > 0
     ? `Best current streak is ${bestRhythm.currentStreak} ${streakUnitLabel} in ${bestRhythm.label}`
     : 'No active streak yet';
+  const streakAccentColor = variant === 'profile'
+    ? Colors.alertCoral
+    : Colors.faithGold;
 
   return (
     <TouchableOpacity
       style={[styles.card, variant === 'profile' && styles.profileCard]}
       onPress={() => {
         triggerLightHaptic();
-        navigation.navigate('FaithfulRhythms');
+        navigation.navigate('FaithfulRhythms', returnToMore ? {returnTo: 'More'} : undefined);
       }}
       activeOpacity={0.82}
       accessibilityRole="button"
       accessibilityLabel={`Faithful rhythms. ${accessibilitySummary}. Tap to view details.`}
     >
       <View style={styles.summaryIcon}>
-        <Ionicons name="flame" size={24} color={Colors.faithGold} />
+        <Flame size={24} color={streakAccentColor} strokeWidth={2.1} />
       </View>
       <View style={styles.summaryCopy}>
         <ThemedText weight="bold" style={styles.eyebrow}>YOUR FAITHFUL RHYTHMS</ThemedText>
@@ -147,7 +159,12 @@ const FaithfulRhythmsCard: React.FC<FaithfulRhythmsCardProps> = ({ variant = 'to
       </View>
       <View style={styles.streakCountContainer}>
         <View style={styles.streakCountRow}>
-          <ThemedText weight="bold" style={styles.streakCount}>{bestRhythm.currentStreak}</ThemedText>
+          <ThemedText
+            weight="bold"
+            style={[styles.streakCount, {color: streakAccentColor}]}
+          >
+            {bestRhythm.currentStreak}
+          </ThemedText>
           <Ionicons name="chevron-forward" size={16} color={Colors.sage} />
         </View>
         <ThemedText style={styles.streakUnit}>{streakUnitLabel}</ThemedText>

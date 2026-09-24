@@ -335,7 +335,10 @@ export const seedWeeklyEveningFlow = async (
   scope: ReviewQASeedScope = {},
 ): Promise<void> => {
   const namespace = scope.namespace ?? 'weekly';
-  for (const sourceDay of EVENING_WEEK) {
+  const sourceDays = scope.dates
+    ? EVENING_WEEK.slice(0, scope.dates.length)
+    : EVENING_WEEK;
+  for (const sourceDay of sourceDays) {
     const day = {
       ...sourceDay,
       date: mapReviewQADate(sourceDay.date, scope.dates),

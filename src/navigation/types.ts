@@ -32,9 +32,9 @@ export type RootStackParamList = {
   JournalOnboarding: { mode?: 'firstRun' | 'replay' } | undefined;
 
   // Main App
-  MainTabs: undefined;
-  Gospel: undefined;
-  ForMeDay: { mode?: 'celebrate' | 'settings' } | undefined;
+  MainTabs: { screen?: keyof BottomTabParamList } | undefined;
+  Gospel: { returnTo?: 'More' } | undefined;
+  ForMeDay: { mode?: 'celebrate' | 'settings'; returnTo?: 'More' } | undefined;
   UserProfileModal: undefined;
   PlaybookDetail: {
     playbook: Playbook;
@@ -113,6 +113,7 @@ export type RootStackParamList = {
     selectedDate?: string;
     editingPrayerId?: string;
     initialPrayerType?: 'prayer-request' | 'pray-for-someone';
+    skipPersonName?: boolean;
     initialPrayerText?: string;
     initialTrackAnswered?: boolean;
     originalRequestId?: string;
@@ -171,10 +172,10 @@ export type RootStackParamList = {
     returnTo?: 'moments' | 'prayer';
   } | undefined;
 
-  FaithfulRhythms: undefined;
+  FaithfulRhythms: { returnTo?: 'More' } | undefined;
 
   // Admin Dashboard
-  AdminDashboard: undefined;
+  AdminDashboard: { returnTo?: 'More' } | undefined;
 
   // Test screens
   QueryTest: undefined;

@@ -39,6 +39,19 @@ const AppNavigationTheme = {
 
 import {Colors} from './src/theme/colors';
 import {gospelShareService} from './src/services/gospelShareService';
+import {gospelStorage} from './src/storage/gospelStorage';
+import {getAllRoutineStates} from './src/storage/routineStateStorage';
+import {getAllBibleStudySessions} from './src/storage/bibleStudyStorage';
+import {getAllLocalJournalEntries} from './src/storage/journalStorage';
+import {PrayerApi} from './src/services/api/prayerApi';
+import {
+  backfillContentImpactHistory,
+  backfillGospelImpactHistory,
+  backfillSelfGospelAcceptance,
+  backfillJournalImpactHistory,
+  flushJournalImpactEvents,
+  startJournalImpactSync,
+} from './src/services/journalImpactAnalyticsService';
 import {ThemeProvider} from './src/theme/ThemeContext';
 import RootStackNavigator from './src/navigation/RootStackNavigator';
 
@@ -68,8 +81,10 @@ import { experiencePreferences } from './src/services/experiencePreferences';
 import { initializeMetaAppEvents } from './src/services/metaAppEventsService';
 import { onboardingService } from './src/services/onboardingService';
 import {
+  getJournalOnboardingSetup,
   isJournalOnboardingComplete,
 } from './src/services/journalOnboardingState';
+import {hydrateDashboardScriptures} from './src/services/dashboardScripturePrefetchService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   clearLoginFlowRedirect,
@@ -215,6 +230,30 @@ function AppWithAuth({
     return () => subscription.remove();
   }, []);
 
+  useEffect(() => {
+    const stopSync = startJournalImpactSync();
+    Promise.all([
+      gospelStorage.getShareEvents(),
+      gospelStorage.getResponse(),
+      getAllRoutineStates(),
+      PrayerApi.getAllPrayers('local'),
+      getAllBibleStudySessions(),
+      getAllLocalJournalEntries(),
+    ])
+      .then(([shares, selfResponse, routines, prayers, bibleStudies, journalEntries]) => Promise.all([
+        backfillGospelImpactHistory(shares),
+        backfillSelfGospelAcceptance(selfResponse),
+        backfillJournalImpactHistory(routines, prayers),
+        backfillContentImpactHistory(
+          bibleStudies,
+          journalEntries.filter(entry => entry.content_type === 'gratitude'),
+          journalEntries.filter(entry => entry.content_type === 'today_win'),
+        ),
+      ]))
+      .catch(() => {});
+    return stopSync;
+  }, []);
+
   // Linking configuration for deep links - MUST be before any early returns
   // Only enable linking when authenticated to prevent interference with logout
   const linking = React.useMemo(() => {
@@ -255,6 +294,7 @@ function AppWithAuth({
           adminAnalyticsService.trackSessionEnd(user.id);
         }
       } else if (appState.match(/inactive|background/) && nextAppState === 'active') {
+        void flushJournalImpactEvents().catch(() => {});
         // App coming to foreground - track new session
         if (isAuthenticated && user?.id) {
           adminAnalyticsService.trackAppOpen(user.id);
@@ -294,10 +334,15 @@ function AppWithAuth({
   // (AsyncStorage) and intentionally independent of authentication.
   useEffect(() => {
     let mounted = true;
-    isJournalOnboardingComplete().then(done => {
-      if (mounted) {
-        setJournalOnboarded(done);
+    Promise.all([
+      isJournalOnboardingComplete(),
+      getJournalOnboardingSetup(),
+    ]).then(async ([done, setup]) => {
+      if (done) {
+        // Disk-only: restore the selected translation before Today mounts.
+        await hydrateDashboardScriptures(setup.bibleVersion);
       }
+      if (mounted) { setJournalOnboarded(done); }
     });
     return () => {
       mounted = false;

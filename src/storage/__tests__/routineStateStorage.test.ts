@@ -4,6 +4,11 @@ import {
   saveRoutineState,
   updateRoutineState,
 } from '../routineStateStorage';
+import {queueRoutineCompletedImpact} from '../../services/journalImpactQueue';
+
+jest.mock('../../services/journalImpactQueue', () => ({
+  queueRoutineCompletedImpact: jest.fn().mockResolvedValue(undefined),
+}));
 
 const storage = AsyncStorage as jest.Mocked<typeof AsyncStorage>;
 
@@ -77,5 +82,6 @@ describe('routineStateStorage', () => {
     expect(reopenedAgain.id).toBe(first.id);
     expect(reopened.completed_at).toBe(first.completed_at);
     expect(reopenedAgain.completed_at).toBe(first.completed_at);
+    expect(queueRoutineCompletedImpact).toHaveBeenCalledTimes(1);
   });
 });

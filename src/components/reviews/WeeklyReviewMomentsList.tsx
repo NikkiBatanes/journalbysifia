@@ -33,6 +33,8 @@ interface Props {
   contentContainerStyle?: StyleProp<ViewStyle>;
   renderGroupHeader: (group: ReviewMomentGroup) => React.ReactElement;
   renderCard: (card: ReviewMomentCardData) => React.ReactElement;
+  onCarouselTouchStart?: () => void;
+  onCarouselTouchEnd?: () => void;
 }
 
 export type ReviewMomentsListHandle = FlatList<ReviewMomentGroup>;
@@ -44,7 +46,16 @@ const MomentGroup = ({
   cardWidth,
   renderGroupHeader,
   renderCard,
-}: Pick<Props, 'cardWidth' | 'renderGroupHeader' | 'renderCard'> & {
+  onCarouselTouchStart,
+  onCarouselTouchEnd,
+}: Pick<
+  Props,
+  | 'cardWidth'
+  | 'renderGroupHeader'
+  | 'renderCard'
+  | 'onCarouselTouchStart'
+  | 'onCarouselTouchEnd'
+> & {
   group: ReviewMomentGroup;
 }) => {
   const [measuredHeight, setMeasuredHeight] = useState(196);
@@ -79,6 +90,11 @@ const MomentGroup = ({
         keyExtractor={card => card.key}
         style={styles.carouselViewport}
         contentContainerStyle={[styles.carousel, {minHeight: measuredHeight}]}
+        onTouchStart={onCarouselTouchStart}
+        onTouchEnd={onCarouselTouchEnd}
+        onTouchCancel={onCarouselTouchEnd}
+        onScrollEndDrag={onCarouselTouchEnd}
+        onMomentumScrollEnd={onCarouselTouchEnd}
         showsHorizontalScrollIndicator={false}
         decelerationRate="fast"
         snapToInterval={cardWidth + 12}
@@ -123,6 +139,8 @@ export const ReviewMomentsList = React.forwardRef<
       contentContainerStyle,
       renderGroupHeader,
       renderCard,
+      onCarouselTouchStart,
+      onCarouselTouchEnd,
     },
     ref,
   ) => (
@@ -148,6 +166,8 @@ export const ReviewMomentsList = React.forwardRef<
           cardWidth={cardWidth}
           renderGroupHeader={renderGroupHeader}
           renderCard={renderCard}
+          onCarouselTouchStart={onCarouselTouchStart}
+          onCarouselTouchEnd={onCarouselTouchEnd}
         />
       )}
     />

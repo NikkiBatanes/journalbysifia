@@ -74,6 +74,8 @@ export interface LocalReviewEntry {
   periodStart: string; // YYYY-MM-DD
   periodEnd: string; // YYYY-MM-DD
   status: ReviewStatus;
+  /** Stable stage key used to resume an in-progress review. */
+  lastStageKey?: string;
   memorableItems: ReviewMemorableItem[];
   /** Monthly Reviews seed completed Weekly bookmarks once, then respect later edits. */
   monthlyWeeklyBookmarksInitialized?: boolean;

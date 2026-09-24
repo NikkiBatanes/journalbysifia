@@ -7,21 +7,14 @@ import {
   type PrayerV2DemoFixture,
 } from '../prayerV2DemoFixtures';
 import {REVIEW_QA_PREFIX} from './reviewQAFixtures';
-import {reviewQAReferenceDate} from './reviewQAClock';
+import {
+  REVIEW_QA_WEEKLY_DATES,
+  reviewQAReferenceDate,
+} from './reviewQAClock';
 import type {
   ReviewQASeedManifest,
   ReviewQASeedScope,
 } from './reviewQAWeeklyMorningData';
-
-const WEEK_DATES = [
-  '2026-09-14',
-  '2026-09-15',
-  '2026-09-16',
-  '2026-09-17',
-  '2026-09-18',
-  '2026-09-19',
-  '2026-09-20',
-] as const;
 
 const replaceDemoIdentity = (
   value: string,
@@ -64,7 +57,7 @@ const redateAndNamespace = (
 
 /**
  * Reuses every Prayer V2 demo record while placing each logical journey on
- * September 14–20. September 21 remains the Review QA reference day.
+ * September 21–27. September 28 remains the Review QA reference day.
  */
 export const buildWeeklyReviewQAPrayerFixtures = (
   scope: ReviewQASeedScope = {},
@@ -72,7 +65,7 @@ export const buildWeeklyReviewQAPrayerFixtures = (
   const namespace = scope.namespace ?? 'weekly';
   const prayerPrefix = `${REVIEW_QA_PREFIX}${namespace}:prayer-v2:`;
   const prayerNeedPrefix = `${prayerPrefix}need:`;
-  const dates = scope.dates ?? WEEK_DATES;
+  const dates = scope.dates ?? REVIEW_QA_WEEKLY_DATES;
   const fixtures = buildPrayerV2DemoFixtures(reviewQAReferenceDate());
   const journeyDates = new Map<string, string>();
 

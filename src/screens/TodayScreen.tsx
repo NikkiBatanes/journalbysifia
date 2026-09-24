@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { DeviceEventEmitter, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { DeviceEventEmitter, InteractionManager, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Animated, { Easing, FadeInUp, useAnimatedStyle, useSharedValue, withSequence, withSpring, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
@@ -24,7 +24,6 @@ import { Fonts } from '../theme/fonts';
 import { triggerLightHaptic } from '../utils/haptics';
 import { compareLocalDate, toLocalDateString } from '../utils/date';
 import {formatWeeklyGratitudePeriod} from '../utils/weeklyGratitudePeriod';
-import { navigateFromRoot } from '../utils/navigationHelpers';
 import { useTodayReviewData } from '../hooks/useTodayReviewData';
 import { type LocalReviewEntry, type ReviewType } from '../storage/reviewStorage';
 import { getMonthlyPeriodFor, getQuarterlyPeriodFor, getWeeklyPeriodFor } from '../services/reviewPeriodService';
@@ -230,19 +229,25 @@ const TodayScreen = () => {
       : withTiming(360, { duration: 1050, easing: Easing.inOut(Easing.cubic) });
   }, [greetingIconLift, greetingIconRotation, greetingIconScale]);
 
-  useEffect(() => {
-    if (isToday) {
-      let mounted = true;
+  useFocusEffect(useCallback(() => {
+    if (!isToday) { return; }
+
+    let focused = true;
+    // On first launch, Today is mounted as onboarding resets to MainTabs. Wait
+    // until that transition has settled so the welcome cue is not consumed
+    // while the onboarding screen is still leaving.
+    const interactionTask = InteractionManager.runAfterInteractions(() => {
       playTodayOpeningSound(() => {
-        if (!mounted) { return; }
+        if (!focused) { return; }
         animateGreetingIcon(isEvening);
       }).catch(() => {});
+    });
 
-      return () => {
-        mounted = false;
-      };
-    }
-  }, [animateGreetingIcon, isEvening, isToday]);
+    return () => {
+      focused = false;
+      interactionTask.cancel();
+    };
+  }, [animateGreetingIcon, isEvening, isToday]));
 
   useEffect(() => {
     if (__DEV__ && previewEvening !== null) {
@@ -442,7 +447,14 @@ const TodayScreen = () => {
         alsoReady={displayedEligibility.alsoReady.map(item => item.type.replace('_', ' ')).join(', ')}
         onBegin={() => (navigation as any).navigate('Journal', {
           screen: 'Review',
-          params: { type: 'weekly', periodStart: main.period.periodStart, periodEnd: main.period.periodEnd },
+          params: {
+            type: 'weekly',
+            periodStart: main.period.periodStart,
+            periodEnd: main.period.periodEnd,
+            ...(main.state === 'in_progress'
+              ? {resumeLastStage: true}
+              : {}),
+          },
         })}
       />;
     }
@@ -457,7 +469,14 @@ const TodayScreen = () => {
         onBegin={() => {
           (navigation as any).navigate('Journal', {
             screen: 'Review',
-            params: { type: main.type, periodStart: main.period.periodStart, periodEnd: main.period.periodEnd },
+            params: {
+              type: main.type,
+              periodStart: main.period.periodStart,
+              periodEnd: main.period.periodEnd,
+              ...(main.state === 'in_progress'
+                ? {resumeLastStage: true}
+                : {}),
+            },
           });
         }}
       />
@@ -547,20 +566,6 @@ const TodayScreen = () => {
           </Animated.View>
           <View style={styles.headerIconsRow}>
             <TouchableOpacity
-              style={styles.onboardingButton}
-              activeOpacity={0.7}
-              onPress={() => {
-                triggerLightHaptic();
-                navigateFromRoot(navigation, 'JournalOnboarding', { mode: 'replay' });
-              }}
-              accessibilityRole="button"
-              accessibilityLabel="Open journal setup"
-              accessibilityHint="Replays the journal setup and getting started guide"
-            >
-              <Ionicons name="compass-outline" size={17} color={Colors.sage} />
-              <ThemedText weight="semiBold" style={styles.onboardingButtonText}>Setup</ThemedText>
-            </TouchableOpacity>
-            <TouchableOpacity
               style={styles.calendarButton}
               activeOpacity={0.7}
               onPress={toggleCalendar}
@@ -641,7 +646,7 @@ const TodayScreen = () => {
             </View>
             <View style={styles.morningCopy}>
               <Text numberOfLines={2} maxFontSizeMultiplier={1.2} style={styles.morningTitle}>{routineTitle}</Text>
-              <ThemedText style={styles.morningDescription}>{isFutureDate ? 'Set what matters before the day begins.' : selectedDateRelation === 'past' ? (routineHasContent ? 'Return to what you recorded without losing your progress.' : 'Make space to reflect on this day.') : isEvening ? (routineDone ? 'You’ve given thanks and closed your day with God.' : 'Give thanks, reflect, and rest your heart in God.') : (routineDone ? 'You’ve paused, reflected, and set your heart on what matters.' : 'Pause, reflect, and set your heart on what matters.')}</ThemedText>
+              <ThemedText style={styles.morningDescription}>{isFutureDate ? 'Set what matters before the day begins.' : selectedDateRelation === 'past' ? (routineHasContent ? 'Return to what you recorded without losing your progress.' : 'Make space to reflect on this day.') : isEvening ? (routineDone ? 'You’ve given thanks and closed your day with God.' : 'Give thanks, reflect, and rest your heart in God.') : (routineDone ? 'You began with God and made room for what matters today.' : 'Begin with God and make room for what matters today.')}</ThemedText>
             </View>
             <View style={styles.routineBegin}>
               {(!routineDone || isFutureDate || selectedDateRelation === 'past') && <Pencil size={14} color={Colors.hopeWhite} />}
@@ -891,8 +896,6 @@ const styles = StyleSheet.create({
   subtitle: { color: Colors.textGray, fontFamily: Fonts.regular, fontSize: 15, lineHeight: 22, marginTop: 2, marginBottom: 4 },
   headerColumn: { width: '100%', alignItems: 'center', marginBottom: 24 },
   headerIconsRow: { flexDirection: 'row', justifyContent: 'flex-end', width: '100%', padding: 4, gap: 4 },
-  onboardingButton: { minHeight: 32, paddingHorizontal: 11, borderRadius: 16, flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: Colors.anchorBlueLight },
-  onboardingButtonText: { color: Colors.sage, fontSize: 11, lineHeight: 15 },
   notificationsButton: { padding: 4 },
   calendarButton: { padding: 4 },
   headerGreeting: { width: '100%', alignItems: 'flex-start' },

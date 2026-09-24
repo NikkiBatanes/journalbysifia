@@ -71,17 +71,17 @@ const ForMeDayShareCard = ({
   const labelStyle = {fontFamily: Fonts.semiBold, color: accent, fontSize: 7 * scale, lineHeight: 11 * scale, letterSpacing: 1.2 * scale};
 
   return (
-    <View accessibilityLabel="For Me Day share card" style={{width, height, backgroundColor: palette.background, overflow: 'hidden'}}>
+    <View accessibilityLabel="My New Life Day share card" style={{width, height, backgroundColor: palette.background, overflow: 'hidden'}}>
       {image ? <>
         <Image source={image} resizeMode="cover" style={StyleSheet.absoluteFill} />
         <View style={[StyleSheet.absoluteFill, {backgroundColor: 'rgba(12,22,20,0.68)'}]} />
       </> : layout === 'celebration' ? (
         <LinearGradient colors={[palette.background, palette.glow, palette.background]} style={StyleSheet.absoluteFill} />
       ) : null}
-      {!minimal && <View pointerEvents="none" style={{position: 'absolute', top: 8 * scale, bottom: 8 * scale, left: 8 * scale, right: 8 * scale, borderWidth: 1, borderColor: border, borderRadius: layout === 'keepsake' ? 12 * scale : 0}} />}
+      {!minimal && <View pointerEvents="none" style={{position: 'absolute', top: 8 * scale, bottom: 8 * scale, left: 8 * scale, right: 8 * scale, borderWidth: 1, borderColor: border, borderRadius: 12 * scale}} />}
       <View style={{flex: 1, padding: 20 * scale, justifyContent: 'space-between'}}>
         <View style={styles.row}>
-          <Text allowFontScaling={false} style={labelStyle}>MY FOR ME DAY</Text>
+          <Text allowFontScaling={false} style={labelStyle}>MY NEW LIFE DAY</Text>
           <Text allowFontScaling={false} style={[labelStyle, {fontSize: 12 * scale}]}>{layout === 'celebration' ? '✦' : '✧'}</Text>
         </View>
         <View style={{alignItems: 'center', height: 30 * scale, justifyContent: 'center'}} accessible={false}>

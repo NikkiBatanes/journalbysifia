@@ -13,6 +13,17 @@ describe('Weekly Review cover', () => {
     expect(source).toContain('Pause. Notice what mattered. Carry it forward.');
   });
 
+  it('uses the period as the main emphasis on Looking Back and Looking Ahead', () => {
+    expect(source).toContain(
+      'style={styles.reviewPeriodHeadline}>\n                  {weeklyPeriodLabel}',
+    );
+    expect(source).toContain(
+      '? monthlyLookingAheadPeriodLabel\n                  : weeklyLookingAheadPeriodLabel',
+    );
+    expect(source).toContain('style={styles.reviewDirectionPrompt}>');
+    expect(source).not.toContain('style={styles.weeklyAheadDates}');
+  });
+
   it('keeps progress off the cover and starts it from the first reflection page', () => {
     expect(source).toContain("accessibilityLabel={stage > 1 ? 'Previous review step' : 'Back'}");
     expect(source).toContain("const isWeeklyCoverStage = reviewType === 'weekly' && currentStageKind === 'cover'");

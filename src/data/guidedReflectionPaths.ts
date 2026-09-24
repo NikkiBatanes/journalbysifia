@@ -42,3 +42,29 @@ export const GUIDED_REFLECTION_PATHS: readonly GuidedReflectionPath[] = [
 ] as const;
 
 export const getGuidedReflectionPath = (id: string) => GUIDED_REFLECTION_PATHS.find(path => path.id === id) ?? null;
+
+const questionSentence = (value?: string): string | null => {
+  const trimmed = value?.trim();
+  if (!trimmed?.includes('?')) {
+    return null;
+  }
+  const questionEnd = trimmed.indexOf('?') + 1;
+  const throughQuestion = trimmed.slice(0, questionEnd);
+  const sentenceStart = Math.max(
+    throughQuestion.lastIndexOf('. '),
+    throughQuestion.lastIndexOf('! '),
+  );
+  return throughQuestion.slice(sentenceStart < 0 ? 0 : sentenceStart + 2).trim();
+};
+
+/** Saved previews show the question itself, never the walkthrough instruction. */
+export const guidedReflectionStepQuestion = (
+  step: GuidedReflectionPath['steps'][number],
+): string =>
+  questionSentence(step.scripture?.question) ||
+  questionSentence(step.prompt) ||
+  questionSentence(step.eyebrow) ||
+  step.fields
+    ?.map(field => questionSentence(field.label))
+    .find((value): value is string => Boolean(value)) ||
+  step.eyebrow;

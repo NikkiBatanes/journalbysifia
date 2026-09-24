@@ -261,6 +261,11 @@ export default function RootStackNavigator({
           headerShown: false,
           presentation: 'fullScreenModal',
           animation: 'slide_from_bottom',
+          statusBarTranslucent: true,
+          statusBarBackgroundColor: 'transparent',
+          statusBarStyle: 'dark',
+          navigationBarTranslucent: true,
+          navigationBarColor: 'transparent',
           contentStyle: { backgroundColor: Colors.lightBackground },
         }}
       />

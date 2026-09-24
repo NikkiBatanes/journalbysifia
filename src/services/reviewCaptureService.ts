@@ -1,4 +1,4 @@
-import {eachDayOfInterval} from 'date-fns';
+import {eachDayOfInterval, format} from 'date-fns';
 import {getLocalReflections} from '../storage/reflectionStorage';
 import {
   getLocalJournalEntries,
@@ -19,12 +19,16 @@ import {
   guidedEntryKind,
   parseGuidedReflection,
   type GuidedReflectionNote,
+  type GuidedReflectionPayload,
 } from '../types/guidedReflection';
 import {guidedQuestionTopicForPrompt} from '../data/guidedReflectionQuestions';
 import {PrayerApi} from './api/prayerApi';
 import {
+  deriveMonthlyPrayerReflection,
   derivePrayerReview,
+  type MonthlyPrayerReflection,
   type PrayerReviewEventType,
+  type PrayerReviewItem,
 } from './prayerReviewService';
 import {getScripturePassage} from './scriptureReaderService';
 import {
@@ -49,6 +53,7 @@ const REFLECTION_TYPES = [
   'reflection',
   'devotional',
   'playbook',
+  'gospel_anniversary',
 ] as const;
 
 const JOURNAL_CONTENT_TYPES: LocalJournalContentType[] = [
@@ -67,6 +72,8 @@ export type ReviewCapturePresentation =
   | 'guided_reflection'
   | 'devotional_reflection'
   | 'playbook_reflection'
+  | 'testimony'
+  | 'for_me_day_reflection'
   | 'prayer'
   | 'gratitude_list'
   | 'bible_study'
@@ -103,6 +110,8 @@ export interface ReviewCaptureItem {
   lifeArea?: string;
   /** Structured Heart Journal content retained for the same rich preview used in Moments. */
   journalBlocks?: GuidedReflectionNote[];
+  /** Structured Guided Reflection retained for the shared question-first preview. */
+  guidedJourney?: GuidedReflectionPayload;
   scriptureText?: string;
   feelingIcon?: string;
   feelingIconType?: 'ionicons' | 'material' | 'fontawesome';
@@ -146,6 +155,8 @@ export interface ReviewCapture {
     answered: number;
     pending: number;
   };
+  /** Full Monthly prayer inventory; waiting prayers are not ranked or limited. */
+  monthlyPrayerReflection?: MonthlyPrayerReflection;
 }
 
 const parseYMD = (value: string): Date => {
@@ -245,6 +256,7 @@ export const classifyReflection = (entry: {
   let detail = '';
   let lifeArea = '';
   let passageRead: boolean | undefined;
+  let guidedJourney: GuidedReflectionPayload | undefined;
   let wisdomItems: ReviewCaptureItem['wisdomItems'];
   let wisdomResponse = '';
   const storedJournalBlocks = entry.metadata?.journalBlocks;
@@ -383,6 +395,31 @@ export const classifyReflection = (entry: {
           : 'NASB';
     }
   } else if (
+    entry.type === 'gospel_anniversary' &&
+    entry.source === 'for_me_day' &&
+    entry.metadata?.forMeDayEntry === 'testimony'
+  ) {
+    kind = 'reflection';
+    title = 'My testimony';
+    subtitle = 'My New Life Day';
+    presentation = 'testimony';
+    const writtenDate = new Date(entry.metadata?.testimonyWrittenAt || '');
+    detail = Number.isFinite(writtenDate.getTime())
+      ? `Written ${format(writtenDate, 'MMM d, yyyy · h:mm a')}`
+      : '';
+  } else if (
+    entry.type === 'gospel_anniversary' &&
+    entry.source === 'for_me_day'
+  ) {
+    kind = 'reflection';
+    title = title.replace(/\bFor Me Day\b/gi, 'New Life Day');
+    subtitle = 'My New Life Day';
+    presentation = 'for_me_day_reflection';
+    const anniversaryNumber = Number(entry.metadata?.anniversaryNumber);
+    detail = Number.isFinite(anniversaryNumber) && anniversaryNumber > 0
+      ? `${anniversaryNumber} ${anniversaryNumber === 1 ? 'year' : 'years'} with Jesus`
+      : 'Yearly reflection';
+  } else if (
     entry.type === 'playbook' ||
     entry.source === 'playbook' ||
     entry.source === 'playbook_reflection'
@@ -414,6 +451,7 @@ export const classifyReflection = (entry: {
         : 'Guided reflection';
     const journey = parseGuidedReflection(entry.content);
     if (journey) {
+      guidedJourney = journey;
       detail = journey.pathTitle;
       displayText =
         journey.answers
@@ -451,6 +489,7 @@ export const classifyReflection = (entry: {
     detail: detail || undefined,
     lifeArea: lifeArea || undefined,
     journalBlocks,
+    guidedJourney,
     passageRead,
     wisdomItems,
     wisdomResponse: wisdomResponse || undefined,
@@ -725,6 +764,27 @@ export const getReviewCapture = async (
     reviewType,
   );
   const prayerById = new Map(reviewPrayers.map(prayer => [prayer.id, prayer]));
+  const monthlyPrayerReflection =
+    reviewType === 'monthly'
+      ? (() => {
+          const reflection = deriveMonthlyPrayerReflection(
+            reviewPrayers,
+            periodStart,
+            periodEnd,
+          );
+          const addPrayerType = (event: PrayerReviewItem) => ({
+            ...event,
+            prayerTypeLabel: getReviewPrayerTypeLabel(
+              prayerById.get(event.prayerId),
+              event,
+            ),
+          });
+          return {
+            answered: reflection.answered.map(addPrayerType),
+            waiting: reflection.waiting.map(addPrayerType),
+          };
+        })()
+      : undefined;
   for (const event of prayerReview.items) {
     const sourcePrayer = prayerById.get(event.prayerId);
     const personPrayer =
@@ -808,5 +868,6 @@ export const getReviewCapture = async (
       answered: answeredPrayers,
       pending: prayerReview.counts.still_carrying || 0,
     },
+    ...(monthlyPrayerReflection ? {monthlyPrayerReflection} : {}),
   };
 };

@@ -107,13 +107,13 @@ const JournalStackNavigator: React.FC = () => {
       <Stack.Screen
         name="PastReviews"
         component={PastReviewsScreen as React.ComponentType}
-        options={{
+        options={({route}) => ({
           headerShown: false,
           presentation: 'fullScreenModal',
           animation: 'slide_from_bottom',
-          gestureEnabled: true,
+          gestureEnabled: (route.params as {returnTo?: string} | undefined)?.returnTo !== 'More',
           contentStyle: { backgroundColor: '#F6F5EF' },
-        }}
+        })}
       />
       <Stack.Screen
         name="ReviewReader"

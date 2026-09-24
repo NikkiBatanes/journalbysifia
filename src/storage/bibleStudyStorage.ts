@@ -14,6 +14,11 @@ import {
   updateLocalPrayer,
   deleteLocalPrayer,
 } from './prayerStorage';
+import {
+  queueBibleStudyCompletedImpact,
+  queueBibleStudyCreatedImpact,
+  queueBibleStudyImpactRetraction,
+} from '../services/journalImpactQueue';
 
 export interface BibleStudyHighlight {
   id: string;
@@ -120,7 +125,7 @@ export const parsePassageReference = (reference: string): BibleStudyPassage => {
   const normalized = reference.replace(/\s+/g, ' ').trim();
   // Match "Book 8", "Book 8:1", "Book 8:1-11", "Book 8:1–11", "1 Book 2:3-4"
   const match = normalized.match(
-    /^((?:\d\s+)?[^\d]+?)(\d+)(?::(\d+)(?:\s*[–\-]\s*(\d+))?)?$/
+    /^((?:\d\s+)?[^\d]+?)(\d+)(?::(\d+)(?:\s*[–-]\s*(\d+))?)?$/
   );
 
   if (!match) {
@@ -207,6 +212,7 @@ export const createBibleStudySession = async (
 
   await AsyncStorage.setItem(getBibleStudySessionKey(id), JSON.stringify(session));
   await AsyncStorage.setItem(LATEST_BIBLE_STUDY_KEY, id);
+  await queueBibleStudyCreatedImpact(session).catch(() => {});
   return session;
 };
 
@@ -290,11 +296,18 @@ export const updateBibleStudySession = async (
     version: Math.max(session.version || 1, existing?.version || 1) + 1,
   };
   await AsyncStorage.setItem(getBibleStudySessionKey(updated.id), JSON.stringify(updated));
+  if (updated.completed && !existing?.completed) {
+    await queueBibleStudyCompletedImpact(updated).catch(() => {});
+  }
   return updated;
 };
 
 export const deleteBibleStudySession = async (id: string): Promise<void> => {
+  const existing = await getBibleStudySession(id);
   await AsyncStorage.removeItem(getBibleStudySessionKey(id));
+  if (existing) {
+    await queueBibleStudyImpactRetraction(id).catch(() => {});
+  }
 };
 
 export const loadBibleStudyContent = async (

@@ -14,8 +14,8 @@ describe('Review QA period continuity and DEV boundary', () => {
       'monthly',
     ]);
     expect(getReviewQAScenario('weekly')).toMatchObject({
-      referenceDate: '2026-09-21',
-      period: {periodStart: '2026-09-14', periodEnd: '2026-09-20'},
+      referenceDate: '2026-09-28',
+      period: {periodStart: '2026-09-21', periodEnd: '2026-09-27'},
     });
     expect(getReviewQAScenario('monthly')).toMatchObject({
       referenceDate: '2026-09-01',
@@ -31,19 +31,20 @@ describe('Review QA period continuity and DEV boundary', () => {
     );
     expect(getReviewQAScenario('monthly')).toMatchObject({
       density: 'rich',
-      status: '25 DAYS · FULL MOMENT CARDS · 3 REMEMBERED · 1 GOSPEL SHARE',
+      status:
+        '31 COMPLETE DAYS · 5 WEEKLY CHECK-INS · 3 REMEMBERED · 1 TESTIMONY · 1 GOSPEL SHARE',
     });
   });
   it('uses the same Weekly dates in its human label and Review route data', () => {
     expect(formatReviewQAPeriod(getReviewQAScenario('weekly'))).toContain(
-      'September 14',
+      'September 21',
     );
     expect(formatReviewQAPeriod(getReviewQAScenario('weekly'))).toContain(
-      'September 20, 2026',
+      'September 27, 2026',
     );
     expect(getReviewQAScenario('weekly')).toMatchObject({
       density: 'rich',
-      status: 'FULL WEEK · 10 GUIDED · 7 SCRIPTURE · PRAYER V2',
+      status: '7 COMPLETE DAYS · 10 GUIDED · 7 SCRIPTURE · PRAYER V2',
     });
   });
   it('registers the screen only inside a DEV guard', () => {

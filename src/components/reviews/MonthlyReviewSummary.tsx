@@ -29,6 +29,13 @@ import type {
 import {rememberedReferenceMatchesMoment} from '../../services/reviewMemoryService';
 import {fromLocalDateString} from '../../utils/date';
 import {triggerLightHaptic} from '../../utils/haptics';
+import {WEEKLY_LIFE_AREAS} from '../../data/weeklyLifeAreas';
+import {MONTHLY_MORE_ROOM_OPTIONS} from '../../data/monthlyMoreRoomChoices';
+import {MONTHLY_LEAVE_BEHIND_DETAILS} from '../../data/monthlyLeaveBehindChoices';
+import {
+  formatNextMonthPeriod,
+  formatReviewedMonthPeriod,
+} from '../../utils/reviewMonthPeriod';
 
 export type MonthlyReviewSummaryTab = 'back' | 'ahead';
 
@@ -36,6 +43,7 @@ interface Props {
   review: LocalReviewEntry;
   capture: ReviewCapture | null;
   captureLoading?: boolean;
+  patternSummary?: string;
   activeTab?: MonthlyReviewSummaryTab;
   onTabChange?: (tab: MonthlyReviewSummaryTab) => void;
   onEdit?: (stageKey: string) => void;
@@ -131,22 +139,6 @@ const Excerpt = ({text, light = false}: {text: string; light?: boolean}) => {
 
 const parseLocal = (value: string) => fromLocalDateString(value);
 
-const formatReviewedMonth = (review: LocalReviewEntry) =>
-  parseLocal(review.periodStart).toLocaleDateString('en-US', {
-    month: 'long',
-    year: 'numeric',
-  });
-
-const formatNextMonth = (review: LocalReviewEntry) => {
-  const end = parseLocal(review.periodEnd);
-  return new Date(
-    end.getFullYear(),
-    end.getMonth() + 1,
-    1,
-    12,
-  ).toLocaleDateString('en-US', {month: 'long', year: 'numeric'});
-};
-
 const resolveRemembered = (
   review: LocalReviewEntry,
   capture: ReviewCapture | null,
@@ -181,6 +173,7 @@ export const MonthlyReviewSummary = ({
   review,
   capture,
   captureLoading = false,
+  patternSummary,
   activeTab,
   onTabChange,
   onEdit,
@@ -205,6 +198,8 @@ export const MonthlyReviewSummary = ({
   const tabsInHeaderRef = useRef(false);
   const scrollOffset = useRef(0);
   const answers = review.answers;
+  const resolvedPatternSummary =
+    patternSummary?.trim() || answers.month_pattern_summary?.trim() || '';
   const monthFeelings = [
     ...(answers.month_feelings ?? '')
       .split('|')
@@ -214,11 +209,112 @@ export const MonthlyReviewSummary = ({
       ? [answers.month_feeling_other.trim()]
       : []),
   ];
-  const reviewedMonth = formatReviewedMonth(review);
-  const nextMonth = formatNextMonth(review);
+  const monthlyLifeGiving = [
+    ...(answers.month_life_giving ?? '')
+      .split('|')
+      .map(value => value.trim())
+      .filter(value => value && value !== 'Other'),
+    ...(answers.month_life_giving_other?.trim()
+      ? [answers.month_life_giving_other.trim()]
+      : []),
+  ];
+  const monthlyDraining = [
+    ...(answers.month_draining ?? '')
+      .split('|')
+      .map(value => value.trim())
+      .filter(value => value && value !== 'Other'),
+    ...(answers.month_draining_other?.trim()
+      ? [answers.month_draining_other.trim()]
+      : []),
+  ];
+  const selectedMonthlyMoreRoom = new Set(
+    (answers.month_more_room ?? '')
+      .split('|')
+      .map(value => value.trim())
+      .filter(Boolean),
+  );
+  const monthlyMoreRoomGroups = [
+    ...MONTHLY_MORE_ROOM_OPTIONS.filter(option =>
+      selectedMonthlyMoreRoom.has(option.label),
+    ).map(option => ({
+      label: option.label,
+      details: (answers[option.answerKey] ?? '')
+        .split('|')
+        .map(value => value.trim())
+        .filter(Boolean),
+    })),
+    ...(answers.month_more_room_other?.trim()
+      ? [{label: answers.month_more_room_other.trim(), details: []}]
+      : []),
+  ];
+  const monthlyCare = [
+    ...(answers.month_care_areas ?? '')
+      .split('|')
+      .map(value => value.trim())
+      .filter(value => value && value !== 'other')
+      .map(
+        key =>
+          WEEKLY_LIFE_AREAS.find(area => area.key === key)?.label ?? key,
+      ),
+    ...(answers.month_care_other?.trim()
+      ? [answers.month_care_other.trim()]
+      : []),
+  ];
+  const selectedMonthlyLeaveBehind = (answers.month_leave_behind ?? '')
+    .split('|')
+    .map(value => value.trim())
+    .filter(value => value && value !== 'Other');
+  const monthlyLeaveBehindGroups = [
+    ...selectedMonthlyLeaveBehind.map(label => {
+      const detail = MONTHLY_LEAVE_BEHIND_DETAILS.find(
+        option => option.label === label,
+      );
+      return {
+        label,
+        details: detail
+          ? (answers[detail.answerKey] ?? '')
+              .split('|')
+              .map(value => value.trim())
+              .filter(Boolean)
+          : [],
+      };
+    }),
+    ...(answers.month_leave_behind_other?.trim()
+      ? [{label: answers.month_leave_behind_other.trim(), details: []}]
+      : []),
+  ];
+  const selectedPrayerIds = new Set(
+    (answers.month_prayer_ids ?? '')
+      .split('|')
+      .map(value => value.trim())
+      .filter(Boolean),
+  );
+  const carriedPrayers = [
+    ...(capture?.monthlyPrayerReflection?.waiting ?? []),
+    ...(review.prayerSnapshot ?? []),
+  ].filter(
+    (item, index, items) =>
+      selectedPrayerIds.has(item.id) &&
+      items.findIndex(candidate => candidate.id === item.id) === index,
+  );
+  const currentYear = new Date().getFullYear();
+  const reviewedMonth = formatReviewedMonthPeriod(
+    review.periodStart,
+    currentYear,
+    'en-US',
+  );
+  const nextMonth = formatNextMonthPeriod(
+    review.periodEnd,
+    currentYear,
+    'en-US',
+  );
   const remembered = useMemo(
     () => resolveRemembered(review, capture),
     [capture, review],
+  );
+  const monthlyTestimony = useMemo(
+    () => capture?.items.find(item => item.presentation === 'testimony') ?? null,
+    [capture],
   );
   const priorities = [
     'next_month_priority_1',
@@ -295,7 +391,8 @@ export const MonthlyReviewSummary = ({
     if (next === tab) {
       return;
     }
-    const nextOffset = tabsInHeaderRef.current ? collapseDistance : 0;
+    const keepInHeader = tabsInHeaderRef.current;
+    const nextOffset = keepInHeader ? collapseDistance : 0;
     triggerLightHaptic();
     setLocalTab(next);
     onTabChange?.(next);
@@ -343,27 +440,41 @@ export const MonthlyReviewSummary = ({
     </View>
   );
 
-  const onScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const offset = event.nativeEvent.contentOffset.y;
-    scrollOffset.current = offset;
-    updateHeaderSurface(offset);
-  };
-
   return (
     <View style={styles.root}>
       <Animated.ScrollView
         ref={scroll}
         testID="monthly-review-scroll"
-        onScroll={onScroll}
+        contentInsetAdjustmentBehavior="never"
+        automaticallyAdjustContentInsets={false}
+        onScroll={Animated.event(
+          [{nativeEvent: {contentOffset: {y: scrollY}}}],
+          {
+            // Insets and padding morph with the tab position, so this uses the JS driver.
+            useNativeDriver: false,
+            listener: (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+              scrollOffset.current = event.nativeEvent.contentOffset.y;
+              updateHeaderSurface();
+            },
+          },
+        )}
         scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
+          paddingTop: headerHeight,
           paddingBottom: bottomInset + (onFinish ? 112 : 38),
         }}>
         <View
           testID="monthly-review-hero"
-          onLayout={event => setHeroHeight(event.nativeEvent.layout.height)}
-          style={[styles.hero, {paddingTop: headerHeight + 18}]}>
+          onLayout={event => {
+            const height = event.nativeEvent.layout.height;
+            setHeroHeight(height);
+            updateHeaderSurface(
+              scrollOffset.current,
+              height + headerHeight - compactTop,
+            );
+          }}
+          style={styles.hero}>
           <Landscape ahead={tab === 'ahead'} />
           <View style={styles.heroCopy}>
             <ThemedText weight="semiBold" style={styles.eyebrow}>
@@ -378,9 +489,19 @@ export const MonthlyReviewSummary = ({
                 : 'Carry what matters into a new month.'}
             </ThemedText>
             <View style={styles.heroBadge}>
-              <Ionicons name="leaf-outline" size={14} color={palette.green} />
+              <Ionicons
+                name={
+                  review.status === 'completed'
+                    ? 'checkmark-circle-outline'
+                    : 'leaf-outline'
+                }
+                size={14}
+                color={palette.green}
+              />
               <ThemedText weight="medium" style={styles.heroBadgeText}>
-                {tab === 'back'
+                {review.status === 'completed'
+                  ? 'A month remembered'
+                  : tab === 'back'
                   ? 'Pause. Notice. Carry it forward.'
                   : 'Faithful attention, one month at a time.'}
               </ThemedText>
@@ -475,7 +596,7 @@ export const MonthlyReviewSummary = ({
                         {review.memorableItems.length}
                       </ThemedText>
                       <ThemedText style={styles.statLabel}>
-                        bookmarked
+                        hearted
                       </ThemedText>
                     </View>
                   </View>
@@ -521,7 +642,7 @@ export const MonthlyReviewSummary = ({
 
               {card(
                 'What shaped the month',
-                'bookmark-outline',
+                'heart-outline',
                 'captured',
                 remembered.length || answers.remember_month?.trim() ? (
                   <>
@@ -562,7 +683,7 @@ export const MonthlyReviewSummary = ({
                   </>
                 ) : (
                   empty(
-                    'Nothing was bookmarked. The month can still hold meaning.',
+                    'Nothing was hearted. The month can still hold meaning.',
                   )
                 ),
               )}
@@ -570,14 +691,146 @@ export const MonthlyReviewSummary = ({
                 'Patterns you noticed',
                 'repeat-outline',
                 'notice',
-                answers.notice_month?.trim() ? (
-                  <Excerpt text={answers.notice_month.trim()} />
+                resolvedPatternSummary || answers.notice_month?.trim() ? (
+                  <View>
+                    {!!resolvedPatternSummary && (
+                      <View style={styles.patternInsight}>
+                        <ThemedText
+                          weight="semiBold"
+                          style={styles.patternInsightLabel}>
+                          WHAT YOUR CHECK-INS SHOW
+                        </ThemedText>
+                        <ThemedText style={styles.patternInsightText}>
+                          {resolvedPatternSummary}
+                        </ThemedText>
+                      </View>
+                    )}
+                    {!!answers.notice_month?.trim() && (
+                      <View
+                        style={
+                          resolvedPatternSummary
+                            ? styles.patternReflection
+                            : undefined
+                        }>
+                        {resolvedPatternSummary ? (
+                          <ThemedText
+                            weight="semiBold"
+                            style={styles.patternInsightLabel}>
+                            WHAT YOU NOTICED
+                          </ThemedText>
+                        ) : null}
+                        <Excerpt text={answers.notice_month.trim()} />
+                      </View>
+                    )}
+                  </View>
                 ) : (
                   empty(
                     'Some patterns need more than one month to become clear.',
                   )
                 ),
               )}
+              {card(
+                'What gave you life',
+                'leaf-outline',
+                'monthly_life_giving',
+                monthlyLifeGiving.length ? (
+                  <View style={styles.feelingChips}>
+                    {monthlyLifeGiving.map((choice, index) => (
+                      <View
+                        key={`${choice}-${index}`}
+                        style={styles.feelingChip}>
+                        <ThemedText
+                          weight="medium"
+                          style={styles.feelingChipText}>
+                          {choice}
+                        </ThemedText>
+                      </View>
+                    ))}
+                  </View>
+                ) : (
+                  empty('You left this open.')
+                ),
+              )}
+              {card(
+                'What drained you',
+                'water-outline',
+                'monthly_draining',
+                monthlyDraining.length ? (
+                  <View style={styles.feelingChips}>
+                    {monthlyDraining.map((choice, index) => (
+                      <View
+                        key={`${choice}-${index}`}
+                        style={styles.feelingChip}>
+                        <ThemedText
+                          weight="medium"
+                          style={styles.feelingChipText}>
+                          {choice}
+                        </ThemedText>
+                      </View>
+                    ))}
+                  </View>
+                ) : (
+                  empty('You left this open.')
+                ),
+              )}
+              {card(
+                'What God may be forming',
+                'leaf-outline',
+                'formation',
+                answers.formation_month?.trim() ? (
+                  <Excerpt text={answers.formation_month.trim()} />
+                ) : (
+                  empty('Formation can be quiet and unfinished.')
+                ),
+              )}
+              {!!answers.prayer_month?.trim() &&
+                card(
+                  'This month in prayer',
+                  'heart-outline',
+                  'prayer',
+                  <Excerpt text={answers.prayer_month.trim()} />,
+                )}
+              {!!review.prayerSnapshot?.length && (
+                <WeeklyReviewPrayerSummary items={review.prayerSnapshot} />
+              )}
+              {!!answers.release_month?.trim() &&
+                card(
+                  'What you released',
+                  'remove-circle-outline',
+                  null,
+                  <Excerpt text={answers.release_month.trim()} />,
+                )}
+              {monthlyTestimony &&
+                card(
+                  'You wrote your testimony',
+                  'sparkles-outline',
+                  null,
+                  <>
+                    {!!monthlyTestimony.detail && (
+                      <View style={styles.testimonyDatePill}>
+                        <Ionicons
+                          name="time-outline"
+                          size={13}
+                          color={palette.green}
+                        />
+                        <ThemedText style={styles.testimonyDateText}>
+                          {monthlyTestimony.detail}
+                        </ThemedText>
+                      </View>
+                    )}
+                    <ThemedText style={styles.testimonyIntro}>
+                      This month, you made space to remember God’s faithfulness
+                      in your story.
+                    </ThemedText>
+                    {!!monthlyTestimony.text?.trim() && (
+                      <View style={styles.testimonyExcerpt}>
+                        <Excerpt text={monthlyTestimony.text.trim()} />
+                      </View>
+                    )}
+                  </>,
+                  styles.testimonyCard,
+                  styles.testimonyIcon,
+                )}
               {card(
                 'God’s faithfulness',
                 'sparkles-outline',
@@ -590,42 +843,85 @@ export const MonthlyReviewSummary = ({
                 styles.gratitudeCard,
                 styles.gratitudeIcon,
               )}
-              {card(
-                'What God may be forming',
-                'leaf-outline',
-                'formation',
-                answers.formation_month?.trim() ? (
-                  <Excerpt text={answers.formation_month.trim()} />
-                ) : (
-                  empty('Formation can be quiet and unfinished.')
-                ),
-              )}
-              {card(
-                'This month in prayer',
-                'heart-outline',
-                'prayer',
-                answers.prayer_month?.trim() ? (
-                  <Excerpt text={answers.prayer_month.trim()} />
-                ) : (
-                  empty('There is room for gratitude and waiting here.')
-                ),
-              )}
-              {!!review.prayerSnapshot?.length && (
-                <WeeklyReviewPrayerSummary items={review.prayerSnapshot} />
-              )}
-              {card(
-                'What you’re releasing',
-                'remove-circle-outline',
-                'release',
-                answers.release_month?.trim() ? (
-                  <Excerpt text={answers.release_month.trim()} />
-                ) : (
-                  empty('You do not have to force an ending.')
-                ),
-              )}
             </>
           ) : (
             <>
+              {card(
+                'More room for',
+                'expand-outline',
+                'monthly_more_room',
+                monthlyMoreRoomGroups.length ? (
+                  <View style={styles.moreRoomGroups}>
+                    {monthlyMoreRoomGroups.map((group, index) => (
+                      <View
+                        key={`${group.label}-${index}`}
+                        style={styles.moreRoomGroup}>
+                        <View style={styles.feelingChip}>
+                          <ThemedText
+                            weight="medium"
+                            style={styles.feelingChipText}>
+                            {group.label}
+                          </ThemedText>
+                        </View>
+                        {group.details.length ? (
+                          <ThemedText style={styles.moreRoomDetails}>
+                            {group.details.join(' · ')}
+                          </ThemedText>
+                        ) : null}
+                      </View>
+                    ))}
+                  </View>
+                ) : (
+                  empty('You left this open.')
+                ),
+              )}
+              {card(
+                'What needs care',
+                'heart-outline',
+                'monthly_care',
+                monthlyCare.length ? (
+                  <View style={styles.feelingChips}>
+                    {monthlyCare.map((choice, index) => (
+                      <View key={`${choice}-${index}`} style={styles.feelingChip}>
+                        <ThemedText weight="medium" style={styles.feelingChipText}>
+                          {choice}
+                        </ThemedText>
+                      </View>
+                    ))}
+                  </View>
+                ) : (
+                  empty('You left this open.')
+                ),
+              )}
+              {card(
+                'What you’re leaving behind',
+                'return-down-back-outline',
+                'monthly_leave_behind',
+                monthlyLeaveBehindGroups.length ? (
+                  <View style={styles.moreRoomGroups}>
+                    {monthlyLeaveBehindGroups.map((group, index) => (
+                      <View
+                        key={`${group.label}-${index}`}
+                        style={styles.moreRoomGroup}>
+                        <View style={styles.feelingChip}>
+                          <ThemedText
+                            weight="medium"
+                            style={styles.feelingChipText}>
+                            {group.label}
+                          </ThemedText>
+                        </View>
+                        {group.details.length ? (
+                          <ThemedText style={styles.moreRoomDetails}>
+                            {group.details.join(' · ')}
+                          </ThemedText>
+                        ) : null}
+                      </View>
+                    ))}
+                  </View>
+                ) : (
+                  empty('You left this open.')
+                ),
+              )}
               {card(
                 'What matters most',
                 'flag-outline',
@@ -652,66 +948,53 @@ export const MonthlyReviewSummary = ({
                 ),
                 styles.priorityCard,
               )}
-              {card(
-                'What needs attention',
-                'compass-outline',
-                'attention',
-                answers.attention?.trim() ? (
+              {review.status === 'completed' && !!answers.attention?.trim() &&
+                card(
+                  'What needs attention',
+                  'compass-outline',
+                  null,
                   <Excerpt text={answers.attention.trim()} />
-                ) : (
-                  empty('Leave room for what becomes clear.')
-                ),
-              )}
-              {card(
-                'What you want to continue',
-                'arrow-forward-circle-outline',
-                'continue',
-                answers.continue?.trim() ? (
+                )}
+              {review.status === 'completed' && !!answers.continue?.trim() &&
+                card(
+                  'What you want to continue',
+                  'arrow-forward-circle-outline',
+                  null,
                   <Excerpt text={answers.continue.trim()} />
-                ) : (
-                  empty('Carry forward what gives life.')
-                ),
-              )}
-              {card(
-                'What can become simpler',
-                'contract-outline',
-                'simplify_or_stop',
-                answers.simplify_or_stop?.trim() ? (
+                )}
+              {review.status === 'completed' &&
+                !!answers.simplify_or_stop?.trim() &&
+                card(
+                  'What can become simpler',
+                  'contract-outline',
+                  null,
                   <Excerpt text={answers.simplify_or_stop.trim()} />
-                ) : (
-                  empty('Not everything needs to follow you.')
-                ),
-              )}
-              {card(
-                'Who you want to make room for',
-                'people-outline',
-                'people',
-                answers.intentional_with?.trim() ? (
+                )}
+              {review.status === 'completed' &&
+                !!answers.intentional_with?.trim() &&
+                card(
+                  'Who you want to make room for',
+                  'people-outline',
+                  null,
                   <Excerpt text={answers.intentional_with.trim()} />
-                ) : (
-                  empty('Intentional presence can stay simple.')
-                ),
-              )}
-              {card(
-                'A rhythm to protect',
-                'repeat-outline',
-                'rhythm',
-                answers.rhythm?.trim() ? (
+                )}
+              {review.status === 'completed' && !!answers.rhythm?.trim() &&
+                card(
+                  'A rhythm to protect',
+                  'repeat-outline',
+                  null,
                   <Excerpt text={answers.rhythm.trim()} />
-                ) : (
-                  empty('Choose a rhythm that helps you remain grounded.')
-                ),
-              )}
+                )}
               <View style={styles.prayerCard}>
                 <View style={styles.prayerHeading}>
                   <Ionicons name="sparkles-outline" size={21} color="#DCE7D7" />
                   <ThemedText weight="semiBold" style={styles.prayerTitle}>
-                    Your prayer for the month ahead
+                    Your prayer for the month
                   </ThemedText>
                   {onEdit && (
                     <TouchableOpacity
                       accessibilityRole="button"
-                      accessibilityLabel="Edit your prayer for the month ahead"
+                      accessibilityLabel="Edit your prayer for the month"
                       disabled={saving}
                       onPress={() => edit('prayer_for_month')}
                       style={styles.edit}>
@@ -719,13 +1002,34 @@ export const MonthlyReviewSummary = ({
                     </TouchableOpacity>
                   )}
                 </View>
-                <Excerpt
-                  text={
-                    answers.prayer_for_month?.trim() ||
-                    'Bring the month ahead to God.'
-                  }
-                  light
-                />
+                {carriedPrayers.length ? (
+                  <View style={styles.carriedPrayerList}>
+                    {carriedPrayers.map(item => (
+                      <View key={item.id} style={styles.carriedPrayerRow}>
+                        <View style={styles.carriedPrayerDot} />
+                        <ThemedText weight="medium" style={styles.carriedPrayerText}>
+                          {item.title}
+                        </ThemedText>
+                      </View>
+                    ))}
+                  </View>
+                ) : null}
+                {!!answers.prayer_for_month?.trim() && (
+                  <View
+                    style={
+                      carriedPrayers.length
+                        ? styles.newPrayerSummary
+                        : undefined
+                    }>
+                    <Excerpt text={answers.prayer_for_month.trim()} light />
+                  </View>
+                )}
+                {!carriedPrayers.length &&
+                  !answers.prayer_for_month?.trim() && (
+                    <ThemedText style={[styles.body, styles.lightText]}>
+                      Bring the month ahead to God.
+                    </ThemedText>
+                  )}
                 <View style={styles.prayerRule} />
                 <ThemedText style={styles.prayerFootnote}>
                   One faithful month. With God.
@@ -786,7 +1090,11 @@ export const MonthlyReviewSummary = ({
             ) : (
               <View style={styles.navigationAction}>
                 <Ionicons
-                  name="checkmark-circle-outline"
+                  name={
+                    review.status === 'completed'
+                      ? 'checkmark-circle-outline'
+                      : 'leaf-outline'
+                  }
                   size={20}
                   color={palette.green}
                 />
@@ -809,12 +1117,14 @@ export const MonthlyReviewSummary = ({
           },
         ]}>
         <Animated.View
+          testID="monthly-review-tab-list"
           style={[
             styles.tabs,
             {marginHorizontal: tabsInset, padding: interpolateTabs(5, 2)},
           ]}
           accessibilityRole="tablist">
           <Animated.View
+            testID="monthly-review-tab-track"
             pointerEvents="none"
             style={[styles.tabTrack, {opacity: tabTrackOpacity}]}
           />
@@ -826,6 +1136,7 @@ export const MonthlyReviewSummary = ({
           ).map(item => (
             <Animated.View
               key={item.key}
+              testID={`monthly-review-tab-slot-${item.key}`}
               style={[styles.tabSlot, {minHeight: interpolateTabs(46, 36)}]}>
               <TouchableOpacity
                 accessibilityRole="tab"
@@ -833,6 +1144,7 @@ export const MonthlyReviewSummary = ({
                 accessibilityState={{selected: tab === item.key}}
                 onPress={() => changeTab(item.key)}
                 activeOpacity={0.8}
+                hitSlop={{top: 4, bottom: 4}}
                 style={[styles.tab, tab === item.key && styles.activeTab]}>
                 <Animated.View
                   style={{
@@ -850,6 +1162,8 @@ export const MonthlyReviewSummary = ({
                 <ThemedText
                   weight="semiBold"
                   numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.85}
                   style={[
                     styles.tabText,
                     tab === item.key && styles.lightText,
@@ -937,6 +1251,7 @@ const styles = StyleSheet.create({
   hero: {
     minHeight: 216,
     paddingHorizontal: 24,
+    paddingTop: 18,
     paddingBottom: 48,
     overflow: 'hidden',
   },
@@ -1059,6 +1374,29 @@ const styles = StyleSheet.create({
   },
   body: {fontSize: 14, lineHeight: 23, color: '#4E6055'},
   empty: {fontSize: 13, lineHeight: 21, color: palette.muted},
+  patternInsight: {
+    paddingLeft: 13,
+    borderLeftWidth: 2,
+    borderLeftColor: '#A9B9A4',
+  },
+  patternInsightLabel: {
+    color: palette.green,
+    fontSize: 9,
+    lineHeight: 14,
+    letterSpacing: 1.25,
+    marginBottom: 5,
+  },
+  patternInsightText: {
+    color: palette.ink,
+    fontSize: 14,
+    lineHeight: 22,
+  },
+  patternReflection: {
+    marginTop: 16,
+    paddingTop: 15,
+    borderTopWidth: 1,
+    borderTopColor: palette.line,
+  },
   feelingChips: {flexDirection: 'row', flexWrap: 'wrap', gap: 8},
   feelingChip: {
     borderRadius: 14,
@@ -1067,6 +1405,14 @@ const styles = StyleSheet.create({
     backgroundColor: palette.sage,
   },
   feelingChipText: {fontSize: 13, lineHeight: 19, color: palette.ink},
+  moreRoomGroups: {gap: 13},
+  moreRoomGroup: {alignItems: 'flex-start', gap: 6},
+  moreRoomDetails: {
+    color: palette.muted,
+    fontSize: 12,
+    lineHeight: 19,
+    paddingLeft: 3,
+  },
   textAction: {
     alignSelf: 'flex-start',
     minHeight: 40,
@@ -1137,6 +1483,31 @@ const styles = StyleSheet.create({
   },
   gratitudeCard: {backgroundColor: '#FBF2E9', borderColor: '#F0E7DC'},
   gratitudeIcon: {backgroundColor: '#F3DED2'},
+  testimonyCard: {backgroundColor: '#F8F5E9', borderColor: '#E8E3D4'},
+  testimonyIcon: {backgroundColor: '#E7ECDD'},
+  testimonyIntro: {fontSize: 14, lineHeight: 23, color: '#4E6055'},
+  testimonyDatePill: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 13,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: '#E7ECDD',
+  },
+  testimonyDateText: {
+    color: palette.green,
+    fontSize: 10,
+    lineHeight: 15,
+  },
+  testimonyExcerpt: {
+    marginTop: 14,
+    paddingTop: 14,
+    borderTopWidth: 1,
+    borderTopColor: '#E8E3D4',
+  },
   priorityCard: {backgroundColor: '#ECF1E8', borderColor: '#E1E9DB'},
   priorities: {gap: 16},
   priority: {flexDirection: 'row', gap: 13, alignItems: 'flex-start'},
@@ -1164,6 +1535,31 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   prayerTitle: {flex: 1, color: '#FFFFFF', fontSize: 15, lineHeight: 23},
+  carriedPrayerList: {gap: 12},
+  carriedPrayerRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+  },
+  carriedPrayerDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    marginTop: 8,
+    backgroundColor: '#DCE7D7',
+  },
+  carriedPrayerText: {
+    flex: 1,
+    color: '#FFFFFF',
+    fontSize: 14,
+    lineHeight: 22,
+  },
+  newPrayerSummary: {
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#758D79',
+  },
   prayerRule: {
     height: 1,
     backgroundColor: '#758D79',

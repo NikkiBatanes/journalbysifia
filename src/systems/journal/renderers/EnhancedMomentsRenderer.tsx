@@ -12,6 +12,7 @@ import { getCanonicalMomentTimeline, type MomentTimelineItem, type RoutineSectio
 import { RoutineMomentSummary } from '../../../components/moments/RoutineMomentSummary';
 import {WeeklyGratitudeMomentCard} from '../../../components/moments/WeeklyGratitudeMomentCard';
 import {WeeklyLookingForwardMomentCard} from '../../../components/moments/WeeklyLookingForwardMomentCard';
+import {ForMeDayMomentCard, isForMeDayTimelineItem} from '../../../components/moments/ForMeDayMomentCard';
 import { MomentsPaletteContext } from '../../../context/MomentsPaletteContext';
 import ThemedText from '../../../components/common/ThemedText';
 import { useTheme } from '../../../hooks/useTheme';
@@ -130,6 +131,9 @@ interface MonthItem {
   title: string; // Month title (hide year if current year)
   entries: MomentEntry[];
 }
+
+const isForMeDayMomentEntry = (entry: MomentEntry): boolean =>
+  isForMeDayTimelineItem(entry.timelineItem);
 
 // Shared ordering helpers to guarantee consistent order across all views
 const TYPE_ORDER = {
@@ -1958,8 +1962,17 @@ const EnhancedMomentsContent: React.FC<EnhancedMomentsRendererProps> = ({
           // For Prayer Journal, group all ACTS/Open Prayer under a single card by plugin
           // For guided/prayed prayers, group under 'Guided Prayers' to avoid duplication
           const isGuidedGroup = entry.type?.toLowerCase().includes('guided') || entry.plugin?.id === 'guidedprayers';
-          const isHeartJournal = entry.plugin?.id === 'reflection' && entry.timelineItem?.kind === 'reflection';
-          const typeKey = isHeartJournal ? 'Heart Journal' : entry.plugin?.id === 'prayerjournal' && !entry._prayers ? 'Prayer Journal' : (isGuidedGroup ? 'Guided Prayers' : entry.type);
+          const isForMeDay = isForMeDayMomentEntry(entry);
+          const isHeartJournal = entry.plugin?.id === 'reflection' && entry.timelineItem?.kind === 'reflection' && !isForMeDay;
+          const typeKey = isForMeDay
+            ? `For Me Day:${entry.reflectionId || entry.timelineItem?.key}`
+            : isHeartJournal
+            ? 'Heart Journal'
+            : entry.plugin?.id === 'prayerjournal' && !entry._prayers
+            ? 'Prayer Journal'
+            : isGuidedGroup
+            ? 'Guided Prayers'
+            : entry.type;
           if (!typeGroups[typeKey]) {typeGroups[typeKey] = [];}
           typeGroups[typeKey].push(entry);
         });
@@ -2191,6 +2204,8 @@ const EnhancedMomentsContent: React.FC<EnhancedMomentsRendererProps> = ({
     filters: PluginFilters | undefined = pluginFilters,
   ) => withRememberedMarker(Boolean(entry._isRemembered), entry._prayers
     ? <PrayerMomentsCarousel prayers={entry._prayers} navigation={navigation} />
+    : isForMeDayMomentEntry(entry) && entry.timelineItem
+    ? <ForMeDayMomentCard timelineItem={entry.timelineItem} />
     : <PluginRenderer
         plugin={entry.plugin}
         selectedDate={entry.date}
@@ -2626,7 +2641,10 @@ const EnhancedMomentsContent: React.FC<EnhancedMomentsRendererProps> = ({
     if (carouselGroup?.length && carouselGroup.every(entry => !!entry._prayers)) {
       return <View style={styles.carouselItem}><View style={styles.momentItem}><View style={styles.momentContent}>{withRememberedMarker(carouselGroup.some(entry => entry._isRemembered), <PrayerMomentsCarousel prayers={carouselGroup.flatMap(entry => entry._prayers!)} navigation={navigation} />)}</View></View></View>;
     }
-    const isHeartJournalGroup = carouselGroup?.length > 0 && carouselGroup.every(entry => entry.plugin?.id === 'reflection' && entry.timelineItem?.kind === 'reflection');
+    if (carouselGroup?.length && carouselGroup.every(isForMeDayMomentEntry)) {
+      return <View style={styles.carouselItem}>{carouselGroup.map(entry => <View key={entry.timelineItem?.key || entry.reflectionId} style={styles.momentItem}><View style={styles.momentContent}>{withRememberedMarker(Boolean(entry._isRemembered), <ForMeDayMomentCard timelineItem={entry.timelineItem!} />)}</View></View>)}</View>;
+    }
+    const isHeartJournalGroup = carouselGroup?.length > 0 && carouselGroup.every(entry => entry.plugin?.id === 'reflection' && entry.timelineItem?.kind === 'reflection' && !isForMeDayMomentEntry(entry));
     if (isHeartJournalGroup) {
       const representative = carouselGroup[0];
       const reflectionIds = carouselGroup.map(entry => entry.reflectionId).filter((id): id is string => !!id);

@@ -18,6 +18,7 @@ import {
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { GOSPEL_PAGES, GOSPEL_PRAYER, GOSPEL_RESPONSE_ASSURANCE, LISTEN_FIRST_QUESTIONS } from '../data/gospelContent';
@@ -39,8 +40,11 @@ import { toLocalDateString } from '../utils/date';
 import { playGospelOpeningSound } from '../utils/soundUtils';
 import PrayerHandsIcon from '../components/common/PrayerHandsIcon';
 import { gospelShareService, GospelShareLink, SharedGospelResponse } from '../services/gospelShareService';
+import {recordGospelAcceptanceAsAnsweredPrayer} from '../services/gospelAcceptancePrayerService';
+import {returnToMainTab} from '../navigation/returnToMainTab';
+import {queueSelfGospelAcceptanceImpact} from '../services/journalImpactAnalyticsService';
 
-type ViewName = 'home' | 'mode' | 'listen' | 'player' | 'promise' | 'response' | 'prayer' | 'assurance-intro' | 'assurance' | 'birthday' | 'next-steps' | 'other' | 'people' | 'add-person-name' | 'add-person-prayer' | 'send' | 'shared-responses';
+type ViewName = 'home' | 'mode' | 'together-person' | 'listen' | 'player' | 'promise' | 'response' | 'prayer' | 'assurance-intro' | 'assurance' | 'birthday' | 'next-steps' | 'spiritual-birthday' | 'other' | 'people' | 'add-person-name' | 'add-person-prayer' | 'send' | 'shared-responses';
 type Mode = 'app_self' | 'app_together';
 type ResponseFilter = 'all' | 'praying' | 'others';
 
@@ -88,23 +92,23 @@ const FIRST_STEPS = [
 ] as const;
 
 const GOSPEL_BACKGROUNDS: Record<string, number> = {
-  intro: require('../../assets/images/gospel/9.png'),
-  love: require('../../assets/images/gospel/11.png'),
-  sin: require('../../assets/images/gospel/1.png'),
-  death: require('../../assets/images/gospel/1.png'),
-  'death-kinds': require('../../assets/images/gospel/12.png'),
-  effort: require('../../assets/images/gospel/7.png'),
-  jesus: require('../../assets/images/gospel/3.png'),
-  'only-way': require('../../assets/images/gospel/3.png'),
-  risen: require('../../assets/images/gospel/3.png'),
-  faith: require('../../assets/images/gospel/3.png'),
-  'faith-followup': require('../../assets/images/gospel/5.png'),
-  understanding: require('../../assets/images/gospel/5.png'),
-  trust: require('../../assets/images/gospel/5.png'),
-  'assurance-intro': require('../../assets/images/gospel/8.png'),
-  assurance: require('../../assets/images/gospel/8.png'),
-  birthday: require('../../assets/images/gospel/8.png'),
-  'next-steps': require('../../assets/images/gospel/8.png'),
+  intro: require('../../assets/images/gospel/01-best-decision.png'),
+  love: require('../../assets/images/gospel/02-god-loves-you.png'),
+  sin: require('../../assets/images/gospel/03-sin-separates-us.png'),
+  death: require('../../assets/images/gospel/03-sin-separates-us.png'),
+  'death-kinds': require('../../assets/images/gospel/04-consequence-of-sin.png'),
+  effort: require('../../assets/images/gospel/05-human-efforts-cannot-save.png'),
+  jesus: require('../../assets/images/gospel/06-jesus-is-the-only-way.png'),
+  'only-way': require('../../assets/images/gospel/06-jesus-is-the-only-way.png'),
+  risen: require('../../assets/images/gospel/06-jesus-is-the-only-way.png'),
+  faith: require('../../assets/images/gospel/06-jesus-is-the-only-way.png'),
+  'faith-followup': require('../../assets/images/gospel/07-faith-in-jesus.png'),
+  understanding: require('../../assets/images/gospel/07-faith-in-jesus.png'),
+  trust: require('../../assets/images/gospel/07-faith-in-jesus.png'),
+  'assurance-intro': require('../../assets/images/gospel/08-new-life-with-jesus.png'),
+  assurance: require('../../assets/images/gospel/08-new-life-with-jesus.png'),
+  birthday: require('../../assets/images/gospel/08-new-life-with-jesus.png'),
+  'next-steps': require('../../assets/images/gospel/08-new-life-with-jesus.png'),
 };
 
 const GOSPEL_BACKGROUND_SOURCES = Object.values(GOSPEL_BACKGROUNDS);
@@ -118,8 +122,11 @@ const GOSPEL_SHARE_PROMPTS = [
   'Pray for an opportunity',
 ] as const;
 
-const formatPrayerStartedAt = (person: GospelPerson): string | null => {
-  const value = person.prayerStartedAt || person.createdAt;
+const prayerNoteForResponse = (response: GospelResponse): string => response === 'has_questions'
+  ? 'They have questions after going through the Gospel. Pray for wisdom and follow up with care.'
+  : 'They are not ready to trust Jesus yet. Keep praying and follow up with care.';
+
+const formatGospelHistoryDate = (value?: string): string | null => {
   if (!value) {return null;}
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) {return null;}
@@ -128,7 +135,21 @@ const formatPrayerStartedAt = (person: GospelPerson): string | null => {
     month: 'short',
     day: 'numeric',
     ...(date.getFullYear() === new Date().getFullYear() ? {} : {year: 'numeric'}),
-  }).toUpperCase();
+  });
+};
+
+const formatPrayerStartedAt = (person: GospelPerson): string | null =>
+  formatGospelHistoryDate(person.prayerStartedAt || person.createdAt);
+
+const formatSpiritualBirthday = (value: string): string => {
+  const date = new Date(`${value}T12:00:00`);
+  if (Number.isNaN(date.getTime())) {return value;}
+  return date.toLocaleDateString('en-US', {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    ...(date.getFullYear() === new Date().getFullYear() ? {} : {year: 'numeric'}),
+  });
 };
 
 const StaggeredItem = ({ children, delay, animationKey, reduceMotion, pushToBottom, fade }: { children: React.ReactNode; delay: number; animationKey: string; reduceMotion: boolean; pushToBottom: boolean; fade: boolean }) => {
@@ -208,7 +229,7 @@ const RosePop = ({ children, animationKey, reduceMotion }: { children: React.Rea
   return <Animated.View style={{ opacity: progress, transform: [{ scale: progress.interpolate({ inputRange: [0, 1], outputRange: [0.82, 1] }) }] }}>{children}</Animated.View>;
 };
 
-const GospelScreen: React.FC<any> = ({ navigation }) => {
+const GospelScreen: React.FC<any> = ({ navigation, route }) => {
   const theme = useTheme();
   const font = { fontFamily: theme.fontFamily };
   const insets = useSafeAreaInsets();
@@ -231,16 +252,24 @@ const GospelScreen: React.FC<any> = ({ navigation }) => {
   const [loadingSharedResponses, setLoadingSharedResponses] = useState(false);
   const [sharingGospel, setSharingGospel] = useState(false);
   const [savingShare, setSavingShare] = useState(false);
+  const [undoShareEvent, setUndoShareEvent] = useState<GospelShareEvent | null>(null);
+  const [showShareCounter, setShowShareCounter] = useState(true);
   const [recipientId, setRecipientId] = useState<string | undefined>();
   const [lockedRecipientId, setLockedRecipientId] = useState<string | undefined>();
+  const [togetherResponderName, setTogetherResponderName] = useState('');
+  const [spiritualBirthdayDate, setSpiritualBirthdayDate] = useState(new Date());
+  const [showSpiritualBirthdayPicker, setShowSpiritualBirthdayPicker] = useState(false);
   const [responseFilter, setResponseFilter] = useState<ResponseFilter>('all');
+  const [linkingResponseIds, setLinkingResponseIds] = useState<string[]>([]);
   const preparedShareLinks = useRef(new Map<string | undefined, Promise<GospelShareLink>>());
   const shareInProgress = useRef(false);
   const shareSaveInProgress = useRef(false);
+  const undoShareTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const leafBloom = useRef(new Animated.Value(0)).current;
   const birdFlight = useRef(new Animated.Value(0)).current;
   const birthdayReveal = useRef(new Animated.Value(0)).current;
   const shareCounterLabelAnim = useRef(new Animated.Value(1)).current;
+  const shareCounterVisibilityAnim = useRef(new Animated.Value(1)).current;
   const scrollRef = useRef<ScrollView>(null);
   const [reduceMotion, setReduceMotion] = useState(false);
 
@@ -257,8 +286,9 @@ const GospelScreen: React.FC<any> = ({ navigation }) => {
   }, []);
 
   useEffect(() => {
+    if (view !== 'home') {return;}
     shareCounterLabelAnim.setValue(reduceMotion ? 0 : 1);
-    if (reduceMotion) {return;}
+    if (reduceMotion) {return undefined;}
     const collapseTimer = setTimeout(() => {
       Animated.timing(shareCounterLabelAnim, {
         toValue: 0,
@@ -268,7 +298,53 @@ const GospelScreen: React.FC<any> = ({ navigation }) => {
       }).start();
     }, 3600);
     return () => clearTimeout(collapseTimer);
-  }, [reduceMotion, shareCounterLabelAnim]);
+  }, [reduceMotion, shareCounterLabelAnim, view]);
+
+  useEffect(() => {
+    const visible = view === 'home';
+    if (reduceMotion) {
+      shareCounterVisibilityAnim.setValue(visible ? 1 : 0);
+      setShowShareCounter(visible);
+      return undefined;
+    }
+
+    if (visible) {
+      setShowShareCounter(true);
+      shareCounterVisibilityAnim.setValue(0);
+      const entrance = Animated.spring(shareCounterVisibilityAnim, {
+        toValue: 1,
+        tension: 62,
+        friction: 7,
+        useNativeDriver: true,
+      });
+      entrance.start();
+      return () => entrance.stop();
+    }
+
+    const exit = Animated.sequence([
+      Animated.spring(shareCounterVisibilityAnim, {
+        toValue: 1.06,
+        tension: 150,
+        friction: 9,
+        useNativeDriver: true,
+      }),
+      Animated.spring(shareCounterVisibilityAnim, {
+        toValue: 0,
+        tension: 72,
+        friction: 9,
+        overshootClamping: false,
+        useNativeDriver: true,
+      }),
+    ]);
+    exit.start(({finished}) => {
+      if (finished) {setShowShareCounter(false);}
+    });
+    return () => exit.stop();
+  }, [reduceMotion, shareCounterVisibilityAnim, view]);
+
+  useEffect(() => () => {
+    if (undoShareTimer.current) {clearTimeout(undoShareTimer.current);}
+  }, []);
 
   useEffect(() => {
     if (view !== 'assurance-intro' && view !== 'assurance') {return;}
@@ -320,6 +396,14 @@ const GospelScreen: React.FC<any> = ({ navigation }) => {
     setView(next);
   }, [view]);
 
+  const exitGospel = useCallback(() => {
+    if (route?.params?.returnTo === 'More') {
+      returnToMainTab(navigation, 'More');
+      return;
+    }
+    navigation.goBack();
+  }, [navigation, route?.params?.returnTo]);
+
   const back = useCallback(() => {
     if (view === 'player' && pageIndex > 0) {
       setPageIndex(value => value - 1);
@@ -331,14 +415,14 @@ const GospelScreen: React.FC<any> = ({ navigation }) => {
     }
     setHistory(current => {
       if (!current.length) {
-        navigation.goBack();
+        exitGospel();
         return current;
       }
       const copy = [...current];
       setView(copy.pop() as ViewName);
       return copy;
     });
-  }, [listenIndex, navigation, pageIndex, view]);
+  }, [exitGospel, listenIndex, pageIndex, view]);
 
   const resetHome = useCallback(() => {
     setHistory([]);
@@ -348,11 +432,14 @@ const GospelScreen: React.FC<any> = ({ navigation }) => {
     setResponse(null);
     setRecipientId(undefined);
     setLockedRecipientId(undefined);
+    setTogetherResponderName('');
+    setSpiritualBirthdayDate(new Date());
+    setShowSpiritualBirthdayPicker(false);
   }, []);
 
   const close = useCallback(() => {
-    navigation.goBack();
-  }, [navigation]);
+    exitGospel();
+  }, [exitGospel]);
 
   const loadPeople = useCallback(async () => setPeople(await gospelStorage.getPeople()), []);
   const loadShareEvents = useCallback(async () => setShareEvents(await gospelStorage.getShareEvents()), []);
@@ -409,6 +496,12 @@ const GospelScreen: React.FC<any> = ({ navigation }) => {
     }
   };
 
+  const startTogether = (personId?: string, responderName = '') => {
+    setRecipientId(personId);
+    setTogetherResponderName(responderName.trim());
+    startPlayer('app_together');
+  };
+
   const continuePlayer = () => {
     if (pageIndex < GOSPEL_PAGES.length - 1) {
       setPageIndex(value => value + 1);
@@ -420,13 +513,24 @@ const GospelScreen: React.FC<any> = ({ navigation }) => {
   const recordConfirmedShare = async (
     method: GospelShareMethod,
     personId?: string,
+    responseDetails?: Pick<GospelShareEvent, 'response' | 'responderName' | 'spiritualBirthday'>,
   ) => {
     if (shareSaveInProgress.current) {return null;}
     shareSaveInProgress.current = true;
     setSavingShare(true);
     try {
-      const event = await gospelStorage.recordShareEvent({method, personId});
+      const event = await gospelStorage.recordShareEvent({method, personId, ...responseDetails});
       setShareEvents(current => [event, ...current]);
+      if (undoShareTimer.current) {clearTimeout(undoShareTimer.current);}
+      if (!responseDetails?.response) {
+        setUndoShareEvent(event);
+        undoShareTimer.current = setTimeout(() => {
+          setUndoShareEvent(current => current?.id === event.id ? null : current);
+          undoShareTimer.current = null;
+        }, 6000);
+      } else {
+        setUndoShareEvent(null);
+      }
       try { triggerSuccessHaptic(); } catch {}
       return event;
     } finally {
@@ -435,10 +539,45 @@ const GospelScreen: React.FC<any> = ({ navigation }) => {
     }
   };
 
-  const finishGospelExperience = async () => {
+  const finishGospelExperience = async (saveTogetherResponse = false, addToPrayerList = false) => {
     if (mode === 'app_together') {
       try {
-        await recordConfirmedShare('together', recipientId);
+        let trackedPersonId = recipientId;
+        const responderName = people.find(item => item.id === recipientId)?.displayName || togetherResponderName.trim();
+        if (addToPrayerList && !trackedPersonId && responderName && response) {
+          const existingPerson = people.find(item => item.displayName.trim().toLocaleLowerCase() === responderName.toLocaleLowerCase());
+          const trackedPerson = existingPerson || await gospelStorage.addPerson(
+            responderName,
+            prayerNoteForResponse(response),
+          );
+          trackedPersonId = trackedPerson.id;
+          if (!existingPerson) {
+            setPeople(current => [trackedPerson, ...current]);
+          }
+        }
+        const event = await recordConfirmedShare('together', trackedPersonId, saveTogetherResponse && response ? {
+          response,
+          responderName: togetherResponderName || undefined,
+          spiritualBirthday: response === 'trusted_jesus_today'
+            ? toLocalDateString(new Date())
+            : undefined,
+        } : undefined);
+        if (event && saveTogetherResponse && response === 'trusted_jesus_today') {
+          const person = people.find(item => item.id === trackedPersonId);
+          const acceptanceName = person?.displayName || responderName;
+          if (acceptanceName) {
+            try {
+              await recordGospelAcceptanceAsAnsweredPrayer({
+                gospelPersonId: person?.id || event.id,
+                personName: acceptanceName,
+                prayerStartedAt: person?.prayerStartedAt || person?.createdAt || event.sharedAt,
+                acceptedAt: event.sharedAt,
+              });
+            } catch {
+              Alert.alert('Response saved', 'The response was saved, but the answered prayer could not be added to your journal.');
+            }
+          }
+        }
       } catch {
         Alert.alert('Unable to save this share', 'The Gospel walkthrough is complete, but its share could not be recorded.');
       }
@@ -455,6 +594,16 @@ const GospelScreen: React.FC<any> = ({ navigation }) => {
       go('prayer');
       return;
     }
+    if (response === 'already_follows_jesus' && mode === 'app_self') {
+      const settings = await gospelStorage.getForMeDaySettings();
+      if (!settings?.spiritualBirthday) {
+        go('spiritual-birthday');
+        return;
+      }
+      await gospelStorage.saveResponse(response, mode, settings.spiritualBirthday);
+      go('other');
+      return;
+    }
     // A person using the owner's phone should not replace the owner's saved
     // response or spiritual birthday.
     if (mode === 'app_self') {
@@ -463,17 +612,39 @@ const GospelScreen: React.FC<any> = ({ navigation }) => {
     go('other');
   };
 
+  const finishAlreadyFollowingResponse = async (saveDate: boolean) => {
+    const date = saveDate ? toLocalDateString(spiritualBirthdayDate) : undefined;
+    await gospelStorage.saveResponse('already_follows_jesus', 'app_self', date);
+    if (date) {
+      await scheduleForMeDayReminder(await gospelStorage.getForMeDaySettings());
+      try { triggerSuccessHaptic(); } catch {}
+      navigation.replace('ForMeDay', {
+        mode: 'celebrate',
+        ...(route?.params?.returnTo === 'More' ? {returnTo: 'More'} : {}),
+      });
+      return;
+    }
+    go('other');
+  };
+
   const saveTrustedResponse = async (saveDate: boolean) => {
     if (mode === 'app_self') {
       const date = saveDate ? toLocalDateString(new Date()) : undefined;
-      await gospelStorage.saveResponse('trusted_jesus_today', mode, date);
+      const savedResponse = await gospelStorage.saveResponse('trusted_jesus_today', mode, date);
+      await queueSelfGospelAcceptanceImpact(savedResponse.respondedAt);
       if (saveDate) {
         const settings = await gospelStorage.getForMeDaySettings();
         await scheduleForMeDayReminder(settings);
+        try { triggerSuccessHaptic(); } catch {}
+        navigation.replace('ForMeDay', {
+          mode: 'celebrate',
+          ...(route?.params?.returnTo === 'More' ? {returnTo: 'More'} : {}),
+        });
+        return;
       }
     }
     try { triggerSuccessHaptic(); } catch {}
-    await finishGospelExperience();
+    await finishGospelExperience(mode === 'app_together' && saveDate);
   };
 
   const addPerson = async () => {
@@ -500,11 +671,12 @@ const GospelScreen: React.FC<any> = ({ navigation }) => {
     setSharingGospel(true);
     try {
       const link = await prepareShareLink(recipientId);
-      const result = await Share.share({
-        title: 'The Gospel',
-        message: `Hey, I wanted to share this with you. It's a short walkthrough of the Gospel you can read whenever you're ready. No pressure to respond to me. ${link.url}`,
-        url: link.url,
-      });
+      const recipientName = people.find(person => person.id === recipientId)?.displayName.trim();
+      const greeting = recipientName ? `Hey ${recipientName},` : 'Hey,';
+      const message = `${greeting} because I care about you, I wanted to share something close to my heart. My hope in Jesus has changed my life, and this short guide explains where that hope comes from. There's no need to respond. I simply wanted you to have it.`;
+      const result = await Share.share(Platform.OS === 'ios'
+        ? {title: 'The Gospel', message, url: link.url}
+        : {title: 'The Gospel', message: `${message} ${link.url}`});
       if (result.action === Share.sharedAction) {
         try {
           await recordConfirmedShare('link', recipientId);
@@ -524,11 +696,31 @@ const GospelScreen: React.FC<any> = ({ navigation }) => {
     }
   };
 
-  const saveOutsideAppShare = async () => {
+  const saveOpenShare = async () => {
     try {
-      await recordConfirmedShare('outside_app');
+      await recordConfirmedShare('shared_openly');
     } catch {
       Alert.alert('Unable to save this share', 'Please try again.');
+    }
+  };
+
+  const undoLastShare = async () => {
+    if (!undoShareEvent || shareSaveInProgress.current) {return;}
+    const event = undoShareEvent;
+    shareSaveInProgress.current = true;
+    setSavingShare(true);
+    try {
+      await gospelStorage.removeShareEvent(event.id);
+      setShareEvents(current => current.filter(item => item.id !== event.id));
+      if (undoShareTimer.current) {clearTimeout(undoShareTimer.current);}
+      undoShareTimer.current = null;
+      setUndoShareEvent(null);
+      try { triggerLightHaptic(); } catch {}
+    } catch {
+      Alert.alert('Unable to undo this share', 'Please try again.');
+    } finally {
+      shareSaveInProgress.current = false;
+      setSavingShare(false);
     }
   };
 
@@ -545,14 +737,49 @@ const GospelScreen: React.FC<any> = ({ navigation }) => {
     }
   };
 
+  const addResponseToPrayerList = async (item: SharedGospelResponse) => {
+    const responderName = item.responder_name?.trim();
+    if (!responderName || linkingResponseIds.includes(item.id)) {return;}
+    setLinkingResponseIds(current => [...current, item.id]);
+    try {
+      const existingPerson = people.find(person =>
+        person.displayName.trim().toLocaleLowerCase() === responderName.toLocaleLowerCase(),
+      );
+      const person = existingPerson || await gospelStorage.addPerson(
+        responderName,
+        prayerNoteForResponse(item.response),
+      );
+      if (item.id.startsWith('local-')) {
+        const eventId = item.id.slice('local-'.length);
+        await gospelStorage.linkShareEventToPerson(eventId, person.id);
+        setShareEvents(current => current.map(event => event.id === eventId
+          ? {...event, personId: person.id}
+          : event));
+      } else {
+        await gospelShareService.linkResponseToPerson(item.gospel_share_links.id, person.id);
+        setSharedResponses(current => current.map(saved => saved.id === item.id
+          ? {...saved, gospel_share_links: {...saved.gospel_share_links, person_id: person.id}}
+          : saved));
+      }
+      if (!existingPerson) {
+        setPeople(current => [person, ...current]);
+      }
+      try { triggerSuccessHaptic(); } catch {}
+    } catch {
+      Alert.alert('Unable to add this person', 'The response is still saved. Please try adding them to your prayer list again.');
+    } finally {
+      setLinkingResponseIds(current => current.filter(id => id !== item.id));
+    }
+  };
+
   const responseCopy = useMemo(() => {
     if (response === 'has_questions') {
       return ['Your questions matter.', 'You can keep exploring what the Bible says about Jesus before making a decision.'];
     }
     if (response === 'not_ready') {
-      return ["It's okay to keep considering this.", "You don't need to say yes just to finish this experience."];
+      return ['Take the next honest step.', 'Keep considering who Jesus is and what it means to trust Him. You can return to the Gospel whenever you are ready.'];
     }
-    return ['Keep returning to the Gospel.', 'The good news is not only how the Christian life begins. It is truth to remember and share.'];
+    return ['Keep preaching the Gospel to yourself.', 'The Gospel is not only how life with Jesus begins. Return to it each day and remember that your standing with God rests on Christ and His grace, not your performance.'];
   }, [response]);
 
   const gospelBackground = view === 'player'
@@ -577,7 +804,7 @@ const GospelScreen: React.FC<any> = ({ navigation }) => {
     </StaggeredItem>
   );
 
-  const Header = () => (
+  const renderHeader = () => (
     <View pointerEvents="box-none" style={[styles.header, { paddingTop: insets.top + 8 }]}>
       {view === 'home' ? <View style={styles.headerPlaceholder} /> : (
         <HeaderBackButton
@@ -592,29 +819,45 @@ const GospelScreen: React.FC<any> = ({ navigation }) => {
         ) : null}
       </View>
       <View style={styles.headerActions}>
-        <TouchableOpacity
-          onPress={withLightHaptic(saveOutsideAppShare)}
-          style={[styles.shareCounterButton, savingShare && styles.actionDisabled]}
-          activeOpacity={0.7}
-          disabled={savingShare}
-          hitSlop={{top: 8, bottom: 8, left: 8, right: 4}}
-          accessibilityRole="button"
-          accessibilityState={{disabled: savingShare}}
-          accessibilityLabel={`Record Gospel share. ${todayShareCount} shared today`}>
-          <MaterialCommunityIcons name="sprout" size={18} color={Colors.sage} />
+        {showShareCounter ? (
           <Animated.View
-            testID="gospel-share-label"
+            pointerEvents={view === 'home' ? 'auto' : 'none'}
             style={{
-              overflow: 'hidden',
-              opacity: shareCounterLabelAnim,
-              maxWidth: shareCounterLabelAnim.interpolate({inputRange: [0, 1], outputRange: [0, 105]}),
-              marginLeft: shareCounterLabelAnim.interpolate({inputRange: [0, 1], outputRange: [0, 7]}),
-              marginRight: shareCounterLabelAnim.interpolate({inputRange: [0, 1], outputRange: [0, 7]}),
+              opacity: shareCounterVisibilityAnim.interpolate({
+                inputRange: [0, 1],
+                outputRange: [0, 1],
+                extrapolate: 'clamp',
+              }),
+              transform: [
+                {translateX: shareCounterVisibilityAnim.interpolate({inputRange: [0, 1], outputRange: [58, 0]})},
+                {scale: shareCounterVisibilityAnim.interpolate({inputRange: [0, 1], outputRange: [0.58, 1]})},
+              ],
             }}>
-            <Text style={[styles.shareCounterLabel, font]} numberOfLines={1}>Gospel shared</Text>
+            <TouchableOpacity
+              onPress={withLightHaptic(saveOpenShare)}
+              style={[styles.shareCounterButton, savingShare && styles.actionDisabled]}
+              activeOpacity={0.7}
+              disabled={savingShare}
+              hitSlop={{top: 8, bottom: 8, left: 8, right: 4}}
+              accessibilityRole="button"
+              accessibilityState={{disabled: savingShare}}
+              accessibilityLabel={`Record open Gospel share. ${todayShareCount} shared today`}>
+              <MaterialCommunityIcons name="sprout" size={18} color={Colors.sage} />
+              <Animated.View
+                testID="gospel-share-label"
+                style={{
+                  overflow: 'hidden',
+                  opacity: shareCounterLabelAnim,
+                  maxWidth: shareCounterLabelAnim.interpolate({inputRange: [0, 1], outputRange: [0, 105]}),
+                  marginLeft: shareCounterLabelAnim.interpolate({inputRange: [0, 1], outputRange: [0, 7]}),
+                  marginRight: shareCounterLabelAnim.interpolate({inputRange: [0, 1], outputRange: [0, 7]}),
+                }}>
+                <Text style={[styles.shareCounterLabel, font]} numberOfLines={1}>Shared today</Text>
+              </Animated.View>
+              {todayShareCount > 0 ? <Text style={[styles.shareCounterText, font]}>{todayShareCount}</Text> : null}
+            </TouchableOpacity>
           </Animated.View>
-          {todayShareCount > 0 ? <Text style={[styles.shareCounterText, font]}>{todayShareCount}</Text> : null}
-        </TouchableOpacity>
+        ) : null}
         <TouchableOpacity
           onPress={withLightHaptic(close)}
           style={styles.headerButton}
@@ -714,8 +957,42 @@ const GospelScreen: React.FC<any> = ({ navigation }) => {
         <Text style={[styles.title, styles.center, font]}>Who is going through this?</Text>
         <Text style={[styles.body, styles.center, font]}>This only changes how the conversation begins. The Gospel itself stays the same.</Text>
         <Card icon="person-outline" title="I'm reading for myself" body="I want to understand or return to the Gospel." onPress={() => startPlayer('app_self')} />
-        <Card icon="people-outline" title="Someone is with me" body="We'll go through it together." onPress={() => startPlayer('app_together')} />
+        <Card icon="people-outline" title="Someone is with me" body="We'll go through it together." onPress={() => go('together-person')} />
         <View style={styles.note}><Text style={[styles.noteText, font]}>When someone is with you, begin with three gentle questions so you can listen before presenting the Gospel.</Text></View>
+      </>;
+    }
+
+    if (view === 'together-person') {
+      return <>
+        <Text style={[styles.eyebrowCenter, font]}>GO THROUGH IT TOGETHER</Text>
+        <Text style={[styles.title, styles.center, font]}>Who is with you?</Text>
+        <Text style={[styles.body, styles.center, font]}>Choose someone you’re praying for, or enter a name or initial. If they choose to save their response at the end, it will appear with today’s date.</Text>
+        {people.map(person => (
+          <Card
+            key={person.id}
+            icon="person-outline"
+            title={person.displayName}
+            body="Keep their response connected to their name."
+            onPress={() => startTogether(person.id)}
+          />
+        ))}
+        <TextInput
+          accessibilityLabel="Name or initial for Gospel response"
+          value={togetherResponderName}
+          onChangeText={setTogetherResponderName}
+          placeholder="Someone else’s name or initial..."
+          placeholderTextColor="#7A857F"
+          style={[styles.walkthroughInput, font]}
+          keyboardAppearance="light"
+          returnKeyType="next"
+          onSubmitEditing={() => togetherResponderName.trim() && startTogether(undefined, togetherResponderName)}
+        />
+        <Action
+          label="Begin together →"
+          onPress={() => startTogether(undefined, togetherResponderName)}
+          disabled={!togetherResponderName.trim()}
+        />
+        <Action label="Continue without a name" onPress={() => startTogether()} quiet />
       </>;
     }
 
@@ -958,9 +1235,9 @@ const GospelScreen: React.FC<any> = ({ navigation }) => {
 
     if (view === 'prayer') {
       return <>
-        <Text style={[styles.eyebrowCenter, font]}>PRAY THIS IN FAITH</Text>
+        <Text style={[styles.eyebrowCenter, font]}>PRAY THIS ALOUD IN FAITH</Text>
         <Text style={[styles.title, styles.center, font]}>Talk to Jesus.</Text>
-        <Text style={[styles.body, styles.center, font]}>Prayer doesn't earn salvation. It can express the faith, repentance, and surrender of your heart.</Text>
+        <Text style={[styles.body, styles.center, font]}>Prayer doesn't earn salvation. If this expresses the faith of your heart, pray it aloud—confess with your mouth that Jesus is Lord. (Romans 10:9)</Text>
         <View style={styles.prayerBottom}>
           <View style={styles.prayerCard} accessible accessibilityLabel={GOSPEL_PRAYER}>
             <Text style={styles.prayerText}>
@@ -1045,13 +1322,18 @@ const GospelScreen: React.FC<any> = ({ navigation }) => {
           </Text>
         </Animated.View>
         <View style={styles.birthdayBottom}>
-          <Text style={[styles.birthdayDatePrompt, font]}>Save this date as a personal reminder of your commitment.</Text>
+          <Text style={[styles.birthdayDatePrompt, font]}>{mode === 'app_together'
+            ? 'They can choose to save this response and date for your follow-up.'
+            : 'Save this date as a personal reminder of your commitment.'}</Text>
           <View style={styles.dateCard}>
             <Text style={[styles.dateCardLabel, font]}>DATE</Text>
             <Text style={[styles.dateCardValue, font]}>{today}</Text>
           </View>
           {mode === 'app_together'
-            ? staggerControl(<Action label="Finish" onPress={() => saveTrustedResponse(false)} />, 3)
+            ? <>
+                {staggerControl(<Action label="Save response & finish" onPress={() => saveTrustedResponse(true)} />, 3)}
+                {staggerControl(<Action label="Finish without saving response" onPress={() => saveTrustedResponse(false)} quiet />, 4)}
+              </>
             : <>
                 {staggerControl(<Action label="Save & finish" onPress={() => saveTrustedResponse(true)} />, 3)}
                 {staggerControl(<Action label="Finish without saving" onPress={() => saveTrustedResponse(false)} quiet />, 4)}
@@ -1110,13 +1392,97 @@ const GospelScreen: React.FC<any> = ({ navigation }) => {
       </>;
     }
 
-    if (view === 'other') {
+    if (view === 'spiritual-birthday') {
+      const selectedDate = spiritualBirthdayDate.toLocaleDateString('en-US', {
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric',
+      });
       return <>
-        <Text style={[styles.eyebrowCenter, font]}>THANK YOU FOR ANSWERING</Text>
+        <Text style={[styles.eyebrowCenter, font]}>REMEMBER GOD'S GRACE</Text>
+        <Text style={[styles.title, styles.center, font]}>Would you like to save your spiritual birthday?</Text>
+        <Text style={[styles.body, styles.center, font]}>This is the day you said yes to Jesus and began following Him. Save it as a personal reminder of God’s grace in your life.</Text>
+        <TouchableOpacity
+          style={styles.dateCard}
+          activeOpacity={0.76}
+          accessibilityRole="button"
+          accessibilityLabel={`Choose spiritual birthday. ${selectedDate}`}
+          onPress={withLightHaptic(() => setShowSpiritualBirthdayPicker(current => !current))}>
+          <View style={styles.spiritualBirthdayDateRow}>
+            <View style={styles.flex}>
+              <Text style={[styles.dateCardLabel, font]}>THE DAY I SAID YES</Text>
+              <Text style={[styles.dateCardValue, font]}>{selectedDate}</Text>
+            </View>
+            <Ionicons name="calendar-outline" size={22} color={Colors.sage} />
+          </View>
+        </TouchableOpacity>
+        {showSpiritualBirthdayPicker ? <View style={styles.spiritualBirthdayPicker}>
+          <DateTimePicker
+            value={spiritualBirthdayDate}
+            minimumDate={new Date(1900, 0, 1)}
+            maximumDate={new Date()}
+            mode="date"
+            display="spinner"
+            style={styles.spiritualBirthdayDatePicker}
+            textColor={Colors.text}
+            themeVariant="light"
+            onChange={(event, value) => {
+              if (Platform.OS === 'android') {
+                setShowSpiritualBirthdayPicker(false);
+              }
+              if (event.type !== 'dismissed' && value) {
+                setSpiritualBirthdayDate(value);
+              }
+            }}
+          />
+        </View> : null}
+        <View style={styles.spiritualBirthdayActions}>
+          <Action label="Save my spiritual birthday" onPress={() => finishAlreadyFollowingResponse(true)} />
+          <Action label="Not now" onPress={() => finishAlreadyFollowingResponse(false)} quiet />
+        </View>
+      </>;
+    }
+
+    if (view === 'other') {
+      const responderName = people.find(person => person.id === recipientId)?.displayName || togetherResponderName.trim();
+      const canAddToPrayerList = mode === 'app_together'
+        && !recipientId
+        && Boolean(responderName)
+        && (response === 'has_questions' || response === 'not_ready');
+      return <>
+        <Text style={[styles.eyebrowCenter, font]}>{response === 'already_follows_jesus' ? 'GRACE FOR EVERY DAY' : 'THANK YOU FOR ANSWERING'}</Text>
         <Text style={[styles.title, styles.center, font]}>{responseCopy[0]}</Text>
         <Text style={[styles.body, styles.center, font]}>{responseCopy[1]}</Text>
-        <Card icon="heart-outline" title="No pressure to manufacture a response." body="You can ask questions, read Scripture, talk with the person who shared this with you, and return whenever you want." />
-        <Action label="Finish" onPress={finishGospelExperience} />
+        {response === 'already_follows_jesus'
+          ? <View style={styles.gospelQuoteCard}>
+              <View style={styles.gospelQuoteAccent} />
+              <View style={styles.flex}>
+                <Text style={styles.gospelQuoteText}>Preach the gospel to yourself every day.</Text>
+                <Text style={styles.gospelQuoteAttribution}>JERRY BRIDGES · THE DISCIPLINE OF GRACE</Text>
+              </View>
+            </View>
+          : response === 'has_questions'
+            ? <Card
+                icon="book-outline"
+                title={mode === 'app_together' ? 'Questions can be a beginning.' : 'Keep seeking what is true.'}
+                body={mode === 'app_together' ? 'Keep praying, listen well, and follow up as they continue exploring who Jesus is.' : 'Read Scripture, bring your questions to a mature Christian, and keep looking carefully at Jesus.'}
+              />
+            : <Card
+                icon="heart-outline"
+                title={mode === 'app_together' ? 'This is not the end of the story.' : 'Be honest about where you are.'}
+                body={mode === 'app_together' ? 'Keep praying, stay present, and follow up with care. Their response can change over time.' : 'You can keep reading Scripture, ask questions, and talk with the person who shared this with you.'}
+              />}
+        {mode === 'app_self' && (response === 'has_questions' || response === 'not_ready')
+          ? <Text style={[styles.privacy, font]}>Your response is saved on this device, so you can return to the Gospel from where you are today.</Text>
+          : null}
+        {mode === 'app_together' ? canAddToPrayerList ? <>
+          <Action label={`Save response & keep praying for ${responderName}`} onPress={() => finishGospelExperience(true, true)} />
+          <Action label="Save response only" onPress={() => finishGospelExperience(true)} secondary />
+          <Action label="Finish without saving response" onPress={() => finishGospelExperience(false)} quiet />
+        </> : <>
+          <Action label="Save response & finish" onPress={() => finishGospelExperience(true)} />
+          <Action label="Finish without saving response" onPress={() => finishGospelExperience(false)} quiet />
+        </> : <Action label="Finish" onPress={() => finishGospelExperience(false)} />}
       </>;
     }
 
@@ -1131,19 +1497,43 @@ const GospelScreen: React.FC<any> = ({ navigation }) => {
         <Card icon="person-add-outline" title="Add someone to pray for" body="Pray for them and prepare to share the Gospel" onPress={() => go('add-person-name')} />
         {people.map(person => {
           const prayerStartedAt = formatPrayerStartedAt(person);
+          const acceptance = shareEvents.find(event =>
+            event.personId === person.id && event.response === 'trusted_jesus_today',
+          );
+          const acceptedAt = formatGospelHistoryDate(acceptance?.sharedAt);
           return <View key={person.id} style={styles.personCard}>
-            <View style={styles.personInitial}><Text style={[styles.personInitialText, font]}>{person.displayName.charAt(0).toUpperCase()}</Text></View>
-            <View style={styles.flex}>
-              <Text style={[styles.cardTitle, font]}>{person.displayName}</Text>
-              <Text style={[styles.cardBody, font]}>{person.note || 'Praying that they will know Christ and for an opportunity to share the Gospel.'}</Text>
-              {prayerStartedAt ? <Text style={[styles.personHistoryText, font]}>Began praying · {prayerStartedAt}</Text> : null}
+            <View style={styles.personCardHeader}>
+              <View style={styles.personInitial}><Text style={[styles.personInitialText, font]}>{person.displayName.charAt(0).toUpperCase()}</Text></View>
+              <View style={styles.flex}>
+                <View style={styles.personNameRow}>
+                  <Text style={[styles.cardTitle, styles.flex, font]} numberOfLines={1}>{person.displayName}</Text>
+                  {acceptance ? <View style={styles.personAnsweredBadge}>
+                    <Ionicons name="checkmark-circle" size={13} color={Colors.sage} />
+                    <Text style={[styles.personAnsweredBadgeText, font]}>Answered prayer</Text>
+                  </View> : null}
+                </View>
+                <Text style={[styles.cardBody, font]}>{person.note || 'Praying that they will know Christ and for an opportunity to share the Gospel.'}</Text>
+              </View>
             </View>
-            <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Pray for ${person.displayName}`} onPress={withLightHaptic(() => navigation.navigate('PrayersForPeopleWalkthrough', { initialPersonName: person.displayName, initialPrayerType: 'pray-for-someone' }))} style={styles.prayButton}>
-              <PrayerHandsIcon size={20} color={Colors.sage} strokeWidth={2.2} />
-            </TouchableOpacity>
-            <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Send the Gospel to ${person.displayName}`} onPress={withLightHaptic(() => openSend(person.id))} style={styles.prayButton}>
-              <Ionicons name="paper-plane-outline" size={19} color={Colors.sage} />
-            </TouchableOpacity>
+            <View style={styles.personCardFooter}>
+              <View style={styles.personHistory}>
+                {prayerStartedAt ? <Text style={[styles.personHistoryText, font]}>Began praying · {prayerStartedAt}</Text> : null}
+                {acceptedAt ? (
+                <View style={styles.personAnsweredHistory}>
+                  <Ionicons name="checkmark-circle" size={15} color={Colors.sage} />
+                  <Text style={[styles.personAnsweredHistoryText, font]}>Accepted Jesus as Lord and Savior · {acceptedAt}</Text>
+                </View>
+                ) : null}
+              </View>
+              <View style={styles.personActions}>
+                <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Pray for ${person.displayName}`} onPress={withLightHaptic(() => navigation.navigate('PrayersForPeopleWalkthrough', { initialPersonName: person.displayName, initialPrayerType: 'pray-for-someone', skipPersonName: true }))} style={styles.prayButton}>
+                  <PrayerHandsIcon size={20} color={Colors.sage} strokeWidth={2.2} />
+                </TouchableOpacity>
+                {!acceptance ? <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Send the Gospel to ${person.displayName}`} onPress={withLightHaptic(() => openSend(person.id))} style={styles.prayButton}>
+                  <Ionicons name="paper-plane-outline" size={19} color={Colors.sage} />
+                </TouchableOpacity> : null}
+              </View>
+            </View>
           </View>;
         })}
         {!people.length ? <Text style={[styles.emptyText, font]}>No one added yet. Names stay on this device and are private to you.</Text> : null}
@@ -1152,12 +1542,30 @@ const GospelScreen: React.FC<any> = ({ navigation }) => {
 
     if (view === 'shared-responses') {
       const peopleById = new Map(people.map(person => [person.id, person]));
-      const visibleResponses = sharedResponses.filter(item => {
+      const localResponses: SharedGospelResponse[] = shareEvents
+        .filter(event => event.method === 'together' && event.response)
+        .map(event => ({
+          id: `local-${event.id}`,
+          response: event.response as GospelResponse,
+          responder_name: event.responderName || null,
+          spiritual_birthday: event.spiritualBirthday || null,
+          optional_message: null,
+          consented_at: event.sharedAt,
+          created_at: event.sharedAt,
+          gospel_share_links: {
+            id: `local-${event.id}`,
+            person_id: event.personId || null,
+            created_at: event.sharedAt,
+          },
+        }));
+      const allResponses = [...localResponses, ...sharedResponses]
+        .sort((a, b) => new Date(b.consented_at).getTime() - new Date(a.consented_at).getTime());
+      const visibleResponses = allResponses.filter(item => {
         const isPraying = peopleById.has(item.gospel_share_links.person_id || '');
         return responseFilter === 'all' || (responseFilter === 'praying' ? isPraying : !isPraying);
       });
       const responseLabels: Record<SharedGospelResponse['response'], string> = {
-        trusted_jesus_today: 'I want to trust and follow Jesus.',
+        trusted_jesus_today: 'Accepted Jesus as Lord and Savior.',
         has_questions: 'I have questions.',
         not_ready: 'I’m not ready yet.',
         already_follows_jesus: 'I already trust and follow Jesus.',
@@ -1196,8 +1604,18 @@ const GospelScreen: React.FC<any> = ({ navigation }) => {
               {person && item.responder_name && item.responder_name !== person.displayName ? <Text style={[styles.cardBody, font]}>Shared as {item.responder_name}</Text> : null}
               <Text style={[styles.sharedResponseText, font]}>{responseLabels[item.response]}</Text>
               {item.optional_message ? <Text style={[styles.cardBody, font]}>{item.optional_message}</Text> : null}
-              {item.spiritual_birthday ? <Text style={[styles.sharedResponseBirthday, font]}>Spiritual birthday · {new Date(`${item.spiritual_birthday}T12:00:00`).toLocaleDateString()}</Text> : null}
-              <Text style={[styles.sharedResponseDate, font]}>{new Date(item.consented_at).toLocaleDateString()}</Text>
+              {item.spiritual_birthday ? <Text style={[styles.sharedResponseBirthday, font]}>Spiritual birthday · {formatSpiritualBirthday(item.spiritual_birthday)}</Text> : null}
+              {!person && item.responder_name && (item.response === 'has_questions' || item.response === 'not_ready') ? (
+                <TouchableOpacity
+                  accessibilityRole="button"
+                  accessibilityLabel={`Add ${item.responder_name} to people I'm praying for`}
+                  disabled={linkingResponseIds.includes(item.id)}
+                  onPress={withLightHaptic(() => addResponseToPrayerList(item))}
+                  style={[styles.sharedResponseTrackButton, linkingResponseIds.includes(item.id) && styles.actionDisabled]}>
+                  <PrayerHandsIcon size={16} color={Colors.sage} strokeWidth={2} />
+                  <Text style={[styles.sharedResponseTrackText, font]}>{linkingResponseIds.includes(item.id) ? 'Adding…' : 'Add to people I’m praying for'}</Text>
+                </TouchableOpacity>
+              ) : null}
             </View>
           </View>;
         })}
@@ -1330,7 +1748,7 @@ const GospelScreen: React.FC<any> = ({ navigation }) => {
         ))}
       </View>
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <Header />
+        {renderHeader()}
         <ScrollView
           ref={scrollRef}
           contentContainerStyle={styles.scrollContent}
@@ -1350,6 +1768,26 @@ const GospelScreen: React.FC<any> = ({ navigation }) => {
           </Animated.View>
         </ScrollView>
       </KeyboardAvoidingView>
+      {undoShareEvent ? (
+        <View
+          accessibilityLiveRegion="polite"
+          style={[styles.shareUndoToast, {bottom: Math.max(insets.bottom + 18, 24)}]}>
+          <View style={styles.shareUndoMessage}>
+            <MaterialCommunityIcons name="sprout" size={19} color={Colors.hopeWhite} />
+            <Text style={[styles.shareUndoText, font]}>{undoShareEvent.method === 'shared_openly'
+              ? 'Open Gospel share recorded'
+              : 'Gospel share recorded'}</Text>
+          </View>
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel="Undo Gospel share"
+            disabled={savingShare}
+            onPress={undoLastShare}
+            hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}>
+            <Text style={[styles.shareUndoAction, font]}>Undo</Text>
+          </TouchableOpacity>
+        </View>
+      ) : null}
     </ImageBackground>
   );
 };
@@ -1377,6 +1815,10 @@ const styles = StyleSheet.create({
   shareCounterButton: { ...ivorySurface, minWidth: 54, height: 42, borderRadius: 999, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
   shareCounterLabel: {color: Colors.sage, fontSize: 13, lineHeight: 18, fontWeight: '700'},
   shareCounterText: {color: Colors.sage, fontSize: 14, lineHeight: 18, fontWeight: '800', minWidth: 9, textAlign: 'center'},
+  shareUndoToast: {position: 'absolute', left: 22, right: 22, zIndex: 50, minHeight: 52, borderRadius: 18, paddingHorizontal: 17, backgroundColor: '#30483A', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', shadowColor: '#13251B', shadowOffset: {width: 0, height: 7}, shadowOpacity: 0.2, shadowRadius: 15, elevation: 8},
+  shareUndoMessage: {flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 9},
+  shareUndoText: {flexShrink: 1, color: Colors.hopeWhite, fontSize: 13, lineHeight: 18, fontWeight: '600'},
+  shareUndoAction: {color: '#F2C879', fontSize: 13, lineHeight: 18, fontWeight: '800', marginLeft: 14},
   headerPlaceholder: { width: 42, height: 42 },
   headerCenterSpacer: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   scrollHeaderSpacer: { minHeight: 58, paddingBottom: 8 },
@@ -1405,6 +1847,10 @@ const styles = StyleSheet.create({
   iconBox: { width: 42, height: 42, borderRadius: 13, backgroundColor: '#E5ECE5', alignItems: 'center', justifyContent: 'center' },
   cardTitle: { color: '#24342C', fontSize: 16, fontWeight: '700', marginBottom: 3 },
   cardBody: { color: '#6F7D75', fontSize: 13.5, lineHeight: 20 },
+  gospelQuoteCard: { ...ivorySurface, flexDirection: 'row', alignItems: 'stretch', gap: 16, paddingVertical: 20, paddingHorizontal: 18, borderRadius: 24, marginBottom: 12 },
+  gospelQuoteAccent: { width: 4, borderRadius: 999, backgroundColor: Colors.sage },
+  gospelQuoteText: { color: '#30483A', fontFamily: Platform.select({ ios: 'Georgia-BoldItalic', android: Fonts.lora.bold }), fontStyle: 'italic', fontWeight: '700', fontSize: 21, lineHeight: 29 },
+  gospelQuoteAttribution: { color: '#607967', fontSize: 10, lineHeight: 15, fontWeight: '800', letterSpacing: 1.1, marginTop: 12 },
   divider: { height: 1, backgroundColor: '#DCE2DB', marginVertical: 8 },
   privacy: { color: '#758078', fontSize: 12, lineHeight: 18, textAlign: 'center', marginTop: 8 },
   note: { backgroundColor: '#E5ECE5', padding: 16, borderRadius: 16, marginVertical: 14 },
@@ -1532,6 +1978,10 @@ const styles = StyleSheet.create({
   dateCard: { ...ivorySurface, paddingVertical: 17, paddingHorizontal: 19, borderRadius: 24, marginBottom: 6 },
   dateCardLabel: { color: '#607967', fontSize: 12, fontWeight: '800', letterSpacing: 1.3, marginBottom: 4 },
   dateCardValue: { color: '#24342C', fontSize: 18, fontWeight: '700' },
+  spiritualBirthdayDateRow: {flexDirection: 'row', alignItems: 'center', gap: 14},
+  spiritualBirthdayPicker: {marginTop: 8, alignItems: 'center'},
+  spiritualBirthdayDatePicker: {alignSelf: 'center', width: '100%', backgroundColor: 'transparent'},
+  spiritualBirthdayActions: {marginTop: 'auto', paddingTop: 24},
   birthdayBottom: { marginTop: 'auto', paddingTop: 24 },
   birthdayVerse: { color: Colors.hopeWhite, fontFamily: Platform.select({ ios: 'Georgia-Italic', android: Fonts.lora.regular }), fontStyle: 'italic', fontSize: 17, lineHeight: 26, textAlign: 'center', marginBottom: 8 },
   birthdayVerseReference: { color: Colors.hopeWhite, fontSize: 11, lineHeight: 16, fontWeight: '800', letterSpacing: 1.1, textAlign: 'center', marginBottom: 18 },
@@ -1575,7 +2025,12 @@ const styles = StyleSheet.create({
   readingStepText: { flex: 1, color: '#66736C', fontSize: 12, lineHeight: 17 },
   readingStepStrong: { color: '#30483A', fontWeight: '700' },
   sectionTop: { marginTop: 32 },
-  personCard: { ...ivorySurface, flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 24, padding: 14, marginBottom: 10 },
+  personCard: { ...ivorySurface, borderRadius: 24, padding: 14, marginBottom: 10 },
+  personCardHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
+  personNameRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 2 },
+  personCardFooter: { flexDirection: 'row', alignItems: 'flex-end', gap: 12, marginTop: 10, paddingLeft: 54 },
+  personHistory: { flex: 1, minWidth: 0 },
+  personActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   filterRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 12 },
   filterPill: { flexDirection: 'row', gap: 6, alignSelf: 'flex-start', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(82, 106, 91, 0.08)', borderWidth: 0.5, borderColor: 'rgba(82, 106, 91, 0.2)', borderRadius: 28, paddingHorizontal: 18, paddingVertical: 14 },
   filterPillActive: { backgroundColor: Colors.sageMuted, borderColor: Colors.sage },
@@ -1584,12 +2039,17 @@ const styles = StyleSheet.create({
   recipientHelp: { marginTop: 6, marginBottom: 14 },
   personInitial: { width: 42, height: 42, borderRadius: 21, backgroundColor: '#E5ECE5', alignItems: 'center', justifyContent: 'center' },
   personInitialText: { color: '#526A59', fontWeight: '800', fontSize: 17 },
-  personHistoryText: { color: '#718078', fontSize: 11, lineHeight: 16, fontWeight: '600', marginTop: 6 },
+  personHistoryText: { color: '#718078', fontSize: 11, lineHeight: 16, fontWeight: '600' },
+  personAnsweredHistory: { flexDirection: 'row', alignItems: 'flex-start', gap: 5, marginTop: 4 },
+  personAnsweredHistoryText: { flex: 1, color: '#526A59', fontSize: 11, lineHeight: 16, fontWeight: '700' },
+  personAnsweredBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#E5ECE5', borderRadius: 999, paddingHorizontal: 8, paddingVertical: 5 },
+  personAnsweredBadgeText: { color: '#526A59', fontSize: 10, lineHeight: 13, fontWeight: '800' },
   sharedResponseCard: { ...ivorySurface, flexDirection: 'row', gap: 13, alignItems: 'flex-start', borderRadius: 18, padding: 16, marginTop: 12 },
   sharedResponseName: { color: '#30483A', fontSize: 16, lineHeight: 21, fontWeight: '800', marginBottom: 2 },
   sharedResponseText: { color: '#213329', fontSize: 16, lineHeight: 23, fontWeight: '600' },
   sharedResponseBirthday: { color: '#526A59', fontSize: 12, lineHeight: 17, fontWeight: '700', marginTop: 6 },
-  sharedResponseDate: { color: '#718078', fontSize: 12, marginTop: 5 },
+  sharedResponseTrackButton: {alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: 12, paddingVertical: 8, paddingHorizontal: 11, borderRadius: 999, backgroundColor: '#E5ECE5'},
+  sharedResponseTrackText: {color: Colors.sage, fontSize: 12, lineHeight: 16, fontWeight: '800'},
   responsesEmptyState: { flex: 1, minHeight: 180, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 32, paddingVertical: 40 },
   responsesEmptyIcon: { marginBottom: 8 },
   responsesEmptyTitle: { color: Colors.text, fontSize: 18, lineHeight: 24, fontWeight: '600', textAlign: 'center' },

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Alert, TextInput, TouchableOpacity } from 'react-native';
+import { TextInput, TouchableOpacity } from 'react-native';
 import TestRenderer, { act } from 'react-test-renderer';
 import BibleStudyDetailView from '../BibleStudyDetailView';
 import ScriptureReaderModal from '../../ScriptureReaderModal';
@@ -22,15 +22,13 @@ const content: BibleStudyContent = {
 };
 let renderer: TestRenderer.ReactTestRenderer;
 let onEdit: jest.Mock;
-let onDelete: jest.Mock;
 let onClose: jest.Mock;
 
 beforeEach(async () => {
   onEdit = jest.fn(async () => {});
-  onDelete = jest.fn(async () => {});
   onClose = jest.fn();
   await act(async () => {
-    renderer = TestRenderer.create(<BibleStudyDetailView reference="Psalm 23" selectedDate="2026-09-15" content={content} onEdit={onEdit} onDelete={onDelete} onClose={onClose} />);
+    renderer = TestRenderer.create(<BibleStudyDetailView reference="Psalm 23" selectedDate="2026-09-15" content={content} onEdit={onEdit} onClose={onClose} />);
   });
 });
 afterEach(async () => { await act(async () => renderer.unmount()); jest.restoreAllMocks(); });
@@ -62,12 +60,6 @@ it('opens the original editor instead of adding inputs to view mode', async () =
   expect(onClose).toHaveBeenCalledTimes(1);
 });
 
-it('requires confirmation before deleting and explains that the separate prayer is retained', async () => {
-  const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
-  await act(async () => renderer.root.findByProps({ accessibilityLabel: 'Delete Bible Study' }).props.onPress());
-  expect(onDelete).not.toHaveBeenCalled();
-  expect(alert.mock.calls[0][1]).toContain('Prayer Journal will be kept');
-  const buttons = alert.mock.calls[0][2]!;
-  await act(async () => buttons.find(button => button.text === 'Delete')!.onPress!());
-  expect(onDelete).toHaveBeenCalledTimes(1);
+it('hides delete in saved view so it is only available from edit mode', () => {
+  expect(renderer.root.findAllByProps({ accessibilityLabel: 'Delete Bible Study' })).toHaveLength(0);
 });

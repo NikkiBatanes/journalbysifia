@@ -18,6 +18,13 @@ jest.mock('../../../../services/momentTimelineService', () => ({ getCanonicalMom
 jest.mock('../../../../components/SkeletonLoader/MomentsSkeleton', () => () => null);
 jest.mock('../../../../components/moments/RoutineMomentSummary', () => ({ RoutineMomentSummary: () => null }));
 jest.mock('../../../../components/moments/PrayerMomentsCarousel', () => () => null);
+jest.mock('../../../../components/moments/ForMeDayMomentCard', () => ({
+  ForMeDayMomentCard: ({timelineItem}: any) => require('react').createElement(
+    require('react-native').View,
+    {testID: `new-life-day-${timelineItem.reflection.id}`},
+  ),
+  isForMeDayTimelineItem: (item: any) => item?.reflection?.type === 'gospel_anniversary' && item?.reflection?.source === 'for_me_day',
+}));
 
 const loadTimeline = getCanonicalMomentTimeline as jest.Mock;
 const date = '2026-09-17';
@@ -46,6 +53,37 @@ it('removes only duplicate canonical timeline identity', async () => {
   await act(async () => { renderer = TestRenderer.create(render()); });
   expect(renderer.root.findAllByType(PluginRenderer)).toHaveLength(1);
   expect(renderer.root.findByType(PluginRenderer).props.reflectionIds).toEqual(['a', 'b']);
+  await act(async () => renderer.unmount());
+});
+
+it('renders testimony and yearly reflection as New Life Day cards instead of Heart Journal thoughts', async () => {
+  const testimony = {
+    ...reflection('testimony', 'My testimony', 'Jesus gave me a new beginning.'),
+    reflection: {
+      ...reflection('testimony').reflection,
+      type: 'gospel_anniversary',
+      source: 'for_me_day',
+      metadata: {forMeDayEntry: 'testimony'},
+    },
+  };
+  const annual = {
+    ...reflection('annual', 'My 12th New Life Day', 'God was faithful this year.'),
+    reflection: {
+      ...reflection('annual').reflection,
+      type: 'gospel_anniversary',
+      source: 'for_me_day',
+      metadata: {forMeDayEntry: 'annual_reflection'},
+    },
+  };
+  loadTimeline.mockResolvedValue([testimony, annual, reflection('a')]);
+
+  let renderer!: TestRenderer.ReactTestRenderer;
+  await act(async () => { renderer = TestRenderer.create(render()); });
+
+  expect(renderer.root.findAll(node => node.type === View && node.props.testID === 'new-life-day-testimony')).toHaveLength(1);
+  expect(renderer.root.findAll(node => node.type === View && node.props.testID === 'new-life-day-annual')).toHaveLength(1);
+  expect(renderer.root.findAllByType(PluginRenderer)).toHaveLength(1);
+  expect(renderer.root.findByType(PluginRenderer).props.reflectionIds).toEqual(['a']);
   await act(async () => renderer.unmount());
 });
 

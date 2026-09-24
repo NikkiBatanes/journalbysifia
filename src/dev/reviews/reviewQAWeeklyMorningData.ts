@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import {REVIEW_QA_PREFIX} from './reviewQAFixtures';
+import {REVIEW_QA_WEEKLY_DATES} from './reviewQAClock';
 
 export interface ReviewQASeedManifest {
   keys: string[];
@@ -15,11 +16,8 @@ export interface ReviewQASeedScope {
 
 export const mapReviewQADate = (
   date: string,
-  dates?: readonly string[],
+  dates: readonly string[] = REVIEW_QA_WEEKLY_DATES,
 ): string => {
-  if (!dates) {
-    return date;
-  }
   const sourceStart = new Date(2026, 8, 14, 12);
   const source = new Date(`${date}T12:00:00`);
   const index = Math.round(
@@ -329,7 +327,10 @@ export const seedWeeklyMorningFlow = async (
   scope: ReviewQASeedScope = {},
 ): Promise<void> => {
   const namespace = scope.namespace ?? 'weekly';
-  for (const sourceDay of MORNING_WEEK) {
+  const sourceDays = scope.dates
+    ? MORNING_WEEK.slice(0, scope.dates.length)
+    : MORNING_WEEK;
+  for (const sourceDay of sourceDays) {
     const day = {
       ...sourceDay,
       date: mapReviewQADate(sourceDay.date, scope.dates),

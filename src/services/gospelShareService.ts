@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { v4 as uuidv4 } from 'uuid';
 import { supabase } from './supabaseClient';
 import { gospelStorage, GospelResponse } from '../storage/gospelStorage';
+import { getJournalOnboardingSetup } from './journalOnboardingState';
 
 const GOSPEL_SHARE_OWNER_KEY = '@sifia/gospel-share-owner-key';
 let ownerKeyRequest: Promise<string> | null = null;
@@ -21,6 +22,56 @@ const getOwnerKey = (): Promise<string> => {
     ownerKeyRequest = loadOwnerKey().finally(() => { ownerKeyRequest = null; });
   }
   return ownerKeyRequest;
+};
+
+type SenderNameFields = {
+  first_name?: unknown;
+  last_name?: unknown;
+  full_name?: unknown;
+  display_name?: unknown;
+};
+
+const cleanName = (value: unknown): string => typeof value === 'string' ? value.trim().replace(/\s+/g, ' ') : '';
+
+const joinedName = (source?: SenderNameFields | null): string => {
+  const firstName = cleanName(source?.first_name);
+  const lastName = cleanName(source?.last_name);
+  return firstName && lastName ? `${firstName} ${lastName}` : '';
+};
+
+const parseLocalProfile = (raw: string | null): SenderNameFields => {
+  if (!raw) return {};
+  try {
+    const value = JSON.parse(raw);
+    return value && typeof value === 'object' ? value as SenderNameFields : {};
+  } catch {
+    return {};
+  }
+};
+
+const getSenderName = async (): Promise<string | undefined> => {
+  const [savedName, localProfileRaw, onboarding, authResult] = await Promise.all([
+    AsyncStorage.getItem('user_name'),
+    AsyncStorage.getItem('journal:local-profile'),
+    getJournalOnboardingSetup(),
+    supabase.auth.getUser().catch(() => ({ data: { user: null } })),
+  ]);
+  const metadata = authResult.data.user?.user_metadata as SenderNameFields | undefined;
+  const localProfile = parseLocalProfile(localProfileRaw);
+  const onboardingName = cleanName(`${onboarding.firstName} ${onboarding.lastName}`);
+  const resolved = [
+    joinedName(metadata),
+    joinedName(localProfile),
+    onboarding.firstName && onboarding.lastName ? onboardingName : '',
+    cleanName(metadata?.full_name),
+    cleanName(localProfile.full_name),
+    cleanName(metadata?.display_name),
+    onboardingName,
+    cleanName(savedName),
+    cleanName(metadata?.first_name),
+    cleanName(localProfile.first_name),
+  ].find(Boolean);
+  return resolved?.slice(0, 80) || undefined;
 };
 
 export interface GospelShareLink {
@@ -45,15 +96,15 @@ export interface SharedGospelResponse {
 
 export const gospelShareService = {
   async createLink(personId?: string): Promise<GospelShareLink> {
-    const [ownerKey, savedName] = await Promise.all([
+    const [ownerKey, senderName] = await Promise.all([
       getOwnerKey(),
-      AsyncStorage.getItem('user_name'),
+      getSenderName(),
     ]);
     const { data, error } = await supabase.functions.invoke('create-gospel-share', {
       body: {
         personId: personId || undefined,
         ownerKey,
-        senderName: savedName?.trim().slice(0, 80) || undefined,
+        senderName,
       },
     });
     if (error || !data?.url || !data?.token) {
@@ -69,6 +120,16 @@ export const gospelShareService = {
     });
     if (error || !Array.isArray(data?.responses)) throw new Error(error?.message || 'Unable to load shared responses');
     return data.responses as SharedGospelResponse[];
+  },
+
+  async linkResponseToPerson(linkId: string, personId: string): Promise<void> {
+    const ownerKey = await getOwnerKey();
+    const {data, error} = await supabase.functions.invoke('create-gospel-share', {
+      body: {action: 'link-person', linkId, personId, ownerKey},
+    });
+    if (error || !data?.linked) {
+      throw new Error(error?.message || 'Unable to connect this response');
+    }
   },
 
   async claimResponse(claimToken: string): Promise<void> {

@@ -190,4 +190,15 @@ describe('Session Note types on the shared structured-note document', () => {
     expect(screen).toContain('<JournalComposerBar');
     expect(screen).not.toContain('ConferenceNotesScreen');
   });
+
+  it('focuses the first details field after Add more details mounts it', () => {
+    const screen = fs.readFileSync(path.resolve(__dirname, '../../screens/SermonNotesScreen.tsx'), 'utf8');
+    expect(screen).toContain('const pendingSeriesFocusRef = useRef(false);');
+    expect(screen).toMatch(
+      /pendingSeriesFocusRef\.current = !showDetails;[\s\S]*?setShowDetails\(value => !value\);/,
+    );
+    expect(screen).toMatch(
+      /inputLayouts\.current\.series = \{[\s\S]*?if \(pendingSeriesFocusRef\.current\) \{[\s\S]*?seriesInputRef\.current\?\.focus\(\);/,
+    );
+  });
 });

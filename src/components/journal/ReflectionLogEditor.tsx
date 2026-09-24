@@ -38,12 +38,14 @@ import {
 } from '../../types/heartJournal';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {useFloatingKeyboardButton} from '../../hooks/useFloatingKeyboardButton';
-import {JournalComposerBar, JournalPickerMenu} from './shared/JournalComposer';
-import {JournalInlineBlock} from './shared/JournalInlineBlock';
+import {
+  createJournalPickerEntrance,
+  JournalComposerBar,
+  JournalPickerMenu,
+} from './shared/JournalComposer';
+import {JournalBlockEditor} from './shared/JournalBlockEditor';
 import JournalTextInput from './shared/JournalTextInput';
 import {ScriptureLookupInput} from './shared/ScriptureLookupInput';
-import {JournalTableBlock} from './shared/JournalTableBlock';
-import {JournalListBlock} from './shared/JournalListBlock';
 import JournalColumnBlock from './shared/JournalColumnBlock';
 import JournalNestedBlockEditor from './shared/JournalNestedBlockEditor';
 import DraggableJournalBlock from './shared/DraggableJournalBlock';
@@ -51,15 +53,14 @@ import {
   reorderJournalBlock,
   resolveJournalBlockDropIndex,
 } from './shared/journalBlockOperations';
-import ReflectionSpecialBlock from './ReflectionSpecialBlock';
 import SavedReflectionBlocks from './SavedReflectionBlocks';
 import {styles as reflectionEditorStyles} from './reflectionStyles';
 import {
-  formatJournalAttribution,
-  hasMeaningfulJournalBlock,
   JOURNAL_BLOCK_GAP,
   JOURNAL_BLOCKS,
   JournalBlockIcon,
+  createJournalBlock,
+  journalBlocksToPlainText,
   prepareJournalBlocksForSave,
   type JournalBlock,
 } from './shared/journalBlocks';
@@ -74,49 +75,7 @@ import {useAuth} from '../../context/IndustryStandardAuthContext';
 type ViewMode = 'free-form' | 'guided';
 
 const reflectionBlocksToText = (blocks: GuidedReflectionNote[]) =>
-  blocks
-    .filter(hasMeaningfulJournalBlock)
-    .map(block => {
-      const text = block.text.trim();
-      const reference = block.reference?.trim();
-      const secondary =
-        block.kind === 'quote'
-          ? formatJournalAttribution(block.secondary?.trim())
-          : block.secondary?.trim();
-      if (block.kind === 'column') return '';
-      if (block.kind === 'table') {
-        return (block.tableRows || [])
-          .map(row => row.map(cell => cell.trim()).join('\t'))
-          .join('\n');
-      }
-      if (block.kind === 'bullets' || block.kind === 'numbered') {
-        const list = (block.points || [])
-          .filter(point => point.trim())
-          .map((point, index) =>
-            block.kind === 'numbered'
-              ? `${index + 1}. ${point.trim()}`
-              : `• ${point.trim()}`,
-          )
-          .join('\n');
-        return [text, list].filter(Boolean).join('\n');
-      }
-      if (block.kind === 'text') return text;
-      const label =
-        block.kind === 'section' ? 'SECTION' :
-        block.kind === 'action' ? 'ACTION' :
-        block.kind === 'photo' ? 'PHOTO' :
-        block.kind === 'voice' ? 'VOICE NOTE' : JOURNAL_BLOCKS[block.kind].label;
-      if (block.kind === 'scripture') {
-        return [
-          label,
-          block.scriptureReference?.trim() || reference || text,
-          block.scriptureText?.trim(),
-        ].filter(Boolean).join('\n');
-      }
-      return [label, reference, text, secondary].filter(Boolean).join('\n');
-    })
-    .filter(Boolean)
-    .join('\n\n');
+  journalBlocksToPlainText(prepareJournalBlocksForSave(blocks));
 
 interface ReflectionLogEditorProps {
   onSave: (entry: {
@@ -1008,30 +967,12 @@ const ReflectionLogEditor = React.forwardRef<
                 side: selectedBlock.columnSide,
               }
             : columnTarget);
-        if (
-          requestedDestination &&
-          (kind === 'column' || kind === 'table')
-        ) {
+        if (requestedDestination && !JOURNAL_BLOCKS[kind].allowInColumn) {
           return;
         }
         const destination = requestedDestination;
         const block: GuidedReflectionNote = {
-          id: createGuidedNoteId(),
-          kind,
-          text: '',
-          ...(kind === 'table'
-            ? {
-                tableRows: [['', ''], ['', '']],
-                tableCellAlignments: [
-                  ['left', 'left'],
-                  ['left', 'left'],
-                ] as Array<Array<'left' | 'center' | 'right'>>,
-                tableEditing: true,
-              }
-            : {}),
-          ...(kind === 'bullets' || kind === 'numbered'
-            ? {points: ['']}
-            : {}),
+          ...createJournalBlock(kind, createGuidedNoteId()),
           ...(destination
             ? {
                 parentColumnId: destination.columnId,
@@ -1075,7 +1016,7 @@ const ReflectionLogEditor = React.forwardRef<
         }
         setColumnTarget(
           kind === 'column'
-            ? {columnId: block.id, side: 'left'}
+            ? null
             : destination || null,
         );
         setSelectedBlockId(block.id);
@@ -1213,17 +1154,7 @@ const ReflectionLogEditor = React.forwardRef<
             friction: 12,
             useNativeDriver: true,
           }),
-          Animated.stagger(
-            38,
-            [...notePickerAnimations].reverse().map(animation =>
-              Animated.spring(animation, {
-                toValue: 1,
-                tension: 90,
-                friction: 12,
-                useNativeDriver: true,
-              }),
-            ),
-          ),
+          createJournalPickerEntrance(notePickerAnimations),
         ]).start();
       }, 80);
     };
@@ -2288,6 +2219,7 @@ const ReflectionLogEditor = React.forwardRef<
                           key={nestedBlock.id}
                           block={nestedBlock}
                           tone="onDark"
+                          bibleVersion={bibleVersion}
                           onFocus={() => {
                             setSelectedBlockId(nestedBlock.id);
                             if (nestedBlock.columnSide) {
@@ -2353,78 +2285,9 @@ const ReflectionLogEditor = React.forwardRef<
                         />,
                       );
                     }
-                    if (block.kind === 'bullets' || block.kind === 'numbered') {
-                      return wrapBlock(
-                        <JournalListBlock
-                          kind={block.kind}
-                          title={block.text}
-                          points={block.points}
-                          tone="onDark"
-                          onFocus={selectBlock}
-                          onChangeTitle={text => updateBlock({text})}
-                          onChangePoints={points => updateBlock({points})}
-                          onDelete={() =>
-                            commitJournalBlocks(
-                              journalBlocks.filter(item => item.id !== block.id),
-                            )
-                          }
-                          registerInput={input => {
-                            if (input) blockInputRefs.current.set(block.id, input);
-                            else blockInputRefs.current.delete(block.id);
-                          }}
-                        />
-                      );
-                    }
-                    if (block.kind === 'table') {
-                      return wrapBlock(
-                        <JournalTableBlock
-                          rows={block.tableRows}
-                          cellAlignments={block.tableCellAlignments}
-                          editing={block.tableEditing}
-                          tone="onDark"
-                          onFocus={selectBlock}
-                          onChangeRows={(tableRows, tableCellAlignments) =>
-                            updateBlock({
-                              tableRows,
-                              ...(tableCellAlignments
-                                ? {tableCellAlignments}
-                                : {}),
-                            })
-                          }
-                          onChangeCellAlignments={tableCellAlignments =>
-                            updateBlock({tableCellAlignments})
-                          }
-                          onChangeEditing={tableEditing => updateBlock({tableEditing})}
-                          onDelete={() =>
-                            commitJournalBlocks(
-                              journalBlocks.filter(item => item.id !== block.id),
-                            )
-                          }
-                          registerInput={input => {
-                            if (input) blockInputRefs.current.set(block.id, input);
-                            else blockInputRefs.current.delete(block.id);
-                          }}
-                        />
-                      );
-                    }
-                    if (['section', 'action', 'photo', 'voice'].includes(block.kind)) {
-                      return wrapBlock(
-                        <ReflectionSpecialBlock
-                          block={block}
-                          onChange={updateBlock}
-                          onFocus={selectBlock}
-                          onDelete={() => commitJournalBlocks(journalBlocks.filter(item => item.id !== block.id))}
-                          onCreateNextAction={block.kind === 'action' ? () => insertActionAfter(index) : undefined}
-                          registerInput={input => {
-                            if (input) blockInputRefs.current.set(block.id, input);
-                            else blockInputRefs.current.delete(block.id);
-                          }}
-                        />
-                      );
-                    }
                     return wrapBlock(
-                      <JournalInlineBlock
-                        block={{id: block.id, kind: block.kind, text: block.text, secondary: block.secondary}}
+                      <JournalBlockEditor
+                        block={block}
                         configOverride={block.kind === 'text' ? undefined : JOURNAL_BLOCKS[block.kind]}
                         tone="onDark"
                         textPlaceholder={bodyPlaceholder}
@@ -2437,13 +2300,26 @@ const ReflectionLogEditor = React.forwardRef<
                             blockInputRefs.current.delete(block.id);
                           }
                         }}
-                        onChangeText={text => updateBlock({text})}
-                        onChangeSecondary={secondary => updateBlock({secondary})}
+                        onChange={changes =>
+                          updateBlock(changes as Partial<GuidedReflectionNote>)
+                        }
                         onFocus={selectBlock}
+                        bibleVersion={bibleVersion}
+                        onCreateSection={title =>
+                          addJournalBlock('section', {
+                            text: title,
+                            sectionSource: 'outline',
+                          })
+                        }
                         onDelete={() =>
                           commitJournalBlocks(
                             journalBlocks.filter(item => item.id !== block.id),
                           )
+                        }
+                        onCreateNextAction={
+                          block.kind === 'action'
+                            ? () => insertActionAfter(index)
+                            : undefined
                         }
                         renderScripture={
                           block.kind === 'scripture'
@@ -2519,8 +2395,7 @@ const ReflectionLogEditor = React.forwardRef<
                   items={REFLECTION_NOTE_TYPES
                     .filter(
                       item =>
-                        !columnTarget ||
-                        (item.kind !== 'column' && item.kind !== 'table'),
+                        !columnTarget || JOURNAL_BLOCKS[item.kind].allowInColumn,
                     )
                     .map(item => ({
                       key: item.kind,
@@ -2541,17 +2416,19 @@ const ReflectionLogEditor = React.forwardRef<
                   onSelect={async kind => {
                     triggerMediumHaptic();
                     if (kind === 'photo') {
-                      closeNotePicker();
-                      try {
-                        const photo = await pickImageLocal();
-                        if (photo) addJournalBlock('photo', {uri: photo.uri});
-                      } catch {
-                        Alert.alert('Could not add photo', 'Please try choosing your photo again.');
-                      }
+                      closeNotePicker(async () => {
+                        try {
+                          const photo = await pickImageLocal();
+                          if (photo) addJournalBlock('photo', {uri: photo.uri});
+                        } catch {
+                          Alert.alert('Could not add photo', 'Please try choosing your photo again.');
+                        }
+                      });
                     } else {
                       closeNotePicker(() => addJournalBlock(kind));
                     }
                   }}
+                  tone="onDark"
                 />
               )}
               <JournalComposerBar

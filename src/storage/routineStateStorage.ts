@@ -12,6 +12,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { toLocalDateString } from '../utils/date';
 import { safeJsonParse } from '../utils/safeJsonParse';
+import {queueRoutineCompletedImpact} from '../services/journalImpactQueue';
 
 const generateUUID = (): string => {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
@@ -120,6 +121,9 @@ export const saveRoutineState = async (
     const existing = raw ? safeJsonParse<RoutineState>(raw, { fallback: null }) : null;
     const state = buildRoutineState(routine, selectedDate, existing, updates);
     await AsyncStorage.setItem(key, JSON.stringify(state));
+    if (state.completed && !existing?.completed) {
+      await queueRoutineCompletedImpact(state).catch(() => {});
+    }
     return state;
   });
 };
@@ -136,6 +140,9 @@ export const updateRoutineState = async (
     const existing = raw ? safeJsonParse<RoutineState>(raw, { fallback: null }) : null;
     const state = buildRoutineState(routine, selectedDate, existing, updater(existing));
     await AsyncStorage.setItem(key, JSON.stringify(state));
+    if (state.completed && !existing?.completed) {
+      await queueRoutineCompletedImpact(state).catch(() => {});
+    }
     return state;
   });
 };

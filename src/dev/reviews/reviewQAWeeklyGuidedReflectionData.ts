@@ -4,6 +4,7 @@ import {
   GUIDED_REFLECTION_DEMO_PREFIX,
 } from '../guidedReflectionDemoFixtures';
 import {REVIEW_QA_PREFIX} from './reviewQAFixtures';
+import {reviewQAWeeklyPeriodEndDate} from './reviewQAClock';
 import type {
   ReviewQASeedManifest,
   ReviewQASeedScope,
@@ -26,7 +27,7 @@ export const seedWeeklyGuidedReflections = async (
 ): Promise<void> => {
   const namespace = scope.namespace ?? 'weekly';
   for (const fixture of buildGuidedReflectionDemoFixtures(
-    scope.referenceDate,
+    scope.referenceDate ?? reviewQAWeeklyPeriodEndDate(),
   )) {
     const suffix = fixture.id.slice(GUIDED_REFLECTION_DEMO_PREFIX.length);
     const id = `${REVIEW_QA_PREFIX}${namespace}:guided-reflection:${suffix}`;

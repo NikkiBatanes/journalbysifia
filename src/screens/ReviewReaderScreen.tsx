@@ -20,6 +20,7 @@ import {formatWeeklySupportAnswer, getLegacyWeeklyLookingAheadSections} from '..
 import {formatWeeklyLookingForwardAnswer, WEEKLY_LOOKING_FORWARD_TITLE} from '../utils/weeklyLookingForwardAnswers';
 import {WeeklyReviewSummary} from '../components/reviews/WeeklyReviewSummary';
 import {MonthlyReviewSummary} from '../components/reviews/MonthlyReviewSummary';
+import {getMonthlyPatternSummary} from '../services/monthlyPatternSummaryService';
 
 const ReviewReaderScreen: React.FC = () => {
   const navigation = useNavigation<any>(); const route = useRoute<any>(); const insets = useSafeAreaInsets();
@@ -27,6 +28,7 @@ const ReviewReaderScreen: React.FC = () => {
   const [review, setReview] = useState<LocalReviewEntry | null>(null);
   const [capture, setCapture] = useState<ReviewCapture | null>(null);
   const [captureLoading, setCaptureLoading] = useState(true);
+  const [monthlyPatternSummary, setMonthlyPatternSummary] = useState('');
   const [reviewLoading, setReviewLoading] = useState(true);
   const [loadAttempt, setLoadAttempt] = useState(0);
   const type = route.params?.type as ReviewType; const id = route.params?.reviewId as string;
@@ -36,14 +38,24 @@ const ReviewReaderScreen: React.FC = () => {
     setReviewLoading(true);
     setCapture(null);
     setCaptureLoading(true);
+    setMonthlyPatternSummary('');
     const load = async () => {
       const nextReview = await getLocalReview(type, id);
       if (!active) {return;}
       setReview(nextReview);
       setReviewLoading(false);
       if (!nextReview) {setCapture(null); setCaptureLoading(false); return;}
-      const nextCapture = await getReviewCapture(nextReview.periodStart, nextReview.periodEnd, nextReview.type);
-      if (active) {setCapture(nextCapture); setCaptureLoading(false);}
+      const [nextCapture, nextPatternSummary] = await Promise.all([
+        getReviewCapture(nextReview.periodStart, nextReview.periodEnd, nextReview.type),
+        nextReview.type === 'monthly' && !nextReview.answers.month_pattern_summary?.trim()
+          ? getMonthlyPatternSummary(nextReview.periodStart, nextReview.periodEnd).catch(() => '')
+          : Promise.resolve(''),
+      ]);
+      if (active) {
+        setCapture(nextCapture);
+        setMonthlyPatternSummary(nextPatternSummary);
+        setCaptureLoading(false);
+      }
     };
     load().catch(() => {
       if (active) {setCapture(null); setCaptureLoading(false); setReviewLoading(false);}
@@ -163,6 +175,7 @@ const ReviewReaderScreen: React.FC = () => {
     return <SafeAreaView style={styles.safeArea} edges={['left', 'right']}>
       <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent/>
       <MonthlyReviewSummary key={review.id} review={review} capture={capture} captureLoading={captureLoading}
+        patternSummary={monthlyPatternSummary}
         bottomInset={insets.bottom} topInset={topInset}
         onBack={() => {triggerLightHaptic(); navigation.goBack();}}/>
     </SafeAreaView>;

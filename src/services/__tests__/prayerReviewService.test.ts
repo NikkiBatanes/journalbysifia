@@ -1,4 +1,7 @@
-import { derivePrayerReview } from '../prayerReviewService';
+import {
+  deriveMonthlyPrayerReflection,
+  derivePrayerReview,
+} from '../prayerReviewService';
 import type { PrayerApiEntry } from '../api/prayerApi';
 
 const prayer = (overrides: Partial<PrayerApiEntry> = {}): PrayerApiEntry => ({
@@ -50,5 +53,152 @@ describe('Prayer Review period derivation', () => {
     expect(result.items.filter(i => i.eventType === 'new_prayer')).toHaveLength(1);
     expect(result.items.filter(i => i.eventType === 'thanksgiving')).toHaveLength(1);
     expect(result.items.filter(i => i.eventType.includes('answer'))).toHaveLength(0);
+  });
+});
+
+describe('Monthly prayer reflection', () => {
+  it('shows every answer from the month and every active prayer without a carrying limit', () => {
+    const waiting = Array.from({length: 5}, (_, index) =>
+      prayer({
+        id: `waiting-${index}`,
+        content: `Waiting prayer ${index}`,
+        prayed: true,
+        prayer_count: index + 1,
+        last_prayed_at: `2026-08-${String(index + 10).padStart(2, '0')}`,
+      }),
+    );
+    const answered = prayer({
+      id: 'answered',
+      content: 'Answered prayer',
+      status: 'answered',
+      metadata: {
+        track_answered: true,
+        is_active: false,
+        answer_history: [
+          {id: 'answer-1', date: '2026-08-18', note: 'Provision arrived.'},
+        ],
+      },
+    });
+
+    const result = deriveMonthlyPrayerReflection(
+      [...waiting, answered],
+      '2026-08-01',
+      '2026-08-31',
+    );
+
+    expect(result.answered).toEqual([
+      expect.objectContaining({
+        prayerId: 'answered',
+        eventType: 'answer_recorded',
+      }),
+    ]);
+    expect(result.waiting).toHaveLength(5);
+    expect(result.waiting.map(item => item.prayerId)).toEqual(
+      expect.arrayContaining(waiting.map(item => item.id)),
+    );
+  });
+
+  it('excludes unprayed requests but includes prayed requests and linked responses once', () => {
+    const unprayedRequest = prayer({
+      id: 'unprayed-request',
+      prayer_type: 'people',
+      is_prayer_request: true,
+      content: 'Please pray for an interview.',
+      prayed: false,
+      prayer_count: 0,
+    });
+    const prayedRequest = prayer({
+      id: 'prayed-request',
+      prayer_type: 'people',
+      is_prayer_request: true,
+      content: 'Please pray for healing.',
+      prayed: true,
+      prayer_count: 1,
+    });
+    const linkedRequest = prayer({
+      id: 'linked-request',
+      prayer_type: 'people',
+      is_prayer_request: true,
+      content: 'Please pray for wisdom.',
+      prayed: false,
+      prayer_count: 0,
+    });
+    const linkedResponse = prayer({
+      id: 'linked-response',
+      prayer_type: 'people',
+      content: 'God, please give wisdom.',
+      prayed: true,
+      prayer_count: 2,
+      metadata: {
+        original_request_id: 'linked-request',
+        track_answered: true,
+        is_active: true,
+        tracking_status: 'pending',
+      },
+    });
+
+    const result = deriveMonthlyPrayerReflection(
+      [unprayedRequest, prayedRequest, linkedRequest, linkedResponse],
+      '2026-08-01',
+      '2026-08-31',
+    );
+
+    expect(result.waiting.map(item => item.prayerId)).toEqual(
+      expect.arrayContaining(['prayed-request', 'linked-response']),
+    );
+    expect(result.waiting).toHaveLength(2);
+    expect(
+      result.waiting.some(item => item.prayerId === 'unprayed-request'),
+    ).toBe(false);
+    expect(
+      result.waiting.some(item => item.prayerId === 'linked-request'),
+    ).toBe(false);
+  });
+
+  it('shows active needs individually and ignores prayers created after the month', () => {
+    const mixed = prayer({
+      id: 'mixed',
+      metadata: {
+        track_answered: true,
+        is_active: true,
+        prayer_needs: [
+          {
+            id: 'answered-need',
+            text: 'A clear scan',
+            status: 'answered',
+            active: false,
+            answerHistory: [{id: 'a1', date: '2026-08-05'}],
+          },
+          {
+            id: 'waiting-need',
+            text: 'Strength for recovery',
+            status: 'pending',
+            active: true,
+          },
+        ],
+      },
+    });
+    const future = prayer({
+      id: 'future',
+      selected_date: '2026-09-03',
+      created_at: '2026-09-03T10:00:00Z',
+    });
+
+    const result = deriveMonthlyPrayerReflection(
+      [mixed, future],
+      '2026-08-01',
+      '2026-08-31',
+    );
+
+    expect(result.answered).toEqual([
+      expect.objectContaining({needId: 'answered-need'}),
+    ]);
+    expect(result.waiting).toEqual([
+      expect.objectContaining({
+        prayerId: 'mixed',
+        needId: 'waiting-need',
+        title: 'Strength for recovery',
+      }),
+    ]);
   });
 });

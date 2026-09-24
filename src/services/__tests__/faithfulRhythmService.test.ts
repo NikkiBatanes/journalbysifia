@@ -86,7 +86,9 @@ describe('faithfulRhythmService', () => {
     expect(snapshot.currentStreak).toBe(3);
     expect(snapshot.weekCompleted).toBe(3);
     expect(snapshot.unitLabel).toBe('weeks');
-    expect(snapshot.days.at(-1)?.label).toBe('Now');
+    expect(snapshot.days.map(day => day.label)).toEqual([
+      'Wk1', 'Wk2', 'Wk3', 'Wk4', 'Wk5', 'Wk6', 'Wk7',
+    ]);
   });
 
   it('builds the Sunday sermon streak only after every Sunday in the month is complete', () => {
@@ -134,11 +136,14 @@ describe('faithfulRhythmService', () => {
     const snapshot = buildReviewRhythmSnapshot([
       {...base, id: 'one', periodEnd: '2026-09-20', status: 'completed'},
       {...base, id: 'two', periodEnd: '2026-09-27', status: 'completed'},
+      {...base, id: 'month-one', type: 'monthly', periodStart: '2026-09-01', periodEnd: '2026-09-30', status: 'completed'},
+      {...base, id: 'month-two', type: 'monthly', periodStart: '2026-10-01', periodEnd: '2026-10-31', status: 'completed'},
     ]);
 
     expect(snapshot.cadence).toBe('periodic');
-    expect(snapshot.currentStreak).toBe(2);
+    expect(snapshot.currentStreak).toBe(4);
     expect(snapshot.weeklyPercent).toBe(100);
     expect(snapshot.unitLabel).toBe('reviews');
+    expect(snapshot.days.map(day => day.label)).toEqual(['Wk1', 'Wk2', 'M1', 'M2']);
   });
 });

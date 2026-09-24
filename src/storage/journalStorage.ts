@@ -13,6 +13,10 @@ import { toLocalDateString } from '../utils/date';
 import { Logger } from '../utils/ProductionLogger';
 import { safeJsonParse, parseStorageValue } from '../utils/safeJsonParse';
 import { streakTrackingService } from '../services/streakTrackingService';
+import {
+  queueGratitudeSavedImpact,
+  queueWinSavedImpact,
+} from '../services/journalImpactQueue';
 
 // ===================================================================
 // CANONICAL LOCAL-FIRST JOURNAL REPOSITORY
@@ -124,6 +128,12 @@ export const createLocalJournalEntry = async (
   if (!index.includes(id)) {
     index.push(id);
     await writeIndex(data.content_type, selectedDate, index);
+  }
+
+  if (entry.content_type === 'gratitude') {
+    await queueGratitudeSavedImpact(entry).catch(() => {});
+  } else if (entry.content_type === 'today_win') {
+    await queueWinSavedImpact(entry).catch(() => {});
   }
 
   return entry;
@@ -297,6 +307,11 @@ export const saveLocalJournalSingleton = async (
     metadata,
   };
   await AsyncStorage.setItem(key, JSON.stringify(entry));
+  if (entry.content_type === 'gratitude') {
+    await queueGratitudeSavedImpact(entry).catch(() => {});
+  } else if (entry.content_type === 'today_win') {
+    await queueWinSavedImpact(entry).catch(() => {});
+  }
   return entry;
 };
 

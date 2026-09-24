@@ -3,14 +3,27 @@ import { completeBibleStudySession, createBibleStudySession, createEmptyBibleStu
 import { getSavedBibleStudyReflections, parseSavedBibleStudy } from '../bibleStudyMomentsStorage';
 import { getLocalReflection } from '../reflectionStorage';
 import { getLocalPrayer } from '../prayerStorage';
+import {
+  queueBibleStudyCompletedImpact,
+  queueBibleStudyCreatedImpact,
+} from '../../services/journalImpactQueue';
 
 jest.mock('../../services/supabaseClient', () => ({ supabase: {} }));
 jest.mock('../journalStorage', () => ({ checkSession: jest.fn() }));
+jest.mock('../../services/journalImpactQueue', () => ({
+  queueBibleStudyCreatedImpact: jest.fn().mockResolvedValue(undefined),
+  queueBibleStudyCompletedImpact: jest.fn().mockResolvedValue(undefined),
+  queueBibleStudyImpactRetraction: jest.fn().mockResolvedValue(undefined),
+  queuePrayerCreatedImpact: jest.fn().mockResolvedValue(undefined),
+  queuePrayerAnsweredImpact: jest.fn().mockResolvedValue(undefined),
+  queuePrayerImpactRetraction: jest.fn().mockResolvedValue(undefined),
+}));
 
 const storage = AsyncStorage as jest.Mocked<typeof AsyncStorage>;
 let persisted: Map<string, string>;
 
 beforeEach(() => {
+  jest.clearAllMocks();
   persisted = new Map();
   storage.getItem.mockImplementation(async key => persisted.get(key) ?? null);
   storage.setItem.mockImplementation(async (key, value) => { persisted.set(key, value); });
@@ -25,6 +38,8 @@ it('discovers the actual saved reflection after completing a study, while retain
   content.observation.text = 'The Lord is my shepherd.';
   content.prayer.text = 'Help me trust you today.';
   const savedSession = await completeBibleStudySession(session, content);
+  expect(queueBibleStudyCreatedImpact).toHaveBeenCalledTimes(1);
+  expect(queueBibleStudyCompletedImpact).toHaveBeenCalledTimes(1);
   const savedReflections = await getSavedBibleStudyReflections();
   expect(savedReflections).toHaveLength(1);
   expect(savedReflections[0].id).toBe(savedSession.reflection_ref?.local_id);

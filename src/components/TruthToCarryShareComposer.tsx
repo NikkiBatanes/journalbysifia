@@ -298,6 +298,7 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
   const closeComposer = useCallback(() => {
     if (closing.current) { return; }
     closing.current = true;
+    triggerLightHaptic();
     Animated.timing(sheetAnim, {
       toValue: 0,
       duration: 250,
@@ -393,7 +394,7 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
     recipient: '',
     url: uri,
     type: 'image/png',
-    message: variant === 'for-me-day' ? 'My For Me Day — Journal by siFia — https://www.journalby.sifia.app' : variant === 'morning-summary'
+    message: variant === 'for-me-day' ? 'My New Life Day — Journal by siFia — https://www.journalby.sifia.app' : variant === 'morning-summary'
       ? 'My morning with Journal by siFia — https://www.journalby.sifia.app'
       : variant === 'streak'
         ? 'My rhythm with Journal by siFia — https://www.journalby.sifia.app'
@@ -401,17 +402,17 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
   } as any)), [runShareAction, variant]);
 
   const shareMore = useCallback(() => runShareAction('more', uri => Share.open({
-    title: variant === 'for-me-day' ? 'Share your For Me Day' : variant === 'morning-summary'
+    title: variant === 'for-me-day' ? 'Share your New Life Day' : variant === 'morning-summary'
       ? 'Share your Journal by siFia morning'
       : variant === 'streak'
         ? 'Share your Journal by siFia streak'
         : 'Share your Journal by siFia reflection',
-    subject: variant === 'for-me-day' ? 'My For Me Day' : variant === 'morning-summary'
+    subject: variant === 'for-me-day' ? 'My New Life Day' : variant === 'morning-summary'
       ? 'My morning with Journal by siFia'
       : variant === 'streak'
         ? 'My rhythm with Journal by siFia'
         : 'A reflection from Journal by siFia',
-    message: variant === 'for-me-day' ? 'My For Me Day — Journal by siFia — https://www.journalby.sifia.app' : variant === 'morning-summary'
+    message: variant === 'for-me-day' ? 'My New Life Day — Journal by siFia — https://www.journalby.sifia.app' : variant === 'morning-summary'
       ? 'My morning with Journal by siFia — https://www.journalby.sifia.app'
       : variant === 'streak'
         ? 'My rhythm with Journal by siFia — https://www.journalby.sifia.app'
@@ -430,12 +431,12 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
     setSharingAction('text');
     try {
       await Share.open({
-        title: variant === 'for-me-day' ? 'Share your For Me Day' : variant === 'morning-summary'
+        title: variant === 'for-me-day' ? 'Share your New Life Day' : variant === 'morning-summary'
           ? 'Share your Journal by siFia morning'
           : variant === 'streak'
             ? 'Share your Journal by siFia streak'
             : 'Share your Journal by siFia reflection',
-        subject: variant === 'for-me-day' ? 'My For Me Day' : variant === 'morning-summary'
+        subject: variant === 'for-me-day' ? 'My New Life Day' : variant === 'morning-summary'
           ? 'My morning with Journal by siFia'
           : variant === 'streak'
             ? 'My rhythm with Journal by siFia'
@@ -526,10 +527,13 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
     };
 
     if (variant === 'for-me-day' && milestone) {
-      const renderMilestone = (height = CARD_HEIGHT) => (
+      const renderMilestone = (
+        width = CARD_WIDTH,
+        height = CARD_HEIGHT,
+      ) => (
         <ForMeDayShareCard
           data={milestone}
-          width={CARD_WIDTH}
+          width={width}
           height={height}
           palette={item.palette}
           image={item.image}
@@ -550,14 +554,14 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
               options={{format: 'png', quality: 1, result: 'tmpfile', fileName: 'journal-post-share'}}
               style={styles.postCaptureCard}
             >
-              <View style={styles.postCaptureContent}>{renderMilestone()}</View>
+              {renderMilestone(POST_CAPTURE_WIDTH, POST_CAPTURE_HEIGHT)}
             </ViewShot>
             <ViewShot
               ref={ref => { storyCardRefs.current[index] = ref; }}
               options={{format: 'png', quality: 1, result: 'tmpfile', fileName: 'journal-story-share'}}
               style={styles.storyCaptureCard}
             >
-              <View style={styles.storyCaptureContent}>{renderMilestone(STORY_CARD_HEIGHT)}</View>
+              {renderMilestone(STORY_CAPTURE_WIDTH, STORY_CAPTURE_HEIGHT)}
             </ViewShot>
           </View>
         </View>
@@ -823,7 +827,6 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
             styles.modalContent,
             {
               maxHeight: SCREEN_HEIGHT - Math.max(insets.top, 16) - 12,
-              paddingBottom: Math.max(insets.bottom, 16),
               opacity: sheetAnim.interpolate({
                 inputRange: [0, 0.4, 1],
                 outputRange: [0, 1, 1],
@@ -838,7 +841,7 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
           <View style={styles.header}>
             <View>
               <ThemedText weight="bold" style={styles.title}>
-                {variant === 'for-me-day' ? 'Share your For Me Day' : variant === 'morning-summary' ? 'Share your morning' : variant === 'streak' ? 'Share your streak' : 'Share your reflection'}
+                {variant === 'for-me-day' ? 'Share your New Life Day' : variant === 'morning-summary' ? 'Share your morning' : variant === 'streak' ? 'Share your streak' : 'Share your reflection'}
               </ThemedText>
               <ThemedText style={styles.subtitle}>Choose a template</ThemedText>
             </View>
@@ -849,7 +852,13 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
 
           <ScrollView
             style={styles.modalScroll}
-            contentContainerStyle={styles.modalScrollContent}
+            contentContainerStyle={[
+              styles.modalScrollContent,
+              {paddingBottom: Math.max(insets.bottom, 16)},
+            ]}
+            accessibilityLabel="Share composer content"
+            contentInsetAdjustmentBehavior="never"
+            automaticallyAdjustContentInsets={false}
             showsVerticalScrollIndicator={false}
             bounces={false}
           >
@@ -903,38 +912,6 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
           />
           </View>
 
-          {variant === 'for-me-day' && <>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.milestoneChoices}>
-              {MILESTONE_PALETTES.map((palette, index) => <TouchableOpacity
-                key={palette.id}
-                accessibilityRole="button"
-                accessibilityLabel={`Use ${palette.label} background`}
-                accessibilityState={{selected: selectedIndex === index}}
-                style={[styles.milestoneChoice, selectedIndex === index && styles.segmentButtonActive]}
-                onPress={() => {
-                  setSelectedIndex(index);
-                  carouselRef.current?.scrollToOffset({offset: CAROUSEL_ITEM_WIDTH * index, animated: true});
-                  triggerLightHaptic();
-                }}
-              >
-                <View style={[styles.milestoneSwatch, {backgroundColor: palette.background}]} />
-                <ThemedText style={styles.segmentText}>{palette.label}</ThemedText>
-              </TouchableOpacity>)}
-            </ScrollView>
-            <View style={styles.milestoneLayouts}>
-              {MILESTONE_LAYOUTS.map(option => <TouchableOpacity
-                key={option.id}
-                accessibilityRole="button"
-                accessibilityLabel={`Use ${option.label} card style`}
-                accessibilityState={{selected: milestoneLayout === option.id}}
-                style={[styles.segmentButton, milestoneLayout === option.id && styles.segmentButtonActive]}
-                onPress={() => { setMilestoneLayout(option.id); triggerLightHaptic(); }}
-              >
-                <ThemedText style={[styles.segmentText, milestoneLayout === option.id && styles.segmentTextActive]}>{option.label}</ThemedText>
-              </TouchableOpacity>)}
-            </View>
-          </>}
-
           <Animated.View
             pointerEvents={editorOpen ? 'auto' : 'none'}
             accessibilityElementsHidden={!editorOpen}
@@ -943,7 +920,10 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
               styles.editorPanel,
               variant !== 'text' && variant !== 'for-me-day' && styles.hidden,
               {
-                maxHeight: editorAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 120] }),
+                maxHeight: editorAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0, variant === 'for-me-day' ? 170 : 120],
+                }),
                 marginBottom: editorAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 18] }),
                 opacity: editorAnim,
                 transform: [{
@@ -1035,6 +1015,24 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
                 </View>
               </View>
             </View>
+
+            {variant === 'for-me-day' && (
+              <View style={[styles.milestoneLayouts, styles.milestoneLayoutsInEditor]}>
+                {MILESTONE_LAYOUTS.map(option => <TouchableOpacity
+                  key={option.id}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Use ${option.label} card style`}
+                  accessibilityState={{selected: milestoneLayout === option.id}}
+                  style={[
+                    styles.milestoneLayoutButton,
+                    milestoneLayout === option.id && styles.milestoneLayoutButtonActive,
+                  ]}
+                  onPress={() => { setMilestoneLayout(option.id); triggerLightHaptic(); }}
+                >
+                  <ThemedText style={[styles.segmentText, milestoneLayout === option.id && styles.segmentTextActive]}>{option.label}</ThemedText>
+                </TouchableOpacity>)}
+              </View>
+            )}
           </Animated.View>
 
           <ThemedText weight="semiBold" style={styles.sectionLabel}>Share to</ThemedText>
@@ -1088,10 +1086,26 @@ const TruthToCarryShareComposer: React.FC<TruthToCarryShareComposerProps> = ({
 };
 
 const styles = StyleSheet.create({
-  milestoneChoices: {paddingHorizontal: 24, gap: 8, paddingBottom: 12},
-  milestoneChoice: {flexDirection: 'row', alignItems: 'center', gap: 6, padding: 8, borderRadius: 14},
-  milestoneSwatch: {width: 20, height: 20, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)'},
-  milestoneLayouts: {flexDirection: 'row', marginHorizontal: 24, marginBottom: 16, padding: 4, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.06)'},
+  milestoneLayouts: {
+    flexDirection: 'row',
+    gap: 4,
+    marginHorizontal: 24,
+    marginBottom: 16,
+    padding: 4,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+  },
+  milestoneLayoutsInEditor: {marginHorizontal: 0, marginTop: 12, marginBottom: 0},
+  milestoneLayoutButton: {
+    flex: 1,
+    minHeight: 38,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  milestoneLayoutButtonActive: {
+    backgroundColor: 'rgba(255,255,255,0.16)',
+  },
   overlay: {
     flex: 1,
     justifyContent: 'flex-end',
@@ -1113,7 +1127,7 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
   modalScrollContent: {
-    paddingBottom: 2,
+    flexGrow: 1,
   },
   header: {
     flexDirection: 'row',

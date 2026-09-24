@@ -1,5 +1,5 @@
 import React from 'react';
-import { Alert, Dimensions, Platform, StyleSheet } from 'react-native';
+import { Alert, Dimensions, Platform, StyleSheet, View as RNView } from 'react-native';
 import { fireEvent, render, waitFor } from '@testing-library/react-native';
 import Share from 'react-native-share';
 import { captureRef } from 'react-native-view-shot';
@@ -45,6 +45,15 @@ describe('Truth to Carry Message sharing', () => {
   it('uses the full Journal by siFia brand on the share card', () => {
     const screen = render(<TruthToCarryShareComposer visible text="A truth to carry." onClose={jest.fn()} />);
     expect(screen.getByLabelText('Journal by siFia logo')).toBeTruthy();
+  });
+
+  it('scrolls to the bottom edge while keeping content above the safe area', () => {
+    const screen = render(<TruthToCarryShareComposer visible text="A truth to carry." onClose={jest.fn()} />);
+    const scroll = screen.getByLabelText('Share composer content');
+
+    expect(scroll.props.contentInsetAdjustmentBehavior).toBe('never');
+    expect(scroll.props.automaticallyAdjustContentInsets).toBe(false);
+    expect(StyleSheet.flatten(scroll.props.contentContainerStyle).paddingBottom).toBe(16);
   });
 
   it('renders a structured morning summary card without text-style controls', () => {
@@ -166,10 +175,10 @@ describe('Truth to Carry Message sharing', () => {
     expect(screen.queryByText('Get Growth')).toBeNull();
   });
 
-  it('closes without haptic feedback', () => {
+  it('provides haptic feedback when closing', () => {
     const screen = render(<TruthToCarryShareComposer visible text="A truth to carry." onClose={jest.fn()} />);
     fireEvent.press(screen.getByLabelText('Close share composer'));
-    expect(triggerLightHaptic).not.toHaveBeenCalled();
+    expect(triggerLightHaptic).toHaveBeenCalledTimes(1);
   });
 
   it('uses the 9:16 capture for Instagram Stories', async () => {
@@ -217,16 +226,25 @@ describe('Truth to Carry Message sharing', () => {
     const milestone = {title: 'Today, I begin\nmy life with Jesus.', occasion: 'A NEW BEGINNING', date: 'September 22, 2026'};
     const screen = render(<TruthToCarryShareComposer visible variant="for-me-day" milestone={milestone} text={getForMeDayShareText(milestone)} onClose={jest.fn()} />);
 
-    expect(screen.getByText('Share your For Me Day')).toBeTruthy();
+    expect(screen.getByText('Share your New Life Day')).toBeTruthy();
     expect(screen.getByText(FOR_ME_DAY_GOSPEL)).toBeTruthy();
     expect(screen.getByText(milestone.date)).toBeTruthy();
     expect(screen.getByLabelText('Journal by siFia app icon')).toBeTruthy();
     ['Ivory', 'Sage', 'Midnight', 'Rose', 'Lavender', 'Terracotta'].forEach(color => {
-      expect(screen.getByLabelText(`Use ${color} background`)).toBeTruthy();
+      expect(screen.queryByLabelText(`Use ${color} background`)).toBeNull();
     });
+    expect(screen.queryByLabelText('Use Celebration card style')).toBeNull();
 
-    fireEvent.press(screen.getByLabelText('Use Celebration card style'));
     fireEvent.press(screen.getByLabelText('Edit post style'));
+    ['Ivory', 'Sage', 'Midnight', 'Rose', 'Lavender', 'Terracotta'].forEach(color => {
+      expect(screen.queryByLabelText(`Use ${color} background`)).toBeNull();
+    });
+    const keepsakeSelectorStyle = StyleSheet.flatten(screen.getByLabelText('Use Keepsake card style').props.style);
+    expect(keepsakeSelectorStyle).toEqual(
+      expect.objectContaining({borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.16)'}),
+    );
+    expect(keepsakeSelectorStyle.borderBottomWidth).toBeUndefined();
+    fireEvent.press(screen.getByLabelText('Use Celebration card style'));
     fireEvent.press(screen.getByLabelText('Use Modern text style'));
     fireEvent.press(screen.getByLabelText('Align text left'));
 
@@ -237,13 +255,32 @@ describe('Truth to Carry Message sharing', () => {
         data: milestone, layout: 'celebration', titleFont: 'Poppins-SemiBold', textAlign: 'left', showBranding: true,
       }));
     });
+    expect(cards[1].props.width).toBeGreaterThan(cards[0].props.width);
+    expect(cards[2].props.width).toBeGreaterThan(cards[0].props.width);
     expect(cards[1].props.height / cards[1].props.width).toBeCloseTo(1.25);
     expect(cards[2].props.height / cards[2].props.width).toBeCloseTo(16 / 9);
+
+    fireEvent.press(screen.getByLabelText('Close post editor'));
+    expect(screen.queryByLabelText('Use Celebration card style')).toBeNull();
 
     fireEvent.press(screen.getByLabelText('Show Journal by siFia watermark'));
     expect(screen.queryByLabelText('Journal by siFia app icon')).toBeNull();
     screen.UNSAFE_getAllByType(ForMeDayShareCard).forEach(card => expect(card.props.showBranding).toBe(false));
     expect(screen.getByText(FOR_ME_DAY_GOSPEL)).toBeTruthy();
+  });
+
+  it('keeps the Celebration card border rounded like Keepsake', () => {
+    const milestone = {title: 'Today, I begin\nmy life with Jesus.', occasion: 'A NEW BEGINNING', date: 'September 22, 2026'};
+    const screen = render(
+      <ForMeDayShareCard
+        data={milestone}
+        width={300}
+        layout="celebration"
+      />,
+    );
+    const border = screen.UNSAFE_getAllByType(RNView).find(view => view.props.pointerEvents === 'none');
+
+    expect(StyleSheet.flatten(border?.props.style).borderRadius).toBe(12);
   });
 
   it('shares the full milestone and mini gospel as text', async () => {
@@ -252,7 +289,7 @@ describe('Truth to Carry Message sharing', () => {
     const screen = render(<TruthToCarryShareComposer visible variant="for-me-day" milestone={milestone} text={text} onClose={jest.fn()} />);
     fireEvent.press(screen.getByLabelText('Text'));
     await waitFor(() => expect(Share.open).toHaveBeenCalledWith(expect.objectContaining({
-      title: 'Share your For Me Day', subject: 'My For Me Day', message: text,
+      title: 'Share your New Life Day', subject: 'My New Life Day', message: text,
     })));
     expect(text).toContain(FOR_ME_DAY_GOSPEL);
     expect(text).toContain(milestone.date);
@@ -261,6 +298,7 @@ describe('Truth to Carry Message sharing', () => {
   it('applies color and photo backgrounds to the milestone preview and exports', async () => {
     const milestone = {title: 'Today, I begin\nmy life with Jesus.', occasion: 'A NEW BEGINNING', date: 'September 22, 2026'};
     const screen = render(<TruthToCarryShareComposer visible variant="for-me-day" milestone={milestone} text={getForMeDayShareText(milestone)} onClose={jest.fn()} />);
+    fireEvent.press(screen.getByLabelText('Edit post style'));
     const viewportWidth = Math.min(Dimensions.get('window').width, 480);
     const itemWidth = Math.min(viewportWidth - 72, 300) + 12;
     const carousel = screen.getByLabelText('Swipe left or right to choose a template');
@@ -276,21 +314,17 @@ describe('Truth to Carry Message sharing', () => {
       fireEvent(carousel, 'momentumScrollEnd', {nativeEvent});
     };
 
-    fireEvent.press(screen.getByLabelText('Use Sage background'));
     scrollTo(1);
     await waitFor(() => {
       const sageCards = screen.UNSAFE_getAllByType(ForMeDayShareCard).filter(card => card.props.palette?.id === 'sage');
       expect(sageCards).toHaveLength(3);
     });
-    expect(screen.getByLabelText('Use Sage background').props.accessibilityState.selected).toBe(true);
-
     scrollTo(6);
     await waitFor(() => {
       const photoCards = screen.UNSAFE_getAllByType(ForMeDayShareCard).filter(card => card.props.image);
       expect(photoCards.length).toBeGreaterThanOrEqual(3);
       photoCards.forEach(card => expect(card.props.data).toEqual(milestone));
     });
-    expect(screen.getByLabelText('Use Sage background').props.accessibilityState.selected).toBe(false);
   });
 
   it('exports the milestone through the existing Instagram Stories action', async () => {

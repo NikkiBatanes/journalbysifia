@@ -88,7 +88,7 @@ describe('main navigation pencil state', () => {
   it('gives Scripture Note the shared block composer and reliable focus behavior', () => {
     expect(scriptureNoteSource).toContain('<JournalComposerBar');
     expect(scriptureNoteSource).toContain('<JournalPickerMenu');
-    expect(scriptureNoteSource).toContain('<JournalInlineBlock');
+    expect(scriptureNoteSource).toContain('<JournalBlockEditor');
     expect(scriptureNoteSource).toContain('journalBlocks');
     expect(scriptureNoteSource).toContain('pendingFocusBlockIdRef.current = block.id');
     expect(scriptureNoteSource).toContain('ref={searchInputRef}');

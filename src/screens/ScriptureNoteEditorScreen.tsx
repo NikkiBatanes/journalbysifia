@@ -43,25 +43,28 @@ import { Logger } from '../utils/ProductionLogger';
 import { claimFaithfulRhythmCelebration, FAITHFUL_RHYTHM_UPDATED } from '../services/faithfulRhythmService';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFloatingKeyboardButton } from '../hooks/useFloatingKeyboardButton';
-import { JournalComposerBar, JournalPickerMenu } from '../components/journal/shared/JournalComposer';
+import {
+  createJournalPickerEntrance,
+  JournalComposerBar,
+  JournalPickerMenu,
+} from '../components/journal/shared/JournalComposer';
 import DraggableJournalBlock from '../components/journal/shared/DraggableJournalBlock';
 import {
   reorderJournalBlock,
   resolveJournalBlockDropIndex,
 } from '../components/journal/shared/journalBlockOperations';
-import { JournalInlineBlock } from '../components/journal/shared/JournalInlineBlock';
+import { JournalBlockEditor } from '../components/journal/shared/JournalBlockEditor';
 import JournalTextInput from '../components/journal/shared/JournalTextInput';
+import { ScriptureLookupInput } from '../components/journal/shared/ScriptureLookupInput';
 import { JournalColumnBlock } from '../components/journal/shared/JournalColumnBlock';
-import { JournalListBlock } from '../components/journal/shared/JournalListBlock';
-import { JournalTableBlock } from '../components/journal/shared/JournalTableBlock';
 import JournalNestedBlockEditor from '../components/journal/shared/JournalNestedBlockEditor';
-import ReflectionSpecialBlock from '../components/journal/ReflectionSpecialBlock';
 import { pickImageLocal } from '../services/avatarService';
 import {
+  JOURNAL_BLOCK_GAP,
   JOURNAL_BLOCKS,
   JournalBlockIcon,
-  formatJournalAttribution,
-  hasMeaningfulJournalBlock,
+  createJournalBlock,
+  journalBlocksToPlainText,
   prepareJournalBlocksForSave,
   type JournalBlock,
 } from '../components/journal/shared/journalBlocks';
@@ -85,49 +88,7 @@ const stripWrappingQuotationMarks = (text: string) =>
   text.trim().replace(/^[“\"]\s*/, '').replace(/\s*[”\"]$/, '');
 
 const blocksToPlainText = (blocks: GuidedReflectionNote[]) =>
-  blocks
-    .filter(hasMeaningfulJournalBlock)
-    .map(block => {
-      const text = block.text.trim();
-      const reference = block.reference?.trim();
-      const secondary =
-        block.kind === 'quote'
-          ? formatJournalAttribution(block.secondary?.trim())
-          : block.secondary?.trim();
-      if (block.kind === 'column') return '';
-      if (block.kind === 'table') {
-        return (block.tableRows || [])
-          .map(row => row.map(cell => cell.trim()).join('\t'))
-          .join('\n');
-      }
-      if (block.kind === 'bullets' || block.kind === 'numbered') {
-        const list = (block.points || [])
-          .filter(point => point.trim())
-          .map((point, index) =>
-            block.kind === 'numbered'
-              ? `${index + 1}. ${point.trim()}`
-              : `• ${point.trim()}`,
-          )
-          .join('\n');
-        return [text, list].filter(Boolean).join('\n');
-      }
-      if (block.kind === 'text') return text;
-      const label =
-        block.kind === 'section' ? 'SECTION' :
-        block.kind === 'action' ? 'ACTION' :
-        block.kind === 'photo' ? 'PHOTO' :
-        block.kind === 'voice' ? 'VOICE NOTE' : JOURNAL_BLOCKS[block.kind].label;
-      if (block.kind === 'scripture') {
-        return [
-          label,
-          block.scriptureReference?.trim() || reference || text,
-          block.scriptureText?.trim(),
-        ].filter(Boolean).join('\n');
-      }
-      return [label, reference, text, secondary].filter(Boolean).join('\n');
-    })
-    .filter(Boolean)
-    .join('\n\n');
+  journalBlocksToPlainText(prepareJournalBlocksForSave(blocks));
 
 const ScriptureNoteEditorScreen: React.FC = () => {
   const route = useRoute();
@@ -295,20 +256,9 @@ const ScriptureNoteEditorScreen: React.FC = () => {
       selectedBlock?.parentColumnId && selectedBlock.columnSide
         ? { columnId: selectedBlock.parentColumnId, side: selectedBlock.columnSide }
         : columnTarget;
-    if (destination && (kind === 'column' || kind === 'table')) { return; }
+    if (destination && !JOURNAL_BLOCKS[kind].allowInColumn) { return; }
     const block: GuidedReflectionNote = {
-      id: createGuidedNoteId(),
-      kind,
-      text: '',
-      ...(kind === 'table'
-        ? {
-            tableRows: [['', ''], ['', '']],
-            tableCellAlignments: [['left', 'left'], ['left', 'left']] as Array<Array<'left' | 'center' | 'right'>>,
-            tableEditing: true,
-          }
-        : {}),
-      ...(kind === 'bullets' || kind === 'numbered' ? { points: [''] } : {}),
-      ...(kind === 'action' ? { completed: false } : {}),
+      ...createJournalBlock(kind, createGuidedNoteId()),
       ...(destination
         ? { parentColumnId: destination.columnId, columnSide: destination.side }
         : {}),
@@ -342,7 +292,7 @@ const ScriptureNoteEditorScreen: React.FC = () => {
     }
     pendingFocusBlockIdRef.current = block.id;
     commitBlocks(nextBlocks);
-    setColumnTarget(kind === 'column' ? { columnId: block.id, side: 'left' } : destination || null);
+    setColumnTarget(kind === 'column' ? null : destination || null);
   }, [commitBlocks, columnTarget, journalBlocks, selectedBlockId]);
 
   const insertActionAfter = useCallback((index: number) => {
@@ -525,17 +475,7 @@ const ScriptureNoteEditorScreen: React.FC = () => {
           friction: 12,
           useNativeDriver: true,
         }),
-        Animated.stagger(
-          38,
-          [...notePickerAnimations].reverse().map(animation =>
-            Animated.spring(animation, {
-              toValue: 1,
-              tension: 90,
-              friction: 12,
-              useNativeDriver: true,
-            }),
-          ),
-        ),
+        createJournalPickerEntrance(notePickerAnimations),
       ]).start();
     }, 80);
   };
@@ -869,6 +809,7 @@ const ScriptureNoteEditorScreen: React.FC = () => {
                     key={nestedBlock.id}
                     block={nestedBlock}
                     tone="onDark"
+                    bibleVersion={params.version || 'NASB'}
                     onFocus={() => {
                       setSelectedBlockId(nestedBlock.id);
                       if (nestedBlock.columnSide) {
@@ -910,89 +851,55 @@ const ScriptureNoteEditorScreen: React.FC = () => {
                   />,
                 );
               }
-              if (block.kind === 'bullets' || block.kind === 'numbered') {
-                return wrapBlock(
-                  <JournalListBlock
-                    kind={block.kind}
-                    title={block.text}
-                    points={block.points}
-                    tone="onDark"
-                    onFocus={selectBlock}
-                    onChangeTitle={text => updateBlock({ text })}
-                    onChangePoints={points => updateBlock({ points })}
-                    onDelete={removeBlock}
-                    registerInput={registerBlockInput}
-                  />,
-                );
-              }
-              if (block.kind === 'table') {
-                return wrapBlock(
-                  <JournalTableBlock
-                    rows={block.tableRows}
-                    cellAlignments={block.tableCellAlignments}
-                    editing={block.tableEditing}
-                    tone="onDark"
-                    onFocus={selectBlock}
-                    onChangeRows={(tableRows, tableCellAlignments) =>
-                      updateBlock({
-                        tableRows,
-                        ...(tableCellAlignments ? { tableCellAlignments } : {}),
-                      })
-                    }
-                    onChangeCellAlignments={tableCellAlignments =>
-                      updateBlock({ tableCellAlignments })
-                    }
-                    onChangeEditing={tableEditing => updateBlock({ tableEditing })}
-                    onDelete={removeBlock}
-                    registerInput={registerBlockInput}
-                  />,
-                );
-              }
-              if (['section', 'action', 'photo', 'voice'].includes(block.kind)) {
-                return wrapBlock(
-                  <ReflectionSpecialBlock
-                    block={block}
-                    onChange={updateBlock}
-                    onFocus={selectBlock}
-                    onDelete={removeBlock}
-                    onCreateNextAction={block.kind === 'action' ? () => insertActionAfter(index) : undefined}
-                    registerInput={registerBlockInput}
-                  />,
-                );
-              }
               return wrapBlock(
-                <JournalInlineBlock
-                  block={{ id: block.id, kind: block.kind, text: block.text, secondary: block.secondary }}
+                <JournalBlockEditor
+                  block={block}
                   configOverride={block.kind === 'text' ? undefined : JOURNAL_BLOCKS[block.kind]}
                   tone="onDark"
                   textPlaceholder="Write about this passage…"
                   styles={blockStyles}
                   registerInput={registerBlockInput}
-                  onChangeText={text => updateBlock({ text })}
-                  onChangeSecondary={secondary => updateBlock({ secondary })}
+                  onChange={changes =>
+                    updateBlock(changes as Partial<GuidedReflectionNote>)
+                  }
                   onFocus={selectBlock}
+                  bibleVersion={params.version || 'NASB'}
+                  onCreateSection={title =>
+                    addBlock('section', {
+                      text: title,
+                      sectionSource: 'outline',
+                    })
+                  }
                   onDelete={removeBlock}
+                  onCreateNextAction={block.kind === 'action' ? () => insertActionAfter(index) : undefined}
                   renderScripture={block.kind === 'scripture' ? () => (
-                    <View>
-                      <JournalTextInput
-                        style={[blockStyles.captureInput, styles.scriptureReference]}
-                        value={block.reference || ''}
-                        onChangeText={nextReference => updateBlock({ reference: nextReference })}
-                        placeholder="Scripture reference"
-                        placeholderTextColor="rgba(255,255,255,0.45)"
-                      />
-                      <JournalTextInput
-                        ref={input => {
-                          if (input) blockInputRefs.current.set(block.id, input);
-                        }}
-                        style={blockStyles.captureInput}
-                        value={block.text}
-                        onChangeText={text => updateBlock({ text })}
-                        placeholder="What stands out to you?"
-                        placeholderTextColor="rgba(255,255,255,0.45)"
-                        multiline
-                      />
-                    </View>
+                    <ScriptureLookupInput
+                      value={block.reference || block.scriptureReference || block.text}
+                      placeholder={JOURNAL_BLOCKS.scripture.placeholder}
+                      version={block.scriptureVersion || params.version || 'NASB'}
+                      tone="onDark"
+                      style={blockStyles.captureInput}
+                      registerInput={input => {
+                        if (input) blockInputRefs.current.set(block.id, input);
+                        else blockInputRefs.current.delete(block.id);
+                      }}
+                      onChange={nextReference =>
+                        updateBlock({
+                          text: nextReference,
+                          reference: undefined,
+                          scriptureText: undefined,
+                          scriptureReference: undefined,
+                          scriptureVersion: undefined,
+                        })
+                      }
+                      onResolved={result =>
+                        updateBlock({
+                          scriptureText: result?.text,
+                          scriptureReference: result?.reference,
+                          scriptureVersion: result?.version,
+                        })
+                      }
+                    />
                   ) : undefined}
                 />
               );
@@ -1012,8 +919,7 @@ const ScriptureNoteEditorScreen: React.FC = () => {
                 items={REFLECTION_NOTE_TYPES
                   .filter(
                     item =>
-                      !columnTarget ||
-                      (item.kind !== 'column' && item.kind !== 'table'),
+                      !columnTarget || JOURNAL_BLOCKS[item.kind].allowInColumn,
                   )
                   .map(item => ({
                     key: item.kind,
@@ -1030,17 +936,19 @@ const ScriptureNoteEditorScreen: React.FC = () => {
                 onSelect={async kind => {
                   triggerMediumHaptic();
                   if (kind === 'photo') {
-                    closeNotePicker();
-                    try {
-                      const photo = await pickImageLocal();
-                      if (photo) addBlock('photo', { uri: photo.uri });
-                    } catch {
-                      Alert.alert('Could not add photo', 'Please try choosing your photo again.');
-                    }
+                    closeNotePicker(async () => {
+                      try {
+                        const photo = await pickImageLocal();
+                        if (photo) addBlock('photo', { uri: photo.uri });
+                      } catch {
+                        Alert.alert('Could not add photo', 'Please try choosing your photo again.');
+                      }
+                    });
                   } else {
                     closeNotePicker(() => addBlock(kind));
                   }
                 }}
+                tone="onDark"
               />
             )}
             <JournalComposerBar
@@ -1183,7 +1091,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.22)',
     borderRadius: 14,
     padding: 12,
-    marginBottom: 9,
+    marginBottom: JOURNAL_BLOCK_GAP,
     backgroundColor: 'rgba(255,255,255,0.1)',
   },
   textCapture: { backgroundColor: 'rgba(255,255,255,0.1)' },
@@ -1209,11 +1117,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 18,
     color: 'rgba(255,255,255,0.72)',
-  },
-  scriptureReference: {
-    minHeight: 38,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.16)',
   },
 });
 

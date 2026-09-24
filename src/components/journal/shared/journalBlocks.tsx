@@ -2,35 +2,48 @@ import React from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import {Colors} from '../../../theme/colors';
+import {
+  NOTE_BLOCK_REGISTRY,
+  getGenericInlineBlockDefinitions,
+  getNoteBlockDefinitionsForContext,
+  isJournalBlockKind,
+  type JournalBlockConfig,
+  type JournalBlockKind,
+} from './noteBlockRegistry';
+
+export {
+  JOURNAL_BLOCK_KIND_IDS,
+  NOTE_BLOCK_CATEGORIES,
+  NOTE_BLOCK_CONTEXTS,
+  NOTE_BLOCK_REGISTRY,
+  getGenericInlineBlockDefinitions,
+  getNoteBlockDefinitionsForContext,
+  isBlockAllowedInContext,
+  isJournalBlockKind,
+} from './noteBlockRegistry';
+export type {
+  JournalBlockConfig,
+  JournalBlockKind,
+  JournalBlockKindForContext,
+  NoteBlockCategory,
+  NoteBlockContext,
+  NoteBlockDefinition,
+  NoteBlockRenderMode,
+  SelectableJournalBlockKind,
+} from './noteBlockRegistry';
+export {
+  NOTE_BLOCK_METRICS,
+  getNoteBlockVisuals,
+  resolveNoteBlockTone,
+} from './noteBlockTheme';
+export type {
+  NoteBlockTone,
+  NoteBlockVisuals,
+  ResolvedNoteBlockTone,
+} from './noteBlockTheme';
 
 export const JOURNAL_BLOCK_GAP = 12;
 
-export type JournalBlockKind =
-  | 'text'
-  | 'section'
-  | 'action'
-  | 'bullets'
-  | 'numbered'
-  | 'column'
-  | 'photo'
-  | 'voice'
-  | 'scripture'
-  | 'key'
-  | 'quote'
-  | 'song'
-  | 'outline'
-  | 'character'
-  | 'language'
-  | 'link'
-  | 'table'
-  | 'history'
-  | 'remember'
-  | 'response'
-  | 'question'
-  | 'reflection_question'
-  | 'revisit'
-  | 'prayer'
-  | 'book';
 export type JournalOutlineStyle = 'numbered' | 'acronym' | 'simple';
 export type JournalTableAlignment = 'left' | 'center' | 'right';
 export type JournalTableCellAlignments =
@@ -73,16 +86,9 @@ export interface JournalBlock {
   uri?: string;
   durationMillis?: number;
   completed?: boolean;
+  sectionSource?: 'outline';
   parentColumnId?: string;
   columnSide?: 'left' | 'right';
-}
-
-export interface JournalBlockConfig {
-  label: string;
-  action: string;
-  placeholder: string;
-  icon: string;
-  iconFamily?: 'Ionicons' | 'MaterialCommunityIcons';
 }
 
 export type JournalBlockContent = {
@@ -100,6 +106,7 @@ export type JournalBlockContent = {
   tableRows?: string[][];
   tableCellAlignments?: JournalTableCellAlignments;
   uri?: string;
+  sectionSource?: 'outline';
   parentColumnId?: string;
   columnSide?: 'left' | 'right';
 };
@@ -181,193 +188,100 @@ export const resolveJournalTableCellAlignments = (
     ),
   );
 
-export const JOURNAL_BLOCKS: Record<
-  Exclude<JournalBlockKind, 'text'>,
-  JournalBlockConfig
-> = {
-  section: {
-    label: 'SECTION',
-    action: 'Section',
-    placeholder: 'Section title',
-    icon: 'text-outline',
-  },
-  action: {
-    label: 'ACTION',
-    action: 'Action',
-    placeholder: 'Add an action item…',
-    icon: 'checkbox-outline',
-  },
-  bullets: {
-    label: 'Bullets',
-    action: 'Bullets',
-    placeholder: 'List item',
-    icon: 'list-outline',
-  },
-  numbered: {
-    label: 'Numbered',
-    action: 'Numbered',
-    placeholder: 'List item',
-    icon: 'list-circle-outline',
-  },
-  column: {
-    label: 'COLUMN',
-    action: 'Column',
-    placeholder: '',
-    icon: 'view-column-outline',
-    iconFamily: 'MaterialCommunityIcons',
-  },
-  photo: {
-    label: 'PHOTO',
-    action: 'Photo',
-    placeholder: 'Add a caption…',
-    icon: 'image-outline',
-  },
-  voice: {
-    label: 'VOICE NOTE',
-    action: 'Voice Note',
-    placeholder: 'Add a note…',
-    icon: 'mic-outline',
-  },
-  scripture: {
-    label: 'SCRIPTURE',
-    action: '+ Scripture',
-    placeholder: 'Romans 12:1–2',
-    icon: 'book-outline',
-  },
-  key: {
-    label: 'KEY POINT',
-    action: '★ Key Point',
-    placeholder: 'What is the main idea?',
-    icon: 'star-outline',
-  },
-  quote: {
-    label: 'QUOTE',
-    action: '“ ” Quote',
-    placeholder: 'Write the speaker’s words…',
-    icon: 'chatbox-outline',
-  },
-  song: {
-    label: 'WORSHIP SONG',
-    action: '♪ Worship Song',
-    placeholder: 'Song title',
-    icon: 'musical-note-outline',
-  },
-  outline: {
-    label: 'MESSAGE OUTLINE',
-    action: '☷ Outline',
-    placeholder: 'Outline Title',
-    icon: 'list-outline',
-  },
-  character: {
-    label: 'BIBLE CHARACTER',
-    action: '♙ Bible Character',
-    placeholder: 'Name',
-    icon: 'person-circle-outline',
-  },
-  language: {
-    label: 'LANGUAGE NOTE',
-    action: 'א Language Note',
-    placeholder: 'Original Word',
-    icon: 'translate',
-    iconFamily: 'MaterialCommunityIcons',
-  },
-  link: {
-    label: 'LINK',
-    action: 'Link',
-    placeholder: 'Paste or type a link',
-    icon: 'link-outline',
-  },
-  table: {
-    label: 'TABLE',
-    action: '▦ Table',
-    placeholder: '',
-    icon: 'grid-outline',
-  },
-  history: {
-    label: 'HISTORICAL CONTEXT',
-    action: 'Historical Context',
-    placeholder: 'Why does this background matter?',
-    icon: 'map-outline',
-  },
-  remember: {
-    label: 'REMEMBER',
-    action: '♡ Remember',
-    placeholder: 'What do you not want to forget?',
-    icon: 'heart-outline',
-  },
-  response: {
-    label: 'RESPONSE',
-    action: '→ Response',
-    placeholder: 'What do you want to put into practice?',
-    icon: 'arrow-forward-outline',
-  },
-  question: {
-    label: 'QUESTION',
-    action: '? Question',
-    placeholder: 'What question came up as you listened?',
-    icon: 'help-circle-outline',
-  },
-  reflection_question: {
-    label: 'REFLECTION QUESTION',
-    action: '◆ Reflection Question',
-    placeholder: 'What is the reflection question?',
-    icon: 'chatbubbles-outline',
-  },
-  revisit: {
-    label: 'REVISIT',
-    action: '↻ Revisit',
-    placeholder: 'What do you want to come back to later?',
-    icon: 'refresh-outline',
-  },
-  prayer: {
-    label: 'PRAYER',
-    action: 'Prayer',
-    placeholder: 'Turn this moment into prayer…',
-    icon: 'leaf-outline',
-  },
-  book: {
-    label: 'BOOK TO READ',
-    action: '📕 Book to read',
-    placeholder: 'Book title',
-    icon: 'book-outline',
-  },
-};
+/**
+ * Search/export fallback for structured notes. The structured block array
+ * remains canonical, while this projection keeps every meaningful field
+ * readable by legacy consumers that only understand journal text.
+ */
+export const journalBlocksToPlainText = (
+  blocks: readonly JournalBlockContent[],
+): string =>
+  blocks
+    .map(block => {
+      const text = block.text?.trim();
+      const secondary = block.secondary?.trim();
+      const reference = block.reference?.trim();
+      const label = isJournalBlockKind(block.kind)
+        ? NOTE_BLOCK_REGISTRY[block.kind].label
+        : block.kind.toUpperCase();
 
-export const SERMON_BLOCK_KINDS = [
-  'section',
-  'action',
-  'bullets',
-  'numbered',
-  'column',
-  'photo',
-  'voice',
-  'character',
-  'history',
-  'key',
-  'language',
-  'link',
-  'outline',
-  'prayer',
-  'question',
-  'quote',
-  'reflection_question',
-  'remember',
-  'response',
-  'revisit',
-  'scripture',
-  'song',
-  'book',
-  'table',
-] as const;
+      if (block.kind === 'column') {
+        return '';
+      }
+      if (block.kind === 'table') {
+        return (block.tableRows || [])
+          .map(row => row.map(cell => cell.trim()).join('\t'))
+          .join('\n');
+      }
+      if (block.kind === 'bullets' || block.kind === 'numbered') {
+        const list = (block.points || [])
+          .filter(point => point.trim())
+          .map((point, index) =>
+            block.kind === 'numbered'
+              ? `${index + 1}. ${point.trim()}`
+              : `• ${point.trim()}`,
+          );
+        return [text, ...list].filter(Boolean).join('\n');
+      }
+      if (block.kind === 'text') {
+        return text || '';
+      }
+      if (block.kind === 'scripture') {
+        return [
+          label,
+          block.scriptureReference?.trim() || reference || text,
+          block.scriptureText?.trim(),
+        ]
+          .filter(Boolean)
+          .join('\n');
+      }
+      if (block.kind === 'outline') {
+        return [label, text, ...(block.points || []).map(point => point.trim())]
+          .filter(Boolean)
+          .join('\n');
+      }
+      if (block.kind === 'history') {
+        return [label, secondary, block.note?.trim(), reference]
+          .filter(Boolean)
+          .join('\n');
+      }
+      if (block.kind === 'language') {
+        return [
+          label,
+          text,
+          block.meaning?.trim(),
+          secondary,
+          block.origin?.trim(),
+          reference,
+        ]
+          .filter(Boolean)
+          .join('\n');
+      }
+      if (block.kind === 'character') {
+        return [label, text, block.note?.trim(), secondary || reference]
+          .filter(Boolean)
+          .join('\n');
+      }
+      if (block.kind === 'reflection_question') {
+        return [label, text, block.note?.trim()].filter(Boolean).join('\n');
+      }
+      return [label, reference, text, secondary, block.note?.trim()]
+        .filter(Boolean)
+        .join('\n');
+    })
+    .filter(Boolean)
+    .join('\n\n');
+
+/** Backwards-compatible name used throughout the current editor code. */
+export const JOURNAL_BLOCKS = NOTE_BLOCK_REGISTRY;
+
+export const SERMON_BLOCK_KINDS = getNoteBlockDefinitionsForContext('session')
+  .map(definition => definition.kind) as Array<Exclude<JournalBlockKind, 'text'>>;
+
 export const GENERIC_JOURNAL_BLOCK_KINDS = [
-  'text',
-  'scripture',
-  'quote',
-  'key',
-  'remember',
-  'question',
-  'response',
-] as const;
+  'text' as const,
+  ...getGenericInlineBlockDefinitions().map(definition => definition.kind),
+];
 
 export const createJournalBlock = (
   kind: JournalBlockKind,

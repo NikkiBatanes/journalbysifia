@@ -98,8 +98,10 @@ export const playTodayOpeningSound = async (onPlaybackStart?: () => void) => {
   if (!isSoundsEnabled() || hasPlayedTodayOpening) { return; }
   hasPlayedTodayOpening = true;
 
-  // Ambient honours the iOS silent switch and mixes politely with other audio.
-  Sound.setCategory('Ambient', true);
+  // This is an explicit in-app sound (controlled by the Sounds preference), so
+  // keep it audible when an iPhone's silent switch is on. Mixing avoids
+  // needlessly interrupting audio the user already has playing.
+  Sound.setCategory('Playback', true);
   const fileName = Platform.OS === 'android' ? 'today_opening' : 'today_opening.mp3';
   const openingSound = new Sound(fileName, Sound.MAIN_BUNDLE, (error) => {
     if (error) {
@@ -111,7 +113,14 @@ export const playTodayOpeningSound = async (onPlaybackStart?: () => void) => {
 
     openingSound.setVolume(0.62);
     onPlaybackStart?.();
-    openingSound.play(() => openingSound.release());
+    openingSound.play((success) => {
+      if (!success) {
+        // Do not consume the one-per-session cue when the audio session was not
+        // ready yet; focusing Today again can retry it.
+        hasPlayedTodayOpening = false;
+      }
+      openingSound.release();
+    });
   });
 };
 

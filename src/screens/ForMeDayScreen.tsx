@@ -6,6 +6,7 @@ import {
   Dimensions,
   Platform,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Switch,
   TextInput,
@@ -13,14 +14,18 @@ import {
   View,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import {SafeAreaView, useSafeAreaInsets} from 'react-native-safe-area-context';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import {Pencil} from 'lucide-react-native';
 import ShareComposer from '../components/TruthToCarryShareComposer';
-import ForMeDayShareCard, {getForMeDayShareText, type ForMeDayShareData} from '../components/ForMeDayShareCard';
+import NewSuccessModal from '../components/NewSuccessModal';
+import {getForMeDayShareText, type ForMeDayShareData} from '../components/ForMeDayShareCard';
+import ForMeDayFlipCard from '../components/ForMeDayFlipCard';
 import {format} from 'date-fns';
 import ThemedText from '../components/common/ThemedText';
 import HeaderBackButton from '../components/common/HeaderBackButton';
+import StepFadeIn from '../components/common/StepFadeIn';
+import RoutineStepShell from '../components/routine/RoutineStepShell';
 import {Colors} from '../theme/colors';
 import {Fonts} from '../theme/fonts';
 import {gospelStorage, type ForMeDaySettings} from '../storage/gospelStorage';
@@ -29,7 +34,17 @@ import {
   getForMeDayYears,
   scheduleForMeDayReminder,
 } from '../services/forMeDayService';
-import {triggerLightHaptic, triggerSuccessHaptic} from '../utils/haptics';
+import {syncForMeDayTestimonyMoment} from '../services/forMeDayTestimonyMomentService';
+import {Logger} from '../utils/ProductionLogger';
+import {
+  triggerLightHaptic,
+  triggerSelectionHaptic,
+  triggerSuccessHaptic,
+} from '../utils/haptics';
+import {returnToMainTab} from '../navigation/returnToMainTab';
+import {useSuccessModal} from '../hooks/useSuccessModal';
+import {formatForMeDayTestimonyDate} from '../utils/forMeDayTestimonyDate';
+import {getNewLifeDayCopy} from '../utils/newLifeDayCopy';
 
 const defaults = (): Omit<ForMeDaySettings, 'updatedAt'> => ({
   spiritualBirthday: format(new Date(), 'yyyy-MM-dd'),
@@ -39,6 +54,17 @@ const defaults = (): Omit<ForMeDaySettings, 'updatedAt'> => ({
   showInMoments: true,
   includeYearWhenSharing: true,
 });
+
+const settingsSignature = (
+  value: Omit<ForMeDaySettings, 'updatedAt'>,
+): string => JSON.stringify([
+  value.spiritualBirthday,
+  value.originalStory || '',
+  value.reminderEnabled,
+  value.reminderTime,
+  value.showInMoments,
+  value.includeYearWhenSharing,
+]);
 
 const ordinal = (value: number): string => {
   const mod100 = value % 100;
@@ -61,19 +87,39 @@ const ForMeDayScreen: React.FC<any> = ({navigation, route}) => {
   const [settings, setSettings] = useState<Omit<ForMeDaySettings, 'updatedAt'>>(
     defaults(),
   );
+  const [savedSettingsSignature, setSavedSettingsSignature] = useState<string | null>(null);
+  const [hasSavedDate, setHasSavedDate] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [editing, setEditing] = useState(route?.params?.mode === 'settings');
   const [showPicker, setShowPicker] = useState(false);
+  const [pendingBirthdayDate, setPendingBirthdayDate] = useState(new Date());
   const [reflection, setReflection] = useState('');
   const [showReflection, setShowReflection] = useState(false);
+  const [testimonyDraft, setTestimonyDraft] = useState('');
+  const [showTestimonyEditor, setShowTestimonyEditor] = useState(false);
+  const [savingTestimony, setSavingTestimony] = useState(false);
   const [shareComposerOpen, setShareComposerOpen] = useState(false);
   const [sharePreviewWidth, setSharePreviewWidth] = useState(Dimensions.get('window').width - 44);
+  const saveSuccessModal = useSuccessModal();
 
   useEffect(() => {
-    gospelStorage.getForMeDaySettings().then(value => {
-      if (value) {
-        setSettings(value);
-      } else {
+    gospelStorage.getForMeDaySettings().then(async value => {
+      const loadedSettings = value || defaults();
+      if (value?.originalStory?.trim()) {
+        try {
+          await syncForMeDayTestimonyMoment(value);
+        } catch (error) {
+          Logger.warn('Failed to backfill For Me Day testimony Moment', {
+            component: 'ForMeDayScreen',
+            error: error as Error,
+          });
+        }
+      }
+      setSettings(loadedSettings);
+      setHasSavedDate(Boolean(value?.spiritualBirthday));
+      setTestimonyDraft(loadedSettings.originalStory || '');
+      setSavedSettingsSignature(settingsSignature(loadedSettings));
+      if (!value) {
         setEditing(true);
       }
       setLoaded(true);
@@ -83,16 +129,37 @@ const ForMeDayScreen: React.FC<any> = ({navigation, route}) => {
   const birthdayDate = new Date(`${settings.spiritualBirthday}T12:00:00`);
   const years = getForMeDayYears(settings.spiritualBirthday);
   const isFirstDay = settings.spiritualBirthday === format(new Date(), 'yyyy-MM-dd');
+  const newLifeDayCopy = getNewLifeDayCopy(hasSavedDate);
+  const hasUnsavedChanges = !hasSavedDate || (savedSettingsSignature !== null
+    && settingsSignature(settings) !== savedSettingsSignature);
+  const closeForMeDay = useCallback(() => {
+    triggerLightHaptic();
+    if (
+      route?.params?.returnTo === 'More' ||
+      route?.params?.mode === 'settings'
+    ) {
+      returnToMainTab(navigation, 'More');
+      return;
+    }
+    navigation.goBack();
+  }, [navigation, route?.params?.mode, route?.params?.returnTo]);
 
   const saveSettings = useCallback(async () => {
+    triggerLightHaptic();
     const saved = await gospelStorage.saveForMeDaySettings(settings);
+    if (saved.originalStory?.trim()) {
+      await syncForMeDayTestimonyMoment(saved);
+    }
     await scheduleForMeDayReminder(saved);
     setSettings(saved);
+    setHasSavedDate(true);
+    setSavedSettingsSignature(settingsSignature(saved));
     setEditing(false);
     triggerSuccessHaptic();
   }, [settings]);
 
   const saveReflection = useCallback(async () => {
+    triggerLightHaptic();
     const text = reflection.trim();
     if (!text) {
       Alert.alert(
@@ -101,27 +168,79 @@ const ForMeDayScreen: React.FC<any> = ({navigation, route}) => {
       );
       return;
     }
+    const writtenAt = new Date();
     await createLocalReflection({
-      title: years ? `My ${ordinal(years)} For Me Day` : 'My For Me Day',
+      title: years ? `My ${ordinal(years)} New Life Day` : 'My New Life Day',
       content: text,
       type: 'gospel_anniversary',
       source: 'for_me_day',
-      selected_date: format(new Date(), 'yyyy-MM-dd'),
+      selected_date: format(writtenAt, 'yyyy-MM-dd'),
       metadata: {
         journalClassification: 'milestone',
+        forMeDayEntry: 'annual_reflection',
         anniversaryNumber: years,
+        reflectionYear: writtenAt.getFullYear(),
+        writtenAt: writtenAt.toISOString(),
         spiritualBirthday: settings.spiritualBirthday,
       },
     });
     DeviceEventEmitter.emit('reflection_saved', {source: 'for_me_day'});
     setReflection('');
     setShowReflection(false);
-    triggerSuccessHaptic();
-    Alert.alert(
-      'Saved to Moments',
-      'Your For Me Day reflection is now part of your story.',
-    );
-  }, [reflection, settings.spiritualBirthday, years]);
+    saveSuccessModal.showSuccess({
+      title: 'Reflection Saved',
+      message: 'Your reflection has been saved to your journal.',
+    });
+  }, [reflection, saveSuccessModal, settings.spiritualBirthday, years]);
+
+  const saveTestimony = useCallback(async () => {
+    if (savingTestimony) {
+      return;
+    }
+    triggerLightHaptic();
+    const testimony = testimonyDraft.trim();
+    if (!testimony) {
+      Alert.alert(
+        'Write your testimony',
+        'Add a few words about how Jesus met you.',
+      );
+      return;
+    }
+    const wasWritten = Boolean(settings.originalStory?.trim());
+    setSavingTestimony(true);
+    try {
+      const persisted = await gospelStorage.getForMeDaySettings();
+      const baseSettings = persisted || settings;
+      const saved = await gospelStorage.saveForMeDaySettings({
+        ...baseSettings,
+        originalStory: testimony,
+      });
+      await syncForMeDayTestimonyMoment(saved);
+      setSettings(current => ({
+        ...current,
+        originalStory: saved.originalStory,
+        testimonyWrittenAt: saved.testimonyWrittenAt,
+        testimonyUpdatedAt: saved.testimonyUpdatedAt,
+      }));
+      setSavedSettingsSignature(settingsSignature(saved));
+      setTestimonyDraft(saved.originalStory || '');
+      setShowTestimonyEditor(false);
+      saveSuccessModal.showSuccess({
+        title: wasWritten ? 'Testimony Updated' : 'Testimony Saved',
+        message: 'Your testimony has been saved to your journal.',
+      });
+    } catch (error) {
+      Logger.error('Failed to save For Me Day testimony', error as Error, {
+        component: 'ForMeDayScreen',
+      });
+      Alert.alert(
+        'Couldn’t save testimony',
+        'Please try again in a moment.',
+      );
+    } finally {
+      setSavingTestimony(false);
+    }
+  }, [saveSuccessModal, savingTestimony, settings, testimonyDraft]);
 
   const milestone: ForMeDayShareData = {
     title: isFirstDay ? 'Today, I begin\nmy life with Jesus.' : 'My life with Jesus\nbegan here.',
@@ -132,9 +251,132 @@ const ForMeDayScreen: React.FC<any> = ({navigation, route}) => {
         : 'A BEGINNING WORTH CELEBRATING',
     date: format(birthdayDate, 'MMMM d, yyyy'),
   };
-
+  const testimonyText = settings.originalStory?.trim() ||
+    'This is the day you accepted Jesus as your Lord and Savior and committed your life to following Him.';
+  const hasTestimony = Boolean(settings.originalStory?.trim());
+  const testimonySavedLabel = settings.testimonyUpdatedAt
+    ? formatForMeDayTestimonyDate(settings.testimonyUpdatedAt, true)
+    : formatForMeDayTestimonyDate(settings.testimonyWrittenAt);
+  const testimonyHasChanges = Boolean(testimonyDraft.trim()) &&
+    testimonyDraft.trim() !== (settings.originalStory?.trim() || '');
   if (!loaded) {
     return <View style={styles.loading} />;
+  }
+
+  if (showTestimonyEditor) {
+    return (
+      <RoutineStepShell
+        step={1}
+        totalSteps={1}
+        eyebrow="YOUR TESTIMONY"
+        eyebrowIcon={<Pencil size={16} color={Colors.sage} strokeWidth={1.8} />}
+        title={hasTestimony
+          ? 'How would you tell your testimony today?'
+          : 'How did Jesus meet you and begin changing your story?'}
+        titleBottomSpacing={8}
+        backgroundColor={Colors.lightBackground}
+        extraScrollBottomPadding={80}
+        onBack={() => {
+          setTestimonyDraft(settings.originalStory || '');
+          setShowTestimonyEditor(false);
+        }}
+        footer={(
+          <TouchableOpacity
+            style={[
+              styles.walkthroughSaveButton,
+              (!testimonyHasChanges || savingTestimony) &&
+                styles.walkthroughSaveButtonDisabled,
+            ]}
+            disabled={!testimonyHasChanges || savingTestimony}
+            accessibilityRole="button"
+            accessibilityLabel={hasTestimony
+              ? 'Update your testimony'
+              : 'Save your testimony'}
+            activeOpacity={0.75}
+            onPress={saveTestimony}>
+            <Ionicons
+              name="checkmark"
+              size={25}
+              color={Colors.hopeWhite}
+            />
+          </TouchableOpacity>
+        )}>
+        <StepFadeIn delay={120}>
+          <ThemedText style={styles.walkthroughReflectionSubtitle}>
+            Write what you want to remember about meeting Jesus and the life
+            He is continuing to shape in you.
+          </ThemedText>
+        </StepFadeIn>
+        <StepFadeIn delay={180}>
+          <TextInput
+            multiline
+            autoFocus
+            value={testimonyDraft}
+            onChangeText={setTestimonyDraft}
+            placeholder="Begin your testimony..."
+            placeholderTextColor={Colors.textGray}
+            keyboardAppearance="light"
+            textAlignVertical="top"
+            accessibilityLabel="Your testimony"
+            style={styles.walkthroughReflectionInput}
+          />
+        </StepFadeIn>
+      </RoutineStepShell>
+    );
+  }
+
+  if (showReflection) {
+    return (
+      <RoutineStepShell
+        step={1}
+        totalSteps={1}
+        eyebrow="MY NEW LIFE DAY"
+        eyebrowIcon={<Pencil size={16} color={Colors.sage} strokeWidth={1.8} />}
+        title={isFirstDay
+          ? 'What is on your heart as you begin following Jesus today?'
+          : 'How is Jesus leading you as you continue to follow Him?'}
+        titleBottomSpacing={8}
+        backgroundColor={Colors.lightBackground}
+        onBack={() => setShowReflection(false)}
+        footer={(
+          <TouchableOpacity
+            style={[
+              styles.walkthroughSaveButton,
+              !reflection.trim() && styles.walkthroughSaveButtonDisabled,
+            ]}
+            disabled={!reflection.trim()}
+            accessibilityRole="button"
+            accessibilityLabel="Save My New Life Day reflection"
+            activeOpacity={0.75}
+            onPress={saveReflection}>
+            <Ionicons
+              name="checkmark"
+              size={25}
+              color={Colors.hopeWhite}
+            />
+          </TouchableOpacity>
+        )}>
+        <StepFadeIn delay={120}>
+          <ThemedText style={styles.walkthroughReflectionSubtitle}>
+            Write what you want to remember from this year with Jesus.
+          </ThemedText>
+        </StepFadeIn>
+        <StepFadeIn delay={180}>
+          <TextInput
+            multiline
+            autoFocus
+            value={reflection}
+            onChangeText={setReflection}
+            placeholder="Write what is on your heart..."
+            placeholderTextColor={Colors.textGray}
+            keyboardAppearance="light"
+            textAlignVertical="top"
+            accessibilityLabel="My New Life Day reflection"
+            style={styles.walkthroughReflectionInput}
+          />
+        </StepFadeIn>
+      </RoutineStepShell>
+    );
   }
 
   const preferences: Array<{
@@ -164,31 +406,62 @@ const ForMeDayScreen: React.FC<any> = ({navigation, route}) => {
   ];
 
   return (
-    <SafeAreaView style={styles.safe} edges={['left', 'right', 'bottom']}>
-      <View style={[styles.header, {paddingTop: insets.top + 10}]}>
+    <View style={styles.safe}>
+      <StatusBar
+        barStyle="dark-content"
+        backgroundColor="transparent"
+        translucent
+      />
+      <View
+        pointerEvents="box-none"
+        style={[
+          styles.floatingControls,
+          {
+            top: insets.top + 8,
+            paddingLeft: Math.max(22, insets.left + 12),
+            paddingRight: Math.max(22, insets.right + 12),
+          },
+        ]}>
         <HeaderBackButton
-          onPress={() => navigation.goBack()}
+          onPress={closeForMeDay}
         />
-        <ThemedText style={styles.headerTitle}>My For Me Day</ThemedText>
-        <TouchableOpacity
-          style={styles.headerButton}
-          onPress={editing ? saveSettings : () => setEditing(true)}
-          hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}
-          accessibilityRole="button"
-          accessibilityLabel={editing ? 'Save settings' : 'Edit For Me Day'}>
-          {editing ? (
-            <Ionicons name="checkmark" size={21} color={Colors.sage} />
-          ) : (
-            <Ionicons name="settings-outline" size={19} color={Colors.sage} />
-          )}
-        </TouchableOpacity>
+        {!editing || hasUnsavedChanges ? (
+          <TouchableOpacity
+            style={[styles.headerButton, editing && styles.saveHeaderButton]}
+            onPress={editing ? saveSettings : () => {
+              triggerLightHaptic();
+              setEditing(true);
+            }}
+            hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}
+            accessibilityRole="button"
+            accessibilityLabel={editing ? 'Save settings' : `Edit ${newLifeDayCopy.title}`}>
+            {editing ? (
+              <ThemedText weight="semiBold" style={styles.saveHeaderText}>
+                Save
+              </ThemedText>
+            ) : (
+              <Ionicons name="settings-outline" size={19} color={Colors.sage} />
+            )}
+          </TouchableOpacity>
+        ) : null}
       </View>
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView
-          contentContainerStyle={styles.content}
-          keyboardShouldPersistTaps="handled">
+          style={styles.scrollView}
+          contentContainerStyle={[
+            styles.content,
+            {
+              paddingTop: insets.top + 74,
+              paddingBottom: insets.bottom + 140,
+            },
+          ]}
+          contentInsetAdjustmentBehavior="never"
+          automaticallyAdjustContentInsets={false}
+          keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}>
           {editing ? (
             <>
               <View style={styles.settingsHero}>
@@ -197,23 +470,29 @@ const ForMeDayScreen: React.FC<any> = ({navigation, route}) => {
                     <Ionicons name="gift-outline" size={20} color={Colors.faithGold} />
                   </View>
                   <ThemedText style={styles.settingsHeroEyebrow}>
-                    MY FOR ME DAY
+                    {newLifeDayCopy.title.toUpperCase()}
                   </ThemedText>
                 </View>
                 <ThemedText style={styles.settingsHeroTitle}>
-                  Your spiritual birthday
+                  {newLifeDayCopy.subtitle}
                 </ThemedText>
                 <ThemedText style={styles.settingsHeroBody}>
-                  The day you accepted Jesus as your Lord and Savior and committed your life to following Him.
+                  {hasSavedDate
+                    ? 'The day you accepted Jesus as your Lord and Savior and committed your life to following Him.'
+                    : 'When you choose to follow Jesus, you can save the date here and remember it each year.'}
                 </ThemedText>
               </View>
 
               <ThemedText style={styles.sectionLabel}>THE DATE</ThemedText>
               <TouchableOpacity
                 style={styles.dateCard}
-                onPress={() => setShowPicker(true)}
+                onPress={() => {
+                  triggerLightHaptic();
+                  setPendingBirthdayDate(birthdayDate);
+                  setShowPicker(true);
+                }}
                 accessibilityRole="button"
-                accessibilityLabel={`For Me Day, ${format(birthdayDate, 'MMMM d, yyyy')}`}>
+                accessibilityLabel={`${newLifeDayCopy.title}, ${format(birthdayDate, 'MMMM d, yyyy')}`}>
                 <View style={styles.dateIcon}>
                   <Ionicons name="calendar-outline" size={21} color={Colors.sage} />
                 </View>
@@ -223,16 +502,17 @@ const ForMeDayScreen: React.FC<any> = ({navigation, route}) => {
                 </View>
                 <ThemedText style={styles.changeText}>Change</ThemedText>
               </TouchableOpacity>
-              {showPicker && (
+              {showPicker && Platform.OS === 'android' && (
                 <DateTimePicker
-                  value={birthdayDate}
+                  value={pendingBirthdayDate}
+                  minimumDate={new Date(1900, 0, 1)}
                   maximumDate={new Date()}
                   mode="date"
-                  onChange={(_, value) => {
-                    if (Platform.OS !== 'ios') {
-                      setShowPicker(false);
-                    }
-                    if (value) {
+                  display="spinner"
+                  onChange={(event, value) => {
+                    setShowPicker(false);
+                    if (event.type === 'set' && value) {
+                      triggerSuccessHaptic();
                       setSettings(current => ({
                         ...current,
                         spiritualBirthday: format(value, 'yyyy-MM-dd'),
@@ -241,17 +521,88 @@ const ForMeDayScreen: React.FC<any> = ({navigation, route}) => {
                   }}
                 />
               )}
-              <ThemedText style={styles.sectionLabel}>YOUR STORY · OPTIONAL</ThemedText>
-              <TextInput
-                multiline
-                value={settings.originalStory || ''}
-                onChangeText={originalStory =>
-                  setSettings(current => ({...current, originalStory}))
-                }
-                placeholder="What do you remember about that day?"
-                placeholderTextColor={Colors.textGray}
-                style={styles.storyInput}
-              />
+              {showPicker && Platform.OS !== 'android' && (
+                <View style={styles.datePickerCard}>
+                  <DateTimePicker
+                    value={pendingBirthdayDate}
+                    minimumDate={new Date(1900, 0, 1)}
+                    maximumDate={new Date()}
+                    mode="date"
+                    display="spinner"
+                    textColor={Colors.text}
+                    themeVariant="light"
+                    style={styles.datePicker}
+                    onChange={(_event, value) => {
+                      if (value) {
+                        triggerSelectionHaptic();
+                        setPendingBirthdayDate(value);
+                      }
+                    }}
+                  />
+                  <View style={styles.datePickerActions}>
+                    <TouchableOpacity
+                      style={styles.datePickerCancel}
+                      onPress={() => {
+                        triggerLightHaptic();
+                        setShowPicker(false);
+                      }}
+                      accessibilityRole="button"
+                      accessibilityLabel="Cancel date change">
+                      <ThemedText weight="semiBold" style={styles.datePickerCancelText}>
+                        Cancel
+                      </ThemedText>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.datePickerDone}
+                      onPress={() => {
+                        triggerSuccessHaptic();
+                        setSettings(current => ({
+                          ...current,
+                          spiritualBirthday: format(pendingBirthdayDate, 'yyyy-MM-dd'),
+                        }));
+                        setShowPicker(false);
+                      }}
+                      accessibilityRole="button"
+                      accessibilityLabel="Confirm date change">
+                      <ThemedText weight="semiBold" style={styles.datePickerDoneText}>
+                        Done
+                      </ThemedText>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}
+              {hasSavedDate ? (
+                <>
+                  <ThemedText style={styles.sectionLabel}>YOUR TESTIMONY</ThemedText>
+                  <TouchableOpacity
+                    style={styles.dateCard}
+                    onPress={() => {
+                      triggerLightHaptic();
+                      setTestimonyDraft(settings.originalStory || '');
+                      setShowTestimonyEditor(true);
+                    }}
+                    accessibilityRole="button"
+                    accessibilityLabel={hasTestimony
+                      ? 'Update your testimony'
+                      : 'Write your testimony'}>
+                    <View style={styles.dateIcon}>
+                      <Pencil size={19} color={Colors.sage} strokeWidth={1.8} />
+                    </View>
+                    <View style={styles.dateCopy}>
+                      <ThemedText style={styles.dateMonth}>
+                        {hasTestimony ? 'Your testimony' : 'Write your testimony'}
+                      </ThemedText>
+                      <ThemedText style={styles.dateYear}>
+                        {testimonySavedLabel ||
+                          'Remember how Jesus met you and changed your story'}
+                      </ThemedText>
+                    </View>
+                    <ThemedText style={styles.changeText}>
+                      {hasTestimony ? 'Update' : 'Write'}
+                    </ThemedText>
+                  </TouchableOpacity>
+                </>
+              ) : null}
               <ThemedText style={styles.sectionLabel}>PREFERENCES</ThemedText>
               <View style={styles.preferencesCard}>
                 {preferences.map((item, index) => (
@@ -270,9 +621,10 @@ const ForMeDayScreen: React.FC<any> = ({navigation, route}) => {
                     </View>
                     <Switch
                       value={Boolean(settings[item.key])}
-                      onValueChange={value =>
-                        setSettings(current => ({...current, [item.key]: value}))
-                      }
+                      onValueChange={value => {
+                        triggerSelectionHaptic();
+                        setSettings(current => ({...current, [item.key]: value}));
+                      }}
                       trackColor={{false: Colors.lightGray, true: Colors.sageMuted}}
                       thumbColor={Colors.hopeWhite}
                     />
@@ -293,78 +645,61 @@ const ForMeDayScreen: React.FC<any> = ({navigation, route}) => {
                   ? 'Celebrate this beginning. You have accepted Him as Lord and Savior and begun following Him.'
                   : 'Celebrate the day you accepted Him as Lord and Savior and began following Him.'}
               </ThemedText>
-              <View style={styles.milestonePreview} onLayout={event => setSharePreviewWidth(event.nativeEvent.layout.width)}>
-                <ForMeDayShareCard data={milestone} width={sharePreviewWidth} />
+              <View
+                style={styles.milestonePreview}
+                onLayout={event => setSharePreviewWidth(event.nativeEvent.layout.width)}>
+                <ForMeDayFlipCard
+                  data={milestone}
+                  testimony={testimonyText}
+                  writtenAt={settings.testimonyWrittenAt}
+                  width={sharePreviewWidth}
+                />
               </View>
-
-              <View style={styles.sectionHeadingRow}>
-                <ThemedText style={styles.sectionHeading}>Your story</ThemedText>
-                <Ionicons name="book-outline" size={19} color={Colors.sage} />
-              </View>
-              <View style={styles.storyCard}>
-                <ThemedText style={styles.storyText}>
-                  {settings.originalStory?.trim() ||
-                    'This is the day you accepted Jesus as your Lord and Savior and committed your life to following Him.'}
-                </ThemedText>
-              </View>
-              {!showReflection ? (
-                <>
-                  {settings.showInMoments ? (
-                    <TouchableOpacity
-                      style={styles.primary}
-                      onPress={() => {
-                        triggerLightHaptic();
-                        setShowReflection(true);
-                      }}>
-                      <Pencil
-                        size={18}
-                        color={Colors.hopeWhite}
-                        strokeWidth={1.8}
-                      />
-                      <ThemedText style={styles.primaryText}>
-                        {isFirstDay ? 'Write about today' : 'Write this year’s reflection'}
-                      </ThemedText>
-                    </TouchableOpacity>
-                  ) : null}
-                  <TouchableOpacity
-                    style={styles.secondary}
-                    onPress={() => { triggerLightHaptic(); setShareComposerOpen(true); }}>
-                    <Ionicons
-                      name="paper-plane-outline"
-                      size={18}
-                      color={Colors.sage}
-                    />
-                    <ThemedText style={styles.secondaryText}>
-                      Share this milestone
-                    </ThemedText>
-                  </TouchableOpacity>
-                </>
-              ) : (
-                <View style={styles.reflectionCard}>
-                  <ThemedText style={styles.reflectionEyebrow}>{isFirstDay ? 'TODAY' : 'THIS YEAR'}</ThemedText>
-                  <ThemedText style={styles.reflectionPrompt}>
-                    {isFirstDay
-                      ? 'What is on your heart as you begin following Jesus today?'
-                      : 'How is Jesus leading you as you continue to follow Him?'}
-                  </ThemedText>
-                  <TextInput
-                    multiline
-                    autoFocus
-                    value={reflection}
-                    onChangeText={setReflection}
-                    placeholder="Write what is on your heart..."
-                    placeholderTextColor={Colors.textGray}
-                    style={styles.reflectionInput}
+              {settings.showInMoments ? (
+                <TouchableOpacity
+                  style={styles.primary}
+                  onPress={() => {
+                    triggerLightHaptic();
+                    setShowReflection(true);
+                  }}>
+                  <Pencil
+                    size={18}
+                    color={Colors.hopeWhite}
+                    strokeWidth={1.8}
                   />
-                  <TouchableOpacity
-                    style={styles.primary}
-                    onPress={saveReflection}>
-                    <ThemedText style={styles.primaryText}>
-                      Save to Moments
-                    </ThemedText>
-                  </TouchableOpacity>
-                </View>
-              )}
+                  <ThemedText style={styles.primaryText}>
+                    {isFirstDay ? 'Write about today' : 'Write this year’s reflection'}
+                  </ThemedText>
+                </TouchableOpacity>
+              ) : null}
+              {!hasTestimony ? (
+                <TouchableOpacity
+                  style={styles.secondary}
+                  onPress={() => {
+                    triggerLightHaptic();
+                    setTestimonyDraft('');
+                    setShowTestimonyEditor(true);
+                  }}
+                  accessibilityRole="button"
+                  accessibilityLabel="Write my testimony">
+                  <Pencil size={18} color={Colors.sage} strokeWidth={1.8} />
+                  <ThemedText style={styles.secondaryText}>
+                    Write my testimony
+                  </ThemedText>
+                </TouchableOpacity>
+              ) : null}
+              <TouchableOpacity
+                style={styles.secondary}
+                onPress={() => { triggerLightHaptic(); setShareComposerOpen(true); }}>
+                <Ionicons
+                  name="paper-plane-outline"
+                  size={18}
+                  color={Colors.sage}
+                />
+                <ThemedText style={styles.secondaryText}>
+                  Share this milestone
+                </ThemedText>
+              </TouchableOpacity>
             </>
           )}
         </ScrollView>
@@ -376,24 +711,31 @@ const ForMeDayScreen: React.FC<any> = ({navigation, route}) => {
         text={getForMeDayShareText(milestone)}
         onClose={() => setShareComposerOpen(false)}
       />}
-    </SafeAreaView>
+      <NewSuccessModal
+        visible={saveSuccessModal.isVisible}
+        config={saveSuccessModal.config}
+        onDone={saveSuccessModal.handleDone}
+        onEdit={saveSuccessModal.handleEdit}
+      />
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   safe: {flex: 1, backgroundColor: Colors.lightBackground},
   flex: {flex: 1},
+  scrollView: {flex: 1},
   loading: {flex: 1, backgroundColor: Colors.lightBackground},
-  header: {
-    minHeight: 60,
+  floatingControls: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    zIndex: 20,
     paddingHorizontal: 22,
-    paddingBottom: 8,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: Colors.lightBackground,
   },
-  headerTitle: {fontFamily: Fonts.semiBold, fontSize: 16, color: Colors.text},
   headerButton: {
     width: 42,
     height: 42,
@@ -407,10 +749,16 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 2,
   },
+  saveHeaderButton: {
+    width: 68,
+    paddingHorizontal: 16,
+  },
+  saveHeaderText: {
+    fontSize: 14,
+    color: Colors.sage,
+  },
   content: {
     paddingHorizontal: 22,
-    paddingTop: 14,
-    paddingBottom: 56,
     maxWidth: 640,
     width: '100%',
     alignSelf: 'center',
@@ -513,22 +861,45 @@ const styles = StyleSheet.create({
   dateMonth: {fontFamily: Fonts.medium, fontSize: 15, color: Colors.text},
   dateYear: {fontFamily: Fonts.regular, fontSize: 11, color: Colors.textGray, marginTop: 2},
   changeText: {fontFamily: Fonts.medium, fontSize: 12, color: Colors.sage},
-  storyInput: {
-    minHeight: 132,
-    textAlignVertical: 'top',
-    padding: 18,
+  datePickerCard: {
+    marginTop: 12,
     borderRadius: 24,
-    backgroundColor: Colors.hopeWhite,
-    color: Colors.text,
-    fontFamily: Fonts.regular,
-    fontSize: 14,
-    lineHeight: 22,
-    shadowColor: Colors.modalBlue,
-    shadowOffset: {width: 0, height: 8},
-    shadowOpacity: 0.07,
-    shadowRadius: 18,
-    elevation: 2,
+    paddingHorizontal: 14,
+    paddingTop: 4,
+    paddingBottom: 14,
+    backgroundColor: Colors.cardBackground,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.cardBorder,
+    overflow: 'hidden',
   },
+  datePicker: {
+    width: '100%',
+    height: 216,
+    alignSelf: 'center',
+  },
+  datePickerActions: {
+    flexDirection: 'row',
+    gap: 10,
+    paddingHorizontal: 4,
+  },
+  datePickerCancel: {
+    flex: 1,
+    minHeight: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.anchorBlueLight,
+  },
+  datePickerDone: {
+    flex: 1,
+    minHeight: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.sage,
+  },
+  datePickerCancelText: {fontSize: 13, color: Colors.sage},
+  datePickerDoneText: {fontSize: 13, color: Colors.hopeWhite},
   preferencesCard: {
     backgroundColor: Colors.hopeWhite,
     borderRadius: 24,
@@ -592,71 +963,40 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   secondaryText: {fontFamily: Fonts.semiBold, fontSize: 13, color: Colors.sage},
-  milestonePreview: {borderRadius: 24, overflow: 'hidden'},
-  sectionHeadingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: 28,
-    marginBottom: 12,
-    paddingHorizontal: 2,
-  },
-  sectionHeading: {fontFamily: Fonts.bold, fontSize: 20, color: Colors.text},
-  storyCard: {
-    backgroundColor: Colors.cardBackground,
-    borderRadius: 24,
-    padding: 20,
-    shadowColor: Colors.modalBlue,
-    shadowOffset: {width: 0, height: 8},
-    shadowOpacity: 0.07,
-    shadowRadius: 18,
-    elevation: 2,
-  },
-  storyText: {
-    fontFamily: Fonts.lora.regular,
-    fontSize: 17,
-    lineHeight: 27,
-    color: Colors.text,
-  },
-  reflectionCard: {
-    marginTop: 18,
-    backgroundColor: Colors.cardBackground,
-    borderRadius: 24,
-    padding: 20,
-    shadowColor: Colors.modalBlue,
-    shadowOffset: {width: 0, height: 8},
-    shadowOpacity: 0.07,
-    shadowRadius: 18,
-    elevation: 2,
-  },
-  reflectionEyebrow: {
-    fontFamily: Fonts.semiBold,
-    fontSize: 9,
-    letterSpacing: 1.8,
-    color: Colors.sage,
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  reflectionPrompt: {
-    fontFamily: Fonts.lora.semiBold,
-    fontSize: 19,
-    lineHeight: 27,
-    color: Colors.text,
-    textAlign: 'center',
-    marginBottom: 16,
-  },
-  reflectionInput: {
-    height: 145,
-    backgroundColor: Colors.lightBackground,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.cardBorder,
-    borderRadius: 16,
-    padding: 15,
-    textAlignVertical: 'top',
+  milestonePreview: {width: '100%'},
+  walkthroughReflectionSubtitle: {
+    maxWidth: 520,
+    alignSelf: 'center',
     fontFamily: Fonts.regular,
-    color: Colors.text,
-    fontSize: 14,
-    lineHeight: 21,
+    fontSize: 15,
+    lineHeight: 23,
+    color: Colors.textGray,
+    textAlign: 'center',
+    marginBottom: 28,
   },
+  walkthroughReflectionInput: {
+    minHeight: 220,
+    paddingHorizontal: 0,
+    paddingVertical: 16,
+    fontFamily: Fonts.regular,
+    fontSize: 18,
+    lineHeight: 28,
+    color: Colors.text,
+    backgroundColor: 'transparent',
+  },
+  walkthroughSaveButton: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.sage,
+    shadowColor: Colors.sage,
+    shadowOffset: {width: 0, height: 4},
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  walkthroughSaveButtonDisabled: {opacity: 0.35},
 });
 export default ForMeDayScreen;

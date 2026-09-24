@@ -1,12 +1,25 @@
 import type {ReviewType} from '../storage/reviewStorage';
 import {WEEKLY_LIFE_AREAS} from '../data/weeklyLifeAreas';
+import {
+  MONTHLY_MORE_ROOM_DETAIL_LIMIT,
+  MONTHLY_MORE_ROOM_OPTIONS,
+} from '../data/monthlyMoreRoomChoices';
+import {
+  MONTHLY_LEAVE_BEHIND_DETAIL_LIMIT,
+  MONTHLY_LEAVE_BEHIND_DETAILS,
+  MONTHLY_LEAVE_BEHIND_PRIMARY_OPTIONS,
+} from '../data/monthlyLeaveBehindChoices';
 
 export type ReviewStageKind =
   | 'cover'
   | 'feelings'
   | 'life_check_in'
+  | 'life_summary'
+  | 'wins'
+  | 'pill_choices'
   | 'captured'
   | 'remembered'
+  | 'testimony'
   | 'question'
   | 'priorities'
   | 'transition'
@@ -24,6 +37,15 @@ export interface ReviewStageConfig {
   answerKey?: string;
   answerKeys?: string[];
   placeholder?: string;
+  choices?: string[];
+  selectionLimit?: number;
+  otherAnswerKey?: string;
+  choiceDetails?: Array<{
+    choice: string;
+    answerKey: string;
+    choices: string[];
+    selectionLimit?: number;
+  }>;
 }
 
 const sharedCaptured: ReviewStageConfig = {
@@ -188,7 +210,14 @@ const weeklyStages = (): ReviewStageConfig[] => [
   },
 ];
 
-const monthlyStages = (): ReviewStageConfig[] => [
+export interface ReviewStageOptions {
+  includeMonthlyTestimony?: boolean;
+  includeMonthlyWins?: boolean;
+}
+
+const monthlyStages = (
+  options: ReviewStageOptions = {},
+): ReviewStageConfig[] => [
   {
     key: 'cover',
     kind: 'cover',
@@ -209,7 +238,7 @@ const monthlyStages = (): ReviewStageConfig[] => [
   {
     key: 'notice',
     kind: 'question',
-    icon: 'eye',
+    icon: 'leaf-outline',
     label: 'PATTERNS',
     question: 'What patterns do you notice?',
     subtitle: 'Look across every Morning Check-in from the month.',
@@ -217,20 +246,78 @@ const monthlyStages = (): ReviewStageConfig[] => [
     answerKey: 'notice_month',
   },
   {
-    key: 'god',
-    kind: 'question',
-    icon: 'sunny',
-    label: 'GOD’S FAITHFULNESS',
-    question: 'Where did you see God’s faithfulness?',
-    subtitle:
-      'Name the provision, presence, protection, or grace you can see now.',
-    placeholder: 'God, I saw Your faithfulness in…',
-    answerKey: 'god_month',
+    key: 'monthly_life_summary',
+    kind: 'life_summary',
+    icon: 'leaf-outline',
+    label: 'LOOKING BACK',
+    question: 'How were you this month?',
+    subtitle: 'A synthesis of your weekly Whole-life check-ins.',
+  },
+  ...(options.includeMonthlyWins
+    ? [
+        {
+          key: 'monthly_wins',
+          kind: 'wins' as const,
+          icon: 'leaf-outline',
+          label: 'LOOKING BACK',
+          title: 'You had wins worth remembering.',
+          subtitle:
+            'Big or quiet, these are the wins you recorded along the way.',
+        },
+      ]
+    : []),
+  {
+    key: 'monthly_life_giving',
+    kind: 'pill_choices',
+    icon: 'leaf-outline',
+    label: 'LOOKING BACK',
+    question: 'What gave you life this month?',
+    subtitle: 'Choose up to 3 things that restored or strengthened you.',
+    answerKey: 'month_life_giving',
+    answerKeys: ['month_life_giving', 'month_life_giving_other'],
+    otherAnswerKey: 'month_life_giving_other',
+    selectionLimit: 3,
+    choices: [
+      'Time with God',
+      'Time with family',
+      'Walking or movement',
+      'Sabbath or deep rest',
+      'Creative work',
+      'Meaningful conversations',
+      'Being outdoors',
+      'Progress that mattered',
+      'Serving someone',
+      'A simpler pace',
+    ],
+  },
+  {
+    key: 'monthly_draining',
+    kind: 'pill_choices',
+    icon: 'leaf-outline',
+    label: 'LOOKING BACK',
+    question: 'What drained you this month?',
+    subtitle: 'Choose up to 3 things that seemed to take more from you.',
+    answerKey: 'month_draining',
+    answerKeys: ['month_draining', 'month_draining_other'],
+    otherAnswerKey: 'month_draining_other',
+    selectionLimit: 3,
+    choices: [
+      'Carrying too much',
+      'Not enough rest',
+      'Mental noise',
+      'Relational tension',
+      'Pressure to perform',
+      'Comparison',
+      'Financial pressure',
+      'Unhealthy rhythms',
+      'Feeling scattered',
+      'Feeling spiritually dry',
+    ],
   },
   {
     key: 'formation',
     kind: 'question',
-    icon: 'leaf',
+    icon: 'leaf-outline',
     label: 'FORMATION',
     question: 'What might God be forming in you through this season?',
     subtitle: 'You do not need a finished answer. Name what may be growing.',
@@ -240,23 +327,37 @@ const monthlyStages = (): ReviewStageConfig[] => [
   {
     key: 'prayer',
     kind: 'question',
-    icon: 'chatbubble',
-    label: 'PRAYER',
-    question: 'What prayers were answered? What are you still waiting on?',
+    icon: 'leaf-outline',
+    label: 'PRAYERS',
+    question: 'This month in prayer',
     subtitle:
-      'Look back with gratitude, and make room for what remains unfinished.',
+      'Receive what was answered with gratitude, and hold what remains with trust.',
     placeholder: 'This month in prayer…',
     answerKey: 'prayer_month',
   },
+  ...(options.includeMonthlyTestimony
+    ? [
+        {
+          key: 'monthly_testimony',
+          kind: 'testimony' as const,
+          icon: 'leaf-outline',
+          label: 'GOD’S FAITHFULNESS',
+          title: 'Also this month, you wrote your testimony.',
+          subtitle:
+            'You made space to remember how Jesus met you and where your life with Him began.',
+        },
+      ]
+    : []),
   {
-    key: 'release',
+    key: 'god',
     kind: 'question',
-    icon: 'trash',
-    label: 'RELEASE',
-    question: 'What don’t you want to carry unnecessarily into another month?',
-    subtitle: 'You can put down what is no longer yours to hold.',
-    placeholder: 'I am ready to release…',
-    answerKey: 'release_month',
+    icon: 'leaf-outline',
+    label: 'GOD’S FAITHFULNESS',
+    question: 'Where did you see God’s faithfulness this month?',
+    subtitle:
+      'Name the provision, presence, protection, or grace you can see now.',
+    placeholder: 'God, I saw Your faithfulness in…',
+    answerKey: 'god_month',
   },
   {
     key: 'step_into',
@@ -268,12 +369,71 @@ const monthlyStages = (): ReviewStageConfig[] => [
       'Let what God has shown you shape how you step into the month ahead.',
   },
   {
+    key: 'monthly_more_room',
+    kind: 'pill_choices',
+    icon: 'leaf-outline',
+    label: 'LOOKING AHEAD',
+    question: 'What do you want to make more room for?',
+    subtitle: 'Choose up to 3.',
+    answerKey: 'month_more_room',
+    answerKeys: [
+      'month_more_room',
+      'month_more_room_other',
+      ...MONTHLY_MORE_ROOM_OPTIONS.map(option => option.answerKey),
+    ],
+    otherAnswerKey: 'month_more_room_other',
+    selectionLimit: 3,
+    choices: MONTHLY_MORE_ROOM_OPTIONS.map(option => option.label),
+    choiceDetails: MONTHLY_MORE_ROOM_OPTIONS.map(option => ({
+      choice: option.label,
+      answerKey: option.answerKey,
+      choices: [...option.choices],
+      selectionLimit: MONTHLY_MORE_ROOM_DETAIL_LIMIT,
+    })),
+  },
+  {
+    key: 'monthly_care',
+    kind: 'question',
+    icon: 'leaf-outline',
+    label: 'LOOKING AHEAD',
+    question: 'What needs care next month?',
+    subtitle:
+      'Based on your weekly Whole-life check-ins, these areas may need more attention next month. Choose up to 3.',
+    answerKey: 'month_care_areas',
+    answerKeys: ['month_care_areas', 'month_care_other'],
+    otherAnswerKey: 'month_care_other',
+    selectionLimit: 3,
+  },
+  {
+    key: 'monthly_leave_behind',
+    kind: 'pill_choices',
+    icon: 'leaf-outline',
+    label: 'LOOKING AHEAD',
+    question: 'What do you want to leave behind?',
+    subtitle: 'Choose up to 3 things you do not want to carry forward.',
+    answerKey: 'month_leave_behind',
+    answerKeys: [
+      'month_leave_behind',
+      'month_leave_behind_other',
+      ...MONTHLY_LEAVE_BEHIND_DETAILS.map(option => option.answerKey),
+    ],
+    otherAnswerKey: 'month_leave_behind_other',
+    selectionLimit: 3,
+    choices: [...MONTHLY_LEAVE_BEHIND_PRIMARY_OPTIONS],
+    choiceDetails: MONTHLY_LEAVE_BEHIND_DETAILS.map(option => ({
+      choice: option.label,
+      answerKey: option.answerKey,
+      choices: [...option.choices],
+      selectionLimit: MONTHLY_LEAVE_BEHIND_DETAIL_LIMIT,
+    })),
+  },
+  {
     key: 'priority',
     kind: 'priorities',
-    icon: 'star',
-    label: 'PRIORITY',
-    question: 'What matters most in the month ahead?',
-    subtitle: 'One is enough. Add up to three if you’d like.',
+    icon: 'leaf-outline',
+    label: 'LOOKING AHEAD',
+    question: 'What matters most next month?',
+    subtitle: 'Choose up to 3 intentions.',
     answerKeys: [
       'next_month_priority_1',
       'next_month_priority_2',
@@ -281,65 +441,15 @@ const monthlyStages = (): ReviewStageConfig[] => [
     ],
   },
   {
-    key: 'attention',
-    kind: 'question',
-    icon: 'list',
-    label: 'ATTENTION',
-    question: 'What needs your attention next month?',
-    subtitle:
-      'A decision, responsibility, conversation, deadline, or something else.',
-    placeholder: 'What needs attention is…',
-    answerKey: 'attention',
-  },
-  {
-    key: 'continue',
-    kind: 'question',
-    icon: 'play',
-    label: 'CONTINUE',
-    question: 'What do you want to continue?',
-    subtitle: 'Carry forward what has been life-giving or faithful.',
-    placeholder: 'I want to continue…',
-    answerKey: 'continue',
-  },
-  {
-    key: 'simplify_or_stop',
-    kind: 'question',
-    icon: 'remove-circle',
-    label: 'SIMPLIFY OR STOP',
-    question: 'What should you simplify or stop?',
-    subtitle: 'Make room by naming what can become lighter or come to an end.',
-    placeholder: 'I can simplify or stop…',
-    answerKey: 'simplify_or_stop',
-  },
-  {
-    key: 'people',
-    kind: 'question',
-    icon: 'people',
-    label: 'PEOPLE',
-    question: 'Who do you want to be intentional with?',
-    subtitle: 'Who needs your presence, care, encouragement, or attention?',
-    placeholder: 'I want to make room for…',
-    answerKey: 'intentional_with',
-  },
-  {
-    key: 'rhythm',
-    kind: 'question',
-    icon: 'musical-notes',
-    label: 'RHYTHM',
-    question: 'What rhythm do you want to protect?',
-    subtitle: 'Choose a simple rhythm that will help you stay grounded.',
-    placeholder: 'I want to protect…',
-    answerKey: 'rhythm',
-  },
-  {
     key: 'prayer_for_month',
     kind: 'question',
-    icon: 'chatbubble',
+    icon: 'heart-outline',
     label: 'WITH GOD',
-    question: 'What are you praying for in the month ahead?',
-    subtitle: 'Bring the month to God before you try to carry it.',
+    question: 'Pray over your month',
+    subtitle: 'Bring the month ahead to God.',
     placeholder: 'God, as I enter this month…',
     answerKey: 'prayer_for_month',
+    answerKeys: ['month_prayer_ids', 'prayer_for_month'],
   },
   {
     key: 'ready',
@@ -716,7 +826,10 @@ const beginYearStages = (): ReviewStageConfig[] => [
   },
 ];
 
-export const getReviewStages = (type: ReviewType): ReviewStageConfig[] => {
+export const getReviewStages = (
+  type: ReviewType,
+  options: ReviewStageOptions = {},
+): ReviewStageConfig[] => {
   switch (type) {
     case 'begin_year':
       return beginYearStages();
@@ -725,7 +838,7 @@ export const getReviewStages = (type: ReviewType): ReviewStageConfig[] => {
     case 'quarterly':
       return quarterlyStages();
     case 'monthly':
-      return monthlyStages();
+      return monthlyStages(options);
     case 'weekly':
     default:
       return weeklyStages();

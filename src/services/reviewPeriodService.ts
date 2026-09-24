@@ -1,6 +1,5 @@
 import {
   addDays,
-  addMonths,
   addQuarters,
   endOfMonth,
   endOfQuarter,
@@ -84,7 +83,10 @@ export const getMonthlyPeriodFor = (
     periodStart: toLocalDateString(periodStart),
     periodEnd: toLocalDateString(periodEnd),
     availableFrom: toLocalDateString(availableFrom),
-    availableUntil: toLocalDateString(addMonths(availableFrom, 1)),
+    // Keep a recently closed month actionable for one week. After that the
+    // saved draft remains in storage, but it should no longer pull the user
+    // backward into an expired review period.
+    availableUntil: toLocalDateString(addDays(availableFrom, 7)),
   };
 };
 

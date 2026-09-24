@@ -5,6 +5,7 @@ import {
   Platform,
   StatusBar,
   StyleSheet,
+  Switch,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -13,10 +14,11 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useNavigation } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
+import HeaderCloseButton from '../components/common/HeaderCloseButton';
 import ThemedText from '../components/common/ThemedText';
 import { Colors } from '../theme/colors';
 import { Fonts } from '../theme/fonts';
-import { triggerLightHaptic } from '../utils/haptics';
+import { triggerLightHaptic, triggerSelectionHaptic } from '../utils/haptics';
 import {
   getReviewSettings,
   setReviewSettings,
@@ -83,6 +85,7 @@ const ReviewSettingsScreen: React.FC = () => {
   }, []);
 
   const toggleCadence = useCallback((type: ReviewType) => {
+    triggerSelectionHaptic();
     setLocalSettings(prev => {
       if (!prev) {return prev;}
       return {
@@ -97,13 +100,13 @@ const ReviewSettingsScreen: React.FC = () => {
 
   const save = useCallback(async () => {
     if (!settings) {return;}
+    triggerLightHaptic();
     if (!isValidTime(settings.reminderTime)) {
       // fallback to default if user typed something invalid
       settings.reminderTime = DEFAULT_REVIEW_SETTINGS.reminderTime;
     }
     await setReviewSettings(settings);
     await rescheduleReviewNotifications();
-    triggerLightHaptic();
     navigation.goBack();
   }, [settings, navigation]);
 
@@ -122,19 +125,18 @@ const ReviewSettingsScreen: React.FC = () => {
     <SafeAreaView style={[styles.safeArea, { paddingTop: topInset }]} edges={['left', 'right']}>
       <StatusBar barStyle="dark-content" backgroundColor={Colors.lightBackground} translucent={false} />
       <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.closeButton}
+        <View style={styles.headerPlaceholder} />
+        <ThemedText weight="bold" style={styles.title}>
+          Review Settings
+        </ThemedText>
+        <HeaderCloseButton
+          color={Colors.text}
+          accessibilityLabel="Close review settings"
           onPress={() => {
             triggerLightHaptic();
             navigation.goBack();
           }}
-          activeOpacity={0.7}>
-          <Ionicons name="close" size={20} color={Colors.text} />
-        </TouchableOpacity>
-        <ThemedText weight="bold" style={styles.title}>
-          Review Settings
-        </ThemedText>
-        <View style={styles.closeButton} />
+        />
       </View>
 
       <ScrollView
@@ -202,28 +204,20 @@ const ReviewSettingsScreen: React.FC = () => {
           Review cadences
         </ThemedText>
         {CADENCE_ORDER.map(type => (
-          <TouchableOpacity
+          <View
             key={type}
-            style={styles.toggleRow}
-            onPress={() => toggleCadence(type)}
-            activeOpacity={0.7}>
+            style={styles.toggleRow}>
             <ThemedText style={styles.toggleLabel}>
               {CADENCE_LABELS[type]}
             </ThemedText>
-            <View
-              style={[
-                styles.togglePill,
-                settings.enabledCadences[type] && styles.togglePillActive,
-              ]}>
-              <Ionicons
-                name={settings.enabledCadences[type] ? 'checkmark' : 'close'}
-                size={14}
-                color={
-                  settings.enabledCadences[type] ? Colors.hopeWhite : Colors.textGray
-                }
-              />
-            </View>
-          </TouchableOpacity>
+            <Switch
+              value={settings.enabledCadences[type]}
+              onValueChange={() => toggleCadence(type)}
+              trackColor={{false: Colors.lightGray, true: Colors.sageMuted}}
+              thumbColor={Colors.hopeWhite}
+              accessibilityLabel={CADENCE_LABELS[type]}
+            />
+          </View>
         ))}
 
         <TouchableOpacity
@@ -250,18 +244,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   header: {
+    height: 52,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 18,
-    paddingTop: 12,
-    paddingBottom: 12,
+    paddingHorizontal: 14,
   },
-  closeButton: {
+  headerPlaceholder: {
     width: 42,
     height: 42,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   title: {
     fontFamily: Fonts.lora.bold,
@@ -340,17 +331,6 @@ const styles = StyleSheet.create({
   toggleLabel: {
     fontSize: 15,
     color: Colors.text,
-  },
-  togglePill: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: Colors.cardBorder,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  togglePillActive: {
-    backgroundColor: Colors.sage,
   },
   saveButton: {
     width: '100%',

@@ -20,6 +20,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { Trash2 } from 'lucide-react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { format } from 'date-fns';
 
@@ -806,6 +807,35 @@ const BibleStudyScreen = () => {
     return session?.passage.reference ?? pendingPassageReference ?? '';
   }, [pendingPassageReference, stage, session?.passage.reference]);
 
+  const deleteEditingSavedStudy = () => {
+    const reflectionId = savedReflectionId || session?.reflection_ref?.local_id;
+    const selectedDate = savedSelectedDate || session?.selected_date;
+    if (!reflectionId || !selectedDate) {return;}
+    triggerLightHaptic();
+    Alert.alert(
+      'Delete Bible Study?',
+      'This removes the saved study. Any prayer you saved to Prayer Journal will be kept.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteLocalReflection(reflectionId, 'scripture', selectedDate);
+              if (session?.id) {await deleteBibleStudySession(session.id);}
+              DeviceEventEmitter.emit('reflection_deleted', reflectionId);
+              DeviceEventEmitter.emit('bible_study_saved', reflectionId);
+              closeBibleStudy();
+            } catch {
+              Alert.alert('Unable to delete', 'Please try again.');
+            }
+          },
+        },
+      ],
+    );
+  };
+
   const renderTop = () => stage === 'home' ? (
     <View style={[styles.homeTop, { top: insets.top + 8 }]} pointerEvents="box-none">
       {selectedTopic ? (
@@ -831,11 +861,15 @@ const BibleStudyScreen = () => {
     <View style={styles.top}>
       {stage === 'saved' ? (
         <View style={styles.topIcon} />
+      ) : editingSavedStudy ? (
+        <View style={styles.editingBackSlot}>
+          <HeaderBackButton onPress={back} color={Colors.text} />
+        </View>
       ) : (
         <HeaderBackButton onPress={back} color={Colors.text} />
       )}
       {topTitle ? (
-        <View style={styles.topTitleRow}>
+        <View style={[styles.topTitleRow, editingSavedStudy && styles.editingTopTitleRow]}>
           <ThemedText weight="semiBold" style={styles.topTitle}>{topTitle}</ThemedText>
           {(stage === 'observe' || stage === 'understand' || stage === 'respond') ? (
             <TouchableOpacity
@@ -852,7 +886,33 @@ const BibleStudyScreen = () => {
       ) : (
         <View />
       )}
-      {stage === 'read' ? (
+      {editingSavedStudy ? (
+        <View style={styles.editingTopActions}>
+          <TouchableOpacity
+            onPress={deleteEditingSavedStudy}
+            activeOpacity={0.7}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            accessibilityRole="button"
+            accessibilityLabel="Delete Bible Study"
+            style={styles.editingDeleteButton}
+          >
+            <Trash2 size={18} color={Colors.textGray} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => {
+              triggerLightHaptic();
+              closeBibleStudy();
+            }}
+            activeOpacity={0.7}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            accessibilityRole="button"
+            accessibilityLabel="Close Bible Study"
+            style={styles.editingCloseButton}
+          >
+            <Ionicons name="close" size={17} color={Colors.sage} />
+          </TouchableOpacity>
+        </View>
+      ) : stage === 'read' ? (
         <TouchableOpacity
           style={[styles.aaHeaderButton, showTextSettings && styles.aaHeaderButtonActive]}
           onPress={() => setShowTextSettings(value => !value)}
@@ -1826,16 +1886,6 @@ const BibleStudyScreen = () => {
         await loadPassageText(originalSession.passage.reference, originalSession.passage.translation ?? 'NASB');
         setStage('read');
       }}
-      onDelete={async () => {
-        if (!reflectionId) {throw new Error('Saved reflection is missing.');}
-        await deleteLocalReflection(reflectionId, 'scripture', selectedDate);
-        const sessionId = savedReflection?.metadata?.bibleStudySessionId || session?.id;
-        if (sessionId) {await deleteBibleStudySession(sessionId);}
-        // The intentionally saved prayer is a separate canonical record.
-        DeviceEventEmitter.emit('reflection_deleted', reflectionId);
-        DeviceEventEmitter.emit('bible_study_saved', reflectionId);
-        closeBibleStudy();
-      }}
     />;
   }
 
@@ -1961,6 +2011,34 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 10,
     minHeight: 50,
+  },
+  editingBackSlot: {
+    width: 94,
+    alignItems: 'flex-start',
+  },
+  editingTopTitleRow: {
+    flex: 1,
+    minWidth: 0,
+  },
+  editingTopActions: {
+    width: 94,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  editingDeleteButton: {
+    width: 42,
+    height: 42,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  editingCloseButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 999,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.cardBackground,
   },
   topIcon: {
     width: 42,

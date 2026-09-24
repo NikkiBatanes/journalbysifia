@@ -29,11 +29,14 @@ import ScriptureReaderModal from '../ScriptureReaderModal';
 import HeaderBackButton from '../common/HeaderBackButton';
 import ThemedText from '../common/ThemedText';
 import {ReflectionQuestionCard} from './shared/ReflectionQuestionCard';
-import {JournalComposerBar, JournalPickerMenu} from './shared/JournalComposer';
-import {JournalInlineBlock} from './shared/JournalInlineBlock';
+import {
+  createJournalPickerEntrance,
+  JournalComposerBar,
+  JournalPickerMenu,
+} from './shared/JournalComposer';
+import {JournalBlockEditor} from './shared/JournalBlockEditor';
 import JournalTextInput from './shared/JournalTextInput';
-import {JournalListBlock} from './shared/JournalListBlock';
-import {JournalTableBlock} from './shared/JournalTableBlock';
+import {ScriptureLookupInput} from './shared/ScriptureLookupInput';
 import JournalColumnBlock from './shared/JournalColumnBlock';
 import JournalNestedBlockEditor from './shared/JournalNestedBlockEditor';
 import DraggableJournalBlock from './shared/DraggableJournalBlock';
@@ -41,12 +44,13 @@ import {
   reorderJournalBlock,
   resolveJournalBlockDropIndex,
 } from './shared/journalBlockOperations';
-import ReflectionSpecialBlock from './ReflectionSpecialBlock';
 import SavedReflectionBlocks from './SavedReflectionBlocks';
 import {styles as reflectionEditorStyles} from './reflectionStyles';
 import {
+  JOURNAL_BLOCK_GAP,
   JOURNAL_BLOCKS,
   JournalBlockIcon,
+  createJournalBlock,
   prepareJournalBlocksForSave,
   type JournalBlock,
   type JournalBlockConfig,
@@ -59,6 +63,7 @@ import {
   GUIDED_REFLECTION_PATHS,
   getGuidedReflectionPath,
 } from '../../data/guidedReflectionPaths';
+import {prepareGuidedReflectionForBlockEditing} from '../../data/guidedReflectionEditing';
 import {
   GUIDED_QUESTION_TOPICS,
   questionsForTopic,
@@ -86,6 +91,16 @@ if (Platform.OS === 'android') {
   UIManager.setLayoutAnimationEnabledExperimental?.(true);
 }
 
+type GuidedReflectionSaveEntry = {
+  title: string;
+  content: string;
+  type: 'guided';
+  source: 'guided';
+  prompt: string;
+  guidedJourney: GuidedReflectionPayload;
+  journalBlocks: GuidedReflectionNote[];
+};
+
 interface Props {
   selectedDate: string;
   existingContent?: unknown;
@@ -96,15 +111,12 @@ interface Props {
   onCloseJourney?: () => void;
   onDelete?: (entryId: string) => Promise<void> | void;
   onSelectQuestion: (prompt: string, topic: GuidedQuestionTopic) => void;
-  onSave: (entry: {
-    title: string;
-    content: string;
-    type: 'guided';
-    source: 'guided';
-    prompt: string;
-    guidedJourney: GuidedReflectionPayload;
-    journalBlocks: GuidedReflectionNote[];
-  }) => Promise<boolean | void> | boolean | void;
+  onSave: (
+    entry: GuidedReflectionSaveEntry,
+  ) => Promise<boolean | void> | boolean | void;
+  onUpdate?: (
+    entry: GuidedReflectionSaveEntry,
+  ) => Promise<boolean | void> | boolean | void;
 }
 
 const LAST_QUESTION_TOPIC_KEY = 'heart-journal:last-question-topic';
@@ -130,6 +142,7 @@ const GuidedReflectionExperience: React.FC<Props> = ({
   onDelete,
   onSelectQuestion,
   onSave,
+  onUpdate,
 }) => {
   const insets = useSafeAreaInsets();
   const {bottom: composerBottom, keyboardHeight} =
@@ -144,6 +157,13 @@ const GuidedReflectionExperience: React.FC<Props> = ({
   const path = useMemo(() => getGuidedReflectionPath(pathId), [pathId]);
   const [payload, setPayload] = useState<GuidedReflectionPayload | null>(
     restored,
+  );
+  const savedViewPayload = useMemo(
+    () =>
+      payload && path
+        ? prepareGuidedReflectionForBlockEditing(payload, path.steps)
+        : payload,
+    [path, payload],
   );
   const [stepIndex, setStepIndex] = useState(() =>
     restored && path
@@ -485,8 +505,13 @@ const GuidedReflectionExperience: React.FC<Props> = ({
   };
   const editSavedJourney = () => {
     triggerLightHaptic();
-    if (savedPayloadRef.current) {
-      setPayload(savedPayloadRef.current);
+    if (savedPayloadRef.current && path) {
+      setPayload(
+        prepareGuidedReflectionForBlockEditing(
+          savedPayloadRef.current,
+          path.steps,
+        ),
+      );
     }
     setEditingSavedJourney(true);
     setOptionalOpen(false);
@@ -497,6 +522,14 @@ const GuidedReflectionExperience: React.FC<Props> = ({
   };
   const continueSavedJourney = () => {
     triggerLightHaptic();
+    if (savedPayloadRef.current && path) {
+      setPayload(
+        prepareGuidedReflectionForBlockEditing(
+          savedPayloadRef.current,
+          path.steps,
+        ),
+      );
+    }
     setEditingSavedJourney(false);
     setStepIndex(restoredStepIndex());
     setShowSavedView(false);
@@ -802,17 +835,7 @@ const GuidedReflectionExperience: React.FC<Props> = ({
           friction: 12,
           useNativeDriver: true,
         }),
-        Animated.stagger(
-          38,
-          [...notePickerAnimations].reverse().map(animation =>
-            Animated.spring(animation, {
-              toValue: 1,
-              tension: 90,
-              friction: 12,
-              useNativeDriver: true,
-            }),
-          ),
-        ),
+        createJournalPickerEntrance(notePickerAnimations),
       ]).start();
     }, 80);
   };
@@ -865,31 +888,12 @@ const GuidedReflectionExperience: React.FC<Props> = ({
   ) => {
     if (!answer) {return;}
     const requestedDestination = explicitColumnTarget || columnTarget;
-    if (
-      requestedDestination &&
-      (kind === 'column' || kind === 'table')
-    ) {
+    if (requestedDestination && !JOURNAL_BLOCKS[kind].allowInColumn) {
       return;
     }
     const id = createGuidedNoteId();
     const note: GuidedReflectionNote = {
-      id,
-      kind,
-      text: '',
-      ...(kind === 'action' ? {completed: false} : {}),
-      ...(kind === 'bullets' || kind === 'numbered'
-        ? {points: ['']}
-        : {}),
-      ...(kind === 'table'
-        ? {
-            tableRows: [['', ''], ['', '']],
-            tableCellAlignments: [
-              ['left', 'left'],
-              ['left', 'left'],
-            ] as Array<Array<'left' | 'center' | 'right'>>,
-            tableEditing: true,
-          }
-        : {}),
+      ...createJournalBlock(kind, id),
       ...(requestedDestination
         ? {
             parentColumnId: requestedDestination.columnId,
@@ -902,7 +906,7 @@ const GuidedReflectionExperience: React.FC<Props> = ({
     updateAnswer({...answerChanges, notes: [...answer.notes, note]});
     setColumnTarget(
       kind === 'column'
-        ? {columnId: id, side: 'left'}
+        ? null
         : requestedDestination || null,
     );
   };
@@ -926,9 +930,13 @@ const GuidedReflectionExperience: React.FC<Props> = ({
     if (notePickerOpen) closeNotePicker(() => appendInlineNote('text'));
     else appendInlineNote('text');
   };
-  const persistJourney = async (nextPayload: GuidedReflectionPayload) => {
+  const persistJourney = async (
+    nextPayload: GuidedReflectionPayload,
+    options: {silent?: boolean} = {},
+  ) => {
     if (!path) {return false;}
-    const saved = await onSave({
+    const saveEntry = options.silent && onUpdate ? onUpdate : onSave;
+    const saved = await saveEntry({
       title: nextPayload.entryTitle?.trim() || path.title,
       content: serializeGuidedReflection(nextPayload),
       type: 'guided',
@@ -942,6 +950,41 @@ const GuidedReflectionExperience: React.FC<Props> = ({
     setPayload(nextPayload);
     await clearGuidedReflectionDraft(selectedDate, path.id);
     return true;
+  };
+  const reorderSavedJourneyBlocks = async (
+    basePayload: GuidedReflectionPayload,
+    stepId: string,
+    blocks: JournalBlock[],
+  ) => {
+    const previousPayload = payload;
+    const nextPayload: GuidedReflectionPayload = {
+      ...basePayload,
+      answers: basePayload.answers.map(item =>
+        item.stepId === stepId
+          ? {
+              ...item,
+              notes: prepareJournalBlocksForSave(
+                blocks,
+              ) as GuidedReflectionNote[],
+            }
+          : item,
+      ),
+    };
+    setPayload(nextPayload);
+    try {
+      const saved = await persistJourney(nextPayload, {silent: true});
+      if (!saved && previousPayload) {
+        setPayload(previousPayload);
+      }
+    } catch {
+      if (previousPayload) {
+        setPayload(previousPayload);
+      }
+      Alert.alert(
+        'Could not move response',
+        'Your previous response order is still saved. Please try again.',
+      );
+    }
   };
   const saveJourney = async (completed: boolean) => {
     if (!payload || !path || !step) {
@@ -975,7 +1018,7 @@ const GuidedReflectionExperience: React.FC<Props> = ({
     };
     setTitleSaving(true);
     try {
-      const saved = await persistJourney(nextPayload);
+      const saved = await persistJourney(nextPayload, {silent: true});
       if (saved) {
         setTitleDraft(nextPayload.entryTitle || '');
         setTitleEditing(false);
@@ -1470,7 +1513,7 @@ const GuidedReflectionExperience: React.FC<Props> = ({
             </>
           )}
           {path.steps.map(savedStep => {
-            const savedAnswer = payload.answers.find(
+            const savedAnswer = savedViewPayload?.answers.find(
               item => item.stepId === savedStep.id,
             );
             if (!savedAnswer || !answerHasValue(savedAnswer)) {
@@ -1532,6 +1575,15 @@ const GuidedReflectionExperience: React.FC<Props> = ({
                 <SavedReflectionBlocks
                   blocks={prepareJournalBlocksForSave(savedAnswer.notes)}
                   onDark
+                  onReorderBlocks={blocks =>
+                    savedViewPayload
+                      ? reorderSavedJourneyBlocks(
+                          savedViewPayload,
+                          savedStep.id,
+                          blocks,
+                        )
+                      : undefined
+                  }
                 />
               </View>
             );
@@ -1690,85 +1742,9 @@ const GuidedReflectionExperience: React.FC<Props> = ({
           );
         }
 
-        if (note.kind === 'bullets' || note.kind === 'numbered') {
-          return wrapNote(
-              <JournalListBlock
-                kind={note.kind}
-                title={note.text}
-                points={note.points}
-                tone="onDark"
-                onFocus={() => {
-                  setSelectedNoteId(note.id);
-                  setColumnTarget(null);
-                }}
-                onChangeTitle={text => updateNote({text})}
-                onChangePoints={points => updateNote({points})}
-                onDelete={deleteNote}
-                registerInput={input => {
-                  if (input) noteInputRefs.current.set(note.id, input);
-                  else noteInputRefs.current.delete(note.id);
-                }}
-              />,
-          );
-        }
-
-        if (note.kind === 'table') {
-          return wrapNote(
-              <JournalTableBlock
-                rows={note.tableRows}
-                cellAlignments={note.tableCellAlignments}
-                editing={note.tableEditing}
-                tone="onDark"
-                onFocus={() => {
-                  setSelectedNoteId(note.id);
-                  setColumnTarget(null);
-                }}
-                onChangeRows={(tableRows, tableCellAlignments) =>
-                  updateNote({
-                    tableRows,
-                    ...(tableCellAlignments ? {tableCellAlignments} : {}),
-                  })
-                }
-                onChangeCellAlignments={tableCellAlignments =>
-                  updateNote({tableCellAlignments})
-                }
-                onChangeEditing={tableEditing => updateNote({tableEditing})}
-                onDelete={deleteNote}
-                registerInput={input => {
-                  if (input) noteInputRefs.current.set(note.id, input);
-                  else noteInputRefs.current.delete(note.id);
-                }}
-              />,
-          );
-        }
-
-        if (['section', 'action', 'photo', 'voice'].includes(note.kind)) {
-          return wrapNote(
-              <ReflectionSpecialBlock
-                block={note}
-                tone="onDark"
-                onFocus={() => {
-                  setSelectedNoteId(note.id);
-                  setColumnTarget(null);
-                }}
-                onChange={changes => updateNote(changes)}
-                onDelete={deleteNote}
-                onCreateNextAction={
-                  note.kind === 'action'
-                    ? () => appendInlineNote('action')
-                    : undefined
-                }
-                registerInput={input => {
-                  if (input) noteInputRefs.current.set(note.id, input);
-                  else noteInputRefs.current.delete(note.id);
-                }}
-              />,
-          );
-        }
-
         return wrapNote(
-          <JournalInlineBlock
-            block={{id: note.id, kind: note.kind, text: note.text, secondary: note.secondary}}
+          <JournalBlockEditor
+            block={note as JournalBlock}
             configOverride={note.kind === 'text' ? undefined : config}
             tone="onDark"
             textPlaceholder="Write here…"
@@ -1777,40 +1753,63 @@ const GuidedReflectionExperience: React.FC<Props> = ({
               if (input) noteInputRefs.current.set(note.id, input);
               else noteInputRefs.current.delete(note.id);
             }}
-            onChangeText={text => updateNote({text})}
-            onChangeSecondary={secondary => updateNote({secondary})}
+            onChange={changes =>
+              updateNote(changes as Partial<GuidedReflectionNote>)
+            }
             onFocus={() => {
               setSelectedNoteId(note.id);
               setColumnTarget(null);
             }}
+            bibleVersion="NASB"
+            onCreateSection={title =>
+              appendInlineNote('section', {
+                text: title,
+                sectionSource: 'outline',
+              })
+            }
             onDelete={keepKeyboard => {
               if (keepKeyboard !== false) triggerLightHaptic();
               deleteNote();
             }}
+            onCreateNextAction={
+              note.kind === 'action'
+                ? () => appendInlineNote('action')
+                : undefined
+            }
             renderScripture={
               note.kind === 'scripture'
                 ? () => (
-                    <View>
-                      <JournalTextInput
-                        ref={input => {
-                          if (input) noteInputRefs.current.set(note.id, input);
-                          else noteInputRefs.current.delete(note.id);
-                        }}
-                        style={[styles.captureInput, styles.scriptureReferenceInline]}
-                        value={note.reference || ''}
-                        onChangeText={reference => updateNote({reference})}
-                        placeholder="Scripture reference"
-                        placeholderTextColor="rgba(255,255,255,0.45)"
-                      />
-                      <JournalTextInput
-                        style={styles.captureInput}
-                        value={note.text}
-                        onChangeText={text => updateNote({text})}
-                        placeholder={config.placeholder}
-                        placeholderTextColor="rgba(255,255,255,0.45)"
-                        multiline
-                      />
-                    </View>
+                    <ScriptureLookupInput
+                      value={
+                        note.reference ||
+                        note.scriptureReference ||
+                        note.text
+                      }
+                      placeholder={config.placeholder}
+                      version={note.scriptureVersion || 'NASB'}
+                      tone="onDark"
+                      style={styles.captureInput}
+                      registerInput={input => {
+                        if (input) noteInputRefs.current.set(note.id, input);
+                        else noteInputRefs.current.delete(note.id);
+                      }}
+                      onChange={reference =>
+                        updateNote({
+                          text: reference,
+                          reference: undefined,
+                          scriptureText: undefined,
+                          scriptureReference: undefined,
+                          scriptureVersion: undefined,
+                        })
+                      }
+                      onResolved={result =>
+                        updateNote({
+                          scriptureText: result?.text,
+                          scriptureReference: result?.reference,
+                          scriptureVersion: result?.version,
+                        })
+                      }
+                    />
                   )
                 : undefined
             }
@@ -2008,8 +2007,7 @@ const GuidedReflectionExperience: React.FC<Props> = ({
             items={REFLECTION_NOTE_TYPES
               .filter(
                 item =>
-                  !columnTarget ||
-                  (item.kind !== 'column' && item.kind !== 'table'),
+                  !columnTarget || JOURNAL_BLOCKS[item.kind].allowInColumn,
               )
               .map(item => ({
                 key: item.kind,
@@ -2028,6 +2026,7 @@ const GuidedReflectionExperience: React.FC<Props> = ({
               }))}
             animations={notePickerAnimations}
             onSelect={beginNote}
+            tone="onDark"
           />
         )}
         <Animated.View
@@ -2848,7 +2847,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.22)',
     borderRadius: 14,
     padding: 12,
-    marginBottom: 9,
+    marginBottom: JOURNAL_BLOCK_GAP,
     backgroundColor: 'rgba(255,255,255,0.1)',
   },
   textCapture: {backgroundColor: 'rgba(255,255,255,0.1)'},
@@ -2889,11 +2888,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 18,
     color: 'rgba(255,255,255,0.72)',
-  },
-  scriptureReferenceInline: {
-    minHeight: 38,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.16)',
   },
   freeText: {
     minHeight: 44,

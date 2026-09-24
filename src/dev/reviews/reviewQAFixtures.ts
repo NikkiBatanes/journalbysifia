@@ -35,7 +35,7 @@ export const REVIEW_QA_SCENARIOS: ReviewQADefinition[] = [
   {
     id: 'weekly',
     title: 'Weekly Review',
-    status: 'FULL WEEK · 10 GUIDED · 7 SCRIPTURE · PRAYER V2',
+    status: '7 COMPLETE DAYS · 10 GUIDED · 7 SCRIPTURE · PRAYER V2',
     type: 'weekly',
     period: weekly,
     density: 'rich',
@@ -44,7 +44,8 @@ export const REVIEW_QA_SCENARIOS: ReviewQADefinition[] = [
   {
     id: 'monthly',
     title: 'Monthly Review',
-    status: '25 DAYS · FULL MOMENT CARDS · 3 REMEMBERED · 1 GOSPEL SHARE',
+    status:
+      '31 COMPLETE DAYS · 5 WEEKLY CHECK-INS · 3 REMEMBERED · 1 TESTIMONY · 1 GOSPEL SHARE',
     type: 'monthly',
     period: monthly,
     density: 'rich',

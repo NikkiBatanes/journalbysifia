@@ -104,3 +104,22 @@ export async function preloadScripturePassages(
 ): Promise<void> {
   await Promise.all(references.map(reference => getScripturePassage(reference, version).catch(() => null)));
 }
+
+/**
+ * Restores saved passages into the synchronous memory cache without making a
+ * network request. App startup uses this before mounting Today so a passage
+ * downloaded on an earlier visit can render on the first frame.
+ */
+export async function hydrateStoredScripturePassages(
+  references: string[],
+  version = 'NASB',
+): Promise<void> {
+  await Promise.all(references.map(async reference => {
+    const cacheKey = toCacheKey(reference, version);
+    if (passageCache.has(cacheKey)) { return; }
+    const stored = await getStoredPassage(cacheKey);
+    if (stored) {
+      passageCache.set(cacheKey, stored);
+    }
+  }));
+}

@@ -8,7 +8,13 @@ import {createLocalReview, getLocalReviewForPeriod} from '../../storage/reviewSt
 import {getReviewCapture} from '../../services/reviewCaptureService';
 import {saveWeeklyReviewPrayer} from '../../services/weeklyReviewPrayerService';
 
-const mockRouteParams: Record<string, string> = {
+const mockRouteParams: {
+  type: string;
+  periodStart: string;
+  periodEnd: string;
+  reviewId?: string;
+  resumeLastStage?: boolean;
+} = {
   type: 'weekly', periodStart: '2026-09-14', periodEnd: '2026-09-20',
 };
 const mockKeyboardState = {bottom: 20, keyboardVisible: false, keyboardHeight: 0};
@@ -73,6 +79,7 @@ beforeEach(() => {
   jest.spyOn(AccessibilityInfo, 'isReduceMotionEnabled').mockResolvedValue(true);
   (getReviewCapture as jest.Mock).mockResolvedValue({items: [], counts: {}, prayerStats: {}});
   delete mockRouteParams.reviewId;
+  delete mockRouteParams.resumeLastStage;
 });
 
 afterEach(() => jest.restoreAllMocks());
@@ -85,6 +92,27 @@ it('starts review progress after the weekly cover', async () => {
   expect(screen.getByText('How did this week feel?')).toBeTruthy();
   expect(screen.getByTestId('review-progress-bar')).toBeTruthy();
   expect(StyleSheet.flatten(screen.getByTestId('review-progress-fill').props.style).width).toBe('6.666666666666667%');
+});
+
+it('continues a weekly review at the last visited page even when it has no answer', async () => {
+  const firstVisit = render(<ReviewScreen/>);
+  await begin(firstVisit);
+  await next(firstVisit);
+  expect(
+    firstVisit.getByText('How did these areas of life feel this week?'),
+  ).toBeTruthy();
+  await waitFor(async () =>
+    expect((await savedReview())?.lastStageKey).toBe('life_check_in'),
+  );
+  firstVisit.unmount();
+
+  mockRouteParams.resumeLastStage = true;
+  const resumedVisit = render(<ReviewScreen/>);
+  await waitFor(() =>
+    expect(
+      resumedVisit.getByText('How did these areas of life feel this week?'),
+    ).toBeTruthy(),
+  );
 });
 
 it.each([false, true])('reveals Other after layout and keyboard resize (expanded choices: %s)', async expanded => {

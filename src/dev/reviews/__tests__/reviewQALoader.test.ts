@@ -3,6 +3,8 @@ import {
   getActiveReviewQAContext,
   getReviewQAEligibilityOptions,
   loadReviewQAScenario,
+  loadReviewQAScenarioWithBibleStudies,
+  loadReviewQAScenarioWithSessionNotes,
 } from '../reviewQALoader';
 import {getReviewCapture} from '../../../services/reviewCaptureService';
 import {getLocalReviewForPeriod} from '../../../storage/reviewStorage';
@@ -12,6 +14,12 @@ import {
   parseGuidedReflection,
 } from '../../../types/guidedReflection';
 import {buildWeeklyReviewQAPrayerFixtures} from '../reviewQAWeeklyPrayerData';
+
+jest.mock('@react-native-community/netinfo', () => ({
+  fetch: jest.fn(async () => ({isConnected: false})),
+  addEventListener: jest.fn(() => jest.fn()),
+}));
+jest.mock('uuid', () => ({v4: jest.fn(() => 'review-qa-uuid')}));
 
 const mockData = new Map<string, string>();
 jest.mock('@react-native-async-storage/async-storage', () => ({
@@ -57,52 +65,52 @@ describe('Review QA loader isolation', () => {
     mockData.clear();
     jest.clearAllMocks();
   });
-  it('loads canonical routine and direct Heart Journal data for the Monday-start Weekly period', async () => {
+  it('keeps the prior complete week while loading the Sept 21–27 Weekly period', async () => {
     const result = await loadReviewQAScenario('weekly');
     expect(result.review).toBeNull();
     expect(
       [...mockData.keys()].filter(key =>
         key.startsWith('journal_local_singleton:morning_check_in:'),
       ),
-    ).toHaveLength(7);
+    ).toHaveLength(14);
     expect(
       [...mockData.keys()].filter(key =>
         key.startsWith('journal_local_singleton:todays_focus:'),
       ),
-    ).toHaveLength(7);
+    ).toHaveLength(14);
     expect(
       [...mockData.keys()].filter(key =>
         key.startsWith('reflection_local:scripture:'),
       ),
-    ).toHaveLength(21);
+    ).toHaveLength(42);
     expect(
       [...mockData.keys()].filter(key => key.startsWith('journal_local:todo:')),
-    ).toHaveLength(21);
+    ).toHaveLength(42);
     expect(
       [...mockData.keys()].filter(key =>
         key.startsWith('journal_local:gratitude:'),
       ),
-    ).toHaveLength(7);
+    ).toHaveLength(14);
     expect(
       [...mockData.keys()].filter(key =>
         key.startsWith('journal_local_singleton:today_win:'),
       ),
-    ).toHaveLength(7);
+    ).toHaveLength(14);
     expect(
       [...mockData.keys()].filter(key =>
         key.startsWith('journal_local_singleton:looking_forward:'),
       ),
-    ).toHaveLength(7);
+    ).toHaveLength(14);
     expect(
       [...mockData.keys()].filter(key =>
         key.startsWith('reflection_local:free:'),
       ),
-    ).toHaveLength(17);
+    ).toHaveLength(34);
     expect(
       [...mockData.keys()].filter(key =>
         key.startsWith('reflection_local:guided:'),
       ),
-    ).toHaveLength(14);
+    ).toHaveLength(28);
     expect(
       [...mockData.keys()].filter(key =>
         key.startsWith('journal_local:todo:2026-09-14:'),
@@ -110,12 +118,24 @@ describe('Review QA loader isolation', () => {
     ).toHaveLength(7);
     expect(
       [...mockData.keys()].filter(key =>
-        key.startsWith('routine_state:morning:'),
+        key.startsWith('journal_local:todo:2026-09-21:'),
       ),
     ).toHaveLength(7);
     expect(
+      [...mockData.keys()].filter(key =>
+        key.startsWith('routine_state:morning:'),
+      ),
+    ).toHaveLength(14);
+    expect(
       [...mockData.keys()].filter(key => key.startsWith('prayer_local:')),
-    ).toHaveLength(buildWeeklyReviewQAPrayerFixtures().length);
+    ).toHaveLength(buildWeeklyReviewQAPrayerFixtures().length * 2);
+    expect(
+      [...mockData.keys()].some(key =>
+        key.startsWith(
+          'bible_study_session:dev-review-v2:weekly-prior:prayer-v2:',
+        ),
+      ),
+    ).toBe(true);
     expect(
       [...mockData.keys()].some(key =>
         key.startsWith('bible_study_session:dev-review-v2:weekly:prayer-v2:'),
@@ -125,15 +145,22 @@ describe('Review QA loader isolation', () => {
       [...mockData.keys()].filter(key =>
         key.startsWith('routine_state:evening:'),
       ),
-    ).toHaveLength(7);
+    ).toHaveLength(14);
     expect(
       [...mockData.keys()].some(key => key.startsWith('review_local:')),
     ).toBe(false);
     expect(
       JSON.parse(mockData.get('dev-review-v2:manifest')!).datasetVersion,
-    ).toBe('weekly-routines-heart-journal-prayer-v2-scripture-notes-v9');
-    const monday = JSON.parse(
+    ).toBe('weekly-two-complete-weeks-prayer-v2-scripture-notes-v11');
+    const previousMonday = JSON.parse(
       mockData.get('journal_local_singleton:morning_check_in:2026-09-14')!,
+    );
+    expect(JSON.parse(previousMonday.content)).toMatchObject({
+      feeling: 'Hopeful',
+      underneathIt: expect.any(String),
+    });
+    const monday = JSON.parse(
+      mockData.get('journal_local_singleton:morning_check_in:2026-09-21')!,
     );
     expect(JSON.parse(monday.content)).toMatchObject({
       feeling: 'Hopeful',
@@ -141,7 +168,7 @@ describe('Review QA loader isolation', () => {
     });
     const mondayPsalm = JSON.parse(
       mockData.get(
-        'reflection_local:scripture:2026-09-14:dev-review-v2:weekly:morning-psalm:2026-09-14',
+        'reflection_local:scripture:2026-09-21:dev-review-v2:weekly:morning-psalm:2026-09-21',
       )!,
     );
     expect(mondayPsalm).toMatchObject({
@@ -154,7 +181,7 @@ describe('Review QA loader isolation', () => {
     });
     const saturdayPsalm = JSON.parse(
       mockData.get(
-        'reflection_local:scripture:2026-09-19:dev-review-v2:weekly:morning-psalm:2026-09-19',
+        'reflection_local:scripture:2026-09-26:dev-review-v2:weekly:morning-psalm:2026-09-26',
       )!,
     );
     expect(saturdayPsalm).toMatchObject({
@@ -168,7 +195,7 @@ describe('Review QA loader isolation', () => {
     });
     const sundayPsalm = JSON.parse(
       mockData.get(
-        'reflection_local:scripture:2026-09-20:dev-review-v2:weekly:morning-psalm:2026-09-20',
+        'reflection_local:scripture:2026-09-27:dev-review-v2:weekly:morning-psalm:2026-09-27',
       )!,
     );
     expect(sundayPsalm).toMatchObject({
@@ -180,13 +207,13 @@ describe('Review QA loader isolation', () => {
     });
     const mondayGratitude = JSON.parse(
       mockData.get(
-        'journal_local:gratitude:2026-09-14:dev-review-v2:weekly:gratitude:2026-09-14',
+        'journal_local:gratitude:2026-09-21:dev-review-v2:weekly:gratitude:2026-09-21',
       )!,
     );
     expect(JSON.parse(mondayGratitude.content).items).toHaveLength(7);
     const mondayProverb = JSON.parse(
       mockData.get(
-        'reflection_local:scripture:2026-09-14:dev-review-v2:weekly:evening-proverb:2026-09-14',
+        'reflection_local:scripture:2026-09-21:dev-review-v2:weekly:evening-proverb:2026-09-21',
       )!,
     );
     expect(mondayProverb).toMatchObject({
@@ -199,7 +226,7 @@ describe('Review QA loader isolation', () => {
     });
     const fridayProverb = JSON.parse(
       mockData.get(
-        'reflection_local:scripture:2026-09-18:dev-review-v2:weekly:evening-proverb:2026-09-18',
+        'reflection_local:scripture:2026-09-25:dev-review-v2:weekly:evening-proverb:2026-09-25',
       )!,
     );
     expect(fridayProverb).toMatchObject({
@@ -211,13 +238,13 @@ describe('Review QA loader isolation', () => {
       .map(([, value]) => JSON.parse(value));
     expect(scriptureNotes).toHaveLength(7);
     expect(scriptureNotes.map(entry => entry.selected_date)).toEqual([
-      '2026-09-14',
-      '2026-09-15',
-      '2026-09-16',
-      '2026-09-17',
-      '2026-09-18',
-      '2026-09-19',
-      '2026-09-20',
+      '2026-09-21',
+      '2026-09-22',
+      '2026-09-23',
+      '2026-09-24',
+      '2026-09-25',
+      '2026-09-26',
+      '2026-09-27',
     ]);
     expect(
       scriptureNotes.every(
@@ -226,7 +253,7 @@ describe('Review QA loader isolation', () => {
       ),
     ).toBe(true);
     const sundayRoutine = JSON.parse(
-      mockData.get('routine_state:morning:2026-09-20')!,
+      mockData.get('routine_state:morning:2026-09-27')!,
     );
     expect(sundayRoutine).toMatchObject({
       completed: true,
@@ -240,7 +267,7 @@ describe('Review QA loader isolation', () => {
       ],
     });
     const sundayEveningRoutine = JSON.parse(
-      mockData.get('routine_state:evening:2026-09-20')!,
+      mockData.get('routine_state:evening:2026-09-27')!,
     );
     expect(sundayEveningRoutine).toMatchObject({
       completed: true,
@@ -254,7 +281,10 @@ describe('Review QA loader isolation', () => {
     });
     const heartJournalEntries = [...mockData.entries()]
       .filter(([key]) => key.startsWith('reflection_local:free:'))
-      .map(([, value]) => JSON.parse(value));
+      .map(([, value]) => JSON.parse(value))
+      .filter(entry =>
+        entry.id.startsWith('dev-review-v2:weekly:heart-journal:'),
+      );
     expect(
       new Set(
         heartJournalEntries.map(entry => entry.metadata.journalClassification),
@@ -328,7 +358,8 @@ describe('Review QA loader isolation', () => {
     ).toBeTruthy();
     const guidedEntries = [...mockData.entries()]
       .filter(([key]) => key.startsWith('reflection_local:guided:'))
-      .map(([, value]) => JSON.parse(value));
+      .map(([, value]) => JSON.parse(value))
+      .filter(entry => entry.id.startsWith('dev-review-v2:weekly:'));
     const chosenQuestionEntries = guidedEntries.filter(
       entry => entry.metadata.guidedJourney === undefined,
     );
@@ -395,9 +426,82 @@ describe('Review QA loader isolation', () => {
       new Set(['text', ...REFLECTION_NOTE_TYPES.map(item => item.kind)]),
     );
     expect(getReviewCapture).toHaveBeenCalledWith(
-      '2026-09-14',
-      '2026-09-20',
+      '2026-09-21',
+      '2026-09-27',
       'weekly',
+    );
+  });
+  it('optionally loads Session Notes across both September QA weeks', async () => {
+    const result = await loadReviewQAScenarioWithSessionNotes('weekly');
+    const sessionNotes = [...mockData.entries()]
+      .filter(([key]) => key.startsWith('reflection_local:sermon:'))
+      .map(([, value]) => JSON.parse(value));
+
+    expect(result.sessionNoteCount).toBe(sessionNotes.length);
+    expect(new Set(sessionNotes.map(note => note.selected_date))).toEqual(
+      new Set([
+        '2026-09-14',
+        '2026-09-15',
+        '2026-09-16',
+        '2026-09-17',
+        '2026-09-18',
+        '2026-09-19',
+        '2026-09-20',
+        '2026-09-21',
+        '2026-09-22',
+        '2026-09-23',
+        '2026-09-24',
+        '2026-09-25',
+        '2026-09-26',
+        '2026-09-27',
+      ]),
+    );
+    expect(
+      sessionNotes.find(note => note.selected_date === '2026-09-20').metadata
+        .sessionNoteType,
+    ).toBe('sermon');
+    expect(
+      sessionNotes.find(note => note.selected_date === '2026-09-27').metadata
+        .sessionNoteType,
+    ).toBe('sermon');
+  });
+  it('optionally loads Bible Studies across both September QA weeks', async () => {
+    const result = await loadReviewQAScenarioWithBibleStudies('weekly');
+    const studies = [...mockData.entries()]
+      .filter(([key]) =>
+        key.startsWith(
+          'bible_study_session:dev-review-v2:weekly-bible-studies:',
+        ),
+      )
+      .map(([, value]) => JSON.parse(value));
+
+    expect(result.bibleStudyCount).toBe(14);
+    expect(studies).toHaveLength(14);
+    expect(
+      [...mockData.keys()].filter(key =>
+        key.startsWith('routine_state:morning:'),
+      ),
+    ).toHaveLength(14);
+    expect(
+      [...mockData.keys()].some(key => key.startsWith('prayer_local:')),
+    ).toBe(true);
+    expect(new Set(studies.map(study => study.selected_date))).toEqual(
+      new Set([
+        '2026-09-14',
+        '2026-09-15',
+        '2026-09-16',
+        '2026-09-17',
+        '2026-09-18',
+        '2026-09-19',
+        '2026-09-20',
+        '2026-09-21',
+        '2026-09-22',
+        '2026-09-23',
+        '2026-09-24',
+        '2026-09-25',
+        '2026-09-26',
+        '2026-09-27',
+      ]),
     );
   });
   it('exposes Weekly-only eligibility for the loaded Monday-start scenario', async () => {
@@ -405,7 +509,7 @@ describe('Review QA loader isolation', () => {
     const context = await getActiveReviewQAContext();
     expect(context).toEqual({
       scenarioId: 'weekly',
-      referenceDate: '2026-09-21',
+      referenceDate: '2026-09-28',
       historyStart: '2026-09-14',
     });
     const options = getReviewQAEligibilityOptions(context!);
@@ -428,17 +532,22 @@ describe('Review QA loader isolation', () => {
       [...mockData.keys()].filter(key =>
         key.startsWith('routine_state:morning:'),
       ),
-    ).toHaveLength(19);
+    ).toHaveLength(31);
     expect(
       [...mockData.keys()].filter(key =>
         key.startsWith('routine_state:evening:'),
       ),
-    ).toHaveLength(16);
+    ).toHaveLength(31);
     expect(
       [...mockData.keys()].filter(key =>
         key.startsWith('reflection_local:free:'),
       ),
     ).toHaveLength(28);
+    expect(
+      [...mockData.keys()].filter(key =>
+        key.startsWith('reflection_local:gospel_anniversary:'),
+      ),
+    ).toHaveLength(1);
     expect(
       [...mockData.keys()].filter(key => key.startsWith('prayer_local:')),
     ).toHaveLength(63);
@@ -446,7 +555,7 @@ describe('Review QA loader isolation', () => {
       [...mockData.keys()].filter(key =>
         key.startsWith('review_local:weekly:dev-review-v2:monthly:'),
       ),
-    ).toHaveLength(2);
+    ).toHaveLength(5);
     expect(JSON.parse(mockData.get('journal:gospel:share-events:v1')!)).toEqual(
       [
         expect.objectContaining({
@@ -462,7 +571,7 @@ describe('Review QA loader isolation', () => {
     );
     expect(
       JSON.parse(mockData.get('dev-review-v2:manifest')!).datasetVersion,
-    ).toBe('monthly-rich-moment-cards-v2');
+    ).toBe('monthly-full-august-v4-testimony');
 
     const context = await getActiveReviewQAContext();
     expect(context).toEqual({
@@ -481,6 +590,42 @@ describe('Review QA loader isolation', () => {
       },
     });
     expect(options.historyStartOverride).toBe('2026-08-01');
+  });
+  it('optionally loads Session Notes on every day of the Monthly QA period', async () => {
+    const result = await loadReviewQAScenarioWithSessionNotes('monthly');
+    const sessionNotes = [...mockData.entries()]
+      .filter(([key]) => key.startsWith('reflection_local:sermon:'))
+      .map(([, value]) => JSON.parse(value));
+
+    expect(result.sessionNoteCount).toBe(sessionNotes.length);
+    expect(new Set(sessionNotes.map(note => note.selected_date)).size).toBe(31);
+    expect(
+      sessionNotes.filter(note => note.metadata.sessionNoteType === 'sermon'),
+    ).toHaveLength(5);
+  });
+  it('optionally loads Bible Studies on every day of the Monthly QA period', async () => {
+    const result = await loadReviewQAScenarioWithBibleStudies('monthly');
+    const studies = [...mockData.entries()]
+      .filter(([key]) =>
+        key.startsWith(
+          'bible_study_session:dev-review-v2:monthly-bible-studies:',
+        ),
+      )
+      .map(([, value]) => JSON.parse(value));
+
+    expect(result.bibleStudyCount).toBe(31);
+    expect(studies).toHaveLength(31);
+    expect(new Set(studies.map(study => study.selected_date)).size).toBe(31);
+    expect(
+      [...mockData.keys()].some(key =>
+        key.startsWith('reflection_local:gospel_anniversary:'),
+      ),
+    ).toBe(true);
+    expect(
+      [...mockData.keys()].filter(key =>
+        key.startsWith('review_local:weekly:dev-review-v2:monthly:'),
+      ),
+    ).toHaveLength(5);
   });
   it('automatically purges a previously seeded QA manifest and its records', async () => {
     mockData.set(
@@ -529,11 +674,11 @@ describe('Review QA loader isolation', () => {
       type: 'weekly',
       status: 'draft',
       memorableItems: [
-        {kind: 'gratitude', id: 'g', selectedDate: '2026-09-16'},
+        {kind: 'gratitude', id: 'g', selectedDate: '2026-09-23'},
       ],
       answers: {notice: 'My real answer'},
-      periodStart: '2026-09-14',
-      periodEnd: '2026-09-20',
+      periodStart: '2026-09-21',
+      periodEnd: '2026-09-27',
       createdAt: 'original',
       updatedAt: 'original',
     };
@@ -557,8 +702,8 @@ describe('Review QA loader isolation', () => {
       status: 'draft',
       memorableItems: [],
       answers: {},
-      periodStart: '2026-09-14',
-      periodEnd: '2026-09-20',
+      periodStart: '2026-09-21',
+      periodEnd: '2026-09-27',
     };
     mockData.set('review_local:weekly:empty', JSON.stringify(empty));
     mockData.set('review_local_index:weekly', JSON.stringify(['empty']));

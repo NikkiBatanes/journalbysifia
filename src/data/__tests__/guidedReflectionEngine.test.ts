@@ -1,10 +1,11 @@
-import { GUIDED_REFLECTION_PATHS } from '../guidedReflectionPaths';
+import { GUIDED_REFLECTION_PATHS, guidedReflectionStepQuestion } from '../guidedReflectionPaths';
 import { GUIDED_PROMPTS } from '../../components/journal/reflectionConstants';
 import { GUIDED_QUESTION_LIBRARY, GUIDED_QUESTION_TOPICS, guidedQuestionTopicForPrompt, questionsForTopic } from '../guidedReflectionQuestions';
 import { GUIDED_NOTE_TYPES, GUIDED_REFLECTION_FORMAT, emptyGuidedAnswer, guidedEntryKind, guidedEntrySource, parseGuidedReflection, serializeGuidedReflection, type GuidedReflectionPayload } from '../../types/guidedReflection';
 import fs from 'fs';
 import pathModule from 'path';
 import { GENERIC_JOURNAL_BLOCK_KINDS } from '../../components/journal/shared/journalBlocks';
+import {prepareGuidedReflectionForBlockEditing} from '../guidedReflectionEditing';
 
 const path = (id: string) => GUIDED_REFLECTION_PATHS.find(item => item.id === id)!;
 
@@ -18,6 +19,16 @@ describe('Guided Reflection V1 authored engine', () => {
     expect(path('mind-feels-full').steps.map(step => step.id)).toEqual(['space', 'heaviest', 'attention', 'discern', 'need', 'scripture', 'faithful-step']);
     expect(path('something-bothering-me').steps.map(step => step.id)).toEqual(['name-it', 'look-clearly', 'stir', 'pull', 'before-respond', 'scripture', 'needed', 'respond']);
     expect(path('decision-to-make').steps.map(step => step.id)).toEqual(['name-decision', 'matters', 'options', 'influences', 'sought-wisdom', 'scripture', 'still-need', 'next-step']);
+  });
+
+  it('uses questions rather than walkthrough instructions in saved previews', () => {
+    const mind = path('mind-feels-full');
+    const bothered = path('something-bothering-me');
+    expect(guidedReflectionStepQuestion(mind.steps.find(step => step.id === 'space')!)).toBe("WHAT'S TAKING UP SPACE?");
+    expect(guidedReflectionStepQuestion(mind.steps.find(step => step.id === 'attention')!)).toBe('What needs your attention here?');
+    expect(guidedReflectionStepQuestion(mind.steps.find(step => step.id === 'faithful-step')!)).toBe('WHAT CAN YOU FAITHFULLY DO TODAY?');
+    expect(guidedReflectionStepQuestion(bothered.steps.find(step => step.id === 'needed')!)).toBe('What may be worth considering?');
+    expect(guidedReflectionStepQuestion(bothered.steps.find(step => step.id === 'look-clearly')!)).toBe('LOOK CLEARLY');
   });
 
   it('covers supported interaction serialization including selections, writing, scripture, fields, and ordered notes', () => {
@@ -36,6 +47,60 @@ describe('Guided Reflection V1 authored engine', () => {
     expect(parseGuidedReflection(serializeGuidedReflection(payload))?.pathTitle).toBe('My mind feels full');
     expect(parseGuidedReflection(serializeGuidedReflection(payload))?.entryTitle).toBe('What I need to release before Friday');
     expect(parseGuidedReflection('legacy plain response')).toBeNull();
+  });
+
+  it('promotes saved structured writing to movable editor blocks without losing its labels or order', () => {
+    const payload: GuidedReflectionPayload = {
+      format: GUIDED_REFLECTION_FORMAT,
+      pathId: 'something-bothering-me',
+      pathTitle: 'Something is bothering me',
+      currentStepId: 'look-clearly',
+      completed: true,
+      answers: [
+        {
+          stepId: 'name-it',
+          text: 'We agreed to share the weekend chores.',
+          notes: [{id: 'existing-note', kind: 'key', text: 'Talk before Friday.'}],
+        },
+        {
+          stepId: 'look-clearly',
+          fields: {
+            assumptions: 'My time matters less.',
+            facts: 'The laundry and groceries were not done.',
+          },
+          notes: [],
+        },
+      ],
+    };
+
+    const editable = prepareGuidedReflectionForBlockEditing(
+      payload,
+      path('something-bothering-me').steps,
+    );
+
+    expect(editable.answers[0]).toMatchObject({
+      text: undefined,
+      notes: [
+        {kind: 'text', text: 'We agreed to share the weekend chores.'},
+        {id: 'existing-note', kind: 'key', text: 'Talk before Friday.'},
+      ],
+    });
+    expect(editable.answers[1]).toMatchObject({
+      fields: undefined,
+      notes: [
+        {
+          kind: 'reflection_question',
+          text: 'WHAT I KNOW',
+          note: 'The laundry and groceries were not done.',
+        },
+        {
+          kind: 'reflection_question',
+          text: 'WHAT I MAY BE ASSUMING',
+          note: 'My time matters less.',
+        },
+      ],
+    });
+    expect(payload.answers[0].text).toBe('We agreed to share the weekend chores.');
   });
 
   it('keeps Guided Prompts distinct from structured Guided Reflections', () => {

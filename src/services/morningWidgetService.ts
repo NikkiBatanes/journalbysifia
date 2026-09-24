@@ -1,5 +1,5 @@
 import { DeviceEventEmitter, NativeModules, Platform } from 'react-native';
-import { differenceInCalendarDays } from 'date-fns';
+import { differenceInCalendarDays, endOfWeek, format, startOfWeek } from 'date-fns';
 
 import { toLocalDateString } from '../utils/date';
 import { safeJsonParse } from '../utils/safeJsonParse';
@@ -13,6 +13,13 @@ import { getLocalReflections } from '../storage/reflectionStorage';
 import { supabase } from './supabaseClient';
 import { Logger } from '../utils/ProductionLogger';
 import { applyWidgetFeelingSelection } from './morningCheckInService';
+import { PrayerApi } from './api/prayerApi';
+import {
+  getPrayerIntelligenceCandidates,
+  selectPrayerIntelligenceCandidate,
+} from './prayerIntelligenceService';
+import { getPrayerResurfacingState } from '../storage/prayerResurfacingStorage';
+import { getWeeklyRhythm } from './weeklyRhythmService';
 
 /**
  * Morning Home Screen widget sync.
@@ -60,18 +67,51 @@ const getTodayPsalmNumber = async (): Promise<number | undefined> => {
   }
 };
 
+const getPrayerWidgetCandidateId = async (): Promise<string | undefined> => {
+  try {
+    const { data } = await supabase.auth.getUser();
+    const userId = data?.user?.id || 'local';
+    const [prayers, resurfacing] = await Promise.all([
+      PrayerApi.getAllPrayers(userId),
+      getPrayerResurfacingState(userId),
+    ]);
+    const candidates = getPrayerIntelligenceCandidates(prayers, new Date(), resurfacing.items);
+    return selectPrayerIntelligenceCandidate(candidates, resurfacing.recentIds)?.prayerId;
+  } catch {
+    return undefined;
+  }
+};
+
+const getWidgetWeeklyRhythm = async (): Promise<{ days: boolean[]; activeDays: number }> => {
+  try {
+    const now = new Date();
+    const rhythm = await getWeeklyRhythm(
+      format(startOfWeek(now, { weekStartsOn: 1 }), 'yyyy-MM-dd'),
+      format(endOfWeek(now, { weekStartsOn: 1 }), 'yyyy-MM-dd'),
+    );
+    return {
+      days: rhythm.days.map(day => day.active),
+      activeDays: rhythm.activeDays,
+    };
+  } catch {
+    return { days: Array(7).fill(false), activeDays: 0 };
+  }
+};
+
 /** Build the minimal widget projection from canonical stores for TODAY. */
 export const refreshMorningWidgetSnapshot = async (): Promise<void> => {
   if (!Bridge?.updateSnapshot) { return; }
 
   try {
     const today = toLocalDateString(new Date());
-    const [routine, checkInEntry, focusEntry, todos, scriptureReflections] = await Promise.all([
+    const [routine, checkInEntry, focusEntry, todos, scriptureReflections, prayerId, weeklyRhythm] = await Promise.all([
       getRoutineState('morning', today),
       getLocalJournalSingleton('morning_check_in', today),
       getLocalJournalSingleton('todays_focus', today),
       getLocalTodosForDate(today),
       getLocalReflections('scripture', today),
+      getPrayerWidgetCandidateId(),
+      getWidgetWeeklyRhythm(),
     ]);
 
     const checkIn = checkInEntry
@@ -113,9 +153,15 @@ export const refreshMorningWidgetSnapshot = async (): Promise<void> => {
           : [],
       focus: typeof focus.focus === 'string' && focus.focus ? focus.focus : null,
       personalFocus: typeof focus.personalText === 'string' && focus.personalText ? focus.personalText : null,
+      focusCategory: typeof focus.focusCategory === 'string' ? focus.focusCategory : null,
+      focusIcon: typeof focus.focusIcon === 'string' ? focus.focusIcon : null,
+      focusIconType: typeof focus.focusIconType === 'string' ? focus.focusIconType : null,
       priorities,
       todoCount: todos.length,
       openTodoCount: openTodos.length,
+      prayerId: prayerId ?? null,
+      weeklyActiveDays: weeklyRhythm.days,
+      weeklyActiveCount: weeklyRhythm.activeDays,
     };
 
     await Bridge.updateSnapshot(snapshot);
@@ -251,5 +297,7 @@ export const initMorningWidgetSync = (): void => {
   DeviceEventEmitter.addListener('reflection_saved', refresh);
   DeviceEventEmitter.addListener('morning_complete', refresh);
   DeviceEventEmitter.addListener('future_plan_saved', refresh);
+  DeviceEventEmitter.addListener('prayerSaved', refresh);
+  DeviceEventEmitter.addListener('prayer_deleted', refresh);
   syncMorningWidget();
 };

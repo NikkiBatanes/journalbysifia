@@ -29,12 +29,18 @@ import {
   seedMonthlyReviewData,
 } from './reviewQAMonthlyData';
 import {DAILY_SCRIPTURE_SEQUENCE_OVERRIDE_KEY} from '../../services/dailyScriptureSequence';
+import {
+  REVIEW_QA_PREVIOUS_WEEK_DATES,
+  reviewQAPreviousWeeklyPeriodEndDate,
+} from './reviewQAClock';
+import {seedReviewQASessionNotes} from './reviewQASessionNoteData';
+import {seedReviewQABibleStudies} from './reviewQABibleStudyData';
 
 const MANIFEST = `${REVIEW_QA_PREFIX}manifest`;
 const REVIEW_PERIODS = `${REVIEW_QA_PREFIX}periods`;
 const WEEKLY_DATASET_VERSION =
-  'weekly-routines-heart-journal-prayer-v2-scripture-notes-v9';
-const MONTHLY_DATASET_VERSION = 'monthly-rich-moment-cards-v2';
+  'weekly-two-complete-weeks-prayer-v2-scripture-notes-v11';
+const MONTHLY_DATASET_VERSION = 'monthly-full-august-v4-testimony';
 const DATASET_VERSIONS: Record<ReviewQAScenario, string> = {
   weekly: WEEKLY_DATASET_VERSION,
   monthly: MONTHLY_DATASET_VERSION,
@@ -241,6 +247,10 @@ export const loadReviewQAScenario = async (scenarioId: ReviewQAScenario) => {
     scenario.period.periodStart,
     scenario.period.periodEnd,
   );
+  const historyStart =
+    scenarioId === 'weekly'
+      ? REVIEW_QA_PREVIOUS_WEEK_DATES[0]
+      : scenario.period.periodStart;
   const manifest: Manifest = {
     keys: [],
     protectedReviewIds: [],
@@ -249,14 +259,30 @@ export const loadReviewQAScenario = async (scenarioId: ReviewQAScenario) => {
     hiddenReviews: [],
     scenarioId,
     referenceDate: scenario.referenceDate,
-    historyStart: scenario.period.periodStart,
+    historyStart,
     datasetVersion: DATASET_VERSIONS[scenarioId],
   };
   if (existing) {
     await temporarilyHideReview(manifest, existing);
   }
   manifest.restores = manifest.restores || [];
+  const seedManifest = {
+    keys: manifest.keys,
+    restores: manifest.restores,
+  };
   if (scenarioId === 'weekly') {
+    const previousWeekScope = {
+      dates: REVIEW_QA_PREVIOUS_WEEK_DATES,
+      namespace: 'weekly-prior',
+      referenceDate: reviewQAPreviousWeeklyPeriodEndDate(),
+    };
+    await seedWeeklyMorningFlow(seedManifest, previousWeekScope);
+    await seedWeeklyEveningFlow(seedManifest, previousWeekScope);
+    await seedWeeklyHeartJournal(seedManifest, previousWeekScope);
+    await seedWeeklyGuidedReflections(seedManifest, previousWeekScope);
+    await seedWeeklyPrayers(seedManifest, previousWeekScope);
+    await seedWeeklyScriptureNotes(seedManifest, previousWeekScope);
+
     await seedWeeklyMorningFlow({
       keys: manifest.keys,
       restores: manifest.restores,
@@ -302,7 +328,7 @@ export const loadReviewQAScenario = async (scenarioId: ReviewQAScenario) => {
   manifest.keys.push(DAILY_SCRIPTURE_SEQUENCE_OVERRIDE_KEY);
   await AsyncStorage.setItem(
     DAILY_SCRIPTURE_SEQUENCE_OVERRIDE_KEY,
-    scenario.period.periodStart,
+    historyStart,
   );
   await AsyncStorage.setItem(MANIFEST, JSON.stringify(manifest));
   await AsyncStorage.setItem(REVIEW_PERIODS, JSON.stringify([]));
@@ -313,4 +339,57 @@ export const loadReviewQAScenario = async (scenarioId: ReviewQAScenario) => {
     scenario.type,
   );
   return {scenario, capture, review: null};
+};
+
+/**
+ * Loads the normal rich scenario plus the optional Session Notes stress data.
+ * Kept separate so the baseline Review QA scenarios remain stable.
+ */
+export const loadReviewQAScenarioWithSessionNotes = async (
+  scenarioId: ReviewQAScenario,
+) => {
+  const result = await loadReviewQAScenario(scenarioId);
+  const rawManifest = await AsyncStorage.getItem(MANIFEST);
+  if (!rawManifest) {
+    throw new Error('Review QA manifest was not created.');
+  }
+  const manifest = JSON.parse(rawManifest) as Manifest;
+  manifest.restores = manifest.restores || [];
+  const sessionNoteCount = await seedReviewQASessionNotes(
+    {keys: manifest.keys, restores: manifest.restores},
+    scenarioId,
+  );
+  await AsyncStorage.setItem(MANIFEST, JSON.stringify(manifest));
+
+  const capture = await getReviewCapture(
+    result.scenario.period.periodStart,
+    result.scenario.period.periodEnd,
+    result.scenario.type,
+  );
+  return {...result, capture, sessionNoteCount};
+};
+
+/** Loads the normal rich scenario plus complete Bible Studies for its full period. */
+export const loadReviewQAScenarioWithBibleStudies = async (
+  scenarioId: ReviewQAScenario,
+) => {
+  const result = await loadReviewQAScenario(scenarioId);
+  const rawManifest = await AsyncStorage.getItem(MANIFEST);
+  if (!rawManifest) {
+    throw new Error('Review QA manifest was not created.');
+  }
+  const manifest = JSON.parse(rawManifest) as Manifest;
+  manifest.restores = manifest.restores || [];
+  const bibleStudyCount = await seedReviewQABibleStudies(
+    {keys: manifest.keys, restores: manifest.restores},
+    scenarioId,
+  );
+  await AsyncStorage.setItem(MANIFEST, JSON.stringify(manifest));
+
+  const capture = await getReviewCapture(
+    result.scenario.period.periodStart,
+    result.scenario.period.periodEnd,
+    result.scenario.type,
+  );
+  return {...result, capture, bibleStudyCount};
 };

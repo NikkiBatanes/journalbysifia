@@ -80,7 +80,7 @@ const openLookingAhead = async (screen: Screen) => {
   await begin(screen);
   for (let index = 0; index < 8; index += 1) {await next(screen);}
   expect(screen.getByText('Now, let’s look ahead.')).toBeTruthy();
-  expect(screen.getByText('Sep 21–27, 2026')).toBeTruthy();
+  expect(screen.getByText('Sep 21–27')).toBeTruthy();
   await act(async () => {fireEvent.press(screen.getByLabelText('Continue to weekly priorities'));});
 };
 
@@ -237,7 +237,12 @@ it('saves the weekly walkthrough and a separate prayer, shows their text in the 
   await act(async () => {fireEvent.press(screen.getByLabelText('Finish weekly review'));});
   await waitFor(async () => expect((await savedReview())?.status).toBe('completed'));
   expect(mockNavigation.goBack).toHaveBeenCalledTimes(1);
-  expect(saveWeeklyReviewPrayer).not.toHaveBeenCalled();
+  expect(saveWeeklyReviewPrayer).toHaveBeenCalledWith({
+    text: 'Help me listen well.',
+    periodStart: '2026-09-14',
+    periodEnd: '2026-09-20',
+    reviewId: (await savedReview())!.id,
+  });
   const weekly = await getLocalJournalSingleton('weekly_looking_forward', mockRouteParams.periodEnd);
   expect(JSON.parse(weekly!.content)).toMatchObject({title: 'Looking forward to this week', entry: {text: 'Dinner with my sister.'}, emotionName: 'Hopeful'});
   expect(await getLocalJournalSingleton('looking_forward', mockRouteParams.periodEnd)).toBeNull();
