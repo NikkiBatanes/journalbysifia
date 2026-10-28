@@ -11,7 +11,6 @@ import {
   subDays,
   subMonths,
   subQuarters,
-  subYears,
 } from 'date-fns';
 import { toLocalDateString } from '../utils/date';
 import { type ReviewType } from '../storage/reviewStorage';
@@ -112,9 +111,10 @@ export const getYearEndPeriodFor = (
   anchor: string | Date = localToday(),
 ): ReviewPeriod | null => {
   const anchorDate = parseYMD(anchor);
-  const year = getYear(anchorDate);
-  const availableFrom = new Date(year, 0, 1);
-  const availableUntil = new Date(year, 0, 15);
+  const periodStart = startOfYear(anchorDate);
+  const periodEnd = endOfYear(anchorDate);
+  const availableFrom = subDays(periodEnd, 6);
+  const availableUntil = addDays(periodEnd, 1);
 
   const anchorYMD = toLocalDateString(anchorDate);
   const fromYMD = toLocalDateString(availableFrom);
@@ -123,10 +123,6 @@ export const getYearEndPeriodFor = (
   if (anchorYMD < fromYMD || anchorYMD >= untilYMD) {
     return null;
   }
-
-  const reviewedYear = subYears(anchorDate, 1);
-  const periodStart = startOfYear(reviewedYear);
-  const periodEnd = endOfYear(reviewedYear);
 
   return {
     type: 'year_end',

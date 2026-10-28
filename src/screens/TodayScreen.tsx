@@ -150,7 +150,9 @@ const TodayScreen = () => {
     isToday ? now.getHours() >= 17 : selectedDateRelation === 'past' && pastContent.evening && !pastContent.morning
   );
   const greetingText = isToday
-    ? (hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening')
+    ? (__DEV__ && previewEvening !== null
+      ? (previewEvening ? 'Good evening' : 'Good morning')
+      : (hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'))
     : 'Hi';
   const eveningDone = eveningState?.selected_date === format(displayDate, 'yyyy-MM-dd') && eveningState.completed;
   const morningDone = morningState?.selected_date === format(displayDate, 'yyyy-MM-dd') && morningState.completed;
@@ -428,6 +430,14 @@ const TodayScreen = () => {
     calendarProgress.value = withSpring(next ? 1 : 0, CALENDAR_SPRING);
   }, [calendarVisible, calendarProgress]);
 
+  const previewOppositeRoutine = useCallback(() => {
+    triggerLightHaptic();
+    setPreviewEvening(!isEvening);
+    requestAnimationFrame(() => {
+      scrollRef.current?.scrollTo({ y: 0, animated: true });
+    });
+  }, [isEvening]);
+
   const calendarSheetStyle = useAnimatedStyle(() => ({
     height: Math.max(0, calendarProgress.value * CALENDAR_SHEET_HEIGHT),
     opacity: Math.min(1, calendarProgress.value * 1.4),
@@ -699,42 +709,6 @@ const TodayScreen = () => {
           </View>}
         </TouchableOpacity>
 
-        {__DEV__ && (
-          <TouchableOpacity
-            key="period-preview"
-            style={styles.routinePreviewButton}
-            accessibilityRole="button"
-            accessibilityLabel={isEvening ? 'Preview morning check-in' : 'Preview evening reflection at 5 PM'}
-            onPress={() => { triggerLightHaptic(); setPreviewEvening(!isEvening); }}
-          >
-            <ThemedText style={styles.routinePreviewText}>{isEvening ? 'Preview morning' : 'Preview 5 PM'}</ThemedText>
-          </TouchableOpacity>
-        )}
-
-        {__DEV__ && (
-          <TouchableOpacity
-            key="review-qa"
-            style={styles.routinePreviewButton}
-            accessibilityRole="button"
-            accessibilityLabel="Open Review QA"
-            onPress={() => (navigation as any).navigate('Journal', { screen: 'ReviewQA' })}
-          >
-            <ThemedText style={styles.routinePreviewText}>Review QA</ThemedText>
-          </TouchableOpacity>
-        )}
-
-        {__DEV__ && (
-          <TouchableOpacity
-            key="review-card-preview-toggle"
-            style={styles.routinePreviewButton}
-            accessibilityRole="button"
-            accessibilityLabel={showReviewCardPreview ? 'Hide review card previews' : 'Preview all review cards'}
-            onPress={() => { triggerLightHaptic(); setShowReviewCardPreview(!showReviewCardPreview); }}
-          >
-            <ThemedText style={styles.routinePreviewText}>{showReviewCardPreview ? 'Hide review cards' : 'Review cards'}</ThemedText>
-          </TouchableOpacity>
-        )}
-
         <SectionHeading key="quick-look-heading" title="A QUICK LOOK" detail={weekLabel} />
         <WeeklyQuickLook key="quick-look-card" start={format(startOfWeek(displayDate, { weekStartsOn }), 'yyyy-MM-dd')} end={format(endOfWeek(displayDate, { weekStartsOn }), 'yyyy-MM-dd')} />
 
@@ -879,6 +853,35 @@ const TodayScreen = () => {
         <PrayerToRevisit header={<SectionHeading title="PRAYER" detail="bring it before God" />} />
         </React.Fragment>}
 
+        {__DEV__ && (
+          <View key="development-tools" style={styles.developmentTools}>
+            <ThemedText style={styles.developmentToolsLabel}>DEVELOPMENT TOOLS</ThemedText>
+            <View style={styles.developmentToolsActions}>
+              <TouchableOpacity
+                style={styles.routinePreviewButton}
+                accessibilityRole="button"
+                accessibilityLabel={isEvening ? 'Preview morning check-in' : 'Preview evening reflection'}
+                onPress={previewOppositeRoutine}>
+                <ThemedText style={styles.routinePreviewText}>{isEvening ? 'Preview AM' : 'Preview PM'}</ThemedText>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.routinePreviewButton}
+                accessibilityRole="button"
+                accessibilityLabel="Open Review QA"
+                onPress={() => (navigation as any).navigate('Journal', { screen: 'ReviewQA' })}>
+                <ThemedText style={styles.routinePreviewText}>Review QA</ThemedText>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.routinePreviewButton}
+                accessibilityRole="button"
+                accessibilityLabel={showReviewCardPreview ? 'Hide review card previews' : 'Preview all review cards'}
+                onPress={() => { triggerLightHaptic(); setShowReviewCardPreview(!showReviewCardPreview); }}>
+                <ThemedText style={styles.routinePreviewText}>{showReviewCardPreview ? 'Hide review cards' : 'Review cards'}</ThemedText>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+
         </Stagger>}
       </ScrollView>
     </View>
@@ -907,7 +910,10 @@ const styles = StyleSheet.create({
   card: { backgroundColor: Colors.cardBackground, borderColor: Colors.cardBorder, borderWidth: 1, borderRadius: 22, padding: 18, shadowColor: Colors.darkBackground, shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.04, shadowRadius: 12, elevation: 2 },
   morningCard: { width: '100%', minHeight: 205,  paddingHorizontal: 22, paddingTop: 20, paddingBottom: 18, overflow: 'hidden' },
   routineEyebrowRow: { flexDirection: 'row', alignItems: 'center', gap: 7, marginBottom: 5 },
-  routinePreviewButton: { alignSelf: 'center', paddingHorizontal: 16, paddingVertical: 9, borderRadius: 18, borderWidth: 1, borderColor: Colors.inputBorder, marginTop: 10 },
+  developmentTools: { alignItems: 'center', borderTopWidth: 1, borderTopColor: Colors.cardBorder, marginTop: 48, paddingTop: 20, paddingBottom: 28 },
+  developmentToolsLabel: { color: Colors.textGray, fontSize: 9, letterSpacing: 1.6, marginBottom: 10 },
+  developmentToolsActions: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 8 },
+  routinePreviewButton: { paddingHorizontal: 16, paddingVertical: 9, borderRadius: 18, borderWidth: 1, borderColor: Colors.inputBorder },
   routinePreviewText: { color: Colors.sage, fontSize: 12 },
   routineIcon: { width: 42, height: 42, borderRadius: 21, backgroundColor: Colors.anchorBlueLight, alignItems: 'center', justifyContent: 'center' },
   routineBegin: { borderRadius: 22, backgroundColor: Colors.sage, paddingHorizontal: 14, paddingVertical: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, maxWidth: 142 },

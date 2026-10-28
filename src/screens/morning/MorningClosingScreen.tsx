@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { DeviceEventEmitter, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { Animated, DeviceEventEmitter, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -12,7 +12,7 @@ import ShareComposer, { MorningSummaryShareData } from '../../components/TruthTo
 import { FOCUS_CATEGORIES } from '../../components/journal/TodaysFocusExperience';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
-import { triggerLightHaptic } from '../../utils/haptics';
+import { triggerLightHaptic, triggerSuccessHaptic } from '../../utils/haptics';
 import { fromLocalDateString, toLocalDateString } from '../../utils/date';
 import { exitEveningFlow } from '../../navigation/exitEveningFlow';
 import { useRoutine } from '../../context/RoutineContext';
@@ -22,6 +22,7 @@ import { getDailyClosingMessage } from '../../services/dailyClosingMessageServic
 import { getLocalReflection } from '../../storage/reflectionStorage';
 import { getScripturePassage } from '../../services/scriptureReaderService';
 import {resolveSavedPsalmNumber} from '../../services/dailyScriptureSequence';
+import ScriptureLoadingSkeleton from '../../components/scripture/ScriptureLoadingSkeleton';
 
 const SummaryIcon = ({ icon, iconType }: { icon?: string; iconType?: 'ionicons' | 'material' | 'fontawesome' }) => {
   if (!icon || !iconType) { return null; }
@@ -42,6 +43,24 @@ const MorningClosingScreen = () => {
   const { completeRoutine, selectedDate, contentRefs, completed, routine } = useRoutine();
   const params = route.params ?? {};
   const [shareComposerOpen, setShareComposerOpen] = useState(false);
+  const completionProgress = React.useRef(new Animated.Value(0)).current;
+  const celebratedRef = React.useRef(false);
+
+  useFocusEffect(React.useCallback(() => {
+    completionProgress.setValue(0);
+    if (!celebratedRef.current) {
+      triggerSuccessHaptic();
+      celebratedRef.current = true;
+    }
+    const animation = Animated.spring(completionProgress, {
+      toValue: 1,
+      tension: 58,
+      friction: 8,
+      useNativeDriver: true,
+    });
+    animation.start();
+    return () => animation.stop();
+  }, [completionProgress]));
 
   const date = fromLocalDateString(selectedDate);
   const dateStr = toLocalDateString(date);
@@ -71,6 +90,7 @@ const MorningClosingScreen = () => {
     customAttribute: params.customAttribute ?? '',
     carry: params.carry,
   });
+  const [feelingScriptureLoading, setFeelingScriptureLoading] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -90,6 +110,7 @@ const MorningClosingScreen = () => {
           next.feelingIconType = parsed.feelingIconType ?? next.feelingIconType;
           next.underneath = parsed.underneathIt ?? next.underneath;
           if (parsed.scripture?.reference) {
+            if (mounted) {setFeelingScriptureLoading(true);}
             const passage = await getScripturePassage(parsed.scripture.reference, parsed.scripture.translation).catch(() => null);
             next.feelingScriptureText = passage
               ? (passage.verses?.length
@@ -101,6 +122,7 @@ const MorningClosingScreen = () => {
           }
         }
       }
+      if (mounted) {setFeelingScriptureLoading(false);}
 
       const focusRef = contentRefs.todays_focus;
       if (focusRef && !Array.isArray(focusRef)) {
@@ -251,15 +273,24 @@ const MorningClosingScreen = () => {
         bounces={false}
         overScrollMode="never"
       >
-        <View style={styles.completionHeader}>
+        <Animated.View style={[styles.completionHeader, {
+          opacity: completionProgress,
+          transform: [
+            {translateY: completionProgress.interpolate({inputRange: [0, 1], outputRange: [18, 0]})},
+            {scale: completionProgress.interpolate({inputRange: [0, 1], outputRange: [0.92, 1]})},
+          ],
+        }]}>
           <View style={styles.checkCircle}>
             <Ionicons name="sunny-outline" size={26} color={Colors.hopeWhite} />
+            <View style={styles.completionCheckBadge}>
+              <Ionicons name="checkmark-circle-outline" size={19} color={Colors.sage} />
+            </View>
           </View>
           <View style={styles.completionHeaderText}>
             <ThemedText style={styles.title}>You’re ready for today.</ThemedText>
             <ThemedText style={styles.subtitle}>Your morning reflection is saved.</ThemedText>
           </View>
-        </View>
+        </Animated.View>
 
         <View style={styles.glanceSection}>
           <ThemedText weight="semiBold" style={styles.sectionEyebrow}>TODAY AT A GLANCE</ThemedText>
@@ -276,7 +307,13 @@ const MorningClosingScreen = () => {
                 <SummaryIcon icon={summary.feelingIcon} iconType={summary.feelingIconType} />
                 <ThemedText weight="semiBold" style={styles.glanceValue}>{summary.feeling || '—'}</ThemedText>
               </View>
-              {summary.feelingScriptureText ? (
+              {feelingScriptureLoading ? (
+                <ScriptureLoadingSkeleton
+                  variant="inline"
+                  lines={3}
+                  style={styles.feelingScriptureSkeleton}
+                />
+              ) : summary.feelingScriptureText ? (
                 <>
                   <ThemedText numberOfLines={4} style={styles.feelingScriptureText}>
                     “{summary.feelingScriptureText}”
@@ -324,6 +361,7 @@ const MorningClosingScreen = () => {
             triggerLightHaptic();
             navigation.navigate('PsalmOfTheDay', {
               returnToClosing: true,
+              psalmNumber: summary.psalmNumber,
               selectedAttributes: summary.selectedAttributes,
               customAttribute: summary.customAttribute,
             });
@@ -350,7 +388,7 @@ const MorningClosingScreen = () => {
 
           <View style={styles.pauseAndPraiseSection}>
             <View style={styles.pauseAndPraiseTitleRow}>
-              <Ionicons name="musical-notes" size={18} color={Colors.sage} />
+              <Ionicons name="musical-notes-outline" size={18} color={Colors.sage} />
               <ThemedText weight="bold" style={styles.pauseAndPraiseTitle}>Pause and Praise</ThemedText>
             </View>
             <ThemedText style={styles.psalmPrompt}>What you saw about God</ThemedText>
@@ -419,6 +457,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: Colors.sage,
+  },
+  completionCheckBadge: {
+    position: 'absolute',
+    right: -4,
+    bottom: -4,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.lightBackground,
   },
   shareButton: {
     position: 'absolute',
@@ -502,6 +551,9 @@ const styles = StyleSheet.create({
     color: Colors.textGray,
     fontSize: 11,
     lineHeight: 15,
+    marginTop: 8,
+  },
+  feelingScriptureSkeleton: {
     marginTop: 8,
   },
   feelingScriptureReference: {

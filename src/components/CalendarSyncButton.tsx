@@ -1,6 +1,6 @@
 /**
  * Calendar Sync Button Component
- * Shows sync status and handles calendar integration with feature gating
+ * Shows sync status and handles the device calendar integration.
  */
 
 import React, { useState, useRef, useEffect } from 'react';
@@ -13,14 +13,13 @@ import {
   Alert,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Colors } from '../theme/colors';
 import ThemedText from './common/ThemedText';
-import { useCalendarGating } from '../hooks/useCalendarGating';
 import { syncTimeBlockToCalendar, removeTimeBlockFromCalendar, updateTimeBlockInCalendar } from '../services/calendarSyncService';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { Linking } from 'react-native';
 import { triggerLightHaptic, triggerSelectionHaptic } from '../utils/haptics';
+import { useMomentsPalette } from '../context/MomentsPaletteContext';
 
 interface CalendarSyncButtonProps {
   timeBlock: {
@@ -52,14 +51,16 @@ export const CalendarSyncButton: React.FC<CalendarSyncButtonProps> = ({
   onSyncComplete,
   compact = false,
 }) => {
-  const { user } = useAuth();
-  const calendarGating = useCalendarGating();
+  const { user, preferences } = useAuth();
+  const momentsPalette = useMomentsPalette();
   const [isLoading, setIsLoading] = useState(false);
   const [syncStatus, setSyncStatus] = useState<'synced' | 'unsynced' | 'syncing' | 'error'>(calendarEventId ? 'synced' : 'unsynced');
 
   // Check if auto-sync is enabled
   const userPreferences = user?.user_metadata?.preferences || {};
-  const autoSyncEnabled = userPreferences.calendar?.autoSync || false;
+  const autoSyncEnabled = preferences?.calendar?.autoSync
+    ?? userPreferences.calendar?.autoSync
+    ?? false;
 
   // Prevent duplicate sync calls
   const syncInProgress = useRef(false);
@@ -73,12 +74,6 @@ export const CalendarSyncButton: React.FC<CalendarSyncButtonProps> = ({
     // Prevent duplicate calls
     if (syncInProgress.current || isLoading) {
 
-      return;
-    }
-
-    if (!calendarGating.canSyncToCalendar) {
-
-      calendarGating.handleCalendarLockTap();
       return;
     }
 
@@ -310,44 +305,36 @@ export const CalendarSyncButton: React.FC<CalendarSyncButtonProps> = ({
   };
 
   const getButtonStyle = () => {
-    if (!calendarGating.canSyncToCalendar) {
-      return [styles.button, styles.lockedButton];
-    }
-
     switch (syncStatus) {
       case 'synced':
-        return [styles.button, styles.syncedButton];
+        return [styles.button, styles.syncedButton, momentsPalette && styles.syncedButtonMoments];
       case 'error':
-        return [styles.button, styles.errorButton];
+        return [styles.button, styles.errorButton, momentsPalette && styles.errorButtonMoments];
       default:
-        return [styles.button, styles.unsyncedButton];
+        return [styles.button, styles.unsyncedButton, momentsPalette && styles.unsyncedButtonMoments];
     }
   };
 
+  const iconColor = momentsPalette && syncStatus !== 'synced'
+    ? Colors.sage
+    : Colors.hopeWhite;
+
   const getIcon = () => {
     if (isLoading) {
-      return <ActivityIndicator size="small" color={Colors.hopeWhite} />;
-    }
-
-    if (!calendarGating.canSyncToCalendar) {
-      return <MaterialCommunityIcons name="lock" size={16} color={Colors.textGray} />;
+      return <ActivityIndicator size="small" color={iconColor} />;
     }
 
     switch (syncStatus) {
       case 'synced':
-        return <Ionicons name="calendar" size={16} color={Colors.hopeWhite} />;
+        return <Ionicons name="calendar" size={16} color={iconColor} />;
       case 'error':
-        return <Ionicons name="calendar-outline" size={16} color={Colors.hopeWhite} />;
+        return <Ionicons name="calendar-outline" size={16} color={iconColor} />;
       default:
-        return <Ionicons name="calendar-outline" size={16} color={Colors.hopeWhite} />;
+        return <Ionicons name="calendar-outline" size={16} color={iconColor} />;
     }
   };
 
   const getText = () => {
-    if (!calendarGating.canSyncToCalendar) {
-      return compact ? '' : 'Upgrade to Sync';
-    }
-
     if (isLoading) {
       return compact ? '' : 'Syncing...';
     }
@@ -414,10 +401,17 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(239, 68, 68, 0.1)',
     borderColor: 'rgba(239, 68, 68, 0.3)',
   },
-  lockedButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-    opacity: 0.6,
+  unsyncedButtonMoments: {
+    backgroundColor: Colors.anchorBlueLight,
+    borderColor: Colors.inputBorder,
+  },
+  syncedButtonMoments: {
+    backgroundColor: Colors.sage,
+    borderColor: Colors.sage,
+  },
+  errorButtonMoments: {
+    backgroundColor: Colors.inputBackground,
+    borderColor: Colors.inputBorder,
   },
   buttonContent: {
     flexDirection: 'row',

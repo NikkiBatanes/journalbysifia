@@ -43,7 +43,11 @@ interface ScrapedVerse {
   reference: string;
   version: string;
   timestamp: number;
-  verses?: { number: string; lines: string[] }[];
+  verses?: {
+    number: string;
+    lines: string[];
+    segments?: { text: string; wordsOfJesus?: boolean }[][];
+  }[];
 }
 
 interface CacheEntry {
@@ -395,64 +399,91 @@ class BibleGatewayScraper {
   }
 
   /**
-   * Extract Psalm verses with line breaks and verse numbers for formatted display
+   * Extract verses with line breaks and verse numbers for formatted display
    */
-  private extractPsalmVerses(html: string): { number: string; lines: string[] }[] | undefined {
+  private extractVerses(html: string): {
+    number: string;
+    lines: string[];
+    segments?: { text: string; wordsOfJesus?: boolean }[][];
+  }[] | undefined {
     const doc = new DOMParser().parseFromString(html, 'text/html');
     if (!doc) { return undefined; }
 
     const passageDiv = doc.querySelector('.passage-content');
     if (!passageDiv) { return undefined; }
 
-    // Remove passage title, headings, footnotes, and cross-references
     passageDiv.querySelector('.passage-title')?.remove();
     passageDiv.querySelectorAll('h1, h2, h3, h4, h5, h6, .footnote, .crossreference').forEach((node: Node) => {
       (node as Element).remove();
     });
 
-    const poetryDivs = passageDiv.querySelectorAll('.poetry');
-    if (!poetryDivs.length) { return undefined; }
-
-    const verseMap = new Map<string, { number?: string; lines: string[] }>();
+    const verseMap = new Map<string, {
+      number: string;
+      lines: string[];
+      segments: { text: string; wordsOfJesus?: boolean }[][];
+    }>();
     const keys: string[] = [];
+    const textSpans = passageDiv.querySelectorAll('.text');
 
-    for (const poetry of poetryDivs) {
-      const textSpans = (poetry as Element).querySelectorAll('.text');
-      for (const span of textSpans) {
-        const el = span as Element;
-        const className = el.getAttribute('class') || '';
-        const match = className.match(/\bPs-\d+-(\d+)\b/);
-        if (!match) { continue; }
+    for (const span of textSpans) {
+      const el = span as Element;
+      const className = el.getAttribute('class') || '';
+      const match = className.match(/(?:^|\s)([A-Za-z0-9-]+-\d+-(\d+))(?=\s|$)/);
+      if (!match) { continue; }
 
-        const key = match[0];
-        if (!verseMap.has(key)) {
-          verseMap.set(key, { lines: [] });
-          keys.push(key);
-        }
+      const key = match[1];
+      if (!verseMap.has(key)) {
+        verseMap.set(key, { number: match[2], lines: [], segments: [] });
+        keys.push(key);
+      }
 
+      el.querySelectorAll('.versenum, .chapternum, .footnote, .crossreference').forEach((node: Node) => {
+        (node as Element).remove();
+      });
+      const lineText = (el.textContent || '')
+        .replace(/\*+/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+      if (lineText) {
         const entry = verseMap.get(key)!;
-        const numEl = el.querySelector('.chapternum, .versenum');
-        const number = numEl ? (numEl as Element).textContent?.trim() : undefined;
+        const lineSegments: { text: string; wordsOfJesus?: boolean }[] = [];
+        const elementIsWordsOfJesus = className.split(/\s+/).includes('woj');
 
-        let lineText = el.textContent?.trim() || '';
-        if (entry.lines.length === 0 && number) {
-          const escaped = number.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-          lineText = lineText.replace(new RegExp(`^${escaped}\\s*`), '').trim();
-          entry.number = number;
+        if (elementIsWordsOfJesus) {
+          lineSegments.push({text: lineText, wordsOfJesus: true});
+        } else {
+          const wordsOfJesus = Array.from(el.querySelectorAll('.woj'))
+            .map(node => ((node as Element).textContent || '')
+              .replace(/\*+/g, '')
+              .replace(/\s+/g, ' ')
+              .trim())
+            .filter(Boolean);
+          let cursor = 0;
+
+          wordsOfJesus.forEach(redText => {
+            const start = lineText.indexOf(redText, cursor);
+            if (start < 0) { return; }
+            if (start > cursor) {
+              lineSegments.push({text: lineText.slice(cursor, start)});
+            }
+            lineSegments.push({text: lineText.slice(start, start + redText.length), wordsOfJesus: true});
+            cursor = start + redText.length;
+          });
+
+          if (cursor < lineText.length) {
+            lineSegments.push({text: lineText.slice(cursor)});
+          }
         }
 
-        if (lineText) {
-          entry.lines.push(lineText);
-        }
+        entry.lines.push(lineText);
+        entry.segments.push(lineSegments.length ? lineSegments : [{text: lineText}]);
       }
     }
 
-    return keys
-      .map(key => {
-        const entry = verseMap.get(key)!;
-        return { number: entry.number || '', lines: entry.lines };
-      })
-      .filter(v => v.lines.length > 0);
+    const verses = keys
+      .map(key => verseMap.get(key)!)
+      .filter(verse => verse.lines.length > 0);
+    return verses.length ? verses : undefined;
   }
 
   /**
@@ -483,9 +514,8 @@ class BibleGatewayScraper {
     // Extract verse text
     const { text, startVerse, endVerse } = this.extractVerseText(html);
 
-    // Extract formatted Psalm verses only when scraping a Psalm
-    const isPsalm = /psalm/i.test(reference);
-    const verses = isPsalm ? this.extractPsalmVerses(html) : undefined;
+    // Extract formatted verses for inline numbering in every Bible passage
+    const verses = this.extractVerses(html);
 
     let actualReference = reference;
     if (startVerse !== undefined) {

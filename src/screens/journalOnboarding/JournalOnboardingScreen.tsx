@@ -138,7 +138,7 @@ const NOTE_BLOCK_MOCKUPS: Record<SelectableJournalBlockKind, JournalBlock[]> = {
   song: [{id: 'mock-song', kind: 'song', text: 'Goodness of God', secondary: 'CeCe Winans'}],
   outline: [{id: 'mock-outline', kind: 'outline', text: 'Living with trust', outlineStyle: 'numbered', points: ['Remember who God is', 'Respond with faith']}],
   character: [{id: 'mock-character', kind: 'character', text: 'Ruth', note: 'Faithful in uncertainty and generous in love.', secondary: 'Ruth 1:16'}],
-  language: [{id: 'mock-language', kind: 'language', text: 'חֶסֶד · hesed', languageKind: 'hebrew', languageDetails: ['meaning', 'transliteration', 'origin', 'scripture'], meaning: 'Steadfast, covenant love', secondary: 'HEH-sed', origin: 'A loyal love expressed through action', reference: 'Psalm 136:1'}],
+  language: [{id: 'mock-language', kind: 'language', text: 'חֶסֶד', englishWord: 'steadfast love', languageKind: 'hebrew', languageDetails: ['meaning', 'transliteration', 'origin', 'scripture'], meaning: 'Steadfast, covenant love', secondary: 'HEH-sed', origin: 'A loyal love expressed through action', reference: 'Psalm 136:1'}],
   link: [{id: 'mock-link', kind: 'link', text: 'sifia.app/resource'}],
   table: [{id: 'mock-table', kind: 'table', text: '', tableRows: [['Notice', 'Respond'], ['God is near', 'Choose trust']], tableCellAlignments: [['left', 'left'], ['left', 'left']]}],
   history: [{id: 'mock-history', kind: 'history', text: '', historyTypes: ['era', 'culture'], secondary: 'First century', eraPeriod: 'AD', note: 'House churches lived out their faith within the Roman world.', reference: 'Romans 12:1–2'}],

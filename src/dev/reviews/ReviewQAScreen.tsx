@@ -19,16 +19,20 @@ import {
 } from './reviewQAFixtures';
 import {
   clearReviewQAData,
+  loadMockupData,
   loadReviewQAScenario,
   loadReviewQAScenarioWithBibleStudies,
   loadReviewQAScenarioWithSessionNotes,
 } from './reviewQALoader';
+import {
+  MOCKUP_DATA_PERIOD_LABEL,
+} from './reviewQAMockupData';
 import type {ReviewCapture} from '../../services/reviewCaptureService';
 
 const ReviewQAScreen = () => {
   const navigation = useNavigation<any>();
   const [busy, setBusy] = useState(false);
-  const [loaded, setLoaded] = useState<ReviewQAScenario | null>(null);
+  const [loaded, setLoaded] = useState<ReviewQAScenario | 'mockup' | null>(null);
   const [capture, setCapture] = useState<ReviewCapture | null>(null);
   if (!__DEV__) {
     return null;
@@ -45,6 +49,22 @@ const ReviewQAScreen = () => {
     } catch (error) {
       Alert.alert(
         'Unable to load Review QA',
+        error instanceof Error ? error.message : 'Unknown error',
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
+  const loadMockups = async () => {
+    setBusy(true);
+    try {
+      const result = await loadMockupData();
+      setLoaded('mockup');
+      setCapture(result.capture);
+      navigation.getParent()?.navigate('Today');
+    } catch (error) {
+      Alert.alert(
+        'Unable to load Mockup data',
         error instanceof Error ? error.message : 'Unknown error',
       );
     } finally {
@@ -117,6 +137,43 @@ const ReviewQAScreen = () => {
           Each scenario uses production storage and period eligibility while
           keeping your existing review data restorable.
         </ThemedText>
+        <View style={[styles.card, styles.mockupCard]}>
+          <View style={styles.row}>
+            <View style={{flex: 1}}>
+              <ThemedText weight="bold" style={styles.title}>
+                Mockup data
+              </ThemedText>
+              <ThemedText style={styles.period}>
+                {MOCKUP_DATA_PERIOD_LABEL} · Early-access website screenshot set
+              </ThemedText>
+            </View>
+            <ThemedText weight="semiBold" style={styles.status}>
+              WEBSITE
+            </ThemedText>
+          </View>
+          <ThemedText style={styles.mockupStatus}>
+            TODAY · MORNING · EVENING · HEART · PRAYER · REVIEW · SERMON
+          </ThemedText>
+          <ThemedText style={styles.mockupDescription}>
+            Loads the fictional records used across the website mockups. Your
+            existing data is restored when this set is cleared.
+          </ThemedText>
+          {loaded === 'mockup' && capture ? (
+            <ThemedText style={styles.counts}>
+              Captured: {capture.items.length} · Session {capture.summary.sermon}
+              {' · '}Prayer {capture.summary.prayer} · Journal{' '}
+              {capture.summary.journal + capture.summary.reflection}
+            </ThemedText>
+          ) : null}
+          <TouchableOpacity
+            disabled={busy}
+            style={styles.open}
+            onPress={loadMockups}>
+            <ThemedText weight="semiBold" style={styles.openText}>
+              Load Mockup data
+            </ThemedText>
+          </TouchableOpacity>
+        </View>
         {REVIEW_QA_SCENARIOS.map(s => (
           <View key={s.id} style={styles.card}>
             <View style={styles.row}>
@@ -233,6 +290,21 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     padding: 16,
     marginBottom: 12,
+  },
+  mockupCard: {backgroundColor: Colors.anchorBlueLight},
+  mockupStatus: {
+    color: Colors.sage,
+    fontSize: 9,
+    lineHeight: 14,
+    letterSpacing: 0.6,
+    marginTop: 14,
+  },
+  mockupDescription: {
+    color: Colors.textGray,
+    fontSize: 12,
+    lineHeight: 18,
+    marginTop: 7,
+    marginBottom: 14,
   },
   row: {flexDirection: 'row', gap: 10, alignItems: 'flex-start'},
   title: {fontSize: 17, color: Colors.text},

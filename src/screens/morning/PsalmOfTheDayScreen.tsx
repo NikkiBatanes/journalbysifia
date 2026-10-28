@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Animated, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { Animated, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
@@ -13,14 +13,17 @@ import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { useRoutine } from '../../context/RoutineContext';
 import { exitMorningFlow } from '../../navigation/exitEveningFlow';
 import RoutineStepShell from '../../components/routine/RoutineStepShell';
+import ScriptureInlinePassageText from '../../components/scripture/ScriptureInlinePassageText';
+import ScriptureLoadingSkeleton from '../../components/scripture/ScriptureLoadingSkeleton';
 import { getScripturePassage } from '../../services/scriptureReaderService';
+import { formatScripturePassage } from '../../services/scripturePassageFormatting';
 import {
   createLocalReflection,
   getLocalReflection,
   getLocalReflections,
   updateLocalReflection,
 } from '../../storage/reflectionStorage';
-import {getDailyPsalmNumber} from '../../services/dailyScriptureSequence';
+import {getDailyPsalmNumber, resolveSavedPsalmNumber} from '../../services/dailyScriptureSequence';
 import {useDailyScriptureSequenceAnchor} from '../../hooks/useDailyScriptureSequenceAnchor';
 
 type TextAlign = 'left' | 'center' | 'right' | 'justify';
@@ -50,11 +53,15 @@ const PsalmOfTheDayScreen = () => {
   const route = useRoute<any>();
   const { user } = useAuth();
   const { selectedDate, markStepCompleted } = useRoutine();
-  const {anchor: scriptureSequenceAnchor, ready: scriptureSequenceReady} = useDailyScriptureSequenceAnchor(user?.created_at);
+  const {anchor: scriptureSequenceAnchor, ready: scriptureSequenceReady, error: sequenceError, retry: retrySequence} = useDailyScriptureSequenceAnchor(user?.created_at);
 
   const fallbackPsalmNumber = useMemo(() => {
     return getDailyPsalmNumber(selectedDate, scriptureSequenceAnchor);
   }, [scriptureSequenceAnchor, selectedDate]);
+  const routedPsalmNumber = useMemo(() => {
+    const value = Number(route.params?.psalmNumber);
+    return Number.isInteger(value) && value >= 1 && value <= 150 ? value : null;
+  }, [route.params?.psalmNumber]);
   const [psalmNumber, setPsalmNumber] = useState(fallbackPsalmNumber);
   const [psalmIdentityReady, setPsalmIdentityReady] = useState(false);
 
@@ -81,6 +88,13 @@ const PsalmOfTheDayScreen = () => {
 
   const settingsAnim = useRef(new Animated.Value(0)).current;
 
+  useFocusEffect(
+    React.useCallback(() => () => {
+      setShowAaSettings(false);
+      settingsAnim.setValue(0);
+    }, [settingsAnim]),
+  );
+
   const dateStr = selectedDate;
 
   useEffect(() => {
@@ -94,13 +108,12 @@ const PsalmOfTheDayScreen = () => {
       const existing = entries
         .filter(e => e.source === 'morning_psalm' || e.metadata?.source === 'morning_psalm')
         .sort((a, b) => b.updated_at.localeCompare(a.updated_at))[0];
-      // The account/date sequence is canonical. Route params and an older
-      // incorrectly saved chapter must never change today's assigned Psalm.
-      setPsalmNumber(fallbackPsalmNumber);
       if (existing) {
+        setPsalmNumber(resolveSavedPsalmNumber(existing, fallbackPsalmNumber));
         setHasReadPsalm(Boolean(existing.metadata?.psalmRead));
         setPsalmReflectionId(existing.id);
       } else {
+        setPsalmNumber(routedPsalmNumber ?? fallbackPsalmNumber);
         setHasReadPsalm(false);
         setPsalmReflectionId(null);
       }
@@ -108,12 +121,12 @@ const PsalmOfTheDayScreen = () => {
     })().catch(error => {
       console.error('Error resolving saved Psalm number:', error);
       if (mounted) {
-        setPsalmNumber(fallbackPsalmNumber);
-        setPsalmIdentityReady(true);
+        setPsalmLoading(false);
+        setPsalmError('Could not load your saved reading. Close this step and try again.');
       }
     });
     return () => { mounted = false; };
-  }, [dateStr, fallbackPsalmNumber, scriptureSequenceReady]);
+  }, [dateStr, fallbackPsalmNumber, routedPsalmNumber, scriptureSequenceReady]);
 
   const psalmLines = useMemo(() => {
     if (!psalmText) { return []; }
@@ -144,10 +157,14 @@ const PsalmOfTheDayScreen = () => {
     return () => { cancelled = true; };
   }, [psalmIdentityReady, psalmNumber, psalmRetry]);
 
+  const canContinue = scriptureSequenceReady && psalmIdentityReady;
+
   const onNext = React.useCallback(async () => {
+    if (!canContinue) {return;}
     triggerLightHaptic();
 
     const metadata = {
+      scriptureSequenceVersion: 2,
       psalmNumber,
       psalmReference: `Psalm ${psalmNumber}`,
       psalmRead: hasReadPsalm,
@@ -212,7 +229,7 @@ const PsalmOfTheDayScreen = () => {
       selectedAttributes: route.params?.selectedAttributes,
       customAttribute: route.params?.customAttribute,
     });
-  }, [hasReadPsalm, markStepCompleted, navigation, psalmNumber, psalmReflectionId, dateStr, route.params?.customAttribute, route.params?.returnToClosing, route.params?.selectedAttributes]);
+  }, [canContinue, hasReadPsalm, markStepCompleted, navigation, psalmNumber, psalmReflectionId, dateStr, route.params?.customAttribute, route.params?.returnToClosing, route.params?.selectedAttributes]);
 
   const togglePsalmRead = React.useCallback(() => {
     if (hasReadPsalm) {
@@ -222,6 +239,11 @@ const PsalmOfTheDayScreen = () => {
     }
     setHasReadPsalm((current) => !current);
   }, [hasReadPsalm]);
+
+  const formattedPsalmPassage = useMemo(
+    () => formatScripturePassage(psalmVerses ?? undefined, `Psalm ${psalmNumber}`, psalmText ?? ''),
+    [psalmNumber, psalmText, psalmVerses],
+  );
 
   const psalmLineStyle = useMemo(() => ({
     fontSize: psalmFontSize,
@@ -327,30 +349,7 @@ const PsalmOfTheDayScreen = () => {
 
   const onBack = () => exitMorningFlow(navigation, 'Today');
 
-  const children = (
-    <>
-      {psalmReference && psalmVersion && (
-        <View style={styles.psalmReferenceRow}>
-          <ThemedText weight="semiBold" style={styles.psalmReference}>
-            {psalmReference} · {psalmVersion}
-          </ThemedText>
-          <TouchableOpacity
-            onPress={() => {
-              triggerLightHaptic();
-              setShowCopyright(true);
-            }}
-            activeOpacity={0.7}
-            accessibilityRole="button"
-            accessibilityLabel="Bible translation information">
-            <Ionicons
-              name="information-circle-outline"
-              size={16}
-              color={Colors.sage}
-            />
-          </TouchableOpacity>
-        </View>
-      )}
-
+  const psalmSettingsOverlay = (
       <Animated.View
         pointerEvents={showAaSettings ? 'auto' : 'none'}
         style={[
@@ -548,6 +547,32 @@ const PsalmOfTheDayScreen = () => {
           </View>
         )}
       </Animated.View>
+  );
+
+  const children = (
+    <>
+      {psalmReference && psalmVersion && (
+        <View style={styles.psalmReferenceRow}>
+          <ThemedText weight="semiBold" style={styles.psalmReference}>
+            {psalmReference} · {psalmVersion}
+          </ThemedText>
+          <TouchableOpacity
+            onPress={() => {
+              triggerLightHaptic();
+              setShowCopyright(true);
+            }}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="Bible translation information">
+            <Ionicons
+              name="information-circle-outline"
+              size={16}
+              color={Colors.sage}
+            />
+          </TouchableOpacity>
+        </View>
+      )}
+
 
       <View style={styles.card}>
         <ScrollView
@@ -555,8 +580,12 @@ const PsalmOfTheDayScreen = () => {
           contentContainerStyle={styles.psalmContent}
           showsVerticalScrollIndicator={false}
         >
-          {psalmLoading ? (
-            <ActivityIndicator color={Colors.sage} style={styles.psalmLoader} />
+          {sequenceError ? (
+            <TouchableOpacity onPress={retrySequence} accessibilityRole="button">
+              <ThemedText>{sequenceError}</ThemedText>
+            </TouchableOpacity>
+          ) : !scriptureSequenceReady || psalmLoading ? (
+            <ScriptureLoadingSkeleton variant="reader" />
           ) : psalmError ? (
             <TouchableOpacity style={styles.scriptureError} onPress={() => setPsalmRetry(value => value + 1)} activeOpacity={0.7}>
               <Ionicons name="cloud-offline-outline" size={24} color={Colors.sage} />
@@ -564,32 +593,12 @@ const PsalmOfTheDayScreen = () => {
               <ThemedText weight="semiBold" style={styles.scriptureRetry}>Tap to try again</ThemedText>
             </TouchableOpacity>
           ) : psalmVerses && psalmVerses.length > 0 ? (
-            <>
-              {psalmVerses.map((verse, vIndex) => (
-                <View key={`psalm-verse-${vIndex}`} style={styles.verseRow}>
-                  <Text
-                    style={[
-                      styles.verseNumber,
-                      {
-                        fontSize: psalmFontSize,
-                        lineHeight: psalmFontSize * 1.6 + psalmLineSpacing,
-                        fontFamily: getFontFamily(psalmFont, 'bold'),
-                      },
-                    ]}>
-                    {verse.number}
-                  </Text>
-                  <View style={styles.verseLines}>
-                    {verse.lines.map((line, lIndex) => (
-                      <Text
-                        key={`psalm-line-${vIndex}-${lIndex}`}
-                        style={[styles.verseLine, psalmLineStyle]}>
-                        {line}
-                      </Text>
-                    ))}
-                  </View>
-                </View>
-              ))}
-            </>
+            <ScriptureInlinePassageText
+              passage={formattedPsalmPassage}
+              textStyle={[styles.psalmLine, psalmLineStyle]}
+              fontSize={psalmFontSize}
+              verseNumberFontFamily={getFontFamily(psalmFont, 'regular')}
+            />
           ) : (
             <>
               {psalmLines.map((line, index) => (
@@ -616,6 +625,7 @@ const PsalmOfTheDayScreen = () => {
       <TouchableOpacity
         style={[styles.readButton, hasReadPsalm && styles.readButtonActive]}
         onPress={togglePsalmRead}
+        disabled={!canContinue}
         activeOpacity={0.8}
         accessibilityRole="checkbox"
         accessibilityState={{ checked: hasReadPsalm }}
@@ -633,6 +643,8 @@ const PsalmOfTheDayScreen = () => {
 
       <TouchableOpacity
         onPress={onNext}
+        disabled={!canContinue}
+        accessibilityState={{disabled: !canContinue}}
         activeOpacity={0.7}
         style={styles.primaryButton}
         accessibilityRole="button"
@@ -663,11 +675,15 @@ const PsalmOfTheDayScreen = () => {
       step={4}
       totalSteps={6}
       eyebrow="PSALM OF THE DAY"
-      title={`Psalm ${psalmNumber}`}
+      title={canContinue ? `Psalm ${psalmNumber}` : 'Psalm of the Day'}
       footer={footer}
       onBack={onBack}
+      onSwipeBack={() => navigation.goBack()}
+      onSwipeForward={onNext}
+      canSwipeForward={canContinue}
       backgroundColor={Colors.lightBackground}
       rightControl={aAButton}
+      overlay={psalmSettingsOverlay}
       stickyRightControls
       manageStatusBar={false}
     >
@@ -719,7 +735,6 @@ const styles = StyleSheet.create({
     color: Colors.sage,
   },
   psalmSettingsPanel: {
-    marginBottom: 16,
     padding: 16,
     borderRadius: 22,
     backgroundColor: Colors.hopeWhite,
@@ -727,6 +742,11 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(82, 106, 91, 0.2)',
     overflow: 'hidden',
     gap: 12,
+    shadowColor: '#26362C',
+    shadowOpacity: 0.18,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 8,
   },
   psalmAppearanceTopRow: {
     flexDirection: 'row',
@@ -884,9 +904,6 @@ const styles = StyleSheet.create({
   psalmContent: {
     paddingBottom: 8,
   },
-  psalmLoader: {
-    marginTop: 20,
-  },
   psalmLine: {
     color: Colors.text,
     marginBottom: 6,
@@ -910,23 +927,7 @@ const styles = StyleSheet.create({
   psalmStanzaBreak: {
     height: 16,
   },
-  verseRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 12,
-  },
-  verseNumber: {
-    width: 48,
-    paddingRight: 12,
-    color: Colors.sage,
-  },
-  verseLines: {
-    flex: 1,
-  },
-  verseLine: {
-    color: Colors.text,
-    marginBottom: 6,
-  },
+
   footerRow: {
     flex: 1,
     flexDirection: 'row',

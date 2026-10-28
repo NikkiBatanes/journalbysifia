@@ -1,0 +1,10 @@
+{
+  "version": "stage2-copy-v1-supabase-handoff-2026-10-12",
+  "files_sha256": {
+    "index.html": "913af58c8eddb86bc06d93c9c49ba86fc25d2c3d4dffff27a5e628d6fa4cac7e",
+    "app.js": "dee3e48fe2a839dfe2d87704846e8df05ebaf1dae65536ab839376e38142b9e6",
+    "pricing.js": "be10b98f56929e8bbc8a300afa516582c92027bacac460a8cd88a39a5b9b2851",
+    "privacy.html": "cf36b78357c0d92f888a30e51a265e073840ae4c8b9ec784ac814daa3fe8909c",
+    "terms.html": "1db53084e770617f2a4cec3694ab58596ad7765cc31cda29f1b06d6486b21976"
+  }
+}

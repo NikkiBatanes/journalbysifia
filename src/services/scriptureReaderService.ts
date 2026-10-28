@@ -2,11 +2,22 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import NetInfo from '@react-native-community/netinfo';
 import { supabase } from './supabaseClient';
 
+export interface ScriptureTextSegment {
+  text: string;
+  wordsOfJesus?: boolean;
+}
+
+export interface ScriptureVerse {
+  number: string;
+  lines: string[];
+  segments?: ScriptureTextSegment[][];
+}
+
 export interface ScriptureReaderResult {
   text: string;
   reference: string;
   version: string;
-  verses?: { number: string; lines: string[] }[];
+  verses?: ScriptureVerse[];
 }
 
 export const SCRIPTURE_OFFLINE_MESSAGE = 'This passage is not saved on this device yet. Connect to the internet and try again.';
@@ -14,8 +25,46 @@ export const SCRIPTURE_OFFLINE_MESSAGE = 'This passage is not saved on this devi
 const passageCache = new Map<string, ScriptureReaderResult>();
 const pendingPassages = new Map<string, Promise<ScriptureReaderResult>>();
 
+const cleanScriptureMarkup = (value: string) => value
+  .replace(/\*+/g, '')
+  .replace(/[ \t]{2,}/g, ' ')
+  .replace(/[ \t]+([,.;:!?])/g, '$1')
+  .trim();
+
+const normalizeScriptureResult = (result: ScriptureReaderResult): ScriptureReaderResult => ({
+  ...result,
+  text: cleanScriptureMarkup(result.text),
+  verses: result.verses?.map(verse => {
+    const lines: string[] = [];
+    const segments: ScriptureTextSegment[][] = [];
+
+    verse.lines.forEach((line, index) => {
+      const cleanedLine = cleanScriptureMarkup(line);
+      if (!cleanedLine) { return; }
+      lines.push(cleanedLine);
+      const cleanedSegments = verse.segments?.[index]
+        ?.map(segment => ({
+          ...segment,
+          text: segment.text.replace(/\*+/g, ''),
+        }))
+        .filter(segment => segment.text.length > 0);
+      if (cleanedSegments?.length) {
+        segments.push(cleanedSegments);
+      } else {
+        segments.push([{text: cleanedLine}]);
+      }
+    });
+
+    return {
+      ...verse,
+      lines,
+      ...(verse.segments ? {segments} : {}),
+    };
+  }),
+});
+
 function toCacheKey(reference: string, version: string): string {
-  return `${version.toUpperCase()}:${reference.toLowerCase().replace(/\s+/g, '')}`;
+  return `v3:${version.toUpperCase()}:${reference.toLowerCase().replace(/\s+/g, '')}`;
 }
 
 /** Synchronous access for screens that should render a warm passage immediately. */
@@ -27,7 +76,7 @@ async function getStoredPassage(key: string): Promise<ScriptureReaderResult | nu
   try {
     const stored = await AsyncStorage.getItem(`scripture-passage:${key}`);
     if (!stored) { return null; }
-    return JSON.parse(stored) as ScriptureReaderResult;
+    return normalizeScriptureResult(JSON.parse(stored) as ScriptureReaderResult);
   } catch {
     return null;
   }
@@ -77,12 +126,12 @@ export async function getScripturePassage(
       throw new Error(data?.message || error?.message || 'This passage could not be loaded right now.');
     }
 
-    const result: ScriptureReaderResult = {
+    const result = normalizeScriptureResult({
       text: String(data.text).trim(),
       reference: String(data.reference || reference).trim(),
       version: String(data.version || version).trim().toUpperCase(),
       verses: data.verses,
-    };
+    });
 
     passageCache.set(cacheKey, result);
     // Disk persistence must not delay displaying an already downloaded passage.

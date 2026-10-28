@@ -79,10 +79,18 @@ describe('main navigation pencil state', () => {
     expect(gratitudeSource).toContain('style={styles.doneButton}');
   });
 
-  it('opens Scripture Note without a bottom-up transition', () => {
-    expect(journalStackSource).toMatch(/name="ScriptureNoteEditor"[\s\S]*?animation: 'none'/);
+  it('opens the siFia-style Time Block editor from the Add menu', () => {
+    expect(source).toContain("title: 'Time Block', target: 'Journal', params: { screen: 'TimeBlockEditor', params: { autoFocus: true } }");
+    expect(source).toContain("name: 'time-outline'");
+    expect(journalStackSource).toContain('name="TimeBlockEditor"');
+    expect(source).toContain("const isTimeBlockEditor = activeNestedRouteName === 'TimeBlockEditor'");
+    expect(source).toMatch(/if \(isSermonNotes \|\| isReflectionEditor \|\| isScriptureNoteEditor \|\| isTimeBlockEditor \|\| isBibleStudy \|\| isReview\)/);
+  });
+
+  it('opens Scripture Note with the shared write-flow transition', () => {
+    expect(journalStackSource).toMatch(/name="ScriptureNoteEditor"[\s\S]*?animation: 'slide_from_bottom'/);
     expect(source).toContain("const isScriptureNoteEditor = activeNestedRouteName === 'ScriptureNoteEditor'");
-    expect(source).toMatch(/if \(isSermonNotes \|\| isReflectionEditor \|\| isScriptureNoteEditor \|\| isBibleStudy \|\| isReview\)/);
+    expect(source).toMatch(/if \(isSermonNotes \|\| isReflectionEditor \|\| isScriptureNoteEditor \|\| isTimeBlockEditor \|\| isBibleStudy \|\| isReview\)/);
   });
 
   it('gives Scripture Note the shared block composer and reliable focus behavior', () => {
@@ -135,16 +143,16 @@ describe('main navigation pencil state', () => {
     expect(scriptureNoteSource).not.toContain('name="book-open-page-variant-outline"');
   });
 
-  it('opens Reflection Editor without fading through the ivory screen', () => {
-    expect(journalStackSource).toMatch(/name="ReflectionEditor"[\s\S]*?animation: 'none'/);
+  it('opens Reflection Editor with the shared write-flow transition', () => {
+    expect(journalStackSource).toMatch(/name="ReflectionEditor"[\s\S]*?animation: 'slide_from_bottom'/);
     expect(journalStackSource).toMatch(/name="ReflectionEditor"[\s\S]*?contentStyle: \{ backgroundColor: '#526A5B' \}/);
     expect(guidedReflectionSource).toMatch(/journeyScreen:\s*\{flex: 1, backgroundColor: Colors\.sage\}/);
     expect(guidedReflectionSource).toContain('<View style={styles.journeyHeaderBackdrop} />');
   });
 
-  it('lets Session Notes and Bible Study use their own content entrances', () => {
-    expect(journalStackSource).toMatch(/name="SermonNotes"[\s\S]*?animation: 'none'/);
-    expect(journalStackSource).toMatch(/name="BibleStudy"[\s\S]*?animation: 'none'/);
+  it('gives Session Notes and Bible Study the shared write-flow transition', () => {
+    expect(journalStackSource).toMatch(/name="SermonNotes"[\s\S]*?animation: 'slide_from_bottom'/);
+    expect(journalStackSource).toMatch(/name="BibleStudy"[\s\S]*?animation: 'slide_from_bottom'/);
     expect(source).toContain("title: 'Session Notes', target: 'Journal', params: { screen: 'SermonNotes'");
     expect(source).not.toContain('opensSessionMenu');
     expect(source).toContain("openedFromPencil: true");
@@ -156,6 +164,52 @@ describe('main navigation pencil state', () => {
     expect(bibleStudySource).toContain('topics={BIBLE_STUDY_TOPICS} expanded');
     expect(bibleStudySource).not.toContain('topicsExpanded');
     expect(bibleStudySource).not.toContain("'Show more'");
+  });
+
+  it('keeps Bible Study writing cursors aligned with their placeholders on iOS', () => {
+    expect(bibleStudySource).toContain("lineHeight: Platform.OS === 'ios' ? undefined : 26");
+  });
+
+  it('reveals Bible Study note inputs after choosing prompt pills', () => {
+    expect(bibleStudySource).toContain('findNodeHandle(input)');
+    expect(bibleStudySource).toContain('scrollResponderScrollNativeHandleToKeyboard(inputHandle, 96, true)');
+    expect(bibleStudySource).not.toContain('observationNoteLayouts');
+    expect(bibleStudySource).not.toContain('scrollToEnd({ animated: true })');
+  });
+
+  it('keeps passage highlight controls visible above the Read footer', () => {
+    expect(bibleStudySource).toContain("{stage === 'read' ? renderHighlightActions() : null}");
+    expect(bibleStudySource).toContain('styles.highlightSelectionAnchor, { bottom: insets.bottom + 76 }');
+    expect(bibleStudySource).not.toContain('selectionActionTop');
+  });
+
+  it('uses content-width liquid glass without a duplicate iOS border', () => {
+    expect(bibleStudySource).toContain("import LiquidGlassView from '../components/common/LiquidGlassView'");
+    expect(bibleStudySource).toContain('style={styles.highlightGlassBackground}');
+    expect(bibleStudySource).toContain('tintColor="rgba(248, 247, 242, 0.38)"');
+    expect(bibleStudySource).toContain("borderWidth: Platform.OS === 'ios' ? 0 : 1");
+    expect(bibleStudySource).toMatch(/highlightSelectionAnchor:\s*\{[\s\S]*?alignItems: 'center'/);
+    expect(bibleStudySource).not.toContain('highlightSelectionFloating');
+  });
+
+  it('renders small inline verse numbers without changing selectable passage offsets', () => {
+    expect(bibleStudySource).toContain('const versePattern = /(^|\\n\\n)(\\d+)(?=\\s)/g');
+    expect(bibleStudySource).toContain('styles.inlineVerseNumber');
+    expect(bibleStudySource).toContain('fontSize: Math.max(10, scriptureFontSize * 0.62)');
+    expect(bibleStudySource).toContain('{renderPassageSegmentText(segment.text, segment.key)}');
+    expect(bibleStudySource).toContain('.map(verse => `${verse.n ? `${verse.n} ` : \'\'}${verse.text}`)');
+  });
+
+  it('starts each Bible Study page at the top', () => {
+    expect(bibleStudySource).toContain("screenScrollRef.current?.scrollTo({ y: 0, animated: false })");
+    expect(bibleStudySource).toContain('[stage, observeHighlightIndex, understandingPhase, responsePhase]');
+  });
+
+  it('hides Bible Study destinations before their entrance animations begin', () => {
+    expect(bibleStudySource).toContain('React.useLayoutEffect(() => {');
+    expect(bibleStudySource).toContain('<React.Fragment key={contentAnimationKey}>{content()}</React.Fragment>');
+    expect(bibleStudySource).toContain('prepareReveal(topicRevealAnims);\n    setSelectedTopic(topic);');
+    expect(bibleStudySource).toContain('prepareReveal(homeRevealAnims);\n            setSelectedTopic(null);');
   });
 
   it('uses the Write navigation Bible Study icon throughout the editor', () => {
@@ -223,8 +277,9 @@ describe('main navigation pencil state', () => {
     expect(source).not.toContain('styles.addMenuDim');
   });
 
-  it('hides the native status bar while the blurred pencil menu is open', () => {
-    expect(source).toContain('StatusBar.setHidden(showAddMenu, \'fade\')');
+  it('hides the native status bar throughout the pencil write flow', () => {
+    expect(source).toContain('const writeFlowHidesStatusBar = showAddMenu || addFlowActive');
+    expect(source).toContain("StatusBar.setHidden(writeFlowHidesStatusBar, 'fade')");
     expect(source).toContain("return () => StatusBar.setHidden(false, 'fade')");
   });
 

@@ -10,6 +10,8 @@ import {
   Keyboard,
   Alert,
   Platform,
+  PanResponder,
+  useWindowDimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -59,6 +61,7 @@ interface TodosExperienceProps {
   routineDraft?: { routine: 'morning' | 'evening'; selectedDate: string; step: string };
   planningContext?: 'tomorrow' | 'later';
   skipCompletionPage?: boolean;
+  onBackFromStart?: () => void;
 }
 
 const emptyTodo = (): TodoItem => ({ text: '' });
@@ -243,8 +246,10 @@ const TodosExperience: React.FC<TodosExperienceProps> = ({
   routineDraft,
   planningContext,
   skipCompletionPage,
+  onBackFromStart,
 }) => {
   const insets = useSafeAreaInsets();
+  const {width: screenWidth} = useWindowDimensions();
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';
   const dateStr = toLocalDateString(selectedDate);
@@ -530,6 +535,21 @@ const TodosExperience: React.FC<TodosExperienceProps> = ({
     if (onClose) {onClose();}
   };
 
+  const panResponder = React.useMemo(() => PanResponder.create({
+    onMoveShouldSetPanResponderCapture: (_, gestureState) => Boolean(onBackFromStart)
+      && gestureState.dx > 18
+      && gestureState.dx > Math.abs(gestureState.dy) * 1.2,
+    onPanResponderRelease: (_, gestureState) => {
+      const farEnough = gestureState.dx > screenWidth * 0.15;
+      const fastEnough = gestureState.vx > 0.45;
+      if (onBackFromStart && (farEnough || fastEnough)) {
+        triggerLightHaptic();
+        Keyboard.dismiss();
+        onBackFromStart();
+      }
+    },
+  }), [onBackFromStart, screenWidth]);
+
   const updateTodoText = (index: number, text: string) => {
     const newTodos = [...todos];
     newTodos[index] = { ...newTodos[index], text };
@@ -550,7 +570,7 @@ const TodosExperience: React.FC<TodosExperienceProps> = ({
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: Colors.lightBackground }]}>
+    <View style={[styles.container, { backgroundColor: Colors.lightBackground }]} {...panResponder.panHandlers}>
       <ScrollView
         ref={scrollViewRef}
         style={styles.stepScroll}

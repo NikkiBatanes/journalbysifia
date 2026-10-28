@@ -5,10 +5,10 @@ import {
   addYears,
   endOfMonth,
   endOfQuarter,
+  endOfYear,
   isPast,
   setHours,
   setMinutes,
-  setYear,
   startOfDay,
   subDays,
 } from 'date-fns';
@@ -62,10 +62,9 @@ const nextQuarterlyDate = (time: string): Date => {
 
 const nextYearEndDate = (time: string): Date => {
   const now = new Date();
-  const year = now.getFullYear();
-  const candidate = applyTime(new Date(year, 11, 15), time);
+  const candidate = applyTime(subDays(endOfYear(now), 6), time);
   if (isPast(candidate)) {
-    return applyTime(new Date(year + 1, 11, 15), time);
+    return applyTime(subDays(endOfYear(addYears(now, 1)), 6), time);
   }
   return candidate;
 };

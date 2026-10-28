@@ -1,7 +1,7 @@
 import { exitEveningFlow } from '../../navigation/exitEveningFlow';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Animated, DeviceEventEmitter, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { Animated, DeviceEventEmitter, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
@@ -13,14 +13,17 @@ import { triggerLightHaptic, triggerSuccessHaptic } from '../../utils/haptics';
 import { useRoutine } from '../../context/RoutineContext';
 import {useAuth} from '../../context/IndustryStandardAuthContext';
 import RoutineStepShell from '../../components/routine/RoutineStepShell';
+import ScriptureInlinePassageText from '../../components/scripture/ScriptureInlinePassageText';
+import ScriptureLoadingSkeleton from '../../components/scripture/ScriptureLoadingSkeleton';
 import { getScripturePassage } from '../../services/scriptureReaderService';
+import { formatScripturePassage } from '../../services/scripturePassageFormatting';
 import {
   createLocalReflection,
   getLocalReflection,
   getLocalReflections,
   updateLocalReflection,
 } from '../../storage/reflectionStorage';
-import {getDailyProverbNumber} from '../../services/dailyScriptureSequence';
+import {getDailyProverbNumber, resolveSavedProverbNumber} from '../../services/dailyScriptureSequence';
 import {useDailyScriptureSequenceAnchor} from '../../hooks/useDailyScriptureSequenceAnchor';
 
 type TextAlign = 'left' | 'center' | 'right' | 'justify';
@@ -50,11 +53,15 @@ const EveningProverbsScreen = () => {
   const route = useRoute<any>();
   const { selectedDate, markStepCompleted } = useRoutine();
   const {user} = useAuth();
-  const {anchor: scriptureSequenceAnchor, ready: scriptureSequenceReady} = useDailyScriptureSequenceAnchor(user?.created_at);
+  const {anchor: scriptureSequenceAnchor, ready: scriptureSequenceReady, error: sequenceError, retry: retrySequence} = useDailyScriptureSequenceAnchor(user?.created_at);
 
   const fallbackProverbNumber = useMemo(() => {
     return getDailyProverbNumber(selectedDate, scriptureSequenceAnchor);
   }, [scriptureSequenceAnchor, selectedDate]);
+  const routedProverbNumber = useMemo(() => {
+    const value = Number(route.params?.proverbNumber);
+    return Number.isInteger(value) && value >= 1 && value <= 31 ? value : null;
+  }, [route.params?.proverbNumber]);
   const [proverbNumber, setProverbNumber] = useState(fallbackProverbNumber);
   const [proverbIdentityReady, setProverbIdentityReady] = useState(false);
 
@@ -81,6 +88,13 @@ const EveningProverbsScreen = () => {
 
   const settingsAnim = useRef(new Animated.Value(0)).current;
 
+  useFocusEffect(
+    React.useCallback(() => () => {
+      setShowAaSettings(false);
+      settingsAnim.setValue(0);
+    }, [settingsAnim]),
+  );
+
   const dateStr = selectedDate;
 
   useEffect(() => {
@@ -94,13 +108,12 @@ const EveningProverbsScreen = () => {
       const existing = entries
         .filter(e => e.source === 'evening_proverbs' || e.metadata?.source === 'evening_proverbs')
         .sort((a, b) => b.updated_at.localeCompare(a.updated_at))[0];
-      // The account/date sequence is canonical. Route params and an older
-      // incorrectly saved chapter must never change today's assigned Proverb.
-      setProverbNumber(fallbackProverbNumber);
       if (existing) {
+        setProverbNumber(resolveSavedProverbNumber(existing, fallbackProverbNumber));
         setHasReadProverb(Boolean(existing.metadata?.proverbRead));
         setProverbReflectionId(existing.id);
       } else {
+        setProverbNumber(routedProverbNumber ?? fallbackProverbNumber);
         setHasReadProverb(false);
         setProverbReflectionId(null);
       }
@@ -108,12 +121,12 @@ const EveningProverbsScreen = () => {
     })().catch(error => {
       console.error('Error resolving saved Proverbs chapter:', error);
       if (mounted) {
-        setProverbNumber(fallbackProverbNumber);
-        setProverbIdentityReady(true);
+        setProverbLoading(false);
+        setProverbError('Could not load your saved reading. Close this step and try again.');
       }
     });
     return () => { mounted = false; };
-  }, [dateStr, fallbackProverbNumber, scriptureSequenceReady]);
+  }, [dateStr, fallbackProverbNumber, routedProverbNumber, scriptureSequenceReady]);
 
   const proverbLines = useMemo(() => {
     if (!proverbText) { return []; }
@@ -144,10 +157,14 @@ const EveningProverbsScreen = () => {
     return () => { cancelled = true; };
   }, [proverbIdentityReady, proverbNumber, proverbRetry]);
 
+  const canContinue = scriptureSequenceReady && proverbIdentityReady;
+
   const onNext = React.useCallback(async () => {
+    if (!canContinue) {return;}
     triggerLightHaptic();
 
     const metadata = {
+      scriptureSequenceVersion: 2,
       proverbNumber,
       proverbReference: `Proverbs ${proverbNumber}`,
       proverbRead: hasReadProverb,
@@ -216,7 +233,7 @@ const EveningProverbsScreen = () => {
       proverbReference: proverbReference || `Proverbs ${proverbNumber}`,
       proverbReflectionId: id,
     });
-  }, [hasReadProverb, markStepCompleted, navigation, route.params, proverbNumber, proverbReference, proverbVersion, proverbReflectionId, dateStr, selectedDate]);
+  }, [canContinue, hasReadProverb, markStepCompleted, navigation, route.params, proverbNumber, proverbReference, proverbVersion, proverbReflectionId, dateStr, selectedDate]);
 
   const toggleProverbRead = React.useCallback(() => {
     if (hasReadProverb) {
@@ -226,6 +243,11 @@ const EveningProverbsScreen = () => {
     }
     setHasReadProverb((current) => !current);
   }, [hasReadProverb]);
+
+  const formattedProverbPassage = useMemo(
+    () => formatScripturePassage(proverbVerses ?? undefined, `Proverbs ${proverbNumber}`, proverbText ?? ''),
+    [proverbNumber, proverbText, proverbVerses],
+  );
 
   const proverbLineStyle = useMemo(() => ({
     fontSize: proverbFontSize,
@@ -331,30 +353,7 @@ const EveningProverbsScreen = () => {
 
   const onBack = () => exitEveningFlow(navigation, 'Today');
 
-  const children = (
-    <>
-      {proverbReference && proverbVersion && (
-        <View style={styles.proverbReferenceRow}>
-          <ThemedText weight="semiBold" style={styles.proverbReference}>
-            {proverbReference} · {proverbVersion}
-          </ThemedText>
-          <TouchableOpacity
-            onPress={() => {
-              triggerLightHaptic();
-              setShowCopyright(true);
-            }}
-            activeOpacity={0.7}
-            accessibilityRole="button"
-            accessibilityLabel="Bible translation information">
-            <Ionicons
-              name="information-circle-outline"
-              size={16}
-              color={Colors.sage}
-            />
-          </TouchableOpacity>
-        </View>
-      )}
-
+  const proverbSettingsOverlay = (
       <Animated.View
         pointerEvents={showAaSettings ? 'auto' : 'none'}
         style={[
@@ -552,6 +551,32 @@ const EveningProverbsScreen = () => {
           </View>
         )}
       </Animated.View>
+  );
+
+  const children = (
+    <>
+      {proverbReference && proverbVersion && (
+        <View style={styles.proverbReferenceRow}>
+          <ThemedText weight="semiBold" style={styles.proverbReference}>
+            {proverbReference} · {proverbVersion}
+          </ThemedText>
+          <TouchableOpacity
+            onPress={() => {
+              triggerLightHaptic();
+              setShowCopyright(true);
+            }}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="Bible translation information">
+            <Ionicons
+              name="information-circle-outline"
+              size={16}
+              color={Colors.sage}
+            />
+          </TouchableOpacity>
+        </View>
+      )}
+
 
       <View style={styles.card}>
         <ScrollView
@@ -559,8 +584,12 @@ const EveningProverbsScreen = () => {
           contentContainerStyle={styles.proverbContent}
           showsVerticalScrollIndicator={false}
         >
-          {proverbLoading ? (
-            <ActivityIndicator color={Colors.sage} style={styles.proverbLoader} />
+          {sequenceError ? (
+            <TouchableOpacity onPress={retrySequence} accessibilityRole="button">
+              <ThemedText>{sequenceError}</ThemedText>
+            </TouchableOpacity>
+          ) : !scriptureSequenceReady || proverbLoading ? (
+            <ScriptureLoadingSkeleton variant="reader" />
           ) : proverbError ? (
             <TouchableOpacity style={styles.scriptureError} onPress={() => setProverbRetry(value => value + 1)} activeOpacity={0.7}>
               <Ionicons name="cloud-offline-outline" size={24} color={Colors.sage} />
@@ -568,32 +597,12 @@ const EveningProverbsScreen = () => {
               <ThemedText weight="semiBold" style={styles.scriptureRetry}>Tap to try again</ThemedText>
             </TouchableOpacity>
           ) : proverbVerses && proverbVerses.length > 0 ? (
-            <>
-              {proverbVerses.map((verse, vIndex) => (
-                <View key={`proverb-verse-${vIndex}`} style={styles.verseRow}>
-                  <Text
-                    style={[
-                      styles.verseNumber,
-                      {
-                        fontSize: proverbFontSize,
-                        lineHeight: proverbFontSize * 1.6 + proverbLineSpacing,
-                        fontFamily: getFontFamily(proverbFont, 'bold'),
-                      },
-                    ]}>
-                    {verse.number}
-                  </Text>
-                  <View style={styles.verseLines}>
-                    {verse.lines.map((line, lIndex) => (
-                      <Text
-                        key={`proverb-line-${vIndex}-${lIndex}`}
-                        style={[styles.verseLine, proverbLineStyle]}>
-                        {line}
-                      </Text>
-                    ))}
-                  </View>
-                </View>
-              ))}
-            </>
+            <ScriptureInlinePassageText
+              passage={formattedProverbPassage}
+              textStyle={[styles.proverbLine, proverbLineStyle]}
+              fontSize={proverbFontSize}
+              verseNumberFontFamily={getFontFamily(proverbFont, 'regular')}
+            />
           ) : (
             <>
               {proverbLines.map((line, index) => (
@@ -620,6 +629,7 @@ const EveningProverbsScreen = () => {
       <TouchableOpacity
         style={[styles.readButton, hasReadProverb && styles.readButtonActive]}
         onPress={toggleProverbRead}
+        disabled={!canContinue}
         activeOpacity={0.8}
         accessibilityRole="checkbox"
         accessibilityState={{ checked: hasReadProverb }}
@@ -637,6 +647,8 @@ const EveningProverbsScreen = () => {
 
       <TouchableOpacity
         onPress={onNext}
+        disabled={!canContinue}
+        accessibilityState={{disabled: !canContinue}}
         activeOpacity={0.7}
         style={styles.primaryButton}
         accessibilityRole="button"
@@ -668,11 +680,16 @@ const EveningProverbsScreen = () => {
       step={3}
       totalSteps={6}
       eyebrow="PROVERB OF THE DAY"
-      title={`Proverbs ${proverbNumber}`}
+      title={canContinue ? `Proverbs ${proverbNumber}` : 'Proverbs of the Day'}
       footer={footer}
       onBack={onBack}
+      onSwipeBack={() => navigation.goBack()}
+      onSwipeForward={onNext}
+      canSwipeForward={canContinue}
       backgroundColor={Colors.lightBackground}
       rightControl={aAButton}
+      overlay={proverbSettingsOverlay}
+      stickyRightControls
     >
       {children}
 
@@ -722,7 +739,6 @@ const styles = StyleSheet.create({
     color: Colors.sage,
   },
   proverbSettingsPanel: {
-    marginBottom: 16,
     padding: 16,
     borderRadius: 22,
     backgroundColor: Colors.hopeWhite,
@@ -730,6 +746,11 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(82, 106, 91, 0.2)',
     overflow: 'hidden',
     gap: 12,
+    shadowColor: '#26362C',
+    shadowOpacity: 0.18,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 8,
   },
   proverbAppearanceTopRow: {
     flexDirection: 'row',
@@ -887,9 +908,6 @@ const styles = StyleSheet.create({
   proverbContent: {
     paddingBottom: 8,
   },
-  proverbLoader: {
-    marginTop: 20,
-  },
   proverbLine: {
     color: Colors.text,
     marginBottom: 6,
@@ -913,23 +931,7 @@ const styles = StyleSheet.create({
   proverbStanzaBreak: {
     height: 16,
   },
-  verseRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 12,
-  },
-  verseNumber: {
-    width: 48,
-    paddingRight: 12,
-    color: Colors.sage,
-  },
-  verseLines: {
-    flex: 1,
-  },
-  verseLine: {
-    color: Colors.text,
-    marginBottom: 6,
-  },
+
   footerRow: {
     flex: 1,
     flexDirection: 'row',

@@ -1192,7 +1192,7 @@ const WeeklyMomentCard = ({
           </View>
         )}
         <ThemedText
-          weight="medium"
+          weight="bold"
           style={styles.reflectionTitle}
           numberOfLines={2}>
           {item.title}
@@ -7910,8 +7910,8 @@ const styles = StyleSheet.create({
   },
   reflectionTitle: {
     color: Colors.text,
-    fontSize: 17,
-    lineHeight: 23,
+    fontSize: 20,
+    lineHeight: 27,
     marginBottom: 10,
   },
   reflectionDetail: {

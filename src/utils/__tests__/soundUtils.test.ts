@@ -78,3 +78,37 @@ describe('playTodayOpeningSound', () => {
     expect(mockPlay).toHaveBeenCalledTimes(2);
   });
 });
+
+describe('playStreakCelebrationSound', () => {
+  beforeEach(() => {
+    jest.resetModules();
+    jest.clearAllMocks();
+    mockIsSoundsEnabled.mockReturnValue(true);
+    mockLoadOnce.mockResolvedValue(undefined);
+    mockPlay.mockImplementation((onComplete: (success: boolean) => void) => onComplete(true));
+  });
+
+  it('plays the dedicated celebration cue and releases it afterward', async () => {
+    const { playStreakCelebrationSound } = require('../soundUtils');
+
+    await playStreakCelebrationSound();
+    await Promise.resolve();
+
+    expect(mockSetCategory).toHaveBeenCalledWith('Playback', true);
+    expect(mockSoundConstructor).toHaveBeenCalledWith('streak_celebration.mp3', 'main-bundle');
+    expect(mockSetVolume).toHaveBeenCalledWith(0.62);
+    expect(mockPlay).toHaveBeenCalledTimes(1);
+    expect(mockRelease).toHaveBeenCalledTimes(1);
+  });
+
+  it('honors the Sounds preference', async () => {
+    mockIsSoundsEnabled.mockReturnValue(false);
+    const { playStreakCelebrationSound } = require('../soundUtils');
+
+    await playStreakCelebrationSound();
+    await Promise.resolve();
+
+    expect(mockSetCategory).not.toHaveBeenCalled();
+    expect(mockSoundConstructor).not.toHaveBeenCalled();
+  });
+});

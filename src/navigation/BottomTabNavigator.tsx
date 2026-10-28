@@ -78,6 +78,7 @@ const ADD_MENU_ITEMS: AddMenuItem[] = [
   { icon: { family: 'ionicons', name: 'reader-outline' }, title: 'Session Notes', target: 'Journal', params: { screen: 'SermonNotes', params: { openedFromPencil: true } } },
   { icon: { family: 'lucide', component: BookHeart }, title: 'Heart Journal', target: 'Journal', params: { screen: 'ReflectionEditor', params: { initialMode: 'free-form', source: 'freeform', openHeart: true } } },
   { icon: { family: 'lucide', component: ListTodo }, title: 'To-dos', target: 'TodosWalkthrough' },
+  { icon: { family: 'ionicons', name: 'time-outline' }, title: 'Time Block', target: 'Journal', params: { screen: 'TimeBlockEditor', params: { autoFocus: true } } },
   { icon: { family: 'lucide', component: Heart }, title: 'Gratitude', target: 'GratitudeWalkthrough' },
   { icon: { family: 'material', name: 'script-text-outline' }, title: 'Scripture Note', target: 'Journal', params: { screen: 'ScriptureNoteEditor' } },
   { icon: { family: 'ionicons', name: 'hand-left-outline' }, title: 'Prayer', opensPrayerMenu: true },
@@ -180,12 +181,13 @@ export const CustomTabBarComponent = ({
   }, []);
 
   // iOS composites its clock, signal, and battery above React Native views, so
-  // the full-screen BlurView cannot blur those system-owned glyphs. Fade them
-  // out with the write menu and always restore them when the tab bar unmounts.
+  // the full-screen BlurView cannot blur those system-owned glyphs. Keep them
+  // hidden through the write workflow handoff as well as while the menu is open.
+  const writeFlowHidesStatusBar = showAddMenu || addFlowActive;
   React.useEffect(() => {
-    StatusBar.setHidden(showAddMenu, 'fade');
+    StatusBar.setHidden(writeFlowHidesStatusBar, 'fade');
     return () => StatusBar.setHidden(false, 'fade');
-  }, [showAddMenu]);
+  }, [writeFlowHidesStatusBar]);
 
   const addIconRotate = addIconRotation.interpolate({
     inputRange: [0, 1],
@@ -417,6 +419,7 @@ export const CustomTabBarComponent = ({
     activeNestedRouteName === 'SermonNotesDetail';
   const isReflectionEditor = activeNestedRouteName === 'ReflectionEditor';
   const isScriptureNoteEditor = activeNestedRouteName === 'ScriptureNoteEditor';
+  const isTimeBlockEditor = activeNestedRouteName === 'TimeBlockEditor';
   const isBibleStudy = activeNestedRouteName === 'BibleStudy';
   const isReview = activeNestedRouteName === 'Review';
 
@@ -572,7 +575,7 @@ export const CustomTabBarComponent = ({
 
   const { onTabPress } = React.useContext(TabPressContext);
 
-  if (isSermonNotes || isReflectionEditor || isScriptureNoteEditor || isBibleStudy || isReview) {
+  if (isSermonNotes || isReflectionEditor || isScriptureNoteEditor || isTimeBlockEditor || isBibleStudy || isReview) {
     return null;
   }
 

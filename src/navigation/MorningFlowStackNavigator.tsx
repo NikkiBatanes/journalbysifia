@@ -85,13 +85,10 @@ const MorningFlowStackNavigator = ({ route, navigation }: { route: { params?: { 
       screenOptions={{
         headerShown: false,
         presentation: 'card',
-        // Every screen shares the same cream canvas, so this reads as content rising
-        // into place instead of the whole page sliding horizontally.
-        animation: 'fade_from_bottom',
-        gestureEnabled: true,
-        fullScreenGestureEnabled: true,
-        animationMatchesGesture: true,
-        statusBarHidden: true,
+        animation: 'none',
+        // Screens handle swipes themselves via RoutineStepShell; a native gesture
+        // here pops the stack a second time on the same swipe.
+        gestureEnabled: false,
         contentStyle: { backgroundColor: Colors.lightBackground },
       }}
     >

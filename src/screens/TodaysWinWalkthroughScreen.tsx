@@ -9,7 +9,6 @@ import {
   Animated,
   StatusBar,
   TextInput,
-  Text,
   Alert,
   Platform,
   UIManager,
@@ -29,6 +28,8 @@ import { ScrollView as GestureScrollView } from 'react-native-gesture-handler';
 import { Colors } from '../theme/colors';
 import { Fonts } from '../theme';
 import ThemedText from '../components/common/ThemedText';
+import StaggeredBounceIn from '../components/common/StaggeredBounceIn';
+import WisdomScripturePassage from '../components/routine/WisdomScripturePassage';
 import { withErrorBoundary } from '../components/ErrorBoundary/withErrorBoundary';
 import { triggerLightHaptic, triggerMediumHaptic } from '../utils/haptics';
 import { useAuth } from '../context/IndustryStandardAuthContext';
@@ -317,6 +318,8 @@ const WinTypeSelectionStep: React.FC<{
   selectedDate: Date;
 }> = ({ selectedWinType, onSelect, onNext, onOtherStateChange, insets, onClose, customWin, setCustomWin, dateContext, selectedDate }) => {
   const winVerse = getWinVerse(selectedDate);
+  const {user} = useAuth();
+  const bibleVersion = (user as any)?.user_metadata?.preferences?.content?.bibleVersion?.trim() || 'NASB';
   const [isExpanded, setIsExpanded] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('Faith');
   const [isOtherSelected, setIsOtherSelected] = useState(false);
@@ -447,28 +450,29 @@ const WinTypeSelectionStep: React.FC<{
               <StepFadeIn delay={100}>
                 <View style={styles.categoryFilterScroll}>
                   <View style={styles.categoryFilterContent}>
-                    {CATEGORIES.map((category) => (
-                      <TouchableOpacity
-                        key={category}
-                        style={[
-                          styles.categoryFilterChip,
-                          selectedCategory === category && styles.categoryFilterChipSelected,
-                        ]}
-                        onPress={() => {
-                          triggerLightHaptic();
-                          setSelectedCategory(category);
-                        }}
-                        activeOpacity={0.75}
-                      >
-                        <ThemedText
+                    {CATEGORIES.map((category, index) => (
+                      <StaggeredBounceIn key={category} index={index} delay={80}>
+                        <TouchableOpacity
                           style={[
-                            styles.categoryFilterText,
-                            selectedCategory === category && styles.categoryFilterTextSelected,
+                            styles.categoryFilterChip,
+                            selectedCategory === category && styles.categoryFilterChipSelected,
                           ]}
+                          onPress={() => {
+                            triggerLightHaptic();
+                            setSelectedCategory(category);
+                          }}
+                          activeOpacity={0.75}
                         >
-                          {category}
-                        </ThemedText>
-                      </TouchableOpacity>
+                          <ThemedText
+                            style={[
+                              styles.categoryFilterText,
+                              selectedCategory === category && styles.categoryFilterTextSelected,
+                            ]}
+                          >
+                            {category}
+                          </ThemedText>
+                        </TouchableOpacity>
+                      </StaggeredBounceIn>
                     ))}
                   </View>
                 </View>
@@ -480,40 +484,11 @@ const WinTypeSelectionStep: React.FC<{
               <View style={styles.winTypesGrid}>
                 {!isExpanded ? (
                   // Collapsed state: Show core 7
-                  CORE_WIN_TYPES.map((winType) => {
+                  CORE_WIN_TYPES.map((winType, index) => {
                     const isSelected = selectedWinType?.id === winType.id;
                     return (
-                      <TouchableOpacity
-                        key={winType.id}
-                        style={[styles.winTypeCard, isSelected && styles.winTypeCardSelected]}
-                        onPress={() => {
-                          triggerLightHaptic();
-                          onSelect(winType);
-                        }}
-                        activeOpacity={0.75}
-                      >
-                        <ThemedText
-                          style={[styles.winTypeName, isSelected && styles.winTypeNameSelected]}
-                          numberOfLines={2}
-                        >
-                          {winType.name}
-                        </ThemedText>
-                      </TouchableOpacity>
-                    );
-                  })
-                ) : (
-                  // Expanded state: Show filtered win types
-                  selectedCategory === 'Other' ? (
-                    // When Other category is selected, automatically select the "other" win type
-                    null
-                  ) : (
-                    WIN_TYPES.filter(
-                      (winType) => winType.category === selectedCategory
-                    ).map((winType) => {
-                      const isSelected = selectedWinType?.id === winType.id;
-                      return (
+                      <StaggeredBounceIn key={winType.id} index={index}>
                         <TouchableOpacity
-                          key={winType.id}
                           style={[styles.winTypeCard, isSelected && styles.winTypeCardSelected]}
                           onPress={() => {
                             triggerLightHaptic();
@@ -528,6 +503,37 @@ const WinTypeSelectionStep: React.FC<{
                             {winType.name}
                           </ThemedText>
                         </TouchableOpacity>
+                      </StaggeredBounceIn>
+                    );
+                  })
+                ) : (
+                  // Expanded state: Show filtered win types
+                  selectedCategory === 'Other' ? (
+                    // When Other category is selected, automatically select the "other" win type
+                    null
+                  ) : (
+                    WIN_TYPES.filter(
+                      (winType) => winType.category === selectedCategory
+                    ).map((winType, index) => {
+                      const isSelected = selectedWinType?.id === winType.id;
+                      return (
+                        <StaggeredBounceIn key={winType.id} index={index}>
+                          <TouchableOpacity
+                            style={[styles.winTypeCard, isSelected && styles.winTypeCardSelected]}
+                            onPress={() => {
+                              triggerLightHaptic();
+                              onSelect(winType);
+                            }}
+                            activeOpacity={0.75}
+                          >
+                            <ThemedText
+                              style={[styles.winTypeName, isSelected && styles.winTypeNameSelected]}
+                              numberOfLines={2}
+                            >
+                              {winType.name}
+                            </ThemedText>
+                          </TouchableOpacity>
+                        </StaggeredBounceIn>
                       );
                     })
                   )
@@ -571,13 +577,7 @@ const WinTypeSelectionStep: React.FC<{
 
         {!isOtherSelected && (
           <StepFadeIn delay={200}>
-            <View style={styles.metadataContainer}>
-              <View style={styles.verticalLine} />
-              <View style={styles.metadataContent}>
-                <ThemedText weight="medium" style={styles.fromText}>{winVerse.reference}</ThemedText>
-                <Text style={styles.winVerseText}>{winVerse.text}</Text>
-              </View>
-            </View>
+            <WisdomScripturePassage reference={winVerse.reference} version={bibleVersion} />
           </StepFadeIn>
         )}
 
@@ -940,10 +940,11 @@ export const TodayWinExperience: React.FC<{
   selectedDate: Date;
   insets?: { top: number; bottom: number };
   onClose?: () => void;
+  onBackFromStart?: () => void;
   onComplete: (record: any) => void | Promise<void>;
   skipCompletionPage?: boolean;
   routineDraft?: { routine: 'morning' | 'evening'; selectedDate: string; step: string };
-}> = ({ selectedDate, insets: insetsProp, onClose, onComplete, skipCompletionPage, routineDraft }) => {
+}> = ({ selectedDate, insets: insetsProp, onClose, onBackFromStart, onComplete, skipCompletionPage, routineDraft }) => {
   const insets = insetsProp ?? { top: 50, bottom: 34 };
   const screenWidth = Dimensions.get('window').width;
 
@@ -1022,8 +1023,10 @@ export const TodayWinExperience: React.FC<{
       setCurrentStep(2);
     } else if (currentStep === 2) {
       setCurrentStep(1);
+    } else if (onBackFromStart) {
+      onBackFromStart();
     }
-  }, [currentStep, isOtherStateActive]);
+  }, [currentStep, isOtherStateActive, onBackFromStart]);
 
   // Swipe gesture handlers
   const panResponder = React.useMemo(

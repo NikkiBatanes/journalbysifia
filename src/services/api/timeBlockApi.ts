@@ -2,6 +2,13 @@
 import { PostgrestError } from '@supabase/supabase-js';
 import { Logger } from '../../utils/ProductionLogger';
 import { supabase } from '../supabaseClient';
+import {
+  LOCAL_TIME_BLOCK_USER_ID,
+  createLocalTimeBlock,
+  deleteLocalTimeBlock,
+  getAllLocalTimeBlocks,
+  updateLocalTimeBlock,
+} from '../../storage/localTimeBlockStorage';
 
 export class ApiError extends Error {
   statusCode: number;
@@ -91,6 +98,28 @@ export class TimeBlockApi {
   // Get all time blocks for a user and date
   static async getTimeBlocks(userId: string, date: string): Promise<TimeBlockApiEntry[]> {
     try {
+      if (userId === LOCAL_TIME_BLOCK_USER_ID) {
+        const localBlocks = await getAllLocalTimeBlocks();
+        const regularBlocks = localBlocks.filter(block => {
+          if (block.selected_date !== date || block.category === 'exception') { return false; }
+          const metadata = block.metadata || {};
+          const exceptions = Array.isArray(metadata.exceptions) ? metadata.exceptions : [];
+          if (exceptions.includes(date)) { return false; }
+          const repeatEnd = metadata.endDate || block.repeat_until || block.repeat_end_date;
+          return !repeatEnd || date <= String(repeatEnd).split('T')[0];
+        });
+        const repeatingBlocks = localBlocks.filter(block =>
+          block.repeat_rule && block.repeat_rule.frequency !== 'never' && block.category !== 'exception',
+        );
+        const expandedRepeatingBlocks = this.expandRepeatingBlocks(repeatingBlocks, date)
+          .filter(block => {
+            const exceptions = Array.isArray(block.metadata?.exceptions) ? block.metadata.exceptions : [];
+            return !exceptions.includes(date);
+          });
+
+        return [...regularBlocks, ...expandedRepeatingBlocks]
+          .sort((a, b) => a.start_time.localeCompare(b.start_time));
+      }
 
       // Get both regular blocks for this date and repeating blocks that might appear on this date
       const { data: regularBlocks, error: regularError } = await supabase
@@ -399,6 +428,10 @@ export class TimeBlockApi {
 
   // Create a new time block (with upsert to handle duplicates)
   static async createTimeBlock(timeBlock: Omit<TimeBlockApiEntry, 'id' | 'created_at' | 'updated_at'>): Promise<TimeBlockApiEntry> {
+    if (timeBlock.user_id === LOCAL_TIME_BLOCK_USER_ID) {
+      return createLocalTimeBlock(timeBlock);
+    }
+
     const now = new Date().toISOString();
     const timeBlockWithTimestamps = {
       ...timeBlock,
@@ -434,6 +467,9 @@ export class TimeBlockApi {
     id: string,
     updates: Partial<Omit<TimeBlockApiEntry, 'id' | 'user_id' | 'created_at'>>
   ): Promise<TimeBlockApiEntry> {
+    const localResult = await updateLocalTimeBlock(id, updates);
+    if (localResult) { return localResult; }
+
     Logger.info('API UPDATE: Updating time block', { id });
     Logger.info('API UPDATE: Updates', { updates: JSON.stringify(updates, null, 2) });
 
@@ -490,6 +526,8 @@ export class TimeBlockApi {
 
   // Delete a time block
   static async deleteTimeBlock(id: string): Promise<void> {
+    if (await deleteLocalTimeBlock(id)) { return; }
+
     const { error } = await supabase
       .from('time_blocks')
       .delete()
@@ -509,6 +547,13 @@ export class TimeBlockApi {
     startDate: string,
     endDate: string
   ): Promise<TimeBlockApiEntry[]> {
+    if (userId === LOCAL_TIME_BLOCK_USER_ID) {
+      const localBlocks = await getAllLocalTimeBlocks();
+      return localBlocks
+        .filter(block => block.selected_date >= startDate && block.selected_date <= endDate)
+        .sort((a, b) => `${a.selected_date}|${a.start_time}`.localeCompare(`${b.selected_date}|${b.start_time}`));
+    }
+
     const { data, error } = await supabase
       .from('time_blocks')
       .select('*')
@@ -530,6 +575,10 @@ export class TimeBlockApi {
 
   // Bulk create time blocks
   static async createMultipleTimeBlocks(timeBlocks: Omit<TimeBlockApiEntry, 'id' | 'created_at' | 'updated_at'>[]): Promise<TimeBlockApiEntry[]> {
+    if (timeBlocks.every(block => block.user_id === LOCAL_TIME_BLOCK_USER_ID)) {
+      return Promise.all(timeBlocks.map(block => createLocalTimeBlock(block)));
+    }
+
     const now = new Date().toISOString();
     const timeBlocksWithTimestamps = timeBlocks.map(block => ({
       ...block,
@@ -563,6 +612,18 @@ export class TimeBlockApi {
     endTime: string,
     excludeId?: string
   ): Promise<TimeBlockApiEntry[]> {
+    if (userId === LOCAL_TIME_BLOCK_USER_ID) {
+      const localBlocks = await this.getTimeBlocks(userId, date);
+      const requestedStart = new Date(startTime).getTime();
+      const requestedEnd = new Date(endTime).getTime();
+      return localBlocks.filter(block => {
+        if (block.id === excludeId) { return false; }
+        const blockStart = new Date(block.start_time).getTime();
+        const blockEnd = new Date(block.end_time).getTime();
+        return blockStart <= requestedEnd && blockEnd >= requestedStart;
+      });
+    }
+
     let query = supabase
       .from('time_blocks')
       .select('*')

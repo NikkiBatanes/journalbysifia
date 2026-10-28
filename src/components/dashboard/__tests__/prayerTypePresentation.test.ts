@@ -9,7 +9,7 @@ describe('canonical Prayer type presentation', () => {
   it.each([
     ['return', 'Open Prayer'],
     ['cast-supplication', 'CAST · Supplication'],
-    ['request-charles-response', 'Prayer for Someone · Charles'],
+    ['request-charles-response', 'Prayer for Charles'],
     ['bible-study', 'Bible Study Prayer · James 1:2–8'],
     ['playbook', 'Playbook Prayer · A Courageous Conversation'],
     ['devotional', 'Devotional Prayer · Trusting What Does Not Change'],
@@ -19,7 +19,7 @@ describe('canonical Prayer type presentation', () => {
 
   it('distinguishes a Prayer for Someone and a selected Need from its parent Prayer', () => {
     const mixed = byId('mixed-needs');
-    expect(getPrayerTypePresentation(mixed).label).toBe('Prayer for Someone · Greg');
+    expect(getPrayerTypePresentation(mixed).label).toBe('Prayer for Greg');
     const health = prayerNeeds(mixed).find(item => item.topic === 'Health')!;
     const presentedNeed = getPrayerTypePresentation(mixed, health);
     expect(presentedNeed).toMatchObject({ label: 'Prayer Need · Health', secondaryContext: 'From: Prayer for Greg', content: health.text });
@@ -68,7 +68,7 @@ describe('canonical Prayer type presentation', () => {
     const charlesRequest = byId('request-charles');
     const journey = getPrayerRequestJourneyPresentation(linked, charlesRequest, linked);
     expect(journey).toMatchObject({ state: 'prayed_for', origin: 'Prayer Request', subject: 'Charles', content: linked.content });
-    expect(getPrayerTypePresentation(linked)).toMatchObject({ label: 'Prayer for Someone · Charles', detailLabel: 'Prayer for Someone', originLabel: 'Prayer Request', requestContext: charlesRequest.content });
+    expect(getPrayerTypePresentation(linked)).toMatchObject({ label: 'Prayer for Charles', detailLabel: 'Prayer for Charles', originLabel: 'Prayer Request', requestContext: charlesRequest.content });
   });
 
   it('retains Answered and Let Go as current journey states with Request origin', () => {

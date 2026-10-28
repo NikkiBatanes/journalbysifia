@@ -40,6 +40,7 @@ import {ScriptureLookupInput} from './shared/ScriptureLookupInput';
 import JournalColumnBlock from './shared/JournalColumnBlock';
 import JournalNestedBlockEditor from './shared/JournalNestedBlockEditor';
 import DraggableJournalBlock from './shared/DraggableJournalBlock';
+import JournalPhotoSourcePicker from './shared/JournalPhotoSourcePicker';
 import {
   reorderJournalBlock,
   resolveJournalBlockDropIndex,
@@ -58,7 +59,6 @@ import {
 import {Colors} from '../../theme/colors';
 import {Fonts} from '../../theme/fonts';
 import {triggerLightHaptic, triggerMediumHaptic} from '../../utils/haptics';
-import {pickImageLocal} from '../../services/avatarService';
 import {
   GUIDED_REFLECTION_PATHS,
   getGuidedReflectionPath,
@@ -189,6 +189,7 @@ const GuidedReflectionExperience: React.FC<Props> = ({
   ).current;
   const [optionalOpen, setOptionalOpen] = useState(false);
   const [notePickerOpen, setNotePickerOpen] = useState(false);
+  const [photoSourceOpen, setPhotoSourceOpen] = useState(false);
   const notePickerAnimations = useRef(
     REFLECTION_NOTE_TYPES.map(() => new Animated.Value(0)),
   ).current;
@@ -911,16 +912,9 @@ const GuidedReflectionExperience: React.FC<Props> = ({
     );
   };
   const beginNote = (kind: (typeof REFLECTION_NOTE_TYPES)[number]['kind']) => {
-    triggerMediumHaptic();
     if (kind === 'photo') {
-      closeNotePicker(async () => {
-        try {
-          const photo = await pickImageLocal();
-          if (photo) appendInlineNote('photo', {uri: photo.uri});
-        } catch {
-          Alert.alert('Could not add photo', 'Please try choosing your photo again.');
-        }
-      });
+      setPhotoSourceOpen(true);
+      closeNotePicker();
       return;
     }
     closeNotePicker(() => appendInlineNote(kind));
@@ -2025,6 +2019,7 @@ const GuidedReflectionExperience: React.FC<Props> = ({
                 ),
               }))}
             animations={notePickerAnimations}
+            onSelectStart={() => triggerMediumHaptic()}
             onSelect={beginNote}
             tone="onDark"
           />
@@ -2079,6 +2074,11 @@ const GuidedReflectionExperience: React.FC<Props> = ({
           />
         </Animated.View>
       </Animated.View>
+      <JournalPhotoSourcePicker
+        visible={photoSourceOpen}
+        onClose={() => setPhotoSourceOpen(false)}
+        onImageSelected={photo => appendInlineNote('photo', {uri: photo.uri})}
+      />
       {step.scripture && (
         <ScriptureReaderModal
           visible={scriptureOpen}

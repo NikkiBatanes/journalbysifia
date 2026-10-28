@@ -1,9 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import {Platform, StyleSheet, Text, TouchableOpacity} from 'react-native';
 import Animated, { FadeInUp } from 'react-native-reanimated';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
 import ScriptureReaderModal from '../ScriptureReaderModal';
+import DashboardScriptureSkeleton from '../SkeletonLoader/DashboardScriptureSkeleton';
 import ShareComposer from '../TruthToCarryShareComposer';
 import ThemedText from '../common/ThemedText';
 import { Colors } from '../../theme/colors';
@@ -76,7 +77,7 @@ const DashboardHeaderScripture: React.FC<DashboardHeaderScriptureProps> = ({ dat
   }
 
   if (!text) {
-    return <View style={styles.placeholder} />;
+    return <DashboardScriptureSkeleton centered={centered} />;
   }
 
   return (
@@ -129,11 +130,6 @@ const DashboardHeaderScripture: React.FC<DashboardHeaderScriptureProps> = ({ dat
 };
 
 const styles = StyleSheet.create({
-  placeholder: {
-    width: '100%',
-    height: 112,
-    marginTop: 12,
-  },
   offline: {
     width: '100%',
     minHeight: 112,

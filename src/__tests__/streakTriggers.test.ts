@@ -27,7 +27,25 @@ describe('Faithful rhythm completion boundaries', () => {
 
     expectFaithfulRhythmTrigger(source, 'heart_journal');
     expect(source).toContain("normalizedType !== 'guided' || entryData.guidedJourney?.completed === true");
-    expect(source).toContain('if (!editingId && completesHeartJournal)');
+    expect(source).toContain('if (!options.silent && !editingId && completesHeartJournal)');
+  });
+
+  it('confirms a Heart Journal save before opening its rhythm celebration', () => {
+    const source = read('screens/ReflectionEditorScreen.tsx');
+    const saveBoundary = source.slice(
+      source.indexOf('const handleSave = async'),
+      source.indexOf('const handleDelete = async'),
+    );
+
+    expect(source).toContain('const pendingHeartJournalStreakRef = useRef(false)');
+    expect(saveBoundary).toContain('pendingHeartJournalStreakRef.current = true');
+    expect(saveBoundary).toContain('successModal.showSuccess({');
+    expect(saveBoundary.indexOf('pendingHeartJournalStreakRef.current = true'))
+      .toBeLessThan(saveBoundary.indexOf('successModal.showSuccess({'));
+    expect(saveBoundary).not.toContain("navigate('StreakPlan'");
+    expect(source).toMatch(
+      /if \(pendingHeartJournalStreakRef\.current\)[\s\S]*?success modal finish closing[\s\S]*?navigate\('StreakPlan'/,
+    );
   });
 
   it('counts newly created Scripture Notes toward Heart Journal', () => {

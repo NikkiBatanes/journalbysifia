@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Animated, Easing, Keyboard, Platform, useWindowDimensions } from 'react-native';
+import { Animated, Easing, Keyboard, Platform, TextInput, useWindowDimensions } from 'react-native';
 
 // For floating actions outside a KeyboardAvoidingView; do not apply both offsets.
 // Apply bottom to an Animated.View around the button. TouchableOpacity's native
@@ -27,9 +27,17 @@ export const useFloatingKeyboardButton = (bottomInset: number) => {
       move(Math.max(0, height - event.endCoordinates.screenY), event.duration || 250);
     });
     const hide = Keyboard.addListener(Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide', event => move(0, event.duration || 200));
-    // A newly mounted step may inherit an already-open keyboard.
+    // A newly mounted step may inherit an already-open keyboard. Only follow it
+    // when this screen owns a focused input; otherwise dismiss the orphaned
+    // keyboard so the button doesn't float mid-screen.
     const metrics = Keyboard.metrics?.();
-    if (metrics) { move(Math.max(0, height - metrics.screenY), 0); }
+    if (metrics) {
+      if (TextInput.State.currentlyFocusedInput?.()) {
+        move(Math.max(0, height - metrics.screenY), 0);
+      } else {
+        Keyboard.dismiss();
+      }
+    }
     return () => { show.remove(); hide.remove(); bottom.stopAnimation(); };
   }, [bottom, bottomInset, height]);
   return { bottom, keyboardVisible, keyboardHeight };

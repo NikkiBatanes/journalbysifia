@@ -137,6 +137,7 @@ const PrayerListScreen = () => {
   const queryClient = useQueryClient();
   const [trackingMode, setTrackingMode] = useState<'update' | 'details'>('update');
   const [trackingPrayer, setTrackingPrayer] = useState<PrayerHomeEntry | null>(null);
+  const [trackingNeedId, setTrackingNeedId] = useState<string | undefined>(undefined);
   const [creatingNeed, setCreatingNeed] = useState(false);
   const [respondingTo, setRespondingTo] = useState<PrayerHomeEntry | null>(null);
   const answerInFlight = useRef(false);
@@ -567,6 +568,7 @@ const PrayerListScreen = () => {
   const handleEditPrayer = (prayer: PrayerHomeEntry) => {
     triggerLightHaptic();
     if (prayer.metadata?.prayer_need) {
+      setTrackingNeedId(undefined);
       setTrackingMode('details');
       setTrackingPrayer(prayer);
       return;
@@ -729,7 +731,7 @@ const PrayerListScreen = () => {
                   : latestDraft.type === 'open'
                     ? 'Open Prayer'
                     : latestDraft.type === 'pray-for-someone'
-                      ? 'Prayer for Someone'
+                      ? `Prayer for ${latestDraft.data.personName?.trim() || 'Someone'}`
                       : latestDraft.type === 'prayer-editor'
                         ? `Prayer for ${latestDraft.data.prayerRequest?.person_name || 'Someone'}`
                         : 'Prayer Request'}
@@ -800,8 +802,8 @@ const PrayerListScreen = () => {
                       prayer={prayer}
                       onPrayAgain={handlePrayAgain}
                       onEdit={handleEditPrayer}
-                      onManageAnswers={p => { triggerLightHaptic(); setTrackingMode('details'); setTrackingPrayer(p); }}
-                      onManage={p => { triggerLightHaptic(); setTrackingMode(isTrackedPrayer(p) ? 'update' : 'details'); setTrackingPrayer(p); }}
+                      onManageAnswers={(p, needId) => { triggerLightHaptic(); setTrackingNeedId(needId); setTrackingMode('details'); setTrackingPrayer(p); }}
+                      onManage={p => { triggerLightHaptic(); setTrackingNeedId(undefined); setTrackingMode(isTrackedPrayer(p) ? 'update' : 'details'); setTrackingPrayer(p); }}
                       onAnswered={handleAnswered}
                       onRelease={handleRelease}
                       answering={answering}
@@ -865,7 +867,7 @@ const PrayerListScreen = () => {
         </TouchableOpacity>
       </Modal>
       {respondingTo && <PrayerResponseSheet request={respondingTo} onClose={() => setRespondingTo(null)} onSaved={async () => { await queryClient.invalidateQueries({ queryKey: queryKeys.prayers.allEntries(prayerUserId) }); setRespondingTo(null); }} />}
-      {(creatingNeed || trackingPrayer) && <PrayerTrackingModal onDelete={trackingPrayer ? deleteTrackingPrayer : undefined} mode={trackingPrayer ? trackingMode : 'details'} onShowDetails={() => setTrackingMode('details')} prayer={trackingPrayer ? (trackingPrayer.groupedEntries?.find(p => p.journal_category === 'supplication') || trackingPrayer.groupedEntries?.[0] || trackingPrayer) : undefined} onClose={() => { setCreatingNeed(false); setTrackingPrayer(null); DeviceEventEmitter.emit('pencilAddFlowClosed'); }} onSave={saveTracking} />}
+      {(creatingNeed || trackingPrayer) && <PrayerTrackingModal onDelete={trackingPrayer ? deleteTrackingPrayer : undefined} mode={trackingPrayer ? trackingMode : 'details'} onShowDetails={() => setTrackingMode('details')} initialNeedId={trackingNeedId} prayer={trackingPrayer ? (trackingPrayer.groupedEntries?.find(p => p.journal_category === 'supplication') || trackingPrayer.groupedEntries?.[0] || trackingPrayer) : undefined} onClose={() => { setCreatingNeed(false); setTrackingPrayer(null); setTrackingNeedId(undefined); DeviceEventEmitter.emit('pencilAddFlowClosed'); }} onSave={saveTracking} />}
     </View>
   );
 };

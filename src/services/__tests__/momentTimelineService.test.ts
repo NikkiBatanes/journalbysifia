@@ -22,6 +22,36 @@ const build = (journalEntries: LocalJournalEntry[] = [], reflections: LocalRefle
   buildMomentTimeline({ journalEntries, reflections, prayers, bibleStudies });
 
 describe('canonical Moments timeline', () => {
+  it('groups canonical local Time Blocks by occurrence date for Moments', () => {
+    const items = build([
+      journal('daily-block', 'time_block', {
+        title: 'Morning writing',
+        description: 'Draft the chapter',
+        category: 'Work',
+        repeat_rule: { frequency: 'daily' },
+        repeat_until: '2026-09-16',
+      }, '2026-09-14'),
+      journal('single-block', 'time_block', {
+        title: 'Call Mum',
+        category: 'Personal',
+        repeat_rule: { frequency: 'never' },
+      }, '2026-09-14'),
+    ]);
+
+    const timeBlocks = items.filter(item => item.kind === 'time_block');
+    expect(timeBlocks.map(item => item.key)).toEqual([
+      'time-block:2026-09-16',
+      'time-block:2026-09-15',
+      'time-block:2026-09-14',
+    ]);
+    expect(timeBlocks.find(item => item.selectedDate === '2026-09-14')).toMatchObject({
+      canonicalIds: expect.arrayContaining(['daily-block', 'single-block']),
+      preview: { title: 'Time Blocks' },
+    });
+    expect(timeBlocks.find(item => item.selectedDate === '2026-09-14')?.searchText)
+      .toContain('call mum');
+  });
+
   it('keeps weekly Looking Forward separate from the daily Evening entry', () => {
     const items = build([
       journal('daily-forward', 'looking_forward', {entry: {text: 'A walk tomorrow'}, emotionName: 'Calm'}, '2026-09-20'),

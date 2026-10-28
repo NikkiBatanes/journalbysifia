@@ -28,6 +28,7 @@ const MorningTodosScreen: React.FC = () => {
     <TodosExperience
       selectedDate={fromLocalDateString(selectedDate)}
       onClose={handleClose}
+      onBackFromStart={() => navigation.goBack()}
       onComplete={handleComplete}
       routineDraft={{ routine: 'morning', selectedDate, step: 'todos' }}
       skipCompletionPage

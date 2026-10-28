@@ -28,6 +28,7 @@ import FocusPriorityInputs from './FocusPriorityInputs';
 import { useTheme } from '../../hooks/useTheme';
 import { getFontFamily } from '../../theme/fonts';
 import StepFadeIn from '../common/StepFadeIn';
+import StaggeredBounceIn from '../common/StaggeredBounceIn';
 import { triggerLightHaptic, triggerMediumHaptic } from '../../utils/haptics';
 import { toLocalDateString } from '../../utils/date';
 import { getLocalJournalSingleton, saveLocalJournalSingleton, LocalJournalEntry } from '../../storage/journalStorage';
@@ -103,6 +104,7 @@ interface TodaysFocusExperienceProps {
   routineDraft?: { routine: 'morning' | 'evening'; selectedDate: string; step: string };
   planningContext?: 'tomorrow' | 'later';
   onSkip?: () => void;
+  onBackFromStart?: () => void;
 }
 
 const CategorySelectionStep: React.FC<{
@@ -297,57 +299,58 @@ const CategorySelectionStep: React.FC<{
         )}
 
         {!isOtherSelected && (
-          <StepFadeIn delay={160} style={styles.categoriesGrid}>
-          {displayedCategories.map((category) => {
+          <View style={styles.categoriesGrid}>
+          {displayedCategories.map((category, index) => {
             const isSelected = selectedCategory?.id === category.id;
             return (
-              <TouchableOpacity
-                key={category.id}
-                style={[styles.categoryCard, isSelected && styles.categoryCardSelectedMorning]}
-                onPress={() => {
-                  triggerLightHaptic();
-                  onSelect(category);
-                }}
-                activeOpacity={0.75}
-              >
-                <View style={styles.categoryIconContainer}>
-                  <View style={[
-                    styles.categoryIconCircle,
-                    isSelected && styles.categoryIconCircleSelected,
-                  ]}>
-                    {category.iconType === 'ionicons' && (
-                      <Ionicons
-                        name={category.icon as any}
-                        size={18}
-                        color={Colors.hopeWhite}
-                      />
-                    )}
-                    {category.iconType === 'material' && (
-                      <MaterialCommunityIcons
-                        name={category.icon as any}
-                        size={18}
-                        color={Colors.hopeWhite}
-                      />
-                    )}
-                    {category.iconType === 'fontawesome' && (
-                      <FontAwesome6
-                        name={category.icon as any}
-                        size={18}
-                        color={Colors.hopeWhite}
-                      />
-                    )}
-                  </View>
-                </View>
-                <ThemedText
-                  weight="semiBold"
-                  style={[styles.categoryName, { color: isSelected ? Colors.hopeWhite : Colors.text }]}
+              <StaggeredBounceIn key={category.id} index={showAllCategories ? Math.max(0, index - 12) : index} style={styles.categorySlot}>
+                <TouchableOpacity
+                  style={[styles.categoryCard, isSelected && styles.categoryCardSelectedMorning]}
+                  onPress={() => {
+                    triggerLightHaptic();
+                    onSelect(category);
+                  }}
+                  activeOpacity={0.75}
                 >
-                  {category.name}
-                </ThemedText>
-              </TouchableOpacity>
+                  <View style={styles.categoryIconContainer}>
+                    <View style={[
+                      styles.categoryIconCircle,
+                      isSelected && styles.categoryIconCircleSelected,
+                    ]}>
+                      {category.iconType === 'ionicons' && (
+                        <Ionicons
+                          name={category.icon as any}
+                          size={18}
+                          color={Colors.hopeWhite}
+                        />
+                      )}
+                      {category.iconType === 'material' && (
+                        <MaterialCommunityIcons
+                          name={category.icon as any}
+                          size={18}
+                          color={Colors.hopeWhite}
+                        />
+                      )}
+                      {category.iconType === 'fontawesome' && (
+                        <FontAwesome6
+                          name={category.icon as any}
+                          size={18}
+                          color={Colors.hopeWhite}
+                        />
+                      )}
+                    </View>
+                  </View>
+                  <ThemedText
+                    weight="semiBold"
+                    style={[styles.categoryName, { color: isSelected ? Colors.hopeWhite : Colors.text }]}
+                  >
+                    {category.name}
+                  </ThemedText>
+                </TouchableOpacity>
+              </StaggeredBounceIn>
             );
           })}
-        </StepFadeIn>
+        </View>
         )}
 
         {FOCUS_CATEGORIES.length > 12 && (
@@ -914,6 +917,7 @@ const TodaysFocusExperience: React.FC<TodaysFocusExperienceProps> = ({
   routineDraft,
   planningContext,
   onSkip,
+  onBackFromStart,
 }) => {
   const insets = useSafeAreaInsets();
   const safeInsets = insetsProp ?? { top: insets.top, bottom: insets.bottom };
@@ -1029,10 +1033,12 @@ const TodaysFocusExperience: React.FC<TodaysFocusExperienceProps> = ({
   const handleBack = useCallback(() => {
     if (currentStep > 0) {
       setCurrentStep(currentStep - 1);
+    } else if (onBackFromStart) {
+      onBackFromStart();
     } else if (onClose) {
       onClose();
     }
-  }, [currentStep, onClose]);
+  }, [currentStep, onBackFromStart, onClose]);
 
   const panResponder = React.useMemo(
     () =>
@@ -1040,7 +1046,7 @@ const TodaysFocusExperience: React.FC<TodaysFocusExperienceProps> = ({
         onMoveShouldSetPanResponderCapture: (_, gestureState) => {
           const isHorizontal = Math.abs(gestureState.dx) > Math.abs(gestureState.dy) * 1.15;
           const isForwardSwipe = gestureState.dx < -14;
-          const isLocalBackSwipe = currentStep > 0 && gestureState.dx > 14;
+          const isLocalBackSwipe = (currentStep > 0 || Boolean(onBackFromStart)) && gestureState.dx > 14;
           return isHorizontal && (isForwardSwipe || isLocalBackSwipe);
         },
         onPanResponderRelease: (_, gestureState) => {
@@ -1066,7 +1072,7 @@ const TodaysFocusExperience: React.FC<TodaysFocusExperienceProps> = ({
           }
         },
       }),
-    [currentStep, handleBack, handleNext, screenWidth, selectedCategory]
+    [currentStep, handleBack, handleNext, onBackFromStart, screenWidth, selectedCategory]
   );
 
   return (
@@ -1207,7 +1213,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   categoryCard: {
-    width: '31%',
+    width: '100%',
     backgroundColor: Colors.cardBackground,
     borderRadius: 20,
     padding: 12,
@@ -1217,6 +1223,9 @@ const styles = StyleSheet.create({
     borderColor: Colors.cardBorder,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  categorySlot: {
+    width: '31%',
   },
   categoryCardSelectedMorning: {
     backgroundColor: Colors.sageMuted,

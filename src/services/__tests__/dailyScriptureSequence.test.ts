@@ -25,6 +25,16 @@ describe('daily Scripture sequence', () => {
     expect(getDailyProverbNumber('2026-09-22', accountCreatedAt)).toBe(9);
   });
 
+  it('wraps continuously when moving to dates before account creation', () => {
+    const september24Signup = '2026-09-24T08:30:00+08:00';
+    expect(getDailyPsalmNumber('2026-09-23', september24Signup)).toBe(150);
+    expect(getDailyProverbNumber('2026-09-23', september24Signup)).toBe(31);
+    expect(getDailyPsalmNumber('2026-09-24', september24Signup)).toBe(1);
+    expect(getDailyProverbNumber('2026-09-24', september24Signup)).toBe(1);
+    expect(getDailyPsalmNumber('2026-09-25', september24Signup)).toBe(2);
+    expect(getDailyProverbNumber('2026-09-25', september24Signup)).toBe(2);
+  });
+
   it('cycles Psalms after 150 days and Proverbs after 31 days', () => {
     expect(getAccountSequenceNumber('2026-09-14', accountCreatedAt, 150)).toBe(1);
     expect(getAccountSequenceNumber('2027-02-11', accountCreatedAt, 150)).toBe(1);

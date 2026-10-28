@@ -1,7 +1,7 @@
 /**
  * Enterprise-Grade Calendar Sync Service
  * Handles native iOS/Android calendar integration for TimeBlocks
- * Features: Sync, repeat handling, location services, feature gating
+ * Features: Sync, repeat handling, location services, and OS permission checks
  */
 
 import { Alert, Platform, PermissionsAndroid } from 'react-native';
@@ -53,7 +53,6 @@ export interface CalendarSyncResult {
   success: boolean;
   eventId?: string;
   error?: string;
-  requiresUpgrade?: boolean;
 }
 
 export interface DeleteOptions {

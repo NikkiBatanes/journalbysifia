@@ -12,6 +12,7 @@ import {
   Share,
   StatusBar,
   StyleSheet,
+  Text,
   TextInput,
   TouchableOpacity,
   useWindowDimensions,
@@ -22,7 +23,6 @@ import {generatePDF} from 'react-native-html-to-pdf';
 import {SafeAreaView, useSafeAreaInsets} from 'react-native-safe-area-context';
 import {useFocusEffect} from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import {Pencil, Sparkles, Trash2} from 'lucide-react-native';
 
 import {BibleCopyrightModal} from '../components/BibleCopyrightModal';
@@ -77,9 +77,10 @@ import {JournalBlockEditor} from '../components/journal/shared/JournalBlockEdito
 import NoteBlockFrame from '../components/journal/shared/NoteBlockFrame';
 import JournalTextInput from '../components/journal/shared/JournalTextInput';
 import {ScriptureLookupInput} from '../components/journal/shared/ScriptureLookupInput';
+import ScriptureLoadingSkeleton from '../components/scripture/ScriptureLoadingSkeleton';
 import JournalColumnBlock from '../components/journal/shared/JournalColumnBlock';
 import DraggableJournalBlock from '../components/journal/shared/DraggableJournalBlock';
-import {pickImageLocal} from '../services/avatarService';
+import JournalPhotoSourcePicker from '../components/journal/shared/JournalPhotoSourcePicker';
 import {
   insertJournalBlock,
   removeJournalBlock,
@@ -203,12 +204,36 @@ const sessionBlockToHtml = (block: NoteBlock) => {
       points ? `<ol>${points}</ol>` : ''
     }</div>`;
   }
+  if (block.kind === 'language') {
+    const originalLanguage = (block.languageKind || 'original').toUpperCase();
+    const englishWord = escapeHtml(block.englishWord?.trim() || '');
+    const originalWord = `<div style="flex:1;"><span style="display:block;font-size:9px;letter-spacing:1px;color:#526A5B;">${originalLanguage} WORD</span><span style="display:block;margin-top:4px;font-size:17px;font-weight:700;color:#29342E;">${text}</span></div>`;
+    const wordConnection = englishWord
+      ? `<div style="display:flex;align-items:center;gap:12px;margin-top:8px;padding:10px;border:1px solid #D5DED6;border-radius:10px;background:#EAEFEA;"><div style="flex:1;"><span style="display:block;font-size:9px;letter-spacing:1px;color:#526A5B;">ENGLISH IN THE VERSE</span><span style="display:block;margin-top:4px;font-size:14px;color:#29342E;">${englishWord}</span></div><span style="color:#526A5B;">→</span>${originalWord}</div>`
+      : `<div style="margin-top:8px;padding:10px;border:1px solid #D5DED6;border-radius:10px;background:#EAEFEA;">${originalWord}</div>`;
+    const detail = (label: string, value?: string) =>
+      value?.trim()
+        ? `<div style="margin-top:10px;"><strong style="display:block;font-size:9px;letter-spacing:1px;color:#526A5B;">${label}</strong><span style="font-size:12px;line-height:18px;color:#59635D;">${escapeHtml(
+            value.trim(),
+          ).replace(/\n/g, '<br>')}</span></div>`
+        : '';
+    return `<div style="margin:0 0 14px;"><strong style="font-size:10px;letter-spacing:1px;color:#526A5B;">${
+      BLOCKS.language.label
+    }</strong>${wordConnection}${detail(
+      'MEANING IN CONTEXT',
+      block.meaning,
+    )}${detail('PRONUNCIATION', block.secondary)}${detail(
+      'WORD ORIGIN',
+      block.origin,
+    )}${detail('SCRIPTURE', block.reference)}</div>`;
+  }
   const config = block.kind === 'text' ? null : BLOCKS[block.kind];
   const secondary = [
     block.kind === 'quote'
       ? formatJournalAttribution(block.secondary)
       : block.secondary,
     block.note,
+    block.englishWord,
     block.meaning,
     block.origin,
   ]
@@ -312,6 +337,7 @@ const SermonNotesScreen = ({navigation, route}: any) => {
   const [showDetails, setShowDetails] = useState(false);
   const [showAllStats, setShowAllStats] = useState(false);
   const [showMore, setShowMore] = useState(false);
+  const [photoSourceOpen, setPhotoSourceOpen] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [focusedInput, setFocusedInput] = useState<string | null>(null);
   const [columnTarget, setColumnTarget] = useState<{
@@ -932,11 +958,7 @@ const SermonNotesScreen = ({navigation, route}: any) => {
           style: 'destructive',
           onPress: async () => {
             try {
-              await deleteLocalReflection(
-                reflectionId,
-                'sermon',
-                selectedDate,
-              );
+              await deleteLocalReflection(reflectionId, 'sermon', selectedDate);
               DeviceEventEmitter.emit('sermon_saved', {
                 reflectionId,
                 type: 'deleted',
@@ -1319,21 +1341,9 @@ const SermonNotesScreen = ({navigation, route}: any) => {
   };
 
   const selectCaptureKind = async (kind: (typeof CAPTURE_KINDS)[number]) => {
-    triggerMediumHaptic();
     if (kind === 'photo') {
-      closeCapturePicker(async () => {
-        try {
-          const photo = await pickImageLocal();
-          if (photo) {
-            addBlock('photo', {uri: photo.uri});
-          }
-        } catch {
-          Alert.alert(
-            'Could not add photo',
-            'Please try choosing your photo again.',
-          );
-        }
-      });
+      setPhotoSourceOpen(true);
+      closeCapturePicker();
       return;
     }
     closeCapturePicker(() => addBlock(kind));
@@ -1392,7 +1402,14 @@ const SermonNotesScreen = ({navigation, route}: any) => {
 
   const updateBlock = (
     id: string,
-    field: 'text' | 'secondary' | 'note' | 'reference' | 'meaning' | 'origin',
+    field:
+      | 'text'
+      | 'secondary'
+      | 'note'
+      | 'reference'
+      | 'englishWord'
+      | 'meaning'
+      | 'origin',
     value: string,
   ) => {
     setBlocks(current => updateJournalBlock(current, id, {[field]: value}));
@@ -1953,6 +1970,18 @@ const SermonNotesScreen = ({navigation, route}: any) => {
                 ),
               )}
             </View>
+            <JournalTextInput
+              themed
+              accentColor={Colors.sage}
+              style={[styles.captureInput, styles.characterNote]}
+              placeholder="English word or phrase used in the verse"
+              placeholderTextColor={Colors.textGray}
+              value={block.englishWord || ''}
+              onChangeText={value =>
+                updateBlock(block.id, 'englishWord', value)
+              }
+              onFocus={focusBlock}
+            />
             <View style={styles.historyChoices}>
               {(
                 ['meaning', 'transliteration', 'origin', 'scripture'] as const
@@ -2193,6 +2222,7 @@ const SermonNotesScreen = ({navigation, route}: any) => {
         );
       }}>
       <StatusBar
+        hidden
         barStyle="dark-content"
         backgroundColor={Colors.lightBackground}
       />
@@ -2826,7 +2856,7 @@ const SermonNotesScreen = ({navigation, route}: any) => {
                     <>
                       <ThemedText
                         weight="bold"
-                        style={[styles.detailLabel, {marginTop: 8}]}>
+                        style={[styles.detailLabel, {marginTop: 18}]}>
                         {mainScriptureRefs.length > 1
                           ? 'MAIN SCRIPTURES'
                           : 'MAIN SCRIPTURE'}
@@ -2835,7 +2865,7 @@ const SermonNotesScreen = ({navigation, route}: any) => {
                         <View key={ref + index}>
                           {index > 0 && <View style={styles.divider} />}
                           <TouchableOpacity
-                            style={[styles.sermonQuote, {marginTop: 12}]}
+                            style={styles.sermonQuote}
                             activeOpacity={0.9}
                             onPress={() => {
                               triggerLightHaptic();
@@ -2846,36 +2876,30 @@ const SermonNotesScreen = ({navigation, route}: any) => {
                             accessibilityLabel="Open scripture in reader">
                             <View style={styles.sermonQuoteLine} />
                             <View style={styles.sermonQuoteContent}>
-                              <ThemedText style={styles.sermonQuoteText}>
-                                {mainScriptureTexts[index]
-                                  ? mainScriptureTexts[index]
-                                  : scriptureLoading
-                                  ? 'Loading…'
-                                  : ref}
-                              </ThemedText>
+                              {scriptureLoading ? (
+                                <ScriptureLoadingSkeleton
+                                  variant="inline"
+                                  lines={3}
+                                />
+                              ) : (
+                                <Text
+                                  style={styles.sermonQuoteText}
+                                  numberOfLines={4}
+                                  ellipsizeMode="tail"
+                                  textBreakStrategy="simple"
+                                  allowFontScaling
+                                  maxFontSizeMultiplier={1.2}>
+                                  {mainScriptureTexts[index] || ref}
+                                </Text>
+                              )}
                               {mainScriptureTexts[index] && (
                                 <View style={styles.sermonQuoteReferenceRow}>
                                   <ThemedText
-                                    weight="bold"
-                                    style={styles.sermonQuoteReference}>
+                                    weight="semiBold"
+                                    style={styles.sermonQuoteReference}
+                                    maxFontSizeMultiplier={1.1}>
                                     {ref.toUpperCase()} {bibleVersion}
                                   </ThemedText>
-                                  <TouchableOpacity
-                                    style={styles.scriptureAction}
-                                    onPress={() => {
-                                      triggerLightHaptic();
-                                      setScriptureReaderIndex(index);
-                                      setScriptureReaderOpen(true);
-                                    }}
-                                    activeOpacity={0.7}
-                                    accessibilityRole="button"
-                                    accessibilityLabel="Open scripture reader">
-                                    <MaterialCommunityIcons
-                                      name="script-text"
-                                      size={16}
-                                      color={Colors.sage}
-                                    />
-                                  </TouchableOpacity>
                                   <TouchableOpacity
                                     style={[
                                       styles.scriptureAction,
@@ -3050,25 +3074,23 @@ const SermonNotesScreen = ({navigation, route}: any) => {
                     'quote',
                     'prayer',
                   ];
-                  const orderedStats = [...summary].sort(
-                    (left, right) => {
-                      const leftPriority = preferredKinds.indexOf(
-                        left.kind as BlockKind,
-                      );
-                      const rightPriority = preferredKinds.indexOf(
-                        right.kind as BlockKind,
-                      );
-                      return (
-                        right.count - left.count ||
-                        (leftPriority < 0
+                  const orderedStats = [...summary].sort((left, right) => {
+                    const leftPriority = preferredKinds.indexOf(
+                      left.kind as BlockKind,
+                    );
+                    const rightPriority = preferredKinds.indexOf(
+                      right.kind as BlockKind,
+                    );
+                    return (
+                      right.count - left.count ||
+                      (leftPriority < 0
+                        ? preferredKinds.length
+                        : leftPriority) -
+                        (rightPriority < 0
                           ? preferredKinds.length
-                          : leftPriority) -
-                          (rightPriority < 0
-                            ? preferredKinds.length
-                            : rightPriority)
-                      );
-                    },
-                  );
+                          : rightPriority)
+                    );
+                  });
                   if (!orderedStats.length) {
                     return null;
                   }
@@ -3452,6 +3474,7 @@ const SermonNotesScreen = ({navigation, route}: any) => {
                   !columnTarget || NOTE_BLOCK_REGISTRY[kind].allowInColumn,
               )}
               animations={pillAnimations}
+              onSelectStart={() => triggerMediumHaptic()}
               onSelect={selectCaptureKind}
             />
           )}
@@ -3494,6 +3517,12 @@ const SermonNotesScreen = ({navigation, route}: any) => {
           </Animated.View>
         </Animated.View>
       )}
+
+      <JournalPhotoSourcePicker
+        visible={photoSourceOpen}
+        onClose={() => setPhotoSourceOpen(false)}
+        onImageSelected={photo => addBlock('photo', {uri: photo.uri})}
+      />
 
       <ScriptureReaderModal
         visible={scriptureReaderOpen}
@@ -3898,9 +3927,9 @@ const styles = StyleSheet.create({
   },
   sermonDetails: {
     marginTop: 0,
-    marginBottom: 10,
+    marginBottom: 8,
     paddingTop: 8,
-    paddingBottom: 8,
+    paddingBottom: 0,
   },
   sermonDate: {
     fontSize: 11,
@@ -3908,7 +3937,7 @@ const styles = StyleSheet.create({
     color: Colors.textGray,
     textTransform: 'uppercase',
     textAlign: 'left',
-    marginBottom: 16,
+    marginBottom: 0,
   },
   sermonEyebrow: {
     fontSize: 11,
@@ -3922,13 +3951,13 @@ const styles = StyleSheet.create({
     fontSize: 32,
     lineHeight: 38,
     color: Colors.text,
-    marginBottom: 8,
+    marginBottom: 6,
   },
   sermonPastor: {
     fontFamily: Fonts.lora.bold,
     fontSize: 16,
     color: Colors.sage,
-    marginBottom: 12,
+    marginBottom: 8,
   },
   divider: {
     height: 1,
@@ -3940,7 +3969,7 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     justifyContent: 'space-between',
     columnGap: 12,
-    rowGap: 18,
+    rowGap: 16,
   },
   detailItem: {
     flexGrow: 1,
@@ -3961,10 +3990,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   detailValueRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  scriptureActions: {
     flexDirection: 'row',
     alignItems: 'center',
   },
@@ -3990,37 +4015,41 @@ const styles = StyleSheet.create({
     maxWidth: '82%',
   },
   sermonQuote: {
+    width: '100%',
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'stretch',
+    marginTop: 12,
   },
   sermonQuoteLine: {
-    width: 2,
-    alignSelf: 'stretch',
-    minHeight: 22,
-    backgroundColor: Colors.sage,
-    borderRadius: 1,
-    marginRight: 12,
+    width: 4,
+    borderRadius: 2,
+    backgroundColor: Colors.anchorBlueLight,
   },
   sermonQuoteContent: {
     flex: 1,
+    paddingLeft: 14,
   },
   sermonQuoteText: {
-    fontFamily: Fonts.lora.regular,
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
     fontStyle: 'italic',
-    fontSize: 16,
-    color: Colors.text,
-    lineHeight: 24,
+    fontSize: 15,
+    color: Colors.textGray,
+    lineHeight: 22,
+    textAlign: 'left',
   },
   sermonQuoteReference: {
-    fontSize: 12,
-    color: Colors.sage,
+    fontSize: 9,
+    lineHeight: 13,
+    letterSpacing: 1.2,
+    color: Colors.sageMuted,
+    textAlign: 'left',
     marginRight: 4,
   },
   sermonQuoteReferenceRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'flex-end',
-    marginTop: 12,
+    justifyContent: 'flex-start',
+    marginTop: 8,
   },
   editor: {
     borderWidth: 0,

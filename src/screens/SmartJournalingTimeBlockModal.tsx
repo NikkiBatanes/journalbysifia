@@ -18,6 +18,7 @@ import { TimeBlockApi, TimeBlockApiEntry } from '../services/api/timeBlockApi';
 import { toLocalDateString } from '../utils/date';
 import { Logger } from '../utils/ProductionLogger';
 import { visibleStreakService } from '../services/visibleStreakService';
+import { LOCAL_TIME_BLOCK_USER_ID } from '../storage/localTimeBlockStorage';
 
 interface SmartJournalingTimeBlockModalProps {
   visible: boolean;
@@ -142,15 +143,14 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
 
   // Query for existing time blocks (currently unused but may be needed for future features)
   useQuery({
-    queryKey: ['timeBlocks', user?.id, today],
-    queryFn: () => user ? TimeBlockApi.getTimeBlocks(user.id, today) : Promise.resolve([]),
-    enabled: !!user && visible,
+    queryKey: ['timeBlocks', LOCAL_TIME_BLOCK_USER_ID, today],
+    queryFn: () => TimeBlockApi.getTimeBlocks(LOCAL_TIME_BLOCK_USER_ID, today),
+    enabled: visible,
   });
 
   // Create time block mutation
   const createTimeBlockMutation = useMutation({
     mutationFn: async (timeBlockData: Omit<TimeBlockApiEntry, 'id' | 'created_at' | 'updated_at'>) => {
-      if (!user) {throw new Error('User not authenticated');}
       return TimeBlockApi.createTimeBlock(timeBlockData);
     },
     onSuccess: (data) => {
@@ -161,14 +161,14 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
 
       // PERFORMANCE: Parallel cache invalidation instead of sequential
       const invalidations = [
-        queryClient.invalidateQueries({ queryKey: ['timeBlocks', 'byDate', user?.id, savedDateStr] }),
+        queryClient.invalidateQueries({ queryKey: ['timeBlocks', 'byDate', LOCAL_TIME_BLOCK_USER_ID, savedDateStr] }),
         queryClient.invalidateQueries({ queryKey: ['timeBlocks'] }),
         queryClient.invalidateQueries({ queryKey: ['journal', 'all'] }),
       ];
       // Also invalidate for today if different
       if (savedDateStr !== todayStr) {
         invalidations.push(
-          queryClient.invalidateQueries({ queryKey: ['timeBlocks', 'byDate', user?.id, todayStr] })
+          queryClient.invalidateQueries({ queryKey: ['timeBlocks', 'byDate', LOCAL_TIME_BLOCK_USER_ID, todayStr] })
         );
       }
       Promise.all(invalidations);
@@ -201,13 +201,13 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
 
       // PERFORMANCE: Parallel cache invalidation instead of sequential
       const invalidations = [
-        queryClient.invalidateQueries({ queryKey: ['timeBlocks', 'byDate', user?.id, savedDateStr] }),
+        queryClient.invalidateQueries({ queryKey: ['timeBlocks', 'byDate', LOCAL_TIME_BLOCK_USER_ID, savedDateStr] }),
         queryClient.invalidateQueries({ queryKey: ['timeBlocks'] }),
       ];
       // Also invalidate for today if different
       if (savedDateStr !== todayStr) {
         invalidations.push(
-          queryClient.invalidateQueries({ queryKey: ['timeBlocks', 'byDate', user?.id, todayStr] })
+          queryClient.invalidateQueries({ queryKey: ['timeBlocks', 'byDate', LOCAL_TIME_BLOCK_USER_ID, todayStr] })
         );
       }
       Promise.all(invalidations);
@@ -244,11 +244,6 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
       date: timeBlockData.date,
     });
     try {
-      if (!user) {
-        Alert.alert('Error', 'You must be logged in to save time blocks.');
-        return;
-      }
-
       // Build repeat rule for calendar sync
       const repeatRule = timeBlockData.repeatFrequency && timeBlockData.repeatFrequency !== 'never' ? {
         frequency: timeBlockData.repeatFrequency as 'daily' | 'weekly' | 'monthly' | 'yearly',
@@ -260,7 +255,7 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
       };
 
       const timeBlockEntry: Omit<TimeBlockApiEntry, 'id' | 'created_at' | 'updated_at'> = {
-        user_id: user.id,
+        user_id: LOCAL_TIME_BLOCK_USER_ID,
         selected_date: toLocalDateString(timeBlockData.date),
         start_time: timeBlockData.startTime.toISOString(),
         end_time: timeBlockData.endTime.toISOString(),
@@ -378,7 +373,6 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
             ref={timeBlockEditorRef}
             onSave={saveTimeBlock}
             onCancel={handleCancel}
-            onUpgradeRequired={onCancel} // Close modal before navigating to upgrade
             initialContent={existingTimeBlock?.description || ''}
             subtaskTitle={preservedSubtaskTitle}
             _subtaskId={subtaskId}

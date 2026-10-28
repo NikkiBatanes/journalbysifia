@@ -2,7 +2,7 @@
 # https://supabase.com/docs/guides/local-development/cli/config
 # A string used to distinguish different Supabase projects on the same host. Defaults to the
 # working directory name when running `supabase init`.
-project_id = "AnchoredApp"
+project_id = "JournalBySiFia"
 
 [api]
 enabled = true
@@ -74,6 +74,9 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.journal-impact]
+verify_jwt = false
+
+[functions.journal-early-access]
 verify_jwt = false
 
 [studio]

@@ -145,7 +145,8 @@ const NOTE_BLOCK_PREVIEWS: Record<SelectableJournalBlockKind, JournalBlock[]> =
       {
         id: 'preview-language',
         kind: 'language',
-        text: 'חֶסֶד · hesed',
+        text: 'חֶסֶד',
+        englishWord: 'steadfast love',
         languageKind: 'hebrew',
         languageDetails: ['meaning', 'origin'],
         meaning: 'Steadfast, covenant love',

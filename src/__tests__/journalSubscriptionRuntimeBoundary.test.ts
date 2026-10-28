@@ -69,13 +69,14 @@ describe('Journal subscription runtime boundary', () => {
   });
 
   it('keeps calendar, Guided prompts, and smart notifications independent of subscriptions', () => {
-    const calendar = readSrc('hooks/useCalendarGating.ts');
+    const calendar = readSrc('components/CalendarSyncButton.tsx');
     const guided = readSrc('hooks/useGuidedPromptGating.ts');
     const notifications = readSrc('services/notifications/notificationCandidateResolver.ts');
     [calendar, guided, notifications].forEach(source => {
       expect(source).not.toContain('NewSubscriptionService');
       expect(source).not.toContain('useSubscription');
     });
+    expect(fs.existsSync(path.join(srcRoot, 'hooks/useCalendarGating.ts'))).toBe(false);
     expect(notifications).not.toContain('is_free_user');
   });
 

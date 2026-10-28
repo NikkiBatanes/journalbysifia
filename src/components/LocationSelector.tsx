@@ -1,7 +1,7 @@
 /**
  * Enterprise Location Selector Component
  * Provides current location, recent locations, and search functionality
- * Integrates with calendar gating for premium features
+ * Device permission checks are handled by the calendar integration service.
  */
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -168,7 +168,7 @@ export const LocationSelector: React.FC<LocationSelectorProps> = ({
   return (
     <View style={styles.container}>
       <View style={styles.inputContainer}>
-        <MapPin size={16} color={Colors.hopeWhite} />
+        <MapPin size={16} color={Colors.sage} />
         <TextInput
           ref={inputRef}
           style={[
@@ -180,9 +180,9 @@ export const LocationSelector: React.FC<LocationSelectorProps> = ({
           onFocus={handleInputFocus}
           onBlur={handleInputBlur}
           placeholder={placeholder}
-          placeholderTextColor="rgba(255, 255, 255, 0.6)"
+          placeholderTextColor={Colors.textGray}
           returnKeyType="done"
-          keyboardAppearance="dark"
+          keyboardAppearance="light"
         />
 
         <TouchableOpacity
@@ -194,9 +194,9 @@ export const LocationSelector: React.FC<LocationSelectorProps> = ({
           disabled={isLoadingLocation}
         >
           {isLoadingLocation ? (
-            <ActivityIndicator size="small" color={Colors.alertCoral} />
+            <ActivityIndicator size="small" color={Colors.sage} />
           ) : (
-            <Navigation size={16} color={Colors.alertCoral} />
+            <Navigation size={16} color={Colors.sage} />
           )}
         </TouchableOpacity>
       </View>
@@ -206,7 +206,7 @@ export const LocationSelector: React.FC<LocationSelectorProps> = ({
         <View style={styles.suggestionsContainer}>
           {isSearching && (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size="small" color={Colors.alertCoral} />
+              <ActivityIndicator size="small" color={Colors.sage} />
               <ThemedText style={styles.loadingText}>Searching locations...</ThemedText>
             </View>
           )}
@@ -258,11 +258,11 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.inputBackground,
+    backgroundColor: Colors.cardBackground,
     borderRadius: 50,
     paddingHorizontal: 12,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
+    borderColor: Colors.inputBorder,
     minHeight: 44,
   },
   modalOverlay: {
@@ -270,10 +270,10 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   modalContent: {
-    backgroundColor: Colors.sage,
+    backgroundColor: Colors.cardBackground,
     borderRadius: 24,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderColor: Colors.inputBorder,
     shadowColor: '#29342E',
     shadowOffset: {
       width: 0,
@@ -290,7 +290,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     lineHeight: 20,
-    color: Colors.hopeWhite,
+    color: Colors.text,
     marginLeft: 8,
     marginRight: 8,
     paddingVertical: 12,
@@ -304,12 +304,12 @@ const styles = StyleSheet.create({
     top: '100%',
     left: 0,
     right: 0,
-    backgroundColor: Colors.sage,
+    backgroundColor: Colors.cardBackground,
     borderRadius: 24,
     marginTop: -240,
     maxHeight: 200,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderColor: Colors.inputBorder,
     zIndex: 1000,
     elevation: 10,
     shadowColor: '#29342E',
@@ -327,7 +327,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 14,
-    color: Colors.hopeWhite,
+    color: Colors.text,
     marginLeft: 8,
     fontFamily: 'medium',
   },
@@ -340,7 +340,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+    borderBottomColor: Colors.inputBorder,
   },
   suggestionInfo: {
     marginLeft: 12,
@@ -348,13 +348,13 @@ const styles = StyleSheet.create({
   },
   suggestionName: {
     fontSize: 16,
-    color: Colors.hopeWhite,
+    color: Colors.text,
     marginBottom: 4,
     fontFamily: 'medium',
   },
   suggestionAddress: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: Colors.textGray,
     fontFamily: 'regular',
   },
   noResultsContainer: {
@@ -363,7 +363,7 @@ const styles = StyleSheet.create({
   },
   noResultsText: {
     fontSize: 14,
-    color: Colors.hopeWhite,
+    color: Colors.textGray,
     textAlign: 'center',
     lineHeight: 20,
     fontFamily: 'medium',

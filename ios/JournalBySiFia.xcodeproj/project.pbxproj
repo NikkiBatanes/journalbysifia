@@ -19,6 +19,7 @@
 		2BBD9FD75C884CA79B676E20 /* NunitoSans-VariableFont_YTLC,opsz,wdth,wght.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 79C4EAB745CB4A43B25C08B1 /* NunitoSans-VariableFont_YTLC,opsz,wdth,wght.ttf */; };
 		2F1A0D000000000000000002 /* today_opening.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 2F1A0D000000000000000001 /* today_opening.mp3 */; };
 		2F1A0D000000000000000004 /* gospel_opening.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 2F1A0D000000000000000003 /* gospel_opening.mp3 */; };
+		2F1A0D000000000000000006 /* streak_celebration.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 2F1A0D000000000000000005 /* streak_celebration.mp3 */; };
 		427FC447A691C58BB6D3B3CC /* libPods-JournalBySiFia.a in Frameworks */ = {isa = PBXBuildFile; fileRef = B62E77873B8CF9FD8510DFED /* libPods-JournalBySiFia.a */; };
 		5A1100000000000000000001 /* SifiaVoiceRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A1100000000000000000003 /* SifiaVoiceRecorder.swift */; };
 		5A1100000000000000000002 /* SifiaVoiceRecorder.m in Sources */ = {isa = PBXBuildFile; fileRef = 5A1100000000000000000004 /* SifiaVoiceRecorder.m */; };
@@ -86,6 +87,7 @@
 		1F2FD5522C744C0FB49EF9BE /* Lora-Medium.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Lora-Medium.ttf"; path = "../assets/fonts/Lora/Lora-Medium.ttf"; sourceTree = "<group>"; };
 		2F1A0D000000000000000001 /* today_opening.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; name = today_opening.mp3; path = JournalBySiFia/Sounds/today_opening.mp3; sourceTree = "<group>"; };
 		2F1A0D000000000000000003 /* gospel_opening.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; name = gospel_opening.mp3; path = JournalBySiFia/Sounds/gospel_opening.mp3; sourceTree = "<group>"; };
+		2F1A0D000000000000000005 /* streak_celebration.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; name = streak_celebration.mp3; path = JournalBySiFia/Sounds/streak_celebration.mp3; sourceTree = "<group>"; };
 		3FC4D19ABE124930A1FA5919 /* OleoScriptSwashCaps-Regular.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "OleoScriptSwashCaps-Regular.ttf"; path = "../assets/fonts/OleoScriptSwashCaps/OleoScriptSwashCaps-Regular.ttf"; sourceTree = "<group>"; };
 		41BBBFAE4F8542B4BA2367E9 /* DancingScript-Regular.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "DancingScript-Regular.ttf"; path = "../assets/fonts/DancingScript/DancingScript-Regular.ttf"; sourceTree = "<group>"; };
 		43D1FCFBE4BC418F8F1B879C /* Lexend-SemiBold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Lexend-SemiBold.ttf"; path = "../assets/fonts/Lexend/Lexend-SemiBold.ttf"; sourceTree = "<group>"; };
@@ -155,6 +157,7 @@
 		13B07FAE1A68108700A75B9A /* JournalBySiFia */ = {
 			isa = PBXGroup;
 			children = (
+				2F1A0D000000000000000005 /* streak_celebration.mp3 */,
 				2F1A0D000000000000000003 /* gospel_opening.mp3 */,
 				2F1A0D000000000000000001 /* today_opening.mp3 */,
 				88DC195F2ECB85910060E257 /* JournalBySiFiaRelease.entitlements */,
@@ -363,6 +366,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				2F1A0D000000000000000006 /* streak_celebration.mp3 in Resources */,
 				2F1A0D000000000000000004 /* gospel_opening.mp3 in Resources */,
 				2F1A0D000000000000000002 /* today_opening.mp3 in Resources */,
 				81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */,

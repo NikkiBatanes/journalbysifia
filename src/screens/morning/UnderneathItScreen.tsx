@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, DeviceEventEmitter, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { DeviceEventEmitter, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -15,6 +15,7 @@ import { useRoutineDraft } from '../../hooks/useRoutineDraft';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { exitMorningFlow } from '../../navigation/exitEveningFlow';
 import RoutineStepShell from '../../components/routine/RoutineStepShell';
+import ScriptureLoadingSkeleton from '../../components/scripture/ScriptureLoadingSkeleton';
 import { safeJsonParse } from '../../utils/safeJsonParse';
 import { getScripturePassage, ScriptureReaderResult } from '../../services/scriptureReaderService';
 import {
@@ -184,7 +185,7 @@ const UnderneathItScreen = () => {
       }
     })();
     return () => { mounted = false; };
-  }, [dateStr, route.params?.feeling, route.params?.feelingIcon, route.params?.feelingIconType, route.params?.feelingId, saveContent]);
+  }, [bibleVersion, dateStr, route.params?.feeling, route.params?.feelingIcon, route.params?.feelingIconType, route.params?.feelingId, saveContent]);
 
   useEffect(() => {
     if (!scripture?.reference) { return; }
@@ -296,8 +297,11 @@ const UnderneathItScreen = () => {
       eyebrowIcon={<Ionicons name="sunny-outline" size={14} color={Colors.sage} />}
       footer={footer}
       onBack={onBack}
+      onSwipeBack={() => navigation.goBack()}
+      onSwipeForward={onNext}
       backgroundColor={Colors.lightBackground}
       manageStatusBar={false}
+      extraScrollBottomPadding={120}
     >
       <StepFadeIn delay={80}>
         <View style={styles.feelingRow}>
@@ -319,7 +323,7 @@ const UnderneathItScreen = () => {
       <StepFadeIn delay={120}>
         <View style={styles.scriptureWrap}>
           {passageLoading ? (
-            <ActivityIndicator color={Colors.sage} style={styles.scriptureLoader} />
+            <ScriptureLoadingSkeleton variant="card" />
           ) : passageError ? (
             <TouchableOpacity onPress={handleRetryPassage} activeOpacity={0.7}>
               <ThemedText style={styles.scriptureText}>
@@ -410,9 +414,6 @@ const styles = StyleSheet.create({
   },
   scriptureWrap: {
     marginBottom: 24,
-  },
-  scriptureLoader: {
-    marginVertical: 16,
   },
   scriptureText: {
     fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',

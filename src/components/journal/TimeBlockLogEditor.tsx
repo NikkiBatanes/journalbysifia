@@ -1,6 +1,9 @@
 import React, { useRef, useEffect, useState, useImperativeHandle, useMemo } from 'react';
 import { Logger } from '../../utils/ProductionLogger';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { CalendarDays } from 'lucide-react-native';
+import Reanimated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   View,
   Text,
@@ -15,20 +18,26 @@ import {
   Alert,
   Keyboard,
   Animated,
+  Switch,
 } from 'react-native';
 
 const IS_IPAD = Platform.OS === 'ios' && (Platform as any).isPad === true;
+// JournalCalendarStrip is 60pt tall; this wrapper adds a 1pt border on each edge.
+const CALENDAR_SHEET_HEIGHT = 62;
+const CALENDAR_SPRING = { damping: 12, stiffness: 185, mass: 0.85 };
 
 import { Colors, Fonts } from '../../theme';
 // import { toLocalDateString } from '../../utils/date'; // Unused
 import { triggerLightHaptic } from '../../utils/haptics';
 import ThemedText from '../common/ThemedText';
+import HeaderCloseButton from '../common/HeaderCloseButton';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { getCategoryIcon } from './TimeBlockCategories';
 import TimeBlockCategoryModal from './TimeBlockCategoryModal';
 import { useTheme } from '../../hooks/useTheme';
 import { getFontFamily } from '../../theme/fonts';
 import { LocationSelector } from '../LocationSelector';
+import JournalCalendarStrip from '../dashboard/JournalCalendarStrip';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 
 interface TimeBlockLogEditorProps {
@@ -52,9 +61,6 @@ interface TimeBlockLogEditorProps {
     existingId?: string;
   }) => void;
   onCancel: () => void;
-  onUpgradeRequired?: () => void; // Callback to close modal before navigating to upgrade
-  repeatLocked?: boolean;
-  onRepeatLocked?: () => void;
   initialContent?: string;
   subtaskTitle?: string;
   _subtaskId?: string;
@@ -100,7 +106,7 @@ export interface TimeBlockLogEditorRef {
 const createDefaultStyles = (_fonts: any) => ({
   container: {
     flex: 1,
-    backgroundColor: Colors.sage,
+    backgroundColor: Colors.lightBackground,
   },
   keyboardAvoidingView: {
     flex: 1,
@@ -117,7 +123,7 @@ const createDefaultStyles = (_fonts: any) => ({
     paddingBottom: 60,
   },
   entryInput: {
-    color: Colors.hopeWhite,
+    color: Colors.text,
     fontSize: 18,
     marginBottom: 8,
   },
@@ -130,24 +136,30 @@ const createDefaultStyles = (_fonts: any) => ({
   },
   transparentInput: {},
   lockedTitleText: {
-    color: Colors.hopeWhite,
+    color: Colors.text,
     opacity: 0.9,
     includeFontPadding: false,
     textAlignVertical: 'center',
     marginBottom: 0,
   },
   headerDateText: {
-    color: Colors.alertCoral,
-    opacity: 0.86,
+    color: Colors.sage,
     fontSize: 17,
     fontFamily: Fonts.semiBold,
     includeFontPadding: false,
     textAlignVertical: 'center',
+  },
+  headerDateButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: 7,
     marginBottom: 6,
+    paddingVertical: 2,
+    paddingRight: 8,
   },
   subtext: {
-    color: Colors.hopeWhite,
-    opacity: 0.6,
+    color: Colors.textGray,
     fontSize: 14,
     fontFamily: Fonts.regular,
     includeFontPadding: false,
@@ -175,35 +187,45 @@ const createDefaultStyles = (_fonts: any) => ({
   formContainerPad: {
     width: 600,
   },
+  calendarSheet: {
+    width: 320,
+    alignSelf: 'center',
+    backgroundColor: Colors.cardBackground,
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+    overflow: 'hidden',
+  },
+  calendarSheetPad: {
+    width: 600,
+  },
   inputLabel: {
-    color: Colors.hopeWhite,
+    color: Colors.textGray,
     fontSize: 11,
     fontFamily: Fonts.semiBold,
     marginBottom: 8,
     marginTop: 16,
-    opacity: 0.6,
     letterSpacing: 1,
     textTransform: 'uppercase',
   },
   allDayLabel: {
-    color: Colors.hopeWhite,
+    color: Colors.textGray,
     fontSize: 11,
     fontFamily: Fonts.semiBold,
     marginBottom: 0,
     marginTop: 0,
     marginRight: 8,
-    opacity: 0.6,
     letterSpacing: 1,
     textTransform: 'uppercase',
   },
   formInput: {
-    backgroundColor: Colors.inputBackground,
+    backgroundColor: Colors.cardBackground,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
+    borderColor: Colors.inputBorder,
     borderRadius: 50,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    color: Colors.hopeWhite,
+    color: Colors.text,
     fontSize: 16,
     lineHeight: 20,
     fontFamily: Fonts.regular,
@@ -232,30 +254,28 @@ const createDefaultStyles = (_fonts: any) => ({
     paddingVertical: 4,
   },
   timeLabel: {
-    color: Colors.hopeWhite,
+    color: Colors.textGray,
     fontSize: 11,
     fontFamily: Fonts.semiBold,
     marginBottom: 8,
     marginTop: 16,
-    opacity: 0.6,
     letterSpacing: 1,
     textTransform: 'uppercase',
   },
   timeText: {
-    color: Colors.hopeWhite,
+    color: Colors.sage,
     fontSize: 16,
     fontFamily: Fonts.semiBold,
   },
   timeSeparator: {
-    color: Colors.hopeWhite,
+    color: Colors.textGray,
     fontSize: 14,
     marginHorizontal: 8,
-    opacity: 0.6,
     fontFamily: Fonts.medium,
   },
   timeSeparatorSmall: {
     fontSize: 10,
-    color: Colors.hopeWhite,
+    color: Colors.textGray,
   },
   repeatOptionContainer: {
     flexDirection: 'row',
@@ -265,7 +285,7 @@ const createDefaultStyles = (_fonts: any) => ({
     marginRight: 8,
   },
   selectedOptionText: {
-    color: Colors.alertCoral,
+    color: Colors.sage,
   },
   categoryContainer: {
     marginTop: 0,
@@ -278,9 +298,9 @@ const createDefaultStyles = (_fonts: any) => ({
   categoryButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.inputBackground,
+    backgroundColor: Colors.cardBackground,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
+    borderColor: Colors.inputBorder,
     borderRadius: 50,
     paddingHorizontal: 12,
     paddingVertical: 10,
@@ -295,13 +315,13 @@ const createDefaultStyles = (_fonts: any) => ({
     marginRight: 8,
   },
   categoryText: {
-    color: Colors.hopeWhite,
+    color: Colors.text,
     fontSize: 16,
     fontFamily: Fonts.semiBold,
     flex: 1,
   },
   categoryTextRequired: {
-    color: 'rgba(255, 255, 255, 0.6)',
+    color: Colors.textGray,
   },
   allDayContainer: {
     flexDirection: 'row',
@@ -310,30 +330,9 @@ const createDefaultStyles = (_fonts: any) => ({
     marginBottom: 16,
   },
   allDayText: {
-    color: Colors.hopeWhite,
+    color: Colors.sage,
     fontSize: 14,
     fontFamily: Fonts.semiBold,
-  },
-  switchContainer: {
-    padding: 4,
-  },
-  switchTrack: {
-    width: 50,
-    height: 30,
-    borderRadius: 15,
-    justifyContent: 'center',
-    paddingHorizontal: 2,
-  },
-  switchThumb: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    backgroundColor: Colors.hopeWhite,
-    shadowColor: '#29342E',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
-    elevation: 2,
   },
   metadataContainer: {
     marginTop: 32,
@@ -342,15 +341,14 @@ const createDefaultStyles = (_fonts: any) => ({
   },
   verticalLine: {
     width: 1,
-    backgroundColor: Colors.hopeWhite,
-    opacity: 0.3,
+    backgroundColor: Colors.sage,
+    opacity: 0.25,
     marginRight: 12,
     borderRadius: 2,
   },
   fromText: {
     fontSize: 8,
-    color: Colors.hopeWhite,
-    opacity: 0.6,
+    color: Colors.textGray,
     marginBottom: 4,
     letterSpacing: 2,
     fontFamily: Fonts.medium,
@@ -359,8 +357,7 @@ const createDefaultStyles = (_fonts: any) => ({
   },
   metadataText: {
     fontSize: 12,
-    color: Colors.hopeWhite,
-    opacity: 0.6,
+    color: Colors.textGray,
     marginBottom: 4,
     lineHeight: 12,
   },
@@ -396,18 +393,20 @@ const createDefaultStyles = (_fonts: any) => ({
   addFab: {
     backgroundColor: 'transparent',
     borderWidth: 1.5,
-    borderColor: 'rgba(255, 255, 255, 0.6)',
-  },
-  cancelFab: {
-    backgroundColor: 'rgba(255, 255, 255, 0.09)',
+    borderColor: Colors.sage,
   },
   saveFab: {
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    backgroundColor: Colors.sage,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderColor: Colors.sage,
   },
   fabDisabled: {
     opacity: 0.4,
+  },
+  headerCloseButton: {
+    position: 'absolute',
+    right: 20,
+    zIndex: 100,
   },
   categoryButtonRow: {
     flexDirection: 'row',
@@ -416,12 +415,6 @@ const createDefaultStyles = (_fonts: any) => ({
   },
   chevronIcon: {
     marginLeft: 'auto',
-  },
-  switchTrackActive: {
-    backgroundColor: Colors.alertCoral,
-  },
-  switchTrackInactive: {
-    backgroundColor: '#DFE4DD',
   },
   // FAB styles - matching reflection editor
   fabContainer: {
@@ -462,11 +455,10 @@ const createDefaultStyles = (_fonts: any) => ({
     marginLeft: 8,
   },
   sectionLabel: {
-    color: Colors.hopeWhite,
+    color: Colors.textGray,
     fontSize: 11,
     fontFamily: Fonts.semiBold,
     marginBottom: 8,
-    opacity: 0.6,
     letterSpacing: 1,
     textTransform: 'uppercase',
   },
@@ -486,9 +478,9 @@ const createDefaultStyles = (_fonts: any) => ({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: Colors.inputBackground,
+    backgroundColor: Colors.cardBackground,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
+    borderColor: Colors.inputBorder,
     borderRadius: 50,
     paddingHorizontal: 12,
     paddingVertical: 10,
@@ -497,7 +489,7 @@ const createDefaultStyles = (_fonts: any) => ({
     width: '100%',
   },
   repeatText: {
-    color: Colors.hopeWhite,
+    color: Colors.text,
     fontSize: 16,
     fontFamily: Fonts.semiBold,
   },
@@ -520,9 +512,9 @@ const createDefaultStyles = (_fonts: any) => ({
   notesInputContainer: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    backgroundColor: Colors.inputBackground,
+    backgroundColor: Colors.cardBackground,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
+    borderColor: Colors.inputBorder,
     borderRadius: 24,
     paddingHorizontal: 12,
     paddingVertical: 10,
@@ -537,7 +529,7 @@ const createDefaultStyles = (_fonts: any) => ({
     backgroundColor: 'transparent',
     borderWidth: 0,
     borderColor: 'transparent',
-    color: Colors.hopeWhite,
+    color: Colors.text,
     fontSize: 16,
     lineHeight: 20,
     minHeight: 100,
@@ -548,9 +540,9 @@ const createDefaultStyles = (_fonts: any) => ({
   titleInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.inputBackground,
+    backgroundColor: Colors.cardBackground,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
+    borderColor: Colors.inputBorder,
     borderRadius: 50,
     paddingHorizontal: 12,
     paddingVertical: 10,
@@ -565,7 +557,7 @@ const createDefaultStyles = (_fonts: any) => ({
     backgroundColor: 'transparent',
     borderWidth: 0,
     borderColor: 'transparent',
-    color: Colors.hopeWhite,
+    color: Colors.text,
     fontSize: 16,
     lineHeight: 20,
     paddingVertical: 12,
@@ -578,7 +570,7 @@ const createDefaultStyles = (_fonts: any) => ({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   timePickerContainer: {
-    backgroundColor: Colors.sage,
+    backgroundColor: Colors.cardBackground,
     borderRadius: 36,
     padding: 20,
     margin: 20,
@@ -587,7 +579,7 @@ const createDefaultStyles = (_fonts: any) => ({
   timePickerTitle: {
     fontSize: 18,
     fontFamily: Fonts.semiBold,
-    color: Colors.hopeWhite,
+    color: Colors.text,
     marginBottom: 20,
   },
   timePickerButtons: {
@@ -605,17 +597,17 @@ const createDefaultStyles = (_fonts: any) => ({
   timePickerCancelButton: {
     backgroundColor: Colors.inputBackground,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
+    borderColor: Colors.inputBorder,
   },
   timePickerConfirmButton: {
-    backgroundColor: Colors.alertCoral,
+    backgroundColor: Colors.sage,
   },
   timePickerButtonText: {
     fontSize: 16,
     fontFamily: Fonts.medium,
   },
   timePickerCancelText: {
-    color: Colors.hopeWhite,
+    color: Colors.text,
   },
   timePickerConfirmText: {
     color: Colors.hopeWhite,
@@ -628,7 +620,7 @@ const createDefaultStyles = (_fonts: any) => ({
     width: '100%',
   },
   repeatModalContainer: {
-    backgroundColor: Colors.sage,
+    backgroundColor: Colors.cardBackground,
     borderRadius: 24,
     padding: 20,
     maxWidth: 340,
@@ -643,6 +635,11 @@ const createDefaultStyles = (_fonts: any) => ({
   allDaySection: {
     flexDirection: 'row',
     alignItems: 'center',
+  },
+  allDaySwitch: {
+    // The native iOS switch paints beyond its measured trailing edge. Keep
+    // the More-tab control itself unchanged while aligning it to the fields.
+    marginRight: Platform.OS === 'ios' ? 10 : 0,
   },
   customRepeatContainer: {
     marginTop: 8,
@@ -662,12 +659,12 @@ const createDefaultStyles = (_fonts: any) => ({
   frequencyInput: {
     width: 56,
     height: 40,
-    backgroundColor: Colors.inputBackground,
+    backgroundColor: Colors.cardBackground,
     borderRadius: 50,
     paddingHorizontal: 10,
-    color: Colors.hopeWhite,
+    color: Colors.text,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
+    borderColor: Colors.inputBorder,
     textAlign: 'center',
     fontSize: 16,
     marginRight: 8,
@@ -675,13 +672,13 @@ const createDefaultStyles = (_fonts: any) => ({
   frequencyUnitButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.inputBackground,
+    backgroundColor: Colors.cardBackground,
     borderRadius: 50,
     paddingHorizontal: 12,
     paddingVertical: 10,
     minHeight: 40,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
+    borderColor: Colors.inputBorder,
   },
   customModalButtons: {
     flexDirection: 'row',
@@ -699,20 +696,23 @@ const createDefaultStyles = (_fonts: any) => ({
   customModalCancelButton: {
     backgroundColor: Colors.inputBackground,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
+    borderColor: Colors.inputBorder,
   },
   customModalConfirmButton: {
-    backgroundColor: Colors.alertCoral,
+    backgroundColor: Colors.sage,
   },
   customModalButtonText: {
-    color: Colors.hopeWhite,
+    color: Colors.text,
     fontSize: 16,
     fontFamily: Fonts.semiBold,
+  },
+  customModalConfirmText: {
+    color: Colors.hopeWhite,
   },
   repeatModalTitle: {
     fontSize: 16,
     fontFamily: Fonts.medium,
-    color: Colors.hopeWhite,
+    color: Colors.sage,
     marginBottom: 16,
     textTransform: 'uppercase',
   },
@@ -731,12 +731,12 @@ const createDefaultStyles = (_fonts: any) => ({
     paddingVertical: 8,
     borderRadius: 50,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderColor: Colors.inputBorder,
+    backgroundColor: Colors.inputBackground,
   },
   repeatOptionPillActive: {
-    backgroundColor: Colors.alertCoral,
-    borderColor: Colors.alertCoral,
+    backgroundColor: Colors.sage,
+    borderColor: Colors.sage,
   },
   repeatOptionPillCustom: {
     width: '100%',
@@ -746,7 +746,7 @@ const createDefaultStyles = (_fonts: any) => ({
   repeatOptionPillText: {
     fontSize: 14,
     fontFamily: Fonts.regular,
-    color: 'rgba(255, 255, 255, 0.8)',
+    color: Colors.text,
   },
   repeatOptionPillTextActive: {
     color: Colors.hopeWhite,
@@ -756,13 +756,13 @@ const createDefaultStyles = (_fonts: any) => ({
     marginLeft: 4,
   },
   customRepeatLabel: {
-    color: Colors.hopeWhite,
+    color: Colors.text,
     fontSize: 16,
     fontFamily: Fonts.semiBold,
     marginBottom: 12,
   },
   frequencyUnitText: {
-    color: Colors.hopeWhite,
+    color: Colors.text,
     fontSize: 14,
     fontFamily: Fonts.semiBold,
     marginRight: 4,
@@ -782,23 +782,23 @@ const createDefaultStyles = (_fonts: any) => ({
     paddingHorizontal: 12,
     alignItems: 'center',
     borderRadius: 50,
-    backgroundColor: Colors.inputBackground,
+    backgroundColor: Colors.cardBackground,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
+    borderColor: Colors.inputBorder,
     minHeight: 40,
   },
   endRepeatButtonActive: {
-    backgroundColor: 'rgba(255, 107, 107, 0.15)',
-    borderColor: 'rgba(255, 107, 107, 0.6)',
+    backgroundColor: Colors.cardBackground,
+    borderColor: Colors.sage,
   },
   endRepeatButtonText: {
-    color: Colors.hopeWhite,
+    color: Colors.text,
     fontSize: 16,
     fontFamily: Fonts.semiBold,
   },
   endRepeatButtonNeverActive: {
-    backgroundColor: Colors.alertCoral,
-    borderColor: Colors.alertCoral,
+    backgroundColor: Colors.sage,
+    borderColor: Colors.sage,
   },
   endRepeatButtonNeverText: {
     color: Colors.hopeWhite,
@@ -817,16 +817,16 @@ const createDefaultStyles = (_fonts: any) => ({
     borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: Colors.inputBackground,
+    backgroundColor: Colors.cardBackground,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
+    borderColor: Colors.inputBorder,
   },
   dayButtonActive: {
-    backgroundColor: 'rgba(255, 107, 107, 0.15)',
-    borderColor: 'rgba(255, 107, 107, 0.6)',
+    backgroundColor: Colors.anchorBlueLight,
+    borderColor: Colors.sage,
   },
   dayButtonText: {
-    color: Colors.hopeWhite,
+    color: Colors.text,
   },
 });
 
@@ -842,8 +842,6 @@ function TimeBlockLogEditorInner(
     actionStepTitle,
     isLoading = false,
     autoFocus = false,
-    repeatLocked = false,
-    onRepeatLocked,
     styles,
     existingTimeBlock,
     selectedDate: initialSelectedDate,
@@ -853,6 +851,7 @@ function TimeBlockLogEditorInner(
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';
   const { user, preferences: appPreferences } = useAuth();
+  const insets = useSafeAreaInsets();
 
   // Get user's week start preference from metadata (default to Sunday/0)
   const weekStartDay = useMemo(() => {
@@ -1062,6 +1061,21 @@ function TimeBlockLogEditorInner(
   // Date picker for faithful actions context
   const [selectedDate, setSelectedDate] = useState<Date>(resolvedInitialDate);
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [journalCalendarVisible, setJournalCalendarVisible] = useState(false);
+  const journalCalendarProgress = useSharedValue(0);
+
+  const toggleJournalCalendar = React.useCallback(() => {
+    const next = !journalCalendarVisible;
+    setJournalCalendarVisible(next);
+    journalCalendarProgress.value = withSpring(next ? 1 : 0, CALENDAR_SPRING);
+  }, [journalCalendarProgress, journalCalendarVisible]);
+
+  const journalCalendarSheetStyle = useAnimatedStyle(() => ({
+    height: Math.max(0, journalCalendarProgress.value * CALENDAR_SHEET_HEIGHT),
+    opacity: Math.min(1, journalCalendarProgress.value * 1.4),
+    marginBottom: Math.max(0, journalCalendarProgress.value * 28),
+    transform: [{ scaleY: 0.96 + Math.min(1, journalCalendarProgress.value) * 0.04 }],
+  }));
 
   const formattedHeaderDate = useMemo(() => {
     return selectedDate.toLocaleDateString('en-US', {
@@ -1238,9 +1252,23 @@ function TimeBlockLogEditorInner(
                   {context === 'faithful-actions' ? 'Set a time' : 'Time Block'}
                 </ThemedText>
                 {context === 'journal' && (
-                  <ThemedText weight="semiBold" style={s.headerDateText}>
-                    For {formattedHeaderDate}
-                  </ThemedText>
+                  <TouchableOpacity
+                    style={s.headerDateButton}
+                    activeOpacity={0.7}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Choose time block date. Currently ${formattedHeaderDate}`}
+                    accessibilityState={{ expanded: journalCalendarVisible }}
+                    onPress={() => {
+                      triggerLightHaptic();
+                      Keyboard.dismiss();
+                      toggleJournalCalendar();
+                    }}
+                  >
+                    <ThemedText weight="semiBold" style={s.headerDateText}>
+                      {formattedHeaderDate}
+                    </ThemedText>
+                    <CalendarDays size={18} color={Colors.sage} strokeWidth={1.7} />
+                  </TouchableOpacity>
                 )}
                 <ThemedText style={s.subtext}>
                   {context === 'faithful-actions'
@@ -1249,6 +1277,25 @@ function TimeBlockLogEditorInner(
                 </ThemedText>
               </View>
             </View>
+
+            {context === 'journal' && (
+              <Reanimated.View
+                style={[s.calendarSheet, IS_IPAD && s.calendarSheetPad, journalCalendarSheetStyle]}
+                pointerEvents={journalCalendarVisible ? 'auto' : 'none'}
+                accessibilityElementsHidden={!journalCalendarVisible}
+              >
+                <JournalCalendarStrip
+                  currentDate={selectedDate}
+                  onSelectDate={(date) => {
+                    triggerLightHaptic();
+                    const picked = new Date(date);
+                    picked.setHours(0, 0, 0, 0);
+                    setSelectedDate(picked);
+                  }}
+                  weekStartsOn={weekStartDay as 0 | 1 | 2 | 3 | 4 | 5 | 6}
+                />
+              </Reanimated.View>
+            )}
 
             {/* Form content based on active tab */}
             <View style={[s.formContainer, IS_IPAD && s.formContainerPad]}>
@@ -1262,7 +1309,7 @@ function TimeBlockLogEditorInner(
                   }}
                 >
                   <View style={s.buttonContent}>
-                    <Ionicons name="calendar" size={18} color={Colors.hopeWhite} style={s.buttonIcon} />
+                    <Ionicons name="calendar" size={18} color={Colors.sage} style={s.buttonIcon} />
                     <ThemedText weight="medium" style={s.repeatText}>Date</ThemedText>
                   </View>
                   <View style={s.repeatOptionContainer}>
@@ -1274,7 +1321,7 @@ function TimeBlockLogEditorInner(
                         year: selectedDate.getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined,
                       })}
                     </ThemedText>
-                    <Ionicons name="chevron-down" size={16} color={Colors.hopeWhite} />
+                    <Ionicons name="chevron-down" size={16} color={Colors.textGray} />
                   </View>
                 </TouchableOpacity>
               )}
@@ -1314,35 +1361,29 @@ function TimeBlockLogEditorInner(
 
                 <View style={s.allDaySection}>
                   {!isAllDay && <ThemedText weight="medium" style={s.allDayLabel}>All Day</ThemedText>}
-                  <TouchableOpacity
-                    onPress={() => {
+                  <Switch
+                    value={isAllDay}
+                    onValueChange={(value) => {
                       triggerLightHaptic();
-                      handleContentChange('isAllDay', !isAllDay);
+                      handleContentChange('isAllDay', value);
                     }}
-                    style={s.switchContainer}
-                  >
-                    <View style={[
-                      s.switchTrack,
-                      isAllDay ? s.switchTrackActive : s.switchTrackInactive,
-                    ]}>
-                      <View style={[
-                        s.switchThumb,
-                        { transform: [{ translateX: isAllDay ? 20 : 0 }] },
-                      ]} />
-                    </View>
-                  </TouchableOpacity>
+                    trackColor={{false: Colors.lightGray, true: Colors.sageMuted}}
+                    thumbColor={Colors.hopeWhite}
+                    style={s.allDaySwitch}
+                    accessibilityLabel="All day"
+                  />
                 </View>
               </View>
 
               {/* Title Input */}
               <View style={s.titleInputContainer}>
-                <Ionicons name="text" size={18} color={Colors.hopeWhite} style={s.titleInputIcon} />
+                <Ionicons name="text" size={18} color={Colors.sage} style={s.titleInputIcon} />
                 <View style={{ flex: 1, position: 'relative' }}>
                   <TextInput
                     ref={inputRef}
                     style={[s.titleInputField, { fontFamily: getFontFamily(fontKey, 'medium') }]}
                     placeholder=""
-                    placeholderTextColor="rgba(255, 255, 255, 0.6)"
+                    placeholderTextColor={Colors.textGray}
                     value={title}
                     onChangeText={(text) => handleContentChange('title', text)}
                     multiline={false}
@@ -1350,8 +1391,8 @@ function TimeBlockLogEditorInner(
                   />
                   {!title && (
                     <View style={{ position: 'absolute', top: 0, left: 0, pointerEvents: 'none', marginTop: 12 }}>
-                      <ThemedText weight="medium" style={{ color: 'rgba(255, 255, 255, 0.6)', fontSize: 16, lineHeight: 20 }}>
-                        Title <ThemedText weight="medium" style={{ color: Colors.alertCoral, fontSize: 16, lineHeight: 20 }}>*</ThemedText>
+                      <ThemedText weight="medium" style={{ color: Colors.textGray, fontSize: 16, lineHeight: 20 }}>
+                        Title <ThemedText weight="medium" style={{ color: Colors.sage, fontSize: 16, lineHeight: 20 }}>*</ThemedText>
                       </ThemedText>
                     </View>
                   )}
@@ -1367,12 +1408,12 @@ function TimeBlockLogEditorInner(
                 }}
               >
                 <View style={s.buttonContent}>
-                  <Ionicons name="repeat" size={18} color={Colors.hopeWhite} style={s.buttonIcon} />
+                  <Ionicons name="repeat" size={18} color={Colors.sage} style={s.buttonIcon} />
                   <ThemedText weight="medium" style={s.repeatText}>Repeat</ThemedText>
                 </View>
                 <View style={s.repeatOptionContainer}>
                   <ThemedText weight="medium" style={[s.repeatText, s.repeatTextWithMargin, repeatOption !== 'Never' && s.selectedOptionText]}>{repeatOption}</ThemedText>
-                  <Ionicons name="chevron-down" size={16} color={Colors.hopeWhite} />
+                  <Ionicons name="chevron-down" size={16} color={Colors.textGray} />
                 </View>
               </TouchableOpacity>
 
@@ -1421,7 +1462,7 @@ function TimeBlockLogEditorInner(
                 }}
               >
                 <View style={s.buttonContent}>
-                  <Ionicons name="notifications" size={18} color={Colors.hopeWhite} style={s.buttonIcon} />
+                  <Ionicons name="notifications-outline" size={18} color={Colors.sage} style={s.buttonIcon} />
                   <ThemedText weight="medium" style={s.repeatText}>Alert</ThemedText>
                 </View>
                 <View style={s.repeatOptionContainer}>
@@ -1438,7 +1479,7 @@ function TimeBlockLogEditorInner(
                      alert === '2-days' ? '2 days before' :
                      alert === '1-week' ? '1 week before' : 'None'}
                   </ThemedText>
-                  <Ionicons name="chevron-down" size={16} color={Colors.hopeWhite} />
+                  <Ionicons name="chevron-down" size={16} color={Colors.textGray} />
                 </View>
               </TouchableOpacity>
 
@@ -1457,7 +1498,7 @@ function TimeBlockLogEditorInner(
                 <Ionicons
                   name={getCategoryIcon(category) as any}
                   size={16}
-                  color={Colors.hopeWhite}
+                  color={Colors.sage}
                   style={s.categoryIcon}
                 />
                 <ThemedText
@@ -1469,13 +1510,13 @@ function TimeBlockLogEditorInner(
                 >
                   {category === 'Select a category' ? (
                     <>
-                      Category <ThemedText weight="medium" style={{ color: Colors.alertCoral }}>*</ThemedText>
+                      Category <ThemedText weight="medium" style={{ color: Colors.sage }}>*</ThemedText>
                     </>
                   ) : (
                     category
                   )}
                 </ThemedText>
-                <Ionicons name="chevron-down" size={16} color={Colors.hopeWhite} style={s.chevronIcon} />
+                <Ionicons name="chevron-down" size={16} color={Colors.textGray} style={s.chevronIcon} />
               </TouchableOpacity>
 
               <TimeBlockCategoryModal
@@ -1517,12 +1558,6 @@ function TimeBlockLogEditorInner(
                           ]}
                           onPress={async () => {
                             await triggerLightHaptic();
-                            if (option.value !== 'Never' && repeatLocked) {
-                              setShowRepeatModal(false);
-                              onRepeatLocked?.();
-                              return;
-                            }
-
                             if (option.value === 'Custom') {
                               setRepeatOption(option.value);
                               setShowRepeatModal(false);
@@ -1550,13 +1585,6 @@ function TimeBlockLogEditorInner(
                       ]}
                       onPress={async () => {
                         await triggerLightHaptic();
-                        if (repeatLocked) {
-                          setShowRepeatModal(false);
-                          setShowCustomRepeatModal(false);
-                          onRepeatLocked?.();
-                          return;
-                        }
-
                         setRepeatOption('Custom');
                         setShowRepeatModal(false);
                         setShowCustomRepeatModal(true);
@@ -1568,7 +1596,7 @@ function TimeBlockLogEditorInner(
                       ]}>
                         Custom
                       </ThemedText>
-                      <Ionicons name="chevron-forward" size={14} color={repeatOption === 'Custom' ? Colors.hopeWhite : 'rgba(255,255,255,0.5)'} style={s.repeatOptionPillIcon} />
+                      <Ionicons name="chevron-forward" size={14} color={repeatOption === 'Custom' ? Colors.hopeWhite : Colors.textGray} style={s.repeatOptionPillIcon} />
                     </TouchableOpacity>
                   </View>
                 </TouchableOpacity>
@@ -1677,7 +1705,7 @@ function TimeBlockLogEditorInner(
                             }}
                             keyboardType="numeric"
                             maxLength={2}
-                            placeholderTextColor="rgba(255, 255, 255, 0.6)"
+                            placeholderTextColor={Colors.textGray}
                             keyboardAppearance="light"
                           />
 
@@ -1755,7 +1783,7 @@ function TimeBlockLogEditorInner(
                           setShowCustomRepeatModal(false);
                         }}
                       >
-                        <ThemedText weight="semiBold" style={s.customModalButtonText}>Done</ThemedText>
+                        <ThemedText weight="semiBold" style={[s.customModalButtonText, s.customModalConfirmText]}>Done</ThemedText>
                       </TouchableOpacity>
                     </View>
                   </View>
@@ -1776,8 +1804,8 @@ function TimeBlockLogEditorInner(
                       value={endRepeatDate || new Date()}
                       mode="date"
                       display="spinner"
-                      textColor={Colors.hopeWhite}
-                      themeVariant="dark"
+                      textColor={Colors.text}
+                      themeVariant="light"
                       onChange={(_event, pickedDate) => {
                         if (pickedDate) {
                           setEndRepeatDate(pickedDate);
@@ -1824,8 +1852,8 @@ function TimeBlockLogEditorInner(
                         value={selectedDate}
                         mode="date"
                         display="spinner"
-                        textColor={Colors.hopeWhite}
-                        themeVariant="dark"
+                        textColor={Colors.text}
+                        themeVariant="light"
                         onChange={(event, newDate) => {
                           if (newDate) {
                             setSelectedDate(newDate);
@@ -1849,7 +1877,7 @@ function TimeBlockLogEditorInner(
                             setShowDatePicker(false);
                           }}
                         >
-                          <ThemedText weight="semiBold" style={s.customModalButtonText}>Done</ThemedText>
+                          <ThemedText weight="semiBold" style={[s.customModalButtonText, s.customModalConfirmText]}>Done</ThemedText>
                         </TouchableOpacity>
                       </View>
                     </View>
@@ -1868,11 +1896,11 @@ function TimeBlockLogEditorInner(
 
               {/* Notes Input */}
               <View style={s.notesInputContainer}>
-                <Ionicons name="document-text" size={18} color={Colors.hopeWhite} style={s.notesInputIcon} />
+                <Ionicons name="document-text-outline" size={18} color={Colors.sage} style={s.notesInputIcon} />
                 <TextInput
                   style={s.notesInput}
                   placeholder="Notes"
-                  placeholderTextColor="rgba(255, 255, 255, 0.6)"
+                  placeholderTextColor={Colors.textGray}
                   value={notes}
                   onChangeText={(text) => handleContentChange('notes', text)}
                   multiline
@@ -1917,18 +1945,6 @@ function TimeBlockLogEditorInner(
       <Animated.View style={[s.fabWrapper, { bottom: fabBottomPosition }]}>
         <View style={s.fabContainer}>
           <View style={s.fabRow}>
-            {/* Cancel FAB */}
-            <TouchableOpacity
-              style={[s.fab, s.cancelFab]}
-              hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
-              onPress={() => {
-                onCancel();
-                triggerLightHaptic();
-              }}
-            >
-              <Ionicons name="close" size={17} color="rgba(255,255,255,0.65)" />
-            </TouchableOpacity>
-
             {/* Save FAB */}
             <TouchableOpacity
               style={[
@@ -1954,6 +1970,15 @@ function TimeBlockLogEditorInner(
       </Animated.View>
       </KeyboardAvoidingView>
 
+      <HeaderCloseButton
+        style={[s.headerCloseButton, { top: insets.top + 8 }]}
+        accessibilityLabel="Close Time Block"
+        onPress={() => {
+          triggerLightHaptic();
+          onCancel();
+        }}
+      />
+
       {/* Start Time Picker Modal */}
       <Modal
         visible={showStartTimePicker}
@@ -1969,8 +1994,8 @@ function TimeBlockLogEditorInner(
               mode="time"
               is24Hour={false}
               display="spinner"
-              themeVariant="dark"
-              textColor={Colors.hopeWhite}
+              themeVariant="light"
+              textColor={Colors.text}
               onChange={(event, selectedTime) => {
                 if (selectedTime) {
                   setTempStartTime(selectedTime);
@@ -2022,8 +2047,8 @@ function TimeBlockLogEditorInner(
               mode="time"
               is24Hour={false}
               display="spinner"
-              themeVariant="dark"
-              textColor={Colors.hopeWhite}
+              themeVariant="light"
+              textColor={Colors.text}
               onChange={(event, selectedTime) => {
                 if (selectedTime) {
                   setTempEndTime(selectedTime);

@@ -100,6 +100,29 @@ describe('Morning and Evening rhythm celebration', () => {
     expect(composer).toContain('STREAK_WEEK_ORDER[streakSummary.weekStart]');
   });
 
+  it('starts the dedicated sound cue with the entrance animation', () => {
+    const screen = read('screens/StreakPlanScreen.tsx');
+    const start = screen.indexOf('const startEntranceAnimation');
+    const animation = screen.indexOf('Animated.parallel', start);
+    const sound = screen.indexOf('playStreakCelebrationSound()', start);
+
+    expect(screen).toContain("import { playStreakCelebrationSound } from '../utils/soundUtils'");
+    expect(sound).toBeGreaterThan(start);
+    expect(sound).toBeLessThan(animation);
+  });
+
+  it('packages the celebration cue for both native platforms', () => {
+    const root = path.resolve(SRC, '..');
+    const iosProject = fs.readFileSync(
+      path.join(root, 'ios/JournalBySiFia.xcodeproj/project.pbxproj'),
+      'utf8',
+    );
+
+    expect(fs.existsSync(path.join(root, 'ios/JournalBySiFia/Sounds/streak_celebration.mp3'))).toBe(true);
+    expect(fs.existsSync(path.join(root, 'android/app/src/main/res/raw/streak_celebration.mp3'))).toBe(true);
+    expect(iosProject).toContain('streak_celebration.mp3 in Resources');
+  });
+
   it('asks for an App Store review only after a meaningful Morning or Evening milestone', () => {
     const screen = read('screens/StreakPlanScreen.tsx');
     const legacyMilestones = read('services/milestoneCelebrationService.ts');

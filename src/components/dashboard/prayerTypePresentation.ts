@@ -62,6 +62,7 @@ export function getPrayerTypePresentation(prayer: PrayerApiEntry, need?: PrayerN
   const request = prayer.is_prayer_request === true || !!metadata.original_request_id;
   const needTopic = first(need?.topic, metadata.need_topic, metadata.topic, Array.isArray(metadata.topics) ? metadata.topics[0] : undefined);
   const parentPerson = prayer.person_name;
+  const personLabel = `Prayer for ${first(prayer.person_name) || 'Someone'}`;
 
   if (need) return {
     label: `Prayer Need${needTopic ? ` · ${needTopic}` : ''}`, detailLabel: `Prayer Need${needTopic ? ` · ${needTopic}` : ''}`,
@@ -73,9 +74,9 @@ export function getPrayerTypePresentation(prayer: PrayerApiEntry, need?: PrayerN
     const requestJourney = getPrayerRequestJourneyPresentation(prayer);
     const isIncoming = requestJourney.state === 'request';
     if (prayer.is_prayer_request !== true && metadata.original_request_id) return {
-      label: `Prayer for Someone${prayer.person_name ? ` · ${prayer.person_name}` : ''}`,
-      detailLabel: 'Prayer for Someone',
-      detailContext: [prayer.person_name, first(metadata.request_context, metadata.request_subject)].filter(Boolean).join(' · ') || undefined,
+      label: personLabel,
+      detailLabel: personLabel,
+      detailContext: first(metadata.request_context, metadata.request_subject),
       originLabel: 'Prayer Request',
       requestContext: first(metadata.original_request_content, metadata.prayer_request_display),
       requestState: requestJourney.state,
@@ -95,7 +96,7 @@ export function getPrayerTypePresentation(prayer: PrayerApiEntry, need?: PrayerN
   }
   if (style === 'cast' && prayer.journal_category) return { label: `CAST · ${cleanCategory(prayer.journal_category)}`, detailLabel: `CAST · ${cleanCategory(prayer.journal_category)}`, originLabel: 'From your CAST prayer', content: prayer.content };
   if (prayer.prayer_type === 'people' || style === 'pray-for-someone' || style === 'people') return {
-    label: `Prayer for Someone${prayer.person_name ? ` · ${prayer.person_name}` : ''}`, detailLabel: 'Prayer for Someone', detailContext: prayer.person_name, content: prayer.content,
+    label: personLabel, detailLabel: personLabel, content: prayer.content,
   };
 
   const source = first(metadata.source, metadata.origin);

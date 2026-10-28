@@ -29,6 +29,8 @@ export const DraggableJournalBlock = ({
   shiftY = 0,
   selected = false,
   tone = 'default',
+  accessibilityLabel = 'Drag to reorder this block',
+  onAccessibilityMove,
 }: {
   blockId: string;
   children: React.ReactNode;
@@ -40,6 +42,8 @@ export const DraggableJournalBlock = ({
   shiftY?: number;
   selected?: boolean;
   tone?: 'default' | 'onDark';
+  accessibilityLabel?: string;
+  onAccessibilityMove?: (direction: -1 | 1) => void;
 }) => {
   const translateY = useSharedValue(0);
   const neighborShiftY = useSharedValue(0);
@@ -154,7 +158,26 @@ export const DraggableJournalBlock = ({
             collapsable={false}
             accessible
             accessibilityRole="adjustable"
-            accessibilityLabel="Drag to reorder this block"
+            accessibilityLabel={accessibilityLabel}
+            accessibilityActions={
+              onAccessibilityMove
+                ? [
+                    {name: 'decrement', label: 'Move earlier'},
+                    {name: 'increment', label: 'Move later'},
+                  ]
+                : undefined
+            }
+            onAccessibilityAction={
+              onAccessibilityMove
+                ? event => {
+                    if (event.nativeEvent.actionName === 'decrement') {
+                      onAccessibilityMove(-1);
+                    } else if (event.nativeEvent.actionName === 'increment') {
+                      onAccessibilityMove(1);
+                    }
+                  }
+                : undefined
+            }
             style={styles.handleTouchTarget}>
             <Ionicons
               name="reorder-three-outline"

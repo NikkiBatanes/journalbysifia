@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { AccessibilityInfo, Alert, Animated, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { AccessibilityInfo, Alert, Animated, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { FileText, Leaf, Pencil, Sparkles, X } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { format } from 'date-fns';
@@ -10,6 +10,11 @@ import { BibleStudyContent } from '../../storage/bibleStudyStorage';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
 import { triggerLightHaptic } from '../../utils/haptics';
+import {getScripturePassage} from '../../services/scriptureReaderService';
+import {
+  formatScripturePassage,
+  type FormattedScripturePassage,
+} from '../../services/scripturePassageFormatting';
 
 const AnimatedScrollView = Animated.createAnimatedComponent(ScrollView);
 
@@ -42,6 +47,7 @@ interface Props {
 
 export default function BibleStudyDetailView({ reference, selectedDate, translation = 'NASB', content, onEdit, onClose }: Props) {
   const [readerOpen, setReaderOpen] = useState(false);
+  const [passageLayout, setPassageLayout] = useState<FormattedScripturePassage | null>(null);
   const insets = useSafeAreaInsets();
   const [headerCollapsed, setHeaderCollapsed] = useState(false);
   const isCollapsedRef = useRef(false);
@@ -55,6 +61,22 @@ export default function BibleStudyDetailView({ reference, selectedDate, translat
     const subscription = AccessibilityInfo.addEventListener('reduceMotionChanged', setReduceMotion);
     return () => {active = false; subscription.remove();};
   }, []);
+  useEffect(() => {
+    let active = true;
+    setPassageLayout(null);
+    getScripturePassage(reference, translation)
+      .then(result => {
+        if (active) {
+          setPassageLayout(formatScripturePassage(
+            result.verses,
+            result.reference || reference,
+            result.text,
+          ));
+        }
+      })
+      .catch(() => {});
+    return () => {active = false;};
+  }, [reference, translation]);
   const shown = content;
   const [year, month, day] = selectedDate.split('-').map(Number);
   const savedChoices = (choices: string[]) => choices.length ? (
@@ -81,6 +103,56 @@ export default function BibleStudyDetailView({ reference, selectedDate, translat
       <ThemedText selectable style={styles.answer}>{shown[key].text.trim() || 'Nothing recorded yet.'}</ThemedText>
     </View>
   );
+  const highlightPresentation = (highlight: BibleStudyContent['highlights'][number]) => {
+    let selectionStart = -1;
+    if (passageLayout) {
+      const storedStart = highlight.selectionStart;
+      const storedEnd = highlight.selectionEnd ?? (
+        typeof storedStart === 'number' ? storedStart + highlight.text.length : undefined
+      );
+      if (
+        typeof storedStart === 'number' &&
+        typeof storedEnd === 'number' &&
+        passageLayout.text.slice(storedStart, storedEnd).trim() === highlight.text
+      ) {
+        selectionStart = storedStart + passageLayout.text
+          .slice(storedStart, storedEnd)
+          .search(/\S|$/);
+      } else {
+        selectionStart = passageLayout.text.indexOf(highlight.text);
+      }
+    }
+
+    let verseNumber = /^\d+(?:[-–]\d+)?$/.test(highlight.verseNumber)
+      ? highlight.verseNumber.replace('-', '–')
+      : '';
+    if (passageLayout && selectionStart >= 0) {
+      const selectionEnd = selectionStart + highlight.text.length;
+      const startRange = [...passageLayout.verseNumberRanges]
+        .reverse()
+        .find(range => range.start <= selectionStart);
+      const endRange = [...passageLayout.verseNumberRanges]
+        .reverse()
+        .find(range => range.start < Math.max(selectionStart + 1, selectionEnd));
+      const startNumber = startRange
+        ? passageLayout.text.slice(startRange.start, startRange.end)
+        : '';
+      const endNumber = endRange
+        ? passageLayout.text.slice(endRange.start, endRange.end)
+        : startNumber;
+      verseNumber = startNumber && endNumber && startNumber !== endNumber
+        ? `${startNumber}–${endNumber}`
+        : startNumber || endNumber || verseNumber;
+    }
+
+    const leadingNumber = highlight.text.match(/^(\d{1,3})(?=\s)/)?.[1] ?? '';
+    if (!verseNumber) {verseNumber = leadingNumber;}
+    const numberAtStart = verseNumber.split('–')[0];
+    const displayText = numberAtStart && highlight.text.startsWith(`${numberAtStart} `)
+      ? highlight.text.slice(numberAtStart.length).trimStart()
+      : highlight.text;
+    return {displayText, verseNumber};
+  };
   return (
     <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <AnimatedScrollView
@@ -126,10 +198,21 @@ export default function BibleStudyDetailView({ reference, selectedDate, translat
           {tab === 'study' && <>
             {shown.highlights.length > 0 && <View style={styles.section}>
               <ThemedText weight="bold" style={styles.sectionLabel}>PASSAGES THAT STOOD OUT</ThemedText>
-              {shown.highlights.map(highlight => <View key={highlight.id} style={styles.highlight}>
-                <ThemedText selectable style={styles.quote}><ThemedText style={styles.verse}>{highlight.verseNumber} </ThemedText><ThemedText style={{ backgroundColor: highlight.color || 'rgba(231,196,94,0.42)' }}>{highlight.text}</ThemedText></ThemedText>
-                {savedChoices(shown.observation.promptsByHighlight?.[highlight.id] ?? [])}
-              </View>)}
+              {shown.highlights.map(highlight => {
+                const presentation = highlightPresentation(highlight);
+                const highlightColor = highlight.color || 'rgba(231,196,94,0.42)';
+                return <View key={highlight.id} style={styles.highlight}>
+                  <View style={[styles.highlightMarker, {backgroundColor: highlightColor}]} />
+                  <View style={styles.highlightContent}>
+                    <Text selectable style={styles.quote}>
+                      <Text style={styles.highlightReference}>{reference} </Text>
+                      {!!presentation.verseNumber && <Text style={styles.verse}>{presentation.verseNumber} </Text>}
+                      <Text style={{backgroundColor: highlightColor}}>{presentation.displayText}</Text>
+                    </Text>
+                    {savedChoices(shown.observation.promptsByHighlight?.[highlight.id] ?? [])}
+                  </View>
+                </View>;
+              })}
             </View>}
             {savedChoices(shown.observation.tags ?? [])}
             {section('What I noticed', 'observation')}
@@ -209,8 +292,11 @@ const styles = StyleSheet.create({
   sectionLabel: { fontSize: 11, letterSpacing: 1.3, color: Colors.sage, marginBottom: 14 },
   answer: { fontSize: 16, lineHeight: 27, color: Colors.text },
   input: { minHeight: 100, fontFamily: Fonts.regular, fontSize: 16, lineHeight: 27, color: Colors.text, padding: 0, textAlignVertical: 'top' },
-  highlight: { borderLeftWidth: 3, borderLeftColor: Colors.sage, paddingLeft: 14, marginVertical: 10 },
+  highlight: { flexDirection: 'row', alignItems: 'stretch', marginVertical: 10 },
+  highlightMarker: { width: 5, borderRadius: 3, marginRight: 13 },
+  highlightContent: { flex: 1 },
   quote: { fontFamily: Fonts.lora.regular, fontSize: 19, lineHeight: 31, color: Colors.text },
-  verse: { fontSize: 12, color: Colors.textGray },
+  highlightReference: { fontFamily: Fonts.regular, fontSize: 12, color: Colors.textGray },
+  verse: { fontFamily: Fonts.lora.regular, fontSize: 10, letterSpacing: 0.8, color: 'rgba(90, 98, 93, 0.62)' },
   status: { fontSize: 12, lineHeight: 20, color: Colors.sage, marginTop: 16 },
 });

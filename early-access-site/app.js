@@ -4,12 +4,44 @@
   document.documentElement.classList.add("js");
 
   const form = document.getElementById("early-access-form");
+  const signupEndpoint = document.querySelector('meta[name="journal-signup-endpoint"]')?.content || "";
   const alertBox = document.getElementById("form-alert");
   const progress = document.querySelector(".form-progress");
   const progressSteps = document.querySelectorAll("[data-progress]");
   const steps = document.querySelectorAll("[data-step]");
-  const startedAt = Date.now();
+  const surveyPanels = document.querySelectorAll("[data-survey-panel]");
   let signupToken = "";
+  let submitting = false;
+  let currentSurveyPanel = "intro";
+  const motion = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth";
+  const tracked = new Set();
+  function trackOnce(name, values) {
+    if (tracked.has(name)) return;
+    tracked.add(name);
+    track(name, values);
+  }
+  trackOnce("early_access_page_view");
+  const pricing = document.getElementById("pricing");
+  if ("IntersectionObserver" in window) {
+    const pricingObserver = new IntersectionObserver((entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) {
+        trackOnce("early_access_pricing_viewed");
+        pricingObserver.disconnect();
+      }
+    }, { threshold: 0.25 });
+    pricingObserver.observe(pricing);
+  }
+  form.addEventListener("focusin", (event) => {
+    if (event.target.matches("input, select, textarea")) {
+      trackOnce(event.target.closest("[data-step='2']") ? "early_access_survey_started" : "early_access_form_started");
+    }
+  });
+
+  form.elements.tester_opt_in.addEventListener("change", () => {
+    const checked = form.elements.tester_opt_in.checked;
+    document.getElementById("testing-details").hidden = !checked;
+    form.elements.tester_opt_in.setAttribute("aria-expanded", String(checked));
+  });
 
   document.getElementById("year").textContent = new Date().getFullYear();
 
@@ -31,9 +63,32 @@
     revealItems.forEach((item) => item.classList.add("is-visible"));
   }
 
+  const photoItems = document.querySelectorAll(".product-screenshot, .story-screenshot");
+  if ("IntersectionObserver" in window) {
+    const photoObserver = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("is-photo-visible");
+            photoObserver.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold: 0.18, rootMargin: "0px 0px -6% 0px" }
+    );
+    photoItems.forEach((item) => photoObserver.observe(item));
+  } else {
+    photoItems.forEach((item) => item.classList.add("is-photo-visible"));
+  }
+
   document.querySelectorAll("a[href='#early-access']").forEach((link) => {
     link.addEventListener("click", () => {
-      window.setTimeout(() => document.getElementById("email").focus(), 600);
+      if (link.closest(".hero")) track("early_access_hero_cta_clicked");
+      if (link.closest("#pricing")) track("early_access_pricing_cta_clicked");
+      window.setTimeout(() => {
+        const target = form.querySelector(".form-step:not([hidden]) input, .form-step:not([hidden]) h3");
+        if (target) target.focus({ preventScroll: true });
+      }, motion === "auto" ? 0 : 600);
     });
   });
 
@@ -62,21 +117,36 @@
 
   form.addEventListener("click", (event) => {
     const button = event.target.closest("button[data-action]");
-    if (!button) return;
+    if (!button || submitting) return;
 
-    if (button.dataset.action === "back") {
-      showStep("1");
+    if (button.dataset.action === "survey-start") {
+      trackOnce("early_access_survey_started");
+      showSurveyPanel("1");
+    }
+
+    if (button.dataset.action === "survey-next") {
+      showSurveyPanel(String(Math.min(Number(currentSurveyPanel) + 1, 5)));
+    }
+
+    if (button.dataset.action === "survey-back") {
+      const previous = Number(currentSurveyPanel) - 1;
+      showSurveyPanel(previous < 1 ? "intro" : String(previous));
     }
 
     if (button.dataset.action === "skip") {
       track("early_access_survey_skipped");
       showSuccess(false);
     }
+
+    if (button.dataset.action === "reset") {
+      resetSignupForm();
+    }
   });
 
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
-    const submitter = event.submitter;
+    if (submitting) return;
+    const submitter = event.submitter || form.querySelector(".form-step:not([hidden]) button[type=submit]");
     const action = submitter && submitter.dataset.action;
 
     if (action === "join") {
@@ -115,8 +185,8 @@
     }
 
     if (!valid) {
-      const firstError = form.querySelector(".field-error:not(:empty)");
-      if (firstError) firstError.scrollIntoView({ behavior: "smooth", block: "center" });
+      const firstError = form.querySelector("[aria-invalid=true]");
+      if (firstError) firstError.focus();
     }
     return valid;
   }
@@ -125,25 +195,20 @@
     setLoading(button, true, "Joining…");
     hideAlert();
 
-    const params = new URLSearchParams(window.location.search);
     const payload = {
+      ...(window.journalAttribution || {}),
       action: "start",
       email: form.elements.email.value.trim(),
       platform: form.querySelector("input[name='platform']:checked").value,
       email_consent: form.elements.email_consent.checked,
-      website: form.elements.website.value,
-      elapsed_ms: Date.now() - startedAt,
-      source: params.get("source") || "journal-early-access",
-      utm_source: params.get("utm_source") || "",
-      utm_medium: params.get("utm_medium") || "",
-      utm_campaign: params.get("utm_campaign") || "",
-      utm_content: params.get("utm_content") || ""
+      website: form.elements.website.value
+
     };
 
     try {
-      const result = await postJson("api/early-access.php", payload);
+      const result = await postJson(signupEndpoint, payload);
       signupToken = result.signup_token || "";
-      track("early_access_joined", { platform: payload.platform });
+      trackOnce("early_access_joined", { platform: payload.platform });
       showStep("2");
     } catch (error) {
       showAlert(error.message || "We could not save your signup. Please try again.");
@@ -154,8 +219,8 @@
 
   async function finishSurvey(button) {
     if (!signupToken) {
-      showAlert("Your signup session expired. Please return to step one and try again.");
       showStep("1");
+      showAlert("Your signup session expired. Please return to step one and try again.");
       return;
     }
 
@@ -166,18 +231,17 @@
       action: "survey",
       signup_token: signupToken,
       current_journaling: valueOf("current_journaling"),
-      consistency_challenges: checkedValues("consistency_challenges"),
-      desired_outcomes: checkedValues("desired_outcomes"),
       feature_interests: checkedValues("feature_interests"),
-      expected_price: valueOf("expected_price"),
+      price_region: valueOf("price_region"),
       price_reaction: checkedRadio("price_reaction"),
       tester_opt_in: form.elements.tester_opt_in.checked,
       anything_else: valueOf("anything_else")
     };
 
     try {
-      await postJson("api/early-access.php", payload);
-      track("early_access_survey_completed", { tester: payload.tester_opt_in });
+      await postJson(signupEndpoint, payload);
+      trackOnce("early_access_survey_completed", { tester: payload.tester_opt_in });
+      if (payload.tester_opt_in) trackOnce("early_access_tester_volunteered");
       showSuccess(payload.tester_opt_in);
     } catch (error) {
       showAlert(error.message || "We could not save your answers. Please try again.");
@@ -187,12 +251,22 @@
   }
 
   async function postJson(url, payload) {
-    const response = await fetch(url, {
+    if (!url) throw new Error("The signup service is not configured yet. Please try again shortly.");
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 20000);
+    let response;
+    try {
+      response = await fetch(url, {
+      signal: controller.signal,
       method: "POST",
       headers: { "Content-Type": "application/json", Accept: "application/json" },
       body: JSON.stringify(payload),
-      credentials: "same-origin"
-    });
+      credentials: "omit"
+      });
+    } catch (error) {
+      if (error.name === "AbortError") throw new Error("The request timed out. Please try again; your signup will not be duplicated.");
+      throw error;
+    } finally { window.clearTimeout(timeout); }
 
     let result;
     try {
@@ -215,7 +289,7 @@
     });
 
     const stepTwo = step === "2";
-    progress.hidden = step === "success";
+    progress.hidden = step !== "1";
     progress.classList.toggle("step-two", stepTwo);
     progressSteps.forEach((item) => {
       const number = Number(item.dataset.progress);
@@ -226,23 +300,56 @@
     });
 
     hideAlert();
+    if (step === "2") showSurveyPanel("intro", false);
     const activePanel = form.querySelector(`[data-step='${step}']`);
     if (activePanel) {
       const focusTarget = activePanel.querySelector("h3, input, select, button");
-      if (focusTarget) focusTarget.setAttribute("tabindex", "-1");
+      if (focusTarget && focusTarget.matches("h3")) focusTarget.setAttribute("tabindex", "-1");
       window.requestAnimationFrame(() => {
-        activePanel.scrollIntoView({ behavior: "smooth", block: "center" });
+        activePanel.scrollIntoView({ behavior: motion, block: "center" });
         if (focusTarget) focusTarget.focus({ preventScroll: true });
       });
     }
   }
 
+  function showSurveyPanel(panel, shouldFocus = true) {
+    currentSurveyPanel = panel;
+    surveyPanels.forEach((item) => {
+      const active = item.dataset.surveyPanel === panel;
+      item.hidden = !active;
+      item.classList.toggle("is-active", active);
+    });
+
+    if (!shouldFocus) return;
+    const activePanel = form.querySelector(`[data-survey-panel='${panel}']`);
+    if (!activePanel) return;
+    const focusTarget = activePanel.querySelector("h3, legend, label, select, textarea, button");
+    window.requestAnimationFrame(() => {
+      activePanel.scrollIntoView({ behavior: motion, block: "center" });
+      if (focusTarget) {
+        if (!focusTarget.matches("select, textarea, button")) focusTarget.setAttribute("tabindex", "-1");
+        focusTarget.focus({ preventScroll: true });
+      }
+    });
+  }
+
   function showSuccess(isTester) {
     const message = document.getElementById("success-message");
-    message.textContent = isTester
-      ? "You're on the Early Access list and have volunteered to test Journal. We'll contact you if a testing place becomes available."
-      : "We'll email you with early-access and launch updates. Thank you for helping shape Journal.";
+    message.textContent = "We’ll email you when Journal by siFia is ready and before your founding-price offer ends." +
+      (isTester ? " You also volunteered to test before launch." : "");
     showStep("success");
+  }
+
+  function resetSignupForm() {
+    const priceRegion = valueOf("price_region");
+    form.reset();
+    if (form.elements.price_region) form.elements.price_region.value = priceRegion;
+    form.querySelectorAll("[name='feature_interests']").forEach((input) => { input.disabled = false; });
+    form.elements.tester_opt_in.setAttribute("aria-expanded", "false");
+    document.getElementById("testing-details").hidden = true;
+    signupToken = "";
+    clearAllErrors();
+    showStep("1");
   }
 
   function valueOf(name) {
@@ -261,6 +368,7 @@
   function setFieldError(name, message) {
     const element = document.querySelector(`[data-error-for='${name}']`);
     if (element) element.textContent = message;
+    form.querySelectorAll(`[name="${name}"]`).forEach((control) => control.setAttribute("aria-invalid", message ? "true" : "false"));
   }
 
   function clearFieldError(name) {
@@ -270,6 +378,7 @@
   }
 
   function clearAllErrors() {
+    form.querySelectorAll("[aria-invalid]").forEach((item) => item.removeAttribute("aria-invalid"));
     form.querySelectorAll(".field-error").forEach((item) => (item.textContent = ""));
     form.querySelectorAll(".is-invalid").forEach((item) => item.classList.remove("is-invalid"));
   }
@@ -277,7 +386,7 @@
   function showAlert(message) {
     alertBox.textContent = message;
     alertBox.hidden = false;
-    alertBox.scrollIntoView({ behavior: "smooth", block: "center" });
+    alertBox.scrollIntoView({ behavior: motion, block: "center" });
   }
 
   function hideAlert() {
@@ -286,6 +395,9 @@
   }
 
   function setLoading(button, loading, label) {
+    submitting = loading;
+    form.setAttribute("aria-busy", String(loading));
+    form.querySelectorAll("button").forEach((item) => { item.disabled = loading; });
     if (!button) return;
     if (loading) {
       button.dataset.originalHtml = button.innerHTML;

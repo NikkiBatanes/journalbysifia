@@ -2,17 +2,20 @@ import {
   clearReviewQAData,
   getActiveReviewQAContext,
   getReviewQAEligibilityOptions,
+  loadMockupData,
   loadReviewQAScenario,
   loadReviewQAScenarioWithBibleStudies,
   loadReviewQAScenarioWithSessionNotes,
 } from '../reviewQALoader';
 import {getReviewCapture} from '../../../services/reviewCaptureService';
+import {getReviewEligibility} from '../../../services/reviewEligibilityService';
 import {getLocalReviewForPeriod} from '../../../storage/reviewStorage';
 import {GUIDED_PROMPTS} from '../../../components/journal/reflectionConstants';
 import {
   REFLECTION_NOTE_TYPES,
   parseGuidedReflection,
 } from '../../../types/guidedReflection';
+import {JOURNAL_BLOCK_KIND_IDS} from '../../../components/journal/shared/noteBlockRegistry';
 import {buildWeeklyReviewQAPrayerFixtures} from '../reviewQAWeeklyPrayerData';
 
 jest.mock('@react-native-community/netinfo', () => ({
@@ -64,6 +67,223 @@ describe('Review QA loader isolation', () => {
   beforeEach(() => {
     mockData.clear();
     jest.clearAllMocks();
+  });
+  it('loads and safely clears the website Mockup data set', async () => {
+    const focusKey = 'journal_local_singleton:todays_focus:2026-09-25';
+    mockData.set(focusKey, JSON.stringify({id: 'real-focus'}));
+
+    const result = await loadMockupData();
+
+    expect(result.scenario.id).toBe('weekly');
+    expect(result.scenario.referenceDate).toBe('2026-09-28');
+    expect(result.scenario.period).toMatchObject({
+      periodStart: '2026-09-21',
+      periodEnd: '2026-09-27',
+    });
+    expect(JSON.parse(mockData.get('dev-review-v2:manifest')!)).toMatchObject({
+      variant: 'mockup',
+      referenceDate: '2026-09-28',
+      historyStart: '2026-09-21',
+      datasetVersion: 'website-mockup-sept-21-27-v9',
+    });
+    expect(getReviewCapture).toHaveBeenCalledWith(
+      '2026-09-21',
+      '2026-09-27',
+      'weekly',
+    );
+    const context = await getActiveReviewQAContext();
+    expect(context).toEqual({
+      scenarioId: 'weekly',
+      referenceDate: '2026-09-28',
+      historyStart: '2026-09-21',
+    });
+    const seededReview = JSON.parse(
+      mockData.get('review_local:weekly:dev-review-v2:mockup-weekly-review')!,
+    );
+    (getLocalReviewForPeriod as jest.Mock).mockResolvedValueOnce(seededReview);
+    const eligibility = await getReviewEligibility(
+      context!.referenceDate,
+      undefined,
+      getReviewQAEligibilityOptions(context!),
+    );
+    // A completed review is not actionable—the finished review surfaces
+    // through the saved-week card and Past Reviews instead of the Begin CTA.
+    expect(eligibility.main).toBeNull();
+    expect(
+      [...mockData.keys()].filter(key =>
+        key.startsWith('journal_local_singleton:morning_check_in:'),
+      ),
+    ).toHaveLength(4);
+    expect(
+      [...mockData.keys()].filter(key =>
+        key.startsWith('routine_state:evening:'),
+      ),
+    ).toHaveLength(5);
+    const presentation = JSON.parse(
+      mockData.get(
+        'reflection_local:free:2026-09-25:dev-review-v2:mockup-heart-presentation',
+      )!,
+    );
+    expect(presentation).toMatchObject({
+      title: 'The presentation is done',
+      metadata: {journalClassification: 'thoughts'},
+    });
+    expect(
+      presentation.metadata.journalBlocks.map((block: any) => block.kind),
+    ).toEqual(['photo', 'key', 'bullets', 'song', 'remember']);
+    expect(
+      presentation.metadata.journalBlocks
+        .filter((block: any) => block.kind === 'photo')
+        .every((block: any) => block.uri && block.text),
+    ).toBe(true);
+    expect(
+      presentation.metadata.journalBlocks.filter(
+        (block: any) => block.kind === 'photo',
+      ),
+    ).toHaveLength(1);
+    expect(
+      JSON.parse(
+        mockData.get(
+          'prayer_local:2026-09-21:dev-review-v2:mockup-prayer-maya',
+        )!,
+      ).metadata,
+    ).toMatchObject({
+      tracking_status: 'answered',
+      prayer_updates: [
+        expect.objectContaining({date: '2026-09-23T09:00:00.000Z'}),
+      ],
+      answer_history: [
+        expect.objectContaining({date: '2026-09-25T09:00:00.000Z'}),
+      ],
+    });
+    const sermon = JSON.parse(
+      mockData.get(
+        'reflection_local:sermon:2026-09-27:dev-review-v2:mockup-sermon-waiting',
+      )!,
+    );
+    expect(sermon).toMatchObject({
+      title: 'When God Gives You a Vision',
+      metadata: {
+        main_scripture: 'Nehemiah 2:11–20',
+        speaker: 'PTR. Jeremy Brylle',
+      },
+    });
+    const sermonBlocks = JSON.parse(sermon.content).blocks;
+    expect(sermonBlocks.map((block: any) => block.kind)).toEqual([
+      'outline',
+      'language',
+      'response',
+    ]);
+    expect(sermonBlocks[0].points).toHaveLength(3);
+    expect(sermonBlocks[1]).toMatchObject({
+      englishWord: 'vision',
+      languageKind: 'hebrew',
+    });
+    expect(sermonBlocks[2].text).toContain('next faithful step');
+    const restSermon = JSON.parse(
+      mockData.get(
+        'reflection_local:sermon:2026-09-27:dev-review-v2:mockup-sermon-rest',
+      )!,
+    );
+    expect(restSermon).toMatchObject({
+      title: 'The Rest That Trusts',
+      metadata: {
+        sessionNoteType: 'sermon',
+        is_complete: true,
+        main_scripture: 'Psalm 46:10',
+        series: 'Rhythms of Grace',
+        speaker: 'Pastor Daniel Whitfield',
+        church: 'Grace Community Church',
+      },
+    });
+    expect(
+      new Set(
+        JSON.parse(restSermon.content).blocks.map(
+          (block: any) => block.kind,
+        ),
+      ),
+    ).toEqual(
+      new Set(JOURNAL_BLOCK_KIND_IDS),
+    );
+    const gratitude = JSON.parse(
+      mockData.get(
+        'journal_local:gratitude:2026-09-24:dev-review-v2:mockup-rhythm:gratitude:2026-09-24',
+      )!,
+    );
+    expect(JSON.parse(gratitude.content).items).toEqual([
+      'The calm that came after I stopped rehearsing every possible outcome.',
+    ]);
+    const weeklyReview = JSON.parse(
+      mockData.get(
+        'review_local:weekly:dev-review-v2:mockup-weekly-review',
+      )!,
+    );
+    expect(weeklyReview).toMatchObject({
+      type: 'weekly',
+      status: 'completed',
+      periodStart: '2026-09-21',
+      periodEnd: '2026-09-27',
+    });
+    expect(weeklyReview.memorableItems).toHaveLength(11);
+    expect(weeklyReview.prayerSnapshot.length).toBeGreaterThan(0);
+    expect(weeklyReview.answers.prayer_ahead).toBeTruthy();
+    expect(
+      JSON.parse(
+        mockData.get(
+          'journal_local_singleton:weekly_gratitude:2026-09-27',
+        )!,
+      ).metadata.reviewId,
+    ).toBe(weeklyReview.id);
+    expect(
+      JSON.parse(
+        mockData.get(
+          'journal_local_singleton:weekly_looking_forward:2026-09-27',
+        )!,
+      ).metadata.reviewId,
+    ).toBe(weeklyReview.id);
+    expect(
+      JSON.parse(
+        mockData.get(
+          'prayer_local:2026-09-27:dev-review-v2:mockup-weekly-open-prayer',
+        )!,
+      ).metadata.weeklyReviewId,
+    ).toBe(weeklyReview.id);
+    const monthlyReview = JSON.parse(
+      mockData.get(
+        'review_local:monthly:dev-review-v2:mockup-monthly-review',
+      )!,
+    );
+    expect(monthlyReview).toMatchObject({
+      type: 'monthly',
+      status: 'completed',
+      periodStart: '2026-08-01',
+      periodEnd: '2026-08-31',
+    });
+    expect(monthlyReview.memorableItems).toHaveLength(5);
+    expect(monthlyReview.prayerSnapshot.length).toBeGreaterThan(0);
+    expect(monthlyReview.answers.prayer_for_month).toBeTruthy();
+    expect(
+      JSON.parse(
+        mockData.get(
+          'prayer_local:2026-09-01:dev-review-v2:mockup-monthly-open-prayer',
+        )!,
+      ).metadata.monthlyReviewId,
+    ).toBe(monthlyReview.id);
+    for (const item of monthlyReview.memorableItems) {
+      expect(
+        [...mockData.keys()].some(
+          key => key.includes(item.id) && !key.startsWith('review_local:'),
+        ),
+      ).toBe(true);
+    }
+
+    await clearReviewQAData();
+    expect(JSON.parse(mockData.get(focusKey)!)).toEqual({id: 'real-focus'});
+    expect(
+      mockData.has(
+        'reflection_local:free:2026-09-25:dev-review-v2:mockup-heart-presentation',
+      ),
+    ).toBe(false);
   });
   it('keeps the prior complete week while loading the Sept 21–27 Weekly period', async () => {
     const result = await loadReviewQAScenario('weekly');

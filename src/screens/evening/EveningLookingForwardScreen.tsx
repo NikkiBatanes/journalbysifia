@@ -56,6 +56,7 @@ const EveningLookingForwardScreen: React.FC = () => {
       selectedDate={selectedDateObj}
       insets={insets}
       onClose={handleClose}
+      onBackFromStart={() => navigation.goBack()}
       onComplete={handleComplete}
       skipCompletionPage
       routineDraft={{ routine: 'evening', selectedDate, step: 'looking_forward' }}

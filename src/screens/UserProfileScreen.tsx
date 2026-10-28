@@ -67,6 +67,11 @@ import {
   type SelectableJournalBlockKind,
 } from '../components/journal/shared/journalBlocks';
 import {NoteBlockCatalogPreview} from '../components/journal/shared/NoteBlockCatalogPreview';
+import DraggableJournalBlock from '../components/journal/shared/DraggableJournalBlock';
+import {
+  reorderJournalBlock,
+  resolveJournalBlockDropIndex,
+} from '../components/journal/shared/journalBlockOperations';
 
 const { width } = Dimensions.get('window');
 
@@ -77,6 +82,7 @@ const APPLE_APP_ID = '6751785713';
 const ANDROID_PACKAGE = 'app.journal.sifia';
 const MORE_ENTRY_COUNT = 11;
 const MORE_ENTRY_STAGGER_MS = 55;
+const FAVORITE_ORDER_GAP = 8;
 const PERSONALIZABLE_NOTE_BLOCKS = Object.values(NOTE_BLOCK_REGISTRY).filter(
   definition => definition.selectable,
 );
@@ -496,6 +502,21 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
   const [isSavingCalendarAutoSync, setIsSavingCalendarAutoSync] = useState(false);
   const [settingsModal, setSettingsModal] = useState(false);
   const [noteBlocksModal, setNoteBlocksModal] = useState(false);
+  const favoriteOrderLayoutsRef = useRef(
+    new Map<string, {y: number; height: number}>(),
+  );
+  const [favoriteOrderDragPreview, setFavoriteOrderDragPreview] = useState<{
+    blockId: string;
+    fromIndex: number;
+    targetIndex: number;
+    blockHeight: number;
+  } | null>(null);
+  useEffect(() => {
+    if (!noteBlocksModal) {
+      setFavoriteOrderDragPreview(null);
+      favoriteOrderLayoutsRef.current.clear();
+    }
+  }, [noteBlocksModal]);
   const [weekStartModal, setWeekStartModal] = useState(false);
   const [weekStartDraft, setWeekStartDraft] = useState<UserPreferences['weekStart']>('monday');
   // Bible Version modal and draft
@@ -2193,6 +2214,77 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
     </PlatformPageSheetModal>
   );
 
+  const moveFavoriteKind = async (
+    kind: SelectableJournalBlockKind,
+    direction: -1 | 1,
+  ) => {
+    const order = [...noteBlockPreferenceSnapshot.favoriteKinds];
+    const index = order.indexOf(kind);
+    const targetIndex = index + direction;
+    if (index < 0 || targetIndex < 0 || targetIndex >= order.length) {
+      return;
+    }
+    [order[index], order[targetIndex]] = [order[targetIndex], order[index]];
+    try { triggerSelectionHaptic(); } catch {}
+    await noteBlockPreferences.setFavoriteKinds(order);
+  };
+
+  const favoriteOrderItems = noteBlockPreferenceSnapshot.favoriteKinds.map(
+    kind => ({id: kind, kind}),
+  );
+
+  const handleFavoriteDragStart = (blockId: string) => {
+    const fromIndex = favoriteOrderItems.findIndex(item => item.id === blockId);
+    const layout = favoriteOrderLayoutsRef.current.get(blockId);
+    if (fromIndex < 0 || !layout) {
+      return;
+    }
+    setFavoriteOrderDragPreview({
+      blockId,
+      fromIndex,
+      targetIndex: fromIndex,
+      blockHeight: layout.height + FAVORITE_ORDER_GAP,
+    });
+  };
+
+  const handleFavoriteDragMove = (blockId: string, deltaY: number) => {
+    const targetIndex = resolveJournalBlockDropIndex(
+      favoriteOrderItems,
+      favoriteOrderLayoutsRef.current,
+      blockId,
+      deltaY,
+    );
+    setFavoriteOrderDragPreview(current =>
+      !current ||
+      current.blockId !== blockId ||
+      current.targetIndex === targetIndex
+        ? current
+        : {...current, targetIndex},
+    );
+  };
+
+  const handleFavoriteDragEnd = (blockId: string, deltaY: number) => {
+    const targetIndex = resolveJournalBlockDropIndex(
+      favoriteOrderItems,
+      favoriteOrderLayoutsRef.current,
+      blockId,
+      deltaY,
+    );
+    setFavoriteOrderDragPreview(null);
+    const reordered = reorderJournalBlock(
+      favoriteOrderItems,
+      blockId,
+      targetIndex,
+    );
+    if (reordered === favoriteOrderItems) {
+      return;
+    }
+    try { triggerLightHaptic(); } catch {}
+    noteBlockPreferences
+      .setFavoriteKinds(reordered.map(item => item.kind))
+      .catch(() => undefined);
+  };
+
   const renderNoteBlocksModal = () => (
     <PlatformPageSheetModal
       visible={noteBlocksModal}
@@ -2223,6 +2315,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
 
         <ScrollView
           style={styles.modalContent}
+          scrollEnabled={!favoriteOrderDragPreview}
           contentContainerStyle={styles.noteBlockModalContent}
           showsVerticalScrollIndicator={false}>
           <View style={styles.noteBlockIntro}>
@@ -2255,6 +2348,78 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
               </Text>
             </View>
           </View>
+
+          {noteBlockPreferenceSnapshot.favoriteKinds.length > 1 && (
+            <View style={styles.noteBlockOrderSection}>
+              <Text style={[styles.noteBlockCategoryLabel, font]}>
+                FAVORITE ORDER
+              </Text>
+              <Text style={[styles.noteBlockOrderHint, font]}>
+                Drag the handles to set their order in the quick bar.
+              </Text>
+              <View style={styles.noteBlockOrderList}>
+                {noteBlockPreferenceSnapshot.favoriteKinds.map(
+                  (kind, index) => {
+                    const definition = NOTE_BLOCK_REGISTRY[kind];
+                    const label = definition?.pickerLabel || kind;
+                    return (
+                      <DraggableJournalBlock
+                        key={kind}
+                        blockId={kind}
+                        selected
+                        accessibilityLabel={`Reorder ${label} favorite`}
+                        onAccessibilityMove={direction =>
+                          moveFavoriteKind(kind, direction)
+                        }
+                        shiftY={(() => {
+                          if (
+                            !favoriteOrderDragPreview ||
+                            favoriteOrderDragPreview.blockId === kind
+                          ) {
+                            return 0;
+                          }
+                          if (
+                            favoriteOrderDragPreview.targetIndex >
+                              favoriteOrderDragPreview.fromIndex &&
+                            index > favoriteOrderDragPreview.fromIndex &&
+                            index <= favoriteOrderDragPreview.targetIndex
+                          ) {
+                            return -favoriteOrderDragPreview.blockHeight;
+                          }
+                          if (
+                            favoriteOrderDragPreview.targetIndex <
+                              favoriteOrderDragPreview.fromIndex &&
+                            index >= favoriteOrderDragPreview.targetIndex &&
+                            index < favoriteOrderDragPreview.fromIndex
+                          ) {
+                            return favoriteOrderDragPreview.blockHeight;
+                          }
+                          return 0;
+                        })()}
+                        onSelect={() => undefined}
+                        onLayout={layout =>
+                          favoriteOrderLayoutsRef.current.set(kind, layout)
+                        }
+                        onDragStart={handleFavoriteDragStart}
+                        onDragMove={handleFavoriteDragMove}
+                        onDragEnd={handleFavoriteDragEnd}>
+                        <View style={styles.noteBlockOrderRow}>
+                          <Text style={[styles.noteBlockOrderIndex, font]}>
+                            {index + 1}
+                          </Text>
+                          <Text
+                            numberOfLines={1}
+                            style={[styles.noteBlockOrderLabel, font]}>
+                            {label}
+                          </Text>
+                        </View>
+                      </DraggableJournalBlock>
+                    );
+                  },
+                )}
+              </View>
+            </View>
+          )}
 
           {NOTE_BLOCK_CATEGORIES.map(category => {
             const definitions = PERSONALIZABLE_NOTE_BLOCKS.filter(
@@ -3734,6 +3899,39 @@ const styles = StyleSheet.create({
   },
   noteBlockVisibilityText: {fontSize: 10, color: Colors.textGray},
   noteBlockVisibilitySwitch: {transform: [{scaleX: 0.72}, {scaleY: 0.72}]},
+  noteBlockOrderSection: {marginTop: 20},
+  noteBlockOrderHint: {
+    marginBottom: 10,
+    marginLeft: 4,
+    fontSize: 11,
+    lineHeight: 16,
+    color: Colors.textGray,
+  },
+  noteBlockOrderList: {gap: FAVORITE_ORDER_GAP, paddingLeft: 26},
+  noteBlockOrderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    minHeight: 44,
+    paddingVertical: 6,
+    paddingLeft: 14,
+    paddingRight: 14,
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+    borderRadius: 14,
+    backgroundColor: Colors.cardBackground,
+  },
+  noteBlockOrderIndex: {
+    width: 22,
+    fontSize: 12,
+    fontWeight: '700',
+    color: Colors.sageMuted,
+  },
+  noteBlockOrderLabel: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: '600',
+    color: Colors.text,
+  },
 });  // Removed test button styles
 
 export default withErrorBoundary(UserProfileScreen, 'UserProfileScreen');

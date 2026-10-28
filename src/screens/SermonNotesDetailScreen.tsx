@@ -6,13 +6,13 @@ import {
   DeviceEventEmitter,
   Easing,
   StyleSheet,
+  Text,
   TouchableOpacity,
   View,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Pencil, FileText, Sparkles, Leaf } from 'lucide-react-native';
 import { Colors } from '../theme/colors';
 import ThemedText from '../components/common/ThemedText';
@@ -28,6 +28,7 @@ import ScriptureReaderModal from '../components/ScriptureReaderModal';
 import { SermonNotesStyles } from './SermonNotesScreen';
 import { getSessionNoteConfig, getSessionNoteContext, resolveSessionNoteType, sessionNoteTypeLabel } from '../types/sessionNotes';
 import SavedReflectionBlocks from '../components/journal/SavedReflectionBlocks';
+import ScriptureLoadingSkeleton from '../components/scripture/ScriptureLoadingSkeleton';
 import {
   hasMeaningfulJournalBlock,
   prepareJournalBlocksForSave,
@@ -60,6 +61,7 @@ const SermonNotesDetailScreen: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'notes' | 'reflection' | 'prayer'>('notes');
   const [mainScriptureTexts, setMainScriptureTexts] = useState<string[]>([]);
+  const [mainScripturesLoading, setMainScripturesLoading] = useState(false);
   const [scriptureReaderOpen, setScriptureReaderOpen] = useState(false);
   const [scriptureReaderIndex, setScriptureReaderIndex] = useState(0);
   const [contentY, setContentY] = useState(0);
@@ -149,10 +151,12 @@ const SermonNotesDetailScreen: React.FC = () => {
   useEffect(() => {
     if (mainScriptureRefs.length === 0) {
       setMainScriptureTexts([]);
+      setMainScripturesLoading(false);
       return;
     }
     let active = true;
     setMainScriptureTexts([]);
+    setMainScripturesLoading(true);
     Promise.all(
       mainScriptureRefs.map(reference =>
         getScripturePassage(reference, bibleVersion)
@@ -161,6 +165,8 @@ const SermonNotesDetailScreen: React.FC = () => {
       ),
     ).then(texts => {
       if (active) {setMainScriptureTexts(texts);}
+    }).finally(() => {
+      if (active) {setMainScripturesLoading(false);}
     });
     return () => { active = false; };
   }, [bibleVersion, isOnline, mainScriptureRefs]);
@@ -324,7 +330,10 @@ const SermonNotesDetailScreen: React.FC = () => {
         return (
           <TouchableOpacity
             key={tab}
-            onPress={() => setActiveTab(tab)}
+            onPress={() => {
+              triggerLightHaptic();
+              setActiveTab(tab);
+            }}
             style={[styles.pill, active && styles.pillActive]}
             activeOpacity={0.7}>
             <TabIcon
@@ -367,7 +376,7 @@ const SermonNotesDetailScreen: React.FC = () => {
         ref={scrollViewRef}
         contentContainerStyle={[
           SermonNotesStyles.content,
-          {paddingHorizontal: 0, paddingTop: insets.top + 80, paddingBottom: 0},
+          {paddingHorizontal: 0, paddingTop: insets.top + 44, paddingBottom: 0},
         ]}
         onScroll={Animated.event(
           [{nativeEvent: {contentOffset: {y: scrollY}}}],
@@ -487,30 +496,47 @@ const SermonNotesDetailScreen: React.FC = () => {
             <>
               <ThemedText
                 weight="bold"
-                style={[SermonNotesStyles.detailLabel, {marginTop: 8}]}>
+                style={[SermonNotesStyles.detailLabel, {marginTop: 18}]}>
                 {mainScriptureRefs.length > 1 ? 'MAIN SCRIPTURES' : 'MAIN SCRIPTURE'}
               </ThemedText>
               {mainScriptureRefs.map((ref, index) => (
-                <View key={ref + index} style={SermonNotesStyles.sermonQuote}>
+                <TouchableOpacity
+                  key={ref + index}
+                  style={SermonNotesStyles.sermonQuote}
+                  activeOpacity={0.9}
+                  onPress={() => {
+                    triggerLightHaptic();
+                    setScriptureReaderIndex(index);
+                    setScriptureReaderOpen(true);
+                  }}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Open ${ref} in Scripture Reader`}>
                   <View style={SermonNotesStyles.sermonQuoteLine} />
                   <View style={SermonNotesStyles.sermonQuoteContent}>
-                    <ThemedText style={SermonNotesStyles.sermonQuoteText}>
-                      {mainScriptureTexts[index] || ref}
+                    {mainScripturesLoading ? (
+                      <ScriptureLoadingSkeleton variant="inline" lines={3} />
+                    ) : (
+                      <Text
+                        style={SermonNotesStyles.sermonQuoteText}
+                        numberOfLines={4}
+                        ellipsizeMode="tail"
+                        textBreakStrategy="simple"
+                        allowFontScaling
+                        maxFontSizeMultiplier={1.2}>
+                        {mainScriptureTexts[index] || ref}
+                      </Text>
+                    )}
+                    <ThemedText
+                      weight="semiBold"
+                      style={[
+                        SermonNotesStyles.sermonQuoteReference,
+                        {marginTop: 8},
+                      ]}
+                      maxFontSizeMultiplier={1.1}>
+                      {ref.toUpperCase()} {bibleVersion}
                     </ThemedText>
-                    <View style={SermonNotesStyles.sermonQuoteReferenceRow}>
-                      <ThemedText weight="bold" style={SermonNotesStyles.sermonQuoteReference}>
-                        {ref.toUpperCase()} {bibleVersion}
-                      </ThemedText>
-                      <View style={SermonNotesStyles.scriptureActions}>
-                        <TouchableOpacity onPress={() => {setScriptureReaderIndex(index); setScriptureReaderOpen(true);}} activeOpacity={0.7}>
-                          <MaterialCommunityIcons name="script-text" size={16} color={Colors.sage} />
-                        </TouchableOpacity>
-                        <Ionicons name="paper-plane-outline" size={16} color={Colors.sage} style={{marginLeft: 10}} />
-                        <Ionicons name="information-circle-outline" size={16} color={Colors.sage} style={{marginLeft: 10}} />
-                      </View>
-                    </View>
                   </View>
-                </View>
+                </TouchableOpacity>
               ))}
             </>
           )}
@@ -621,7 +647,10 @@ const SermonNotesDetailScreen: React.FC = () => {
                 accessibilityRole="tab"
                 accessibilityLabel={tab[0].toUpperCase() + tab.slice(1)}
                 accessibilityState={{selected: active}}
-                onPress={() => setActiveTab(tab)}
+                onPress={() => {
+                  triggerLightHaptic();
+                  setActiveTab(tab);
+                }}
                 style={[styles.compactTab, active && styles.compactTabActive]}
                 activeOpacity={0.7}>
                 <TabIcon

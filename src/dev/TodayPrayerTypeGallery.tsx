@@ -52,7 +52,7 @@ export default function TodayPrayerTypeGallery({ records, reference, onOpen, onO
       make('OPEN PRAYER', 'return', 'PRAYER TYPES'),
       make('CAST · SUPPLICATION', 'cast-supplication', 'PRAYER TYPES'),
       make('CAST · THANKSGIVING', 'cast-thanksgiving', 'PRAYER TYPES'),
-      make('PRAYER FOR SOMEONE · GREG', 'person-greg', 'PRAYER TYPES'),
+      make('PRAYER FOR GREG', 'person-greg', 'PRAYER TYPES'),
       make('PRAYER REQUEST · UNPRAYED', 'request-unprayed', 'PRAYER TYPES'),
       make('PRAYED FOR · PRAYER REQUEST', 'request-charles-response', 'PRAYER TYPES'),
       make('PRAYER NEED · HEALTH · ACTIVE', 'mixed-needs', 'PRAYER TYPES', need => need.topic === 'Health' && need.active === true),

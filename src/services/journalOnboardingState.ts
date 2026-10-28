@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {getOrCreateScriptureSequenceAnchor} from './scriptureSequenceAnchor';
 
 // Journal by siFia first-launch state.
 // Stored locally only — intentionally separate from the siFia
@@ -79,6 +80,7 @@ export const isJournalOnboardingComplete = async (): Promise<boolean> => {
 };
 
 export const markJournalOnboardingComplete = async (): Promise<void> => {
+  await getOrCreateScriptureSequenceAnchor();
   try {
     await AsyncStorage.setItem(JOURNAL_ONBOARDING_COMPLETED_KEY, 'true');
   } catch {

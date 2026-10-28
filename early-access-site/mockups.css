@@ -1,33 +1,98 @@
-/* Reusable screenshot frames. Change the img src; the frame stays in place. */
+/* Screenshot presentation and product-story layout. */
 [id] { scroll-margin-top: 90px; }
 .hero-grid > *, .split > *, .review-showcase > * { min-width: 0; }
-.product-shot { width: min(100%, 310px); margin: 0 auto; }
-.device-frame { padding: 8px; border: 1px solid #526053; border-radius: 38px; background: #253027; box-shadow: 0 22px 50px rgba(37,48,39,.17); }
-.device-frame img { width: 100%; height: auto; border-radius: 30px; background: var(--cream); }
-.product-shot figcaption { margin-top: 17px; font-size: 12px; text-align: center; color: var(--ink); }
-.product-shot figcaption span { display: block; margin-top: 3px; font-size: 10px; color: var(--muted); }
-.hero-shot { width: min(100%, 330px); }
-.daily-card .product-shot { width: min(100%, 250px); margin-top: 28px; }
-.daily-card { display: flex; flex-direction: column; }
-.daily-card .flow { flex: 1; }
-.review-showcase { display: grid; grid-template-columns: 1.1fr .9fr; align-items: center; gap: 70px; margin-bottom: 48px; }
-.entry-types { display: grid; gap: 20px; }
-.entry-types article { padding-bottom: 20px; border-bottom: 1px solid var(--line); }
-.entry-types article:last-child { padding-bottom: 0; border-bottom: 0; }
-.entry-types h3 { font: 600 20px/1.4 var(--serif); }
-.entry-types p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.7; }
+
+.product-shot { width: min(100%, 375px); margin: 0 auto; }
+.product-shot figcaption { margin-top: 17px; color: var(--ink); font-size: 12px; line-height: 1.55; text-align: center; }
+.hero-shot { width: min(100%, 400px); }
+.heart-journal-shot { width: min(100%, 460px); }
+.review-phone { width: min(100%, 420px); }
+.sermon-phone { width: min(100%, 395px); }
+
+.product-screenshot,
+.story-screenshot { width: 100%; height: auto; display: block; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .js .product-screenshot,
+  .js .story-screenshot {
+    opacity: 0;
+    transform: translate3d(0, 34px, 0) scale(.975);
+    transform-origin: 50% 55%;
+    transition: opacity .72s cubic-bezier(.22,1,.36,1), transform .82s cubic-bezier(.22,1,.36,1);
+    will-change: opacity, transform;
+  }
+  .js .product-screenshot.is-photo-visible,
+  .js .story-screenshot.is-photo-visible {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+    will-change: auto;
+  }
+  .day-sequence .story-step:nth-child(3) .story-screenshot { transition-delay: 90ms; }
+  .day-sequence .story-step:nth-child(5) .story-screenshot { transition-delay: 180ms; }
+}
+
+/* Morning → day → evening */
+.day-story { overflow: hidden; }
+.day-sequence { display: grid; grid-template-columns: minmax(0,1fr) 26px minmax(0,1fr) 26px minmax(0,1fr); align-items: center; gap: 10px; }
+.story-step { min-width: 0; }
+.story-meta { min-height: 70px; margin-bottom: 14px; display: grid; grid-template-columns: auto 1fr; column-gap: 10px; align-items: baseline; }
+.story-meta > span { grid-row: 1 / span 2; color: var(--sage); font: 400 13px var(--serif); }
+.story-meta b { color: var(--ink); font: 600 20px var(--serif); }
+.story-meta small { color: var(--muted); font-size: 10px; text-transform: uppercase; letter-spacing: .12em; }
+.story-step > p { min-height: 64px; margin: 16px 4px 0; color: var(--muted); font-size: 11px; line-height: 1.7; }
+.sequence-arrow { color: var(--sage); font: 400 27px var(--serif); text-align: center; }
+.choice-note { margin: 38px auto 0; color: var(--sage-deep); font: 600 17px var(--serif); text-align: center; }
+
+/* Focused feature stories */
+.feature-story { overflow: hidden; }
+.feature-split { gap: clamp(48px,8vw,100px); }
+.story-copy { max-width: 510px; }
+.story-copy .eyebrow { margin-bottom: 18px; }
+.also-kept { margin-top: 28px; }
+.also-kept span { display: block; color: var(--sage-deep); font-size: 9px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; }
+.also-kept p { margin-top: 7px; font-family: var(--sans); font-size: 12px; }
+
+/* Weekly Review */
+.review-showcase { margin-bottom: 30px; display: grid; grid-template-columns: .9fr 1.1fr; align-items: center; gap: clamp(48px,7vw,90px); }
+.review-proof { margin-top: 30px; padding: 18px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.review-proof span, .review-proof b { display: block; }
+.review-proof span { margin-bottom: 6px; color: var(--sage-deep); font-size: 9px; font-weight: 600; letter-spacing: .13em; }
+.review-proof b { font: 600 17px var(--serif); }
+.review-proof p { margin: 5px 0 0; font-family: var(--sans); font-size: 11px; line-height: 1.65; }
+.review-cadence { max-width: 720px; margin: 34px auto 0; padding-top: 20px; border-top: 1px solid var(--line); display: flex; align-items: center; justify-content: center; gap: 10px 26px; flex-wrap: wrap; }
+.review-cadence span { color: var(--sage-deep); font-size: 10px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+
+/* Sermon Notes */
+.note-type-proof { margin-top: 28px; display: grid; gap: 15px; }
+.note-type-proof > div { padding-top: 14px; border-top: 1px solid var(--line); }
+.note-type-proof b, .note-type-proof span { display: block; }
+.note-type-proof b { font: 600 16px var(--serif); }
+.note-type-proof span { margin-top: 3px; color: var(--muted); font-size: 11px; }
+
 @media (max-width: 900px) {
-  .review-showcase { grid-template-columns: 1fr; gap: 35px; }
-  .hero h1 { max-width: 750px; margin-inline: auto; }
-  .nav-links { gap: 12px; }
+  .review-showcase, .feature-split { grid-template-columns: 1fr; }
+  .review-showcase { gap: 42px; }
+  .story-copy { max-width: 760px; margin: 0 auto; text-align: center; }
+  .day-sequence { grid-template-columns: 1fr; gap: 18px; }
+  .story-step { width: min(100%, 430px); margin: 0 auto; }
+  .story-meta { min-height: auto; margin-bottom: 10px; }
+  .story-step > p { min-height: auto; }
+  .sequence-arrow { transform: rotate(90deg); }
+  .also-kept { text-align: center; }
+  .day-sequence .story-screenshot { transition-delay: 0s!important; }
 }
+
 @media (max-width: 640px) {
-  .hero h1 { font-size: clamp(38px, 10vw, 49px); }
-  .hero .eyebrow { font-size: 9px; }
-  .hero-shot { width: min(100%, 290px); }
-  .daily-card { padding: 24px; }
-  .product-shot figcaption { line-height: 1.5; }
+  .hero-shot { width: min(100%, 350px); }
+  .day-sequence { gap: 12px; }
+  .story-step { width: min(100%, 360px); }
+  .story-step > p { margin-inline: 0; font-size: 12px; }
+  .choice-note { max-width: 290px; }
+  .story-copy, .also-kept { text-align: left; }
+  .product-shot, .heart-journal-shot, .review-phone, .sermon-phone { width: min(100%, 350px); }
+  .review-cadence { gap: 9px 17px; }
 }
+
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
 }

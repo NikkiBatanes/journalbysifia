@@ -21,7 +21,10 @@ const asLocalDate = (value: DateValue, fallback: Date): Date => {
   return fallback;
 };
 
-/** Account creation day is day 1; dates before it are safely clamped to day 1. */
+/**
+ * Account creation day is day 1. Dates on either side of it stay in the same
+ * continuous cycle, so moving backward in the calendar wraps to the end.
+ */
 export const getAccountSequenceNumber = (
   selectedDate: string | Date,
   accountCreatedAt: DateValue,
@@ -29,8 +32,9 @@ export const getAccountSequenceNumber = (
 ): number => {
   const target = startOfDay(asLocalDate(selectedDate, new Date()));
   const created = startOfDay(asLocalDate(accountCreatedAt, target));
-  const elapsedDays = Math.max(0, differenceInCalendarDays(target, created));
-  return (elapsedDays % cycleLength) + 1;
+  const elapsedDays = differenceInCalendarDays(target, created);
+  const zeroBasedPosition = ((elapsedDays % cycleLength) + cycleLength) % cycleLength;
+  return zeroBasedPosition + 1;
 };
 
 export const getDailyPsalmNumber = (
@@ -49,6 +53,19 @@ const psalmNumberFromReference = (value: unknown): number | null => {
   return validPsalmNumber(match?.[1]);
 };
 
+// Only empty, unread legacy placeholders are safe to reassociate. Preserve any
+// evidence of reading or writing, and every chapter saved by the fixed flow.
+const isEmptyLegacyPlaceholder = (entry: {content?: unknown; metadata?: Record<string, any>} | null | undefined): boolean => {
+  if (!entry) {return false;}
+  const metadata = entry.metadata || {};
+  if (metadata.scriptureSequenceVersion || metadata.psalmRead || metadata.proverbRead) {return false;}
+  const text = [entry.content, metadata.carry, metadata.customAttribute, metadata.customWisdom, metadata.wisdomApplication];
+  if (text.some(value => typeof value === 'string' && value.trim())) {return false;}
+  if ([metadata.selectedAttributes, metadata.selectedWisdom, metadata.selectedWisdomIds]
+    .some(value => Array.isArray(value) && value.length > 0)) {return false;}
+  return !Object.values(metadata.wisdomApplications || {}).some(value => typeof value === 'string' && value.trim());
+};
+
 /** Recover a Psalm identity after the former revisit fallback overwrote it. */
 export const resolveSavedPsalmNumber = (
   entry: {title?: unknown; content?: unknown; metadata?: Record<string, any>} | null | undefined,
@@ -64,11 +81,12 @@ export const resolveSavedPsalmNumber = (
     ));
     if (matches.length === 1) {return matches[0].psalm;}
   }
-  return psalmNumberFromReference(metadata.psalmReference)
+  const saved = psalmNumberFromReference(metadata.psalmReference)
     ?? validPsalmNumber(metadata.psalmNumber)
     ?? psalmNumberFromReference(entry?.title)
     ?? validPsalmNumber(fallback)
     ?? 1;
+  return saved === 1 && isEmptyLegacyPlaceholder(entry) ? validPsalmNumber(fallback) ?? saved : saved;
 };
 
 export const getDailyProverbNumber = (
@@ -93,7 +111,7 @@ const proverbChapterFromReference = (value: unknown): number | null => {
  * overwrite the record title and proverbNumber with a fallback chapter.
  */
 export const resolveSavedProverbNumber = (
-  entry: {title?: unknown; metadata?: Record<string, any>} | null | undefined,
+  entry: {title?: unknown; content?: unknown; metadata?: Record<string, any>} | null | undefined,
   fallback: number,
 ): number => {
   const metadata = entry?.metadata || {};
@@ -109,9 +127,10 @@ export const resolveSavedProverbNumber = (
     const chapter = validProverbChapter(match?.[1]);
     if (chapter) {return chapter;}
   }
-  return proverbChapterFromReference(metadata.proverbReference)
+  const saved = proverbChapterFromReference(metadata.proverbReference)
     ?? validProverbChapter(metadata.proverbNumber)
     ?? proverbChapterFromReference(entry?.title)
     ?? validProverbChapter(fallback)
     ?? 1;
+  return saved === 1 && isEmptyLegacyPlaceholder(entry) ? validProverbChapter(fallback) ?? saved : saved;
 };

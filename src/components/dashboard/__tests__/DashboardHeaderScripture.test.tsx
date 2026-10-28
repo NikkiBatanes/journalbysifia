@@ -41,6 +41,13 @@ beforeEach(() => {
 });
 afterEach(() => jest.useRealTimers());
 
+it('shows a scripture-shaped skeleton while the passage is loading', () => {
+  const screen = render(<DashboardHeaderScripture date={date} bibleVersion="AMP" centered />);
+
+  expect(screen.getByLabelText('Loading Scripture')).toBeTruthy();
+  expect(screen.getByTestId('dashboard-scripture-skeleton')).toBeTruthy();
+});
+
 it('shows a warm verse immediately and mounts the reader only when opened', () => {
   (getCachedScripturePassage as jest.Mock).mockReturnValue({ text: 'Cached verse' });
   const screen = render(<DashboardHeaderScripture date={date} bibleVersion="AMP" centered />);

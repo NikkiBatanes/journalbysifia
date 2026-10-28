@@ -30,7 +30,7 @@
 | Weekly       | User’s chosen review day, default Sunday, 7 PM | Previous 7 days based on Profile `weekStart` | Step into next week   | Until next weekly period becomes available    |
 | Monthly      | First 7 days of the following month            | Previous calendar month                      | Step into next month  | Through day 7 of the following month          |
 | Quarterly    | Last 7 days of Mar/Jun/Sep/Dec                 | Current quarter                              | Step into next season | Until next quarterly period becomes available |
-| Year End     | December 15                                    | Jan 1 → Dec 31                               | Close the year        | Dec 15 through Dec 31                         |
+| Year End     | December 25                                    | Jan 1 → Dec 31                               | Close the year        | Dec 25 through Dec 31                         |
 | Begin Year   | January 1–14                                   | Builds from Year End carry-forward           | Begin the year        | Jan 1 through Jan 14                          |
 | Past Reviews | Always                                         | Completed periods                            | Read / edit / revisit | More → Reviews                                |
 

@@ -29,7 +29,6 @@ import { useEditModeSafe } from '../../systems/journal/context/EditModeContext';
 import { getCategoryColor, getCategoryIcon } from './TimeBlockCategories';
 import TimeBlockCategoryModal from './TimeBlockCategoryModal';
 import { triggerLightHaptic, triggerSelectionHaptic } from '../../utils/haptics';
-import { useCalendarGating } from '../../hooks/useCalendarGating';
 import { LocationSelector } from '../LocationSelector';
 import { DeleteTimeBlockModal, DeleteOptions } from '../DeleteTimeBlockModal';
 import { CalendarSyncButton } from '../CalendarSyncButton';
@@ -37,6 +36,7 @@ import { syncTimeBlockToCalendar, removeTimeBlockFromCalendar } from '../../serv
 import { useScroll } from '../../context/ScrollContext';
 import { useMomentsPalette } from '../../context/MomentsPaletteContext';
 import { useNavigation } from '@react-navigation/native';
+import { LOCAL_TIME_BLOCK_USER_ID } from '../../storage/localTimeBlockStorage';
 
 type RepeatFrequency = 'never' | 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'yearly' | 'custom';
 
@@ -155,16 +155,15 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
   // Navigation
   const navigation = useNavigation();
 
-  // Calendar gating state
-  const calendarGating = useCalendarGating();
-
   // Dynamic theming
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';
 
   const { user, preferences: appPreferences } = useAuth();
   // Respect user auto-sync preference from profile
-  const autoSyncEnabled = ((user as any)?.user_metadata?.preferences?.calendar?.autoSync ?? false) as boolean;
+  const autoSyncEnabled = (appPreferences?.calendar?.autoSync
+    ?? (user as any)?.user_metadata?.preferences?.calendar?.autoSync
+    ?? false) as boolean;
   const weekStartsOn = useMemo(() => {
     const key = appPreferences?.weekStart as
       | 'sunday' | 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | undefined;
@@ -186,7 +185,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
   const loadStartTime = useRef<number>(Date.now());
 
   // React Query hooks
-  const { data: timeBlockEntries = [], isLoading, error } = useTimeBlockData(user?.id || '', dateStr);
+  const { data: timeBlockEntries = [], isLoading, error } = useTimeBlockData(LOCAL_TIME_BLOCK_USER_ID, dateStr);
   const queryClient = useQueryClient();
 
   const createMutation = useCreateTimeBlock();
@@ -259,10 +258,6 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
   const [_showFrequencySelector, setShowFrequencySelector] = useState(false);
   const [customFrequency, setCustomFrequency] = useState({ value: 1, unit: 'week' });
   const [_inputValue, setInputValue] = useState('1');
-
-  // Track if we're editing a virtual (expanded) instance of a repeating block
-  const [editIsVirtualInstance] = useState<boolean>(false);
-  const [editInstanceDate] = useState<string | null>(null);
 
   const [newBlock, setNewBlock] = useState<{
     title: string;
@@ -427,16 +422,14 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
 
           // Force cache invalidation for the current date to update UI immediately
 
-          if (user?.id) {
-            await queryClient.invalidateQueries({
-              queryKey: queryKeys.timeBlocks.byDate(user.id, dateStr),
-            });
+          await queryClient.invalidateQueries({
+            queryKey: queryKeys.timeBlocks.byDate(LOCAL_TIME_BLOCK_USER_ID, dateStr),
+          });
 
-            // Also invalidate broader queries to ensure consistency
-            await queryClient.invalidateQueries({
-              queryKey: [queryKeys.timeBlocks.all[0]],
-            });
-          }
+          // Also invalidate broader queries to ensure consistency
+          await queryClient.invalidateQueries({
+            queryKey: [queryKeys.timeBlocks.all[0]],
+          });
         } else {
           // For 'all' deletions on virtual instances, delete the original event
           const parts = timeBlock.id.split('-');
@@ -486,16 +479,14 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
 
             // Force cache invalidation for the current date to update UI immediately
 
-            if (user?.id) {
-              await queryClient.invalidateQueries({
-                queryKey: queryKeys.timeBlocks.byDate(user.id, dateStr),
-              });
+            await queryClient.invalidateQueries({
+              queryKey: queryKeys.timeBlocks.byDate(LOCAL_TIME_BLOCK_USER_ID, dateStr),
+            });
 
-              // Also invalidate broader queries to ensure consistency
-              await queryClient.invalidateQueries({
-                queryKey: [queryKeys.timeBlocks.all[0]],
-              });
-            }
+            // Also invalidate broader queries to ensure consistency
+            await queryClient.invalidateQueries({
+              queryKey: [queryKeys.timeBlocks.all[0]],
+            });
 
           } catch (updateError) {
             Logger.error('🗓️ Error updating metadata', updateError as Error, {
@@ -559,16 +550,14 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
 
           // Force cache invalidation for the current date to update UI immediately
 
-          if (user?.id) {
-            await queryClient.invalidateQueries({
-              queryKey: queryKeys.timeBlocks.byDate(user.id, dateStr),
-            });
+          await queryClient.invalidateQueries({
+            queryKey: queryKeys.timeBlocks.byDate(LOCAL_TIME_BLOCK_USER_ID, dateStr),
+          });
 
-            // Also invalidate broader queries to ensure consistency
-            await queryClient.invalidateQueries({
-              queryKey: [queryKeys.timeBlocks.all[0]],
-            });
-          }
+          // Also invalidate broader queries to ensure consistency
+          await queryClient.invalidateQueries({
+            queryKey: [queryKeys.timeBlocks.all[0]],
+          });
         } else {
 
           // Delete from calendar first if synced
@@ -635,8 +624,6 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
   };
 
   const addTimeBlock = async () => {
-    if (!user) {return;}
-
     if (!newBlock.title.trim()) {
       setShowTitleError(true);
       return;
@@ -685,107 +672,6 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
       const durationMinutes = Math.round((endDateTime.getTime() - startDateTime.getTime()) / (1000 * 60));
 
       if (editId) {
-        // Special case: editing a virtual instance while repeat features are gated
-        // Instead of clearing the recurrence on the original event (which makes the instance disappear),
-        // we add an exception for this date and create a one-off block for the edited instance.
-        if (editIsVirtualInstance && !calendarGating.canUseRepeat) {
-          try {
-            const instanceDateStr = editInstanceDate || dateStr;
-
-            // 1) Hide this date from the original recurring event by adding an exception (append)
-            const originalApiEntry = timeBlockEntries.find(entry => entry.id === editId);
-            const existingExceptions = (originalApiEntry?.metadata?.exceptions || []) as string[];
-            const newExceptions = existingExceptions.includes(instanceDateStr)
-              ? existingExceptions
-              : [...existingExceptions, instanceDateStr];
-
-            await updateMutation.mutateAsync({
-              id: editId,
-              updates: {
-                metadata: {
-                  exceptions: newExceptions,
-                },
-              },
-            });
-
-            // 2) Create a one-off time block for this date with the edited values
-            const createData = {
-              user_id: user?.id || '',
-              selected_date: dateStr,
-              title: newBlock.title.trim(),
-              start_time: startDateTime.toISOString(),
-              end_time: endDateTime.toISOString(),
-              category: newBlock.category,
-              description: newBlock.notes.trim() || undefined,
-              location: newBlock.location.trim() || undefined,
-              all_day: newBlock.isAllDay,
-              repeat_rule: undefined,
-              repeat_until: undefined,
-            } as const;
-
-            const created = await createMutation.mutateAsync(createData as any);
-
-            // CRITICAL FIX: Emit timeblock event to refresh Moments screen
-            DeviceEventEmitter.emit('timeblock_saved', { timeblock: created });
-
-            // Optional: sync to calendar for the one-off instance (only if autoSync is enabled)
-            if (calendarGating.canSyncToCalendar && autoSyncEnabled) {
-              try {
-                const timeBlockForSync = {
-                  id: created.id,
-                  title: newBlock.title.trim(),
-                  startTime: startDateTime,
-                  endTime: endDateTime,
-                  location: newBlock.location.trim(),
-                  notes: newBlock.notes.trim(),
-                  isAllDay: newBlock.isAllDay,
-                  alarmMinutes: alertToMinutes(newBlock.alert),
-                  repeat: { frequency: 'never' as const },
-                  calendarEventId: undefined,
-                };
-                const syncResult = await syncTimeBlockToCalendar(timeBlockForSync);
-                if (syncResult.success && syncResult.eventId) {
-                  await updateMutation.mutateAsync({ id: created.id, updates: { calendar_event_id: syncResult.eventId } });
-                }
-              } catch (calendarError) {
-                Logger.warn('Calendar sync failed for one-off edit instance', {
-      component: 'TimeBlockReactQuery',
-      data: calendarError,
-    });
-              }
-            }
-
-            // Invalidate caches to refresh UI
-            if (user?.id) {
-              await queryClient.invalidateQueries({ queryKey: [queryKeys.timeBlocks.all[0]] });
-            }
-
-            const prevDurationMins = originalApiEntry
-              ? Math.round((new Date(originalApiEntry.end_time).getTime() - new Date(originalApiEntry.start_time).getTime()) / 60000)
-              : durationMinutes;
-
-            analytics.trackTimeBlockEvent('timeblock_updated', {
-              timeblock_id: editId,
-              title_length: newBlock.title.trim().length,
-              category: newBlock.category,
-              duration_minutes: durationMinutes,
-              previous_duration_minutes: prevDurationMins,
-              is_all_day: newBlock.isAllDay,
-              has_location: !!newBlock.location.trim(),
-              has_notes: !!newBlock.notes.trim(),
-              repeat_frequency: String(newBlock.repeat.frequency),
-              date: dateStr,
-            }, user?.id);
-
-            return; // Done with special-case flow
-
-          } catch (specialEditError) {
-            Logger.error('Error editing virtual instance without repeat access', specialEditError as Error, {
-        component: 'TimeBlockReactQuery',
-      });
-            // Fall through to regular edit handling as a fallback
-          }
-        }
         // Track update analytics
         const existingBlock = timeBlocks.find(block => block.id === editId);
         const previousDuration = existingBlock ?
@@ -799,7 +685,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
           || (existingBlock?.startTime ? existingBlock.startTime.toISOString().split('T')[0] : dateStr);
 
         const timeBlockData = {
-          user_id: user?.id || '',
+          user_id: LOCAL_TIME_BLOCK_USER_ID,
           selected_date: originalSelectedDate, // Use original date, not current view date
           title: newBlock.title.trim(),
           start_time: startDateTime.toISOString(),
@@ -810,8 +696,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
           all_day: newBlock.isAllDay,
           alert: newBlock.alert || 'none',
           alarm_minutes: alertToMinutes(newBlock.alert), // TODO: Uncomment after running database migration
-          // Repeat fields (only if user can use repeat)
-          repeat_rule: (newBlock.repeat.frequency !== 'never' && calendarGating.canUseRepeat) ? {
+          repeat_rule: newBlock.repeat.frequency !== 'never' ? {
             frequency: newBlock.repeat.frequency,
             customDays: newBlock.repeat.customDays,
           } : undefined,
@@ -821,7 +706,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
 
         // Sync updated time block to calendar (before cache invalidation) when autoSync is enabled
         let calendarEventIdToSave: string | undefined;
-        if (calendarGating.canSyncToCalendar && autoSyncEnabled) {
+        if (autoSyncEnabled) {
           try {
             // Convert repeat frequency for calendar sync compatibility
             const calendarRepeat = {
@@ -869,12 +754,10 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
 
         // Force cache invalidation AFTER all operations complete
         // This is critical for recurring events where changes affect multiple dates
-        if (user?.id) {
-          await queryClient.invalidateQueries({
-            queryKey: [queryKeys.timeBlocks.all[0]],
-          });
-          Logger.info('EDIT: Cache invalidated for all time blocks');
-        }
+        await queryClient.invalidateQueries({
+          queryKey: [queryKeys.timeBlocks.all[0]],
+        });
+        Logger.info('EDIT: Cache invalidated for all time blocks');
 
         analytics.trackTimeBlockEvent('timeblock_updated', {
           timeblock_id: editId,
@@ -891,7 +774,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
       } else {
         // Create new time block
         const timeBlockData = {
-          user_id: user?.id || '',
+          user_id: LOCAL_TIME_BLOCK_USER_ID,
           selected_date: dateStr,
           title: newBlock.title.trim(),
           start_time: startDateTime.toISOString(),
@@ -902,13 +785,12 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
           all_day: newBlock.isAllDay,
           alert: newBlock.alert || 'none',
           alarm_minutes: alertToMinutes(newBlock.alert), // TODO: Uncomment after running database migration
-          // Repeat fields (only if user can use repeat)
-          repeat_rule: (newBlock.repeat.frequency !== 'never' && calendarGating.canUseRepeat) ? {
+          repeat_rule: newBlock.repeat.frequency !== 'never' ? {
             frequency: newBlock.repeat.frequency,
             customDays: newBlock.repeat.customDays,
             customFrequency: newBlock.repeat.customFrequency,
           } : undefined,
-          repeat_until: (newBlock.repeat.frequency !== 'never' && newBlock.repeat.endDate && calendarGating.canUseRepeat) ? newBlock.repeat.endDate.toISOString() : undefined,
+          repeat_until: (newBlock.repeat.frequency !== 'never' && newBlock.repeat.endDate) ? newBlock.repeat.endDate.toISOString() : undefined,
         };
 
         const createResult = await createMutation.mutateAsync(timeBlockData);
@@ -917,7 +799,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
         DeviceEventEmitter.emit('timeblock_saved', { timeblock: createResult });
 
         // Sync new time block to calendar when autoSync is enabled
-        if (calendarGating.canSyncToCalendar && autoSyncEnabled) {
+        if (autoSyncEnabled) {
           try {
             Logger.info('CREATE: Starting calendar sync for new time block');
             // Convert repeat frequency for calendar sync compatibility
@@ -963,7 +845,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
     });
           }
         } else {
-          Logger.info('CREATE: ⚠️ Calendar sync disabled by gating');
+          Logger.info('CREATE: Calendar auto-sync is disabled in preferences');
         }
 
         analytics.trackTimeBlockEvent('timeblock_created', {
@@ -1174,7 +1056,11 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
     return (
       <TouchableOpacity
         key={block.id}
-        style={[styles.timeBlockPressable, styles.timeBlockPressableInline]}
+        style={[
+          styles.timeBlockPressable,
+          styles.timeBlockPressableInline,
+          momentsPalette && styles.timeBlockPressableMoments,
+        ]}
         onPress={() => openExistingTimeBlockEditor(block)}
         onLongPress={() => handleDeleteBlock(block)}
         activeOpacity={0.7}
@@ -1182,8 +1068,16 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
         accessibilityLabel={`Edit time block ${block.title}`}
         accessibilityHint="Tap to edit. Long press to delete."
       >
-        <View style={[styles.timeBlockCard, styles.timeBlockCardInline]}>
-          <View style={[styles.timeColumn, styles.timeColumnInline]}>
+        <View style={[
+          styles.timeBlockCard,
+          styles.timeBlockCardInline,
+          momentsPalette && styles.timeBlockCardMoments,
+        ]}>
+          <View style={[
+            styles.timeColumn,
+            styles.timeColumnInline,
+            momentsPalette && styles.timeColumnMoments,
+          ]}>
             {/* Calendar Sync (inline above time) - always show so users know feature exists */}
             <View style={styles.calendarSyncInline}>
               <CalendarSyncButton
@@ -1206,7 +1100,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
                       // Don't invalidate immediately - let the mutation's onSuccess handle it
                       // to avoid race condition where refetch happens before DB update completes
                       try {
-                        const qk = queryKeys.timeBlocks.byDate(user?.id || '', dateStr);
+                        const qk = queryKeys.timeBlocks.byDate(LOCAL_TIME_BLOCK_USER_ID, dateStr);
                         queryClient.setQueryData<any[]>(qk, (old) => {
                           if (!Array.isArray(old)) { return old; }
                           return old.map((tb) => {
@@ -1227,16 +1121,16 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
                 />
               </View>
             {block.isAllDay ? (
-              <View style={styles.allDayBadge}>
-                <ThemedText weight="semiBold" style={styles.allDayText}>ALL DAY</ThemedText>
+              <View style={[styles.allDayBadge, momentsPalette && styles.allDayBadgeMoments]}>
+                <ThemedText weight="semiBold" style={[styles.allDayText, momentsPalette && styles.allDayTextMoments]}>ALL DAY</ThemedText>
               </View>
             ) : (
               <View style={styles.timeRangeStacked}>
-                <ThemedText weight="semiBold" style={[styles.timeText, styles.timeTextInline]}>{formatTime(block.startTime)}</ThemedText>
-                <ThemedText weight="semiBold" style={[styles.timeSeparatorText, styles.timeSeparatorTextInline]}>TO</ThemedText>
-                <ThemedText weight="semiBold" style={[styles.timeText, styles.timeTextInline]}>{formatTime(block.endTime)}</ThemedText>
-                <View style={[styles.durationContainer, styles.durationContainerInline]}>
-                  <ThemedText style={[styles.durationText, styles.durationTextInline]}>
+                <ThemedText weight="semiBold" style={[styles.timeText, styles.timeTextInline, momentsPalette && styles.timeTextMoments]}>{formatTime(block.startTime)}</ThemedText>
+                <ThemedText weight="semiBold" style={[styles.timeSeparatorText, styles.timeSeparatorTextInline, momentsPalette && styles.timeSeparatorTextMoments]}>TO</ThemedText>
+                <ThemedText weight="semiBold" style={[styles.timeText, styles.timeTextInline, momentsPalette && styles.timeTextMoments]}>{formatTime(block.endTime)}</ThemedText>
+                <View style={[styles.durationContainer, styles.durationContainerInline, momentsPalette && styles.durationContainerMoments]}>
+                  <ThemedText style={[styles.durationText, styles.durationTextInline, momentsPalette && styles.durationTextMoments]}>
                     {formatDuration(block.startTime, block.endTime)}
                   </ThemedText>
                 </View>
@@ -1245,10 +1139,14 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
           </View>
           <View style={styles.detailsColumn}>
             <View style={styles.detailsRow}>
-              <ThemedText weight="semiBold" style={[styles.blockTitle, styles.blockTitleInline]}>{block.title}</ThemedText>
+              <ThemedText weight="semiBold" style={[styles.blockTitle, styles.blockTitleInline, momentsPalette && styles.blockTitleMoments]}>{block.title}</ThemedText>
             </View>
             <View style={styles.detailsContent}>
-              <View style={[styles.categoryTag, { backgroundColor: getCategoryColor(block.category) }]}>
+              <View style={[
+                styles.categoryTag,
+                { backgroundColor: getCategoryColor(block.category) },
+                momentsPalette && styles.categoryTagMoments,
+              ]}>
                 <View style={styles.categoryContent}>
                   <Ionicons
                     name={getCategoryIcon(block.category)}
@@ -1265,16 +1163,16 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
                 <View style={styles.metaInfoContainer}>
                   {block.location && (
                     <View style={styles.metaInfoRow}>
-                      <Ionicons name="location-outline" size={12} color={Colors.hopeWhite} style={styles.metaIcon} />
-                      <ThemedText style={styles.metaText} numberOfLines={1} ellipsizeMode="tail">
+                      <Ionicons name="location-outline" size={12} color={momentsPalette ? Colors.sage : Colors.hopeWhite} style={styles.metaIcon} />
+                      <ThemedText style={[styles.metaText, momentsPalette && styles.metaTextMoments]} numberOfLines={1} ellipsizeMode="tail">
                         {block.location}
                       </ThemedText>
                     </View>
                   )}
                   {block.repeat.frequency !== 'never' && (
                     <View style={styles.metaInfoRow}>
-                      <Ionicons name="repeat-outline" size={12} color={Colors.hopeWhite} style={styles.metaIcon} />
-                      <ThemedText style={styles.metaText}>
+                      <Ionicons name="repeat-outline" size={12} color={momentsPalette ? Colors.sage : Colors.hopeWhite} style={styles.metaIcon} />
+                      <ThemedText style={[styles.metaText, momentsPalette && styles.metaTextMoments]}>
                         {formatRepeatText(block.repeat.frequency, block.repeat.customDays, block.repeat.customFrequency)}
                         {block.repeat.endDate ? ` until ${block.repeat.endDate.toLocaleDateString()}` : ''}
                       </ThemedText>
@@ -1282,8 +1180,8 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
                   )}
                   {block.alert && block.alert !== 'none' && (
                     <View style={styles.metaInfoRow}>
-                      <Ionicons name="notifications-outline" size={12} color={Colors.hopeWhite} style={styles.metaIcon} />
-                      <ThemedText style={styles.metaText}>
+                      <Ionicons name="notifications-outline" size={12} color={momentsPalette ? Colors.sage : Colors.hopeWhite} style={styles.metaIcon} />
+                      <ThemedText style={[styles.metaText, momentsPalette && styles.metaTextMoments]}>
                         {block.alert === 'at-time' ? 'At time of event' :
                          block.alert === '5-min' ? '5 min before' :
                          block.alert === '10-min' ? '10 min before' :
@@ -1305,6 +1203,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
                   notes={block.notes}
                   isExpanded={isExpanded}
                   onToggle={() => toggleNotes(block.id)}
+                  journalPalette={momentsPalette}
                 />
               )}
             </View>
@@ -1317,7 +1216,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
   if (isLoading) {
     return (
       <JournalCard
-        icon={<MaterialCommunityIcons name="timeline-text-outline" size={24} color={Colors.alertCoral} />}
+        icon={<MaterialCommunityIcons name="timeline-text-outline" size={24} color={momentsPalette ? Colors.sage : Colors.alertCoral} />}
         title={timeBlocks.length === 1 ? 'TIME BLOCK' : 'TIME BLOCKS'}
         subtitle="Schedule and organize your day"
         showAddButton={false}
@@ -1338,7 +1237,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
 
   return (
     <JournalCard
-      icon={showHeader ? <MaterialCommunityIcons name="timeline-text-outline" size={24} color={Colors.alertCoral} /> : undefined}
+      icon={showHeader ? <MaterialCommunityIcons name="timeline-text-outline" size={24} color={momentsPalette ? Colors.sage : Colors.alertCoral} /> : undefined}
       title={headerTitle}
       subtitle={headerSubtitle}
       showAddButton={hasItems && !shouldShowAddingMode}
@@ -1673,7 +1572,6 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
             {showRepeatOptions && (
               <View style={styles.repeatOptions}>
                 {['never', 'daily', 'weekly', 'biweekly', 'monthly', 'yearly', 'custom'].map((freq, idx, arr) => {
-                  const isPremiumFeature = freq !== 'never' && !calendarGating.canUseRepeat;
                   // Compute conditional border style to avoid inline styles
                   const borderStyle = idx === arr.length - 1 ? { borderBottomWidth: 0 } : {};
 
@@ -1686,11 +1584,6 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
                         borderStyle,
                       ]}
                       onPress={() => {
-                        if (isPremiumFeature) {
-                          calendarGating.handleRepeatLockTap();
-                          return;
-                        }
-
                         const newFrequency = freq as RepeatFrequency;
                         const updatedBlock = {
                           ...newBlock,
@@ -1713,10 +1606,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
                         }
                       }}
                     >
-                      <ThemedText style={[
-                        styles.repeatOptionText,
-                        isPremiumFeature && styles.lockedRepeatText,
-                      ]}>
+                      <ThemedText style={styles.repeatOptionText}>
                         {freq === 'never' ? 'Never' :
                          freq === 'daily' ? 'Every Day' :
                          freq === 'weekly' ? 'Every Week' :
@@ -1724,14 +1614,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
                          freq === 'monthly' ? 'Every Month' :
                          freq === 'yearly' ? 'Every Year' : 'Custom...'}
                       </ThemedText>
-                      {isPremiumFeature && (
-                        <MaterialCommunityIcons
-                          name="lock"
-                          size={14}
-                          color={Colors.textGray}
-                        />
-                      )}
-                      {newBlock.repeat.frequency === freq && !isPremiumFeature && (
+                      {newBlock.repeat.frequency === freq && (
                         <Ionicons name="checkmark" size={16} color={Colors.alertCoral} />
                       )}
                     </TouchableOpacity>
@@ -2164,7 +2047,6 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
         eventTitle={showDeleteModal.timeBlock?.title || ''}
         onDelete={handleDeleteConfirm}
         onCancel={() => setShowDeleteModal({ visible: false })}
-        canDeleteSeries={calendarGating.canDeleteSeries}
       />
     </JournalCard>
   );
@@ -2179,13 +2061,13 @@ export const TimeBlockReactQueryWithErrorBoundary: React.FC<TimeBlockProps> = (p
 
 // Export both versions for flexibility
 // --- Helper: NotesWithChevron ---
-const NotesWithChevron = ({ notes, isExpanded, onToggle }: { notes: string; isExpanded: boolean; onToggle: () => void }) => {
+const NotesWithChevron = ({ notes, isExpanded, onToggle, journalPalette = false }: { notes: string; isExpanded: boolean; onToggle: () => void; journalPalette?: boolean }) => {
   const showChevron = !isExpanded;
   return (
-    <TouchableOpacity style={styles.notesContainer} onPress={onToggle} activeOpacity={0.7}>
-      <Ionicons name="document-text-outline" size={12} color={Colors.hopeWhite} style={styles.notesIcon} />
+    <TouchableOpacity style={[styles.notesContainer, journalPalette && styles.notesContainerMoments]} onPress={onToggle} activeOpacity={0.7}>
+      <Ionicons name="document-text-outline" size={12} color={journalPalette ? Colors.sage : Colors.hopeWhite} style={styles.notesIcon} />
       <ThemedText
-        style={styles.notesText}
+        style={[styles.notesText, journalPalette && styles.notesTextMoments]}
         numberOfLines={isExpanded ? undefined : 2}
         ellipsizeMode="tail"
       >
@@ -2195,7 +2077,7 @@ const NotesWithChevron = ({ notes, isExpanded, onToggle }: { notes: string; isEx
         <Ionicons
           name={isExpanded ? 'chevron-up' : 'chevron-down'}
           size={12}
-          color={Colors.textGray}
+          color={journalPalette ? Colors.sageMuted : Colors.textGray}
           style={styles.notesChevron}
         />
       )}
@@ -2216,6 +2098,9 @@ const styles = StyleSheet.create({
   },
   timeBlockPressableInline: {
     borderRadius: 16, // Match the inline card border radius
+  },
+  timeBlockPressableMoments: {
+    borderRadius: 24,
   },
   loadingText: {
     color: Colors.textGray,
@@ -2326,9 +2211,9 @@ const styles = StyleSheet.create({
   },
   timeBlockCardMoments: {
     borderRadius: 24,
-    backgroundColor: Colors.sage,
+    backgroundColor: Colors.cardBackground,
     borderWidth: 1,
-    borderColor: Colors.inputBorder,
+    borderColor: Colors.cardBorder,
     paddingVertical: 12,
   },
   timeBlocksContainer: {
@@ -2352,6 +2237,9 @@ const styles = StyleSheet.create({
     borderRightColor: 'rgba(255, 255, 255, 0.15)',
     borderRadius: 0,
   },
+  timeColumnMoments: {
+    borderRightColor: Colors.inputBorder,
+  },
   timeRangeStacked: {
     flexDirection: 'column',
     alignItems: 'center',
@@ -2368,7 +2256,7 @@ const styles = StyleSheet.create({
     color: Colors.hopeWhite,
   },
   timeSeparatorTextMoments: {
-    color: Colors.hopeWhite,
+    color: Colors.textGray,
   },
   allDayBadge: {
     backgroundColor: Colors.alertCoral,
@@ -2383,6 +2271,14 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: Colors.hopeWhite,
     letterSpacing: 0.5,
+  },
+  allDayBadgeMoments: {
+    backgroundColor: Colors.anchorBlueLight,
+    borderWidth: 1,
+    borderColor: Colors.inputBorder,
+  },
+  allDayTextMoments: {
+    color: Colors.sage,
   },
   durationContainer: {
     marginTop: 4,
@@ -2406,7 +2302,11 @@ const styles = StyleSheet.create({
     color: Colors.hopeWhite,
   },
   durationTextMoments: {
-    color: Colors.hopeWhite,
+    color: Colors.sage,
+  },
+  durationContainerMoments: {
+    borderColor: Colors.inputBorder,
+    backgroundColor: Colors.anchorBlueLight,
   },
   detailsColumn: {
     flex: 1,
@@ -2440,7 +2340,7 @@ const styles = StyleSheet.create({
     color: Colors.hopeWhite,
   },
   blockTitleMoments: {
-    color: Colors.hopeWhite,
+    color: Colors.text,
   },
   categoryTag: {
     alignSelf: 'flex-start',
@@ -2451,6 +2351,10 @@ const styles = StyleSheet.create({
     borderWidth: 0.5,
     borderColor: Colors.lightOverlay,
     backgroundColor: Colors.subtleOverlay,
+  },
+  categoryTagMoments: {
+    backgroundColor: Colors.anchorBlueLight,
+    borderColor: Colors.inputBorder,
   },
   categoryContent: {
     flexDirection: 'row',
@@ -2488,6 +2392,9 @@ const styles = StyleSheet.create({
     marginTop: 0,
     paddingRight: 4,
   },
+  metaTextMoments: {
+    color: Colors.textGray,
+  },
   notesContainer: {
     width: '100%',
     marginTop: 3,
@@ -2498,6 +2405,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center', // Center vertically
     minHeight: 24, // Ensure enough height for icon, text, chevron
+  },
+  notesContainerMoments: {
+    backgroundColor: Colors.inputBackground,
+    borderWidth: 1,
+    borderColor: Colors.inputBorder,
   },
   notesIcon: {
     marginRight: 4,
@@ -2518,6 +2430,9 @@ const styles = StyleSheet.create({
   },
   timeTextInline: {
     color: Colors.hopeWhite,
+  },
+  timeTextMoments: {
+    color: Colors.sage,
   },
   titleRow: {
     flexDirection: 'row',
@@ -2562,6 +2477,9 @@ const styles = StyleSheet.create({
     marginRight: 4,
     lineHeight: 16,
     letterSpacing: 0.1,
+  },
+  notesTextMoments: {
+    color: Colors.text,
   },
   swipeActions: {
     flexDirection: 'row',
@@ -3242,23 +3160,5 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.lightBorder,
     marginLeft: 8,
-  },
-  lockedRepeatButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    backgroundColor: Colors.subtleOverlay,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: Colors.lightOverlay,
-    opacity: 0.6,
-  },
-  lockedRepeatText: {
-    fontSize: 14,
-    color: Colors.textGray,
-    marginLeft: 8,
-    fontStyle: 'italic',
   },
 });

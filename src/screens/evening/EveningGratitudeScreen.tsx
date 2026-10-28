@@ -136,6 +136,7 @@ const EveningGratitudeScreen: React.FC = () => {
       selectedDate={selectedDateObj}
       initialItems={initialItems}
       routineDraft={{ routine: 'evening', selectedDate, step: 'gratitude' }}
+      swipeForwardEnabled
     />
   );
 };

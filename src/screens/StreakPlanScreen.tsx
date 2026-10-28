@@ -12,6 +12,7 @@ import { useTheme } from '../theme/ThemeContext';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { Colors } from '../theme/colors';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import {BookOpen, CheckCircle2, FileText, Heart, Moon, RefreshCw, Sun} from 'lucide-react-native';
 import WeeklyStreakRow, { DayState } from '../components/WeeklyStreakRow';
 import { triggerLightHaptic } from '../utils/haptics';
 import { visibleStreakService } from '../services/visibleStreakService';
@@ -22,6 +23,21 @@ import {
 } from '../services/faithfulRhythmService';
 import { requestReview } from '../services/reviewPromptService';
 import ShareComposer from '../components/TruthToCarryShareComposer';
+import { playStreakCelebrationSound } from '../utils/soundUtils';
+
+const RhythmCelebrationIcon = ({rhythm}: {rhythm?: FaithfulRhythmId}) => {
+  const props = {size: 44, color: Colors.sage, strokeWidth: 1.9, fill: Colors.sage};
+  switch (rhythm) {
+    case 'morning': return <Sun {...props} />;
+    case 'evening': return <Moon {...props} />;
+    case 'heart_journal':
+    case 'prayer': return <Heart {...props} />;
+    case 'bible_study': return <BookOpen {...props} />;
+    case 'session_notes': return <FileText {...props} />;
+    case 'reviews': return <RefreshCw {...props} />;
+    default: return <CheckCircle2 {...props} />;
+  }
+};
 
 interface RouteParams {
   playbookId?: string;
@@ -61,6 +77,7 @@ const StreakPlanScreen: React.FC = () => {
   const iconMotionAnim = useRef(new Animated.Value(0)).current;
   const shareButtonAnim = useRef(new Animated.Value(0)).current;
   const entranceStartedRef = useRef(false);
+  const celebrationSoundPlayedRef = useRef(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -82,6 +99,12 @@ const StreakPlanScreen: React.FC = () => {
         entranceFallbackTimer = null;
       }
 
+      // Begin the celebratory rise with the visual entrance. It lands on its
+      // full chord as the fade completes, then sparkles under the icon motion.
+      if (!celebrationSoundPlayedRef.current) {
+        celebrationSoundPlayedRef.current = true;
+        playStreakCelebrationSound().catch(() => {});
+      }
       Animated.parallel([
         Animated.timing(fadeAnim, {
           toValue: 1,
@@ -446,7 +469,7 @@ const StreakPlanScreen: React.FC = () => {
       <Animated.View
         style={[
           styles.closeButton,
-          { top: insets.top + 8 },
+          { top: insets.top + (IS_IPAD ? 32 : 8) },
           {
             opacity: shareButtonAnim,
             transform: [
@@ -482,7 +505,7 @@ const StreakPlanScreen: React.FC = () => {
         >
           <View style={styles.iconCircle}>
             <Animated.View style={{ transform: iconMotionTransform }}>
-              <Ionicons name={celebrationIcon} size={44} color={Colors.sage} />
+              <RhythmCelebrationIcon rhythm={params.rhythm} />
             </Animated.View>
           </View>
         </Animated.View>

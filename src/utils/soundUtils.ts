@@ -141,3 +141,27 @@ export const playGospelOpeningSound = async () => {
     openingSound.play(() => openingSound.release());
   });
 };
+
+/**
+ * Plays the bright major-key cue used by the faithful-rhythm celebration.
+ * Its quick four-note rise follows the entrance, lands on a full chord as the
+ * fade completes, then leaves a short sparkle beneath the icon motion.
+ */
+export const playStreakCelebrationSound = async () => {
+  await experiencePreferences.loadOnce();
+  if (!isSoundsEnabled()) { return; }
+
+  Sound.setCategory('Playback', true);
+  const fileName = Platform.OS === 'android'
+    ? 'streak_celebration'
+    : 'streak_celebration.mp3';
+  const celebrationSound = new Sound(fileName, Sound.MAIN_BUNDLE, (error) => {
+    if (error) {
+      celebrationSound.release();
+      return;
+    }
+
+    celebrationSound.setVolume(0.62);
+    celebrationSound.play(() => celebrationSound.release());
+  });
+};

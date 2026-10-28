@@ -25,6 +25,45 @@ it('returns downloaded text without waiting for disk and exposes it synchronousl
   expect(supabase.functions.invoke).toHaveBeenCalledTimes(1);
 });
 
+it('removes asterisk markup from passage text and verse lines', async () => {
+  (supabase.functions.invoke as jest.Mock).mockResolvedValue({
+    data: {
+      text: '*Jesus said,* “Follow Me.” ***',
+      version: 'NASB',
+      verses: [{ number: '19', lines: ['*Jesus said,* “Follow Me.”', '***'] }],
+    },
+  });
+
+  const result = await getScripturePassage('Matthew 4:19', 'NASB');
+
+  expect(result.text).toBe('Jesus said, “Follow Me.”');
+  expect(result.verses).toEqual([{ number: '19', lines: ['Jesus said, “Follow Me.”'] }]);
+});
+
+it('preserves words-of-Jesus segments from the passage response', async () => {
+  (supabase.functions.invoke as jest.Mock).mockResolvedValue({
+    data: {
+      text: 'Jesus said, “I am the good shepherd.”',
+      version: 'NASB',
+      verses: [{
+        number: '11',
+        lines: ['Jesus said, “I am the good shepherd.”'],
+        segments: [[
+          {text: 'Jesus said, '},
+          {text: '“I am the good shepherd.”', wordsOfJesus: true},
+        ]],
+      }],
+    },
+  });
+
+  const result = await getScripturePassage('John 10:11', 'NASB');
+
+  expect(result.verses?.[0].segments?.[0]).toEqual([
+    {text: 'Jesus said, '},
+    {text: '“I am the good shepherd.”', wordsOfJesus: true},
+  ]);
+});
+
 it('restores a saved daily verse while offline without contacting the server', async () => {
   const saved = { text: 'Saved verse', reference: 'Psalm 4:8', version: 'AMP' };
   (AsyncStorage.getItem as jest.Mock).mockResolvedValue(JSON.stringify(saved));

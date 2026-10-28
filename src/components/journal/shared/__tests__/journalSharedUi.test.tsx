@@ -20,6 +20,7 @@ jest.mock(
   () => 'MaterialCommunityIcons',
 );
 jest.mock('lucide-react-native', () => ({Pencil: 'Pencil'}));
+jest.mock('../../../ScriptureReaderModal', () => 'ScriptureReaderModal');
 jest.mock('../../../../services/scriptureReaderService', () => ({
   getScripturePassage: jest.fn().mockResolvedValue(null),
 }));
@@ -217,6 +218,8 @@ describe('shared Journal UI extraction', () => {
       {
         ...createJournalBlock('language', 'language'),
         text: 'agape',
+        englishWord: 'love',
+        languageKind: 'greek',
         meaning: 'Self-giving love',
         origin: 'Greek usage',
         reference: '1 Corinthians 13',
@@ -233,7 +236,7 @@ describe('shared Journal UI extraction', () => {
       'BIBLE CHARACTER\nRuth\nFaithful in uncertainty\nRuth 1:16',
     );
     expect(text).toContain(
-      'LANGUAGE NOTE\nagape\nSelf-giving love\nGreek usage\n1 Corinthians 13',
+      'LANGUAGE NOTE\nEnglish in the verse: love\nGreek word: agape\nSelf-giving love\nGreek usage\n1 Corinthians 13',
     );
     expect(text).toContain(
       'HISTORICAL CONTEXT\nFirst century AD\nWritten into a divided city\nEphesians 2',
@@ -344,6 +347,11 @@ describe('shared Journal UI extraction', () => {
         editor.getByTestId('outline-section-marker').props.style,
       ),
     ).toMatchObject({width: 4, height: 30, borderRadius: 2});
+    expect(
+      StyleSheet.flatten(
+        editor.getByPlaceholderText('Section title').props.style,
+      ),
+    ).toMatchObject({fontFamily: 'Lexend-Bold', fontSize: 18});
     expect(editor.queryByTestId('section-title-divider')).toBeNull();
 
     const saved = render(<SavedReflectionBlocks blocks={[block]} />);
@@ -352,9 +360,12 @@ describe('shared Journal UI extraction', () => {
         saved.getByTestId('outline-section-marker').props.style,
       ),
     ).toMatchObject({width: 4, minHeight: 28, borderRadius: 2});
+    expect(saved.getByText('Grace in practice').props).toMatchObject({
+      weight: 'bold',
+    });
     expect(
       StyleSheet.flatten(saved.getByText('Grace in practice').props.style),
-    ).toMatchObject({fontFamily: 'Lora-Bold'});
+    ).toMatchObject({fontSize: 18, lineHeight: 24});
     expect(saved.queryByTestId('section-title-divider')).toBeNull();
 
     const sermon = fs.readFileSync(
@@ -373,8 +384,8 @@ describe('shared Journal UI extraction', () => {
     expect(lookup).not.toContain('name="search"');
     expect(lookup).toMatch(/preview:\s*\{[\s\S]*?borderLeftWidth: 2/);
     expect(lookup).toMatch(/previewText:\s*\{[\s\S]*?fontStyle: 'italic'/);
-    expect(lookup).toContain(
-      '<Text style={[sharedStyles.previewText, {color: foreground}]}>',
+    expect(lookup).toMatch(
+      /<Text[\s\S]*?style=\{\[sharedStyles\.previewText, \{color: foreground\}\]\}[\s\S]*?numberOfLines=\{previewLineLimit\}[\s\S]*?ellipsizeMode=\{previewLineLimit \? 'tail' : undefined\}/,
     );
     expect(lookup).not.toContain(
       '<ThemedText style={[sharedStyles.previewText, {color: foreground}]}>',
@@ -383,10 +394,28 @@ describe('shared Journal UI extraction', () => {
     expect(lookup).toContain('onBlur={() => setSearchActive(false)}');
     expect(lookup).toContain('accessibilityLabel="Edit scripture reference"');
     expect(lookup).toContain('onPress={activateSearch}');
+    expect(lookup).toContain('onPress={handlePreviewPress}');
+    expect(lookup).toContain('<ScriptureReaderModal');
+    expect(lookup).toContain('previewLineLimit = 4');
+    expect(lookup).toContain('previewOpensReader = true');
+    expect(lookup).toContain(
+      '<Pencil size={14} color={referenceColor} strokeWidth={1.8} />',
+    );
+    expect(lookup).not.toContain('>\n                    Edit\n');
     expect(lookup).toMatch(
       /previewReference:\s*\{[\s\S]*?textTransform: 'uppercase'/,
     );
     expect(lookup).toContain('stripWrappingQuotationMarks(resolvedVerse.text)');
+
+    const scriptureReader = fs.readFileSync(
+      path.resolve(__dirname, '../../../ScriptureReaderModal.tsx'),
+      'utf8',
+    );
+    expect(scriptureReader).toContain('SCRIPTURE_SKELETON_LINE_WIDTHS.map');
+    expect(scriptureReader).toContain('style={styles.scriptureSkeleton}');
+    expect(scriptureReader).toContain('Animated.loop(');
+    expect(scriptureReader).not.toContain('<ActivityIndicator');
+    expect(scriptureReader).not.toContain('Loading Scripture…');
 
     const editors = [
       fs.readFileSync(
@@ -453,6 +482,7 @@ describe('shared Journal UI extraction', () => {
           {
             ...createJournalBlock('language', 'language'),
             text: 'agape',
+            englishWord: 'love',
             languageKind: 'greek',
             languageDetails: ['meaning', 'origin'],
             meaning: 'Self-giving love',
@@ -479,6 +509,9 @@ describe('shared Journal UI extraction', () => {
       'Receive it',
       'Written into a divided city.',
       'Ephesians 2',
+      'ENGLISH IN THE VERSE',
+      'love',
+      'GREEK WORD',
       'agape',
       'Self-giving love',
       'Greek usage',
@@ -486,6 +519,40 @@ describe('shared Journal UI extraction', () => {
       'Where can I trust?',
       'In the waiting.',
     ].forEach(value => expect(view.getByText(value)).toBeTruthy());
+  });
+
+  it('edits a language note as an explicit English-to-original word connection', () => {
+    const onChange = jest.fn();
+    const view = render(
+      <JournalBlockEditor
+        block={{
+          ...createJournalBlock('language', 'language-editor'),
+          languageKind: 'greek',
+        }}
+        styles={{}}
+        registerInput={jest.fn()}
+        onChange={onChange}
+        onDelete={jest.fn()}
+        bibleVersion="NASB"
+      />,
+    );
+
+    expect(view.getByText('ORIGINAL LANGUAGE')).toBeTruthy();
+    expect(view.getByText('ENGLISH IN THE VERSE')).toBeTruthy();
+    expect(view.getByText('GREEK WORD')).toBeTruthy();
+    expect(view.getByText('from the original')).toBeTruthy();
+
+    fireEvent.changeText(
+      view.getByPlaceholderText('Word or phrase used in English'),
+      'love',
+    );
+    expect(onChange).toHaveBeenCalledWith({englishWord: 'love'});
+
+    fireEvent.changeText(
+      view.getByPlaceholderText('Enter the greek word'),
+      'agape',
+    );
+    expect(onChange).toHaveBeenCalledWith({text: 'agape'});
   });
 
   it('creates, inserts, edits, and removes stable blocks without disturbing siblings', () => {
@@ -634,6 +701,157 @@ describe('shared Journal UI extraction', () => {
       'utf8',
     );
     expect(inlineBlock).toContain('{fontFamily: attributionFontFamily}');
+  });
+
+  it('matches saved Worship Song typography and attribution to edit mode', () => {
+    const savedSong = render(
+      <SavedReflectionBlocks
+        blocks={[
+          {
+            ...createJournalBlock('song', 'saved-song'),
+            text: 'Yet Not I but Through Christ in Me',
+            secondary: 'CityAlight',
+          },
+        ]}
+      />,
+    );
+
+    expect(savedSong.getByText('— CityAlight')).toBeTruthy();
+    expect(
+      StyleSheet.flatten(
+        savedSong.getByText('Yet Not I but Through Christ in Me').props.style,
+      ),
+    ).toMatchObject({
+      minHeight: 54,
+      paddingTop: 9,
+      fontFamily: 'Lora-Regular',
+      fontSize: 16,
+      lineHeight: 24,
+    });
+    expect(
+      StyleSheet.flatten(savedSong.getByText('— CityAlight').props.style),
+    ).toMatchObject({paddingTop: 7});
+  });
+
+  it('keeps saved note-block content metrics aligned with edit mode', () => {
+    const saved = render(
+      <SavedReflectionBlocks
+        blocks={[
+          {...createJournalBlock('text', 'parity-text'), text: 'Parity body'},
+          {
+            ...createJournalBlock('section', 'parity-section'),
+            text: 'Parity section',
+          },
+          {
+            ...createJournalBlock('action', 'parity-action'),
+            text: 'Parity action',
+          },
+          {
+            ...createJournalBlock('bullets', 'parity-bullets'),
+            text: 'Parity list',
+            points: ['Parity list item'],
+          },
+          {
+            ...createJournalBlock('photo', 'parity-photo'),
+            text: 'Parity caption',
+            uri: 'mock://photo',
+          },
+          {
+            ...createJournalBlock('voice', 'parity-voice'),
+            text: 'Parity voice note',
+            uri: 'mock://voice',
+          },
+          {
+            ...createJournalBlock('table', 'parity-table'),
+            tableRows: [['Parity heading'], ['Parity cell']],
+          },
+          {...createJournalBlock('key', 'parity-key'), text: 'Parity key'},
+          {
+            ...createJournalBlock('quote', 'parity-quote'),
+            text: 'Parity quote',
+            secondary: 'Speaker',
+          },
+          {
+            ...createJournalBlock('outline', 'parity-outline'),
+            text: 'Parity outline',
+            points: ['Parity outline point'],
+          },
+          {
+            ...createJournalBlock('character', 'parity-character'),
+            text: 'Parity character',
+          },
+        ]}
+      />,
+    );
+
+    const styleFor = (text: string) =>
+      StyleSheet.flatten(saved.getByText(text).props.style);
+
+    expect(styleFor('Parity body')).toMatchObject({
+      paddingVertical: 6,
+      fontSize: 16,
+      lineHeight: 22,
+    });
+    expect(styleFor('Parity section')).toMatchObject({
+      fontSize: 18,
+      lineHeight: 24,
+    });
+    expect(styleFor('Parity action')).toMatchObject({
+      paddingVertical: 8,
+      fontSize: 16,
+      lineHeight: 23,
+    });
+    expect(styleFor('Parity list')).toMatchObject({
+      fontSize: 15,
+      lineHeight: 21,
+    });
+    expect(styleFor('Parity list item')).toMatchObject({
+      minHeight: 38,
+      paddingVertical: 7,
+      fontSize: 14,
+      lineHeight: 21,
+    });
+    expect(styleFor('Parity caption')).toMatchObject({
+      paddingVertical: 10,
+      fontSize: 14,
+      lineHeight: 21,
+    });
+    expect(styleFor('Parity voice note')).toMatchObject({
+      paddingTop: 12,
+      fontSize: 14,
+      lineHeight: 21,
+    });
+    expect(styleFor('Parity heading')).toMatchObject({
+      minHeight: 40,
+      paddingHorizontal: 9,
+      paddingVertical: 8,
+      fontSize: 12,
+      lineHeight: 17,
+    });
+    expect(styleFor('Parity key')).toMatchObject({
+      minHeight: 54,
+      paddingTop: 9,
+      fontSize: 14,
+      lineHeight: 21,
+    });
+    expect(styleFor('Parity quote')).toMatchObject({
+      minHeight: 54,
+      paddingTop: 9,
+      fontFamily: 'Lora-Regular',
+      fontSize: 16,
+      lineHeight: 24,
+    });
+    expect(styleFor('Parity outline')).toMatchObject({
+      fontSize: 17,
+      lineHeight: 23,
+    });
+    expect(saved.queryByText('MESSAGE OUTLINE')).toBeNull();
+    expect(styleFor('Parity character')).toMatchObject({
+      minHeight: 38,
+      paddingTop: 7,
+      fontSize: 16,
+      lineHeight: 21,
+    });
   });
 
   it('forwards every composer action and supports the open add state', () => {
@@ -813,6 +1031,7 @@ describe('shared Journal UI extraction', () => {
       });
 
       const onSelect = jest.fn();
+      const onSelectStart = jest.fn();
       const kinds = [
         'section',
         'action',
@@ -826,6 +1045,7 @@ describe('shared Journal UI extraction', () => {
           items={kinds.map(kind => ({key: kind, label: kind, icon: <></>}))}
           animations={kinds.map(() => new Animated.Value(1))}
           onSelect={onSelect}
+          onSelectStart={onSelectStart}
         />,
       );
       const quickBar = view.getByLabelText('Quick note blocks');
@@ -851,6 +1071,7 @@ describe('shared Journal UI extraction', () => {
         'borderBottomWidth',
       );
       fireEvent.press(view.getByLabelText('Add Section block'));
+      expect(onSelectStart).toHaveBeenCalledWith('section');
       expect(onSelect).toHaveBeenCalledWith('section');
 
       fireEvent.press(view.getByLabelText('Browse all note blocks'));
@@ -859,6 +1080,7 @@ describe('shared Journal UI extraction', () => {
       fireEvent(quoteButtons[quoteButtons.length - 1], 'longPress');
       expect(favoriteSpy).toHaveBeenCalledWith('quote');
       fireEvent.press(quoteButtons[quoteButtons.length - 1]);
+      expect(onSelectStart).toHaveBeenCalledWith('quote');
       expect(onSelect).not.toHaveBeenCalledWith('quote');
       act(() => jest.advanceTimersByTime(350));
       expect(onSelect).toHaveBeenCalledWith('quote');
@@ -868,7 +1090,7 @@ describe('shared Journal UI extraction', () => {
     }
   });
 
-  it('dismisses every block picker before opening the native photo library', () => {
+  it('dismisses every block picker before showing the in-app photo source sheet', () => {
     const sources = [
       fs.readFileSync(
         path.resolve(__dirname, '../../ReflectionLogEditor.tsx'),
@@ -888,8 +1110,9 @@ describe('shared Journal UI extraction', () => {
     ];
     sources.forEach(source => {
       expect(source).toMatch(
-        /kind === 'photo'[\s\S]*?closeNotePicker\(async \(\) => \{[\s\S]*?pickImageLocal\(\)/,
+        /kind === 'photo'[\s\S]*?setPhotoSourceOpen\(true\);[\s\S]*?closeNotePicker\(\)/,
       );
+      expect(source).toContain('<JournalPhotoSourcePicker');
     });
 
     const session = fs.readFileSync(
@@ -897,8 +1120,24 @@ describe('shared Journal UI extraction', () => {
       'utf8',
     );
     expect(session).toMatch(
-      /kind === 'photo'[\s\S]*?closeCapturePicker\(async \(\) => \{[\s\S]*?pickImageLocal\(\)/,
+      /kind === 'photo'[\s\S]*?setPhotoSourceOpen\(true\);[\s\S]*?closeCapturePicker\(\)/,
     );
+    expect(session).toContain('<JournalPhotoSourcePicker');
+
+    const picker = fs.readFileSync(
+      path.resolve(__dirname, '../JournalPhotoSourcePicker.tsx'),
+      'utf8',
+    );
+    const imageService = fs.readFileSync(
+      path.resolve(__dirname, '../../../../services/avatarService.ts'),
+      'utf8',
+    );
+    expect(picker).toContain('accessibilityLabel="Take photo"');
+    expect(picker).toContain('accessibilityLabel="Choose from photo library"');
+    expect(picker).toContain('triggerSelectionHaptic();');
+    expect(imageService).toContain('pickImageFromSource');
+    expect(imageService).not.toContain("Alert.alert(\n      'Add a photo'");
+    expect(imageService).not.toContain('setTimeout(resolve, 400)');
   });
 
   it('uses the contrasting picker treatment on green journal screens', () => {
@@ -978,6 +1217,13 @@ describe('shared Journal UI extraction', () => {
     expect(more).toContain('renderNoteBlocksModal()');
     expect(more).toContain('noteBlockPreferences.toggleFavoriteKind(kind)');
     expect(more).toContain('noteBlockPreferences.setKindEnabled(kind, value)');
+    expect(more).toContain('<DraggableJournalBlock');
+    expect(more).toContain('handleFavoriteDragMove');
+    expect(more).toContain('resolveJournalBlockDropIndex(');
+    expect(more).toContain(
+      'setFavoriteKinds(reordered.map(item => item.kind))',
+    );
+    expect(more).not.toContain('styles.noteBlockOrderButton');
     expect(preferences).toContain("const STORAGE_KEY = 'prefs:noteBlocks:v2'");
     expect(preferences).toContain(
       "const LEGACY_STORAGE_KEY = 'prefs:noteBlocks:v1'",
@@ -1092,7 +1338,9 @@ describe('shared Journal UI extraction', () => {
     expect(table).toContain("(['left', 'center', 'right'] as const)");
     expect(table).toContain('resolvedAlignments[rowIndex][columnIndex]');
     expect(editor).toContain('cellAlignments={block.tableCellAlignments}');
-    expect(saved).toMatch(/<ScrollView\s+key=\{block\.id\}\s+horizontal/);
+    expect(saved).toMatch(
+      /<NoteBlockFrame\s+key=\{block\.id\}\s+kind="table"[\s\S]*?<ScrollView\s+horizontal/,
+    );
     expect(saved).toContain('getJournalTableCellAlignment(');
     expect(detail).toContain('blocks={blocksWithChildren}');
     expect(detail).toContain('embedded');

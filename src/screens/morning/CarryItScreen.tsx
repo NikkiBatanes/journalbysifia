@@ -1,10 +1,11 @@
 import React, { useMemo, useRef, useState } from 'react';
-import { StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
 import ThemedText from '../../components/common/ThemedText';
 import StepFadeIn from '../../components/common/StepFadeIn';
+import StaggeredBounceIn from '../../components/common/StaggeredBounceIn';
 import { getPsalmReflection } from '../../data/psalmReflections';
 import { Colors } from '../../theme/colors';
 import { getFontFamily } from '../../theme/fonts';
@@ -14,7 +15,7 @@ import { useRoutine } from '../../context/RoutineContext';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { useRoutineDraft } from '../../hooks/useRoutineDraft';
 import { getDailyClosingMessage } from '../../services/dailyClosingMessageService';
-import {getDailyPsalmNumber} from '../../services/dailyScriptureSequence';
+import {getDailyPsalmNumber, resolveSavedPsalmNumber} from '../../services/dailyScriptureSequence';
 import {useDailyScriptureSequenceAnchor} from '../../hooks/useDailyScriptureSequenceAnchor';
 import RoutineStepShell from '../../components/routine/RoutineStepShell';
 import {
@@ -32,7 +33,7 @@ const CarryItScreen = () => {
   const { user } = useAuth();
   const { selectedDate, markStepCompleted } = useRoutine();
   const dateStr = selectedDate;
-  const {anchor: scriptureSequenceAnchor, ready: scriptureSequenceReady} = useDailyScriptureSequenceAnchor(user?.created_at);
+  const {anchor: scriptureSequenceAnchor, ready: scriptureSequenceReady, error: sequenceError, retry: retrySequence} = useDailyScriptureSequenceAnchor(user?.created_at);
   const dailyPsalmNumber = useMemo(
     () => getDailyPsalmNumber(selectedDate, scriptureSequenceAnchor),
     [scriptureSequenceAnchor, selectedDate],
@@ -52,6 +53,8 @@ const CarryItScreen = () => {
     ? route.params.customAttribute
     : '';
   const [psalmNumber, setPsalmNumber] = useState(dailyPsalmNumber);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [selectedAttributes, setSelectedAttributes] = useState<string[]>(routedAttributes);
   const [showCustomInput, setShowCustomInput] = useState(Boolean(routedCustomAttribute.trim()));
   const [customAttribute, setCustomAttribute] = useState(routedCustomAttribute);
@@ -75,18 +78,21 @@ const CarryItScreen = () => {
   useFocusEffect(React.useCallback(() => {
     if (!scriptureSequenceReady) {return undefined;}
     let mounted = true;
+    setLoading(true);
+    setLoadError(null);
     (async () => {
       const entries = await getLocalReflections('scripture', dateStr);
       if (!mounted) {return;}
-      setPsalmNumber(dailyPsalmNumber);
       const existing = entries
         .filter(e => e.source === 'morning_psalm' || e.metadata?.source === 'morning_psalm')
         .sort((a, b) => b.updated_at.localeCompare(a.updated_at))[0];
       if (existing) {
+        const savedPsalmNumber = resolveSavedPsalmNumber(existing, dailyPsalmNumber);
+        setPsalmNumber(savedPsalmNumber);
         canonicalReflectionLoaded.current = true;
         const metadata = existing.metadata;
-        const dailyReflection = getPsalmReflection(dailyPsalmNumber);
-        const validLabels = new Set(dailyReflection.attributes.map(attribute => attribute.label));
+        const savedReflection = getPsalmReflection(savedPsalmNumber);
+        const validLabels = new Set(savedReflection.attributes.map(attribute => attribute.label));
         const contentObservations = existing.content
           .split(' · ')
           .map(observation => observation.trim())
@@ -107,14 +113,21 @@ const CarryItScreen = () => {
         setCustomAttribute(savedCustomAttribute || routedCustomAttribute);
         setShowCustomInput(Boolean((savedCustomAttribute || routedCustomAttribute).trim()));
         setPsalmReflectionId(existing.id);
+      } else {
+        setPsalmNumber(dailyPsalmNumber);
       }
-    })();
+      setLoading(false);
+    })().catch(error => {
+      console.error('Error loading saved Psalm reflection:', error);
+      if (mounted) {setLoadError('Could not load your reflection. Tap to retry.');}
+    });
     return () => { mounted = false; };
   }, [dailyPsalmNumber, dateStr, routedAttributes, routedCustomAttribute, scriptureSequenceReady]));
 
   const reflection = useMemo(() => getPsalmReflection(psalmNumber), [psalmNumber]);
   const customValue = customAttribute.trim();
-  const canContinue = selectedAttributes.length > 0 || (showCustomInput && customValue.length > 0);
+  const canContinue = scriptureSequenceReady && !loading && !loadError
+    && (selectedAttributes.length > 0 || (showCustomInput && customValue.length > 0));
 
   const toggleAttribute = (label: string) => {
     triggerLightHaptic();
@@ -132,6 +145,7 @@ const CarryItScreen = () => {
     let id = psalmReflectionId;
     try {
       const metadata = {
+        scriptureSequenceVersion: 2,
         psalmNumber,
         psalmReference: `Psalm ${psalmNumber}`,
         selectedAttributes,
@@ -187,40 +201,43 @@ const CarryItScreen = () => {
       <ThemedText style={styles.subtitle}>Choose all that stand out to you in Psalm {psalmNumber}.</ThemedText>
 
       <View style={styles.pills}>
-        {reflection.attributes.map((attribute) => {
+        {reflection.attributes.map((attribute, index) => {
           const isSelected = selectedAttributes.includes(attribute.label);
           return (
-            <TouchableOpacity
-              key={attribute.label}
-              style={[styles.pill, isSelected && styles.pillSelected]}
-              onPress={() => toggleAttribute(attribute.label)}
-              activeOpacity={0.75}
-              accessibilityRole="checkbox"
-              accessibilityState={{ checked: isSelected }}
-              accessibilityLabel={`${attribute.label}, ${attribute.verses}`}
-            >
-              <ThemedText style={[styles.pillText, isSelected && styles.pillTextSelected]}>
-                {attribute.label}
-              </ThemedText>
-            </TouchableOpacity>
+            <StaggeredBounceIn key={attribute.label} index={index}>
+              <TouchableOpacity
+                style={[styles.pill, isSelected && styles.pillSelected]}
+                onPress={() => toggleAttribute(attribute.label)}
+                activeOpacity={0.75}
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: isSelected }}
+                accessibilityLabel={`${attribute.label}, ${attribute.verses}`}
+              >
+                <ThemedText style={[styles.pillText, isSelected && styles.pillTextSelected]}>
+                  {attribute.label}
+                </ThemedText>
+              </TouchableOpacity>
+            </StaggeredBounceIn>
           );
         })}
-        <TouchableOpacity
-          style={[styles.pill, showCustomInput && styles.pillSelected]}
-          onPress={() => {
-            triggerLightHaptic();
-            setShowCustomInput((current) => !current);
-            if (showCustomInput) { setCustomAttribute(''); }
-          }}
-          activeOpacity={0.75}
-          accessibilityRole="checkbox"
-          accessibilityState={{ checked: showCustomInput }}
-          accessibilityLabel="Something else"
-        >
-          <ThemedText style={[styles.pillText, showCustomInput && styles.pillTextSelected]}>
-            + Something else
-          </ThemedText>
-        </TouchableOpacity>
+        <StaggeredBounceIn index={reflection.attributes.length}>
+          <TouchableOpacity
+            style={[styles.pill, showCustomInput && styles.pillSelected]}
+            onPress={() => {
+              triggerLightHaptic();
+              setShowCustomInput((current) => !current);
+              if (showCustomInput) { setCustomAttribute(''); }
+            }}
+            activeOpacity={0.75}
+            accessibilityRole="checkbox"
+            accessibilityState={{ checked: showCustomInput }}
+            accessibilityLabel="Something else"
+          >
+            <ThemedText style={[styles.pillText, showCustomInput && styles.pillTextSelected]}>
+              + Something else
+            </ThemedText>
+          </TouchableOpacity>
+        </StaggeredBounceIn>
       </View>
 
       {showCustomInput && (
@@ -270,11 +287,18 @@ const CarryItScreen = () => {
       title="What do you see about God?"
       footer={footer}
       onBack={onBack}
+      onSwipeBack={() => navigation.goBack()}
+      onSwipeForward={onNext}
+      canSwipeForward={canContinue}
       backgroundColor={Colors.lightBackground}
       manageStatusBar={false}
     >
       <StepFadeIn delay={160}>
-        {children}
+        {sequenceError || loadError ? (
+          <TouchableOpacity onPress={retrySequence} accessibilityRole="button">
+            <ThemedText>{sequenceError || loadError}</ThemedText>
+          </TouchableOpacity>
+        ) : !scriptureSequenceReady || loading ? <ActivityIndicator color={Colors.sage} /> : children}
       </StepFadeIn>
     </RoutineStepShell>
   );

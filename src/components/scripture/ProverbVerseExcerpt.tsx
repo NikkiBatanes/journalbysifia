@@ -2,6 +2,7 @@ import React from 'react';
 import { Platform, StyleSheet, Text, View } from 'react-native';
 
 import ThemedText from '../common/ThemedText';
+import ScriptureLoadingSkeleton from './ScriptureLoadingSkeleton';
 import { getScripturePassage } from '../../services/scriptureReaderService';
 import { Colors } from '../../theme/colors';
 
@@ -19,10 +20,12 @@ const passageText = (passage: Awaited<ReturnType<typeof getScripturePassage>>): 
 /** A compact, read-only Scripture excerpt shared by Moments and Review cards. */
 const ProverbVerseExcerpt: React.FC<Props> = ({reference, version = 'NASB', numberOfLines}) => {
   const [verse, setVerse] = React.useState('');
+  const [loading, setLoading] = React.useState(true);
 
   React.useEffect(() => {
     let active = true;
     setVerse('');
+    setLoading(true);
     getScripturePassage(reference.replace(/–/g, '-'), version)
       .then(result => {
         if (active) {setVerse(passageText(result));}
@@ -30,6 +33,9 @@ const ProverbVerseExcerpt: React.FC<Props> = ({reference, version = 'NASB', numb
       .catch(() => {
         // Keep the saved reference visible if this passage is not cached and
         // the device is offline. It will load automatically on the next view.
+      })
+      .finally(() => {
+        if (active) {setLoading(false);}
       });
     return () => {active = false;};
   }, [reference, version]);
@@ -38,7 +44,11 @@ const ProverbVerseExcerpt: React.FC<Props> = ({reference, version = 'NASB', numb
 
   return (
     <View style={styles.container}>
-      {!!verse && <Text style={styles.verse} numberOfLines={numberOfLines}>{verse}</Text>}
+      {loading ? (
+        <ScriptureLoadingSkeleton variant="inline" lines={2} />
+      ) : (
+        !!verse && <Text style={styles.verse} numberOfLines={numberOfLines}>{verse}</Text>
+      )}
       <ThemedText style={styles.reference}>{reference}</ThemedText>
     </View>
   );

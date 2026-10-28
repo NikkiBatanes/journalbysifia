@@ -49,6 +49,8 @@ Deno.test('BibleGateway Scraper - Verse Range', async () => {
   
   assertExists(result.text);
   assertEquals(result.reference, 'Matthew 5:1-3');
+  assertExists(result.verses);
+  assertEquals(result.verses.map(verse => verse.number), ['1', '2', '3']);
   
   console.log('✅ Verse Range Test Result:', result.text.substring(0, 100) + '...');
 });

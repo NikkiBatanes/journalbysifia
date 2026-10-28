@@ -1,6 +1,5 @@
 import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {
-  ActivityIndicator,
   Platform,
   StyleSheet,
   Text,
@@ -9,9 +8,12 @@ import {
   View,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import {Pencil} from 'lucide-react-native';
 import {BibleCopyrightModal} from '../../BibleCopyrightModal';
+import ScriptureReaderModal from '../../ScriptureReaderModal';
 import ThemedText from '../../common/ThemedText';
 import JournalTextInput from './JournalTextInput';
+import ScriptureLoadingSkeleton from '../../scripture/ScriptureLoadingSkeleton';
 import {
   getScripturePassage,
   type ScriptureReaderResult,
@@ -32,6 +34,8 @@ export type ScriptureLookupInputProps = {
   style: any;
   tone?: 'default' | 'onDark';
   multiline?: boolean;
+  previewLineLimit?: number;
+  previewOpensReader?: boolean;
   registerInput?: (input: TextInput | null) => void;
   onChange: (value: string) => void;
   onResolved: (result: ScriptureReaderResult | null) => void;
@@ -45,6 +49,8 @@ export const ScriptureLookupInput = ({
   style,
   tone = 'default',
   multiline = false,
+  previewLineLimit = 4,
+  previewOpensReader = true,
   registerInput,
   onChange,
   onResolved,
@@ -54,6 +60,7 @@ export const ScriptureLookupInput = ({
     useState<ScriptureReaderResult | null>(null);
   const [resolving, setResolving] = useState(false);
   const [showCopyright, setShowCopyright] = useState(false);
+  const [showReader, setShowReader] = useState(false);
   const [searchActive, setSearchActive] = useState(false);
   const inputRef = useRef<TextInput | null>(null);
   const lookupVersionRef = useRef(0);
@@ -111,37 +118,54 @@ export const ScriptureLookupInput = ({
     [registerInput],
   );
   const activateSearch = () => {
+    triggerLightHaptic();
     setSearchActive(true);
     requestAnimationFrame(() => inputRef.current?.focus());
+  };
+  const handlePreviewPress = () => {
+    if (!previewOpensReader) {
+      activateSearch();
+      return;
+    }
+    triggerLightHaptic();
+    setShowReader(true);
   };
 
   return (
     <>
       {(searchActive || !resolvedVerse) && (
-        <View style={sharedStyles.lookupRow}>
-          <JournalTextInput
-            themed
-            weight="semiBold"
-            ref={registerLookupInput}
-            style={[style, sharedStyles.lookupInput]}
-            multiline={multiline}
-            placeholder={placeholder}
-            placeholderTextColor={
-              onDark ? 'rgba(255,255,255,0.45)' : Colors.textGray
-            }
-            accentColor={accent}
-            value={value}
-            onChangeText={onChange}
-            onFocus={() => {
-              setSearchActive(true);
-              onFocus?.();
-            }}
-            onBlur={() => setSearchActive(false)}
-            autoCapitalize="words"
-            autoCorrect={false}
-          />
-          {resolving && <ActivityIndicator size="small" color={accent} />}
-        </View>
+        <>
+          <View style={sharedStyles.lookupRow}>
+            <JournalTextInput
+              themed
+              weight="semiBold"
+              ref={registerLookupInput}
+              style={[style, sharedStyles.lookupInput]}
+              multiline={multiline}
+              placeholder={placeholder}
+              placeholderTextColor={
+                onDark ? 'rgba(255,255,255,0.45)' : Colors.textGray
+              }
+              accentColor={accent}
+              value={value}
+              onChangeText={onChange}
+              onFocus={() => {
+                setSearchActive(true);
+                onFocus?.();
+              }}
+              onBlur={() => setSearchActive(false)}
+              autoCapitalize="words"
+              autoCorrect={false}
+            />
+          </View>
+          {resolving ? (
+            <ScriptureLoadingSkeleton
+              variant="inline"
+              tone={onDark ? 'dark' : 'light'}
+              style={sharedStyles.lookupSkeleton}
+            />
+          ) : null}
+        </>
       )}
       {resolvedVerse && (
         <View
@@ -152,9 +176,16 @@ export const ScriptureLookupInput = ({
           <TouchableOpacity
             activeOpacity={0.82}
             accessibilityRole="button"
-            accessibilityLabel="Edit scripture reference"
-            onPress={activateSearch}>
-            <Text style={[sharedStyles.previewText, {color: foreground}]}>
+            accessibilityLabel={
+              previewOpensReader
+                ? `Open ${resolvedVerse.reference} in Scripture Reader`
+                : 'Edit scripture reference'
+            }
+            onPress={handlePreviewPress}>
+            <Text
+              style={[sharedStyles.previewText, {color: foreground}]}
+              numberOfLines={previewLineLimit}
+              ellipsizeMode={previewLineLimit ? 'tail' : undefined}>
               {stripWrappingQuotationMarks(resolvedVerse.text)}
             </Text>
           </TouchableOpacity>
@@ -167,23 +198,44 @@ export const ScriptureLookupInput = ({
               ]}>
               {resolvedVerse.reference} · {resolvedVerse.version}
             </ThemedText>
-            <TouchableOpacity
-              onPress={() => {
-                triggerLightHaptic();
-                setShowCopyright(true);
-              }}
-              activeOpacity={0.7}
-              accessibilityRole="button"
-              accessibilityLabel="Bible translation information">
-              <Ionicons
-                name="information-circle-outline"
-                size={14}
-                color={referenceColor}
-              />
-            </TouchableOpacity>
+            <View style={sharedStyles.previewActions}>
+              {previewOpensReader ? (
+                <TouchableOpacity
+                  onPress={activateSearch}
+                  activeOpacity={0.7}
+                  hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}
+                  accessibilityRole="button"
+                  accessibilityLabel="Edit scripture reference">
+                  <Pencil size={14} color={referenceColor} strokeWidth={1.8} />
+                </TouchableOpacity>
+              ) : null}
+              <TouchableOpacity
+                onPress={() => {
+                  triggerLightHaptic();
+                  setShowCopyright(true);
+                }}
+                activeOpacity={0.7}
+                accessibilityRole="button"
+                accessibilityLabel="Bible translation information">
+                <Ionicons
+                  name="information-circle-outline"
+                  size={14}
+                  color={referenceColor}
+                />
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       )}
+      {resolvedVerse ? (
+        <ScriptureReaderModal
+          visible={showReader}
+          passages={[{reference: resolvedVerse.reference}]}
+          initialIndex={0}
+          version={resolvedVerse.version || version}
+          onClose={() => setShowReader(false)}
+        />
+      ) : null}
       <BibleCopyrightModal
         visible={showCopyright}
         onClose={() => setShowCopyright(false)}
@@ -204,6 +256,7 @@ const sharedStyles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 21,
   },
+  lookupSkeleton: {marginTop: 5, maxWidth: 280},
   preview: {
     marginTop: 10,
     paddingLeft: 14,
@@ -227,10 +280,13 @@ const sharedStyles = StyleSheet.create({
   previewReferenceRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     gap: 5,
     marginTop: 7,
   },
+  previewActions: {flexDirection: 'row', alignItems: 'center', gap: 10},
   previewReference: {
+    flex: 1,
     fontSize: 12,
     letterSpacing: 0.4,
     textTransform: 'uppercase',

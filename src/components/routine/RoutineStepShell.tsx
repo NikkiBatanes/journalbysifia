@@ -2,12 +2,14 @@ import React from 'react';
 import {
   Keyboard,
   Animated,
+  PanResponder,
   ScrollView,
   StatusBar,
   StyleSheet,
   TextInput,
   TouchableOpacity,
   View,
+  useWindowDimensions,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -38,6 +40,10 @@ interface RoutineStepShellProps {
   titleBottomSpacing?: number;
   scrollViewRef?: React.Ref<ScrollView>;
   onContentSizeChange?: (width: number, height: number) => void;
+  onSwipeBack?: () => void;
+  onSwipeForward?: () => void;
+  canSwipeForward?: boolean;
+  overlay?: React.ReactNode;
 }
 
 const RoutineStepShell: React.FC<RoutineStepShellProps> = ({
@@ -53,14 +59,19 @@ const RoutineStepShell: React.FC<RoutineStepShellProps> = ({
   backgroundColor = Colors.sage,
   rightControl,
   stickyRightControls = false,
-  scrollWithHeader = false,
+  scrollWithHeader: _scrollWithHeader = false,
   manageStatusBar = true,
   extraScrollBottomPadding = 0,
   titleBottomSpacing = 32,
   scrollViewRef,
   onContentSizeChange,
+  onSwipeBack,
+  onSwipeForward,
+  canSwipeForward = true,
+  overlay,
 }) => {
   const insets = useSafeAreaInsets();
+  const {width: screenWidth} = useWindowDimensions();
   const { bottom: buttonBottom, keyboardVisible } = useFloatingKeyboardButton(insets.bottom);
   const isLight = backgroundColor === Colors.lightBackground;
 
@@ -87,6 +98,29 @@ const RoutineStepShell: React.FC<RoutineStepShellProps> = ({
   const textColor = isLight ? Colors.text : Colors.hopeWhite;
   const mutedColor = isLight ? Colors.sageMuted : Colors.hopeWhite;
 
+  const panResponder = React.useMemo(() => PanResponder.create({
+    onMoveShouldSetPanResponderCapture: (_, gestureState) => {
+      const horizontal = Math.abs(gestureState.dx) > 18
+        && Math.abs(gestureState.dx) > Math.abs(gestureState.dy) * 1.2;
+      if (!horizontal) {return false;}
+      return gestureState.dx > 0
+        ? Boolean(onSwipeBack)
+        : Boolean(onSwipeForward && canSwipeForward);
+    },
+    onPanResponderRelease: (_, gestureState) => {
+      const horizontal = Math.abs(gestureState.dx) > Math.abs(gestureState.dy) * 1.2;
+      const farEnough = Math.abs(gestureState.dx) > screenWidth * 0.15;
+      const fastEnough = Math.abs(gestureState.vx) > 0.45;
+      if (!horizontal || (!farEnough && !fastEnough)) {return;}
+      if (gestureState.dx > 0 && onSwipeBack) {
+        triggerLightHaptic();
+        onSwipeBack();
+      } else if (gestureState.dx < 0 && onSwipeForward && canSwipeForward) {
+        onSwipeForward();
+      }
+    },
+  }), [canSwipeForward, onSwipeBack, onSwipeForward, screenWidth]);
+
   const closeControl = onBack ? (
     <HeaderCloseButton
       onPress={() => { triggerLightHaptic(); onBack(); }}
@@ -98,8 +132,8 @@ const RoutineStepShell: React.FC<RoutineStepShellProps> = ({
 
   const headerControls = (
     <View style={styles.headerControls}>
-      {rightControl}
-      {closeControl}
+      {rightControl ? <HeaderControlPop delay={620}>{rightControl}</HeaderControlPop> : null}
+      <HeaderControlPop delay={rightControl ? 740 : 620}>{closeControl}</HeaderControlPop>
     </View>
   );
 
@@ -119,7 +153,7 @@ const RoutineStepShell: React.FC<RoutineStepShellProps> = ({
   );
 
   return (
-    <View style={[styles.container, { backgroundColor }]}>
+    <View style={[styles.container, { backgroundColor }]} {...panResponder.panHandlers}>
       <ScrollView
         ref={scrollViewRef}
         onContentSizeChange={onContentSizeChange}
@@ -145,6 +179,11 @@ const RoutineStepShell: React.FC<RoutineStepShellProps> = ({
           {headerControls}
         </View>
       ) : null}
+      {overlay ? (
+        <View pointerEvents="box-none" style={[styles.overlay, {top: insets.top + 56}]}>
+          {overlay}
+        </View>
+      ) : null}
       <Animated.View pointerEvents="box-none" style={[styles.footer, { position: 'absolute', bottom: buttonBottom, left: 0, right: 0, justifyContent: onSkip ? 'space-between' : 'flex-end' }]}>
         {onSkip && (
           <TouchableOpacity
@@ -160,6 +199,37 @@ const RoutineStepShell: React.FC<RoutineStepShellProps> = ({
         {footer}
       </Animated.View>
     </View>
+  );
+};
+
+const HeaderControlPop: React.FC<{ delay: number; children: React.ReactNode }> = ({ delay, children }) => {
+  const anim = React.useRef(new Animated.Value(0)).current;
+
+  React.useEffect(() => {
+    const animation = Animated.spring(anim, {
+      toValue: 1,
+      tension: 60,
+      friction: 7,
+      useNativeDriver: true,
+    });
+    const t = setTimeout(() => animation.start(), delay);
+    return () => {
+      clearTimeout(t);
+      animation.stop();
+    };
+  }, [anim, delay]);
+
+  return (
+    <Animated.View style={{
+      opacity: anim,
+      transform: [
+        { scale: anim.interpolate({ inputRange: [0, 1], outputRange: [0.55, 1] }) },
+        { translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [8, 0] }) },
+      ],
+    }}
+    >
+      {children}
+    </Animated.View>
   );
 };
 
@@ -192,6 +262,12 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: 20,
     zIndex: 100,
+  },
+  overlay: {
+    position: 'absolute',
+    left: 24,
+    right: 24,
+    zIndex: 95,
   },
   backPlaceholder: {
     width: 42,

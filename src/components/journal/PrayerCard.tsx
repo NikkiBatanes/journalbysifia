@@ -27,6 +27,16 @@ const formatStarted = (dateString?: string | null) => {
   }
 };
 
+const formatNeedDate = (dateString?: string | null) => {
+  if (!dateString) { return ''; }
+  try {
+    const date = new Date(dateString.length === 10 ? `${dateString}T12:00:00` : dateString);
+    return format(date, date.getFullYear() === new Date().getFullYear() ? 'EEE, MMM d' : 'EEE, MMM d, yyyy');
+  } catch {
+    return '';
+  }
+};
+
 const CAST_ORDER = ['confession', 'adoration', 'supplication', 'thanksgiving'];
 
 const PrayerCard = ({
@@ -45,7 +55,7 @@ const PrayerCard = ({
   onAddPrayer?: (prayer: PrayerHomeEntry) => void;
   onManage?: (prayer: PrayerHomeEntry) => void;
   onEdit?: (prayer: PrayerHomeEntry) => void;
-  onManageAnswers?: (prayer: PrayerHomeEntry) => void;
+  onManageAnswers?: (prayer: PrayerHomeEntry, needId?: string) => void;
   onAnswered?: (prayer: PrayerHomeEntry, needId?: string) => void;
   onRelease?: (prayer: PrayerHomeEntry) => void;
   answering: boolean;
@@ -71,15 +81,18 @@ const PrayerCard = ({
           : hasRequestOrigin ? 'PRAYED FOR'
             : isCast ? 'CAST PRAYER'
               : isOpen ? isWeeklyReviewPrayer ? 'WEEKLY · OPEN PRAYER' : isMonthlyReviewPrayer ? 'MONTHLY · OPEN PRAYER' : 'OPEN PRAYER' : 'PRAYED FOR';
+  const needs = prayerNeeds(prayer);
   const title = prayer.metadata?.prayer_need
-    ? prayer.person_name || prayer.content?.split('\n')[0] || 'My prayer need'
+    ? prayer.person_name || needs.map(need => need.text).filter(Boolean).join(' · ') || prayer.content?.split('\n')[0] || 'My prayer need'
     : isCast ? 'CAST Prayer' : isOpen ? 'Open Prayer' : prayer.person_name || 'Prayer';
   const [showHistory, setShowHistory] = useState(false);
   const history: PrayerUpdate[] = Array.isArray(prayer.metadata?.prayer_updates) ? [...(prayer.metadata?.prayer_updates || [])].reverse() : [];
   const latestUpdate = history.find(update => !update.status);
   const body = prayer.content || '';
   const notes = prayer.notes?.trim() || '';
-  const needs = prayerNeeds(prayer);
+  const multipleNeedTopics = new Set(needs.map(need => need.topic).filter(Boolean)).size > 1;
+  const answeredNeedCount = needs.filter(need => need.status === 'answered' || need.answerHistory?.length).length;
+  const needProgress = prayer.metadata?.prayer_need && needs.length > 1 && answeredNeedCount > 0 && answeredNeedCount < needs.length ? `${answeredNeedCount} of ${needs.length} answered` : '';
   const savedTopics = prayer.metadata?.topics;
   const topics = Array.isArray(savedTopics) ? savedTopics.filter(Boolean) : [...new Set(needs.map(need => need.topic).filter(Boolean))];
   const seenCastSections = new Set<string>();
@@ -121,7 +134,7 @@ const PrayerCard = ({
         </View>) : prayer.metadata?.prayer_need
           ? !!notes && <ThemedText style={styles.cardBody} numberOfLines={4}>{notes}</ThemedText>
           : !!body && !body.startsWith(title) && <ThemedText style={styles.cardBody} numberOfLines={3}>{body}</ThemedText>}
-        {prayer.metadata?.prayer_need && !momentsPalette && <ThemedText style={styles.needDates}>Praying since {formatStarted(prayer.metadata?.praying_since || prayer.selected_date)}{needs.length === 1 && needs[0].expectedDate ? ` · On or before ${formatStarted(needs[0].expectedDate)}` : ''}</ThemedText>}
+        {prayer.metadata?.prayer_need && <ThemedText style={styles.needDates}>Praying since {formatNeedDate(prayer.metadata?.praying_since || prayer.selected_date)}{needs.length === 1 && needs[0].expectedDate ? ` · On or before ${formatNeedDate(needs[0].expectedDate)}` : ''}</ThemedText>}
         {!!requestContext && (
           <View style={styles.requestContext}>
             <Ionicons name="mail-unread-outline" size={12} color={Colors.alertCoral} />
@@ -141,7 +154,24 @@ const PrayerCard = ({
         <ThemedText weight="semiBold" style={styles.actionButtonText}>{showHistory ? 'Hide history' : `View history (${history.length})`}</ThemedText>
         <Ionicons name={showHistory ? 'chevron-up' : 'chevron-down'} size={13} color={Colors.sage} />
       </TouchableOpacity>}
-      {tracked && needs.length > 1 && onAnswered && needs.map(need => <View key={need.id} style={styles.castSection}><ThemedText style={styles.cardBody}>{need.text}</ThemedText><ThemedText style={styles.cardMeta}>{need.status === 'pending' ? 'Still praying' : need.status === 'answered' ? 'Answered' : 'Let go'}</ThemedText><TouchableOpacity disabled={answering} style={[styles.actionButton, { alignSelf: 'flex-start', marginVertical: 8 }]} onPress={() => onAnswered(prayer, need.id)}><Ionicons name="checkmark-circle-outline" size={14} color={Colors.sage} /><ThemedText weight="semiBold" style={styles.actionButtonText}>{need.status === 'answered' ? 'Answered' : 'Mark answered'}</ThemedText></TouchableOpacity></View>)}
+      {prayer.metadata?.prayer_need && needs.length > 1 && (
+        <View style={styles.needList}>
+          {needs.map((need, index) => {
+            const row = <>
+              <View style={styles.needItemBody}>
+                {multipleNeedTopics && !!need.topic && <ThemedText weight="semiBold" style={styles.needItemTopic}>{need.topic.toUpperCase()}</ThemedText>}
+                <ThemedText weight="medium" style={styles.needItemText}>{need.text}</ThemedText>
+                <ThemedText style={[styles.needItemStatus, need.status === 'answered' && styles.needItemAnswered]}>{need.status === 'answered' ? 'Answered' : need.status === 'closed' ? 'Let go' : 'Still praying'}{need.expectedDate ? ` · On or before ${formatNeedDate(need.expectedDate)}` : ''}</ThemedText>
+              </View>
+              {!!onManageAnswers && <Ionicons name="chevron-forward" size={14} color={Colors.textGray} />}
+            </>;
+            const rowStyle = [styles.needItem, index === needs.length - 1 && styles.needItemLast];
+            return onManageAnswers
+              ? <TouchableOpacity key={need.id} style={rowStyle} activeOpacity={0.7} accessibilityRole="button" accessibilityLabel={`Manage ${need.text}`} onPress={() => { triggerLightHaptic(); onManageAnswers(prayer, need.id); }}>{row}</TouchableOpacity>
+              : <View key={need.id} style={rowStyle}>{row}</View>;
+          })}
+        </View>
+      )}
       {needsPrayer && onAddPrayer ? (
         <View style={styles.requestActionContainer}>
           <TouchableOpacity style={styles.requestPrayButton} onPress={() => onAddPrayer(prayer)} activeOpacity={0.7}>
@@ -181,7 +211,7 @@ const PrayerCard = ({
       )}
       {!needsPrayer && (
         <ThemedText style={styles.prayedMeta}>
-          {!tracked ? 'Saved prayer · Not tracked' : isAnswered ? 'Answered' : state === 'closed' ? 'Let go' : 'Still praying'}{prayerCount > 0 ? ` · Prayed ${prayerCount} ${prayerCount === 1 ? 'time' : 'times'}` : ''}{prayer.answered_date && isAnswered ? ` · ${formatStarted(prayer.answered_date)}` : ''}
+          {needProgress || (!tracked ? 'Saved prayer · Not tracked' : isAnswered ? 'Answered' : state === 'closed' ? 'Let go' : 'Still praying')}{prayerCount > 0 ? ` · Prayed ${prayerCount} ${prayerCount === 1 ? 'time' : 'times'}` : ''}{prayer.answered_date && isAnswered ? ` · ${formatStarted(prayer.answered_date)}` : ''}
         </ThemedText>
       )}
     </View>
@@ -260,6 +290,14 @@ const styles = StyleSheet.create({
   },
   needTopics: { color: Colors.sageMuted, fontSize: 9, lineHeight: 14, letterSpacing: 1.2, marginBottom: 8 },
   needDates: { color: Colors.textGray, fontSize: 11, lineHeight: 17, marginBottom: 12 },
+  needList: { marginBottom: 12, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: Colors.cardBorder },
+  needItem: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: Colors.cardBorder },
+  needItemBody: { flex: 1 },
+  needItemLast: { borderBottomWidth: 0 },
+  needItemTopic: { color: Colors.sageMuted, fontSize: 9, lineHeight: 13, letterSpacing: 1.2, marginBottom: 3 },
+  needItemText: { color: Colors.text, fontSize: 14, lineHeight: 20 },
+  needItemStatus: { color: Colors.textGray, fontSize: 11, lineHeight: 16, marginTop: 3 },
+  needItemAnswered: { color: Colors.growthGreen },
   prayedMeta: {
     color: Colors.textGray,
     fontSize: 12,

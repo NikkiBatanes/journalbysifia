@@ -6,6 +6,7 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 
 import ThemedText from '../../components/common/ThemedText';
 import StepFadeIn from '../../components/common/StepFadeIn';
+import StaggeredBounceIn from '../../components/common/StaggeredBounceIn';
 import { useTheme } from '../../hooks/useTheme';
 import { getFontFamily } from '../../theme/fonts';
 import { Colors } from '../../theme/colors';
@@ -144,6 +145,8 @@ const EmotionCheckInScreen = () => {
       title="How are you feeling?"
       footer={footer}
       onBack={onBack}
+      onSwipeForward={onNext}
+      canSwipeForward={Boolean(selected && feelingName)}
       backgroundColor={Colors.lightBackground}
       scrollWithHeader
       manageStatusBar={false}
@@ -162,53 +165,54 @@ const EmotionCheckInScreen = () => {
           />
         </StepFadeIn>
       ) : (
-        <StepFadeIn delay={160} style={styles.categoriesGrid}>
-          {displayedFeelings.map((feeling) => {
+        <View style={styles.categoriesGrid}>
+          {displayedFeelings.map((feeling, index) => {
             const isSelected = selected?.id === feeling.id;
             return (
-              <TouchableOpacity
-                key={feeling.id}
-                style={[styles.categoryCard, isSelected && styles.categoryCardSelected]}
-                onPress={() => {
-                  triggerLightHaptic();
-                  LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-                  setSelected(feeling);
-                }}
-                activeOpacity={0.75}
-                accessibilityRole="button"
-                accessibilityLabel={`Feeling ${feeling.name}`}
-                accessibilityState={{ selected: isSelected }}
-              >
-                <View style={styles.categoryIconContainer}>
-                  <View style={[
-                    styles.categoryIconCircle,
-                    isSelected && styles.categoryIconCircleSelected,
-                  ]}>
-                    {feeling.iconType === 'ionicons' ? (
-                      <Ionicons
-                        name={feeling.icon as any}
-                        size={18}
-                        color={Colors.hopeWhite}
-                      />
-                    ) : (
-                      <MaterialCommunityIcons
-                        name={feeling.icon as any}
-                        size={18}
-                        color={Colors.hopeWhite}
-                      />
-                    )}
-                  </View>
-                </View>
-                <ThemedText
-                  weight="semiBold"
-                  style={[styles.categoryName, isSelected && styles.categoryNameSelected]}
+              <StaggeredBounceIn key={feeling.id} index={showMore ? Math.max(0, index - INITIAL_FEELINGS.length) : index} style={styles.categorySlot}>
+                <TouchableOpacity
+                  style={[styles.categoryCard, isSelected && styles.categoryCardSelected]}
+                  onPress={() => {
+                    triggerLightHaptic();
+                    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+                    setSelected(feeling);
+                  }}
+                  activeOpacity={0.75}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Feeling ${feeling.name}`}
+                  accessibilityState={{ selected: isSelected }}
                 >
-                  {feeling.name}
-                </ThemedText>
-              </TouchableOpacity>
+                  <View style={styles.categoryIconContainer}>
+                    <View style={[
+                      styles.categoryIconCircle,
+                      isSelected && styles.categoryIconCircleSelected,
+                    ]}>
+                      {feeling.iconType === 'ionicons' ? (
+                        <Ionicons
+                          name={feeling.icon as any}
+                          size={18}
+                          color={Colors.hopeWhite}
+                        />
+                      ) : (
+                        <MaterialCommunityIcons
+                          name={feeling.icon as any}
+                          size={18}
+                          color={Colors.hopeWhite}
+                        />
+                      )}
+                    </View>
+                  </View>
+                  <ThemedText
+                    weight="semiBold"
+                    style={[styles.categoryName, isSelected && styles.categoryNameSelected]}
+                  >
+                    {feeling.name}
+                  </ThemedText>
+                </TouchableOpacity>
+              </StaggeredBounceIn>
             );
           })}
-        </StepFadeIn>
+        </View>
       )}
       <StepFadeIn delay={240} style={{ alignSelf: 'center' }}>
         <Animated.View style={{ opacity: toggleOpacity }}>
@@ -248,7 +252,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   categoryCard: {
-    width: '31%',
+    width: '100%',
     backgroundColor: Colors.cardBackground,
     borderRadius: 20,
     padding: 12,
@@ -258,6 +262,9 @@ const styles = StyleSheet.create({
     borderColor: Colors.cardBorder,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  categorySlot: {
+    width: '31%',
   },
   categoryCardSelected: {
     backgroundColor: Colors.sageMuted,

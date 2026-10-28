@@ -33,6 +33,8 @@
 	</dict>
 	<key>NSCalendarsUsageDescription</key>
 	<string>siFia needs access to your calendar to sync your time blocks and help you stay organized with your spiritual practices.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>siFia uses your camera when you choose to take a photo for a journal note.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>siFia uses your location to personalize your experience (for example, local pricing and regional content). We only access your location when the app is in use.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>

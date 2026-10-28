@@ -50,10 +50,9 @@ const EveningFlowStackNavigator = ({ route, navigation }: { route: { params?: { 
     screenOptions={{
       headerShown: false,
       presentation: 'card',
-      animation: 'fade_from_bottom',
+      animation: 'none',
       // Journal experiences handle swipes, including validation, themselves.
       gestureEnabled: false,
-      statusBarHidden: true,
       contentStyle: { backgroundColor: Colors.lightBackground },
     }}
   >

@@ -1,37 +1,45 @@
 import React from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-
-import {DAILY_SCRIPTURE_SEQUENCE_OVERRIDE_KEY} from '../services/dailyScriptureSequence';
 import {getActiveReviewQAContext} from '../dev/reviews/reviewQALoader';
+import {getOrCreateScriptureSequenceAnchor, validSequenceDate} from '../services/scriptureSequenceAnchor';
+import {useAuth} from '../context/IndustryStandardAuthContext';
 
 type AnchorValue = string | null | undefined;
 
-/** Uses the real signup date in production and the simulated signup date in Review QA. */
+/** Wait for a durable local/signup date, or an active development QA scenario. */
 export const useDailyScriptureSequenceAnchor = (accountCreatedAt: AnchorValue) => {
-  const [state, setState] = React.useState<{anchor: AnchorValue; ready: boolean}>({
-    anchor: accountCreatedAt,
+  const {bootstrapping} = useAuth();
+  const [attempt, retry] = React.useReducer(value => value + 1, 0);
+  const [state, setState] = React.useState<{
+    anchor: AnchorValue; ready: boolean; error: string | null; accountCreatedAt: AnchorValue;
+  }>({
+    anchor: undefined,
+    accountCreatedAt,
     ready: false,
+    error: null,
   });
 
   React.useEffect(() => {
     let active = true;
-    Promise.all([
-      AsyncStorage.getItem(DAILY_SCRIPTURE_SEQUENCE_OVERRIDE_KEY),
-      __DEV__ ? getActiveReviewQAContext() : Promise.resolve(null),
-    ])
-      .then(([override, qaContext]) => {
+    setState({anchor: undefined, accountCreatedAt, ready: false, error: null});
+    if (bootstrapping) {return () => {active = false;};}
+    (async () => {
+      const qaContext = __DEV__ ? await getActiveReviewQAContext() : null;
+      return validSequenceDate(qaContext?.historyStart)
+        || await getOrCreateScriptureSequenceAnchor(accountCreatedAt);
+    })()
+      .then(anchor => {
         if (active) {
-          setState({
-            anchor: qaContext?.historyStart || override || accountCreatedAt,
-            ready: true,
-          });
+          setState({anchor, accountCreatedAt, ready: true, error: null});
         }
       })
       .catch(() => {
-        if (active) {setState({anchor: accountCreatedAt, ready: true});}
+        if (active) {
+          setState({anchor: undefined, accountCreatedAt, ready: false,
+            error: 'Could not load your reading schedule. Tap to retry.'});
+        }
       });
     return () => {active = false;};
-  }, [accountCreatedAt]);
+  }, [accountCreatedAt, bootstrapping, attempt]);
 
-  return state;
+  return {...state, ready: state.ready && !bootstrapping && state.accountCreatedAt === accountCreatedAt, retry};
 };

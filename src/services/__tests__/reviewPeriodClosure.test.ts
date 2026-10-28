@@ -6,7 +6,7 @@ import {
   getYearEndPeriodFor,
 } from '../reviewPeriodService';
 
-describe('Review periods close before becoming available', () => {
+describe('Review period availability boundaries', () => {
   it('uses the prior complete Monday-start week, including on Sunday', () => {
     expect(getWeeklyPeriodFor(0, '2026-09-20')).toMatchObject({
       periodStart: '2026-09-07', periodEnd: '2026-09-13', availableFrom: '2026-09-14',
@@ -22,7 +22,7 @@ describe('Review periods close before becoming available', () => {
     });
   });
 
-  it('does not expose month, quarter, or year before closure', () => {
+  it('does not expose month or quarter before closure', () => {
     expect(getMonthlyPeriodFor('2026-09-30')).toMatchObject({periodStart: '2026-08-01', periodEnd: '2026-08-31'});
     expect(getMonthlyPeriodFor('2026-10-01')).toMatchObject({
       periodStart: '2026-09-01',
@@ -32,8 +32,18 @@ describe('Review periods close before becoming available', () => {
     });
     expect(getQuarterlyPeriodFor('2026-09-30')).toMatchObject({periodStart: '2026-04-01', periodEnd: '2026-06-30'});
     expect(getQuarterlyPeriodFor('2026-10-01')).toMatchObject({periodStart: '2026-07-01', periodEnd: '2026-09-30'});
-    expect(getYearEndPeriodFor('2026-12-31')).toBeNull();
-    expect(getYearEndPeriodFor('2027-01-01')).toMatchObject({periodStart: '2026-01-01', periodEnd: '2026-12-31'});
+  });
+
+  it('opens Year End for the final seven calendar days of the year', () => {
+    expect(getYearEndPeriodFor('2026-12-24')).toBeNull();
+    expect(getYearEndPeriodFor('2026-12-25')).toMatchObject({
+      periodStart: '2026-01-01',
+      periodEnd: '2026-12-31',
+      availableFrom: '2026-12-25',
+      availableUntil: '2027-01-01',
+    });
+    expect(getYearEndPeriodFor('2026-12-31')).toMatchObject({periodStart: '2026-01-01', periodEnd: '2026-12-31'});
+    expect(getYearEndPeriodFor('2027-01-01')).toBeNull();
   });
 
   it('identifies Beginning Year by its full target year', () => {

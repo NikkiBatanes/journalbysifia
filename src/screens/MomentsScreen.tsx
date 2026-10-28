@@ -22,6 +22,7 @@ import { getAllLocalReflectionsByType } from '../storage/reflectionStorage';
 import { getSavedBibleStudyReflections, parseSavedBibleStudy } from '../storage/bibleStudyMomentsStorage';
 import { useScroll } from '../context/ScrollContext';
 import {useExpandTabBarOnScrollEnd} from '../hooks/useExpandTabBarOnScrollEnd';
+import {canRevealMomentsContent} from '../utils/momentsReady';
 
 // Enable LayoutAnimation on Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -52,6 +53,7 @@ export const MomentsScreen: React.FC = () => {
   } = useExpandTabBarOnScrollEnd(expandTabBar);
   const [momentsReady, setMomentsReady] = useState(false);
   const [momentsEntranceRun, setMomentsEntranceRun] = useState(0);
+  const momentsFocusedRef = useRef(false);
   // Moment cards wait for their data and stagger inside the renderer. The
   // header intentionally remains static.
   // Date filtering state - Default to show all dates up to today (exclude future dates)
@@ -77,27 +79,44 @@ export const MomentsScreen: React.FC = () => {
 
   // Refresh key to trigger data reload when reflections are saved
   const [refreshKey, setRefreshKey] = useState(0);
+  const refreshSequenceRef = useRef(0);
+  const requestMomentsRefresh = React.useCallback(() => {
+    const nextRefreshKey = refreshSequenceRef.current + 1;
+    refreshSequenceRef.current = nextRefreshKey;
+    setRefreshKey(nextRefreshKey);
+  }, []);
 
   // Save events may occur while this tab is not mounted or focused.
   // Returning to Moments must rediscover persisted content independently.
   useFocusEffect(React.useCallback(() => {
+    momentsFocusedRef.current = true;
     setMomentsReady(false);
     // Animate once per visit, not after every save or background refresh.
     setMomentsEntranceRun(run => run + 1);
-    setRefreshKey(previous => previous + 1);
+    requestMomentsRefresh();
     lastScrollYRef.current = 0;
     tabBarCollapsedRef.current = false;
     setShowTabBar(true);
     return () => {
+      momentsFocusedRef.current = false;
       cancelPendingTabBarExpand();
       setMomentsReady(false);
       tabBarCollapsedRef.current = false;
       setShowTabBar(true);
     };
-  }, [cancelPendingTabBarExpand, setShowTabBar]));
+  }, [cancelPendingTabBarExpand, requestMomentsRefresh, setShowTabBar]));
 
-  const handleMomentsReady = React.useCallback(() => {
-    setMomentsReady(true);
+  const handleMomentsReady = React.useCallback((completedRefreshKey: number) => {
+    // A save can finish refreshing Moments while an editor still covers it.
+    // Do not reveal that background pass (or an older in-flight pass) when the
+    // editor closes; wait for the refresh requested by this focused visit.
+    if (canRevealMomentsContent(
+      momentsFocusedRef.current,
+      completedRefreshKey,
+      refreshSequenceRef.current,
+    )) {
+      setMomentsReady(true);
+    }
   }, []);
 
   useEffect(() => {
@@ -159,7 +178,7 @@ export const MomentsScreen: React.FC = () => {
   // Listen for reflection save and delete events to refresh the moments view
   useEffect(() => {
     const handleReflectionChanged = () => {
-      setRefreshKey(prev => prev + 1);
+      requestMomentsRefresh();
     };
 
     const savedSubscription = DeviceEventEmitter.addListener('reflection_saved', handleReflectionChanged);
@@ -185,7 +204,7 @@ export const MomentsScreen: React.FC = () => {
       prayerSavedSubscription.remove();
       prayerDeletedSubscription.remove();
     };
-  }, []);
+  }, [requestMomentsRefresh]);
 
   // Get all available plugins
   const plugins = React.useMemo(() => getAllPlugins(), [refreshKey]);
@@ -222,7 +241,7 @@ export const MomentsScreen: React.FC = () => {
     setIsRefreshing(true);
     // Pull-to-refresh is a structural rediscovery request. Keep ordinary
     // content mutations on their event path so they retain the viewport.
-    setRefreshKey(previous => previous + 1);
+    requestMomentsRefresh();
     setTimeout(() => {
       setIsRefreshing(false);
     }, 1000);

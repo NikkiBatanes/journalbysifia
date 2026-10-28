@@ -1,14 +1,15 @@
 import React, { useMemo, useRef, useEffect, useState, useLayoutEffect } from 'react';
-import { View, StyleSheet, StatusBar, Alert } from 'react-native';
+import { View, StyleSheet, StatusBar, Alert, DeviceEventEmitter } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import TimeBlockLogEditor, { TimeBlockLogEditorRef } from '../components/journal/TimeBlockLogEditor';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { toLocalDateString } from '../utils/date';
-import { useAuth } from '../context/IndustryStandardAuthContext';
 import { useCreateTimeBlock, useUpdateTimeBlock } from '../services/hooks/useTimeBlockData';
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '../services/queryKeys';
 import { Logger } from '../utils/ProductionLogger';
+import { Colors } from '../theme';
+import { LOCAL_TIME_BLOCK_USER_ID } from '../storage/localTimeBlockStorage';
 
 interface RouteParams {
   selectedDate?: string;
@@ -19,7 +20,6 @@ interface RouteParams {
 const TimeBlockEditorScreen: React.FC = () => {
   const route = useRoute();
   const navigation = useNavigation();
-  const { user } = useAuth();
   const queryClient = useQueryClient();
   const timeBlockEditorRef = useRef<TimeBlockLogEditorRef>(null);
 
@@ -93,7 +93,7 @@ const TimeBlockEditorScreen: React.FC = () => {
       }
 
       const timeBlockData = {
-        user_id: user?.id || '',
+        user_id: LOCAL_TIME_BLOCK_USER_ID,
         selected_date: saveDateString,
         start_time: startDateTime.toISOString(),
         end_time: endDateTime.toISOString(),
@@ -121,29 +121,30 @@ const TimeBlockEditorScreen: React.FC = () => {
         version: 1,
       };
 
+      let savedTimeBlock;
       if (data.isEditing && data.existingId) {
         // Update existing time block
-        await updateMutation.mutateAsync({
+        savedTimeBlock = await updateMutation.mutateAsync({
           id: data.existingId,
           updates: timeBlockData,
         });
       } else {
         // Create new time block
-        await createMutation.mutateAsync(timeBlockData as any);
+        savedTimeBlock = await createMutation.mutateAsync(timeBlockData as any);
       }
 
+      DeviceEventEmitter.emit('timeblock_saved', { timeblock: savedTimeBlock });
+
       // Invalidate cache to refresh the list
-      if (user?.id) {
-        const affectedDates = new Set([selectedDate, saveDateString]);
-        for (const affectedDate of affectedDates) {
-          await queryClient.invalidateQueries({
-            queryKey: queryKeys.timeBlocks.byDate(user.id, affectedDate),
-          });
-        }
+      const affectedDates = new Set([selectedDate, saveDateString]);
+      for (const affectedDate of affectedDates) {
         await queryClient.invalidateQueries({
-          queryKey: [queryKeys.timeBlocks.all[0]],
+          queryKey: queryKeys.timeBlocks.byDate(LOCAL_TIME_BLOCK_USER_ID, affectedDate),
         });
       }
+      await queryClient.invalidateQueries({
+        queryKey: [queryKeys.timeBlocks.all[0]],
+      });
 
       navigation.goBack();
     } catch (error) {
@@ -156,19 +157,14 @@ const TimeBlockEditorScreen: React.FC = () => {
     navigation.goBack();
   };
 
-  const handleUpgradeRequired = () => {
-    navigation.goBack();
-  };
-
   return (
     <GestureHandlerRootView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#526A5B" />
+      <StatusBar hidden barStyle="dark-content" backgroundColor={Colors.lightBackground} />
       <View style={styles.container}>
         <TimeBlockLogEditor
           ref={timeBlockEditorRef}
           onSave={handleSave}
           onCancel={handleCancel}
-          onUpgradeRequired={handleUpgradeRequired}
           initialContent={existingTimeBlock?.description || ''}
           subtaskTitle=""
           _subtaskId={undefined}
@@ -195,7 +191,7 @@ const TimeBlockEditorScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#526A5B',
+    backgroundColor: Colors.lightBackground,
   },
 });
 

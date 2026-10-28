@@ -35,6 +35,7 @@ export type LocalJournalContentType =
   | 'todays_focus'
   | 'today_win'
   | 'looking_forward'
+  | 'time_block'
   | 'morning_check_in';
 
 export interface LocalJournalEntry {

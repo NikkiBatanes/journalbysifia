@@ -25,7 +25,7 @@ import {formatWeeklyGratitudePeriod} from '../utils/weeklyGratitudePeriod';
 import {formatWeeklyLookingAheadPeriod} from '../utils/weeklyLookingAheadPeriod';
 import {WEEKLY_LOOKING_FORWARD_TITLE} from '../utils/weeklyLookingForwardAnswers';
 
-export type MomentTimelineKind = 'morning' | 'evening' | 'weekly_gratitude' | 'weekly_looking_forward' | 'bible_study' | 'scripture_note' | 'sermon' | 'reflection' | 'prayer';
+export type MomentTimelineKind = 'morning' | 'evening' | 'time_block' | 'weekly_gratitude' | 'weekly_looking_forward' | 'bible_study' | 'scripture_note' | 'sermon' | 'reflection' | 'prayer';
 export type MomentCanonicalSource = 'journal' | 'reflection' | 'prayer';
 export type RoutineSectionKind = 'check_in' | 'psalm' | 'focus' | 'priorities' | 'gratitude' | 'win' | 'proverbs' | 'looking_forward';
 
@@ -77,6 +77,79 @@ const newest = <T extends { updated_at: string }>(entries: T[]): T | undefined =
 
 const itemSearchText = (title: string, lines: string[]): string => `${title} ${lines.join(' ')}`.replace(/\s+/g, ' ').trim().toLowerCase();
 const serverIds = (records: Array<{ server_id?: string | null }>): string[] => records.map(record => record.server_id).filter((id): id is string => !!id);
+
+const normalizeDateOnly = (value: unknown): string | null => {
+  if (typeof value !== 'string' || !value.trim()) { return null; }
+  const date = value.trim().split('T')[0];
+  return /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : null;
+};
+
+const localDateFromYmd = (value: string): Date => {
+  const [year, month, day] = value.split('-').map(Number);
+  return new Date(year, month - 1, day, 0, 0, 0, 0);
+};
+
+const ymdFromLocalDate = (value: Date): string =>
+  `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, '0')}-${String(value.getDate()).padStart(2, '0')}`;
+
+const timeBlockOccurrenceDates = (entry: LocalJournalEntry): string[] => {
+  const content = parseJournalContent(entry);
+  const startDate = normalizeDateOnly(entry.selected_date);
+  if (!startDate) { return []; }
+
+  const repeatRule = content.repeat_rule || {};
+  const frequency = String(repeatRule.frequency || content.repeat_frequency || 'never').toLowerCase();
+  if (!frequency || frequency === 'never') { return [startDate]; }
+
+  const exceptions = new Set(
+    (Array.isArray(content.metadata?.exceptions) ? content.metadata.exceptions : [])
+      .map(normalizeDateOnly)
+      .filter((date: string | null): date is string => !!date),
+  );
+  const explicitEnd = normalizeDateOnly(
+    content.metadata?.endDate || content.repeat_until || content.repeat_end_date,
+  );
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const first = localDateFromYmd(startDate);
+  const last = explicitEnd
+    ? localDateFromYmd(explicitEnd)
+    : first > today ? new Date(first) : today;
+  const customFrequency = repeatRule.customFrequency || content.repeat_custom_frequency;
+  const interval = Math.max(1, Number(customFrequency?.value || customFrequency || 1));
+  const customUnit = String(customFrequency?.unit || 'day').toLowerCase();
+  const occurrences: string[] = [];
+  const current = new Date(first);
+
+  // The cap protects malformed imported records from creating an unbounded loop.
+  for (let index = 0; current <= last && index < 5000; index += 1) {
+    const occurrence = ymdFromLocalDate(current);
+    if (!exceptions.has(occurrence)) { occurrences.push(occurrence); }
+
+    const before = current.getTime();
+    if (frequency === 'daily') {
+      current.setDate(current.getDate() + 1);
+    } else if (frequency === 'weekly') {
+      current.setDate(current.getDate() + 7);
+    } else if (frequency === 'biweekly' || frequency === 'bi-weekly') {
+      current.setDate(current.getDate() + 14);
+    } else if (frequency === 'monthly') {
+      current.setMonth(current.getMonth() + 1);
+    } else if (frequency === 'yearly') {
+      current.setFullYear(current.getFullYear() + 1);
+    } else if (frequency === 'custom') {
+      if (customUnit.startsWith('week')) { current.setDate(current.getDate() + interval * 7); }
+      else if (customUnit.startsWith('month')) { current.setMonth(current.getMonth() + interval); }
+      else if (customUnit.startsWith('year')) { current.setFullYear(current.getFullYear() + interval); }
+      else { current.setDate(current.getDate() + interval); }
+    } else {
+      break;
+    }
+    if (current.getTime() <= before) { break; }
+  }
+
+  return occurrences;
+};
 
 export const buildMomentTimeline = ({ journalEntries, reflections, bibleStudies, prayers }: MomentTimelineInput): MomentTimelineItem[] => {
   const result: MomentTimelineItem[] = [];
@@ -177,6 +250,39 @@ export const buildMomentTimeline = ({ journalEntries, reflections, bibleStudies,
       const savedAt = newest([...dayJournal, ...dayScripture])?.updated_at || `${selectedDate}T00:00:00.000Z`;
       result.push({ key: `evening:${selectedDate}`, kind: 'evening', selectedDate, canonicalSource: 'journal', canonicalIds: ids, savedAt, preview: { title: 'Evening', lines, sections: eveningSections }, searchText: itemSearchText('Evening', lines), metadata: { sectionKinds: eveningSections.map(section => section.kind), serverIds: serverIds([...dayJournal, ...dayScripture]) } });
     }
+  });
+
+  const timeBlocksByDate = new Map<string, LocalJournalEntry[]>();
+  journalEntries
+    .filter(entry => !entry.deleted && entry.content_type === 'time_block')
+    .forEach(entry => {
+      const content = parseJournalContent(entry);
+      if (typeof content.title !== 'string' || !content.title.trim()) { return; }
+      timeBlockOccurrenceDates(entry).forEach(selectedDate => {
+        const entries = timeBlocksByDate.get(selectedDate) || [];
+        entries.push(entry);
+        timeBlocksByDate.set(selectedDate, entries);
+      });
+    });
+
+  timeBlocksByDate.forEach((entries, selectedDate) => {
+    const uniqueEntries = [...new Map(entries.map(entry => [entry.id, entry])).values()];
+    const lines = uniqueEntries.flatMap(entry => {
+      const content = parseJournalContent(entry);
+      return text(content.title, content.description, content.location, content.category);
+    });
+    const savedAt = newest(uniqueEntries)?.updated_at || `${selectedDate}T00:00:00.000Z`;
+    result.push({
+      key: `time-block:${selectedDate}`,
+      kind: 'time_block',
+      selectedDate,
+      canonicalSource: 'journal',
+      canonicalIds: uniqueEntries.map(entry => entry.id),
+      savedAt,
+      preview: { title: 'Time Blocks', lines },
+      searchText: itemSearchText('Time Blocks', lines),
+      metadata: { serverIds: serverIds(uniqueEntries) },
+    });
   });
 
   journalEntries

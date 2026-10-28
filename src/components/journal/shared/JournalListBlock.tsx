@@ -78,6 +78,7 @@ export const JournalListBlock = ({
       tone={tone}
       style={styles.block}
       onDelete={onDelete}
+      unframed
       headerContent={
         <View style={styles.labelRow}>
           <JournalBlockIcon config={config} size={14} color={accent} />

@@ -27,6 +27,7 @@ import { getFontFamily } from '../../theme/fonts';
 import { useTheme } from '../../hooks/useTheme';
 import ThemedText from '../../components/common/ThemedText';
 import StepFadeIn from '../../components/common/StepFadeIn';
+import StaggeredBounceIn from '../../components/common/StaggeredBounceIn';
 import { triggerLightHaptic, triggerMediumHaptic } from '../../utils/haptics';
 import { toLocalDateString, getDateContext, type DateContext } from '../../utils/date';
 import { saveLocalJournalSingleton, getLocalJournalSingleton } from '../../storage/journalStorage';
@@ -37,6 +38,7 @@ export interface LookingForwardExperienceProps {
   selectedDate: Date;
   insets?: { top: number; bottom: number };
   onClose?: () => void;
+  onBackFromStart?: () => void;
   onComplete: (record: any) => void | Promise<void>;
   completionButtonText?: string;
   skipCompletionPage?: boolean;
@@ -257,44 +259,45 @@ export const LookingForwardEmotionStep: React.FC<{
         )}
 
         {!isOtherSelected && (
-          <StepFadeIn delay={240} style={styles.emotionsGrid}>
-          {EMOTIONS.slice(0, showAllEmotions ? EMOTIONS.length : INITIAL_EMOTION_COUNT).map((emotion) => {
+          <View style={styles.emotionsGrid}>
+          {EMOTIONS.slice(0, showAllEmotions ? EMOTIONS.length : INITIAL_EMOTION_COUNT).map((emotion, index) => {
             const isSelected = selectedEmotion?.id === emotion.id;
             return (
-              <TouchableOpacity
-                key={emotion.id}
-                accessibilityRole="button"
-                accessibilityLabel={emotion.name}
-                accessibilityState={{selected: isSelected}}
-                style={[styles.emotionCard, isSelected && styles.emotionCardSelected]}
-                onPress={() => {
-                  triggerLightHaptic();
-                  onSelect(emotion);
-                }}
-                activeOpacity={0.75}
-              >
-                <View style={styles.emotionIconContainer}>
-                  <View style={[
-                    styles.emotionIconCircle,
-                    isSelected && styles.emotionIconCircleSelected,
-                  ]}>
-                    <MaterialCommunityIcons
-                      name={emotion.icon as any}
-                      size={18}
-                      color={Colors.hopeWhite}
-                    />
-                  </View>
-                </View>
-                <ThemedText
-                  weight="semiBold"
-                  style={[styles.emotionName, isSelected && styles.emotionNameSelected]}
+              <StaggeredBounceIn key={emotion.id} index={showAllEmotions ? Math.max(0, index - INITIAL_EMOTION_COUNT) : index} style={styles.emotionSlot}>
+                <TouchableOpacity
+                  accessibilityRole="button"
+                  accessibilityLabel={emotion.name}
+                  accessibilityState={{selected: isSelected}}
+                  style={[styles.emotionCard, isSelected && styles.emotionCardSelected]}
+                  onPress={() => {
+                    triggerLightHaptic();
+                    onSelect(emotion);
+                  }}
+                  activeOpacity={0.75}
                 >
-                  {emotion.name}
-                </ThemedText>
-              </TouchableOpacity>
+                  <View style={styles.emotionIconContainer}>
+                    <View style={[
+                      styles.emotionIconCircle,
+                      isSelected && styles.emotionIconCircleSelected,
+                    ]}>
+                      <MaterialCommunityIcons
+                        name={emotion.icon as any}
+                        size={18}
+                        color={Colors.hopeWhite}
+                      />
+                    </View>
+                  </View>
+                  <ThemedText
+                    weight="semiBold"
+                    style={[styles.emotionName, isSelected && styles.emotionNameSelected]}
+                  >
+                    {emotion.name}
+                  </ThemedText>
+                </TouchableOpacity>
+              </StaggeredBounceIn>
             );
           })}
-        </StepFadeIn>
+        </View>
         )}
 
         {!isOtherSelected && EMOTIONS.length > INITIAL_EMOTION_COUNT && (
@@ -695,6 +698,7 @@ export const LookingForwardExperience: React.FC<LookingForwardExperienceProps> =
   selectedDate,
   insets: insetsProp,
   onClose,
+  onBackFromStart,
   onComplete,
   completionButtonText,
   skipCompletionPage,
@@ -808,10 +812,12 @@ export const LookingForwardExperience: React.FC<LookingForwardExperienceProps> =
   const handleBack = useCallback(() => {
     if (currentStep > 0) {
       setCurrentStep(currentStep - 1);
+    } else if (onBackFromStart) {
+      onBackFromStart();
     } else {
       onClose?.();
     }
-  }, [currentStep, onClose]);
+  }, [currentStep, onBackFromStart, onClose]);
 
   // Swipe gesture handlers
   const panResponder = React.useMemo(
@@ -1025,7 +1031,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
   },
   emotionCard: {
-    width: '31%',
+    width: '100%',
     backgroundColor: Colors.cardBackground,
     borderRadius: 20,
     padding: 12,
@@ -1035,6 +1041,9 @@ const styles = StyleSheet.create({
     borderColor: Colors.cardBorder,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  emotionSlot: {
+    width: '31%',
   },
   emotionCardSelected: {
     backgroundColor: Colors.sageMuted,

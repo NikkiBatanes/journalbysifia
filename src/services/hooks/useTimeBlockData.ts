@@ -10,6 +10,7 @@ import { Logger } from '../../utils/ProductionLogger';
 import { queryKeys } from '../queryKeys';
 import { RETRY_CONFIGS, createRetryFunction } from '../../utils/retry';
 import { faithPointsService } from '../faithPointsService';
+import { LOCAL_TIME_BLOCK_USER_ID } from '../../storage/localTimeBlockStorage';
 
 type TimeBlockWithVersion = TimeBlockApiEntry & {
   optimisticId?: string;
@@ -163,16 +164,18 @@ export const useCreateTimeBlock = () => {
         ) ?? []
       );
 
-      faithPointsService.awardPoints(data.user_id, 'timeblock_saved', {
-        suppressNotification: true,
-        source: 'timeblock',
-        timeblock_id: data.id,
-      }).catch(error => {
-        Logger.warn('Failed to award faith points for time block', {
-          component: 'useTimeBlockData',
-          error: error as Error,
+      if (data.user_id !== LOCAL_TIME_BLOCK_USER_ID) {
+        faithPointsService.awardPoints(data.user_id, 'timeblock_saved', {
+          suppressNotification: true,
+          source: 'timeblock',
+          timeblock_id: data.id,
+        }).catch(error => {
+          Logger.warn('Failed to award faith points for time block', {
+            component: 'useTimeBlockData',
+            error: error as Error,
+          });
         });
-      });
+      }
     },
   });
 };

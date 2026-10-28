@@ -34,9 +34,9 @@ describe('read-only Review eligibility', () => {
     const october = await getReviewEligibility('2026-10-01', 'monday');
     expect(october.allActive.map(item => item.type)).not.toContain('monthly');
 
-    (getValidJournalHistoryStart as jest.Mock).mockResolvedValue('2026-12-30');
-    const january = await getReviewEligibility('2027-01-01', 'monday');
-    expect(january.allActive.map(item => item.type)).not.toContain('year_end');
+    (getValidJournalHistoryStart as jest.Mock).mockResolvedValue('2026-12-20');
+    const yearEnd = await getReviewEligibility('2026-12-25', 'monday');
+    expect(yearEnd.allActive.map(item => item.type)).not.toContain('year_end');
   });
 
   it('allows Beginning Year only when history starts no later than target-year start', async () => {

@@ -209,6 +209,7 @@ const ReflectionEditorScreen: React.FC = () => {
   }, [params.existingReflection, params.reflectionId]);
 
   const editorRef = useRef<ReflectionLogEditorRef>(null);
+  const pendingHeartJournalStreakRef = useRef(false);
   const canReturnToHeartJournalChooser = Boolean(
     params.openHeart && !editingId && params.initialMode !== 'guided',
   );
@@ -238,6 +239,21 @@ const ReflectionEditorScreen: React.FC = () => {
   const successModal = useSuccessModal(
     () => {
       editorRef.current?.blurInputs();
+      if (pendingHeartJournalStreakRef.current) {
+        pendingHeartJournalStreakRef.current = false;
+        // Let the native success modal finish closing before presenting the
+        // streak screen. Keep this editor in the stack so StreakPlan can
+        // dismiss both routes when the celebration is done.
+        setTimeout(() => {
+          (navigation as any).navigate('StreakPlan', {
+            rhythm: 'heart_journal',
+            source: 'heart_journal_complete',
+            returnTo: 'moments',
+            dismissRouteCount: 2,
+          });
+        }, 250);
+        return;
+      }
       closeEditor();
     },
     () => {
@@ -348,20 +364,14 @@ const ReflectionEditorScreen: React.FC = () => {
       // A new Heart Journal entry counts once. Guided journeys count only
       // when completed; their intermediate draft saves do not build a streak.
       const completesHeartJournal = normalizedType !== 'guided' || entryData.guidedJourney?.completed === true;
-      if (!editingId && completesHeartJournal) {
+      if (!options.silent && !editingId && completesHeartJournal) {
         DeviceEventEmitter.emit(FAITHFUL_RHYTHM_UPDATED, {rhythm: 'heart_journal', selectedDate: dateStr});
         const shouldShowStreak = await claimFaithfulRhythmCelebration('heart_journal', dateStr);
         if (shouldShowStreak) {
           if (globalEditMode?.isGlobalEditMode) {
             globalEditMode.setGlobalEditMode(false);
           }
-          (navigation as any).navigate('StreakPlan', {
-            rhythm: 'heart_journal',
-            source: 'heart_journal_complete',
-            returnTo: 'moments',
-            dismissRouteCount: 2,
-          });
-          return;
+          pendingHeartJournalStreakRef.current = true;
         }
       }
 

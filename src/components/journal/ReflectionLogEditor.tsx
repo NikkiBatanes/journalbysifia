@@ -49,6 +49,7 @@ import {ScriptureLookupInput} from './shared/ScriptureLookupInput';
 import JournalColumnBlock from './shared/JournalColumnBlock';
 import JournalNestedBlockEditor from './shared/JournalNestedBlockEditor';
 import DraggableJournalBlock from './shared/DraggableJournalBlock';
+import JournalPhotoSourcePicker from './shared/JournalPhotoSourcePicker';
 import {
   reorderJournalBlock,
   resolveJournalBlockDropIndex,
@@ -69,7 +70,6 @@ import {
   createGuidedNoteId,
   type GuidedReflectionNote,
 } from '../../types/guidedReflection';
-import {pickImageLocal} from '../../services/avatarService';
 import {useAuth} from '../../context/IndustryStandardAuthContext';
 
 type ViewMode = 'free-form' | 'guided';
@@ -764,6 +764,7 @@ const ReflectionLogEditor = React.forwardRef<
           : [],
     );
     const [notePickerOpen, setNotePickerOpen] = React.useState(false);
+    const [photoSourceOpen, setPhotoSourceOpen] = React.useState(false);
     const notePickerAnimations = useRef(
       REFLECTION_NOTE_TYPES.map(() => new Animated.Value(0)),
     ).current;
@@ -807,6 +808,21 @@ const ReflectionLogEditor = React.forwardRef<
     >(initialEntry.journalClassification || initialJournalClassification);
     const [isClassificationPickerOpen, setIsClassificationPickerOpen] =
       React.useState(false);
+    const [namingOtherClassification, setNamingOtherClassification] =
+      React.useState(false);
+    const [otherClassificationName, setOtherClassificationName] =
+      React.useState('');
+    const confirmOtherClassification = () => {
+      const name = otherClassificationName.trim();
+      if (!name) {
+        return;
+      }
+      triggerLightHaptic();
+      setJournalClassification(`other:${name}`);
+      setHasUserMadeChanges(true);
+      setNamingOtherClassification(false);
+      setIsClassificationPickerOpen(false);
+    };
     const isDirectHeartJournal =
       source === 'freeform' &&
       initialEntry.type !== 'guided' &&
@@ -1346,14 +1362,20 @@ const ReflectionLogEditor = React.forwardRef<
       };
     }, [clearAllTimeouts]);
 
-    // Update title when initialTitle changes and focus content if title is locked
+    // Apply incoming title/prompt values only when the props themselves
+    // change. Re-running on newEntry.title edits would immediately restore
+    // the previous title and make it impossible to rename a saved entry.
+    const appliedTitleSourceRef = useRef({initialTitle, initialPrompt});
     React.useEffect(() => {
-      if (initialTitle && (newEntry.title !== initialTitle || !newEntry.title)) {
-        // Check if component is still mounted before state updates
-        if (!isMountedRef.current) {
-          return;
-        }
+      const sourceChanged =
+        appliedTitleSourceRef.current.initialTitle !== initialTitle ||
+        appliedTitleSourceRef.current.initialPrompt !== initialPrompt;
+      appliedTitleSourceRef.current = {initialTitle, initialPrompt};
+      if (!sourceChanged || !isMountedRef.current) {
+        return;
+      }
 
+      if (initialTitle) {
         setNewEntry(prev => ({...prev, title: initialTitle}));
       }
 
@@ -1366,15 +1388,12 @@ const ReflectionLogEditor = React.forwardRef<
         guidedPrompt &&
         (source === 'guided' ||
           source === 'guided_prompt' ||
-          allGuidedPrompts.includes(guidedPrompt)) &&
-        isMountedRef.current
+          allGuidedPrompts.includes(guidedPrompt))
       ) {
         setSelectedPrompt(guidedPrompt);
-        if (newEntry.title !== guidedPrompt) {
-          setNewEntry(prev => ({...prev, title: guidedPrompt}));
-        }
+        setNewEntry(prev => ({...prev, title: guidedPrompt}));
       }
-    }, [initialPrompt, initialTitle, source, guidedPromptGating.allPrompts, newEntry.title]);
+    }, [initialPrompt, initialTitle, source, guidedPromptGating.allPrompts]);
 
     // Animation for formatting modal
     React.useEffect(() => {
@@ -1654,7 +1673,11 @@ const ReflectionLogEditor = React.forwardRef<
       classificationCopy?.title || 'Name Your Reflection...';
     const bodyPlaceholder =
       classificationCopy?.body || 'Pour out your thoughts...';
-    const canSaveWithoutTitle = journalClassification === 'brain_dump';
+    // Heart Journal entries may be saved without a title. Other editor
+    // contexts (guided prompts, playbook steps, dashboard smart journaling)
+    // keep the existing title requirement.
+    const canSaveWithoutTitle =
+      Boolean(journalClassification) || isDirectHeartJournal;
     const saveDisabled =
       (!canSaveWithoutTitle && !newEntry.title.trim()) ||
       !newEntry.content.trim() ||
@@ -1981,6 +2004,7 @@ const ReflectionLogEditor = React.forwardRef<
                         }}
                         onPress={() => {
                           triggerLightHaptic();
+                          setNamingOtherClassification(false);
                           setIsClassificationPickerOpen(open => !open);
                         }}
                         style={{
@@ -2039,6 +2063,20 @@ const ReflectionLogEditor = React.forwardRef<
                                 accessibilityState={{selected}}
                                 onPress={() => {
                                   triggerLightHaptic();
+                                  if (item.value === 'other') {
+                                    setOtherClassificationName(
+                                      journalClassification?.startsWith(
+                                        'other:',
+                                      )
+                                        ? journalClassification.slice(
+                                            'other:'.length,
+                                          )
+                                        : '',
+                                    );
+                                    setNamingOtherClassification(true);
+                                    return;
+                                  }
+                                  setNamingOtherClassification(false);
                                   setJournalClassification(item.value);
                                   setHasUserMadeChanges(true);
                                   setIsClassificationPickerOpen(false);
@@ -2064,11 +2102,74 @@ const ReflectionLogEditor = React.forwardRef<
                                     color: Colors.hopeWhite,
                                     fontSize: 12,
                                   }}>
-                                  {item.label}
+                                  {item.value === 'other' &&
+                                  journalClassification?.startsWith('other:')
+                                    ? heartJournalClassificationLabel(
+                                        journalClassification,
+                                      )
+                                    : item.label}
                                 </ThemedText>
                               </TouchableOpacity>
                             );
                           })}
+                          {namingOtherClassification && (
+                            <View style={{width: '100%'}}>
+                              <View
+                                style={{
+                                  flexDirection: 'row',
+                                  alignItems: 'center',
+                                  gap: 10,
+                                }}>
+                                <JournalTextInput
+                                  autoFocus
+                                  value={otherClassificationName}
+                                  onChangeText={setOtherClassificationName}
+                                  placeholder="Name your journal type... e.g. Dream"
+                                  placeholderTextColor="rgba(255,255,255,0.58)"
+                                  maxLength={32}
+                                  returnKeyType="done"
+                                  onSubmitEditing={confirmOtherClassification}
+                                  style={{
+                                    flex: 1,
+                                    minHeight: 42,
+                                    paddingVertical: 6,
+                                    color: Colors.hopeWhite,
+                                    fontSize: 13,
+                                  }}
+                                />
+                                <TouchableOpacity
+                                  accessibilityRole="button"
+                                  accessibilityLabel="Use custom journal type"
+                                  disabled={!otherClassificationName.trim()}
+                                  onPress={confirmOtherClassification}
+                                  style={{
+                                    minHeight: 42,
+                                    minWidth: 42,
+                                    justifyContent: 'center',
+                                    alignItems: 'center',
+                                    borderRadius: 21,
+                                    borderWidth: 1,
+                                    borderColor: otherClassificationName.trim()
+                                      ? Colors.sageMuted
+                                      : 'rgba(255,255,255,0.2)',
+                                    backgroundColor:
+                                      otherClassificationName.trim()
+                                        ? Colors.darkBackground
+                                        : 'rgba(255,255,255,0.1)',
+                                  }}>
+                                  <Ionicons
+                                    name="arrow-forward"
+                                    size={16}
+                                    color={
+                                      otherClassificationName.trim()
+                                        ? Colors.hopeWhite
+                                        : 'rgba(255,255,255,0.45)'
+                                    }
+                                  />
+                                </TouchableOpacity>
+                              </View>
+                            </View>
+                          )}
                         </View>
                       )}
                     </Animated.View>
@@ -2413,17 +2514,11 @@ const ReflectionLogEditor = React.forwardRef<
                       ),
                     }))}
                   animations={notePickerAnimations}
+                  onSelectStart={() => triggerMediumHaptic()}
                   onSelect={async kind => {
-                    triggerMediumHaptic();
                     if (kind === 'photo') {
-                      closeNotePicker(async () => {
-                        try {
-                          const photo = await pickImageLocal();
-                          if (photo) addJournalBlock('photo', {uri: photo.uri});
-                        } catch {
-                          Alert.alert('Could not add photo', 'Please try choosing your photo again.');
-                        }
-                      });
+                      setPhotoSourceOpen(true);
+                      closeNotePicker();
                     } else {
                       closeNotePicker(() => addJournalBlock(kind));
                     }
@@ -2464,6 +2559,13 @@ const ReflectionLogEditor = React.forwardRef<
               />
             </Animated.View>
           </Animated.View>
+          <JournalPhotoSourcePicker
+            visible={photoSourceOpen}
+            onClose={() => setPhotoSourceOpen(false)}
+            onImageSelected={photo =>
+              addJournalBlock('photo', {uri: photo.uri})
+            }
+          />
           </View>
         </View>
       </View>

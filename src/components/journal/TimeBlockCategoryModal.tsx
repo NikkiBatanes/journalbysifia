@@ -155,7 +155,7 @@ const TimeBlockCategoryModal: React.FC<TimeBlockCategoryModalProps> = ({
           >
             <StepFadeIn delay={0}>
               <View style={styles.focusLabelContainer}>
-                <MaterialIcons name="filter-center-focus" size={16} color={Colors.alertCoral} style={styles.labelIcon} />
+                <MaterialIcons name="filter-center-focus" size={16} color={Colors.sage} style={styles.labelIcon} />
                 <ThemedText weight="semiBold" style={styles.focusLabel}>SELECT CATEGORY</ThemedText>
               </View>
             </StepFadeIn>
@@ -174,7 +174,7 @@ const TimeBlockCategoryModal: React.FC<TimeBlockCategoryModalProps> = ({
                   <TextInput
                     style={[styles.customInput, { fontFamily: getFontFamily(fontKey, 'regular') }]}
                     placeholder="Type your category"
-                    placeholderTextColor="rgba(255, 255, 255, 0.5)"
+                    placeholderTextColor={Colors.textGray}
                     value={customCategory}
                     onChangeText={setCustomCategory}
                     multiline
@@ -213,7 +213,7 @@ const TimeBlockCategoryModal: React.FC<TimeBlockCategoryModalProps> = ({
                         <Ionicons
                           name={category.icon as any}
                           size={18}
-                          color={isSelected ? Colors.hopeWhite : Colors.alertCoral}
+                          color={isSelected ? Colors.hopeWhite : Colors.sage}
                         />
                       </View>
                     </View>
@@ -301,7 +301,7 @@ const TimeBlockCategoryModal: React.FC<TimeBlockCategoryModalProps> = ({
               activeOpacity={0.7}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
-              <Ionicons name="close" size={17} color="rgba(255,255,255,0.65)" />
+              <Ionicons name="close" size={17} color={Colors.sage} />
             </TouchableOpacity>
           </View>
         </View>
@@ -313,7 +313,7 @@ const TimeBlockCategoryModal: React.FC<TimeBlockCategoryModalProps> = ({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: Colors.sage,
+    backgroundColor: Colors.lightBackground,
   },
   stepContainer: {
     flex: 1,
@@ -338,7 +338,7 @@ const styles = StyleSheet.create({
   focusLabel: {
     fontSize: 11,
     letterSpacing: 1,
-    color: Colors.hopeWhite,
+    color: Colors.sage,
   },
   titleRow: {
     flexDirection: 'row',
@@ -349,7 +349,7 @@ const styles = StyleSheet.create({
   },
   stepTitle: {
     fontSize: 24,
-    color: Colors.hopeWhite,
+    color: Colors.text,
     lineHeight: 30,
     textAlign: 'center',
   },
@@ -361,19 +361,19 @@ const styles = StyleSheet.create({
   },
   categoryCard: {
     width: '31%',
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: Colors.cardBackground,
     borderRadius: 20,
     padding: 12,
     marginBottom: 0,
     minHeight: 100,
     borderWidth: 0.5,
-    borderColor: 'rgba(255, 255, 255, 0.22)',
+    borderColor: Colors.inputBorder,
     alignItems: 'center',
     justifyContent: 'center',
   },
   categoryCardSelected: {
-    backgroundColor: 'rgba(255, 107, 107, 0.18)',
-    borderColor: Colors.alertCoral,
+    backgroundColor: Colors.sage,
+    borderColor: Colors.sage,
   },
   categoryIconContainer: {
     marginBottom: 8,
@@ -382,16 +382,16 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: Colors.sage,
+    backgroundColor: Colors.anchorBlueLight,
     alignItems: 'center',
     justifyContent: 'center',
   },
   categoryIconCircleSelected: {
-    backgroundColor: Colors.alertCoral,
+    backgroundColor: Colors.sageMuted,
   },
   categoryName: {
     fontSize: 12,
-    color: Colors.hopeWhite,
+    color: Colors.text,
     marginBottom: 4,
     textAlign: 'center',
   },
@@ -400,12 +400,12 @@ const styles = StyleSheet.create({
   },
   categoryDescription: {
     fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: Colors.textGray,
     lineHeight: 14,
     textAlign: 'center',
   },
   categoryDescriptionSelected: {
-    color: 'rgba(255, 255, 255, 0.9)',
+    color: Colors.anchorBlueLight,
   },
   customInputContainer: {
     marginTop: 16,
@@ -413,7 +413,7 @@ const styles = StyleSheet.create({
   },
   customInputTitle: {
     fontSize: 14,
-    color: Colors.hopeWhite,
+    color: Colors.text,
     marginBottom: 8,
     fontWeight: '500',
   },
@@ -422,7 +422,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 0,
     paddingVertical: 16,
     fontSize: 18,
-    color: Colors.hopeWhite,
+    color: Colors.text,
     minHeight: 120,
     textAlignVertical: 'top',
   },
@@ -433,12 +433,12 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderColor: Colors.sage,
     alignSelf: 'center',
   },
   showMoreButtonText: {
     fontSize: 14,
-    color: Colors.hopeWhite,
+    color: Colors.sage,
     fontWeight: '600',
   },
   primaryButton: {
@@ -448,7 +448,7 @@ const styles = StyleSheet.create({
     height: 40,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: Colors.alertCoral,
+    backgroundColor: Colors.sage,
     borderRadius: 20,
     shadowColor: '#29342E',
     shadowOffset: { width: 0, height: 4 },
@@ -464,7 +464,7 @@ const styles = StyleSheet.create({
     height: 42,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.09)',
+    backgroundColor: Colors.anchorBlueLight,
     borderRadius: 999,
     zIndex: 100,
   },

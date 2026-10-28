@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
   Alert,
   Animated,
   DeviceEventEmitter,
@@ -16,7 +15,7 @@ import {
   View,
 } from 'react-native';
 import { ScrollView } from 'react-native';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import {useFocusEffect, useNavigation, useRoute} from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Trash2 } from 'lucide-react-native';
 
@@ -55,10 +54,11 @@ import {
 } from '../components/journal/shared/journalBlockOperations';
 import { JournalBlockEditor } from '../components/journal/shared/JournalBlockEditor';
 import JournalTextInput from '../components/journal/shared/JournalTextInput';
+import ScriptureLoadingSkeleton from '../components/scripture/ScriptureLoadingSkeleton';
 import { ScriptureLookupInput } from '../components/journal/shared/ScriptureLookupInput';
 import { JournalColumnBlock } from '../components/journal/shared/JournalColumnBlock';
 import JournalNestedBlockEditor from '../components/journal/shared/JournalNestedBlockEditor';
-import { pickImageLocal } from '../services/avatarService';
+import JournalPhotoSourcePicker from '../components/journal/shared/JournalPhotoSourcePicker';
 import {
   JOURNAL_BLOCK_GAP,
   JOURNAL_BLOCKS,
@@ -124,6 +124,7 @@ const ScriptureNoteEditorScreen: React.FC = () => {
   const [shareComposerOpen, setShareComposerOpen] = useState(false);
   const [showCopyright, setShowCopyright] = useState(false);
   const [notePickerOpen, setNotePickerOpen] = useState(false);
+  const [photoSourceOpen, setPhotoSourceOpen] = useState(false);
   const [columnTarget, setColumnTarget] = useState<{ columnId: string; side: 'left' | 'right' } | null>(null);
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
   const [dragPreview, setDragPreview] = useState<{
@@ -142,40 +143,57 @@ const ScriptureNoteEditorScreen: React.FC = () => {
     new Animated.Value(0),
   ]).current;
 
-  useEffect(() => {
-    editorEntranceAnims.forEach(animation => {
-      animation.stopAnimation();
-      animation.setValue(0);
-    });
-    const frame = requestAnimationFrame(() => {
-      Animated.sequence([
-        Animated.timing(editorEntranceAnims[0], {
-          toValue: 1,
-          duration: 140,
-          easing: Easing.out(Easing.quad),
-          useNativeDriver: true,
-        }),
-        Animated.parallel([
-          Animated.spring(editorEntranceAnims[1], {
-            toValue: 1,
-            tension: 82,
-            friction: 11,
-            useNativeDriver: true,
-          }),
-          Animated.spring(editorEntranceAnims[2], {
-            toValue: 1,
-            tension: 88,
-            friction: 12,
-            useNativeDriver: true,
-          }),
-        ]),
-      ]).start();
-    });
-    return () => {
-      cancelAnimationFrame(frame);
-      editorEntranceAnims.forEach(animation => animation.stopAnimation());
-    };
-  }, [editorEntranceAnims]);
+  useFocusEffect(
+    useCallback(() => {
+      editorEntranceAnims.forEach(animation => {
+        animation.stopAnimation();
+        animation.setValue(0);
+      });
+      let frame: number | null = null;
+      let played = false;
+      const playEntrance = () => {
+        if (played) {return;}
+        played = true;
+        frame = requestAnimationFrame(() => {
+          Animated.sequence([
+            Animated.timing(editorEntranceAnims[0], {
+              toValue: 1,
+              duration: 140,
+              easing: Easing.out(Easing.quad),
+              useNativeDriver: true,
+            }),
+            Animated.parallel([
+              Animated.spring(editorEntranceAnims[1], {
+                toValue: 1,
+                tension: 82,
+                friction: 11,
+                useNativeDriver: true,
+              }),
+              Animated.spring(editorEntranceAnims[2], {
+                toValue: 1,
+                tension: 88,
+                friction: 12,
+                useNativeDriver: true,
+              }),
+            ]),
+          ]).start();
+        });
+      };
+      const unsubscribe = (navigation as any).addListener?.(
+        'transitionEnd',
+        (event: any) => {
+          if (!event?.data?.closing) {playEntrance();}
+        },
+      );
+      const fallback = setTimeout(playEntrance, 450);
+      return () => {
+        clearTimeout(fallback);
+        unsubscribe?.();
+        if (frame !== null) {cancelAnimationFrame(frame);}
+        editorEntranceAnims.forEach(animation => animation.stopAnimation());
+      };
+    }, [editorEntranceAnims, navigation]),
+  );
 
   useEffect(() => {
     if (!editingId) {return;}
@@ -707,10 +725,14 @@ const ScriptureNoteEditorScreen: React.FC = () => {
                 onSubmitEditing={() => contentInputRef.current?.focus()}
                 underlineColorAndroid="transparent"
               />
-              {resolving && (
-                <ActivityIndicator size="small" color={Colors.hopeWhite} style={styles.searchSpinner} />
-              )}
             </View>
+            {resolving ? (
+              <ScriptureLoadingSkeleton
+                tone="dark"
+                variant="inline"
+                style={styles.searchSkeleton}
+              />
+            ) : null}
 
             {/* Resolved verse preview */}
             {resolvedVerse && (
@@ -933,17 +955,11 @@ const ScriptureNoteEditorScreen: React.FC = () => {
                     ),
                   }))}
                 animations={notePickerAnimations}
+                onSelectStart={() => triggerMediumHaptic()}
                 onSelect={async kind => {
-                  triggerMediumHaptic();
                   if (kind === 'photo') {
-                    closeNotePicker(async () => {
-                      try {
-                        const photo = await pickImageLocal();
-                        if (photo) addBlock('photo', { uri: photo.uri });
-                      } catch {
-                        Alert.alert('Could not add photo', 'Please try choosing your photo again.');
-                      }
-                    });
+                    setPhotoSourceOpen(true);
+                    closeNotePicker();
                   } else {
                     closeNotePicker(() => addBlock(kind));
                   }
@@ -982,6 +998,12 @@ const ScriptureNoteEditorScreen: React.FC = () => {
             />
           </Animated.View>
         </Animated.View>
+
+      <JournalPhotoSourcePicker
+        visible={photoSourceOpen}
+        onClose={() => setPhotoSourceOpen(false)}
+        onImageSelected={photo => addBlock('photo', { uri: photo.uri })}
+      />
 
       <ScriptureReaderModal
         visible={showReader && !!readerReference}
@@ -1041,8 +1063,11 @@ const styles = StyleSheet.create({
     marginBottom: 0,
     fontSize: 22,
   },
-  searchSpinner: {
-    marginLeft: 10,
+  searchSkeleton: {
+    width: '62%',
+    marginTop: -8,
+    marginLeft: 34,
+    marginBottom: 14,
   },
   versePreview: {
     borderLeftWidth: 2,

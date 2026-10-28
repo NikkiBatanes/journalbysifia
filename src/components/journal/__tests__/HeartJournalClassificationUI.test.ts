@@ -108,8 +108,10 @@ describe('Heart Journal classification UI contract', () => {
     expect(editorSource).toContain('}, 320);');
   });
 
-  it('allows a Brain Dump with body content and no title', () => {
-    expect(editorSource).toContain("journalClassification === 'brain_dump'");
+  it('allows any Heart Journal entry with body content and no title', () => {
+    expect(editorSource).toContain(
+      'Boolean(journalClassification) || isDirectHeartJournal',
+    );
     expect(editorSource).toContain('(!canSaveWithoutTitle && !newEntry.title.trim())');
   });
 

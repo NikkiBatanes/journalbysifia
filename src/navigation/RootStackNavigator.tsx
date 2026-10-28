@@ -263,7 +263,6 @@ export default function RootStackNavigator({
           animation: 'slide_from_bottom',
           statusBarTranslucent: true,
           statusBarBackgroundColor: 'transparent',
-          statusBarStyle: 'dark',
           navigationBarTranslucent: true,
           navigationBarColor: 'transparent',
           contentStyle: { backgroundColor: Colors.lightBackground },
@@ -277,7 +276,7 @@ export default function RootStackNavigator({
         options={{
           headerShown: false,
           presentation: 'fullScreenModal',
-          animation: 'slide_from_bottom',
+          animation: 'fade',
           gestureEnabled: false,
           contentStyle: { backgroundColor: Colors.lightBackground },
         }}
@@ -290,9 +289,8 @@ export default function RootStackNavigator({
         options={{
           headerShown: false,
           presentation: 'fullScreenModal',
-          animation: 'slide_from_bottom',
+          animation: 'fade',
           gestureEnabled: false,
-          statusBarHidden: true,
           contentStyle: { backgroundColor: Colors.lightBackground },
         }}
       />
@@ -317,7 +315,7 @@ export default function RootStackNavigator({
               headerShown: false,
               contentStyle: { backgroundColor: Colors.lightBackground },
               presentation: 'fullScreenModal',
-              animation: 'none',
+              animation: 'slide_from_bottom',
             }}
           />
       <Stack.Screen
@@ -327,7 +325,7 @@ export default function RootStackNavigator({
               headerShown: false,
               contentStyle: { backgroundColor: Colors.lightBackground },
               presentation: 'fullScreenModal',
-              animation: 'none',
+              animation: 'slide_from_bottom',
             }}
           />
       <Stack.Screen
@@ -358,7 +356,7 @@ export default function RootStackNavigator({
         options={{
           headerShown: false,
           presentation: 'fullScreenModal',
-          animation: 'none',
+          animation: 'slide_from_bottom',
         }}
       />
       <Stack.Screen
@@ -367,7 +365,7 @@ export default function RootStackNavigator({
         options={{
           headerShown: false,
           presentation: 'fullScreenModal',
-          animation: 'none',
+          animation: 'slide_from_bottom',
         }}
       />
 

@@ -39,9 +39,8 @@ const JournalStackNavigator: React.FC = () => {
           presentation: 'fullScreenModal',
           animation: 'slide_from_bottom',
           gestureEnabled: true,
-          // Prevent white iOS UIViewController background from flashing through
-          // on app resume before React content is fully re-painted.
-          contentStyle: { backgroundColor: '#526A5B' },
+          // Match the editor's light Journal surface during native transitions.
+          contentStyle: { backgroundColor: '#F6F5EF' },
         }}
       />
       <Stack.Screen
@@ -50,10 +49,7 @@ const JournalStackNavigator: React.FC = () => {
         options={{
           headerShown: false,
           presentation: 'fullScreenModal',
-          // A native fade exposes the ivory Moments screen underneath before
-          // the green editor sheet is opaque, producing a full-screen flash.
-          // The editor has its own content entrance animations.
-          animation: 'none',
+          animation: 'slide_from_bottom',
           gestureEnabled: true,
           // Prevent white iOS UIViewController background from flashing through
           // on app resume before React content is fully re-painted.
@@ -77,7 +73,7 @@ const JournalStackNavigator: React.FC = () => {
         options={{
           headerShown: false,
           presentation: 'fullScreenModal',
-          animation: 'none',
+          animation: 'slide_from_bottom',
           gestureEnabled: true,
           contentStyle: { backgroundColor: '#F6F5EF' },
         }}
@@ -147,7 +143,7 @@ const JournalStackNavigator: React.FC = () => {
         options={{
           headerShown: false,
           presentation: 'fullScreenModal',
-          animation: 'none',
+          animation: 'slide_from_bottom',
           gestureEnabled: true,
           // Prevent white iOS UIViewController background from flashing through
           // on app resume before React content is fully re-painted.
@@ -160,10 +156,7 @@ const JournalStackNavigator: React.FC = () => {
         options={{
           headerShown: false,
           presentation: 'fullScreenModal',
-          // Bible Study performs its own staggered content reveal after its
-          // saved session has loaded. A native fade here makes that entrance
-          // appear to run twice.
-          animation: 'none',
+          animation: 'slide_from_bottom',
           gestureEnabled: true,
           contentStyle: { backgroundColor: '#F6F5EF' },
         }}

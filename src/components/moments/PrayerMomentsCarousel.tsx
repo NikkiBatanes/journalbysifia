@@ -21,6 +21,7 @@ export default function PrayerMomentsCarousel({ prayers, navigation }: { prayers
   const slideWidth = cardWidth + slideSpacing;
   const [selected, setSelected] = useState<PrayerHomeEntry | null>(null);
   const [mode, setMode] = useState<'update' | 'details'>('details');
+  const [selectedNeedId, setSelectedNeedId] = useState<string | undefined>(undefined);
   const [responding, setResponding] = useState<PrayerHomeEntry | null>(null);
   const [busy, setBusy] = useState(false);
   const inFlight = useRef(false);
@@ -45,7 +46,7 @@ export default function PrayerMomentsCarousel({ prayers, navigation }: { prayers
     await refresh();
   };
   const save = async (data: PrayerChanges) => { if (selected) await persistPrayer(selected, data); };
-  const manage = (p: PrayerHomeEntry, next: 'details' | 'update') => { triggerLightHaptic(); setMode(next); setSelected(p); };
+  const manage = (p: PrayerHomeEntry, next: 'details' | 'update', needId?: string) => { triggerLightHaptic(); setSelectedNeedId(needId); setMode(next); setSelected(p); };
   const edit = (p: PrayerHomeEntry) => {
     if (p.metadata?.prayer_need || !navigation) { manage(p, 'details'); return; }
     triggerLightHaptic();
@@ -79,9 +80,9 @@ export default function PrayerMomentsCarousel({ prayers, navigation }: { prayers
   return <View onLayout={event => setWidth(event.nativeEvent.layout.width)}>
     <View style={{ alignItems: 'center', marginBottom: 12 }}><ThemedText weight="semiBold" style={{ fontSize: 11, letterSpacing: 1.5, color: Colors.sage, textAlign: 'center' }}>{prayerMomentType(prayers[0]).toUpperCase()}</ThemedText></View>
     {width > 0 && <ScrollView style={{ width }} horizontal snapToOffsets={prayers.map((_, i) => i * slideWidth)} decelerationRate="fast" disableIntervalMomentum showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled" bounces={false}>
-      {prayers.map((p, i) => <View key={p.id} style={{ width: cardWidth, marginRight: i < prayers.length - 1 ? slideSpacing : 0 }}><PrayerCard prayer={p} answering={busy} onEdit={edit} onManage={p => manage(p, 'update')} onManageAnswers={p => manage(p, 'details')} onAnswered={(p, id) => { void answer(p, id); }} onRelease={p => { void release(p); }} onAddPrayer={p => { triggerLightHaptic(); setResponding(p); }} onPrayAgain={p => { void prayAgain(p); }} /></View>)}
+      {prayers.map((p, i) => <View key={p.id} style={{ width: cardWidth, marginRight: i < prayers.length - 1 ? slideSpacing : 0 }}><PrayerCard prayer={p} answering={busy} onEdit={edit} onManage={p => manage(p, 'update')} onManageAnswers={(p, needId) => manage(p, 'details', needId)} onAnswered={(p, id) => { void answer(p, id); }} onRelease={p => { void release(p); }} onAddPrayer={p => { triggerLightHaptic(); setResponding(p); }} onPrayAgain={p => { void prayAgain(p); }} /></View>)}
     </ScrollView>}
-    {selected && <PrayerTrackingModal prayer={target(selected)} mode={mode} onShowDetails={() => setMode('details')} onSave={save} onClose={() => setSelected(null)} />}
+    {selected && <PrayerTrackingModal prayer={target(selected)} mode={mode} initialNeedId={selectedNeedId} onShowDetails={() => { setSelectedNeedId(undefined); setMode('details'); }} onSave={save} onClose={() => { setSelected(null); setSelectedNeedId(undefined); }} />}
     {responding && <PrayerResponseSheet request={responding} onClose={() => setResponding(null)} onSaved={async () => { setResponding(null); await refresh(); }} />}
   </View>;
 }

@@ -10,6 +10,7 @@ import RoutineStepShell from '../../components/routine/RoutineStepShell';
 import { useFloatingKeyboardButton } from '../../hooks/useFloatingKeyboardButton';
 import React, { useState } from 'react';
 import {
+  ActivityIndicator,
   Animated,
   DeviceEventEmitter,
   Easing,
@@ -28,11 +29,12 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Pencil } from 'lucide-react-native';
 
 import ThemedText from '../../components/common/ThemedText';
+import StaggeredBounceIn from '../../components/common/StaggeredBounceIn';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
 import { getFontFamily } from '../../theme/fonts';
 import { useTheme } from '../../hooks/useTheme';
-import { triggerLightHaptic } from '../../utils/haptics';
+import { triggerLightHaptic, triggerSuccessHaptic } from '../../utils/haptics';
 import { fromLocalDateString, toLocalDateString } from '../../utils/date';
 import { useRoutine } from '../../context/RoutineContext';
 import {useAuth} from '../../context/IndustryStandardAuthContext';
@@ -367,7 +369,10 @@ export const EveningCarryWisdomScreen: React.FC = () => {
   const { selectedDate, markStepCompleted } = useRoutine();
   const {user} = useAuth();
   const params = route.params ?? {};
-  const {anchor: scriptureSequenceAnchor, ready: scriptureSequenceReady} = useDailyScriptureSequenceAnchor(user?.created_at);
+  const {anchor: scriptureSequenceAnchor, ready: scriptureSequenceReady, error: sequenceError, retry: retrySequence} = useDailyScriptureSequenceAnchor(user?.created_at);
+  const bibleVersion = params.proverbVersion
+    || (user as any)?.user_metadata?.preferences?.content?.bibleVersion?.trim()
+    || 'NASB';
   const { currentFont } = useTheme();
   const inputFont = getFontFamily(currentFont || 'lexend', 'regular');
   const [text, setText] = useState('');
@@ -380,6 +385,7 @@ export const EveningCarryWisdomScreen: React.FC = () => {
   const [showCustom, setShowCustom] = useState(false);
   const [customWisdom, setCustomWisdom] = useState('');
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const canonicalReflectionDate = React.useRef<string | null>(null);
   const dailyChapter = React.useMemo(
@@ -390,7 +396,7 @@ export const EveningCarryWisdomScreen: React.FC = () => {
   const reflection = getProverbReflection(chapter);
   const selectedInsights = selectedIds.flatMap(id => reflection?.insights.filter(insight => insight.id === id) || []);
   const customValue = showCustom ? customWisdom.trim() : '';
-  const canContinue = !loading && !saving && (selectedInsights.length > 0 || customValue.length > 0);
+  const canContinue = scriptureSequenceReady && !loading && !loadError && !saving && (selectedInsights.length > 0 || customValue.length > 0);
   const clearDraft = useRoutineDraft(
     'evening', selectedDate, 'wisdom',
     { selectedIds, applications, showCustom, customWisdom, text },
@@ -435,17 +441,20 @@ export const EveningCarryWisdomScreen: React.FC = () => {
   useFocusEffect(React.useCallback(() => {
     if (!scriptureSequenceReady) {return undefined;}
     let mounted = true;
+    setLoading(true);
+    setLoadError(null);
     (async () => {
       const entries = await getLocalReflections('scripture', dateStr);
       if (!mounted) {return;}
-      setChapter(dailyChapter);
       const existing = entries
         .filter(e => e.source === 'evening_proverbs' || e.metadata?.source === 'evening_proverbs')
         .sort((a, b) => b.updated_at.localeCompare(a.updated_at))[0];
       if (existing) {
+        const savedChapter = resolveSavedProverbNumber(existing, dailyChapter);
+        setChapter(savedChapter);
         canonicalReflectionDate.current = dateStr;
         const metadata = existing.metadata || {};
-        const validInsightIds = new Set((getProverbReflection(dailyChapter)?.insights || []).map(insight => insight.id));
+        const validInsightIds = new Set((getProverbReflection(savedChapter)?.insights || []).map(insight => insight.id));
         const savedIds = Array.isArray(metadata.selectedWisdomIds)
           ? metadata.selectedWisdomIds.filter((id: unknown): id is string => typeof id === 'string' && validInsightIds.has(id))
           : [];
@@ -467,9 +476,14 @@ export const EveningCarryWisdomScreen: React.FC = () => {
           || Object.values(savedApplications).some(value => typeof value === 'string' && value.trim()),
         ));
         setProverbReflectionId(existing.id);
+      } else {
+        setChapter(dailyChapter);
       }
       setLoading(false);
-    })().catch(error => { console.error('Error loading wisdom reflection:', error); if (mounted) {setLoading(false);} });
+    })().catch(error => {
+      console.error('Error loading wisdom reflection:', error);
+      if (mounted) {setLoadError('Could not load your reflection. Tap to retry.');}
+    });
     return () => { mounted = false; };
   }, [dailyChapter, dateStr, scriptureSequenceReady]));
 
@@ -482,6 +496,7 @@ export const EveningCarryWisdomScreen: React.FC = () => {
     const content = [...selectedInsights.map(insight => [ `${insight.label} (${insight.verses})`, (applications[insight.id] || '').trim() ].filter(Boolean).join('\n')), customValue, text.trim()].filter(Boolean).join('\n\n');
     const metadata = {
       source: 'evening_proverbs',
+      scriptureSequenceVersion: 2,
       proverbNumber: chapter,
       selectedWisdomIds: selectedInsights.map(insight => insight.id),
       selectedWisdom: selectedInsights,
@@ -571,41 +586,52 @@ export const EveningCarryWisdomScreen: React.FC = () => {
       title="What wisdom stands out to you?"
       backgroundColor={Colors.lightBackground}
       onBack={() => { Keyboard.dismiss(); exitEveningFlow(navigation, 'Today'); }}
+      onSwipeBack={() => navigation.goBack()}
+      onSwipeForward={onNext}
+      canSwipeForward={canContinue}
       footer={hasTappedChoice && (selectedInsights.length > 0 || customValue.length > 0) ? (
         <TouchableOpacity style={[styles.wisdomNext, !canContinue && { opacity: 0.35 }]} disabled={!canContinue} onPress={onNext} accessibilityRole="button" accessibilityLabel="Next" accessibilityState={{ disabled: !canContinue, busy: saving }} activeOpacity={0.7}>
           <Ionicons name="chevron-forward" size={24} color={Colors.hopeWhite} />
         </TouchableOpacity>
       ) : null}
     >
+      {sequenceError || loadError ? (
+        <TouchableOpacity onPress={retrySequence} accessibilityRole="button">
+          <ThemedText>{sequenceError || loadError}</ThemedText>
+        </TouchableOpacity>
+      ) : !scriptureSequenceReady || loading ? <ActivityIndicator color={Colors.sage} /> : <>
       <ThemedText style={styles.wisdomSubtitle}>Choose what stands out in Proverbs {chapter}.</ThemedText>
       <View style={styles.wisdomChoices}>
-        {reflection?.insights.map(insight => {
+        {reflection?.insights.map((insight, index) => {
           const selected = selectedIds.includes(insight.id);
           return (
-            <TouchableOpacity
-              key={insight.id}
-              style={[styles.wisdomChoice, selected && styles.wisdomChoiceSelected]}
-              onPress={() => { setHasTappedChoice(true); triggerLightHaptic(); setSelectedIds(ids => selected ? ids.filter(id => id !== insight.id) : [...ids, insight.id]); if (!selected) {setFocusedInsightId(insight.id);} else {setFocusedInsightId(null);} }}
-              accessibilityRole="checkbox"
-              accessibilityState={{ checked: selected, disabled: loading || saving }}
-              accessibilityLabel={`${insight.label}, ${insight.verses}`}
-              disabled={loading || saving}
-            >
-              <ThemedText style={selected ? styles.wisdomSelectedText : styles.wisdomChoiceText}>{insight.label}</ThemedText>
-              <ThemedText style={[styles.wisdomReference, selected && styles.wisdomSelectedText]}>{insight.verses}</ThemedText>
-            </TouchableOpacity>
+            <StaggeredBounceIn key={insight.id} index={index}>
+              <TouchableOpacity
+                style={[styles.wisdomChoice, selected && styles.wisdomChoiceSelected]}
+                onPress={() => { setHasTappedChoice(true); triggerLightHaptic(); setSelectedIds(ids => selected ? ids.filter(id => id !== insight.id) : [...ids, insight.id]); if (!selected) {setFocusedInsightId(insight.id);} else {setFocusedInsightId(null);} }}
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: selected, disabled: loading || saving }}
+                accessibilityLabel={`${insight.label}, ${insight.verses}`}
+                disabled={loading || saving}
+              >
+                <ThemedText style={selected ? styles.wisdomSelectedText : styles.wisdomChoiceText}>{insight.label}</ThemedText>
+                <ThemedText style={[styles.wisdomReference, selected && styles.wisdomSelectedText]}>{insight.verses}</ThemedText>
+              </TouchableOpacity>
+            </StaggeredBounceIn>
           );
         })}
         <View style={{ width: '100%', alignItems: 'center' }}>
-        <TouchableOpacity
-          style={[styles.wisdomChoice, showCustom && styles.wisdomChoiceSelected]}
-          onPress={() => { setHasTappedChoice(true); setFocusedInsightId(null); setShowCustom(value => !value); }}
-          accessibilityRole="checkbox"
-          accessibilityState={{ checked: showCustom }}
-          disabled={loading || saving}
-        >
-          <ThemedText style={showCustom ? styles.wisdomSelectedText : styles.wisdomChoiceText}>+ Something else</ThemedText>
-        </TouchableOpacity>
+          <StaggeredBounceIn index={reflection?.insights.length || 0}>
+            <TouchableOpacity
+              style={[styles.wisdomChoice, showCustom && styles.wisdomChoiceSelected]}
+              onPress={() => { triggerLightHaptic(); setHasTappedChoice(true); setFocusedInsightId(null); setShowCustom(value => !value); }}
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: showCustom }}
+              disabled={loading || saving}
+            >
+              <ThemedText style={showCustom ? styles.wisdomSelectedText : styles.wisdomChoiceText}>+ Something else</ThemedText>
+            </TouchableOpacity>
+          </StaggeredBounceIn>
         </View>
       </View>
       {showCustom && (
@@ -613,8 +639,8 @@ export const EveningCarryWisdomScreen: React.FC = () => {
       )}
       {hasTappedChoice && selectedInsights.map((insight, index) => (
         <View key={insight.id}>
-          <WisdomScripturePassage first={index === 0} reference={insight.verses} version={params.proverbVersion || 'NASB'} />
-          <ThemedText style={styles.wisdomApplicationLabel}>{insight.prompt}</ThemedText>
+          <WisdomScripturePassage first={index === 0} reference={insight.verses} version={bibleVersion} />
+          <ThemedText weight="semiBold" style={styles.wisdomApplicationLabel}>{insight.prompt}</ThemedText>
           <TextInput
             ref={input => { applicationInputRefs.current[insight.id] = input; }}
             style={[styles.sageInput, styles.wisdomNoteInput, { fontFamily: inputFont }]}
@@ -629,6 +655,7 @@ export const EveningCarryWisdomScreen: React.FC = () => {
           />
         </View>
       ))}
+      </>}
     </RoutineStepShell>
   );
 };
@@ -644,6 +671,24 @@ export const EveningClosingScreen: React.FC = () => {
   const [showAllWisdom, setShowAllWisdom] = useState(false);
   const [shareDropdownOpen, setShareDropdownOpen] = useState(false);
   const moonMotion = React.useRef(new Animated.Value(0)).current;
+  const completionProgress = React.useRef(new Animated.Value(0)).current;
+  const celebratedRef = React.useRef(false);
+
+  useFocusEffect(React.useCallback(() => {
+    completionProgress.setValue(0);
+    if (!celebratedRef.current) {
+      triggerSuccessHaptic();
+      celebratedRef.current = true;
+    }
+    const animation = Animated.spring(completionProgress, {
+      toValue: 1,
+      tension: 58,
+      friction: 8,
+      useNativeDriver: true,
+    });
+    animation.start();
+    return () => animation.stop();
+  }, [completionProgress]));
 
   useFocusEffect(React.useCallback(() => {
     const animation = Animated.loop(Animated.sequence([
@@ -786,7 +831,13 @@ export const EveningClosingScreen: React.FC = () => {
         bounces={false}
         overScrollMode="never"
       >
-        <View style={styles.closingCompletionHeader}>
+        <Animated.View style={[styles.closingCompletionHeader, {
+          opacity: completionProgress,
+          transform: [
+            {translateY: completionProgress.interpolate({inputRange: [0, 1], outputRange: [18, 0]})},
+            {scale: completionProgress.interpolate({inputRange: [0, 1], outputRange: [0.92, 1]})},
+          ],
+        }]}>
           <View style={styles.closingCheckCircle}>
             <Animated.View style={{ transform: [
               { rotate: moonMotion.interpolate({ inputRange: [0, 1], outputRange: ['-6deg', '6deg'] }) },
@@ -794,12 +845,15 @@ export const EveningClosingScreen: React.FC = () => {
             ] }}>
               <Ionicons name="moon-outline" size={26} color={Colors.hopeWhite} />
             </Animated.View>
+            <View style={styles.closingCompletionCheckBadge}>
+              <Ionicons name="checkmark-circle-outline" size={19} color={Colors.sage} />
+            </View>
           </View>
           <View style={styles.closingCompletionHeaderText}>
             <ThemedText style={styles.closingTitle}>Your evening reflection is saved.</ThemedText>
             <ThemedText style={styles.closingSubtitle}>Today is held in God’s hands.</ThemedText>
           </View>
-        </View>
+        </Animated.View>
 
         <View style={styles.closingGlanceSection}>
           <ThemedText weight="semiBold" style={styles.closingSectionEyebrow}>TONIGHT AT A GLANCE</ThemedText>
@@ -814,7 +868,7 @@ export const EveningClosingScreen: React.FC = () => {
               <ThemedText style={styles.closingGlanceLabel}>Gratitude</ThemedText>
               {gratitudeItems.length > 0 ? visibleGratitude.map((item: string, index: number) => (
                 <View key={index} style={styles.closingGratitudeItem}>
-                  <Ionicons name="heart" size={14} color={Colors.sage} style={{ marginTop: 3 }} />
+                  <Ionicons name="heart-outline" size={14} color={Colors.sage} style={{ marginTop: 3 }} />
                   <ThemedText style={styles.closingGratitudeText}>{item}</ThemedText>
                 </View>
               )) : <ThemedText style={styles.closingGratitudeText}>—</ThemedText>}
@@ -844,7 +898,7 @@ export const EveningClosingScreen: React.FC = () => {
               >
               <ThemedText style={styles.closingGlanceLabel}>Win</ThemedText>
               <View style={styles.closingValueWithIcon}>
-                <Ionicons name="trophy" size={18} color={Colors.sage} />
+                <Ionicons name="trophy-outline" size={18} color={Colors.sage} />
                 <ThemedText weight="semiBold" style={styles.closingGlanceValue}>{summary.winContext || summary.win || '—'}</ThemedText>
               </View>
               {summary.win && summary.win !== summary.winContext ? <ThemedText style={styles.closingGlanceSubtext}>{summary.win}</ThemedText> : null}
@@ -874,7 +928,13 @@ export const EveningClosingScreen: React.FC = () => {
           <View style={styles.closingScriptureColumns}>
           <TouchableOpacity
             style={styles.closingScriptureLeftColumn}
-            onPress={() => { triggerLightHaptic(); navigation.navigate('Proverbs'); }}
+            onPress={() => {
+              triggerLightHaptic();
+              navigation.navigate('Proverbs', {
+                proverbNumber: summary.proverbNumber,
+                proverbReference: summary.proverbReference,
+              });
+            }}
             accessibilityRole="button"
             accessibilityLabel="Edit evening Proverbs reflection"
             activeOpacity={0.75}
@@ -969,8 +1029,8 @@ const styles = StyleSheet.create({
   wisdomChoiceText: { fontSize: 15, color: Colors.text, textAlign: 'center' },
   wisdomSelectedText: { fontSize: 15, color: Colors.hopeWhite, textAlign: 'center' },
   wisdomReference: { fontSize: 12, marginTop: 4, color: Colors.textGray, textAlign: 'center' },
-  wisdomNoteInput: { minHeight: 56, paddingVertical: 6 },
-  wisdomApplicationLabel: { marginTop: 12, fontSize: 18, color: Colors.text },
+  wisdomNoteInput: { minHeight: 96, marginTop: 8, paddingVertical: 14 },
+  wisdomApplicationLabel: { marginTop: 22, fontSize: 17, lineHeight: 25, color: Colors.text, letterSpacing: -0.1 },
   wisdomNext: { width: 40, height: 40, borderRadius: 20, backgroundColor: Colors.sage, alignItems: 'center', justifyContent: 'center' },
   flex: { flex: 1 },
   container: {
@@ -1425,6 +1485,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: Colors.sage,
+  },
+  closingCompletionCheckBadge: {
+    position: 'absolute',
+    right: -4,
+    bottom: -4,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.lightBackground,
   },
   closingTitle: {
     color: Colors.text,

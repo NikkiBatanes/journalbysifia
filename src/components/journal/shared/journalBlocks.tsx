@@ -78,6 +78,7 @@ export interface JournalBlock {
   eraPeriod?: 'BC' | 'AD';
   languageKind?: JournalLanguageKind;
   languageDetails?: JournalLanguageDetail[];
+  englishWord?: string;
   meaning?: string;
   origin?: string;
   tableRows?: string[][];
@@ -100,6 +101,8 @@ export type JournalBlockContent = {
   reference?: string;
   scriptureText?: string;
   scriptureReference?: string;
+  languageKind?: JournalLanguageKind;
+  englishWord?: string;
   meaning?: string;
   origin?: string;
   points?: string[];
@@ -119,6 +122,7 @@ export const hasMeaningfulJournalBlock = (block: JournalBlockContent) =>
       block.reference?.trim() ||
       block.scriptureText?.trim() ||
       block.scriptureReference?.trim() ||
+      block.englishWord?.trim() ||
       block.meaning?.trim() ||
       block.origin?.trim() ||
       block.points?.some(point => point.trim()) ||
@@ -246,9 +250,15 @@ export const journalBlocksToPlainText = (
           .join('\n');
       }
       if (block.kind === 'language') {
+        const originalWordLabel = block.languageKind
+          ? `${block.languageKind[0].toUpperCase()}${block.languageKind.slice(1)} word`
+          : 'Original word';
         return [
           label,
-          text,
+          block.englishWord?.trim()
+            ? `English in the verse: ${block.englishWord.trim()}`
+            : undefined,
+          text ? `${originalWordLabel}: ${text}` : undefined,
           block.meaning?.trim(),
           secondary,
           block.origin?.trim(),

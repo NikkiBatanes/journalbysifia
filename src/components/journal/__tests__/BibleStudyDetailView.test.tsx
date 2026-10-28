@@ -4,9 +4,11 @@ import TestRenderer, { act } from 'react-test-renderer';
 import BibleStudyDetailView from '../BibleStudyDetailView';
 import ScriptureReaderModal from '../../ScriptureReaderModal';
 import type { BibleStudyContent } from '../../../storage/bibleStudyStorage';
+import {getScripturePassage} from '../../../services/scriptureReaderService';
 
 jest.mock('react-native-safe-area-context', () => ({ useSafeAreaInsets: () => ({ top: 40, bottom: 20 }) }));
 jest.mock('../../../utils/haptics', () => ({ triggerLightHaptic: jest.fn() }));
+jest.mock('../../../services/scriptureReaderService', () => ({getScripturePassage: jest.fn()}));
 jest.mock('../../ScriptureReaderModal', () => () => null);
 jest.mock('@react-native-community/blur', () => ({ BlurView: require('react-native').View }));
 jest.mock('../../common/ThemedText', () => {
@@ -27,6 +29,12 @@ let onClose: jest.Mock;
 beforeEach(async () => {
   onEdit = jest.fn(async () => {});
   onClose = jest.fn();
+  (getScripturePassage as jest.Mock).mockResolvedValue({
+    text: 'The Lord is my shepherd.',
+    reference: 'Psalm 23:1',
+    version: 'NASB',
+    verses: [{number: '1', lines: ['The Lord is my shepherd.']}],
+  });
   await act(async () => {
     renderer = TestRenderer.create(<BibleStudyDetailView reference="Psalm 23" selectedDate="2026-09-15" content={content} onEdit={onEdit} onClose={onClose} />);
   });

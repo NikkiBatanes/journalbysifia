@@ -31,16 +31,23 @@ import {
 import {DAILY_SCRIPTURE_SEQUENCE_OVERRIDE_KEY} from '../../services/dailyScriptureSequence';
 import {
   REVIEW_QA_PREVIOUS_WEEK_DATES,
+  REVIEW_QA_WEEKLY_REFERENCE_DATE,
   reviewQAPreviousWeeklyPeriodEndDate,
 } from './reviewQAClock';
 import {seedReviewQASessionNotes} from './reviewQASessionNoteData';
 import {seedReviewQABibleStudies} from './reviewQABibleStudyData';
+import {
+  MOCKUP_DATA_PERIOD_END,
+  MOCKUP_DATA_PERIOD_START,
+  seedReviewQAMockupData,
+} from './reviewQAMockupData';
 
 const MANIFEST = `${REVIEW_QA_PREFIX}manifest`;
 const REVIEW_PERIODS = `${REVIEW_QA_PREFIX}periods`;
 const WEEKLY_DATASET_VERSION =
   'weekly-two-complete-weeks-prayer-v2-scripture-notes-v11';
 const MONTHLY_DATASET_VERSION = 'monthly-full-august-v4-testimony';
+const MOCKUP_DATASET_VERSION = 'website-mockup-sept-21-27-v9';
 const DATASET_VERSIONS: Record<ReviewQAScenario, string> = {
   weekly: WEEKLY_DATASET_VERSION,
   monthly: MONTHLY_DATASET_VERSION,
@@ -56,6 +63,7 @@ type Manifest = {
   referenceDate?: string;
   historyStart?: string;
   datasetVersion?: string;
+  variant?: 'mockup';
 };
 
 export type ActiveReviewQAContext = {
@@ -182,9 +190,11 @@ export const getActiveReviewQAContext =
       ) as Manifest;
       // Old manifests may still point at the removed seeded dataset. Purge them
       // automatically when Today next checks QA context.
-      const expectedVersion = manifest.scenarioId
-        ? DATASET_VERSIONS[manifest.scenarioId]
-        : undefined;
+      const expectedVersion = manifest.variant === 'mockup'
+        ? MOCKUP_DATASET_VERSION
+        : manifest.scenarioId
+          ? DATASET_VERSIONS[manifest.scenarioId]
+          : undefined;
       if (
         manifest.scenarioId &&
         (!expectedVersion || manifest.datasetVersion !== expectedVersion)
@@ -329,6 +339,68 @@ export const loadReviewQAScenario = async (scenarioId: ReviewQAScenario) => {
   await AsyncStorage.setItem(
     DAILY_SCRIPTURE_SEQUENCE_OVERRIDE_KEY,
     historyStart,
+  );
+  await AsyncStorage.setItem(MANIFEST, JSON.stringify(manifest));
+  await AsyncStorage.setItem(REVIEW_PERIODS, JSON.stringify([]));
+
+  const capture: ReviewCapture = await getReviewCapture(
+    scenario.period.periodStart,
+    scenario.period.periodEnd,
+    scenario.type,
+  );
+  return {scenario, capture, review: null};
+};
+
+/** Loads only the real-shaped records used by the early-access website mockups. */
+export const loadMockupData = async () => {
+  if (!__DEV__) {
+    throw new Error('Mockup data is development-only.');
+  }
+  await clearReviewQAData();
+  const weeklyScenario = getReviewQAScenario('weekly');
+  const scenario = {
+    ...weeklyScenario,
+    period: {
+      ...weeklyScenario.period,
+      periodStart: MOCKUP_DATA_PERIOD_START,
+      periodEnd: MOCKUP_DATA_PERIOD_END,
+      availableFrom: '2026-09-28',
+      availableUntil: null,
+    },
+    // Anchor eligibility on the day after the period closes so the computed
+    // weekly period is Sept 21–27 instead of the prior week.
+    referenceDate: REVIEW_QA_WEEKLY_REFERENCE_DATE,
+  };
+  const manifest: Manifest = {
+    keys: [],
+    protectedReviewIds: [],
+    periods: [],
+    restores: [],
+    hiddenReviews: [],
+    scenarioId: 'weekly',
+    referenceDate: scenario.referenceDate,
+    historyStart: MOCKUP_DATA_PERIOD_START,
+    datasetVersion: MOCKUP_DATASET_VERSION,
+    variant: 'mockup',
+  };
+
+  const existing = await getLocalReviewForPeriod(
+    'weekly',
+    scenario.period.periodStart,
+    scenario.period.periodEnd,
+  );
+  if (existing) {
+    await temporarilyHideReview(manifest, existing);
+  }
+
+  await seedReviewQAMockupData({
+    keys: manifest.keys,
+    restores: manifest.restores || [],
+  });
+  manifest.keys.push(DAILY_SCRIPTURE_SEQUENCE_OVERRIDE_KEY);
+  await AsyncStorage.setItem(
+    DAILY_SCRIPTURE_SEQUENCE_OVERRIDE_KEY,
+    manifest.historyStart!,
   );
   await AsyncStorage.setItem(MANIFEST, JSON.stringify(manifest));
   await AsyncStorage.setItem(REVIEW_PERIODS, JSON.stringify([]));

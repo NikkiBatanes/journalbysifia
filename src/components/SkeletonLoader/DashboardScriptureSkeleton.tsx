@@ -1,113 +1,100 @@
 import React from 'react';
-import { View, StyleSheet, Animated } from 'react-native';
+import {Animated, Easing, StyleSheet, View} from 'react-native';
+import {Colors} from '../../theme/colors';
 
-const DashboardScriptureSkeleton: React.FC = () => {
-  const animatedValue = React.useRef(new Animated.Value(0)).current;
-  const isMounted = React.useRef(true);
+interface DashboardScriptureSkeletonProps {
+  centered?: boolean;
+}
+
+const DashboardScriptureSkeleton: React.FC<DashboardScriptureSkeletonProps> = ({
+  centered = false,
+}) => {
+  const animatedValue = React.useRef(new Animated.Value(0.35)).current;
 
   React.useEffect(() => {
-    isMounted.current = true;
-
-    const animate = () => {
-      if (!isMounted.current) {return;}
-
+    const animation = Animated.loop(
       Animated.sequence([
-        Animated.timing(animatedValue, { toValue: 1, duration: 1000, useNativeDriver: true }),
-        Animated.timing(animatedValue, { toValue: 0, duration: 1000, useNativeDriver: true }),
-      ]).start((finished) => {
-        if (finished && isMounted.current) {
-          animate();
-        }
-      });
-    };
+        Animated.timing(animatedValue, {
+          toValue: 0.8,
+          duration: 850,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.timing(animatedValue, {
+          toValue: 0.35,
+          duration: 850,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+      ]),
+    );
 
-    animate();
+    animation.start();
 
     return () => {
-      isMounted.current = false;
-      animatedValue.stopAnimation();
+      animation.stop();
     };
   }, [animatedValue]);
 
-  const opacity = animatedValue.interpolate({ inputRange: [0, 1], outputRange: [0.3, 0.7] });
-
   return (
-    <View style={styles.card}>
-      {/* Title placeholder (centered bar) */}
-      <View style={styles.titleRow}>
-        <Animated.View style={[styles.titleBar, { opacity }]} />
-      </View>
-
-      {/* Verse block with left bar */}
-      <View style={styles.verseRow}>
-        <Animated.View style={[styles.leftBar, { opacity }]} />
-        <View style={styles.verseContent}>
-          <Animated.View style={[styles.verseLineLong, { opacity }]} />
-          <Animated.View style={[styles.verseLineShort, { opacity }]} />
-          <Animated.View style={[styles.referenceBar, { opacity }]} />
-        </View>
+    <View
+      accessibilityLabel="Loading Scripture"
+      accessibilityRole="progressbar"
+      style={[styles.container, centered && styles.containerCentered]}
+      testID="dashboard-scripture-skeleton">
+      <View style={[styles.verseContent, centered && styles.contentCentered]}>
+        <Animated.View
+          style={[styles.verseLine, styles.verseLineLong, {opacity: animatedValue}]}
+        />
+        <Animated.View
+          style={[styles.verseLine, styles.verseLineMedium, {opacity: animatedValue}]}
+        />
+        <Animated.View
+          style={[styles.verseLine, styles.verseLineShort, {opacity: animatedValue}]}
+        />
+        <Animated.View
+          style={[styles.referenceBar, {opacity: animatedValue}]}
+        />
       </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  card: {
-    flex: 1,
-    backgroundColor: 'transparent',
-    borderRadius: 12,
-    padding: 16,
-    marginTop: 0,
-    marginBottom: 16,
-    borderWidth: 0,
-    borderColor: 'transparent',
-    minHeight: 120,
-  },
-  titleRow: {
-    alignItems: 'center',
-    marginBottom: 14,
-  },
-  titleBar: {
-    height: 12,
-    width: 160,
-    borderRadius: 6,
-    backgroundColor: 'rgba(255,255,255,0.25)',
-  },
-  verseRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 10,
-  },
-  leftBar: {
-    width: 4,
-    borderRadius: 2,
-    backgroundColor: 'rgba(255,255,255,0.25)',
-    alignSelf: 'stretch',
-    marginTop: 2,
+  container: {
+    width: '100%',
+    minHeight: 112,
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+    marginTop: 12,
   },
   verseContent: {
-    flex: 1,
+    width: '100%',
+    alignItems: 'flex-end',
+    gap: 7,
   },
-  verseLineLong: {
-    height: 18,
-    borderRadius: 6,
-    backgroundColor: 'rgba(255,255,255,0.22)',
-    marginBottom: 10,
-    width: '92%',
-  },
-  verseLineShort: {
-    height: 18,
-    borderRadius: 6,
-    backgroundColor: 'rgba(255,255,255,0.20)',
-    marginBottom: 8,
-    width: '70%',
-  },
-  referenceBar: {
+  containerCentered: {alignItems: 'center'},
+  contentCentered: {alignItems: 'center'},
+  verseLine: {
     height: 12,
     borderRadius: 6,
-    backgroundColor: 'rgba(255,255,255,0.22)',
-    width: 120,
-    marginTop: 2,
+    backgroundColor: Colors.lightGray,
+  },
+  verseLineLong: {
+    width: '88%',
+  },
+  verseLineMedium: {
+    width: '72%',
+  },
+  verseLineShort: {
+    width: '48%',
+  },
+  referenceBar: {
+    width: 96,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: Colors.lightGray,
+    marginTop: 3,
   },
 });
 

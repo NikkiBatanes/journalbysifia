@@ -11,7 +11,6 @@ import {
   Modal,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Colors } from '../theme/colors';
 import ThemedText from './common/ThemedText';
 import { triggerLightHaptic, triggerSelectionHaptic } from '../utils/haptics';
@@ -28,7 +27,6 @@ interface DeleteTimeBlockModalProps {
   eventTitle: string;
   onDelete: (options: DeleteOptions) => void;
   onCancel: () => void;
-  canDeleteSeries: boolean; // Feature gating
 }
 
 export const DeleteTimeBlockModal: React.FC<DeleteTimeBlockModalProps> = ({
@@ -38,7 +36,6 @@ export const DeleteTimeBlockModal: React.FC<DeleteTimeBlockModalProps> = ({
   eventTitle,
   onDelete,
   onCancel,
-  canDeleteSeries,
 }) => {
 
   const handleDeleteOption = (type: DeleteOptions['type']) => {
@@ -88,8 +85,7 @@ export const DeleteTimeBlockModal: React.FC<DeleteTimeBlockModalProps> = ({
 
           {/* Options */}
           <View style={styles.optionsContainer}>
-            {isRecurring && canDeleteSeries ? (
-              // Recurring event with two options only
+            {isRecurring ? (
               <>
                 <TouchableOpacity
                   style={styles.option}
@@ -130,46 +126,6 @@ export const DeleteTimeBlockModal: React.FC<DeleteTimeBlockModalProps> = ({
                     </View>
                   </View>
                 </TouchableOpacity>
-              </>
-            ) : isRecurring && !canDeleteSeries ? (
-              // Recurring event but no series delete permission (Seeker tier)
-              <>
-                <TouchableOpacity
-                  style={styles.option}
-                  onPress={() => handleDeleteOption('single')}
-                  activeOpacity={0.7}
-                >
-                  <View style={styles.optionContent}>
-                    <View style={styles.optionIcon}>
-                      <Ionicons name="calendar-outline" size={20} color={Colors.hopeWhite} />
-                    </View>
-                    <View style={styles.optionText}>
-                      <ThemedText weight="medium" style={styles.optionTitle}>
-                        This Time Block only
-                      </ThemedText>
-                      <ThemedText style={styles.optionDescription}>
-                        Delete only on {formatDate(eventDate)}
-                      </ThemedText>
-                    </View>
-                  </View>
-                </TouchableOpacity>
-
-                {/* Locked future deletion option for Seeker tier (upgrade prompt) */}
-                <View style={[styles.option, styles.lockedOption]}>
-                  <View style={styles.optionContent}>
-                    <View style={styles.optionIcon}>
-                      <MaterialCommunityIcons name="lock" size={20} color={Colors.textGray} />
-                    </View>
-                    <View style={styles.optionText}>
-                      <ThemedText weight="medium" style={[styles.optionTitle, styles.lockedText]}>
-                        This & Future Events
-                      </ThemedText>
-                      <ThemedText style={[styles.optionDescription, styles.lockedText]}>
-                        Upgrade to delete this and all future events in the series
-                      </ThemedText>
-                    </View>
-                  </View>
-                </View>
               </>
             ) : (
               // Single event
@@ -289,9 +245,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginBottom: 8,
   },
-  lockedOption: {
-    opacity: 0.6,
-  },
   optionContent: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -318,9 +271,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: Colors.textGray,
     lineHeight: 18,
-  },
-  lockedText: {
-    color: Colors.textGray,
   },
   cancelButton: {
     paddingVertical: 16,

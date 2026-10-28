@@ -12,6 +12,8 @@ import {
   Keyboard,
   ActivityIndicator,
   Animated,
+  PanResponder,
+  useWindowDimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../../theme/colors';
@@ -46,6 +48,7 @@ interface GratitudeLogEditorProps {
   stepExample?: string | null;
   selectedDate?: Date;
   routineDraft?: { routine: 'morning' | 'evening'; selectedDate: string; step: string };
+  swipeForwardEnabled?: boolean;
 }
 
 type DateContext = 'today' | 'yesterday' | 'earlier';
@@ -236,6 +239,7 @@ const GratitudeLogEditorInner = (
     stepExample,
     selectedDate = new Date(),
     routineDraft,
+    swipeForwardEnabled = false,
   } = props;
 
   const dateContext = getDateContext(selectedDate);
@@ -243,6 +247,7 @@ const GratitudeLogEditorInner = (
   const fontKey = currentFont || 'lexend';
   const fontRegular = getFontFamily(fontKey, 'regular');
   const insets = useSafeAreaInsets();
+  const {width: screenWidth} = useWindowDimensions();
 
   const s = { ...defaultStyles, ...styles };
 
@@ -387,6 +392,7 @@ const GratitudeLogEditorInner = (
     }
     const cleanItems = filledItems.map(item => item.replace(/^\d+\. /, ''));
     try {
+      triggerLightHaptic();
       await onSave({
         items: cleanItems,
         date: selectedDate || new Date(),
@@ -398,8 +404,22 @@ const GratitudeLogEditorInner = (
     }
   }, [clearDraft, gratitudeItems, onSave, routineDraft, selectedDate]);
 
+  const panResponder = React.useMemo(() => PanResponder.create({
+    onMoveShouldSetPanResponderCapture: (_, gestureState) => swipeForwardEnabled
+      && hasContent
+      && gestureState.dx < -18
+      && Math.abs(gestureState.dx) > Math.abs(gestureState.dy) * 1.2,
+    onPanResponderRelease: (_, gestureState) => {
+      const farEnough = Math.abs(gestureState.dx) > screenWidth * 0.15;
+      const fastEnough = Math.abs(gestureState.vx) > 0.45;
+      if (swipeForwardEnabled && hasContent && gestureState.dx < 0 && (farEnough || fastEnough)) {
+        handleSave();
+      }
+    },
+  }), [handleSave, hasContent, screenWidth, swipeForwardEnabled]);
+
   return (
-    <View style={s.container}>
+    <View style={s.container} {...panResponder.panHandlers}>
       <KeyboardAvoidingView
         style={s.keyboardAvoidingView}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}

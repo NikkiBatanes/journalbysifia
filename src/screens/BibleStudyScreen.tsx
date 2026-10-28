@@ -9,14 +9,15 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
-  useWindowDimensions,
   Alert,
   Keyboard,
   DeviceEventEmitter,
   AccessibilityInfo,
   Animated,
+  findNodeHandle,
+  StatusBar,
 } from 'react-native';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import {useFocusEffect, useNavigation, useRoute} from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -29,12 +30,19 @@ import HeaderBackButton from '../components/common/HeaderBackButton';
 import ScriptureReaderModal from '../components/ScriptureReaderModal';
 import BibleStudyDetailView from '../components/journal/BibleStudyDetailView';
 import AnimatedBibleStudyTopics from '../components/journal/AnimatedBibleStudyTopics';
+import ScriptureLoadingSkeleton from '../components/scripture/ScriptureLoadingSkeleton';
+import LiquidGlassView from '../components/common/LiquidGlassView';
 import { Colors } from '../theme/colors';
 import { Fonts, FontFamily, getFontFamily } from '../theme/fonts';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { claimFaithfulRhythmCelebration, FAITHFUL_RHYTHM_UPDATED } from '../services/faithfulRhythmService';
 import { triggerLightHaptic } from '../utils/haptics';
-import { getScripturePassage, preloadScripturePassages } from '../services/scriptureReaderService';
+import {
+  getScripturePassage,
+  preloadScripturePassages,
+  type ScriptureVerse,
+} from '../services/scriptureReaderService';
+import {formatScripturePassage} from '../services/scripturePassageFormatting';
 import { BIBLE_STUDY_TOPICS, BibleStudyTopic } from '../data/bibleStudyTopics';
 import { deleteLocalReflection, getLocalReflection, LocalReflectionEntry } from '../storage/reflectionStorage';
 import { parseSavedBibleStudy } from '../storage/bibleStudyMomentsStorage';
@@ -171,7 +179,7 @@ const StaggeredReveal = ({ children, delay = 0, reduceMotion = false, style }: {
   style?: any;
 }) => {
   const reveal = useRef(new Animated.Value(reduceMotion ? 1 : 0)).current;
-  useEffect(() => {
+  React.useLayoutEffect(() => {
     reveal.stopAnimation();
     if (reduceMotion) {
       reveal.setValue(1);
@@ -294,7 +302,6 @@ const BibleStudyScreen = () => {
     if (navigation.canGoBack()) {navigation.goBack();}
   };
   const [savedReflection, setSavedReflection] = useState<LocalReflectionEntry | null>(null);
-  const { width: screenWidth } = useWindowDimensions();
 
   const [isLoading, setIsLoading] = useState(true);
   const [session, setSession] = useState<BibleStudySession | null>(null);
@@ -310,6 +317,39 @@ const BibleStudyScreen = () => {
     Array.from({length: 16}, () => new Animated.Value(0)),
   ).current;
   const reduceMotion = useRef(false);
+  const [screenEntranceReady, setScreenEntranceReady] = useState(false);
+  const prepareReveal = useCallback((animations: Animated.Value[]) => {
+    animations.forEach(animation => {
+      animation.stopAnimation();
+      animation.setValue(reduceMotion.current ? 1 : 0);
+    });
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      prepareReveal(homeRevealAnims);
+      prepareReveal(topicRevealAnims);
+      setScreenEntranceReady(false);
+      let completed = false;
+      const completeEntrance = () => {
+        if (completed) {return;}
+        completed = true;
+        setScreenEntranceReady(true);
+      };
+      const unsubscribe = (navigation as any).addListener?.(
+        'transitionEnd',
+        (event: any) => {
+          if (!event?.data?.closing) {completeEntrance();}
+        },
+      );
+      const fallback = setTimeout(completeEntrance, 450);
+      return () => {
+        clearTimeout(fallback);
+        unsubscribe?.();
+      };
+    }, [homeRevealAnims, navigation, prepareReveal, topicRevealAnims]),
+  );
+
   useEffect(() => {
     let mounted = true;
     AccessibilityInfo.isReduceMotionEnabled().then(enabled => {
@@ -330,7 +370,7 @@ const BibleStudyScreen = () => {
   }, []);
 
   useEffect(() => {
-    if (isLoading || stage !== 'home' || selectedTopic) {return;}
+    if (!screenEntranceReady || isLoading || stage !== 'home' || selectedTopic) {return;}
     homeRevealAnims.forEach(animation => {
       animation.stopAnimation();
       animation.setValue(reduceMotion.current ? 1 : 0);
@@ -349,7 +389,7 @@ const BibleStudyScreen = () => {
     );
     requestAnimationFrame(() => entrance.start());
     return () => entrance.stop();
-  }, [homeRevealAnims, isLoading, openRequestId, selectedTopic, stage]);
+  }, [homeRevealAnims, isLoading, openRequestId, screenEntranceReady, selectedTopic, stage]);
 
   const homeRevealStyle = (animation: Animated.Value) => ({
     opacity: animation,
@@ -398,7 +438,6 @@ const BibleStudyScreen = () => {
   const [highlightPromptNotes, setHighlightPromptNotes] = useState<Record<string, Record<string, string>>>({});
   const [pendingObservationFocus, setPendingObservationFocus] = useState<string | null>(null);
   const observationInputRefs = useRef<Record<string, TextInput | null>>({});
-  const observationNoteLayouts = useRef<Record<string, number>>({});
   const screenScrollRef = useRef<ScrollView>(null);
   const headerGlassOpacity = useRef(new Animated.Value(0)).current;
   const activeObservationFocus = useRef<string | null>(null);
@@ -417,7 +456,14 @@ const BibleStudyScreen = () => {
   const [saveToPrayerJournal, setSaveToPrayerJournal] = useState(true);
   const [trackAnsweredPrayer, setTrackAnsweredPrayer] = useState(false);
 
-  const [passageVerses, setPassageVerses] = useState<{ n: string; text: string }[]>([]);
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => {
+      screenScrollRef.current?.scrollTo({ y: 0, animated: false });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [stage, observeHighlightIndex, understandingPhase, responsePhase]);
+
+  const [passageVerses, setPassageVerses] = useState<ScriptureVerse[]>([]);
   const [passageLoading, setPassageLoading] = useState(false);
   const [passageLoadError, setPassageLoadError] = useState<string | null>(null);
   const [pendingPassageReference, setPendingPassageReference] = useState<string | null>(null);
@@ -431,6 +477,13 @@ const BibleStudyScreen = () => {
   const [scriptureLetterSpacing, setScriptureLetterSpacing] = useState(0);
   const [scriptureIndent, setScriptureIndent] = useState(0);
   const [advancedTextSettings, setAdvancedTextSettings] = useState(false);
+
+  useFocusEffect(
+    useCallback(() => () => {
+      setShowTextSettings(false);
+      setAdvancedTextSettings(false);
+    }, []),
+  );
   const [passageSelection, setPassageSelection] = useState({ start: 0, end: 0 });
   const [highlightActionsVisible, setHighlightActionsVisible] = useState(false);
   const [activeHighlightId, setActiveHighlightId] = useState<string | null>(null);
@@ -448,12 +501,14 @@ const BibleStudyScreen = () => {
     return (stageIndex / (STAGES.length - 1));
   }, [stage, stageIndex]);
 
-  const selectablePassageText = useMemo(
-    () => passageVerses
-      .map(verse => `${verse.n ? `${verse.n} ` : ''}${verse.text}`)
-      .join('\n\n'),
-    [passageVerses],
+  const formattedPassage = useMemo(
+    () => formatScripturePassage(
+      passageVerses,
+      session?.passage.reference ?? pendingPassageReference ?? '',
+    ),
+    [passageVerses, pendingPassageReference, session?.passage.reference],
   );
+  const selectablePassageText = formattedPassage.text;
 
   const buildContent = useCallback((): BibleStudyContent => ({
     format: 'bible_study_v1',
@@ -515,9 +570,9 @@ const BibleStudyScreen = () => {
     try {
       const result = await getScripturePassage(reference, translation);
       if (result.verses && result.verses.length > 0) {
-        setPassageVerses(result.verses.map(v => ({ n: v.number, text: v.lines.join('\n') })));
+        setPassageVerses(result.verses);
       } else {
-        setPassageVerses([{ n: '', text: result.text }]);
+        setPassageVerses([{number: '', lines: [result.text]}]);
       }
     } catch {
       setPassageVerses([]);
@@ -696,30 +751,32 @@ const BibleStudyScreen = () => {
   }, [session, buildContent, stage, navigation, preferences?.weekStart]);
 
   const back = useCallback(() => {
+    triggerLightHaptic();
     if (stage === 'home' || stage === 'saved' || stage === 'detail') {
       closeBibleStudy();
       return;
     }
     if (stage === 'observe' && observeHighlightIndex > 0) {
-      triggerLightHaptic();
       setObserveHighlightIndex(index => index - 1);
       return;
     }
     if (stage === 'understand' && understandingPhase === 'deeper') {
-      triggerLightHaptic();
       setUnderstandingPhase('main');
       return;
     }
     if (stage === 'respond' && responsePhase === 'prayer') {
-      triggerLightHaptic();
       setResponsePhase('journal');
       return;
     }
     const prevIndex = stageIndex - 1;
     if (prevIndex >= 0) {
-      setStage(STAGES[prevIndex]);
+      const previousStage = STAGES[prevIndex];
+      if (previousStage === 'home') {
+        prepareReveal(selectedTopic ? topicRevealAnims : homeRevealAnims);
+      }
+      setStage(previousStage);
     }
-  }, [navigation, observeHighlightIndex, responsePhase, stage, stageIndex, understandingPhase]);
+  }, [homeRevealAnims, navigation, observeHighlightIndex, prepareReveal, responsePhase, selectedTopic, stage, stageIndex, topicRevealAnims, understandingPhase]);
 
   const toggleHighlightPrompt = (highlightId: string, prompt: string) => {
     triggerLightHaptic();
@@ -761,33 +818,54 @@ const BibleStudyScreen = () => {
     scheduleDraftSave();
   };
 
-  useEffect(() => {
-    if (!pendingUnderstandingFocus) {return;}
-    const frame = requestAnimationFrame(() => {
-      const input = understandingInputRefs.current[pendingUnderstandingFocus];
-      input?.focus();
-    });
-    return () => cancelAnimationFrame(frame);
-  }, [pendingUnderstandingFocus, understandingPromptSelections]);
+  const scrollInputAboveKeyboard = useCallback((input: TextInput | null) => {
+    const inputHandle = input ? findNodeHandle(input) : null;
+    if (inputHandle) {
+      screenScrollRef.current?.scrollResponderScrollNativeHandleToKeyboard(inputHandle, 96, true);
+    }
+  }, []);
 
   useEffect(() => {
-    if (!pendingObservationFocus) {return;}
+    if (!pendingUnderstandingFocus) {return;}
+    const focusKey = pendingUnderstandingFocus;
+    let layoutFrame: number | undefined;
     let scrollTimeout: ReturnType<typeof setTimeout> | undefined;
     const frame = requestAnimationFrame(() => {
-      observationInputRefs.current[pendingObservationFocus]?.focus();
+      understandingInputRefs.current[focusKey]?.focus();
       scrollTimeout = setTimeout(() => {
-        const noteY = observationNoteLayouts.current[pendingObservationFocus];
-        if (typeof noteY === 'number') {
-          screenScrollRef.current?.scrollTo({ y: Math.max(0, noteY - 96), animated: true });
-        }
-        setPendingObservationFocus(null);
-      }, 260);
+        layoutFrame = requestAnimationFrame(() => {
+          scrollInputAboveKeyboard(understandingInputRefs.current[focusKey]);
+          setPendingUnderstandingFocus(null);
+        });
+      }, keyboardHeight > 0 ? 180 : 500);
     });
     return () => {
       cancelAnimationFrame(frame);
+      if (layoutFrame !== undefined) {cancelAnimationFrame(layoutFrame);}
       if (scrollTimeout) {clearTimeout(scrollTimeout);}
     };
-  }, [highlightPromptSelections, pendingObservationFocus]);
+  }, [keyboardHeight, pendingUnderstandingFocus, scrollInputAboveKeyboard, understandingPromptSelections]);
+
+  useEffect(() => {
+    if (!pendingObservationFocus) {return;}
+    const focusKey = pendingObservationFocus;
+    let layoutFrame: number | undefined;
+    let scrollTimeout: ReturnType<typeof setTimeout> | undefined;
+    const frame = requestAnimationFrame(() => {
+      observationInputRefs.current[focusKey]?.focus();
+      scrollTimeout = setTimeout(() => {
+        layoutFrame = requestAnimationFrame(() => {
+          scrollInputAboveKeyboard(observationInputRefs.current[focusKey]);
+          setPendingObservationFocus(null);
+        });
+      }, keyboardHeight > 0 ? 180 : 500);
+    });
+    return () => {
+      cancelAnimationFrame(frame);
+      if (layoutFrame !== undefined) {cancelAnimationFrame(layoutFrame);}
+      if (scrollTimeout) {clearTimeout(scrollTimeout);}
+    };
+  }, [highlightPromptSelections, keyboardHeight, pendingObservationFocus, scrollInputAboveKeyboard]);
 
   useEffect(() => {
     const showSubscription = Keyboard.addListener('keyboardDidShow', event => {
@@ -840,7 +918,11 @@ const BibleStudyScreen = () => {
     <View style={[styles.homeTop, { top: insets.top + 8 }]} pointerEvents="box-none">
       {selectedTopic ? (
         <HeaderBackButton
-          onPress={() => setSelectedTopic(null)}
+          onPress={() => {
+            triggerLightHaptic();
+            prepareReveal(homeRevealAnims);
+            setSelectedTopic(null);
+          }}
           style={[styles.homeNavButton, styles.homeBackButton]}
         />
       ) : null}
@@ -938,6 +1020,7 @@ const BibleStudyScreen = () => {
 
   const selectTopic = (topic: BibleStudyTopic) => {
     triggerLightHaptic();
+    prepareReveal(topicRevealAnims);
     setSelectedTopic(topic);
   };
 
@@ -1067,11 +1150,36 @@ const BibleStudyScreen = () => {
     .slice(passageSelection.start, passageSelection.end)
     .trim();
 
+  const resolveHighlightRange = useCallback((highlight: BibleStudyHighlight) => {
+    const storedStart = highlight.selectionStart;
+    const storedEnd = highlight.selectionEnd ?? (
+      typeof storedStart === 'number' ? storedStart + highlight.text.length : undefined
+    );
+    if (
+      typeof storedStart === 'number' &&
+      typeof storedEnd === 'number' &&
+      selectablePassageText.slice(storedStart, storedEnd).trim() === highlight.text
+    ) {
+      const leadingWhitespace = selectablePassageText
+        .slice(storedStart, storedEnd)
+        .search(/\S|$/);
+      return {
+        start: storedStart + leadingWhitespace,
+        end: storedStart + leadingWhitespace + highlight.text.length,
+      };
+    }
+
+    const locatedStart = selectablePassageText.indexOf(highlight.text);
+    return locatedStart >= 0
+      ? {start: locatedStart, end: locatedStart + highlight.text.length}
+      : null;
+  }, [selectablePassageText]);
+
   const selectedHighlight = highlightActionsVisible ? highlights.find(highlight => highlight.id === activeHighlightId) ?? highlights.find(highlight => {
-    const start = highlight.selectionStart ?? selectablePassageText.indexOf(highlight.text);
-    const end = highlight.selectionEnd ?? (start + highlight.text.length);
+    const range = resolveHighlightRange(highlight);
+    if (!range) {return false;}
     if (passageSelection.end > passageSelection.start) {
-      return passageSelection.start < end && passageSelection.end > start;
+      return passageSelection.start < range.end && passageSelection.end > range.start;
     }
     return false; // A cursor alone must not automatically open highlight controls.
   }) : undefined;
@@ -1084,50 +1192,81 @@ const BibleStudyScreen = () => {
     setPassageSelection({ start: 0, end: 0 });
   };
 
-  const selectionActionTop = useMemo(() => {
-    const textBeforeSelection = selectablePassageText.slice(0, passageSelection.start);
-    const availableWidth = Math.max(160, screenWidth - 52 - scriptureIndent);
-    const approximateCharactersPerLine = Math.max(12, Math.floor(availableWidth / (scriptureFontSize * 0.56)));
-    const visualLines = textBeforeSelection.split('\n').reduce(
-      (total, line) => total + Math.max(1, Math.ceil(line.length / approximateCharactersPerLine)),
-      0,
-    );
-    const lineHeight = scriptureFontSize * 1.6 + scriptureLineSpacing;
-    return Math.max(0, visualLines * lineHeight - lineHeight - 44);
-  }, [passageSelection.start, screenWidth, scriptureFontSize, scriptureIndent, scriptureLineSpacing, selectablePassageText]);
+  const renderPassageSegmentText = (text: string, segmentKey: string, absoluteStart: number) => {
+    const parts: React.ReactNode[] = [];
+    const absoluteEnd = absoluteStart + text.length;
+    const styledRanges = [
+      ...formattedPassage.verseNumberRanges.map(range => ({...range, kind: 'verse' as const})),
+      ...formattedPassage.wordsOfJesusRanges.map(range => ({...range, kind: 'jesus' as const})),
+    ].filter(range => range.start < absoluteEnd && range.end > absoluteStart);
+    const boundaries = new Set([absoluteStart, absoluteEnd]);
+    styledRanges.forEach(range => {
+      boundaries.add(Math.max(absoluteStart, range.start));
+      boundaries.add(Math.min(absoluteEnd, range.end));
+    });
+    const orderedBoundaries = Array.from(boundaries).sort((a, b) => a - b);
+
+    orderedBoundaries.slice(0, -1).forEach((start, index) => {
+      const end = orderedBoundaries[index + 1];
+      const value = selectablePassageText.slice(start, end);
+      const range = styledRanges.find(candidate => start >= candidate.start && start < candidate.end);
+      if (range?.kind === 'verse') {
+        parts.push(
+          <Text
+            key={`${segmentKey}-verse-${start}`}
+            style={[
+              styles.inlineVerseNumber,
+              {
+                fontFamily: getFontFamily(scriptureFont, 'regular'),
+                fontSize: Math.max(9, scriptureFontSize * 0.52),
+                letterSpacing: 0.8,
+              },
+            ]}
+          >
+            {value}
+          </Text>,
+        );
+      } else if (range?.kind === 'jesus') {
+        parts.push(<Text key={`${segmentKey}-jesus-${start}`} style={styles.wordsOfJesus}>{value}</Text>);
+      } else {
+        parts.push(value);
+      }
+    });
+    return parts;
+  };
 
   const highlightedPassageSegments = useMemo(() => {
     const ranges = highlights
       .map(highlight => {
-        const start = highlight.selectionStart ?? selectablePassageText.indexOf(highlight.text);
-        const end = highlight.selectionEnd ?? (start + highlight.text.length);
-        return start >= 0 && end <= selectablePassageText.length
-          ? { start, end, id: highlight.id }
+        const range = resolveHighlightRange(highlight);
+        return range && range.end <= selectablePassageText.length
+          ? { ...range, id: highlight.id }
           : null;
       })
       .filter((range): range is { start: number; end: number; id: string } => range !== null)
       .sort((a, b) => a.start - b.start);
 
-    const segments: { text: string; color?: string; key: string }[] = [];
+    const segments: { text: string; color?: string; key: string; start: number }[] = [];
     let cursor = 0;
     ranges.forEach(range => {
       if (range.start < cursor) {return;}
       if (range.start > cursor) {
-        segments.push({ text: selectablePassageText.slice(cursor, range.start), key: `plain-${cursor}` });
+        segments.push({ text: selectablePassageText.slice(cursor, range.start), key: `plain-${cursor}`, start: cursor });
       }
       const highlight = highlights.find(item => item.id === range.id);
       segments.push({
         text: selectablePassageText.slice(range.start, range.end),
         color: highlight?.color ?? HIGHLIGHT_COLORS[0],
         key: range.id,
+        start: range.start,
       });
       cursor = range.end;
     });
     if (cursor < selectablePassageText.length) {
-      segments.push({ text: selectablePassageText.slice(cursor), key: `plain-${cursor}` });
+      segments.push({ text: selectablePassageText.slice(cursor), key: `plain-${cursor}`, start: cursor });
     }
     return segments;
-  }, [highlights, selectablePassageText]);
+  }, [highlights, resolveHighlightRange, selectablePassageText]);
 
   const savePassageHighlight = (color: string) => {
     if (!selectedPassageText && !selectedHighlight) {return;}
@@ -1142,7 +1281,23 @@ const BibleStudyScreen = () => {
         ...current,
         {
           id: generateUUID(),
-          verseNumber: session?.passage.reference ?? 'Passage',
+          verseNumber: (() => {
+            const startRange = [...formattedPassage.verseNumberRanges]
+              .reverse()
+              .find(range => range.start <= passageSelection.start);
+            const endRange = [...formattedPassage.verseNumberRanges]
+              .reverse()
+              .find(range => range.start < Math.max(passageSelection.start + 1, passageSelection.end));
+            const startNumber = startRange
+              ? selectablePassageText.slice(startRange.start, startRange.end)
+              : '';
+            const endNumber = endRange
+              ? selectablePassageText.slice(endRange.start, endRange.end)
+              : startNumber;
+            return startNumber && endNumber && startNumber !== endNumber
+              ? `${startNumber}–${endNumber}`
+              : startNumber || endNumber;
+          })(),
           text: selectedPassageText,
           selectionStart: passageSelection.start,
           selectionEnd: passageSelection.end,
@@ -1172,6 +1327,45 @@ const BibleStudyScreen = () => {
     );
   };
 
+  const renderHighlightActions = () => highlightActionsVisible && (selectedPassageText || selectedHighlight) ? (
+    <View style={[styles.highlightSelectionAnchor, { bottom: insets.bottom + 76 }]} pointerEvents="box-none">
+      <View style={styles.highlightSelectionButton} onTouchEnd={event => event.stopPropagation()}>
+      {Platform.OS === 'ios' ? (
+        <View pointerEvents="none" style={styles.highlightGlassBackground}>
+          <LiquidGlassView
+            tintColor="rgba(248, 247, 242, 0.38)"
+            cornerRadius={24}
+            isInteractive
+            style={StyleSheet.absoluteFill}
+          />
+        </View>
+      ) : null}
+      <Ionicons name="color-fill-outline" size={16} color={Colors.sage} />
+      {HIGHLIGHT_COLORS.map(color => (
+        <TouchableOpacity
+          key={color}
+          onPress={() => savePassageHighlight(color)}
+          style={[
+            styles.highlightColorButton,
+            { backgroundColor: color.replace(/0\.\d+\)/, '0.9)') },
+            selectedHighlight?.color === color && styles.highlightColorSelected,
+          ]}
+          accessibilityLabel="Apply highlight color"
+        />
+      ))}
+      {selectedHighlight ? <TouchableOpacity
+        onPress={() => confirmRemoveHighlight(selectedHighlight.id)}
+        style={styles.paletteRemoveButton} accessibilityRole="button" accessibilityLabel="Remove this highlight">
+        <Ionicons name="trash-outline" size={17} color={Colors.textGray} />
+      </TouchableOpacity> : null}
+      <TouchableOpacity onPress={dismissHighlightActions} style={styles.paletteRemoveButton}
+        accessibilityRole="button" accessibilityLabel="Dismiss highlight controls">
+        <Ionicons name="close" size={17} color={Colors.textGray} />
+      </TouchableOpacity>
+      </View>
+    </View>
+  ) : null;
+
   const animatedStageHeading = (eyebrow: string, title: string, lead: string) => <>
     <StaggeredReveal delay={20} reduceMotion={reduceMotion.current}><Eyebrow>{eyebrow}</Eyebrow></StaggeredReveal>
     <StaggeredReveal delay={75} reduceMotion={reduceMotion.current}><PageTitle>{title}</PageTitle></StaggeredReveal>
@@ -1182,87 +1376,11 @@ const BibleStudyScreen = () => {
     <View style={styles.page}>
       {animatedStageHeading('Read', 'Read slowly.', 'Press and hold, then drag to select the words you want to highlight.')}
 
-      {showTextSettings ? (
-        <StaggeredReveal delay={170} reduceMotion={reduceMotion.current} style={styles.textSettings}>
-          <View style={styles.readerTopRow}>
-            <View style={styles.readerQuickControls}>
-              <View style={styles.textSizeControls}>
-                <TouchableOpacity style={styles.textSizeButton} onPress={() => stepReaderValue(FONT_SIZES, scriptureFontSize, -1, setScriptureFontSize)} accessibilityLabel="Decrease text size">
-                  <ThemedText weight="semiBold" style={styles.readerSmallA}>A</ThemedText>
-                </TouchableOpacity>
-                <ThemedText weight="semiBold" style={styles.textSizeValue}>{scriptureFontSize}</ThemedText>
-                <TouchableOpacity style={styles.textSizeButton} onPress={() => stepReaderValue(FONT_SIZES, scriptureFontSize, 1, setScriptureFontSize)} accessibilityLabel="Increase text size">
-                  <ThemedText weight="semiBold" style={styles.readerLargeA}>A</ThemedText>
-                </TouchableOpacity>
-              </View>
-              <TouchableOpacity style={[styles.readerBoldButton, scriptureBold && styles.readerControlActive]} onPress={() => setScriptureBold(value => !value)}>
-                <ThemedText weight="semiBold" style={[styles.readerBoldText, scriptureBold && styles.readerControlTextActive]}>Bold</ThemedText>
-              </TouchableOpacity>
-            </View>
-            <TouchableOpacity style={styles.readerResetButton} onPress={resetReaderSettings} accessibilityLabel="Reset reader settings">
-              <Ionicons name="refresh-outline" size={15} color={Colors.sage} />
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.readerOptionGroup}>
-            <View style={styles.readerFontRow}>
-              {READER_FONTS.map(option => {
-                const active = scriptureFont === option.key;
-                return (
-                  <TouchableOpacity key={option.key} style={[styles.readerFontChip, active && styles.readerControlActive]} onPress={() => { triggerLightHaptic(); setScriptureFont(option.key); }}>
-                    <ThemedText weight="semiBold" style={[styles.readerFontChipText, active && styles.readerControlTextActive]}>{option.label}</ThemedText>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-            <View style={styles.readerDivider} />
-            <View style={styles.readerAlignRow}>
-              {READER_ALIGNMENTS.map(option => {
-                const active = scriptureAlign === option.key;
-                return (
-                  <TouchableOpacity key={option.key} style={[styles.readerAlignButton, active && styles.readerControlActive]} onPress={() => { triggerLightHaptic(); setScriptureAlign(option.key); }} accessibilityLabel={`Align ${option.label}`}>
-                    <MaterialCommunityIcons name={option.icon as any} size={16} color={active ? Colors.hopeWhite : Colors.textGray} />
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          </View>
-
-          <TouchableOpacity style={styles.readerAdvancedButton} onPress={() => setAdvancedTextSettings(value => !value)}>
-            <ThemedText style={styles.readerAdvancedText}>Advanced</ThemedText>
-            <Ionicons name={advancedTextSettings ? 'chevron-up' : 'chevron-down'} size={14} color={Colors.textGray} />
-          </TouchableOpacity>
-
-          {advancedTextSettings ? (
-            <View style={styles.readerAdvancedSettings}>
-              {[
-                { label: 'Lines', values: LINE_SPACING, value: scriptureLineSpacing, update: setScriptureLineSpacing },
-                { label: 'Letters', values: LETTER_SPACING, value: scriptureLetterSpacing, update: setScriptureLetterSpacing },
-                { label: 'Indent', values: INDENTS, value: scriptureIndent, update: setScriptureIndent },
-              ].map(setting => (
-                <View key={setting.label} style={styles.readerSettingRow}>
-                  <ThemedText style={styles.textSettingsLabel}>{setting.label}</ThemedText>
-                  <View style={styles.textSizeControls}>
-                    <TouchableOpacity style={styles.textSizeButton} onPress={() => stepReaderValue(setting.values, setting.value, -1, setting.update)}>
-                      <ThemedText weight="semiBold" style={styles.textSizeButtonText}>−</ThemedText>
-                    </TouchableOpacity>
-                    <ThemedText weight="semiBold" style={styles.textSizeValue}>{setting.value}</ThemedText>
-                    <TouchableOpacity style={styles.textSizeButton} onPress={() => stepReaderValue(setting.values, setting.value, 1, setting.update)}>
-                      <ThemedText weight="semiBold" style={styles.textSizeButtonText}>+</ThemedText>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              ))}
-            </View>
-          ) : null}
-        </StaggeredReveal>
-      ) : null}
 
       <StaggeredReveal delay={200} reduceMotion={reduceMotion.current} style={styles.scripture}>
           {passageLoading ? (
             <View style={styles.passageLoadingState}>
-              <ActivityIndicator color={Colors.sage} />
-              <ThemedText style={styles.passageLoadingText}>Loading passage…</ThemedText>
+              <ScriptureLoadingSkeleton variant="reader" />
             </View>
           ) : passageLoadError ? (
             <View style={styles.passageErrorState}>
@@ -1305,16 +1423,16 @@ const BibleStudyScreen = () => {
                     onPress={segment.color ? () => {
                       const highlight = highlights.find(item => item.id === segment.key);
                       if (!highlight) {return;}
-                      const start = highlight.selectionStart ?? selectablePassageText.indexOf(highlight.text);
-                      if (start < 0) {return;}
+                      const range = resolveHighlightRange(highlight);
+                      if (!range) {return;}
                       setActiveHighlightId(segment.key);
-                      setPassageSelection({ start, end: start });
+                      setPassageSelection({ start: range.start, end: range.start });
                       setHighlightActionsVisible(true);
                     } : dismissHighlightActions}
                     accessibilityRole={segment.color ? 'button' : undefined}
                     accessibilityLabel={segment.color ? 'Edit highlight' : undefined}
                   >
-                    {segment.text}
+                    {renderPassageSegmentText(segment.text, segment.key, segment.start)}
                   </Text>
                 ))}
               </Text>
@@ -1337,9 +1455,8 @@ const BibleStudyScreen = () => {
                   const { start, end } = nativeEvent.selection;
                   if (start === end) {
                     const tapped = highlights.find(highlight => {
-                      const from = highlight.selectionStart ?? selectablePassageText.indexOf(highlight.text);
-                      const to = highlight.selectionEnd ?? (from + highlight.text.length);
-                      return from >= 0 && start >= from && start < to;
+                      const range = resolveHighlightRange(highlight);
+                      return !!range && start >= range.start && start < range.end;
                     });
                     setActiveHighlightId(tapped?.id ?? null);
                     setHighlightActionsVisible(!!tapped);
@@ -1357,34 +1474,6 @@ const BibleStudyScreen = () => {
                 fontFamily: getFontFamily(scriptureFont, scriptureBold ? 'bold' : 'regular'),
                 }]}
               />
-              {highlightActionsVisible && (selectedPassageText || selectedHighlight) ? (
-                <View
-                  style={[styles.highlightSelectionButton, { top: selectionActionTop }]}
-                >
-                      <Ionicons name="color-fill-outline" size={16} color={Colors.sage} />
-                      {HIGHLIGHT_COLORS.map(color => (
-                        <TouchableOpacity
-                          key={color}
-                          onPress={() => savePassageHighlight(color)}
-                          style={[
-                            styles.highlightColorButton,
-                            { backgroundColor: color.replace(/0\.\d+\)/, '0.9)') },
-                            selectedHighlight?.color === color && styles.highlightColorSelected,
-                          ]}
-                          accessibilityLabel="Apply highlight color"
-                        />
-                      ))}
-                      {selectedHighlight ? <TouchableOpacity
-                        onPress={() => confirmRemoveHighlight(selectedHighlight.id)}
-                        style={styles.paletteRemoveButton} accessibilityRole="button" accessibilityLabel="Remove this highlight">
-                        <Ionicons name="trash-outline" size={17} color={Colors.textGray} />
-                      </TouchableOpacity> : null}
-                      <TouchableOpacity onPress={dismissHighlightActions} style={styles.paletteRemoveButton}
-                        accessibilityRole="button" accessibilityLabel="Dismiss highlight controls">
-                        <Ionicons name="close" size={17} color={Colors.textGray} />
-                      </TouchableOpacity>
-                </View>
-              ) : null}
             </View>
           )}
       </StaggeredReveal>
@@ -1414,13 +1503,19 @@ const BibleStudyScreen = () => {
       );
     }
 
+    const highlightRange = resolveHighlightRange(highlight);
+
     return (
       <View style={styles.page}>
         {animatedStageHeading(`Observe · ${observeHighlightIndex + 1} of ${highlights.length}`, 'What do you notice?', 'Stay with this highlight. What stands out in these words?')}
 
         <StaggeredReveal delay={190} reduceMotion={reduceMotion.current} style={styles.focusedHighlight}>
           <View style={[styles.focusedHighlightMarker, { backgroundColor: highlight.color ?? HIGHLIGHT_COLORS[0] }]} />
-          <ThemedText style={styles.focusedHighlightText}>{highlight.text}</ThemedText>
+          <Text style={styles.focusedHighlightText}>
+            {highlightRange
+              ? renderPassageSegmentText(highlight.text, `focused-${highlight.id}`, highlightRange.start)
+              : highlight.text}
+          </Text>
         </StaggeredReveal>
 
         <View style={styles.chips}>
@@ -1434,23 +1529,21 @@ const BibleStudyScreen = () => {
         </View>
 
         {(highlightPromptSelections[highlight.id] ?? []).length > 0 ? (
-          (highlightPromptSelections[highlight.id] ?? []).map(prompt => (
-            <View
-              key={prompt}
-              style={styles.observationNoteType}
-              onLayout={({ nativeEvent }) => {
-                observationNoteLayouts.current[`${highlight.id}:${prompt}`] = nativeEvent.layout.y;
-              }}
-            >
+          (highlightPromptSelections[highlight.id] ?? []).map(prompt => {
+            const focusKey = `${highlight.id}:${prompt}`;
+            const noteValue = highlightPromptNotes[highlight.id]?.[prompt] ?? '';
+            const ownsPendingFocus = pendingObservationFocus === focusKey;
+            return <View key={prompt} style={styles.observationNoteType}>
               <ThemedText weight="semiBold" style={styles.observationNoteLabel}>{prompt}</ThemedText>
               <TextInput
-                ref={input => { observationInputRefs.current[`${highlight.id}:${prompt}`] = input; }}
+                ref={input => { observationInputRefs.current[focusKey] = input; }}
                 multiline
+                autoFocus={ownsPendingFocus}
+                selection={ownsPendingFocus ? {start: noteValue.length, end: noteValue.length} : undefined}
                 onFocus={() => {
-                  const focusKey = `${highlight.id}:${prompt}`;
                   activeObservationFocus.current = focusKey;
                 }}
-                value={highlightPromptNotes[highlight.id]?.[prompt] ?? ''}
+                value={noteValue}
                 onChangeText={(text) => {
                   setHighlightPromptNotes(current => ({
                     ...current,
@@ -1464,10 +1557,12 @@ const BibleStudyScreen = () => {
                 onBlur={saveDraft}
                 placeholder={OBSERVE_NOTE_PLACEHOLDERS[prompt] ?? 'Write what you notice...'}
                 placeholderTextColor={Colors.placeholderText}
+                selectionColor={Colors.sage}
+                cursorColor={Colors.sage}
                 style={[styles.observationInputPlain, styles.observationNoteInput]}
               />
-            </View>
-          ))
+            </View>;
+          })
         ) : (
           <TextInput
             multiline
@@ -1479,6 +1574,8 @@ const BibleStudyScreen = () => {
             onBlur={saveDraft}
             placeholder="Write what you notice, or choose a note type above..."
             placeholderTextColor={Colors.placeholderText}
+            selectionColor={Colors.sage}
+            cursorColor={Colors.sage}
             style={styles.observationInputPlain}
           />
         )}
@@ -1540,6 +1637,11 @@ const BibleStudyScreen = () => {
                 <TextInput
                   ref={input => { understandingInputRefs.current[prompt] = input; }}
                   multiline
+                  autoFocus={pendingUnderstandingFocus === prompt}
+                  selection={pendingUnderstandingFocus === prompt ? {
+                    start: (understandingPromptNotes[prompt] ?? '').length,
+                    end: (understandingPromptNotes[prompt] ?? '').length,
+                  } : undefined}
                   value={understandingPromptNotes[prompt] ?? ''}
                   onChangeText={(text) => {
                     setUnderstandingPromptNotes(current => ({ ...current, [prompt]: text }));
@@ -1548,6 +1650,8 @@ const BibleStudyScreen = () => {
                   onBlur={saveDraft}
                   placeholder={UNDERSTAND_NOTE_PLACEHOLDERS[prompt] ?? 'Write what you are understanding...'}
                   placeholderTextColor={Colors.placeholderText}
+                  selectionColor={Colors.sage}
+                  cursorColor={Colors.sage}
                   style={[styles.observationInputPlain, styles.observationNoteInput]}
                 />
               </View>
@@ -1696,6 +1800,14 @@ const BibleStudyScreen = () => {
     );
   };
 
+
+  const contentAnimationKey = [
+    stage,
+    stage === 'home' ? selectedTopic?.id ?? 'root' : '',
+    stage === 'observe' ? observeHighlightIndex : '',
+    stage === 'understand' ? understandingPhase : '',
+    stage === 'respond' ? responsePhase : '',
+  ].join(':');
 
   const content = () => {
     switch (stage) {
@@ -1847,7 +1959,17 @@ const BibleStudyScreen = () => {
 
   if (isLoading) {
     return (
-      <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom, justifyContent: 'center', alignItems: 'center' }]}>
+      <View
+        style={[
+          styles.container,
+          {
+            paddingTop: insets.top,
+            paddingBottom: insets.bottom,
+            justifyContent: 'center',
+            alignItems: 'center',
+          },
+        ]}>
+        <StatusBar hidden barStyle="dark-content" />
         <ActivityIndicator color={Colors.sage} />
       </View>
     );
@@ -1856,13 +1978,16 @@ const BibleStudyScreen = () => {
   if (stage === 'detail' && (savedReflection || session)) {
     const selectedDate = savedReflection?.selected_date || session!.selected_date;
     const reflectionId = savedReflection?.id || session?.reflection_ref?.local_id;
-    return <BibleStudyDetailView
-      reference={savedReflection?.title || savedReflection?.metadata?.passage?.reference || session?.passage.reference || 'Bible Study'}
-      selectedDate={selectedDate}
-      translation={savedReflection?.metadata?.passage?.translation || session?.passage.translation || 'NASB'}
-      content={buildContent()}
-      onClose={() => { triggerLightHaptic(); closeBibleStudy(); }}
-      onEdit={async () => {
+    return (
+      <>
+        <StatusBar hidden barStyle="dark-content" />
+        <BibleStudyDetailView
+          reference={savedReflection?.title || savedReflection?.metadata?.passage?.reference || session?.passage.reference || 'Bible Study'}
+          selectedDate={selectedDate}
+          translation={savedReflection?.metadata?.passage?.translation || session?.passage.translation || 'NASB'}
+          content={buildContent()}
+          onClose={() => { triggerLightHaptic(); closeBibleStudy(); }}
+          onEdit={async () => {
         if (!reflectionId) {throw new Error('Saved reflection is missing.');}
         const reflection = await getLocalReflection(reflectionId, 'scripture', selectedDate);
         const originalContent = reflection && parseSavedBibleStudy(reflection);
@@ -1885,9 +2010,91 @@ const BibleStudyScreen = () => {
         setEditingSavedStudy(true);
         await loadPassageText(originalSession.passage.reference, originalSession.passage.translation ?? 'NASB');
         setStage('read');
-      }}
-    />;
+          }}
+        />
+      </>
+    );
   }
+
+  const textSettingsOverlay = (
+    <>
+      {stage === 'read' && showTextSettings ? (
+              <StaggeredReveal delay={170} reduceMotion={reduceMotion.current} style={styles.textSettings}>
+                <View style={styles.readerTopRow}>
+                  <View style={styles.readerQuickControls}>
+                    <View style={styles.textSizeControls}>
+                      <TouchableOpacity style={styles.textSizeButton} onPress={() => stepReaderValue(FONT_SIZES, scriptureFontSize, -1, setScriptureFontSize)} accessibilityLabel="Decrease text size">
+                        <ThemedText weight="semiBold" style={styles.readerSmallA}>A</ThemedText>
+                      </TouchableOpacity>
+                      <ThemedText weight="semiBold" style={styles.textSizeValue}>{scriptureFontSize}</ThemedText>
+                      <TouchableOpacity style={styles.textSizeButton} onPress={() => stepReaderValue(FONT_SIZES, scriptureFontSize, 1, setScriptureFontSize)} accessibilityLabel="Increase text size">
+                        <ThemedText weight="semiBold" style={styles.readerLargeA}>A</ThemedText>
+                      </TouchableOpacity>
+                    </View>
+                    <TouchableOpacity style={[styles.readerBoldButton, scriptureBold && styles.readerControlActive]} onPress={() => setScriptureBold(value => !value)}>
+                      <ThemedText weight="semiBold" style={[styles.readerBoldText, scriptureBold && styles.readerControlTextActive]}>Bold</ThemedText>
+                    </TouchableOpacity>
+                  </View>
+                  <TouchableOpacity style={styles.readerResetButton} onPress={resetReaderSettings} accessibilityLabel="Reset reader settings">
+                    <Ionicons name="refresh-outline" size={15} color={Colors.sage} />
+                  </TouchableOpacity>
+                </View>
+
+                <View style={styles.readerOptionGroup}>
+                  <View style={styles.readerFontRow}>
+                    {READER_FONTS.map(option => {
+                      const active = scriptureFont === option.key;
+                      return (
+                        <TouchableOpacity key={option.key} style={[styles.readerFontChip, active && styles.readerControlActive]} onPress={() => { triggerLightHaptic(); setScriptureFont(option.key); }}>
+                          <ThemedText weight="semiBold" style={[styles.readerFontChipText, active && styles.readerControlTextActive]}>{option.label}</ThemedText>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                  <View style={styles.readerDivider} />
+                  <View style={styles.readerAlignRow}>
+                    {READER_ALIGNMENTS.map(option => {
+                      const active = scriptureAlign === option.key;
+                      return (
+                        <TouchableOpacity key={option.key} style={[styles.readerAlignButton, active && styles.readerControlActive]} onPress={() => { triggerLightHaptic(); setScriptureAlign(option.key); }} accessibilityLabel={`Align ${option.label}`}>
+                          <MaterialCommunityIcons name={option.icon as any} size={16} color={active ? Colors.hopeWhite : Colors.textGray} />
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </View>
+
+                <TouchableOpacity style={styles.readerAdvancedButton} onPress={() => setAdvancedTextSettings(value => !value)}>
+                  <ThemedText style={styles.readerAdvancedText}>Advanced</ThemedText>
+                  <Ionicons name={advancedTextSettings ? 'chevron-up' : 'chevron-down'} size={14} color={Colors.textGray} />
+                </TouchableOpacity>
+
+                {advancedTextSettings ? (
+                  <View style={styles.readerAdvancedSettings}>
+                    {[
+                      { label: 'Lines', values: LINE_SPACING, value: scriptureLineSpacing, update: setScriptureLineSpacing },
+                      { label: 'Letters', values: LETTER_SPACING, value: scriptureLetterSpacing, update: setScriptureLetterSpacing },
+                      { label: 'Indent', values: INDENTS, value: scriptureIndent, update: setScriptureIndent },
+                    ].map(setting => (
+                      <View key={setting.label} style={styles.readerSettingRow}>
+                        <ThemedText style={styles.textSettingsLabel}>{setting.label}</ThemedText>
+                        <View style={styles.textSizeControls}>
+                          <TouchableOpacity style={styles.textSizeButton} onPress={() => stepReaderValue(setting.values, setting.value, -1, setting.update)}>
+                            <ThemedText weight="semiBold" style={styles.textSizeButtonText}>−</ThemedText>
+                          </TouchableOpacity>
+                          <ThemedText weight="semiBold" style={styles.textSizeValue}>{setting.value}</ThemedText>
+                          <TouchableOpacity style={styles.textSizeButton} onPress={() => stepReaderValue(setting.values, setting.value, 1, setting.update)}>
+                            <ThemedText weight="semiBold" style={styles.textSizeButtonText}>+</ThemedText>
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    ))}
+                  </View>
+                ) : null}
+              </StaggeredReveal>
+            ) : null}
+    </>
+  );
 
   return (
     <KeyboardAvoidingView
@@ -1899,6 +2106,7 @@ const BibleStudyScreen = () => {
       ]}
       behavior={Platform.OS === 'ios' && stage !== 'observe' && stage !== 'understand' && stage !== 'respond' ? 'padding' : undefined}
     >
+      <StatusBar hidden barStyle="dark-content" />
       <ScrollView
         onScrollBeginDrag={() => { if (stage === 'read') {dismissHighlightActions();} }}
         onScroll={({ nativeEvent }) => {
@@ -1918,16 +2126,10 @@ const BibleStudyScreen = () => {
         ]}
         keyboardShouldPersistTaps="always"
         keyboardDismissMode="none"
-        onContentSizeChange={() => {
-          if (stage !== 'understand' || !pendingUnderstandingFocus || keyboardHeight <= 0) {return;}
-          requestAnimationFrame(() => {
-            screenScrollRef.current?.scrollToEnd({ animated: true });
-            setPendingUnderstandingFocus(null);
-          });
-        }}
       >
-        {content()}
+        <React.Fragment key={contentAnimationKey}>{content()}</React.Fragment>
       </ScrollView>
+      {stage === 'read' ? renderHighlightActions() : null}
       <View style={[styles.header, stage !== 'home' && { paddingTop: insets.top }]} pointerEvents="box-none">
         <Animated.View
           pointerEvents="none"
@@ -1947,6 +2149,9 @@ const BibleStudyScreen = () => {
         </Animated.View>
         {renderTop()}
         {renderProgress()}
+      </View>
+      <View pointerEvents="box-none" style={[styles.textSettingsOverlay, { top: insets.top + 56 }]}>
+        {textSettingsOverlay}
       </View>
       {renderFooter() ? (
         <View style={[
@@ -2099,20 +2304,20 @@ const styles = StyleSheet.create({
     borderRadius: 21,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: Colors.hopeWhite,
-    borderWidth: 1,
-    borderColor: Colors.sage,
+    backgroundColor: '#EDF2EA',
+    borderWidth: 0.5,
+    borderColor: 'rgba(82, 106, 91, 0.2)',
   },
   aaHeaderButtonActive: {
-    backgroundColor: Colors.sage,
-    borderColor: Colors.sage,
+    backgroundColor: '#E2EBDD',
+    borderColor: 'rgba(82, 106, 91, 0.2)',
   },
   aaHeaderButtonText: {
     fontSize: 16,
     color: Colors.sage,
   },
   aaHeaderButtonTextActive: {
-    color: Colors.hopeWhite,
+    color: Colors.sage,
   },
   homeEyebrow: {
     fontSize: 11,
@@ -2311,14 +2516,8 @@ const styles = StyleSheet.create({
     paddingRight: 12,
   },
   passageLoadingState: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 180,
-    gap: 12,
-  },
-  passageLoadingText: {
-    fontSize: 13,
-    color: Colors.textGray,
+    width: '100%',
+    minHeight: 260,
   },
   passageErrorState: {
     alignItems: 'center',
@@ -2408,7 +2607,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
     fontFamily: Fonts.regular,
     fontSize: 17,
-    lineHeight: 26,
+    lineHeight: Platform.OS === 'ios' ? undefined : 26,
     color: Colors.text,
     textAlignVertical: 'top',
   },
@@ -2550,23 +2749,39 @@ const styles = StyleSheet.create({
     color: Colors.scriptureText,
     zIndex: 2,
   },
+  inlineVerseNumber: {
+    color: 'rgba(90, 98, 93, 0.62)',
+  },
+  wordsOfJesus: {
+    color: '#9B1C1C',
+  },
   highlightSelectionButton: {
-    position: 'absolute',
-    right: 8,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
     paddingVertical: 8,
     paddingHorizontal: 10,
     borderRadius: 24,
-    backgroundColor: Colors.hopeWhite,
-    borderWidth: 1,
+    backgroundColor: Platform.OS === 'ios' ? 'transparent' : Colors.hopeWhite,
+    borderWidth: Platform.OS === 'ios' ? 0 : 1,
     borderColor: 'rgba(82,106,91,0.2)',
     shadowColor: '#29342E',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.22,
     shadowRadius: 8,
     elevation: 8,
+    zIndex: 120,
+  },
+  highlightGlassBackground: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 24,
+    overflow: 'hidden',
+  },
+  highlightSelectionAnchor: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    alignItems: 'center',
     zIndex: 120,
   },
   highlightColorButton: {
@@ -2604,14 +2819,24 @@ const styles = StyleSheet.create({
     lineHeight: 30,
     color: Colors.sage,
   },
+  textSettingsOverlay: {
+    position: 'absolute',
+    left: 20,
+    right: 20,
+    zIndex: 9,
+  },
   textSettings: {
-    marginBottom: 16,
     padding: 16,
     borderRadius: 22,
     backgroundColor: Colors.hopeWhite,
     borderWidth: 1,
     borderColor: 'rgba(82,106,91,0.2)',
     gap: 12,
+    shadowColor: '#26362C',
+    shadowOpacity: 0.18,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 8,
   },
   textSettingsLabel: {
     fontSize: 12,

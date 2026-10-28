@@ -53,11 +53,13 @@ export const JournalPickerMenu = <T extends string>({
   items,
   animations,
   onSelect,
+  onSelectStart,
   tone = 'default',
 }: {
   items: readonly {key: T; label: string; icon: React.ReactNode}[];
   animations: Animated.Value[];
   onSelect: (key: T) => void;
+  onSelectStart?: (key: T) => void;
   tone?: 'default' | 'onDark';
 }) => {
   const [allBlocksOpen, setAllBlocksOpen] = useState(false);
@@ -202,6 +204,7 @@ export const JournalPickerMenu = <T extends string>({
     });
   };
   const selectItem = (key: T) => {
+    onSelectStart?.(key);
     if (!allBlocksOpen) {
       onSelect(key);
       return;
@@ -537,10 +540,12 @@ export const JournalBlockPickerMenu = <T extends keyof typeof JOURNAL_BLOCKS>({
   kinds,
   animations,
   onSelect,
+  onSelectStart,
 }: {
   kinds: readonly T[];
   animations: Animated.Value[];
   onSelect: (kind: T) => void;
+  onSelectStart?: (kind: T) => void;
 }) => (
   <JournalPickerMenu
     items={kinds.map(kind => ({
@@ -556,6 +561,7 @@ export const JournalBlockPickerMenu = <T extends keyof typeof JOURNAL_BLOCKS>({
     }))}
     animations={animations}
     onSelect={onSelect}
+    onSelectStart={onSelectStart}
   />
 );
 

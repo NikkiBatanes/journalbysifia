@@ -31,6 +31,7 @@ const MorningTodaysFocusScreen: React.FC = () => {
     <TodaysFocusExperience
       selectedDate={fromLocalDateString(selectedDate)}
       onClose={handleClose}
+      onBackFromStart={() => navigation.goBack()}
       onComplete={handleComplete}
       completionButtonText="Continue"
       footerText="A simple morning anchor before you move into the rest of your day."

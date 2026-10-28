@@ -19,6 +19,8 @@ import {
   formatJournalAttribution,
   getJournalTableCellAlignment,
   JOURNAL_BLOCK_GAP,
+  JOURNAL_BLOCKS,
+  JournalBlockIcon,
   prepareJournalBlocksForSave,
   type JournalBlock,
 } from './shared/journalBlocks';
@@ -174,7 +176,7 @@ const SavedVoiceNote = ({
         </View>
       </View>
       {!!block.text?.trim() && (
-        <ThemedText style={[styles.caption, {color: foreground}]}>
+        <ThemedText style={[styles.voiceNote, {color: foreground}]}>
           {block.text}
         </ThemedText>
       )}
@@ -330,16 +332,25 @@ export const SavedReflectionBlocks = ({
               {backgroundColor: accent},
             ]}
           />
-          <ThemedText
-            weight="bold"
-            numberOfLines={compact ? 2 : undefined}
-            style={[
-              styles.sectionText,
-              fromOutline && styles.outlineSectionText,
-              {color: foreground},
-            ]}>
-            {block.text}
-          </ThemedText>
+          {fromOutline ? (
+            <ThemedText
+              weight="bold"
+              numberOfLines={compact ? 2 : undefined}
+              style={[
+                styles.sectionText,
+                styles.outlineSectionText,
+                {color: foreground},
+              ]}>
+              {block.text}
+            </ThemedText>
+          ) : (
+            <ThemedText
+              weight="bold"
+              numberOfLines={compact ? 2 : undefined}
+              style={[styles.sectionText, {color: foreground}]}>
+              {block.text}
+            </ThemedText>
+          )}
         </View>
       );
     }
@@ -396,34 +407,38 @@ export const SavedReflectionBlocks = ({
       const listItems = (block.points || []).filter(point => point.trim());
       const shownItems = compact ? listItems.slice(0, 4) : listItems;
       return (
-        <View key={block.id} style={styles.savedList}>
+        <View key={block.id} style={styles.savedFrame}>
           {!!block.text?.trim() && (
-            <ThemedText
-              weight="bold"
-              numberOfLines={compact ? 1 : undefined}
-              style={[styles.savedListTitle, {color: foreground}]}>
-              {block.text.trim()}
-            </ThemedText>
-          )}
-          {shownItems.map((point, index) => (
-            <View key={`${block.id}-${index}`} style={styles.savedListRow}>
+            <View style={styles.savedListHeader}>
               <ThemedText
-                weight="semiBold"
-                style={[styles.savedListMarker, {color: accent}]}>
-                {block.kind === 'numbered' ? `${index + 1}.` : '•'}
-              </ThemedText>
-              <ThemedText
-                numberOfLines={compact ? 2 : undefined}
-                style={[styles.savedListText, {color: foreground}]}>
-                {point}
+                weight="bold"
+                numberOfLines={compact ? 1 : undefined}
+                style={[styles.savedListTitle, {color: foreground}]}>
+                {block.text.trim()}
               </ThemedText>
             </View>
-          ))}
-          {shownItems.length < listItems.length && (
-            <ThemedText style={[styles.listMoreText, {color: muted}]}>
-              {listItems.length - shownItems.length} more
-            </ThemedText>
           )}
+          <View style={styles.savedList}>
+            {shownItems.map((point, index) => (
+              <View key={`${block.id}-${index}`} style={styles.savedListRow}>
+                <ThemedText
+                  weight="semiBold"
+                  style={[styles.savedListMarker, {color: accent}]}>
+                  {block.kind === 'numbered' ? `${index + 1}.` : '•'}
+                </ThemedText>
+                <ThemedText
+                  numberOfLines={compact ? 2 : undefined}
+                  style={[styles.savedListText, {color: foreground}]}>
+                  {point}
+                </ThemedText>
+              </View>
+            ))}
+            {shownItems.length < listItems.length && (
+              <ThemedText style={[styles.listMoreText, {color: muted}]}>
+                {listItems.length - shownItems.length} more
+              </ThemedText>
+            )}
+          </View>
         </View>
       );
     }
@@ -498,48 +513,56 @@ export const SavedReflectionBlocks = ({
         width: `${100 / columnCount}%` as const,
       };
       return (
-        <ScrollView
+        <NoteBlockFrame
           key={block.id}
-          horizontal
-          scrollEnabled={!fitsWidth}
-          contentContainerStyle={fitsWidth && styles.fullWidthTable}
-          showsHorizontalScrollIndicator={false}>
-          <View style={fitsWidth && styles.fullWidthTable}>
-            {(compact ? tableRows.slice(0, 3) : tableRows).map(
-              (row, rowIndex) => (
-                <View
-                  key={`${block.id}-row-${rowIndex}`}
-                  style={styles.tableRow}>
-                  {row.map((cell, columnIndex) => (
-                    <ThemedText
-                      key={`${block.id}-${rowIndex}-${columnIndex}`}
-                      weight={rowIndex === 0 ? 'bold' : 'regular'}
-                      style={[
-                        styles.tableCell,
-                        fittedCellStyle,
-                        {
-                          color: foreground,
-                          borderColor: border,
-                          textAlign: getJournalTableCellAlignment(
-                            block.tableCellAlignments,
-                            rowIndex,
-                            columnIndex,
-                          ),
-                        },
-                        rowIndex === 0 && {
-                          backgroundColor: onDark
-                            ? 'rgba(220,232,222,0.14)'
-                            : Colors.anchorBlueLight,
-                        },
-                      ]}>
-                      {cell}
-                    </ThemedText>
-                  ))}
-                </View>
-              ),
-            )}
-          </View>
-        </ScrollView>
+          kind="table"
+          tone={onDark ? 'sage' : 'cream'}
+          compact={compact}
+          style={styles.savedFrame}>
+          <ScrollView
+            horizontal
+            style={styles.tableScroll}
+            scrollEnabled={!fitsWidth}
+            contentContainerStyle={fitsWidth && styles.fullWidthTable}
+            showsHorizontalScrollIndicator={false}>
+            <View style={fitsWidth && styles.fullWidthTable}>
+              {(compact ? tableRows.slice(0, 3) : tableRows).map(
+                (row, rowIndex) => (
+                  <View
+                    key={`${block.id}-row-${rowIndex}`}
+                    style={styles.tableRow}>
+                    {row.map((cell, columnIndex) => (
+                      <ThemedText
+                        key={`${block.id}-${rowIndex}-${columnIndex}`}
+                        weight={rowIndex === 0 ? 'bold' : 'regular'}
+                        style={[
+                          styles.tableCell,
+                          fittedCellStyle,
+                          {
+                            color: foreground,
+                            borderColor: border,
+                            textAlign: getJournalTableCellAlignment(
+                              block.tableCellAlignments,
+                              rowIndex,
+                              columnIndex,
+                            ),
+                          },
+                          rowIndex === 0 && {
+                            backgroundColor: onDark
+                              ? 'rgba(220,232,222,0.14)'
+                              : Colors.anchorBlueLight,
+                          },
+                          rowIndex === 0 && styles.tableHeaderCell,
+                        ]}>
+                        {cell}
+                      </ThemedText>
+                    ))}
+                  </View>
+                ),
+              )}
+            </View>
+          </ScrollView>
+        </NoteBlockFrame>
       );
     }
 
@@ -547,21 +570,6 @@ export const SavedReflectionBlocks = ({
       block.kind,
       onDark ? 'sage' : 'cream',
     );
-    const renderDetail = (label: string, value?: string) =>
-      value?.trim() ? (
-        <View style={styles.detailGroup}>
-          <ThemedText
-            weight="bold"
-            style={[styles.detailLabel, {color: blockVisuals.accent}]}>
-            {label}
-          </ThemedText>
-          <ThemedText
-            numberOfLines={compact ? 3 : undefined}
-            style={[styles.secondaryText, {color: foreground}]}>
-            {value.trim()}
-          </ThemedText>
-        </View>
-      ) : null;
     const renderChips = (values: string[]) =>
       values.length ? (
         <View style={styles.chipRow}>
@@ -570,7 +578,10 @@ export const SavedReflectionBlocks = ({
               key={`${block.id}-${value}`}
               style={[
                 styles.chip,
-                {backgroundColor: blockVisuals.headerSurface},
+                {
+                  backgroundColor: blockVisuals.headerSurface,
+                  borderColor: blockVisuals.border,
+                },
               ]}>
               <ThemedText
                 weight="semiBold"
@@ -587,27 +598,41 @@ export const SavedReflectionBlocks = ({
         const points = (block.points || []).filter(point => point.trim());
         return (
           <>
-            {!!block.text?.trim() && (
-              <ThemedText
-                weight="bold"
-                numberOfLines={compact ? 2 : undefined}
-                style={[styles.outlineTitle, {color: foreground}]}>
-                {block.text.trim()}
-              </ThemedText>
-            )}
             {points.map((point, index) => (
               <View
                 key={`${block.id}-outline-${index}`}
-                style={styles.outlineRow}>
-                <ThemedText
-                  weight="bold"
-                  style={[styles.outlineMarker, {color: blockVisuals.accent}]}>
-                  {block.outlineStyle === 'numbered'
-                    ? `${index + 1}.`
-                    : block.outlineStyle === 'acronym'
-                    ? `${point.trim().charAt(0).toUpperCase() || '•'} —`
-                    : '•'}
-                </ThemedText>
+                style={[
+                  styles.outlineRow,
+                  index === 0 && styles.firstOutlineRow,
+                  {borderTopColor: blockVisuals.border},
+                ]}>
+                {block.outlineStyle === 'numbered' ? (
+                  <View
+                    style={[
+                      styles.outlineNumberBadge,
+                      {backgroundColor: blockVisuals.headerSurface},
+                    ]}>
+                    <ThemedText
+                      weight="bold"
+                      style={[
+                        styles.outlineNumberText,
+                        {color: blockVisuals.accent},
+                      ]}>
+                      {index + 1}
+                    </ThemedText>
+                  </View>
+                ) : (
+                  <ThemedText
+                    weight="bold"
+                    style={[
+                      styles.outlineMarker,
+                      {color: blockVisuals.accent},
+                    ]}>
+                    {block.outlineStyle === 'acronym'
+                      ? `${point.trim().charAt(0).toUpperCase() || '•'} —`
+                      : '•'}
+                  </ThemedText>
+                )}
                 <ThemedText
                   numberOfLines={compact ? 2 : undefined}
                   style={[styles.outlineText, {color: foreground}]}>
@@ -620,60 +645,214 @@ export const SavedReflectionBlocks = ({
       }
 
       if (block.kind === 'history') {
-        const era = [block.secondary?.trim(), block.eraPeriod]
-          .filter(Boolean)
-          .join(' ');
+        const historyTypes = block.historyTypes || [];
         return (
           <>
-            {renderChips(block.historyTypes || [])}
-            {renderDetail('ERA / PLACE', era)}
-            {renderDetail('CONTEXT', block.note || block.text)}
-            {renderDetail('RELATED SCRIPTURE', block.reference)}
+            {renderChips(historyTypes)}
+            {(historyTypes.includes('era') || historyTypes.includes('place')) &&
+            (block.secondary?.trim() || block.eraPeriod) ? (
+              <View
+                style={[
+                  styles.historyDetailRow,
+                  {
+                    borderColor: blockVisuals.border,
+                    backgroundColor: blockVisuals.headerSurface,
+                  },
+                ]}>
+                {historyTypes.includes('place') ? (
+                  <Ionicons
+                    name="location-outline"
+                    size={17}
+                    color={blockVisuals.accent}
+                  />
+                ) : null}
+                <ThemedText
+                  style={[styles.historyDetailText, {color: foreground}]}>
+                  {block.secondary?.trim()}
+                </ThemedText>
+                {historyTypes.includes('era') && block.eraPeriod ? (
+                  <View
+                    style={[
+                      styles.historyEra,
+                      {backgroundColor: blockVisuals.surface},
+                    ]}>
+                    <ThemedText
+                      weight="bold"
+                      style={[styles.chipText, {color: blockVisuals.accent}]}>
+                      {block.eraPeriod}
+                    </ThemedText>
+                  </View>
+                ) : null}
+              </View>
+            ) : null}
+            {!!(block.note || block.text)?.trim() && (
+              <ThemedText
+                numberOfLines={compact ? 3 : undefined}
+                style={[styles.editorDetailText, {color: foreground}]}>
+                {(block.note || block.text).trim()}
+              </ThemedText>
+            )}
+            {!!block.reference?.trim() && (
+              <ThemedText
+                numberOfLines={compact ? 2 : undefined}
+                style={[styles.editorSecondaryText, {color: muted}]}>
+                {block.reference.trim()}
+              </ThemedText>
+            )}
           </>
         );
       }
 
       if (block.kind === 'language') {
         const language = languageLabel(block.languageKind);
+        const originalWordLabel = block.languageKind
+          ? `${block.languageKind.toUpperCase()} WORD`
+          : 'ORIGINAL WORD';
+        const hasWordConnection = Boolean(block.englishWord?.trim());
         return (
           <>
             {language ? renderChips([language]) : null}
-            {!!block.text?.trim() && (
-              <ThemedText
-                weight="bold"
-                numberOfLines={compact ? 2 : undefined}
-                style={[styles.outlineTitle, {color: foreground}]}>
-                {block.text.trim()}
-              </ThemedText>
+            {(hasWordConnection || block.text?.trim()) && (
+              <View
+                style={[
+                  styles.savedLanguageConnection,
+                  {
+                    backgroundColor: blockVisuals.headerSurface,
+                    borderColor: blockVisuals.border,
+                  },
+                ]}>
+                {hasWordConnection ? (
+                  <View style={styles.savedLanguageWordColumn}>
+                    <ThemedText
+                      weight="bold"
+                      style={[
+                        styles.detailLabel,
+                        {color: blockVisuals.accent},
+                      ]}>
+                      ENGLISH IN THE VERSE
+                    </ThemedText>
+                    <ThemedText
+                      numberOfLines={compact ? 2 : undefined}
+                      style={[styles.languageEnglishWord, {color: foreground}]}>
+                      {block.englishWord?.trim()}
+                    </ThemedText>
+                  </View>
+                ) : null}
+                {hasWordConnection && block.text?.trim() ? (
+                  <View style={styles.savedLanguageArrow}>
+                    <Ionicons
+                      name="arrow-forward"
+                      size={16}
+                      color={blockVisuals.accent}
+                    />
+                  </View>
+                ) : null}
+                {!!block.text?.trim() && (
+                  <View style={styles.savedLanguageWordColumn}>
+                    <ThemedText
+                      weight="bold"
+                      style={[
+                        styles.detailLabel,
+                        {color: blockVisuals.accent},
+                      ]}>
+                      {originalWordLabel}
+                    </ThemedText>
+                    <ThemedText
+                      numberOfLines={compact ? 2 : undefined}
+                      style={[
+                        styles.languageOriginalWord,
+                        {color: foreground},
+                      ]}>
+                      {block.text.trim()}
+                    </ThemedText>
+                  </View>
+                )}
+              </View>
             )}
-            {renderChips(
-              (block.languageDetails || []).map(detail =>
-                detail === 'origin' ? 'Word Origin' : detail,
-              ),
+            {!!block.meaning?.trim() && (
+              <View style={styles.languageDetailGroup}>
+                <ThemedText
+                  weight="bold"
+                  style={[styles.detailLabel, {color: blockVisuals.accent}]}>
+                  MEANING IN CONTEXT
+                </ThemedText>
+                <ThemedText
+                  numberOfLines={compact ? 3 : undefined}
+                  style={[styles.languageDetailText, {color: foreground}]}>
+                  {block.meaning.trim()}
+                </ThemedText>
+              </View>
             )}
-            {renderDetail('MEANING', block.meaning)}
-            {renderDetail('TRANSLITERATION', block.secondary)}
-            {renderDetail('WORD ORIGIN', block.origin)}
-            {renderDetail('RELATED SCRIPTURE', block.reference)}
+            {!!block.secondary?.trim() && (
+              <View style={styles.languageDetailGroup}>
+                <ThemedText
+                  weight="bold"
+                  style={[styles.detailLabel, {color: blockVisuals.accent}]}>
+                  PRONUNCIATION
+                </ThemedText>
+                <ThemedText
+                  numberOfLines={compact ? 2 : undefined}
+                  style={[styles.languageSecondaryText, {color: muted}]}>
+                  {block.secondary.trim()}
+                </ThemedText>
+              </View>
+            )}
+            {!!block.origin?.trim() && (
+              <View style={styles.languageDetailGroup}>
+                <ThemedText
+                  weight="bold"
+                  style={[styles.detailLabel, {color: blockVisuals.accent}]}>
+                  WORD ORIGIN
+                </ThemedText>
+                <ThemedText
+                  numberOfLines={compact ? 3 : undefined}
+                  style={[styles.languageDetailText, {color: foreground}]}>
+                  {block.origin.trim()}
+                </ThemedText>
+              </View>
+            )}
+            {!!block.reference?.trim() && (
+              <View style={styles.languageDetailGroup}>
+                <ThemedText
+                  weight="bold"
+                  style={[styles.detailLabel, {color: blockVisuals.accent}]}>
+                  SCRIPTURE
+                </ThemedText>
+                <ThemedText
+                  numberOfLines={compact ? 2 : undefined}
+                  style={[styles.languageSecondaryText, {color: muted}]}>
+                  {block.reference.trim()}
+                </ThemedText>
+              </View>
+            )}
           </>
         );
       }
 
       if (block.kind === 'character') {
+        const characterScripture = block.secondary || block.reference || '';
         return (
           <>
             {!!block.text?.trim() && (
               <ThemedText
-                weight="bold"
                 numberOfLines={compact ? 2 : undefined}
-                style={[styles.outlineTitle, {color: foreground}]}>
+                style={[styles.characterName, {color: foreground}]}>
                 {block.text.trim()}
               </ThemedText>
             )}
-            {renderDetail('WHAT STOOD OUT', block.note)}
-            {renderDetail(
-              'RELATED SCRIPTURE',
-              block.secondary || block.reference,
+            {!!block.note?.trim() && (
+              <ThemedText
+                numberOfLines={compact ? 3 : undefined}
+                style={[styles.characterReflection, {color: foreground}]}>
+                {block.note.trim()}
+              </ThemedText>
+            )}
+            {!!characterScripture.trim() && (
+              <ThemedText
+                numberOfLines={compact ? 2 : undefined}
+                style={[styles.editorSecondaryText, {color: muted}]}>
+                {characterScripture.trim()}
+              </ThemedText>
             )}
           </>
         );
@@ -684,13 +863,29 @@ export const SavedReflectionBlocks = ({
           <>
             {!!block.text?.trim() && (
               <ThemedText
-                weight="semiBold"
                 numberOfLines={compact ? 3 : undefined}
-                style={[styles.standardText, {color: foreground}]}>
+                style={[styles.editorPrimaryText, {color: foreground}]}>
                 {block.text.trim()}
               </ThemedText>
             )}
-            {renderDetail('ANSWER', block.note)}
+            {!!block.note?.trim() && (
+              <>
+                <ThemedText
+                  weight="bold"
+                  style={[
+                    styles.detailLabel,
+                    styles.reflectionAnswerLabel,
+                    {color: blockVisuals.accent},
+                  ]}>
+                  ANSWER
+                </ThemedText>
+                <ThemedText
+                  numberOfLines={compact ? 3 : undefined}
+                  style={[styles.editorPrimaryText, {color: foreground}]}>
+                  {block.note.trim()}
+                </ThemedText>
+              </>
+            )}
           </>
         );
       }
@@ -732,30 +927,38 @@ export const SavedReflectionBlocks = ({
 
       const primaryText = block.text;
       const secondaryText =
-        block.kind === 'quote'
+        block.kind === 'quote' || block.kind === 'song' || block.kind === 'book'
           ? formatJournalAttribution(block.secondary?.trim())
           : block.secondary;
       const linkUrl =
         block.kind === 'link' ? normalizeJournalLink(block.text) : null;
+      const usesSerifPrimary =
+        block.kind === 'quote' ||
+        block.kind === 'prayer' ||
+        block.kind === 'song';
+      const primaryStyle = [
+        styles.editorPrimaryText,
+        usesSerifPrimary && styles.serifPrimaryText,
+        {color: foreground},
+      ];
 
       return (
         <>
-          {!!primaryText?.trim() && (
+          {!!primaryText?.trim() && usesSerifPrimary ? (
+            <Text numberOfLines={compact ? 3 : undefined} style={primaryStyle}>
+              {primaryText.trim()}
+            </Text>
+          ) : !!primaryText?.trim() ? (
             <ThemedText
               numberOfLines={compact ? 3 : undefined}
-              style={[
-                styles.standardText,
-                {color: foreground},
-                (block.kind === 'quote' || block.kind === 'prayer') &&
-                  styles.quoteText,
-              ]}>
+              style={primaryStyle}>
               {primaryText.trim()}
             </ThemedText>
-          )}
+          ) : null}
           {!!secondaryText?.trim() && (
             <ThemedText
               numberOfLines={compact ? 2 : undefined}
-              style={[styles.secondaryText, {color: muted}]}>
+              style={[styles.editorSecondaryText, {color: muted}]}>
               {secondaryText.trim()}
             </ThemedText>
           )}
@@ -800,7 +1003,26 @@ export const SavedReflectionBlocks = ({
         kind={block.kind}
         tone={onDark ? 'sage' : 'cream'}
         compact={compact}
-        style={styles.savedFrame}>
+        style={styles.savedFrame}
+        headerContent={
+          block.kind === 'outline' ? (
+            <View style={styles.savedListHeader}>
+              <JournalBlockIcon
+                config={JOURNAL_BLOCKS.outline}
+                size={compact ? 12 : 14}
+                color={blockVisuals.accent}
+              />
+              {!!block.text?.trim() && (
+                <ThemedText
+                  weight="bold"
+                  numberOfLines={compact ? 2 : undefined}
+                  style={[styles.outlineHeaderTitle, {color: foreground}]}>
+                  {block.text.trim()}
+                </ThemedText>
+              )}
+            </View>
+          ) : undefined
+        }>
         {renderStandardContent()}
       </NoteBlockFrame>
     );
@@ -863,17 +1085,16 @@ const styles = StyleSheet.create({
   list: {gap: JOURNAL_BLOCK_GAP, marginBottom: JOURNAL_BLOCK_GAP},
   embeddedList: {marginBottom: 0},
   textBlock: {
-    marginLeft: 16,
-    paddingLeft: 16,
-    borderLeftWidth: 2,
-    fontSize: 14,
+    minHeight: 44,
+    paddingVertical: 6,
+    fontSize: 16,
     lineHeight: 22,
   },
   sectionBlock: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: NOTE_BLOCK_METRICS.sectionDividerGap,
-    paddingVertical: 7,
+    paddingVertical: 15,
   },
   sectionLine: {
     width: NOTE_BLOCK_METRICS.sectionDividerWidth,
@@ -882,13 +1103,14 @@ const styles = StyleSheet.create({
   },
   outlineSectionBlock: {gap: 9},
   outlineSectionLine: {width: 4, minHeight: 28, borderRadius: 2},
-  outlineSectionText: {fontFamily: Fonts.lora.bold},
-  sectionText: {flex: 1, fontSize: 17, lineHeight: 23},
+  outlineSectionText: {
+    fontSize: 18,
+    lineHeight: 24,
+  },
+  sectionText: {flex: 1, fontSize: 18, lineHeight: 24},
   actionBlock: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 9,
-    paddingVertical: 3,
+    alignItems: 'center',
   },
   checkbox: {
     width: 19,
@@ -897,25 +1119,43 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',
+    margin: 5,
   },
-  actionText: {flex: 1, fontSize: 14, lineHeight: 21},
+  actionText: {
+    flex: 1,
+    paddingVertical: 8,
+    fontSize: 16,
+    lineHeight: 23,
+  },
   completedAction: {textDecorationLine: 'line-through', opacity: 0.65},
-  savedList: {gap: 3, paddingVertical: 2},
-  savedListTitle: {fontSize: 15, lineHeight: 21, marginBottom: 3},
+  savedListHeader: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+  },
+  savedList: {},
+  savedListTitle: {flex: 1, fontSize: 15, lineHeight: 21},
   savedListRow: {flexDirection: 'row', alignItems: 'flex-start', gap: 8},
   savedListMarker: {
     width: 23,
+    paddingTop: 9,
     fontSize: 14,
-    lineHeight: 22,
     textAlign: 'right',
   },
-  savedListText: {flex: 1, fontSize: 14, lineHeight: 22},
+  savedListText: {
+    flex: 1,
+    minHeight: 38,
+    paddingVertical: 7,
+    fontSize: 14,
+    lineHeight: 21,
+  },
   listMoreText: {marginLeft: 31, fontSize: 11, lineHeight: 16},
-  photoBlock: {width: '100%', alignSelf: 'stretch', gap: 7},
-  photo: {width: '100%', height: 210, borderRadius: 16},
+  photoBlock: {width: '100%', alignSelf: 'stretch'},
+  photo: {width: '100%', height: 220, borderRadius: 16},
   compactPhoto: {height: 124},
-  caption: {fontSize: 13, lineHeight: 19},
-  voiceBlock: {borderWidth: 1, borderRadius: 16, padding: 12},
+  caption: {paddingVertical: 10, fontSize: 14, lineHeight: 21},
+  voiceBlock: {borderWidth: 1, borderRadius: 14, padding: 12},
   blockOnDark: {
     borderColor: 'rgba(255,255,255,0.24)',
     backgroundColor: 'rgba(255,255,255,0.06)',
@@ -926,19 +1166,66 @@ const styles = StyleSheet.create({
   },
   voiceRow: {flexDirection: 'row', alignItems: 'center'},
   voiceButton: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  voiceCopy: {flex: 1, marginLeft: 10},
-  voiceTitle: {fontSize: 13},
-  voiceDuration: {fontSize: 11, marginTop: 1},
+  voiceCopy: {flex: 1, marginLeft: 12},
+  voiceTitle: {fontSize: 14, lineHeight: 20},
+  voiceDuration: {fontSize: 12, lineHeight: 18},
+  voiceNote: {paddingTop: 12, fontSize: 14, lineHeight: 21},
   savedFrame: {marginBottom: 0},
-  standardText: {fontSize: 14, lineHeight: 21},
-  quoteText: {fontSize: 16, lineHeight: 24},
-  secondaryText: {fontSize: 12, lineHeight: 18, marginTop: 6},
+  editorPrimaryText: {
+    minHeight: 54,
+    paddingTop: 9,
+    fontSize: 14,
+    lineHeight: 21,
+  },
+  savedLanguageConnection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderRadius: 12,
+    marginTop: 9,
+    padding: 10,
+  },
+  savedLanguageWordColumn: {flex: 1, gap: 4},
+  savedLanguageArrow: {paddingHorizontal: 8},
+  languageEnglishWord: {fontSize: 15, lineHeight: 21},
+  languageOriginalWord: {
+    fontFamily: Fonts.lora.bold,
+    fontSize: 18,
+    lineHeight: 25,
+  },
+  languageDetailGroup: {gap: 3, marginTop: 10},
+  languageDetailText: {fontSize: 14, lineHeight: 21},
+  languageSecondaryText: {fontSize: 12, lineHeight: 18},
+  serifPrimaryText: {
+    fontFamily: Fonts.lora.regular,
+    fontSize: 16,
+    lineHeight: 24,
+  },
+  editorSecondaryText: {
+    paddingTop: 7,
+    fontSize: 12,
+    lineHeight: 18,
+  },
+  editorDetailText: {
+    minHeight: 54,
+    marginTop: 8,
+    paddingTop: 9,
+    fontSize: 14,
+    lineHeight: 21,
+  },
+  characterReflection: {
+    minHeight: 46,
+    marginTop: 2,
+    paddingTop: 5,
+    fontSize: 13,
+    lineHeight: 19,
+  },
   scripturePreview: {
     paddingLeft: 14,
     paddingRight: 4,
@@ -962,43 +1249,94 @@ const styles = StyleSheet.create({
     letterSpacing: 0.4,
     textTransform: 'uppercase',
   },
-  detailGroup: {marginTop: 9},
   detailLabel: {fontSize: 9, lineHeight: 13, letterSpacing: 0.9},
-  chipRow: {flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 9},
-  chip: {paddingHorizontal: 9, paddingVertical: 5, borderRadius: 999},
+  reflectionAnswerLabel: {marginTop: 12},
+  chipRow: {flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 10},
+  chip: {
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+    borderRadius: 16,
+  },
   chipText: {fontSize: 10, lineHeight: 14},
-  outlineTitle: {fontSize: 16, lineHeight: 23, marginTop: 8},
+  characterName: {
+    minHeight: 38,
+    paddingTop: 7,
+    fontSize: 16,
+    lineHeight: 21,
+  },
+  historyDetailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    marginTop: 9,
+    paddingHorizontal: 10,
+    borderWidth: 1,
+    borderRadius: 12,
+  },
+  historyDetailText: {
+    flex: 1,
+    minHeight: 42,
+    fontSize: 12,
+    lineHeight: 18,
+    textAlignVertical: 'center',
+  },
+  historyEra: {
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 16,
+  },
   outlineRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 8,
-    marginTop: 7,
+    gap: 7,
+    borderTopWidth: 1,
+    paddingVertical: 8,
   },
-  outlineMarker: {width: 28, fontSize: 13, lineHeight: 20, textAlign: 'right'},
-  outlineText: {flex: 1, fontSize: 14, lineHeight: 20},
+  firstOutlineRow: {marginTop: 10},
+  outlineHeaderTitle: {flex: 1, fontSize: 17, lineHeight: 23},
+  outlineNumberBadge: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  outlineNumberText: {fontSize: 11, lineHeight: 14},
+  outlineMarker: {
+    width: 20,
+    fontSize: 11,
+    lineHeight: 20,
+    textAlign: 'center',
+  },
+  outlineText: {flex: 1, fontSize: 13, lineHeight: 20},
   openLink: {
     alignSelf: 'flex-start',
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    marginTop: 9,
+    marginTop: 6,
     paddingHorizontal: 11,
     paddingVertical: 8,
     borderWidth: 1,
     borderRadius: 18,
   },
   openLinkText: {fontSize: 11, lineHeight: 15},
+  tableScroll: {marginHorizontal: -12},
   tableRow: {flexDirection: 'row'},
   fullWidthTable: {width: '100%'},
   tableCell: {
-    width: 120,
-    minHeight: 34,
-    paddingHorizontal: 6,
-    paddingVertical: 6,
-    borderWidth: 0.5,
+    width: 126,
+    minHeight: 48,
+    paddingHorizontal: 9,
+    paddingVertical: 8,
+    borderRightWidth: 1,
+    borderBottomWidth: 1,
     fontSize: 12,
     lineHeight: 17,
   },
+  tableHeaderCell: {minHeight: 40},
   moreText: {fontSize: 11, lineHeight: 16, textAlign: 'right'},
   savedColumns: {flexDirection: 'row', alignItems: 'stretch', gap: 8},
   savedColumnDivider: {width: 1},

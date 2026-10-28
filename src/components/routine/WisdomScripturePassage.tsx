@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { BibleCopyrightModal } from '../BibleCopyrightModal';
 import ThemedText from '../common/ThemedText';
+import ScriptureLoadingSkeleton from '../scripture/ScriptureLoadingSkeleton';
 import { getScripturePassage, type ScriptureReaderResult } from '../../services/scriptureReaderService';
 import { Colors } from '../../theme/colors';
 
@@ -36,7 +37,7 @@ export default function WisdomScripturePassage({ reference, version = 'NASB', fi
         <TouchableOpacity onPress={() => setRetry(value => value + 1)} accessibilityRole="button" accessibilityLabel="Retry loading passage">
           <ThemedText style={styles.reference}>Could not load this passage. Tap to retry.</ThemedText>
         </TouchableOpacity>
-      ) : !passage ? <ActivityIndicator color={Colors.sage} /> : (
+      ) : !passage ? <ScriptureLoadingSkeleton variant="inline" lines={3} /> : (
         <Text style={styles.verseText}>
           {passage.verses?.length ? passage.verses.map(verse => verse.lines.join('\n')).join('\n') : passage.text}
         </Text>

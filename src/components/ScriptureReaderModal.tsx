@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
   Animated,
   Dimensions,
   Modal,
@@ -60,6 +59,15 @@ const ALIGN_OPTIONS: { key: TextAlign; icon: string; label: string }[] = [
 const INDENT_OPTIONS = [0, 16, 32];
 const LINE_SPACING_OPTIONS = [0, 4, 8, 12];
 const LETTER_SPACING_OPTIONS = [0, 0.5, 1, 2];
+const SCRIPTURE_SKELETON_LINE_WIDTHS: Array<`${number}%`> = [
+  '96%',
+  '89%',
+  '94%',
+  '72%',
+  '91%',
+  '84%',
+  '63%',
+];
 
 const getChapterReference = (reference: string): string => {
   const match = reference.trim().match(/^(.+?\s+\d{1,3})(?::\d.*)?$/);
@@ -81,6 +89,7 @@ const ScriptureReaderModal: React.FC<ScriptureReaderModalProps> = ({
   const scrollExpansion = useRef(new Animated.Value(0)).current;
   const settingsAnim = useRef(new Animated.Value(0)).current;
   const headerCollapseAnim = useRef(new Animated.Value(0)).current;
+  const skeletonOpacity = useRef(new Animated.Value(0.32)).current;
   const closingRef = useRef(false);
   const sheetExpandedRef = useRef(false);
   const sheetExpansionCompleteRef = useRef(false);
@@ -89,6 +98,13 @@ const ScriptureReaderModal: React.FC<ScriptureReaderModalProps> = ({
   const dragStartOffsetRef = useRef(0);
   const [showFullChapter, setShowFullChapter] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+
+  useEffect(() => {
+    if (!visible) {
+      setSettingsOpen(false);
+      settingsAnim.setValue(0);
+    }
+  }, [settingsAnim, visible]);
   const [headerCollapsed, setHeaderCollapsedState] = useState(false);
   const [showCopyright, setShowCopyright] = useState(false);
   const [result, setResult] = useState<ScriptureReaderResult | null>(null);
@@ -196,6 +212,35 @@ const ScriptureReaderModal: React.FC<ScriptureReaderModalProps> = ({
       active = false;
     };
   }, [requestedReference, version, visible]);
+
+  useEffect(() => {
+    if (!visible || !loading) {
+      skeletonOpacity.stopAnimation();
+      skeletonOpacity.setValue(0.32);
+      return;
+    }
+
+    const pulse = Animated.loop(
+      Animated.sequence([
+        Animated.timing(skeletonOpacity, {
+          toValue: 0.62,
+          duration: 850,
+          useNativeDriver: true,
+        }),
+        Animated.timing(skeletonOpacity, {
+          toValue: 0.32,
+          duration: 850,
+          useNativeDriver: true,
+        }),
+      ]),
+    );
+    pulse.start();
+
+    return () => {
+      pulse.stop();
+      skeletonOpacity.setValue(0.32);
+    };
+  }, [loading, skeletonOpacity, visible]);
 
   const close = useCallback(() => {
     if (closingRef.current) { return; }
@@ -785,9 +830,21 @@ const ScriptureReaderModal: React.FC<ScriptureReaderModalProps> = ({
             onScroll={handleReadingScroll}
           >
             {loading ? (
-              <View style={styles.loadingBlock}>
-                <ActivityIndicator color={Colors.alertCoral} />
-                <ThemedText style={styles.loadingText}>Loading Scripture…</ThemedText>
+              <View
+                accessible
+                accessibilityLabel="Loading Scripture"
+                style={styles.scriptureSkeleton}
+              >
+                {SCRIPTURE_SKELETON_LINE_WIDTHS.map((width, index) => (
+                  <Animated.View
+                    key={`${width}-${index}`}
+                    style={[
+                      styles.scriptureSkeletonLine,
+                      index === 4 && styles.scriptureSkeletonParagraph,
+                      {width, opacity: skeletonOpacity},
+                    ]}
+                  />
+                ))}
               </View>
             ) : error ? (
               <View style={styles.loadingBlock}>
@@ -1111,10 +1168,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 12,
   },
-  loadingText: {
-    fontSize: 13,
-    color: 'rgba(242,245,247,0.62)',
+  scriptureSkeleton: {
+    minHeight: 260,
+    paddingTop: 4,
+    alignItems: 'flex-start',
   },
+  scriptureSkeletonLine: {
+    height: 18,
+    marginBottom: 18,
+    borderRadius: 9,
+    backgroundColor: 'rgba(242,245,247,0.22)',
+  },
+  scriptureSkeletonParagraph: {marginTop: 12},
   errorText: {
     maxWidth: 300,
     fontSize: 13,

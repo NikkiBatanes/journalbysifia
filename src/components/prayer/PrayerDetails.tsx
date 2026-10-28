@@ -45,9 +45,9 @@ export default function PrayerDetails({ prayer, onClose, onSave, onDelete, onPra
     const nextState = next.length ? trackingStatus({ ...current, metadata: { ...current.metadata, prayer_needs: next } }) : state;
     return { ...base(), status: nextState === 'answered' ? 'answered' as const : 'pending' as const, answered_date: nextState === 'answered' ? current.answered_date || new Date().toISOString() : null, metadata: { ...current.metadata, track_answered: true, tracking_status: nextState, prayer_needs: next } };
   };
-  const markAnswer = (needId?: string) => Alert.alert('Record an answer', 'Would you like to continue praying about this?', [
-    { text: 'Stop tracking', onPress: () => { triggerLightHaptic(); void run({ ...base(), ...answerPrayer(current, needId) }); } },
-    { text: 'Continue praying', onPress: () => { triggerLightHaptic(); void run({ ...base(), ...answerPrayer(current, needId, new Date().toISOString(), undefined, true) }); } },
+  const markAnswer = (needId?: string) => Alert.alert('Mark as answered?', 'This will record an answer. Is this prayer complete, or do you want to keep praying?', [
+    { text: 'Complete this prayer', onPress: () => { triggerLightHaptic(); void run({ ...base(), ...answerPrayer(current, needId) }); } },
+    { text: 'Keep praying', onPress: () => { triggerLightHaptic(); void run({ ...base(), ...answerPrayer(current, needId, new Date().toISOString(), undefined, true) }); } },
     { text: 'Cancel', style: 'cancel' },
   ]);
   const toggleNeedReleased = (needId: string) => { const need = needs.find(item => item.id === needId); if (need) void run({ ...base(), ...changeNeedLifecycle(current, needId, need.status === 'closed' ? 'return' : 'let-go') }); };
@@ -98,13 +98,11 @@ export default function PrayerDetails({ prayer, onClose, onSave, onDelete, onPra
           <ThemedText style={styles.prayerText}>{current.content}</ThemedText>
           {!!current.notes && <View style={styles.row}>{label('NOTES')}</View>}
           {!!current.notes && <ThemedText style={styles.prayerText}>{current.notes}</ThemedText>}
-          <View style={styles.divider} />{label('TOPICS')}
-          <View style={styles.topics}>{['Provision', 'Health', 'Guidance', 'Relationships', 'Work', 'Other'].map((topic, index) => { const active = current.metadata?.topic === topic; return <StepFadeIn key={topic} delay={140 + index * 45}><TouchableOpacity disabled={saving} activeOpacity={0.75} onPress={() => { triggerLightHaptic(); return (() => { void run({ ...base(), metadata: { ...current.metadata, topic: active ? '' : topic } }); })(); }} style={[styles.topic, active && styles.topicActive]}><ThemedText weight="medium" style={[styles.topicText, active && styles.topicTextActive]}>{topic}</ThemedText></TouchableOpacity></StepFadeIn>; })}</View>
         </View></StepFadeIn>
         <StepFadeIn delay={140}><View style={styles.card}>
           <View style={styles.row}>{label('PRAYER STATUS')}</View>
           <TouchableOpacity disabled={saving} onPress={() => { triggerLightHaptic(); return (statusMenu)(); }} style={styles.status}><Ionicons name="ellipse" size={12} color={Colors.sage} /><ThemedText weight="bold" style={styles.statusText}>{!tracked ? 'Saved prayer' : current.is_prayer_request && !current.prayed && state === 'pending' ? 'Needs prayer' : isPrayerLetGo(current) ? 'Let go' : isPrayerActive(current) && hasAnswerHistory(current) ? 'Answered · Still praying' : hasAnswerHistory(current) ? 'Answered' : 'Still praying'}</ThemedText><Ionicons name="chevron-down" size={18} color={Colors.sage} /></TouchableOpacity>
-          <View style={styles.actions}>{action(current.is_prayer_request ? 'Pray now' : 'I prayed for this today', 'prayer-hands', () => { if (current.is_prayer_request && onPrayNow) { onPrayNow(current); return; } if (current.is_prayer_request) { setEditor('response'); return; } void run({ ...base(), prayed: true, prayer_count: (current.prayer_count ?? (current.prayed ? 1 : 0)) + 1, last_prayed_at: new Date().toISOString() }); }, false, 210)}{tracked && needs.length < 2 && action('Record an answer', 'sparkle', () => markAnswer(), false, 255)}</View>
+          <View style={styles.actions}>{action(current.is_prayer_request ? 'Pray now' : 'I prayed for this today', 'prayer-hands', () => { if (current.is_prayer_request && onPrayNow) { onPrayNow(current); return; } if (current.is_prayer_request) { setEditor('response'); return; } void run({ ...base(), prayed: true, prayer_count: (current.prayer_count ?? (current.prayed ? 1 : 0)) + 1, last_prayed_at: new Date().toISOString() }); }, false, 210)}{tracked && needs.length < 2 && action('Mark as answered', 'sparkle', () => markAnswer(), false, 255)}</View>
           {needs.length > 1 && <ThemedText style={styles.hint}>Mark individual needs answered below.</ThemedText>}
         </View></StepFadeIn>
         <StepFadeIn delay={210}><View style={styles.card}>

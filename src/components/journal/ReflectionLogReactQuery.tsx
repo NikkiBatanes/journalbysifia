@@ -279,11 +279,10 @@ const styles = StyleSheet.create({
   },
   promptCardText: {
     color: Colors.hopeWhite,
-    fontSize: 16,
-    lineHeight: 24,
+    fontSize: 20,
+    lineHeight: 27,
     textAlign: 'left',
     marginBottom: 16,
-    fontWeight: '500',
     letterSpacing: 0.15,
     // Use the card's inner width so long titles wrap inside its padding.
     alignSelf: 'stretch',
@@ -1047,12 +1046,12 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
 
       {entry.type === 'guided' ? (
         <>
-          <ThemedText style={[styles.promptCardText, momentsPalette && styles.promptCardTextPalette]}>
+          <ThemedText weight="bold" style={[styles.promptCardText, momentsPalette && styles.promptCardTextPalette]}>
             {guidedTitle}
           </ThemedText>
         </>
       ) : entry.title ? (
-        <ThemedText style={[styles.promptCardText, styles.normalTitleText, momentsPalette && styles.promptCardTextPalette]}>{entry.title}</ThemedText>
+        <ThemedText weight="bold" style={[styles.promptCardText, styles.normalTitleText, momentsPalette && styles.promptCardTextPalette]}>{entry.title}</ThemedText>
       ) : null}
 
       {!!guidedJourney && (

@@ -339,7 +339,10 @@ describe('Guided Reflection presentation contract', () => {
     expect(guidedSource).toContain('<JournalBlockEditor');
     expect(guidedSource).toContain('<JournalColumnBlock');
     expect(guidedSource).toContain("kind === 'photo'");
-    expect(guidedSource).toContain('pickImageLocal()');
+    expect(guidedSource).toContain('<JournalPhotoSourcePicker');
+    expect(guidedSource).toMatch(
+      /kind === 'photo'[\s\S]*?setPhotoSourceOpen\(true\);[\s\S]*?closeNotePicker\(\)/,
+    );
     expect(guidedSource).toContain('createJournalBlock(kind, id)');
     expect(guidedSource).toContain('JOURNAL_BLOCKS[item.kind].allowInColumn');
   });

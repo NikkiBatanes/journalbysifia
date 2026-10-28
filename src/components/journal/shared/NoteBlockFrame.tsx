@@ -29,6 +29,7 @@ export const NoteBlockFrame = ({
   onDelete,
   onLayout,
   style,
+  unframed = false,
   children,
 }: {
   kind: JournalBlockKind;
@@ -38,6 +39,8 @@ export const NoteBlockFrame = ({
   onDelete?: () => void;
   onLayout?: (layout: {y: number; height: number}) => void;
   style?: StyleProp<ViewStyle>;
+  /** Renders without the bordered, padded card surface. */
+  unframed?: boolean;
   children: React.ReactNode;
 }) => {
   const definition = NOTE_BLOCK_REGISTRY[kind];
@@ -48,12 +51,17 @@ export const NoteBlockFrame = ({
       style={[
         styles.frame,
         compact && styles.compactFrame,
+        unframed && styles.unframed,
         style,
-        {backgroundColor: visuals.surface, borderColor: visuals.border},
-        visuals.emphasisBorder && {
-          borderLeftWidth: 3,
-          borderLeftColor: visuals.emphasisBorder,
+        !unframed && {
+          backgroundColor: visuals.surface,
+          borderColor: visuals.border,
         },
+        !unframed &&
+          visuals.emphasisBorder && {
+            borderLeftWidth: 3,
+            borderLeftColor: visuals.emphasisBorder,
+          },
       ]}
       onLayout={event => onLayout?.(event.nativeEvent.layout)}>
       <View style={[styles.header, compact && styles.compactHeader]}>
@@ -107,6 +115,11 @@ const styles = StyleSheet.create({
   compactFrame: {
     borderRadius: NOTE_BLOCK_METRICS.compactRadius,
     padding: NOTE_BLOCK_METRICS.compactPadding,
+  },
+  unframed: {
+    borderWidth: 0,
+    padding: 0,
+    backgroundColor: 'transparent',
   },
   header: {
     flexDirection: 'row',

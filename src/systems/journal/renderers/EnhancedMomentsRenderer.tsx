@@ -82,7 +82,7 @@ interface EnhancedMomentsRendererProps {
   onMomentumScrollBegin?: (event: any) => void;
   onMomentumScrollEnd?: (event: any) => void;
   entranceRun?: number;
-  onContentReady?: () => void;
+  onContentReady?: (completedRefreshKey: number) => void;
 }
 
 interface MomentEntry {
@@ -694,6 +694,8 @@ const EnhancedMomentsContent: React.FC<EnhancedMomentsRendererProps> = ({
           const isPeople = item.prayers?.[0]?.prayer_type === 'people';
           plugin = plugins.find(candidate => candidate.id === (isPeople ? 'peopleprayers' : 'prayerjournal'))
             || plugins.find(candidate => candidate.id === 'prayerjournal');
+        } else if (item.kind === 'time_block') {
+          plugin = plugins.find(candidate => candidate.id === 'timeblocks');
         }
         if (!plugin) return [];
         const sectionKinds = Array.isArray(item.metadata?.sectionKinds) ? item.metadata?.sectionKinds as string[] : [];
@@ -702,16 +704,16 @@ const EnhancedMomentsContent: React.FC<EnhancedMomentsRendererProps> = ({
           timelineItem: item,
           reflectionId: item.reflection?.id,
           date,
-          category: item.kind === 'prayer' ? 'Prayer' : 'Reflection',
+          category: item.kind === 'prayer' ? 'Prayer' : item.kind === 'time_block' ? 'Schedule' : 'Reflection',
           type: item.preview.title,
           isAnswered: item.metadata?.answered === true,
           _prayers: item.prayers,
           _isPrayer: item.kind === 'prayer',
           _isPrayerRequest: item.metadata?.isPrayerRequest === true,
-          _isReflection: item.kind !== 'prayer',
+          _isReflection: item.kind !== 'prayer' && item.kind !== 'time_block',
           _isGratitude: item.kind === 'weekly_gratitude' || sectionKinds.includes('gratitude'),
           _isWin: sectionKinds.includes('win'),
-          _isPlan: sectionKinds.includes('focus') || sectionKinds.includes('priorities'),
+          _isPlan: item.kind === 'time_block' || sectionKinds.includes('focus') || sectionKinds.includes('priorities'),
           _searchText: item.searchText,
           _savedAt: new Date(item.savedAt).getTime(),
           _isRemembered: item.canonicalIds.some(id => rememberedCanonicalIds.has(id)),
@@ -727,7 +729,7 @@ const EnhancedMomentsContent: React.FC<EnhancedMomentsRendererProps> = ({
       setRealEntries(localEntries);
       setLoading(false);
       hasLoadedOnce.current = true;
-      onContentReady?.();
+      onContentReady?.(refreshKey ?? 0);
       return;
     }
 
@@ -1362,7 +1364,11 @@ const EnhancedMomentsContent: React.FC<EnhancedMomentsRendererProps> = ({
         const ids = entry.timelineItem?.metadata?.serverIds;
         return Array.isArray(ids) ? ids.filter((id): id is string => typeof id === 'string') : [];
       }));
+      const localTimeBlockDates = new Set(localEntries
+        .filter(entry => entry.timelineItem?.kind === 'time_block')
+        .map(entry => format(entry.date, 'yyyy-MM-dd')));
       entries = entries.filter(entry =>
+        !(entry.plugin.id === 'timeblocks' && localTimeBlockDates.has(format(entry.date, 'yyyy-MM-dd'))) &&
         (!entry.timelineItem?.key || !localCanonicalKeys.has(entry.timelineItem.key)) &&
         (!entry._canonicalId || !localServerIds.has(entry._canonicalId))
       );
@@ -1392,7 +1398,7 @@ const EnhancedMomentsContent: React.FC<EnhancedMomentsRendererProps> = ({
       if (generation === fetchGeneration.current) {
         setLoading(false);
         hasLoadedOnce.current = true;
-        onContentReady?.();
+        onContentReady?.(refreshKey ?? 0);
       }
     }
   }, [user, plugins, refreshKey, onContentReady]);

@@ -100,7 +100,7 @@ export const JournalAdvancedBlockEditor = ({
       tone={tone}
       onDelete={onDelete}
       onLayout={onLayout}>
-      {block.kind !== 'history' ? (
+      {block.kind !== 'history' && block.kind !== 'language' ? (
         <JournalTextInput
           themed={block.kind !== 'prayer' && block.kind !== 'song'}
           ref={registerInput}
@@ -270,6 +270,7 @@ export const JournalAdvancedBlockEditor = ({
 
       {block.kind === 'language' ? (
         <>
+          <ThemedText weight="bold" style={[styles.languageSectionLabel, {color: visuals.muted}]}>ORIGINAL LANGUAGE</ThemedText>
           <View style={styles.languageChoices}>
             {(['hebrew', 'greek', 'aramaic', 'latin'] as const).map(option => {
               const active = (block.languageKind || 'hebrew') === option;
@@ -287,6 +288,44 @@ export const JournalAdvancedBlockEditor = ({
               );
             })}
           </View>
+          <View style={[styles.languageConnection, {backgroundColor: visuals.headerSurface, borderColor: visuals.border}]}>
+            <ThemedText weight="bold" style={[styles.languageWordLabel, {color: visuals.accent}]}>ENGLISH IN THE VERSE</ThemedText>
+            <JournalTextInput
+              themed
+              ref={registerInput}
+              accentColor={visuals.accent}
+              style={[styles.languageConnectionInput, {color: visuals.foreground}]}
+              placeholder="Word or phrase used in English"
+              placeholderTextColor={visuals.placeholder}
+              value={block.englishWord || ''}
+              onChangeText={englishWord => onChange({englishWord})}
+              onFocus={onFocus}
+            />
+            <View style={styles.languageConnector}>
+              <View style={[styles.languageConnectorLine, {backgroundColor: visuals.border}]} />
+              <View style={styles.languageConnectorLabel}>
+                <Ionicons name="arrow-down" size={13} color={visuals.accent} />
+                <ThemedText style={[styles.languageConnectorText, {color: visuals.muted}]}>from the original</ThemedText>
+              </View>
+              <View style={[styles.languageConnectorLine, {backgroundColor: visuals.border}]} />
+            </View>
+            <ThemedText weight="bold" style={[styles.languageWordLabel, {color: visuals.accent}]}>
+              {(block.languageKind || 'hebrew').toUpperCase()} WORD
+            </ThemedText>
+            <JournalTextInput
+              themed
+              accentColor={visuals.accent}
+              style={[styles.languageConnectionInput, styles.languageOriginalInput, {color: visuals.foreground}]}
+              placeholder={`Enter the ${block.languageKind || 'hebrew'} word`}
+              placeholderTextColor={visuals.placeholder}
+              value={block.text}
+              onChangeText={text => onChange({text})}
+              onFocus={onFocus}
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+          </View>
+          <ThemedText weight="bold" style={[styles.languageSectionLabel, {color: visuals.muted}]}>ADD TO THIS NOTE</ThemedText>
           <View style={styles.choices}>
             {(['meaning', 'transliteration', 'origin', 'scripture'] as const).map(option => {
               const active = selectedLanguageDetails.includes(option);
@@ -299,7 +338,7 @@ export const JournalAdvancedBlockEditor = ({
                     onChange({languageDetails: toggleChoice(selectedLanguageDetails, option)});
                   }}>
                   <ThemedText weight="bold" style={choiceTextStyle(active)}>
-                    {option === 'origin' ? 'Word Origin' : option[0].toUpperCase() + option.slice(1)}
+                    {option === 'origin' ? 'Word Origin' : option === 'transliteration' ? 'Pronunciation' : option[0].toUpperCase() + option.slice(1)}
                   </ThemedText>
                 </TouchableOpacity>
               );
@@ -377,6 +416,15 @@ const styles = StyleSheet.create({
   secondaryInput: {paddingTop: 7, fontFamily: Fonts.regular, fontSize: 12},
   reflectionInput: {minHeight: 46, marginTop: 2, paddingTop: 5, fontFamily: Fonts.regular, fontSize: 13, lineHeight: 19},
   detailLabel: {fontSize: 10, letterSpacing: 1, marginTop: 12},
+  languageSectionLabel: {fontSize: 9, letterSpacing: 1, marginTop: 12},
+  languageConnection: {borderWidth: 1, borderRadius: 12, marginTop: 12, paddingHorizontal: 12, paddingVertical: 10},
+  languageWordLabel: {fontSize: 9, letterSpacing: 0.9},
+  languageConnectionInput: {minHeight: 42, paddingTop: 5, fontFamily: Fonts.regular, fontSize: 15, lineHeight: 21},
+  languageOriginalInput: {fontFamily: Fonts.lora.bold, fontSize: 18, lineHeight: 25},
+  languageConnector: {flexDirection: 'row', alignItems: 'center', gap: 8, marginVertical: 5},
+  languageConnectorLine: {flex: 1, height: 1},
+  languageConnectorLabel: {flexDirection: 'row', alignItems: 'center', gap: 4},
+  languageConnectorText: {fontSize: 10, lineHeight: 14},
   detailInput: {marginTop: 8},
   choices: {flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 10},
   languageChoices: {flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 10},
