@@ -472,30 +472,30 @@ const ScriptureReaderModal: React.FC<ScriptureReaderModalProps> = ({
   }, [collapseReadingHeader, restoreCompactReader]);
 
   // Fold the collapsed sheet on a whole text line so the passage is never
-  // sliced mid-glyph: measure the verse viewport once laid out and trim the
-  // sheet height to the nearest whole line.
+  // sliced mid-glyph. The fold is derived from the scroll view's top edge
+  // (everything above it is header chrome), computed off the *fixed*
+  // collapsedMax — so it stays stable no matter how many times layout fires
+  // during height or header-collapse animations.
   const collapsedMax = Math.min(570, SCREEN_HEIGHT * 0.68);
   const readerLineHeight = readerFontSize + 14 + readerLineSpacing;
-  const [collapsedHeight, setCollapsedHeight] = useState(collapsedMax);
-  const collapsedHeightRef = useRef(collapsedMax);
-  collapsedHeightRef.current = collapsedHeight;
   const expandedHeight = SCREEN_HEIGHT - Math.max(insets.top, 12);
-
-  React.useEffect(() => {
-    setCollapsedHeight(collapsedMax);
-  }, [collapsedMax, readerLineHeight, visible]);
+  const [verseViewportTop, setVerseViewportTop] = useState(0);
+  const verseViewportTopRef = useRef(0);
+  verseViewportTopRef.current = verseViewportTop;
 
   const handleVerseScrollLayout = useCallback((event: any) => {
-    if (sheetExpandedRef.current) { return; }
-    const height = event.nativeEvent.layout.height;
-    if (!height || height <= 0) { return; }
-    const remainder = height % readerLineHeight;
-    if (remainder < 2 || readerLineHeight - remainder < 2) { return; }
-    const next = collapsedHeightRef.current - remainder;
-    if (next > 120 && Math.abs(next - collapsedHeightRef.current) > 0.5) {
-      setCollapsedHeight(next);
+    const y = event.nativeEvent.layout.y;
+    if (y > 0 && Math.abs(y - verseViewportTopRef.current) > 0.5) {
+      setVerseViewportTop(y);
     }
-  }, [readerLineHeight]);
+  }, []);
+
+  const collapsedHeight = React.useMemo(() => {
+    if (!verseViewportTop) { return collapsedMax; }
+    const remainder = (collapsedMax - verseViewportTop) % readerLineHeight;
+    if (remainder < 2 || readerLineHeight - remainder < 2) { return collapsedMax; }
+    return collapsedMax - remainder;
+  }, [collapsedMax, readerLineHeight, verseViewportTop]);
   const sheetHeight = scrollExpansion.interpolate({
     inputRange: [0, 110],
     outputRange: [collapsedHeight, expandedHeight],

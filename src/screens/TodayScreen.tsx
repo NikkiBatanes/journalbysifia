@@ -55,20 +55,35 @@ const IconTile = ({ icon, family = 'ion' }: { icon: string; family?: 'ion' | 'ma
   </View>
 );
 
-const Stagger = ({ children, prioritizeFirst = false }: { children: React.ReactNode; prioritizeFirst?: boolean }) => (
-  <View style={{ width: '100%' }}>
-    {React.Children.toArray(children).map((child, i) =>
-      child != null ? (
-        <Animated.View
-          key={(child as React.ReactElement).key ?? i}
-          entering={FadeInUp.delay(prioritizeFirst && i > 0 ? 220 + Math.min((i - 1) * 30, 120) : Math.min(i * 30, 120)).springify().damping(14).stiffness(180)}
-        >
-          {child}
-        </Animated.View>
-      ) : null
-    )}
-  </View>
-);
+const Stagger = ({ children, prioritizeFirst = false }: { children: React.ReactNode; prioritizeFirst?: boolean }) => {
+  // `entering` animations only run on mount, and Today stays mounted behind
+  // the flows — bump the child keys on every refocus so the stagger replays
+  // each time the screen comes back into view.
+  const [focusNonce, setFocusNonce] = useState(0);
+  const didFocusOnceRef = useRef(false);
+  useFocusEffect(useCallback(() => {
+    if (!didFocusOnceRef.current) {
+      didFocusOnceRef.current = true;
+      return;
+    }
+    setFocusNonce(n => n + 1);
+  }, []));
+
+  return (
+    <View style={{ width: '100%' }}>
+      {React.Children.toArray(children).map((child, i) =>
+        child != null ? (
+          <Animated.View
+            key={`${focusNonce}-${(child as React.ReactElement).key ?? i}`}
+            entering={FadeInUp.delay(prioritizeFirst && i > 0 ? 220 + Math.min((i - 1) * 30, 120) : Math.min(i * 30, 120)).springify().damping(14).stiffness(180)}
+          >
+            {child}
+          </Animated.View>
+        ) : null
+      )}
+    </View>
+  );
+};
 
 const buildPreviewReview = (type: ReviewType, periodStart: string, periodEnd: string): LocalReviewEntry => {
   const stamp = new Date().toISOString();

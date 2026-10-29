@@ -49,7 +49,7 @@ const JournalStackNavigator: React.FC = () => {
         options={{
           headerShown: false,
           presentation: 'fullScreenModal',
-          animation: 'slide_from_bottom',
+          animation: 'none',
           gestureEnabled: true,
           // Prevent white iOS UIViewController background from flashing through
           // on app resume before React content is fully re-painted.
@@ -73,7 +73,7 @@ const JournalStackNavigator: React.FC = () => {
         options={{
           headerShown: false,
           presentation: 'fullScreenModal',
-          animation: 'slide_from_bottom',
+          animation: 'none',
           gestureEnabled: true,
           contentStyle: { backgroundColor: '#F6F5EF' },
         }}

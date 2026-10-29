@@ -17,7 +17,7 @@ import { triggerLightHaptic } from '../../utils/haptics';
 
 export const SavedMorningMoment = ({ moment, viewMode = 'inline' }: { moment: MorningMoment; viewMode?: 'carousel' | 'inline' | 'moments' }) => {
   const momentsPalette = useMomentsPalette();
-  const hideReadStatusIcon = momentsPalette || viewMode === 'moments';
+
   const [open, setOpen] = useState(false);
   const [scriptureOpen, setScriptureOpen] = useState(false);
   const [reflectionOpen, setReflectionOpen] = useState(false);
@@ -43,7 +43,7 @@ export const SavedMorningMoment = ({ moment, viewMode = 'inline' }: { moment: Mo
               <ThemedText style={styles.feelingLabel}>SCRIPTURE</ThemedText>
               <TouchableOpacity onPress={() => setScriptureOpen(true)} style={[styles.feelingRow, styles.passageRow]} activeOpacity={0.7} accessibilityRole="button" accessibilityLabel={`Read ${moment.scripture.reference}`}>
                 <ThemedText weight="regular" style={styles.checkinScripture}>{moment.scripture.reference}</ThemedText>
-                <MaterialCommunityIcons name="script-text" size={12} color={Colors.sage} />
+                <MaterialCommunityIcons name="book-outline" size={12} color={Colors.sage} />
               </TouchableOpacity>
             </>
           )}
@@ -81,10 +81,10 @@ export const SavedMorningMoment = ({ moment, viewMode = 'inline' }: { moment: Mo
       <JournalCard title="DAILY PSALMS" variant="inline" viewMode={viewMode}>
         <TouchableOpacity onPress={() => setOpen(true)} style={[styles.feelingRow, styles.psalmPassageRow]} accessibilityRole="button" accessibilityLabel={`Read ${moment.title}`}>
           <ThemedText weight="semiBold" style={styles.passageTitle}>{moment.title}</ThemedText>
-          <MaterialCommunityIcons name="script-text" size={16} color={Colors.sage} />
+          <MaterialCommunityIcons name="book-outline" size={16} color={Colors.sage} />
         </TouchableOpacity>
         <View style={styles.feelingRow}>
-          {!hideReadStatusIcon && <Ionicons name={moment.markedRead ? 'checkmark-circle' : 'book-outline'} size={14} color={Colors.sage} />}
+          {moment.markedRead ? <MaterialCommunityIcons name="bookmark-check" size={14} color={Colors.sage} /> : <Ionicons name="hourglass-outline" size={14} color={Colors.sage} />}
           <ThemedText style={styles.readStatus}>{moment.markedRead ? 'Passage read' : 'Reading in progress'}</ThemedText>
         </View>
         {!!observationText && (
@@ -120,10 +120,10 @@ export const SavedMorningMoment = ({ moment, viewMode = 'inline' }: { moment: Mo
           <View style={[styles.proverbContent, momentsPalette && styles.momentsCardBorder]}>
             <TouchableOpacity onPress={() => setOpen(true)} style={[styles.feelingRow, styles.passageRow]} accessibilityRole="button" accessibilityLabel={`Read ${moment.title}`}>
               <ThemedText weight="semiBold" style={styles.passageTitle}>{moment.title}</ThemedText>
-              <MaterialCommunityIcons name="script-text" size={16} color={Colors.sage} />
+              <MaterialCommunityIcons name="book-outline" size={16} color={Colors.sage} />
             </TouchableOpacity>
             <View style={styles.feelingRow}>
-              {!hideReadStatusIcon && <Ionicons name={moment.markedRead ? 'checkmark-circle' : 'book-outline'} size={14} color={Colors.sage} />}
+              {moment.markedRead ? <MaterialCommunityIcons name="bookmark-check" size={14} color={Colors.sage} /> : <Ionicons name="hourglass-outline" size={14} color={Colors.sage} />}
               <ThemedText style={styles.readStatus}>{moment.markedRead ? 'Passage read' : 'Reading in progress'}</ThemedText>
             </View>
             {hasWisdomContent && (
@@ -206,7 +206,7 @@ export const SavedMorningMoment = ({ moment, viewMode = 'inline' }: { moment: Mo
     <TouchableOpacity style={styles.card} onPress={() => setOpen(true)} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel={`View ${moment.title}`}>
       <ThemedText weight="semiBold" style={styles.label}>{moment.title.toUpperCase()}</ThemedText>
       {moment.lines.filter(line => moment.markedRead === undefined || line !== 'Passage read').map((line, index) => <ThemedText key={index} numberOfLines={3} style={index === 0 ? styles.title : styles.answer}>{line}</ThemedText>)}
-      {moment.markedRead !== undefined && <View style={styles.feelingRow}>{!hideReadStatusIcon && <Ionicons name={moment.markedRead ? 'checkmark-circle' : 'book-outline'} size={16} color={Colors.sage} />}<ThemedText style={styles.readStatus}>{moment.markedRead ? 'Passage read' : 'Reading in progress'}</ThemedText></View>}
+      {moment.markedRead !== undefined && <View style={styles.feelingRow}>{moment.markedRead ? <MaterialCommunityIcons name="bookmark-check" size={16} color={Colors.sage} /> : <Ionicons name="hourglass-outline" size={16} color={Colors.sage} />}<ThemedText style={styles.readStatus}>{moment.markedRead ? 'Passage read' : 'Reading in progress'}</ThemedText></View>}
     </TouchableOpacity>
     <Modal visible={open} animationType="slide" onRequestClose={() => setOpen(false)}>
       <View style={[styles.page, { paddingTop: insets.top + 20 }]}>

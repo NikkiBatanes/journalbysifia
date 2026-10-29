@@ -91,6 +91,7 @@ const EveningProverbsScreen = () => {
   useFocusEffect(
     React.useCallback(() => () => {
       setShowAaSettings(false);
+      setAdvancedSettingsOpen(false);
       settingsAnim.setValue(0);
     }, [settingsAnim]),
   );

@@ -484,6 +484,15 @@ const BibleStudyScreen = () => {
       setAdvancedTextSettings(false);
     }, []),
   );
+
+  // The panel only lives on the read stage — don't let it survive a stage
+  // change and re-open when the user comes back.
+  useEffect(() => {
+    if (stage !== 'read') {
+      setShowTextSettings(false);
+      setAdvancedTextSettings(false);
+    }
+  }, [stage]);
   const [passageSelection, setPassageSelection] = useState({ start: 0, end: 0 });
   const [highlightActionsVisible, setHighlightActionsVisible] = useState(false);
   const [activeHighlightId, setActiveHighlightId] = useState<string | null>(null);
@@ -1012,7 +1021,7 @@ const BibleStudyScreen = () => {
   );
 
   const renderProgress = () =>
-    stage !== 'home' && stage !== 'saved' && stage !== 'detail' ? (
+    stage !== 'home' && stage !== 'saved' && stage !== 'detail' && !showTextSettings ? (
       <View style={styles.progress}>
         <View style={[styles.progressFill, { width: `${progress * 100}%` }]} />
       </View>
@@ -1814,36 +1823,23 @@ const BibleStudyScreen = () => {
         <StaggeredReveal delay={190} reduceMotion={reduceMotion.current}><ThemedText style={styles.lead}>{dateText}</ThemedText></StaggeredReveal>
 
         <StaggeredReveal delay={245} reduceMotion={reduceMotion.current} style={{width: '100%'}}><Card soft style={{ width: '100%' }}>
-          <View style={styles.summaryRow}>
-            <Eyebrow>Highlights</Eyebrow>
-            <ThemedText weight="semiBold" style={styles.summaryText}>
-              {content.highlights.length}
-            </ThemedText>
-          </View>
-          <View style={styles.summaryRow}>
-            <Eyebrow>Observation</Eyebrow>
-            <ThemedText weight="semiBold" style={styles.summaryText}>
-              {content.observation.text.trim() ? 'Recorded' : 'No observations recorded'}
-            </ThemedText>
-          </View>
-          <View style={styles.summaryRow}>
-            <Eyebrow>Understanding</Eyebrow>
-            <ThemedText weight="semiBold" style={styles.summaryText}>
-              {content.understanding.text.trim() ? 'Recorded' : 'No understanding recorded'}
-            </ThemedText>
-          </View>
-          <View style={styles.summaryRow}>
-            <Eyebrow>Response</Eyebrow>
-            <ThemedText weight="semiBold" style={styles.summaryText}>
-              {content.response.text.trim() ? 'Recorded' : 'No response recorded'}
-            </ThemedText>
-          </View>
-          <View style={styles.summaryRow}>
-            <Eyebrow>Prayer</Eyebrow>
-            <ThemedText weight="semiBold" style={styles.summaryText}>
-              {content.prayer.saveToPrayerJournal ? 'Saved to Prayer Journal' : 'Not saved'}
-            </ThemedText>
-          </View>
+          {[
+            content.highlights.length ? { label: 'Highlights', value: `${content.highlights.length} verse${content.highlights.length === 1 ? '' : 's'} marked` } : null,
+            content.observation.text.trim() ? { label: 'Observation', value: content.observation.text.trim() } : null,
+            content.understanding.text.trim() ? { label: 'Understanding', value: content.understanding.text.trim() } : null,
+            content.response.text.trim() ? { label: 'Response', value: content.response.text.trim() } : null,
+            content.prayer.saveToPrayerJournal ? { label: 'Prayer', value: 'Saved to Prayer Journal' } : null,
+          ].filter(Boolean).map((row, index, rows) => (
+            <View key={(row as {label: string}).label} style={[styles.summaryRow, index === rows.length - 1 && { marginBottom: 0 }]}>
+              <Eyebrow>{(row as {label: string}).label}</Eyebrow>
+              <ThemedText weight="semiBold" style={styles.summaryText} numberOfLines={2}>
+                {(row as {value: string}).value}
+              </ThemedText>
+            </View>
+          ))}
+          {!content.highlights.length && !content.observation.text.trim() && !content.understanding.text.trim() && !content.response.text.trim() && !content.prayer.saveToPrayerJournal ? (
+            <ThemedText weight="semiBold" style={styles.summaryText}>Nothing recorded yet — tap View Bible Study to add to it.</ThemedText>
+          ) : null}
         </Card></StaggeredReveal>
 
         <StaggeredReveal delay={300} reduceMotion={reduceMotion.current} style={{width: '100%'}}><PrimaryButton onPress={() => setStage('detail')}>View Bible Study</PrimaryButton></StaggeredReveal>
@@ -2209,7 +2205,9 @@ const BibleStudyScreen = () => {
         <View style={[
           styles.footer,
           (stage === 'read' || stage === 'observe' || stage === 'understand' || stage === 'respond') && styles.floatingReadFooter,
-          (stage === 'observe' || stage === 'understand' || stage === 'respond') && keyboardHeight > 0 && { bottom: keyboardHeight },
+          (stage === 'read' || stage === 'observe' || stage === 'understand' || stage === 'respond') && {
+            bottom: keyboardHeight > 0 ? keyboardHeight : insets.bottom,
+          },
         ]}>
           {renderFooter()}
         </View>
