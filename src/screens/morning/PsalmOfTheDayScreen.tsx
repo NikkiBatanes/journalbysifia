@@ -893,7 +893,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'transparent',
     borderRadius: 22,
-    paddingHorizontal: 22,
+    paddingHorizontal: 10,
     paddingBottom: 22,
     paddingTop: 4,
     minHeight: 320,
@@ -902,7 +902,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   psalmContent: {
-    paddingBottom: 8,
+    paddingBottom: 110,
   },
   psalmLine: {
     color: Colors.text,

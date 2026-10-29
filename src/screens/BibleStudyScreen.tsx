@@ -1198,6 +1198,7 @@ const BibleStudyScreen = () => {
     const styledRanges = [
       ...formattedPassage.verseNumberRanges.map(range => ({...range, kind: 'verse' as const})),
       ...formattedPassage.wordsOfJesusRanges.map(range => ({...range, kind: 'jesus' as const})),
+      ...(formattedPassage.verseGapRanges ?? []).map(range => ({...range, kind: 'gap' as const})),
     ].filter(range => range.start < absoluteEnd && range.end > absoluteStart);
     const boundaries = new Set([absoluteStart, absoluteEnd]);
     styledRanges.forEach(range => {
@@ -1228,6 +1229,15 @@ const BibleStudyScreen = () => {
         );
       } else if (range?.kind === 'jesus') {
         parts.push(<Text key={`${segmentKey}-jesus-${start}`} style={styles.wordsOfJesus}>{value}</Text>);
+      } else if (range?.kind === 'gap') {
+        parts.push(
+          <Text
+            key={`${segmentKey}-gap-${start}`}
+            style={{fontSize: Math.max(5, scriptureFontSize * 0.3), lineHeight: Math.max(6, scriptureFontSize * 0.35)}}
+          >
+            {value}
+          </Text>,
+        );
       } else {
         parts.push(value);
       }
@@ -1267,6 +1277,22 @@ const BibleStudyScreen = () => {
     }
     return segments;
   }, [highlights, resolveHighlightRange, selectablePassageText]);
+
+  // Verse-level blocks for the staggered read-stage entrance. Each block runs
+  // from its verse number to the next verse's start, so the trailing ' \n'
+  // gap spacer stays inside its verse and the rendered layout stays identical
+  // to the hidden selection TextInput overlaid on top.
+  const passageVerseBlocks = useMemo(() => {
+    const numberRanges = formattedPassage.verseNumberRanges;
+    if (!selectablePassageText.length) {return [];}
+    if (!numberRanges.length) {return [{start: 0, end: selectablePassageText.length}];}
+    return numberRanges.map((range, index) => ({
+      start: range.start,
+      end: index + 1 < numberRanges.length
+        ? numberRanges[index + 1].start
+        : selectablePassageText.length,
+    }));
+  }, [formattedPassage, selectablePassageText]);
 
   const savePassageHighlight = (color: string) => {
     if (!selectedPassageText && !selectedHighlight) {return;}
@@ -1327,8 +1353,20 @@ const BibleStudyScreen = () => {
     );
   };
 
-  const renderHighlightActions = () => highlightActionsVisible && (selectedPassageText || selectedHighlight) ? (
+  const [highlightActionsRendered, setHighlightActionsRendered] = useState(false);
+
+  useEffect(() => {
+    if (highlightActionsVisible) { setHighlightActionsRendered(true); }
+  }, [highlightActionsVisible]);
+
+  const handleHighlightActionsHidden = useCallback(() => setHighlightActionsRendered(false), []);
+
+  const renderHighlightActions = () => highlightActionsRendered ? (
     <View style={[styles.highlightSelectionAnchor, { bottom: insets.bottom + 76 }]} pointerEvents="box-none">
+      <HighlightControlsPop
+        visible={highlightActionsVisible && !!(selectedPassageText || selectedHighlight)}
+        onHidden={handleHighlightActionsHidden}
+      >
       <View style={styles.highlightSelectionButton} onTouchEnd={event => event.stopPropagation()}>
       {Platform.OS === 'ios' ? (
         <View pointerEvents="none" style={styles.highlightGlassBackground}>
@@ -1363,6 +1401,7 @@ const BibleStudyScreen = () => {
         <Ionicons name="close" size={17} color={Colors.textGray} />
       </TouchableOpacity>
       </View>
+      </HighlightControlsPop>
     </View>
   ) : null;
 
@@ -1404,38 +1443,51 @@ const BibleStudyScreen = () => {
             </View>
           ) : (
             <View style={styles.selectablePassageLayer} onTouchEnd={event => event.stopPropagation()}>
-              <Text
-                pointerEvents="box-none"
-                style={[styles.highlightedPassageText, {
-                  fontSize: scriptureFontSize,
-                  lineHeight: scriptureFontSize * 1.6 + scriptureLineSpacing,
-                  letterSpacing: scriptureLetterSpacing,
-                  textAlign: scriptureAlign,
-                  paddingLeft: scriptureIndent,
-                  fontFamily: getFontFamily(scriptureFont, scriptureBold ? 'bold' : 'regular'),
-                }]}
-              >
-                {highlightedPassageSegments.map(segment => (
-                  <Text
-                    key={segment.key}
-                    pointerEvents={segment.color ? 'auto' : 'none'}
-                    style={segment.color ? { backgroundColor: segment.color } : undefined}
-                    onPress={segment.color ? () => {
-                      const highlight = highlights.find(item => item.id === segment.key);
-                      if (!highlight) {return;}
-                      const range = resolveHighlightRange(highlight);
-                      if (!range) {return;}
-                      setActiveHighlightId(segment.key);
-                      setPassageSelection({ start: range.start, end: range.start });
-                      setHighlightActionsVisible(true);
-                    } : dismissHighlightActions}
-                    accessibilityRole={segment.color ? 'button' : undefined}
-                    accessibilityLabel={segment.color ? 'Edit highlight' : undefined}
-                  >
-                    {renderPassageSegmentText(segment.text, segment.key, segment.start)}
-                  </Text>
+              <View pointerEvents="box-none" style={styles.highlightedPassageOverlay}>
+                {passageVerseBlocks.map((block, blockIndex) => (
+                  <PassageVersePop key={block.start} delay={Math.min(blockIndex, 12) * 90}>
+                    <Text
+                      pointerEvents="box-none"
+                      style={[styles.highlightedPassageVerseText, {
+                        fontSize: scriptureFontSize,
+                        lineHeight: scriptureFontSize * 1.6 + scriptureLineSpacing,
+                        letterSpacing: scriptureLetterSpacing,
+                        textAlign: scriptureAlign,
+                        paddingLeft: scriptureIndent,
+                        fontFamily: getFontFamily(scriptureFont, scriptureBold ? 'bold' : 'regular'),
+                      }]}
+                    >
+                      {highlightedPassageSegments.flatMap(segment => {
+                        const segmentEnd = segment.start + segment.text.length;
+                        const start = Math.max(segment.start, block.start);
+                        const end = Math.min(segmentEnd, block.end);
+                        return start < end
+                          ? [{...segment, text: selectablePassageText.slice(start, end), start}]
+                          : [];
+                      }).map(segment => (
+                        <Text
+                          key={`${segment.key}-${block.start}`}
+                          pointerEvents={segment.color ? 'auto' : 'none'}
+                          style={segment.color ? { backgroundColor: segment.color } : undefined}
+                          onPress={segment.color ? () => {
+                            const highlight = highlights.find(item => item.id === segment.key);
+                            if (!highlight) {return;}
+                            const range = resolveHighlightRange(highlight);
+                            if (!range) {return;}
+                            setActiveHighlightId(segment.key);
+                            setPassageSelection({ start: range.start, end: range.start });
+                            setHighlightActionsVisible(true);
+                          } : dismissHighlightActions}
+                          accessibilityRole={segment.color ? 'button' : undefined}
+                          accessibilityLabel={segment.color ? 'Edit highlight' : undefined}
+                        >
+                          {renderPassageSegmentText(segment.text, segment.key, segment.start)}
+                        </Text>
+                      ))}
+                    </Text>
+                  </PassageVersePop>
                 ))}
-              </Text>
+              </View>
               <TextInput
                 value={selectablePassageText}
                 editable={false}
@@ -2173,6 +2225,76 @@ const BibleStudyScreen = () => {
   );
 };
 
+const HighlightControlsPop: React.FC<{
+  visible: boolean;
+  onHidden: () => void;
+  children: React.ReactNode;
+}> = ({ visible, onHidden, children }) => {
+  const anim = React.useRef(new Animated.Value(0)).current;
+
+  React.useEffect(() => {
+    const animation = visible
+      ? Animated.spring(anim, {
+          toValue: 1,
+          tension: 60,
+          friction: 7,
+          useNativeDriver: true,
+        })
+      : Animated.spring(anim, {
+          toValue: 0,
+          tension: 90,
+          friction: 11,
+          useNativeDriver: true,
+        });
+    animation.start(({ finished }) => {
+      if (!visible && finished) { onHidden(); }
+    });
+    return () => animation.stop();
+  }, [anim, visible, onHidden]);
+
+  return (
+    <Animated.View
+      style={{
+        opacity: anim,
+        transform: [
+          { scale: anim.interpolate({ inputRange: [0, 1], outputRange: [0.6, 1] }) },
+          { translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [10, 0] }) },
+        ],
+      }}
+    >
+      {children}
+    </Animated.View>
+  );
+};
+
+const PassageVersePop: React.FC<{ delay: number; children: React.ReactNode }> = ({ delay, children }) => {
+  const anim = React.useRef(new Animated.Value(0)).current;
+
+  React.useEffect(() => {
+    const animation = Animated.spring(anim, {
+      toValue: 1,
+      tension: 60,
+      friction: 8,
+      useNativeDriver: true,
+    });
+    const timer = setTimeout(() => animation.start(), delay);
+    return () => { clearTimeout(timer); animation.stop(); };
+  }, [anim, delay]);
+
+  return (
+    <Animated.View
+      style={{
+        opacity: anim,
+        transform: [
+          { translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [14, 0] }) },
+        ],
+      }}
+    >
+      {children}
+    </Animated.View>
+  );
+};
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -2748,6 +2870,19 @@ const styles = StyleSheet.create({
     paddingRight: 0,
     color: Colors.scriptureText,
     zIndex: 2,
+  },
+  highlightedPassageOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 2,
+  },
+  highlightedPassageVerseText: {
+    paddingTop: 0,
+    paddingBottom: 0,
+    paddingRight: 0,
+    color: Colors.scriptureText,
   },
   inlineVerseNumber: {
     color: 'rgba(90, 98, 93, 0.62)',

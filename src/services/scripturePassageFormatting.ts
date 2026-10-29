@@ -9,6 +9,7 @@ export interface FormattedScripturePassage {
   text: string;
   verseNumberRanges: ScriptureTextRange[];
   wordsOfJesusRanges: ScriptureTextRange[];
+  verseGapRanges: ScriptureTextRange[];
   poetryLayout: boolean;
 }
 
@@ -28,9 +29,10 @@ export const formatScripturePassage = (
 ): FormattedScripturePassage => {
   const poetryLayout = usesPoetryLayout(reference);
   const verseSeparator = poetryLayout ? '\n' : ' ';
-  const lineSeparator = poetryLayout ? '\n' : ' ';
+  const lineSeparator = ' ';
   const verseNumberRanges: ScriptureTextRange[] = [];
   const wordsOfJesusRanges: ScriptureTextRange[] = [];
+  const verseGapRanges: ScriptureTextRange[] = [];
   let text = '';
 
   if (!verses?.length) {
@@ -38,12 +40,21 @@ export const formatScripturePassage = (
       text: fallbackText,
       verseNumberRanges,
       wordsOfJesusRanges,
+      verseGapRanges,
       poetryLayout,
     };
   }
 
   verses.forEach((verse, verseIndex) => {
-    if (verseIndex > 0) { text += verseSeparator; }
+    if (verseIndex > 0) {
+      text += verseSeparator;
+      // Short spacer line between verses: rendered tiny so the gap stays tight.
+      if (poetryLayout) {
+        const gapStart = text.length;
+        text += ' \n';
+        verseGapRanges.push({start: gapStart, end: text.length});
+      }
+    }
 
     if (verse.number) {
       const start = text.length;
@@ -71,5 +82,5 @@ export const formatScripturePassage = (
     });
   });
 
-  return {text, verseNumberRanges, wordsOfJesusRanges, poetryLayout};
+  return {text, verseNumberRanges, wordsOfJesusRanges, verseGapRanges, poetryLayout};
 };

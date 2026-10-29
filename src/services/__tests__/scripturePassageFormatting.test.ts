@@ -18,6 +18,7 @@ describe('scripture passage formatting', () => {
       text: '21 Then Peter asked Jesus a question. 22 Jesus said, “Keep forgiving.”',
       verseNumberRanges: [{start: 0, end: 2}, {start: 38, end: 40}],
       wordsOfJesusRanges: [{start: 53, end: 70}],
+      verseGapRanges: [],
       poetryLayout: false,
     });
   });
@@ -26,7 +27,8 @@ describe('scripture passage formatting', () => {
     'puts each poetry verse on its own line for %s',
     reference => {
       const formatted = formatScripturePassage(proseVerses, reference);
-      expect(formatted.text).toContain('question.\n22 Jesus');
+      expect(formatted.text).toContain('question.\n \n22 Jesus');
+      expect(formatted.verseGapRanges).toHaveLength(1);
       expect(formatted.poetryLayout).toBe(true);
     },
   );

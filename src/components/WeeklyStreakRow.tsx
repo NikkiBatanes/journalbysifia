@@ -17,6 +17,7 @@ interface WeeklyStreakRowProps {
   dayStates: DayState[];
   dayLabels?: string[];
   appearance?: 'dark' | 'light';
+  entranceDelay?: number;
 }
 
 const DAY_LABELS: Record<string, string> = {
@@ -49,7 +50,7 @@ const WEEK_ORDER: Record<string, string[]> = {
   Saturday: ['Saturday', 'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
 };
 
-const WeeklyStreakRow: React.FC<WeeklyStreakRowProps> = ({ weekStart = 'Sunday', dayStates, dayLabels, appearance = 'dark' }) => {
+const WeeklyStreakRow: React.FC<WeeklyStreakRowProps> = ({ weekStart = 'Sunday', dayStates, dayLabels, appearance = 'dark', entranceDelay = 0 }) => {
   const theme = useTheme();
   const font = { fontFamily: theme.fontFamily };
 
@@ -73,11 +74,11 @@ const WeeklyStreakRow: React.FC<WeeklyStreakRowProps> = ({ weekStart = 'Sunday',
         toValue: 1,
         tension: 80,
         friction: 6,
-        delay: index * 50, // 50ms stagger from left to right
+        delay: entranceDelay + index * 50, // 50ms stagger from left to right
         useNativeDriver: true,
       }).start();
     });
-  }, [dayStates, scaleAnims]);
+  }, [dayStates, scaleAnims, entranceDelay]);
 
   // Show placeholder circles while loading
   if (!dayStates || dayStates.length === 0) {

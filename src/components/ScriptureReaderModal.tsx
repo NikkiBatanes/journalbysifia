@@ -21,6 +21,8 @@ import { Fonts, type FontFamily, getFontFamily } from '../theme/fonts';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { triggerLightHaptic } from '../utils/haptics';
 import { getScripturePassage, type ScriptureReaderResult } from '../services/scriptureReaderService';
+import { formatScripturePassage } from '../services/scripturePassageFormatting';
+import ScriptureInlinePassageText from './scripture/ScriptureInlinePassageText';
 import ThemedText from './common/ThemedText';
 import { BibleCopyrightModal } from './BibleCopyrightModal';
 
@@ -127,6 +129,10 @@ const ScriptureReaderModal: React.FC<ScriptureReaderModalProps> = ({
     [selectedPassage?.reference],
   );
   const requestedReference = showFullChapter ? chapterReference : selectedPassage?.reference || '';
+  const formattedReaderPassage = useMemo(
+    () => formatScripturePassage(result?.verses, requestedReference, result?.text ?? ''),
+    [requestedReference, result],
+  );
 
   useEffect(() => {
     let active = true;
@@ -465,8 +471,31 @@ const ScriptureReaderModal: React.FC<ScriptureReaderModalProps> = ({
     }
   }, [collapseReadingHeader, restoreCompactReader]);
 
-  const collapsedHeight = Math.min(570, SCREEN_HEIGHT * 0.68);
+  // Fold the collapsed sheet on a whole text line so the passage is never
+  // sliced mid-glyph: measure the verse viewport once laid out and trim the
+  // sheet height to the nearest whole line.
+  const collapsedMax = Math.min(570, SCREEN_HEIGHT * 0.68);
+  const readerLineHeight = readerFontSize + 14 + readerLineSpacing;
+  const [collapsedHeight, setCollapsedHeight] = useState(collapsedMax);
+  const collapsedHeightRef = useRef(collapsedMax);
+  collapsedHeightRef.current = collapsedHeight;
   const expandedHeight = SCREEN_HEIGHT - Math.max(insets.top, 12);
+
+  React.useEffect(() => {
+    setCollapsedHeight(collapsedMax);
+  }, [collapsedMax, readerLineHeight, visible]);
+
+  const handleVerseScrollLayout = useCallback((event: any) => {
+    if (sheetExpandedRef.current) { return; }
+    const height = event.nativeEvent.layout.height;
+    if (!height || height <= 0) { return; }
+    const remainder = height % readerLineHeight;
+    if (remainder < 2 || readerLineHeight - remainder < 2) { return; }
+    const next = collapsedHeightRef.current - remainder;
+    if (next > 120 && Math.abs(next - collapsedHeightRef.current) > 0.5) {
+      setCollapsedHeight(next);
+    }
+  }, [readerLineHeight]);
   const sheetHeight = scrollExpansion.interpolate({
     inputRange: [0, 110],
     outputRange: [collapsedHeight, expandedHeight],
@@ -826,6 +855,7 @@ const ScriptureReaderModal: React.FC<ScriptureReaderModalProps> = ({
             contentContainerStyle={styles.verseScrollContent}
             showsVerticalScrollIndicator={false}
             scrollEventThrottle={16}
+            onLayout={handleVerseScrollLayout}
             onScrollBeginDrag={handleScrollBeginDrag}
             onScroll={handleReadingScroll}
           >
@@ -876,7 +906,12 @@ const ScriptureReaderModal: React.FC<ScriptureReaderModalProps> = ({
                   },
                 ]}
               >
-                {result?.text || ''}
+                <ScriptureInlinePassageText
+                  passage={formattedReaderPassage}
+                  fontSize={readerFontSize}
+                  verseNumberFontFamily={getFontFamily(readerFont, 'regular')}
+                  verseNumberColor="rgba(242,245,247,0.55)"
+                />
               </Text>
             )}
           </ScrollView>

@@ -660,6 +660,42 @@ export const EveningCarryWisdomScreen: React.FC = () => {
   );
 };
 
+// Delayed spring entrance: fades + rises in, optionally popping from a smaller
+// scale (same feel as the aA/X header controls in the flow screens).
+const ClosingPop: React.FC<{
+  delay?: number;
+  scale?: boolean;
+  style?: any;
+  children: React.ReactNode;
+}> = ({ delay = 0, scale = false, style, children }) => {
+  const anim = React.useRef(new Animated.Value(0)).current;
+
+  React.useEffect(() => {
+    const animation = Animated.spring(anim, {
+      toValue: 1,
+      tension: 60,
+      friction: 8,
+      useNativeDriver: true,
+    });
+    const timer = setTimeout(() => animation.start(), delay);
+    return () => { clearTimeout(timer); animation.stop(); };
+  }, [anim, delay]);
+
+  return (
+    <Animated.View
+      style={[style, {
+        opacity: anim,
+        transform: [
+          { translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [14, 0] }) },
+          ...(scale ? [{ scale: anim.interpolate({ inputRange: [0, 1], outputRange: [0.55, 1] }) }] : []),
+        ],
+      }]}
+    >
+      {children}
+    </Animated.View>
+  );
+};
+
 export const EveningClosingScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<any>();
@@ -805,26 +841,30 @@ export const EveningClosingScreen: React.FC = () => {
 
   return (
     <View style={[styles.closingContainer, { paddingTop: insets.top }]}>
-      <TouchableOpacity
-        style={[styles.closingShareButton, { top: insets.top + 8 }]}
-        onPress={() => { triggerLightHaptic(); setShareDropdownOpen(true); }}
-        activeOpacity={0.7}
-        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-        accessibilityRole="button"
-        accessibilityLabel="Share evening routine"
-      >
-        <Ionicons name="paper-plane-outline" size={17} color={Colors.sage} />
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={[styles.closingEditButton, { top: insets.top + 8 }]}
-        onPress={() => { triggerLightHaptic(); navigation.navigate('Gratitude'); }}
-        activeOpacity={0.7}
-        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-        accessibilityRole="button"
-        accessibilityLabel="Edit evening routine"
-      >
-        <Pencil size={17} color={Colors.sage} strokeWidth={1.8} />
-      </TouchableOpacity>
+      <ClosingPop delay={620} scale style={[styles.closingShareButtonAnchor, { top: insets.top + 8 }]}>
+        <TouchableOpacity
+          style={styles.closingShareButton}
+          onPress={() => { triggerLightHaptic(); setShareDropdownOpen(true); }}
+          activeOpacity={0.7}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          accessibilityRole="button"
+          accessibilityLabel="Share evening routine"
+        >
+          <Ionicons name="paper-plane-outline" size={17} color={Colors.sage} />
+        </TouchableOpacity>
+      </ClosingPop>
+      <ClosingPop delay={740} scale style={[styles.closingEditButtonAnchor, { top: insets.top + 8 }]}>
+        <TouchableOpacity
+          style={styles.closingEditButton}
+          onPress={() => { triggerLightHaptic(); navigation.navigate('Gratitude'); }}
+          activeOpacity={0.7}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          accessibilityRole="button"
+          accessibilityLabel="Edit evening routine"
+        >
+          <Pencil size={17} color={Colors.sage} strokeWidth={1.8} />
+        </TouchableOpacity>
+      </ClosingPop>
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.closingScrollContent}
@@ -855,6 +895,7 @@ export const EveningClosingScreen: React.FC = () => {
           </View>
         </Animated.View>
 
+        <ClosingPop delay={160}>
         <View style={styles.closingGlanceSection}>
           <ThemedText weight="semiBold" style={styles.closingSectionEyebrow}>TONIGHT AT A GLANCE</ThemedText>
           <View style={styles.closingGlanceGrid}>
@@ -923,7 +964,9 @@ export const EveningClosingScreen: React.FC = () => {
           </View>
 
         </View>
+        </ClosingPop>
 
+        <ClosingPop delay={280}>
         <View style={styles.closingScriptureCard}>
           <View style={styles.closingScriptureColumns}>
           <TouchableOpacity
@@ -980,15 +1023,20 @@ export const EveningClosingScreen: React.FC = () => {
           </View>
         </View>
 
+        </ClosingPop>
+
+        <ClosingPop delay={400}>
         <View style={styles.closingAsYouGo}>
           <ThemedText weight="semiBold" style={styles.closingSectionEyebrow}>AS YOU REST</ThemedText>
           <ThemedText weight="bold" style={styles.closingReminderText}>
             {dailyMessage}
           </ThemedText>
         </View>
+        </ClosingPop>
       </ScrollView>
 
       <View style={[styles.closingFooter, { paddingBottom: insets.bottom + 10 }]}>
+        <ClosingPop delay={560} scale style={{ flex: 1, flexDirection: 'row' }}>
         <TouchableOpacity
           style={styles.closingDoneButton}
           activeOpacity={0.8}
@@ -998,6 +1046,7 @@ export const EveningClosingScreen: React.FC = () => {
         >
           <ThemedText weight="semiBold" style={styles.closingDoneButtonText}>{completed ? 'Done' : 'Save & Finish'}</ThemedText>
         </TouchableOpacity>
+        </ClosingPop>
       </View>
       <ShareDropdownModal
         visible={shareDropdownOpen}
@@ -1457,8 +1506,10 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 21,
   },
-  closingShareButton: { position: 'absolute', right: 18, zIndex: 100, width: 42, height: 42, borderRadius: 21, backgroundColor: Colors.cardBackground, alignItems: 'center', justifyContent: 'center' },
-  closingEditButton: { position: 'absolute', right: 70, zIndex: 100, width: 42, height: 42, borderRadius: 21, backgroundColor: Colors.cardBackground, alignItems: 'center', justifyContent: 'center' },
+  closingShareButtonAnchor: { position: 'absolute', right: 18, zIndex: 100 },
+  closingEditButtonAnchor: { position: 'absolute', right: 70, zIndex: 100 },
+  closingShareButton: { width: 42, height: 42, borderRadius: 21, backgroundColor: Colors.cardBackground, alignItems: 'center', justifyContent: 'center' },
+  closingEditButton: { width: 42, height: 42, borderRadius: 21, backgroundColor: Colors.cardBackground, alignItems: 'center', justifyContent: 'center' },
   closingContainer: {
     flex: 1,
     backgroundColor: Colors.lightBackground,

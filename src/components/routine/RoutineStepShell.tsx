@@ -185,24 +185,26 @@ const RoutineStepShell: React.FC<RoutineStepShellProps> = ({
         </View>
       ) : null}
       <Animated.View pointerEvents="box-none" style={[styles.footer, { position: 'absolute', bottom: buttonBottom, left: 0, right: 0, justifyContent: onSkip ? 'space-between' : 'flex-end' }]}>
-        {onSkip && (
-          <TouchableOpacity
-            onPress={onSkip}
-            activeOpacity={0.7}
-            style={styles.skipButton}
-            accessibilityRole="button"
-            accessibilityLabel="Skip this step"
-          >
-            <ThemedText style={[styles.skipText, { color: isLight ? Colors.textGray : Colors.hopeWhite }]}>Skip</ThemedText>
-          </TouchableOpacity>
-        )}
-        {footer}
+        {onSkip ? (
+          <HeaderControlPop delay={860}>
+            <TouchableOpacity
+              onPress={onSkip}
+              activeOpacity={0.7}
+              style={styles.skipButton}
+              accessibilityRole="button"
+              accessibilityLabel="Skip this step"
+            >
+              <ThemedText style={[styles.skipText, { color: isLight ? Colors.textGray : Colors.hopeWhite }]}>Skip</ThemedText>
+            </TouchableOpacity>
+          </HeaderControlPop>
+        ) : null}
+        <HeaderControlPop delay={980} style={styles.footerPop}>{footer}</HeaderControlPop>
       </Animated.View>
     </View>
   );
 };
 
-const HeaderControlPop: React.FC<{ delay: number; children: React.ReactNode }> = ({ delay, children }) => {
+const HeaderControlPop: React.FC<{ delay: number; style?: any; children: React.ReactNode }> = ({ delay, style, children }) => {
   const anim = React.useRef(new Animated.Value(0)).current;
 
   React.useEffect(() => {
@@ -220,13 +222,13 @@ const HeaderControlPop: React.FC<{ delay: number; children: React.ReactNode }> =
   }, [anim, delay]);
 
   return (
-    <Animated.View style={{
+    <Animated.View style={[style, {
       opacity: anim,
       transform: [
         { scale: anim.interpolate({ inputRange: [0, 1], outputRange: [0.55, 1] }) },
         { translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [8, 0] }) },
       ],
-    }}
+    }]}
     >
       {children}
     </Animated.View>
@@ -236,6 +238,11 @@ const HeaderControlPop: React.FC<{ delay: number; children: React.ReactNode }> =
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  footerPop: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
   },
   topRow: {
     flexDirection: 'row',

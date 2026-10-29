@@ -35,6 +35,42 @@ const SummaryIcon = ({ icon, iconType }: { icon?: string; iconType?: 'ionicons' 
   return <Ionicons name={icon as any} size={18} color={Colors.sage} />;
 };
 
+// Delayed spring entrance: fades + rises in, optionally popping from a smaller
+// scale (same feel as the aA/X header controls in the flow screens).
+const ClosingPop: React.FC<{
+  delay?: number;
+  scale?: boolean;
+  style?: any;
+  children: React.ReactNode;
+}> = ({ delay = 0, scale = false, style, children }) => {
+  const anim = React.useRef(new Animated.Value(0)).current;
+
+  React.useEffect(() => {
+    const animation = Animated.spring(anim, {
+      toValue: 1,
+      tension: 60,
+      friction: 8,
+      useNativeDriver: true,
+    });
+    const timer = setTimeout(() => animation.start(), delay);
+    return () => { clearTimeout(timer); animation.stop(); };
+  }, [anim, delay]);
+
+  return (
+    <Animated.View
+      style={[style, {
+        opacity: anim,
+        transform: [
+          { translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [14, 0] }) },
+          ...(scale ? [{ scale: anim.interpolate({ inputRange: [0, 1], outputRange: [0.55, 1] }) }] : []),
+        ],
+      }]}
+    >
+      {children}
+    </Animated.View>
+  );
+};
+
 const MorningClosingScreen = () => {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<any>();
@@ -239,33 +275,37 @@ const MorningClosingScreen = () => {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      <TouchableOpacity
-        style={[styles.shareButton, { top: insets.top + 8 }]}
-        onPress={() => {
-          triggerLightHaptic();
-          setShareComposerOpen(true);
-        }}
-        activeOpacity={0.7}
-        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-        accessibilityRole="button"
-        accessibilityLabel="Share morning routine"
-      >
-        <Ionicons name="paper-plane-outline" size={17} color={Colors.sage} />
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={[styles.editButton, { top: insets.top + 8 }]}
-        onPress={() => {
-          triggerLightHaptic();
-          const firstStep = routine === 'evening' ? 'Gratitude' : 'EmotionCheckIn';
-          navigation.navigate(firstStep);
-        }}
-        activeOpacity={0.7}
-        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-        accessibilityRole="button"
-        accessibilityLabel="Edit morning routine"
-      >
-        <Pencil size={17} color={Colors.sage} strokeWidth={1.8} />
-      </TouchableOpacity>
+      <ClosingPop delay={620} scale style={[styles.shareButtonAnchor, { top: insets.top + 8 }]}>
+        <TouchableOpacity
+          style={styles.shareButton}
+          onPress={() => {
+            triggerLightHaptic();
+            setShareComposerOpen(true);
+          }}
+          activeOpacity={0.7}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          accessibilityRole="button"
+          accessibilityLabel="Share morning routine"
+        >
+          <Ionicons name="paper-plane-outline" size={17} color={Colors.sage} />
+        </TouchableOpacity>
+      </ClosingPop>
+      <ClosingPop delay={740} scale style={[styles.editButtonAnchor, { top: insets.top + 8 }]}>
+        <TouchableOpacity
+          style={styles.editButton}
+          onPress={() => {
+            triggerLightHaptic();
+            const firstStep = routine === 'evening' ? 'Gratitude' : 'EmotionCheckIn';
+            navigation.navigate(firstStep);
+          }}
+          activeOpacity={0.7}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          accessibilityRole="button"
+          accessibilityLabel="Edit morning routine"
+        >
+          <Pencil size={17} color={Colors.sage} strokeWidth={1.8} />
+        </TouchableOpacity>
+      </ClosingPop>
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -292,6 +332,7 @@ const MorningClosingScreen = () => {
           </View>
         </Animated.View>
 
+        <ClosingPop delay={160}>
         <View style={styles.glanceSection}>
           <ThemedText weight="semiBold" style={styles.sectionEyebrow}>TODAY AT A GLANCE</ThemedText>
           <View style={styles.glanceGrid}>
@@ -354,7 +395,9 @@ const MorningClosingScreen = () => {
             </ThemedText>
           </TouchableOpacity>
         </View>
+        </ClosingPop>
 
+        <ClosingPop delay={280}>
         <TouchableOpacity
           style={styles.psalmCard}
           onPress={() => {
@@ -398,25 +441,30 @@ const MorningClosingScreen = () => {
           </View>
 
         </TouchableOpacity>
+        </ClosingPop>
 
+        <ClosingPop delay={400}>
         <View style={styles.asYouGo}>
           <ThemedText weight="semiBold" style={styles.sectionEyebrow}>AS YOU GO</ThemedText>
           <ThemedText weight="bold" style={styles.reminderText}>
             {dailyMessage}
           </ThemedText>
         </View>
+        </ClosingPop>
       </ScrollView>
 
       <View style={[styles.footer, { paddingBottom: insets.bottom + 10 }]}>
-        <TouchableOpacity
-          style={styles.doneButton}
-          activeOpacity={0.8}
-          accessibilityRole="button"
-          accessibilityLabel="Save and finish"
-          onPress={onDone}
-        >
-          <ThemedText weight="semiBold" style={styles.doneButtonText}>{completed ? 'Done' : 'Save & Finish'}</ThemedText>
-        </TouchableOpacity>
+        <ClosingPop delay={560} scale style={styles.footerPop}>
+          <TouchableOpacity
+            style={styles.doneButton}
+            activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel="Save and finish"
+            onPress={onDone}
+          >
+            <ThemedText weight="semiBold" style={styles.doneButtonText}>{completed ? 'Done' : 'Save & Finish'}</ThemedText>
+          </TouchableOpacity>
+        </ClosingPop>
       </View>
 
       <ShareComposer
@@ -469,10 +517,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: Colors.lightBackground,
   },
-  shareButton: {
+  shareButtonAnchor: {
     position: 'absolute',
     right: 18,
     zIndex: 21,
+  },
+  shareButton: {
     width: 42,
     height: 42,
     justifyContent: 'center',
@@ -480,10 +530,12 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.cardBackground,
     borderRadius: 999,
   },
-  editButton: {
+  editButtonAnchor: {
     position: 'absolute',
     right: 70,
     zIndex: 21,
+  },
+  editButton: {
     width: 42,
     height: 42,
     justifyContent: 'center',
@@ -672,6 +724,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 10,
     paddingTop: 0,
+  },
+  footerPop: {
+    flex: 1,
+    flexDirection: 'row',
   },
   doneButton: {
     flex: 1,

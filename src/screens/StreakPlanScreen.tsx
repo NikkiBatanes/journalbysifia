@@ -49,6 +49,42 @@ interface RouteParams {
   returnTo?: 'moments' | 'prayer';
 }
 
+// Delayed spring entrance: fades + rises in, optionally popping from a smaller
+// scale (same feel as the aA/X header controls in the flow screens).
+const StreakPop: React.FC<{
+  delay?: number;
+  scale?: boolean;
+  style?: any;
+  children: React.ReactNode;
+}> = ({ delay = 0, scale = false, style, children }) => {
+  const anim = React.useRef(new Animated.Value(0)).current;
+
+  React.useEffect(() => {
+    const animation = Animated.spring(anim, {
+      toValue: 1,
+      tension: 60,
+      friction: 8,
+      useNativeDriver: true,
+    });
+    const timer = setTimeout(() => animation.start(), delay);
+    return () => { clearTimeout(timer); animation.stop(); };
+  }, [anim, delay]);
+
+  return (
+    <Animated.View
+      style={[style, {
+        opacity: anim,
+        transform: [
+          { translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [14, 0] }) },
+          ...(scale ? [{ scale: anim.interpolate({ inputRange: [0, 1], outputRange: [0.55, 1] }) }] : []),
+        ],
+      }]}
+    >
+      {children}
+    </Animated.View>
+  );
+};
+
 const StreakPlanScreen: React.FC = () => {
   const IS_IPAD = Platform.OS === 'ios' && (Platform as any).isPad === true;
   const route = useRoute();
@@ -70,10 +106,9 @@ const StreakPlanScreen: React.FC = () => {
   const [weekStart, setWeekStart] = useState<'Sunday' | 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday' | 'Saturday'>('Monday');
   const [dayStates, setDayStates] = useState<DayState[]>([]);
   const [showShareComposer, setShowShareComposer] = useState(false);
+  const [contentReady, setContentReady] = useState(false);
 
   // Animation values
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const scaleAnim = useRef(new Animated.Value(0.8)).current;
   const iconMotionAnim = useRef(new Animated.Value(0)).current;
   const shareButtonAnim = useRef(new Animated.Value(0)).current;
   const entranceStartedRef = useRef(false);
@@ -84,8 +119,7 @@ const StreakPlanScreen: React.FC = () => {
     let entranceFallbackTimer: ReturnType<typeof setTimeout> | null = null;
 
     entranceStartedRef.current = false;
-    fadeAnim.setValue(0);
-    scaleAnim.setValue(0.8);
+    setContentReady(false);
     iconMotionAnim.setValue(0);
 
     const startEntranceAnimation = () => {
@@ -105,28 +139,17 @@ const StreakPlanScreen: React.FC = () => {
         celebrationSoundPlayedRef.current = true;
         playStreakCelebrationSound().catch(() => {});
       }
-      Animated.parallel([
-        Animated.timing(fadeAnim, {
-          toValue: 1,
-          duration: 500,
-          useNativeDriver: true,
-        }),
-        Animated.spring(scaleAnim, {
-          toValue: 1,
-          tension: 60,
-          friction: 7,
-          useNativeDriver: true,
-        }),
-      ]).start();
+      // Reveal the content — each section springs in on its own delay.
+      setContentReady(true);
     };
 
     // Share button and icon animations start immediately (decorative)
     shareButtonAnim.setValue(0);
     Animated.spring(shareButtonAnim, {
       toValue: 1,
-      tension: 80,
-      friction: 8,
-      delay: 200,
+      tension: 60,
+      friction: 7,
+      delay: 700,
       useNativeDriver: true,
     }).start();
 
@@ -211,8 +234,6 @@ const StreakPlanScreen: React.FC = () => {
       if (entranceFallbackTimer) {
         clearTimeout(entranceFallbackTimer);
       }
-      fadeAnim.stopAnimation();
-      scaleAnim.stopAnimation();
       iconMotionAnimation.stop();
       iconMotionAnim.stopAnimation();
       shareButtonAnim.stopAnimation();
@@ -500,56 +521,57 @@ const StreakPlanScreen: React.FC = () => {
         showsVerticalScrollIndicator={false}
       >
         {/* Quiet routine marker */}
-        <Animated.View
-          style={[styles.iconContainer, { opacity: fadeAnim, transform: [{ scale: scaleAnim }] }]}
-        >
-          <View style={styles.iconCircle}>
-            <Animated.View style={{ transform: iconMotionTransform }}>
-              <RhythmCelebrationIcon rhythm={params.rhythm} />
-            </Animated.View>
-          </View>
-        </Animated.View>
+        {contentReady ? (
+          <StreakPop delay={0} scale style={styles.iconContainer}>
+            <View style={styles.iconCircle}>
+              <Animated.View style={{ transform: iconMotionTransform }}>
+                <RhythmCelebrationIcon rhythm={params.rhythm} />
+              </Animated.View>
+            </View>
+          </StreakPop>
+        ) : null}
 
         {/* Hero text */}
-        <Animated.View
-          style={[styles.textContainer, { opacity: fadeAnim }]}
-        >
-          {rhythmEyebrow ? (
-            <Text style={[styles.rhythmLabel, font]}>
-              {rhythmEyebrow}
+        {contentReady ? (
+          <StreakPop delay={180} style={styles.textContainer}>
+            {rhythmEyebrow ? (
+              <Text style={[styles.rhythmLabel, font]}>
+                {rhythmEyebrow}
+              </Text>
+            ) : null}
+            <Text style={[styles.heroText, font]}>{streakTitle}</Text>
+            <Text style={[styles.subText, font]}>
+              {streakMessage}
             </Text>
-          ) : null}
-          <Text style={[styles.heroText, font]}>{streakTitle}</Text>
-          <Text style={[styles.subText, font]}>
-            {streakMessage}
-          </Text>
 
-          {/* Weekly streak visual */}
-          <View style={styles.streakRowWrapper}>
-            <WeeklyStreakRow
-              weekStart={weekStart}
-              dayStates={dayStates}
-              dayLabels={activeRhythm?.days.map(day => day.label)}
-              appearance="light"
-            />
-          </View>
-        </Animated.View>
+            {/* Weekly streak visual */}
+            <StreakPop delay={340} style={styles.streakRowWrapper}>
+              <WeeklyStreakRow
+                weekStart={weekStart}
+                dayStates={dayStates}
+                dayLabels={activeRhythm?.days.map(day => day.label)}
+                appearance="light"
+                entranceDelay={380}
+              />
+            </StreakPop>
+          </StreakPop>
+        ) : null}
 
         {/* Action buttons */}
-        <Animated.View
-          style={[styles.buttonsContainer, IS_IPAD && styles.buttonsContainerPad, { opacity: fadeAnim }]}
-        >
-          <TouchableOpacity
-            style={[styles.primaryButton, IS_IPAD && styles.primaryButtonPad]}
-            onPress={handleContinue}
-            activeOpacity={0.85}
-          >
-            <Text style={[styles.primaryButtonText, font, { fontWeight: '600' }]}>
-              {params.onboarding ? 'Continue My Journey' : 'Done'}
-            </Text>
-          </TouchableOpacity>
+        {contentReady ? (
+          <StreakPop delay={460} scale style={[styles.buttonsContainer, IS_IPAD && styles.buttonsContainerPad]}>
+            <TouchableOpacity
+              style={[styles.primaryButton, IS_IPAD && styles.primaryButtonPad]}
+              onPress={handleContinue}
+              activeOpacity={0.85}
+            >
+              <Text style={[styles.primaryButtonText, font, { fontWeight: '600' }]}>
+                {params.onboarding ? 'Continue My Journey' : 'Done'}
+              </Text>
+            </TouchableOpacity>
 
-        </Animated.View>
+          </StreakPop>
+        ) : null}
       </ScrollView>
 
       <ShareComposer

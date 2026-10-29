@@ -550,7 +550,9 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
             </View>
           )}
 
-          <View style={[styles.completionDivider, { backgroundColor: isPalette ? Colors.borderLight : 'rgba(255, 255, 255, 0.1)' }]} />
+          {displayEntry.text.trim() && (
+            <View style={[styles.completionDivider, { backgroundColor: isPalette ? Colors.borderLight : 'rgba(255, 255, 255, 0.1)' }]} />
+          )}
 
           <View style={styles.completionSection}>
             <ThemedText weight="medium" style={[styles.completionSectionLabel, { color: isPalette ? Colors.sage : Colors.alertCoral }]}>{getSectionLabel()}</ThemedText>

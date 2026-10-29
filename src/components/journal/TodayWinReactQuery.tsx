@@ -278,7 +278,9 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
             </View>
           </View>
 
-          <View style={[styles.completionDivider, { backgroundColor: isPalette ? Colors.borderLight : 'rgba(255, 255, 255, 0.1)' }]} />
+          {displayWin.text.trim() && (
+            <View style={[styles.completionDivider, { backgroundColor: isPalette ? Colors.borderLight : 'rgba(255, 255, 255, 0.1)' }]} />
+          )}
 
           {displayWin.text.trim() && (
             <View style={styles.completionSection}>

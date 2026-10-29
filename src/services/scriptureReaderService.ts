@@ -108,13 +108,19 @@ export async function getScripturePassage(
 
   const request = (async () => {
     const stored = await getStoredPassage(cacheKey);
-    if (stored) {
+    // Entries saved before verse data existed are stale: refetch so numbered
+    // rendering works. Keep them as a degraded offline/failure fallback.
+    if (stored?.verses?.length) {
       passageCache.set(cacheKey, stored);
       return stored;
     }
 
     const network = await NetInfo.fetch();
     if (network.isConnected === false || network.isInternetReachable === false) {
+      if (stored) {
+        passageCache.set(cacheKey, stored);
+        return stored;
+      }
       throw new Error(SCRIPTURE_OFFLINE_MESSAGE);
     }
 
@@ -123,6 +129,10 @@ export async function getScripturePassage(
     });
 
     if (error || !data?.text) {
+      if (stored) {
+        passageCache.set(cacheKey, stored);
+        return stored;
+      }
       throw new Error(data?.message || error?.message || 'This passage could not be loaded right now.');
     }
 
