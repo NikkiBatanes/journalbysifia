@@ -51,11 +51,15 @@ describe('Bible Study guided sample', () => {
     }
     expect(pageSource).toContain("page === 'understand' || page === 'context'");
     expect(pageSource).toContain('guide.contexts.map');
-    expect(pageSource).toContain('OF 6');
-    expect(pageSource).toContain('accessibilityLabel="Guided study prayer"');
+    expect(pageSource).toContain("page === 'pray'");
+    expect(pageSource).toContain('OF 7');
+    expect(pageSource).toContain('accessibilityLabel="Guided study personal prayer"');
+    expect(pageSource).toContain("prayedCompanionPrayer ? 'Prayed' : 'I prayed this'");
+    expect(pageSource).toContain('label="CARRY"');
     expect(pageSource).toContain('CARRY THIS WITH YOU');
     expect(storageSource).toContain("study_mode?: 'self_guided' | 'guided'");
     expect(storageSource).toContain('guide_id?: string');
     expect(storageSource).toContain('guided_page?: GuidedBibleStudyPage');
+    expect(storageSource).toContain('prayedCompanionPrayer?: boolean');
   });
 });

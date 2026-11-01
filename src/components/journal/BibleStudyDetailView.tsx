@@ -80,6 +80,9 @@ export default function BibleStudyDetailView({ reference, selectedDate, translat
   }, [reference, translation]);
   const shown = content;
   const guide = getGuidedBibleStudy(content.guided?.guideId);
+  const guidedPersonalPrayer = guide
+    ? shown.guided?.personalPrayer ?? (shown.prayer.text.trim() === guide.prayer.trim() ? '' : shown.prayer.text)
+    : shown.prayer.text;
   const [year, month, day] = selectedDate.split('-').map(Number);
   const savedChoices = (choices: string[]) => choices.length ? (
     <View style={styles.savedChoices}>
@@ -269,7 +272,26 @@ export default function BibleStudyDetailView({ reference, selectedDate, translat
               <ThemedText style={styles.carryText}>{guide.carryTruth}</ThemedText>
             </View> : null}
           </>}
-          {tab === 'prayer' && <>{section('My prayer', 'prayer')}
+          {tab === 'prayer' && <>{guide ? (
+            <>
+              <View style={styles.savedCompanionPrayer}>
+                <ThemedText weight="bold" style={styles.savedCompanionPrayerLabel}>COMPANION PRAYER</ThemedText>
+                <ThemedText selectable style={styles.savedCompanionPrayerText}>{guide.prayer}</ThemedText>
+                {shown.guided?.prayedCompanionPrayer ? (
+                  <View style={styles.savedPrayedBadge}>
+                    <MaterialCommunityIcons name="hands-pray" size={16} color={Colors.alertCoral} />
+                    <ThemedText weight="medium" style={styles.savedPrayedBadgeText}>Prayed</ThemedText>
+                  </View>
+                ) : null}
+              </View>
+              {guidedPersonalPrayer.trim() ? (
+                <View style={styles.section}>
+                  <ThemedText weight="bold" style={styles.sectionLabel}>MY PRAYER</ThemedText>
+                  <ThemedText selectable style={styles.answer}>{guidedPersonalPrayer}</ThemedText>
+                </View>
+              ) : null}
+            </>
+          ) : section('My prayer', 'prayer')}
             {shown.prayer.saveToPrayerJournal && !!shown.prayer.text.trim() && <ThemedText style={styles.status}>Saved to Prayer Journal{shown.prayer.trackAnswered ? ' · Tracking if answered' : ''}</ThemedText>}
           </>}
         </DetailReveal>
@@ -345,6 +367,11 @@ const styles = StyleSheet.create({
   companionInsight: { backgroundColor: Colors.anchorBlueLight, borderRadius: 18, padding: 17, marginTop: 12, marginBottom: 8 },
   companionInsightLabel: { fontSize: 9, letterSpacing: 1.25, color: Colors.sage, marginBottom: 8 },
   companionInsightText: { fontFamily: Fonts.lora.regular, fontSize: 15, lineHeight: 25, color: Colors.text },
+  savedCompanionPrayer: { backgroundColor: Colors.sage, borderRadius: 22, padding: 20, marginVertical: 12 },
+  savedCompanionPrayerLabel: { fontSize: 9, letterSpacing: 1.4, color: 'rgba(255,255,255,0.68)', marginBottom: 10 },
+  savedCompanionPrayerText: { fontFamily: Fonts.lora.regular, fontSize: 16, lineHeight: 28, color: Colors.hopeWhite },
+  savedPrayedBadge: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', gap: 7, backgroundColor: 'rgba(255,107,107,0.15)', borderWidth: 1, borderColor: 'rgba(255,107,107,0.3)', borderRadius: 16, paddingHorizontal: 13, paddingVertical: 9, marginTop: 18 },
+  savedPrayedBadgeText: { fontSize: 13, color: Colors.alertCoral },
   carryCard: { backgroundColor: Colors.anchorBlueLight, borderRadius: 18, padding: 18, marginTop: 20 },
   carryText: { fontFamily: Fonts.lora.bold, fontSize: 17, lineHeight: 27, color: Colors.text, textAlign: 'center' },
   sectionLabel: { fontSize: 11, letterSpacing: 1.3, color: Colors.sage, marginBottom: 14 },

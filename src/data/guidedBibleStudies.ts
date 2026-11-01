@@ -4,7 +4,8 @@ export type GuidedBibleStudyPage =
   | 'look_again'
   | 'reflect'
   | 'respond'
-  | 'pray';
+  | 'pray'
+  | 'carry';
 
 export type GuidedAnswerSection = 'look_again' | 'reflect' | 'respond';
 

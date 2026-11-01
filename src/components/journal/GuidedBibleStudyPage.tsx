@@ -1,6 +1,7 @@
 import React from 'react';
 import {StyleSheet, TextInput, TouchableOpacity, View} from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
 import ThemedText from '../common/ThemedText';
 import {
@@ -19,11 +20,13 @@ interface Props {
   reflection: string;
   response: string;
   prayer: string;
+  prayedCompanionPrayer: boolean;
   revealedSections: GuidedAnswerSection[];
   onObservationChange: (text: string) => void;
   onReflectionChange: (text: string) => void;
   onResponseChange: (text: string) => void;
   onPrayerChange: (text: string) => void;
+  onTogglePrayedCompanionPrayer: () => void;
   onReveal: (section: GuidedAnswerSection) => void;
   onBlur: () => void;
 }
@@ -37,7 +40,7 @@ const PageHeader = ({step, label, title, support}: {
   <View style={styles.headerBlock}>
     <View style={styles.stageRow}>
       <View style={styles.stagePill}>
-        <ThemedText weight="bold" style={styles.stagePillText}>{step} OF 6</ThemedText>
+        <ThemedText weight="bold" style={styles.stagePillText}>{step} OF 7</ThemedText>
       </View>
       <ThemedText weight="semiBold" style={styles.stageLabel}>{label}</ThemedText>
     </View>
@@ -127,11 +130,13 @@ export default function GuidedBibleStudyPageView({
   reflection,
   response,
   prayer,
+  prayedCompanionPrayer,
   revealedSections,
   onObservationChange,
   onReflectionChange,
   onResponseChange,
   onPrayerChange,
+  onTogglePrayedCompanionPrayer,
   onReveal,
   onBlur,
 }: Props) {
@@ -187,26 +192,62 @@ export default function GuidedBibleStudyPageView({
     return <PromptPage step={5} label="RESPOND" title="Carry the truth forward." support="Choose one faithful response that is concrete and possible." prompt={guide.respond} value={response} section="respond" revealed={revealedSections.includes('respond')} onChange={onResponseChange} onReveal={() => onReveal('respond')} onBlur={onBlur} />;
   }
 
+  if (page === 'pray') {
+    return (
+      <View style={styles.page}>
+        <PageHeader step={6} label="PRAY" title="Turn what you read into prayer." support="Pray with the companion, write your own prayer, or do both." />
+        <View style={styles.prayerCard}>
+          <View style={styles.prayerIcon}>
+            <MaterialCommunityIcons name="hands-pray" size={20} color={Colors.hopeWhite} />
+          </View>
+          <ThemedText weight="semiBold" style={styles.prayerLabel}>COMPANION PRAYER</ThemedText>
+          <ThemedText selectable style={styles.companionPrayerText}>{guide.prayer}</ThemedText>
+          <TouchableOpacity
+            style={[styles.prayedButton, prayedCompanionPrayer && styles.prayedButtonActive]}
+            activeOpacity={0.78}
+            onPress={onTogglePrayedCompanionPrayer}
+            accessibilityRole="checkbox"
+            accessibilityState={{checked: prayedCompanionPrayer}}
+            accessibilityLabel={prayedCompanionPrayer ? 'Prayed this prayer' : 'I prayed this'}
+          >
+            <MaterialCommunityIcons
+              name="hands-pray"
+              size={18}
+              color={prayedCompanionPrayer ? Colors.alertCoral : Colors.hopeWhite}
+            />
+            <ThemedText weight="medium" style={[styles.prayedButtonText, prayedCompanionPrayer && styles.prayedButtonTextActive]}>
+              {prayedCompanionPrayer ? 'Prayed' : 'I prayed this'}
+            </ThemedText>
+          </TouchableOpacity>
+        </View>
+        <View style={styles.prayerChoiceRow}>
+          <View style={styles.prayerChoiceLine} />
+          <ThemedText weight="semiBold" style={styles.prayerChoiceLabel}>OR WRITE YOUR OWN</ThemedText>
+          <View style={styles.prayerChoiceLine} />
+        </View>
+        <View style={styles.personalPrayerCard}>
+          <ThemedText weight="semiBold" style={styles.responseLabel}>MY PRAYER</ThemedText>
+          <TextInput
+            multiline
+            value={prayer}
+            onChangeText={onPrayerChange}
+            onBlur={onBlur}
+            placeholder="Lord Jesus…"
+            placeholderTextColor={Colors.placeholderText}
+            selectionColor={Colors.sage}
+            cursorColor={Colors.sage}
+            style={styles.prayerInput}
+            accessibilityLabel="Guided study personal prayer"
+          />
+        </View>
+        <View style={styles.spacer} />
+      </View>
+    );
+  }
+
   return (
     <View style={styles.page}>
-      <PageHeader step={6} label="PRAY" title="Turn what you read into prayer." support="Begin with the companion prayer, then make the words your own." />
-      <View style={styles.prayerCard}>
-        <View style={styles.prayerIcon}>
-          <Ionicons name="heart-outline" size={20} color={Colors.hopeWhite} />
-        </View>
-        <TextInput
-          multiline
-          value={prayer}
-          onChangeText={onPrayerChange}
-          onBlur={onBlur}
-          placeholder="Lord Jesus…"
-          placeholderTextColor="rgba(255,255,255,0.62)"
-          selectionColor={Colors.hopeWhite}
-          cursorColor={Colors.hopeWhite}
-          style={styles.prayerInput}
-          accessibilityLabel="Guided study prayer"
-        />
-      </View>
+      <PageHeader step={7} label="CARRY" title="Carry this with you." support="Leave the study with one truth you can return to throughout the day." />
       <View style={styles.carryCard}>
         <Ionicons name="bookmark-outline" size={20} color={Colors.sage} />
         <ThemedText weight="semiBold" style={styles.carryLabel}>CARRY THIS WITH YOU</ThemedText>
@@ -260,9 +301,19 @@ const styles = StyleSheet.create({
   insightCard: {backgroundColor: Colors.cardBackground, borderWidth: 1, borderColor: Colors.cardBorder, borderRadius: 20, padding: 19, marginTop: 10},
   insightLabel: {fontSize: 9, letterSpacing: 1.4, color: Colors.sage, marginBottom: 9},
   insightText: {fontFamily: Fonts.lora.regular, fontSize: 16, lineHeight: 28, color: Colors.text},
-  prayerCard: {backgroundColor: Colors.sage, borderRadius: 26, padding: 22, marginBottom: 16},
+  prayerCard: {backgroundColor: Colors.sage, borderRadius: 26, padding: 22},
   prayerIcon: {width: 38, height: 38, borderRadius: 19, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center', marginBottom: 14},
-  prayerInput: {minHeight: 190, fontFamily: Fonts.lora.regular, fontSize: 17, lineHeight: 30, color: Colors.hopeWhite, padding: 0, textAlignVertical: 'top'},
+  prayerLabel: {fontSize: 9, letterSpacing: 1.5, color: 'rgba(255,255,255,0.68)', marginBottom: 10},
+  companionPrayerText: {fontFamily: Fonts.lora.regular, fontSize: 17, lineHeight: 30, color: Colors.hopeWhite},
+  prayedButton: {flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', gap: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)', borderRadius: 18, paddingHorizontal: 15, paddingVertical: 11, marginTop: 20, backgroundColor: 'rgba(255,255,255,0.08)'},
+  prayedButtonActive: {backgroundColor: 'rgba(255,107,107,0.15)', borderColor: 'rgba(255,107,107,0.3)'},
+  prayedButtonText: {fontSize: 14, color: Colors.hopeWhite},
+  prayedButtonTextActive: {color: Colors.alertCoral},
+  prayerChoiceRow: {flexDirection: 'row', alignItems: 'center', gap: 12, marginVertical: 20},
+  prayerChoiceLine: {height: 1, flex: 1, backgroundColor: Colors.cardBorder},
+  prayerChoiceLabel: {fontSize: 9, letterSpacing: 1.35, color: Colors.textGray},
+  personalPrayerCard: {backgroundColor: Colors.cardBackground, borderWidth: 1, borderColor: Colors.cardBorder, borderRadius: 22, padding: 19},
+  prayerInput: {minHeight: 150, fontFamily: Fonts.lora.regular, fontSize: 17, lineHeight: 30, color: Colors.text, padding: 0, textAlignVertical: 'top'},
   carryCard: {backgroundColor: Colors.cardBackground, borderWidth: 1, borderColor: Colors.cardBorder, borderRadius: 24, padding: 21, alignItems: 'center'},
   carryLabel: {fontSize: 9, letterSpacing: 1.5, color: Colors.sage, marginTop: 10, marginBottom: 9},
   carryText: {fontFamily: Fonts.lora.bold, fontSize: 19, lineHeight: 29, color: Colors.text, textAlign: 'center'},

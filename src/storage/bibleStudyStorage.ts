@@ -82,6 +82,8 @@ export interface BibleStudyContent {
     guideId: string;
     guideVersion: number;
     revealedSections: GuidedAnswerSection[];
+    personalPrayer?: string;
+    prayedCompanionPrayer?: boolean;
   };
 }
 
@@ -382,6 +384,7 @@ export const saveBibleStudyPrayer = async (
   prayerText: string,
   saveToJournal: boolean,
   trackAnswered = false,
+  prayed?: boolean,
 ): Promise<BibleStudySession> => {
   if (saveToJournal && prayerText.trim()) {
     if (session.prayer_ref) {
@@ -393,6 +396,11 @@ export const saveBibleStudyPrayer = async (
         const updated = await updateLocalPrayer({
           ...existing,
           content: prayerText.trim(),
+          ...(prayed ? {
+            prayed: true,
+            prayer_count: Math.max(existing.prayer_count ?? 0, 1),
+            last_prayed_at: existing.last_prayed_at ?? new Date().toISOString(),
+          } : {}),
           metadata: {
             ...existing.metadata,
             source: 'bible_study',
@@ -421,7 +429,9 @@ export const saveBibleStudyPrayer = async (
       prayer_type: 'journal',
       journal_category: 'supplication',
       selected_date: session.selected_date,
-      prayed: false,
+      prayed: prayed === true,
+      prayer_count: prayed ? 1 : 0,
+      last_prayed_at: prayed ? new Date().toISOString() : undefined,
       metadata: {
         source: 'bible_study',
         bibleStudySessionId: session.id,
@@ -466,6 +476,7 @@ export const completeBibleStudySession = async (
     finalContent.prayer.text,
     finalContent.prayer.saveToPrayerJournal,
     finalContent.prayer.trackAnswered ?? false,
+    finalContent.guided?.prayedCompanionPrayer ? true : undefined,
   );
 
   const now = new Date().toISOString();

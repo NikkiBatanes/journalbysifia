@@ -7,6 +7,7 @@ import {
   queueBibleStudyCompletedImpact,
   queueBibleStudyCreatedImpact,
 } from '../../services/journalImpactQueue';
+import { MATTHEW_23_GUIDED_STUDY } from '../../data/guidedBibleStudies';
 
 jest.mock('../../services/supabaseClient', () => ({ supabase: {} }));
 jest.mock('../journalStorage', () => ({ checkSession: jest.fn() }));
@@ -52,6 +53,34 @@ it('discovers the actual saved reflection after completing a study, while retain
   // Canonical completed reflections remain discoverable without their flow state.
   await storage.removeItem(`bible_study_session:${session.id}`);
   expect(await getSavedBibleStudyReflections()).toHaveLength(1);
+});
+
+it('saves a prayed companion prayer with its prayed status', async () => {
+  const guide = MATTHEW_23_GUIDED_STUDY;
+  const session = await createBibleStudySession({ reference: guide.reference }, '2026-09-15', {
+    studyMode: 'guided',
+    guideId: guide.id,
+    guideVersion: guide.version,
+  });
+  const content = createEmptyBibleStudyContent();
+  content.prayer.text = guide.prayer;
+  content.guided = {
+    guideId: guide.id,
+    guideVersion: guide.version,
+    revealedSections: [],
+    personalPrayer: '',
+    prayedCompanionPrayer: true,
+  };
+
+  const savedSession = await completeBibleStudySession(session, content);
+  const prayer = await getLocalPrayer(savedSession.prayer_ref!.local_id, session.selected_date);
+
+  expect(prayer).toMatchObject({
+    content: guide.prayer,
+    prayed: true,
+    prayer_count: 1,
+  });
+  expect(prayer?.last_prayed_at).toBeTruthy();
 });
 
 it('keeps two completed studies on the same date as distinct canonical records', async () => {
