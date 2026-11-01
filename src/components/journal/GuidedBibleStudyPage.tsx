@@ -4,6 +4,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
 import ThemedText from '../common/ThemedText';
+import PrayerHandsIcon from '../common/PrayerHandsIcon';
 import PrayerWritingSheet from '../prayer/PrayerWritingSheet';
 import {
   GuidedAnswerSection,
@@ -231,7 +232,7 @@ export default function GuidedBibleStudyPageView({
               accessibilityRole="button"
               accessibilityLabel={prayer.trim() ? 'Edit my prayer' : 'Write a prayer'}
             >
-              <Ionicons name="pencil-outline" size={17} color={Colors.hopeWhite} />
+              <PrayerHandsIcon size={17} color={Colors.hopeWhite} />
               <ThemedText weight="medium" style={styles.prayedButtonText}>{prayer.trim() ? 'Edit my prayer' : 'Write a prayer'}</ThemedText>
             </TouchableOpacity>
           </View>

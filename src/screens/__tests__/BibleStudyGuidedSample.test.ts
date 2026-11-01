@@ -54,6 +54,7 @@ describe('Bible Study guided sample', () => {
     expect(pageSource).toContain("page === 'pray'");
     expect(pageSource).toContain('OF 7');
     expect(pageSource).toContain('<PrayerWritingSheet');
+    expect(pageSource).toContain('<PrayerHandsIcon size={17} color={Colors.hopeWhite} />');
     expect(pageSource).toContain("prayer.trim() ? 'Edit my prayer' : 'Write a prayer'");
     expect(pageSource).toContain("prayedCompanionPrayer ? 'Prayed' : 'I prayed this'");
     expect(pageSource).toContain('label="CARRY"');
