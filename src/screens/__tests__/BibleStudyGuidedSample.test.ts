@@ -53,8 +53,8 @@ describe('Bible Study guided sample', () => {
     expect(pageSource).toContain('guide.contexts.map');
     expect(pageSource).toContain("page === 'pray'");
     expect(pageSource).toContain('OF 7');
-    expect(pageSource).toContain('accessibilityLabel="Guided study personal prayer"');
-    expect(pageSource).toContain("prayer.trim() ? 'Edit my prayer' : 'Write my own prayer'");
+    expect(pageSource).toContain('<PrayerWritingSheet');
+    expect(pageSource).toContain("prayer.trim() ? 'Edit my prayer' : 'Write a prayer'");
     expect(pageSource).toContain("prayedCompanionPrayer ? 'Prayed' : 'I prayed this'");
     expect(pageSource).toContain('label="CARRY"');
     expect(pageSource).toContain('CARRY THIS WITH YOU');
