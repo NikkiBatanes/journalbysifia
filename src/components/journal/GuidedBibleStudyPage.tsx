@@ -37,7 +37,7 @@ const PageHeader = ({step, label, title, support}: {
   <View style={styles.headerBlock}>
     <View style={styles.stageRow}>
       <View style={styles.stagePill}>
-        <ThemedText weight="bold" style={styles.stagePillText}>{step} OF 7</ThemedText>
+        <ThemedText weight="bold" style={styles.stagePillText}>{step} OF 6</ThemedText>
       </View>
       <ThemedText weight="semiBold" style={styles.stageLabel}>{label}</ThemedText>
     </View>
@@ -135,7 +135,9 @@ export default function GuidedBibleStudyPageView({
   onReveal,
   onBlur,
 }: Props) {
-  if (page === 'understand') {
+  // Older in-progress sessions may still point to the retired context page.
+  // Treat it as Understand so those studies resume in the combined experience.
+  if (page === 'understand' || page === 'context') {
     return (
       <View style={styles.page}>
         <PageHeader step={2} label="UNDERSTAND" title="What happens here?" support="See the movement of the whole chapter before looking closer." />
@@ -152,15 +154,11 @@ export default function GuidedBibleStudyPageView({
           <View style={styles.keyVerseDivider} />
           <ThemedText style={styles.keyVerseNote}>{guide.keyVerse.note}</ThemedText>
         </View>
-        <View style={styles.spacer} />
-      </View>
-    );
-  }
-
-  if (page === 'context') {
-    return (
-      <View style={styles.page}>
-        <PageHeader step={3} label="CONTEXT" title="Details that make the chapter clearer." support="A little background can help you read the passage on its own terms." />
+        <View style={styles.contextHeading}>
+          <ThemedText weight="semiBold" style={styles.contextEyebrow}>HELPFUL CONTEXT</ThemedText>
+          <ThemedText weight="bold" style={styles.contextHeadingTitle}>Details that make the chapter clearer.</ThemedText>
+          <ThemedText style={styles.contextHeadingSupport}>A little background can help you read the passage on its own terms.</ThemedText>
+        </View>
         {guide.contexts.map((context, index) => (
           <View key={context.title} style={styles.contextCard}>
             <View style={styles.contextNumber}>
@@ -178,20 +176,20 @@ export default function GuidedBibleStudyPageView({
   }
 
   if (page === 'look_again') {
-    return <PromptPage step={4} label="LOOK AGAIN" title="Return to the passage." support="Notice the repeated contrast, then compare what you saw with the companion." prompt={guide.lookAgain} value={observation} section="look_again" revealed={revealedSections.includes('look_again')} onChange={onObservationChange} onReveal={() => onReveal('look_again')} onBlur={onBlur} />;
+    return <PromptPage step={3} label="LOOK AGAIN" title="Return to the passage." support="Notice the repeated contrast, then compare what you saw with the companion." prompt={guide.lookAgain} value={observation} section="look_again" revealed={revealedSections.includes('look_again')} onChange={onObservationChange} onReveal={() => onReveal('look_again')} onBlur={onBlur} />;
   }
 
   if (page === 'reflect') {
-    return <PromptPage step={5} label="REFLECT" title="Let the truth examine the heart." support="Move from understanding the passage to receiving what it reveals." prompt={guide.reflect} value={reflection} section="reflect" revealed={revealedSections.includes('reflect')} onChange={onReflectionChange} onReveal={() => onReveal('reflect')} onBlur={onBlur} />;
+    return <PromptPage step={4} label="REFLECT" title="Let the truth examine the heart." support="Move from understanding the passage to receiving what it reveals." prompt={guide.reflect} value={reflection} section="reflect" revealed={revealedSections.includes('reflect')} onChange={onReflectionChange} onReveal={() => onReveal('reflect')} onBlur={onBlur} />;
   }
 
   if (page === 'respond') {
-    return <PromptPage step={6} label="RESPOND" title="Carry the truth forward." support="Choose one faithful response that is concrete and possible." prompt={guide.respond} value={response} section="respond" revealed={revealedSections.includes('respond')} onChange={onResponseChange} onReveal={() => onReveal('respond')} onBlur={onBlur} />;
+    return <PromptPage step={5} label="RESPOND" title="Carry the truth forward." support="Choose one faithful response that is concrete and possible." prompt={guide.respond} value={response} section="respond" revealed={revealedSections.includes('respond')} onChange={onResponseChange} onReveal={() => onReveal('respond')} onBlur={onBlur} />;
   }
 
   return (
     <View style={styles.page}>
-      <PageHeader step={7} label="PRAY" title="Turn what you read into prayer." support="Begin with the companion prayer, then make the words your own." />
+      <PageHeader step={6} label="PRAY" title="Turn what you read into prayer." support="Begin with the companion prayer, then make the words your own." />
       <View style={styles.prayerCard}>
         <View style={styles.prayerIcon}>
           <Ionicons name="heart-outline" size={20} color={Colors.hopeWhite} />
@@ -238,6 +236,10 @@ const styles = StyleSheet.create({
   keyVerseText: {fontFamily: Fonts.lora.regular, fontSize: 16, lineHeight: 28, color: Colors.text},
   keyVerseDivider: {height: 1, backgroundColor: Colors.cardBorder, marginVertical: 16},
   keyVerseNote: {fontSize: 14, lineHeight: 22, color: Colors.textGray},
+  contextHeading: {marginTop: 30, marginBottom: 16},
+  contextEyebrow: {fontSize: 9, letterSpacing: 1.5, color: Colors.sage, marginBottom: 8},
+  contextHeadingTitle: {fontFamily: Fonts.lora.bold, fontSize: 23, lineHeight: 31, color: Colors.text, marginBottom: 7},
+  contextHeadingSupport: {fontSize: 14, lineHeight: 22, color: Colors.textGray},
   contextCard: {flexDirection: 'row', gap: 14, backgroundColor: Colors.cardBackground, borderWidth: 1, borderColor: Colors.cardBorder, borderRadius: 22, padding: 18, marginBottom: 13},
   contextNumber: {width: 34, height: 34, borderRadius: 17, backgroundColor: Colors.anchorBlueLight, alignItems: 'center', justifyContent: 'center'},
   contextNumberText: {fontSize: 10, letterSpacing: 0.7, color: Colors.sage},

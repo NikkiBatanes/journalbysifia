@@ -11,7 +11,7 @@ import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
 import { triggerLightHaptic } from '../../utils/haptics';
 import {getScripturePassage} from '../../services/scriptureReaderService';
-import {getGuidedBibleStudy} from '../../data/guidedBibleStudies';
+import {getGuidedBibleStudy, type GuidedAnswerSection} from '../../data/guidedBibleStudies';
 import {
   formatScripturePassage,
   type FormattedScripturePassage,
@@ -104,6 +104,14 @@ export default function BibleStudyDetailView({ reference, selectedDate, translat
       <ThemedText weight="bold" style={styles.sectionLabel}>{label.toUpperCase()}</ThemedText>
       <ThemedText selectable style={styles.answer}>{shown[key].text.trim() || 'Nothing recorded yet.'}</ThemedText>
     </View>
+  );
+  const companionInsight = (label: string, key: GuidedAnswerSection, text: string) => (
+    guide && shown.guided?.revealedSections.includes(key) ? (
+      <View style={styles.companionInsight}>
+        <ThemedText weight="bold" style={styles.companionInsightLabel}>{label.toUpperCase()}</ThemedText>
+        <ThemedText selectable style={styles.companionInsightText}>{text}</ThemedText>
+      </View>
+    ) : null
   );
   const highlightPresentation = (highlight: BibleStudyContent['highlights'][number]) => {
     let selectionStart = -1;
@@ -206,6 +214,20 @@ export default function BibleStudyDetailView({ reference, selectedDate, translat
                 <ThemedText style={styles.guideKeyVerseText}>{guide.keyVerse.text}</ThemedText>
                 <ThemedText style={styles.guideKeyVerseNote}>{guide.keyVerse.note}</ThemedText>
               </View>
+              <View style={styles.savedContextSection}>
+                <ThemedText weight="bold" style={styles.sectionLabel}>HELPFUL CONTEXT</ThemedText>
+                {guide.contexts.map((context, index) => (
+                  <View key={context.title} style={styles.savedContextCard}>
+                    <View style={styles.savedContextNumber}>
+                      <ThemedText weight="bold" style={styles.savedContextNumberText}>0{index + 1}</ThemedText>
+                    </View>
+                    <View style={styles.savedContextCopy}>
+                      <ThemedText weight="bold" style={styles.savedContextTitle}>{context.title}</ThemedText>
+                      <ThemedText style={styles.savedContextBody}>{context.body}</ThemedText>
+                    </View>
+                  </View>
+                ))}
+              </View>
             </View> : null}
             {shown.highlights.length > 0 && <View style={styles.section}>
               <ThemedText weight="bold" style={styles.sectionLabel}>PASSAGES THAT STOOD OUT</ThemedText>
@@ -227,7 +249,9 @@ export default function BibleStudyDetailView({ reference, selectedDate, translat
             </View>}
             {savedChoices(shown.observation.tags ?? [])}
             {section(guide ? 'My Look Again response' : 'What I noticed', 'observation')}
+            {guide ? companionInsight('Look Again · Companion insight', 'look_again', guide.lookAgain.guideAnswer) : null}
             {section(guide ? 'My reflection' : 'What the passage is teaching', 'understanding')}
+            {guide ? companionInsight('Reflect · Companion insight', 'reflect', guide.reflect.guideAnswer) : null}
             {(shown.understanding.prompts ?? Object.keys(shown.understanding.byPrompt ?? {})).map(prompt => {
               const answer = shown.understanding.byPrompt?.[prompt] ?? '';
               return <View key={prompt} style={styles.section}>
@@ -239,6 +263,7 @@ export default function BibleStudyDetailView({ reference, selectedDate, translat
           {tab === 'response' && <>
             {savedChoices(shown.response.prompts ?? Object.keys(shown.response.byPrompt ?? {}))}
             {section('My response', 'response')}
+            {guide ? companionInsight('Respond · Companion insight', 'respond', guide.respond.guideAnswer) : null}
             {guide ? <View style={styles.carryCard}>
               <ThemedText weight="bold" style={styles.sectionLabel}>CARRY THIS WITH YOU</ThemedText>
               <ThemedText style={styles.carryText}>{guide.carryTruth}</ThemedText>
@@ -310,6 +335,16 @@ const styles = StyleSheet.create({
   guideKeyVerseReference: { fontFamily: Fonts.lora.bold, fontSize: 18, color: Colors.text, marginBottom: 6 },
   guideKeyVerseText: { fontFamily: Fonts.lora.regular, fontSize: 15, lineHeight: 25, color: Colors.text, marginBottom: 9 },
   guideKeyVerseNote: { fontSize: 14, lineHeight: 22, color: Colors.textGray },
+  savedContextSection: { marginTop: 26 },
+  savedContextCard: { flexDirection: 'row', gap: 12, backgroundColor: Colors.cardBackground, borderWidth: 1, borderColor: Colors.cardBorder, borderRadius: 18, padding: 16, marginBottom: 11 },
+  savedContextNumber: { width: 30, height: 30, borderRadius: 15, backgroundColor: Colors.anchorBlueLight, alignItems: 'center', justifyContent: 'center' },
+  savedContextNumberText: { fontSize: 9, letterSpacing: 0.6, color: Colors.sage },
+  savedContextCopy: { flex: 1 },
+  savedContextTitle: { fontFamily: Fonts.lora.bold, fontSize: 17, lineHeight: 23, color: Colors.text, marginBottom: 5 },
+  savedContextBody: { fontSize: 14, lineHeight: 22, color: Colors.textGray },
+  companionInsight: { backgroundColor: Colors.anchorBlueLight, borderRadius: 18, padding: 17, marginTop: 12, marginBottom: 8 },
+  companionInsightLabel: { fontSize: 9, letterSpacing: 1.25, color: Colors.sage, marginBottom: 8 },
+  companionInsightText: { fontFamily: Fonts.lora.regular, fontSize: 15, lineHeight: 25, color: Colors.text },
   carryCard: { backgroundColor: Colors.anchorBlueLight, borderRadius: 18, padding: 18, marginTop: 20 },
   carryText: { fontFamily: Fonts.lora.bold, fontSize: 17, lineHeight: 27, color: Colors.text, textAlign: 'center' },
   sectionLabel: { fontSize: 11, letterSpacing: 1.3, color: Colors.sage, marginBottom: 14 },

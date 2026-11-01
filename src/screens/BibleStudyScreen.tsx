@@ -110,7 +110,6 @@ const STAGES: BibleStudyStage[] = [
 
 const GUIDED_PAGES: GuidedBibleStudyPage[] = [
   'understand',
-  'context',
   'look_again',
   'reflect',
   'respond',
@@ -674,7 +673,7 @@ const BibleStudyScreen = () => {
       if (!mounted) {return;}
       if (active) {
         setSession(active);
-        setGuidedPage(active.guided_page ?? 'understand');
+        setGuidedPage(active.guided_page === 'context' ? 'understand' : active.guided_page ?? 'understand');
         const content = await loadBibleStudyContent(active);
         if (!mounted) {return;}
         applyContent(content);
@@ -1571,7 +1570,7 @@ const BibleStudyScreen = () => {
       {activeGuide
         ? <View style={styles.guidedReadHeader}>
           <View style={styles.guidedReadStageRow}>
-            <View style={styles.guidedReadStagePill}><ThemedText weight="bold" style={styles.guidedReadStagePillText}>1 OF 7</ThemedText></View>
+            <View style={styles.guidedReadStagePill}><ThemedText weight="bold" style={styles.guidedReadStagePillText}>1 OF 6</ThemedText></View>
             <ThemedText weight="semiBold" style={styles.guidedReadStageLabel}>READ</ThemedText>
           </View>
           <ThemedText weight="bold" style={styles.guidedReadTitle}>Read {activeGuide.reference}</ThemedText>

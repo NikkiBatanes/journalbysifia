@@ -46,9 +46,12 @@ describe('Bible Study guided sample', () => {
   it('renders every app-native guided step and saves the companion identity', () => {
     const pageSource = fs.readFileSync(path.resolve(__dirname, '../../components/journal/GuidedBibleStudyPage.tsx'), 'utf8');
     const storageSource = fs.readFileSync(path.resolve(__dirname, '../../storage/bibleStudyStorage.ts'), 'utf8');
-    for (const page of ['understand', 'context', 'look_again', 'reflect', 'respond']) {
+    for (const page of ['understand', 'look_again', 'reflect', 'respond']) {
       expect(pageSource).toContain(`page === '${page}'`);
     }
+    expect(pageSource).toContain("page === 'understand' || page === 'context'");
+    expect(pageSource).toContain('guide.contexts.map');
+    expect(pageSource).toContain('OF 6');
     expect(pageSource).toContain('accessibilityLabel="Guided study prayer"');
     expect(pageSource).toContain('CARRY THIS WITH YOU');
     expect(storageSource).toContain("study_mode?: 'self_guided' | 'guided'");
