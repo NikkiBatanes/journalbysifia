@@ -6,6 +6,7 @@ import { format } from 'date-fns';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import ScriptureReaderModal from '../ScriptureReaderModal';
 import ThemedText from '../common/ThemedText';
+import PrayerHandsIcon from '../common/PrayerHandsIcon';
 import { BibleStudyContent } from '../../storage/bibleStudyStorage';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
@@ -279,7 +280,7 @@ export default function BibleStudyDetailView({ reference, selectedDate, translat
                 <ThemedText selectable style={styles.savedCompanionPrayerText}>{guide.prayer}</ThemedText>
                 {shown.guided?.prayedCompanionPrayer ? (
                   <View style={styles.savedPrayedBadge}>
-                    <MaterialCommunityIcons name="hands-pray" size={16} color={Colors.alertCoral} />
+                    <PrayerHandsIcon size={16} color={Colors.hopeWhite} />
                     <ThemedText weight="medium" style={styles.savedPrayedBadgeText}>Prayed</ThemedText>
                   </View>
                 ) : null}
@@ -370,8 +371,8 @@ const styles = StyleSheet.create({
   savedCompanionPrayer: { backgroundColor: Colors.sage, borderRadius: 22, padding: 20, marginVertical: 12 },
   savedCompanionPrayerLabel: { fontSize: 9, letterSpacing: 1.4, color: 'rgba(255,255,255,0.68)', marginBottom: 10 },
   savedCompanionPrayerText: { fontFamily: Fonts.lora.regular, fontSize: 16, lineHeight: 28, color: Colors.hopeWhite },
-  savedPrayedBadge: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', gap: 7, backgroundColor: 'rgba(255,107,107,0.15)', borderWidth: 1, borderColor: 'rgba(255,107,107,0.3)', borderRadius: 16, paddingHorizontal: 13, paddingVertical: 9, marginTop: 18 },
-  savedPrayedBadgeText: { fontSize: 13, color: Colors.alertCoral },
+  savedPrayedBadge: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', gap: 7, backgroundColor: 'rgba(255,255,255,0.18)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.55)', borderRadius: 16, paddingHorizontal: 13, paddingVertical: 9, marginTop: 18 },
+  savedPrayedBadgeText: { fontSize: 13, color: Colors.hopeWhite },
   carryCard: { backgroundColor: Colors.anchorBlueLight, borderRadius: 18, padding: 18, marginTop: 20 },
   carryText: { fontFamily: Fonts.lora.bold, fontSize: 17, lineHeight: 27, color: Colors.text, textAlign: 'center' },
   sectionLabel: { fontSize: 11, letterSpacing: 1.3, color: Colors.sage, marginBottom: 14 },

@@ -218,7 +218,7 @@ export default function GuidedBibleStudyPageView({
             >
               <PrayerHandsIcon
                 size={18}
-                color={prayedCompanionPrayer ? Colors.alertCoral : Colors.hopeWhite}
+                color={Colors.hopeWhite}
               />
               <ThemedText weight="medium" style={[styles.prayedButtonText, prayedCompanionPrayer && styles.prayedButtonTextActive]}>
                 {prayedCompanionPrayer ? 'Prayed' : 'I prayed this'}
@@ -318,9 +318,9 @@ const styles = StyleSheet.create({
   companionPrayerText: {fontFamily: Fonts.lora.regular, fontSize: 17, lineHeight: 30, color: Colors.hopeWhite},
   prayerActions: {flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 10, marginTop: 20},
   prayerActionButton: {flexDirection: 'row', alignItems: 'center', gap: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)', borderRadius: 18, paddingHorizontal: 15, paddingVertical: 11, backgroundColor: 'rgba(255,255,255,0.08)'},
-  prayedButtonActive: {backgroundColor: 'rgba(255,107,107,0.15)', borderColor: 'rgba(255,107,107,0.3)'},
+  prayedButtonActive: {backgroundColor: 'rgba(255,255,255,0.18)', borderColor: 'rgba(255,255,255,0.55)'},
   prayedButtonText: {fontSize: 14, color: Colors.hopeWhite},
-  prayedButtonTextActive: {color: Colors.alertCoral},
+  prayedButtonTextActive: {color: Colors.hopeWhite},
   carryCard: {backgroundColor: Colors.cardBackground, borderWidth: 1, borderColor: Colors.cardBorder, borderRadius: 24, padding: 21, alignItems: 'center'},
   carryLabel: {fontSize: 9, letterSpacing: 1.5, color: Colors.sage, marginTop: 10, marginBottom: 9},
   carryText: {fontFamily: Fonts.lora.bold, fontSize: 19, lineHeight: 29, color: Colors.text, textAlign: 'center'},
