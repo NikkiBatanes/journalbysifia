@@ -46,7 +46,9 @@ import {
 import {formatScripturePassage} from '../services/scripturePassageFormatting';
 import { BIBLE_STUDY_TOPICS, BibleStudyTopic } from '../data/bibleStudyTopics';
 import {
+  GUIDED_BIBLE_STUDIES,
   GuidedAnswerSection,
+  GuidedBibleStudy,
   GuidedBibleStudyPage,
   MATTHEW_23_GUIDED_STUDY,
   getGuidedBibleStudy,
@@ -326,6 +328,7 @@ const BibleStudyScreen = () => {
 
   const [search, setSearch] = useState('');
   const [selectedTopic, setSelectedTopic] = useState<BibleStudyTopic | null>(null);
+  const [johnPreviewOpen, setJohnPreviewOpen] = useState(false);
   const homeRevealAnims = useRef(
     Array.from({length: 5}, () => new Animated.Value(0)),
   ).current;
@@ -386,7 +389,7 @@ const BibleStudyScreen = () => {
   }, []);
 
   useEffect(() => {
-    if (!screenEntranceReady || isLoading || stage !== 'home' || selectedTopic) {return;}
+    if (!screenEntranceReady || isLoading || stage !== 'home' || selectedTopic || johnPreviewOpen) {return;}
     homeRevealAnims.forEach(animation => {
       animation.stopAnimation();
       animation.setValue(reduceMotion.current ? 1 : 0);
@@ -405,7 +408,7 @@ const BibleStudyScreen = () => {
     );
     requestAnimationFrame(() => entrance.start());
     return () => entrance.stop();
-  }, [homeRevealAnims, isLoading, openRequestId, screenEntranceReady, selectedTopic, stage]);
+  }, [homeRevealAnims, isLoading, johnPreviewOpen, openRequestId, screenEntranceReady, selectedTopic, stage]);
 
   const homeRevealStyle = (animation: Animated.Value) => ({
     opacity: animation,
@@ -642,6 +645,7 @@ const BibleStudyScreen = () => {
     setEditingSavedStudy(false);
     setSearch('');
     setSelectedTopic(null);
+    setJohnPreviewOpen(false);
     setObserveHighlightIndex(0);
     setUnderstandingPhase('main');
     setResponsePhase('journal');
@@ -751,8 +755,7 @@ const BibleStudyScreen = () => {
     setSession(newSession);
   }, [applyContent, loadPassageText, preferredBibleVersion, requestedSelectedDate]);
 
-  const startGuidedStudy = useCallback(async () => {
-    const guide = MATTHEW_23_GUIDED_STUDY;
+  const startGuidedStudy = useCallback(async (guide: GuidedBibleStudy) => {
     triggerLightHaptic();
     const passage = {...parsePassageReference(guide.reference), translation: preferredBibleVersion};
     setSession(null);
@@ -1058,12 +1061,13 @@ const BibleStudyScreen = () => {
 
   const renderTop = () => stage === 'home' ? (
     <View style={[styles.homeTop, { top: insets.top + 8 }]} pointerEvents="box-none">
-      {selectedTopic ? (
+      {selectedTopic || johnPreviewOpen ? (
         <HeaderBackButton
           onPress={() => {
             triggerLightHaptic();
             prepareReveal(homeRevealAnims);
             setSelectedTopic(null);
+            setJohnPreviewOpen(false);
           }}
           style={[styles.homeNavButton, styles.homeBackButton]}
         />
@@ -1166,6 +1170,46 @@ const BibleStudyScreen = () => {
     setSelectedTopic(topic);
   };
 
+  const johnPreviewStudies = __DEV__
+    ? GUIDED_BIBLE_STUDIES.filter(guide => guide.reference.startsWith('John '))
+    : [];
+
+  const renderJohnPreview = () => (
+    <View style={[styles.homePage, {paddingTop: insets.top + 8}]}>
+      <View style={styles.homeLabelContainer}>
+        <Ionicons name="flask-outline" size={15} color={Colors.sage} />
+        <ThemedText weight="semiBold" style={styles.homeEyebrow}>Development preview</ThemedText>
+      </View>
+      <ThemedText weight="semiBold" style={styles.homeTitle}>The Gospel According to John</ThemedText>
+      <ThemedText style={styles.homeLead}>
+        Choose a chapter to open its complete Scripture-first companion.
+      </ThemedText>
+
+      <ThemedText weight="semiBold" style={styles.sectionLabel}>Choose a chapter</ThemedText>
+      <View style={styles.johnChapterGrid}>
+        {johnPreviewStudies.map(guide => {
+          const chapter = guide.reference.replace('John ', '');
+          return (
+            <TouchableOpacity
+              key={guide.id}
+              style={styles.johnChapterButton}
+              activeOpacity={0.68}
+              onPress={() => startGuidedStudy(guide)}
+              accessibilityRole="button"
+              accessibilityLabel={`Start John chapter ${chapter}`}
+            >
+              <ThemedText weight="bold" style={styles.johnChapterNumber}>{chapter}</ThemedText>
+              <ThemedText style={styles.johnChapterLabel}>John</ThemedText>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+      <ThemedText style={styles.johnPreviewNote}>
+        Preview only. This collection stays hidden from production until remote access and purchasing are ready.
+      </ThemedText>
+    </View>
+  );
+
   const renderTopic = (topic: BibleStudyTopic) => (
     <View style={[styles.homePage, { paddingTop: insets.top + 8 }]}>
       <Animated.View
@@ -1206,7 +1250,11 @@ const BibleStudyScreen = () => {
     </View>
   );
 
-  const renderHome = () => selectedTopic ? renderTopic(selectedTopic) : (
+  const renderHome = () => selectedTopic
+    ? renderTopic(selectedTopic)
+    : johnPreviewOpen
+      ? renderJohnPreview()
+      : (
     <View style={[styles.homePage, { paddingTop: insets.top + 8 }]}>
       <Animated.View
         style={[styles.homeLabelContainer, homeRevealStyle(homeRevealAnims[0])]}
@@ -1262,7 +1310,7 @@ const BibleStudyScreen = () => {
         <TouchableOpacity
           style={styles.guidedSampleCard}
           activeOpacity={0.72}
-          onPress={startGuidedStudy}
+          onPress={() => startGuidedStudy(MATTHEW_23_GUIDED_STUDY)}
           accessibilityRole="button"
           accessibilityLabel="Try the Matthew 23 Guided Study"
         >
@@ -1286,6 +1334,36 @@ const BibleStudyScreen = () => {
           </View>
         </TouchableOpacity>
       </Animated.View>
+      {__DEV__ ? (
+        <Animated.View style={homeRevealStyle(homeRevealAnims[4])}>
+          <TouchableOpacity
+            style={styles.johnPreviewCard}
+            activeOpacity={0.72}
+            onPress={() => {
+              triggerLightHaptic();
+              setJohnPreviewOpen(true);
+            }}
+            accessibilityRole="button"
+            accessibilityLabel="Preview the Gospel According to John chapter companions"
+          >
+            <View style={styles.guidedSampleTopRow}>
+              <View style={styles.johnPreviewBadge}>
+                <Ionicons name="flask-outline" size={13} color={Colors.sage} />
+                <ThemedText weight="bold" style={styles.guidedSampleBadgeText}>DEVELOPMENT PREVIEW</ThemedText>
+              </View>
+              <ThemedText style={styles.guidedSampleTime}>21 chapters</ThemedText>
+            </View>
+            <ThemedText weight="bold" style={styles.guidedSampleTitle}>The Gospel According to John</ThemedText>
+            <ThemedText style={styles.guidedSampleDescription}>
+              Study the whole book chapter by chapter using the new companion experience.
+            </ThemedText>
+            <View style={styles.guidedSampleAction}>
+              <ThemedText weight="semiBold" style={styles.guidedSampleActionText}>Choose a chapter</ThemedText>
+              <Ionicons name="arrow-forward" size={17} color={Colors.sage} />
+            </View>
+          </TouchableOpacity>
+        </Animated.View>
+      ) : null}
       <AnimatedBibleStudyTopics suggestions={suggestedTopics} topics={BIBLE_STUDY_TOPICS} expanded
         animateOnMount entranceDelay={190}
         reduceMotion={reduceMotion.current} onSelect={selectTopic} gridStyle={styles.topicGrid}
@@ -2060,7 +2138,7 @@ const BibleStudyScreen = () => {
 
   const contentAnimationKey = [
     stage,
-    stage === 'home' ? selectedTopic?.id ?? 'root' : '',
+    stage === 'home' ? selectedTopic?.id ?? (johnPreviewOpen ? 'john-preview' : 'root') : '',
     stage === 'observe' ? observeHighlightIndex : '',
     stage === 'understand' ? understandingPhase : '',
     stage === 'respond' ? responsePhase : '',
@@ -2920,6 +2998,60 @@ const styles = StyleSheet.create({
   guidedSampleActionText: {
     fontSize: 14,
     color: Colors.sage,
+  },
+  johnPreviewCard: {
+    backgroundColor: '#F1F4EE',
+    borderWidth: 1,
+    borderColor: 'rgba(82,106,91,0.2)',
+    borderRadius: 24,
+    padding: 20,
+    marginBottom: 22,
+  },
+  johnPreviewBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(82,106,91,0.1)',
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+  },
+  johnChapterGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    rowGap: 12,
+  },
+  johnChapterButton: {
+    width: '30.5%',
+    minHeight: 82,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.cardBackground,
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+    borderRadius: 20,
+  },
+  johnChapterNumber: {
+    fontFamily: Fonts.lora.bold,
+    fontSize: 24,
+    lineHeight: 29,
+    color: Colors.text,
+  },
+  johnChapterLabel: {
+    fontSize: 10,
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+    color: Colors.sageMuted,
+  },
+  johnPreviewNote: {
+    fontSize: 12,
+    lineHeight: 19,
+    color: Colors.textGray,
+    textAlign: 'center',
+    marginTop: 20,
+    marginBottom: 12,
+    paddingHorizontal: 12,
   },
   guidedReadHeader: {
     marginBottom: 26,

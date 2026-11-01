@@ -1,4 +1,5 @@
 import {JOHN_GUIDED_STUDIES} from '../../../content/bibleStudy/john';
+import {getGuidedBibleStudy} from '../guidedBibleStudies';
 
 const sentenceCount = (text: string): number =>
   (text.match(/[.!?](?=[”']?(?:\s|$))/g) ?? []).length;
@@ -13,6 +14,7 @@ describe('John chapter companions', () => {
       Array.from({length: 21}, (_, index) => `John ${index + 1}`),
     );
     expect(new Set(JOHN_GUIDED_STUDIES.map(study => study.id)).size).toBe(21);
+    expect(getGuidedBibleStudy(JOHN_GUIDED_STUDIES[0].id)).toBe(JOHN_GUIDED_STUDIES[0]);
   });
 
   it('keeps every chapter within the master companion structure', () => {

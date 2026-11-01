@@ -11,3 +11,5 @@ This directory contains editorial source content for Bible study collections. It
 - A new app build is needed only when the study schema, reader behavior, purchase flow, or visual experience changes.
 
 `john.ts` is the complete editorial source for John 1–21. It is not currently exposed as free bundled content. Matthew 23 remains the bundled sample until the remote catalog and entitlement loader are introduced.
+
+During development, `BibleStudyScreen` imports John behind `__DEV__` so the collection can be reviewed in the app. The preview entry and registry are disabled in release mode; replace this temporary development connection with the remote loader before publishing John.

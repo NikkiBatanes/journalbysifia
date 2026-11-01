@@ -1,3 +1,5 @@
+import {JOHN_GUIDED_STUDIES} from '../../content/bibleStudy/john';
+
 export type GuidedBibleStudyPage =
   | 'understand'
   | 'context'
@@ -95,6 +97,7 @@ export const MATTHEW_23_GUIDED_STUDY: GuidedBibleStudy = {
 
 export const GUIDED_BIBLE_STUDIES: GuidedBibleStudy[] = [
   MATTHEW_23_GUIDED_STUDY,
+  ...(__DEV__ ? JOHN_GUIDED_STUDIES : []),
 ];
 
 export const getGuidedBibleStudy = (id?: string): GuidedBibleStudy | undefined =>

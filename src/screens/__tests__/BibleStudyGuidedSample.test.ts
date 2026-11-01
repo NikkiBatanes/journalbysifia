@@ -39,6 +39,10 @@ describe('Bible Study guided sample', () => {
     expect(source).toContain("studyMode: 'guided'");
     expect(source).toContain('guideId: guide.id');
     expect(source).toContain('INCLUDED GUIDED STUDY');
+    expect(source).toContain('DEVELOPMENT PREVIEW');
+    expect(source).toContain('The Gospel According to John');
+    expect(source).toContain('johnPreviewStudies.map');
+    expect(source).toContain('{__DEV__ ? (');
     expect(source).toContain("activeGuide ? advanceGuided('understand') : advance('observe')");
     expect(source).not.toContain('Color & Reflect');
   });
