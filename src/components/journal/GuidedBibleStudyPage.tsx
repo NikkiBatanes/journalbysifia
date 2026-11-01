@@ -1,7 +1,7 @@
 import React, {useState} from 'react';
 import {StyleSheet, TextInput, TouchableOpacity, View} from 'react-native';
+import {Pencil} from 'lucide-react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
 import ThemedText from '../common/ThemedText';
 import PrayerHandsIcon from '../common/PrayerHandsIcon';
@@ -203,7 +203,7 @@ export default function GuidedBibleStudyPageView({
         <PageHeader step={6} label="PRAY" title="Turn what you read into prayer." support="Pray with the companion, write your own prayer, or do both." />
         <View style={styles.prayerCard}>
           <View style={styles.prayerIcon}>
-            <MaterialCommunityIcons name="hands-pray" size={20} color={Colors.hopeWhite} />
+            <PrayerHandsIcon size={20} color={Colors.hopeWhite} />
           </View>
           <ThemedText weight="semiBold" style={styles.prayerLabel}>COMPANION PRAYER</ThemedText>
           <ThemedText selectable style={styles.companionPrayerText}>{guide.prayer}</ThemedText>
@@ -216,8 +216,7 @@ export default function GuidedBibleStudyPageView({
               accessibilityState={{checked: prayedCompanionPrayer}}
               accessibilityLabel={prayedCompanionPrayer ? 'Prayed this prayer' : 'I prayed this'}
             >
-              <MaterialCommunityIcons
-                name="hands-pray"
+              <PrayerHandsIcon
                 size={18}
                 color={prayedCompanionPrayer ? Colors.alertCoral : Colors.hopeWhite}
               />
@@ -232,7 +231,7 @@ export default function GuidedBibleStudyPageView({
               accessibilityRole="button"
               accessibilityLabel={prayer.trim() ? 'Edit my prayer' : 'Write a prayer'}
             >
-              <PrayerHandsIcon size={17} color={Colors.hopeWhite} />
+              <Pencil size={17} color={Colors.hopeWhite} strokeWidth={1.8} />
               <ThemedText weight="medium" style={styles.prayedButtonText}>{prayer.trim() ? 'Edit my prayer' : 'Write a prayer'}</ThemedText>
             </TouchableOpacity>
           </View>
