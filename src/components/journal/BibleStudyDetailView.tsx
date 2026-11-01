@@ -11,6 +11,7 @@ import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
 import { triggerLightHaptic } from '../../utils/haptics';
 import {getScripturePassage} from '../../services/scriptureReaderService';
+import {getGuidedBibleStudy} from '../../data/guidedBibleStudies';
 import {
   formatScripturePassage,
   type FormattedScripturePassage,
@@ -78,6 +79,7 @@ export default function BibleStudyDetailView({ reference, selectedDate, translat
     return () => {active = false;};
   }, [reference, translation]);
   const shown = content;
+  const guide = getGuidedBibleStudy(content.guided?.guideId);
   const [year, month, day] = selectedDate.split('-').map(Number);
   const savedChoices = (choices: string[]) => choices.length ? (
     <View style={styles.savedChoices}>
@@ -174,7 +176,7 @@ export default function BibleStudyDetailView({ reference, selectedDate, translat
         contentContainerStyle={{ paddingTop: insets.top + 90, paddingBottom: insets.bottom + 60 }}>
         <DetailReveal delay={20} reduceMotion={reduceMotion} style={styles.hero}>
           <ThemedText style={styles.date}>{format(new Date(year, month - 1, day), year === new Date().getFullYear() ? 'EEE, MMMM d' : 'EEE, MMMM d, yyyy').toUpperCase()}</ThemedText>
-          <ThemedText weight="bold" style={styles.eyebrow}>BIBLE STUDY</ThemedText>
+          <ThemedText weight="bold" style={styles.eyebrow}>{guide ? 'GUIDED STUDY' : 'BIBLE STUDY'}</ThemedText>
           <View style={styles.titleRow}>
             <ThemedText weight="bold" style={styles.title}>{reference}</ThemedText>
             <TouchableOpacity accessibilityRole="button" accessibilityLabel="Read study passage" hitSlop={10}
@@ -196,6 +198,15 @@ export default function BibleStudyDetailView({ reference, selectedDate, translat
         </View>
         <DetailReveal key={tab} delay={215} reduceMotion={reduceMotion} style={styles.body}>
           {tab === 'study' && <>
+            {guide ? <View style={styles.guideOverview}>
+              <ThemedText weight="bold" style={styles.sectionLabel}>WHAT HAPPENS HERE?</ThemedText>
+              <ThemedText style={styles.guideSummary}>{guide.summary}</ThemedText>
+              <View style={styles.guideKeyVerse}>
+                <ThemedText weight="bold" style={styles.guideKeyVerseReference}>{guide.keyVerse.reference} · {guide.keyVerse.translation}</ThemedText>
+                <ThemedText style={styles.guideKeyVerseText}>{guide.keyVerse.text}</ThemedText>
+                <ThemedText style={styles.guideKeyVerseNote}>{guide.keyVerse.note}</ThemedText>
+              </View>
+            </View> : null}
             {shown.highlights.length > 0 && <View style={styles.section}>
               <ThemedText weight="bold" style={styles.sectionLabel}>PASSAGES THAT STOOD OUT</ThemedText>
               {shown.highlights.map(highlight => {
@@ -215,8 +226,8 @@ export default function BibleStudyDetailView({ reference, selectedDate, translat
               })}
             </View>}
             {savedChoices(shown.observation.tags ?? [])}
-            {section('What I noticed', 'observation')}
-            {section('What the passage is teaching', 'understanding')}
+            {section(guide ? 'My Look Again response' : 'What I noticed', 'observation')}
+            {section(guide ? 'My reflection' : 'What the passage is teaching', 'understanding')}
             {(shown.understanding.prompts ?? Object.keys(shown.understanding.byPrompt ?? {})).map(prompt => {
               const answer = shown.understanding.byPrompt?.[prompt] ?? '';
               return <View key={prompt} style={styles.section}>
@@ -228,6 +239,10 @@ export default function BibleStudyDetailView({ reference, selectedDate, translat
           {tab === 'response' && <>
             {savedChoices(shown.response.prompts ?? Object.keys(shown.response.byPrompt ?? {}))}
             {section('My response', 'response')}
+            {guide ? <View style={styles.carryCard}>
+              <ThemedText weight="bold" style={styles.sectionLabel}>CARRY THIS WITH YOU</ThemedText>
+              <ThemedText style={styles.carryText}>{guide.carryTruth}</ThemedText>
+            </View> : null}
           </>}
           {tab === 'prayer' && <>{section('My prayer', 'prayer')}
             {shown.prayer.saveToPrayerJournal && !!shown.prayer.text.trim() && <ThemedText style={styles.status}>Saved to Prayer Journal{shown.prayer.trackAnswered ? ' · Tracking if answered' : ''}</ThemedText>}
@@ -289,6 +304,14 @@ const styles = StyleSheet.create({
   savedChoiceText: { fontSize: 13, color: Colors.sage },
   body: { paddingHorizontal: 22, paddingTop: 20 },
   section: { paddingVertical: 20, borderBottomWidth: 1, borderBottomColor: Colors.cardBorder },
+  guideOverview: { paddingVertical: 20, borderBottomWidth: 1, borderBottomColor: Colors.cardBorder },
+  guideSummary: { fontFamily: Fonts.lora.regular, fontSize: 16, lineHeight: 28, color: Colors.text },
+  guideKeyVerse: { borderLeftWidth: 3, borderLeftColor: '#B89B67', paddingLeft: 16, marginTop: 18 },
+  guideKeyVerseReference: { fontFamily: Fonts.lora.bold, fontSize: 18, color: Colors.text, marginBottom: 6 },
+  guideKeyVerseText: { fontFamily: Fonts.lora.regular, fontSize: 15, lineHeight: 25, color: Colors.text, marginBottom: 9 },
+  guideKeyVerseNote: { fontSize: 14, lineHeight: 22, color: Colors.textGray },
+  carryCard: { backgroundColor: Colors.anchorBlueLight, borderRadius: 18, padding: 18, marginTop: 20 },
+  carryText: { fontFamily: Fonts.lora.bold, fontSize: 17, lineHeight: 27, color: Colors.text, textAlign: 'center' },
   sectionLabel: { fontSize: 11, letterSpacing: 1.3, color: Colors.sage, marginBottom: 14 },
   answer: { fontSize: 16, lineHeight: 27, color: Colors.text },
   input: { minHeight: 100, fontFamily: Fonts.regular, fontSize: 16, lineHeight: 27, color: Colors.text, padding: 0, textAlignVertical: 'top' },

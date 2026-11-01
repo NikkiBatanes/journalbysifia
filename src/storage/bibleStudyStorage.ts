@@ -19,6 +19,7 @@ import {
   queueBibleStudyCreatedImpact,
   queueBibleStudyImpactRetraction,
 } from '../services/journalImpactQueue';
+import type { GuidedAnswerSection, GuidedBibleStudyPage } from '../data/guidedBibleStudies';
 
 export interface BibleStudyHighlight {
   id: string;
@@ -42,6 +43,7 @@ export type BibleStudyStage =
   | 'observe'
   | 'understand'
   | 'respond'
+  | 'guided'
   | 'saved'
   | 'detail';
 
@@ -76,6 +78,11 @@ export interface BibleStudyContent {
     byPrompt?: Record<string, string>;
   };
   prayer: { text: string; saveToPrayerJournal: boolean; trackAnswered?: boolean };
+  guided?: {
+    guideId: string;
+    guideVersion: number;
+    revealedSections: GuidedAnswerSection[];
+  };
 }
 
 export interface BibleStudySession {
@@ -92,6 +99,10 @@ export interface BibleStudySession {
   updated_at: string;
   completed_at?: string;
   version: number;
+  study_mode?: 'self_guided' | 'guided';
+  guide_id?: string;
+  guide_version?: number;
+  guided_page?: GuidedBibleStudyPage;
 }
 
 const BIBLE_STUDY_PREFIX = 'bible_study_session:';
@@ -183,6 +194,11 @@ const createBibleStudyReflection = async (
 export const createBibleStudySession = async (
   passage: BibleStudyPassage,
   date?: string | Date,
+  options?: {
+    studyMode?: 'self_guided' | 'guided';
+    guideId?: string;
+    guideVersion?: number;
+  },
 ): Promise<BibleStudySession> => {
   const selectedDate = formatLocalDate(date ?? new Date());
   const now = new Date().toISOString();
@@ -199,6 +215,9 @@ export const createBibleStudySession = async (
     started_at: now,
     updated_at: now,
     version: 1,
+    study_mode: options?.studyMode ?? 'self_guided',
+    ...(options?.guideId ? {guide_id: options.guideId} : {}),
+    ...(options?.guideVersion ? {guide_version: options.guideVersion} : {}),
   };
 
   await AsyncStorage.setItem(getBibleStudySessionKey(id), JSON.stringify(session));
