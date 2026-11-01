@@ -2281,6 +2281,7 @@ const PassageVersePop: React.FC<{ delay: number; children: React.ReactNode }> = 
 
   return (
     <Animated.View
+      pointerEvents="box-none"
       style={{
         opacity: anim,
         transform: [
