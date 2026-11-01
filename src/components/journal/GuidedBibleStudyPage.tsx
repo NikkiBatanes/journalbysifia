@@ -1,5 +1,5 @@
 import React, {useState} from 'react';
-import {StyleSheet, TextInput, TouchableOpacity, View} from 'react-native';
+import {ActivityIndicator, StyleSheet, TextInput, TouchableOpacity, View} from 'react-native';
 import {Pencil} from 'lucide-react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
@@ -15,9 +15,11 @@ import {
 import {Colors} from '../../theme/colors';
 import {Fonts} from '../../theme/fonts';
 import {triggerLightHaptic} from '../../utils/haptics';
+import {useGuidedKeyVerse} from '../../hooks/useGuidedKeyVerse';
 
 interface Props {
   guide: GuidedBibleStudy;
+  bibleVersion: string;
   page: GuidedBibleStudyPage;
   observation: string;
   reflection: string;
@@ -128,6 +130,7 @@ const PromptPage = ({
 
 export default function GuidedBibleStudyPageView({
   guide,
+  bibleVersion,
   page,
   observation,
   reflection,
@@ -144,6 +147,7 @@ export default function GuidedBibleStudyPageView({
   onBlur,
 }: Props) {
   const [personalPrayerOpen, setPersonalPrayerOpen] = useState(false);
+  const keyVerse = useGuidedKeyVerse(guide.keyVerse.reference, bibleVersion);
 
   // Older in-progress sessions may still point to the retired context page.
   // Treat it as Understand so those studies resume in the combined experience.
@@ -157,10 +161,29 @@ export default function GuidedBibleStudyPageView({
         <View style={styles.keyVerseCard}>
           <View style={styles.keyVerseTopRow}>
             <ThemedText weight="bold" style={styles.keyVerseLabel}>KEY VERSE</ThemedText>
-            <ThemedText weight="semiBold" style={styles.translation}>{guide.keyVerse.translation}</ThemedText>
+            <ThemedText weight="semiBold" style={styles.translation}>{keyVerse.version}</ThemedText>
           </View>
           <ThemedText weight="bold" style={styles.keyVerseReference}>{guide.keyVerse.reference}</ThemedText>
-          <ThemedText style={styles.keyVerseText}>{guide.keyVerse.text}</ThemedText>
+          {keyVerse.loading ? (
+            <View style={styles.keyVerseLoading}>
+              <ActivityIndicator size="small" color={Colors.sage} />
+              <ThemedText style={styles.keyVerseStatus}>Loading {keyVerse.version}…</ThemedText>
+            </View>
+          ) : keyVerse.error ? (
+            <View style={styles.keyVerseLoading}>
+              <ThemedText style={styles.keyVerseStatus}>{keyVerse.error}</ThemedText>
+              <TouchableOpacity
+                onPress={keyVerse.retry}
+                activeOpacity={0.7}
+                accessibilityRole="button"
+                accessibilityLabel="Try loading the key verse again"
+              >
+                <ThemedText weight="semiBold" style={styles.keyVerseRetry}>Try again</ThemedText>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <ThemedText selectable style={styles.keyVerseText}>{keyVerse.text}</ThemedText>
+          )}
           <View style={styles.keyVerseDivider} />
           <ThemedText style={styles.keyVerseNote}>{guide.keyVerse.note}</ThemedText>
         </View>
@@ -286,6 +309,9 @@ const styles = StyleSheet.create({
   translation: {fontSize: 10, color: Colors.textGray},
   keyVerseReference: {fontFamily: Fonts.lora.bold, fontSize: 22, color: Colors.text, marginBottom: 10},
   keyVerseText: {fontFamily: Fonts.lora.regular, fontSize: 16, lineHeight: 28, color: Colors.text},
+  keyVerseLoading: {minHeight: 52, alignItems: 'flex-start', justifyContent: 'center', gap: 8},
+  keyVerseStatus: {fontSize: 13, lineHeight: 20, color: Colors.textGray},
+  keyVerseRetry: {fontSize: 13, color: Colors.sage},
   keyVerseDivider: {height: 1, backgroundColor: Colors.cardBorder, marginVertical: 16},
   keyVerseNote: {fontSize: 14, lineHeight: 22, color: Colors.textGray},
   contextHeading: {marginTop: 30, marginBottom: 16},

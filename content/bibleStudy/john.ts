@@ -66,8 +66,6 @@ const JOHN_CHAPTER_CONTENT: JohnChapterContent[] = [
     summary: `John opens before creation, identifying the Word as both with God and God. The Word creates, gives life, and shines as light that darkness cannot overcome. John the Baptist appears as a witness who prepares people to recognize the true Light. The Word becomes flesh in Jesus, revealing the Father's glory, grace, and truth among humanity. John then identifies Jesus as the Lamb of God and the Son of God. The chapter closes as the first disciples follow Jesus, invite others to meet Him, and hear that greater things are still to come.`,
     keyVerse: {
       reference: 'John 1:14',
-      translation: 'KJV',
-      text: `“And the Word was made flesh, and dwelt among us, (and we beheld his glory, the glory as of the only begotten of the Father,) full of grace and truth.”`,
       note: `This verse gathers the chapter's central claim that the eternal Word truly entered human life and revealed God's glory.`,
     },
     contexts: [
@@ -105,8 +103,6 @@ const JOHN_CHAPTER_CONTENT: JohnChapterContent[] = [
     summary: `Jesus attends a wedding in Cana where the wine runs out. At His direction, servants fill six stone water jars, and the water becomes excellent wine. John calls this the first sign through which Jesus reveals His glory, and His disciples believe in Him. Jesus later goes to Jerusalem for Passover and drives merchants and money changers from the temple courts. When leaders ask for a sign, He speaks of destroying and raising the temple of His body. Many believe because of His signs, but Jesus does not entrust Himself to them because He knows what is within people.`,
     keyVerse: {
       reference: 'John 2:11',
-      translation: 'KJV',
-      text: `“This beginning of miracles did Jesus in Cana of Galilee, and manifested forth his glory; and his disciples believed on him.”`,
       note: `John identifies the miracle as a sign that reveals Jesus' glory and calls His disciples toward deeper belief.`,
     },
     contexts: [
@@ -144,8 +140,6 @@ const JOHN_CHAPTER_CONTENT: JohnChapterContent[] = [
     summary: `Nicodemus, a Pharisee and ruler, comes to Jesus at night and acknowledges the signs God is doing through Him. Jesus tells him that no one can see God's kingdom without being born again, or born from above. He explains the Spirit's mysterious work and points to the Son of Man being lifted up so that believers may have eternal life. God's love is shown in giving His Son to save rather than condemn the world. The chapter then returns to John the Baptist, whose disciples are concerned that people are going to Jesus. John receives Jesus' growing ministry with joy, saying that Christ must increase while he must decrease.`,
     keyVerse: {
       reference: 'John 3:16–17',
-      translation: 'KJV',
-      text: `“For God so loved the world, that he gave his only begotten Son, that whosoever believeth in him should not perish, but have everlasting life. For God sent not his Son into the world to condemn the world; but that the world through him might be saved.”`,
       note: `These verses place God's love, the gift of His Son, belief, salvation, and eternal life at the heart of Jesus' mission.`,
     },
     contexts: [
@@ -183,8 +177,6 @@ const JOHN_CHAPTER_CONTENT: JohnChapterContent[] = [
     summary: `Jesus travels through Samaria and rests at Jacob's well, where He asks a Samaritan woman for water. Their conversation moves from ordinary water to the living water He gives, then to the truth about her life. When she raises the dispute about the proper place of worship, Jesus speaks of worshiping the Father in spirit and truth and identifies Himself as the Messiah. The woman leaves her jar, tells her town about Jesus, and many Samaritans believe after hearing Him for themselves. Jesus teaches His disciples to see a harvest already ready rather than overlook the people before them. Back in Galilee, He heals a royal official's son from a distance, and the man believes Jesus' word before seeing the result.`,
     keyVerse: {
       reference: 'John 4:23–24',
-      translation: 'KJV',
-      text: `“But the hour cometh, and now is, when the true worshippers shall worship the Father in spirit and in truth: for the Father seeketh such to worship him. God is a Spirit: and they that worship him must worship him in spirit and in truth.”`,
       note: `Jesus moves worship beyond a dispute over locations and centers it on the Father, the Spirit, and truth.`,
     },
     contexts: [
@@ -222,8 +214,6 @@ const JOHN_CHAPTER_CONTENT: JohnChapterContent[] = [
     summary: `At a pool in Jerusalem, Jesus meets a man who has been unable to walk for thirty-eight years. Jesus tells him to rise, take his bed, and walk, and the man is healed immediately. Because the healing occurs on the Sabbath, religious leaders focus on the man's carrying his mat and begin opposing Jesus. Jesus answers that His Father is working and that He is also working, a claim His opponents understand as making Himself equal with God. He explains that the Son gives life, executes judgment, and deserves the same honor as the Father. Jesus then names several witnesses to His identity: John the Baptist, His works, the Father, the Scriptures, and Moses.`,
     keyVerse: {
       reference: 'John 5:24',
-      translation: 'KJV',
-      text: `“Verily, verily, I say unto you, He that heareth my word, and believeth on him that sent me, hath everlasting life, and shall not come into condemnation; but is passed from death unto life.”`,
       note: `Jesus describes belief as a present passage from death to life, grounded in hearing His word and trusting the Father who sent Him.`,
     },
     contexts: [
@@ -261,8 +251,6 @@ const JOHN_CHAPTER_CONTENT: JohnChapterContent[] = [
     summary: `A large crowd follows Jesus because of His healings, and He feeds them with five loaves and two fish. The people want to make Him king by force, so He withdraws alone while His disciples cross the sea. Jesus comes to them walking on the water and brings them safely to shore. When the crowd finds Him, He exposes their pursuit of food that perishes and directs them toward the true bread from heaven. Jesus identifies Himself as the bread of life and speaks of giving His flesh for the life of the world. Many disciples turn back because the teaching is hard, but Peter remains, confessing that Jesus has the words of eternal life.`,
     keyVerse: {
       reference: 'John 6:35',
-      translation: 'KJV',
-      text: `“And Jesus said unto them, I am the bread of life: he that cometh to me shall never hunger; and he that believeth on me shall never thirst.”`,
       note: `Jesus does not merely give sustaining bread; He identifies Himself as the One who satisfies the deepest human need.`,
     },
     contexts: [
@@ -300,8 +288,6 @@ const JOHN_CHAPTER_CONTENT: JohnChapterContent[] = [
     summary: `Jesus remains in Galilee because leaders in Judea seek to kill Him, while His brothers urge Him to show Himself publicly at the Feast of Tabernacles. He later goes to the feast quietly and begins teaching in the temple, astonishing people who know He lacks formal rabbinic training. Jesus says His teaching comes from the One who sent Him and exposes inconsistent judgments about His Sabbath healing. The crowds debate whether He is good, deceptive, the Prophet, or the Christ, and arguments about His origins deepen the division. On the final day of the feast, Jesus calls the thirsty to come to Him and drink, speaking of the Spirit believers would receive. Officers sent to arrest Him return empty-handed, and Nicodemus cautiously asks the leaders to follow their own law before judging Him.`,
     keyVerse: {
       reference: 'John 7:37–38',
-      translation: 'KJV',
-      text: `“In the last day, that great day of the feast, Jesus stood and cried, saying, If any man thirst, let him come unto me, and drink. He that believeth on me, as the scripture hath said, out of his belly shall flow rivers of living water.”`,
       note: `At the feast's climax, Jesus publicly identifies Himself as the source to whom the thirsty must come for Spirit-given life.`,
     },
     contexts: [
@@ -339,8 +325,6 @@ const JOHN_CHAPTER_CONTENT: JohnChapterContent[] = [
     summary: `The chapter opens with religious leaders using a woman caught in adultery to test Jesus, but He exposes their readiness to condemn and tells her to leave her sin. Jesus then declares Himself the light of the world and promises the light of life to those who follow Him. A long dispute follows over whether His testimony is valid and where He comes from. Jesus says that knowing the truth will make His disciples free, while His opponents insist that their descent from Abraham means they have never been enslaved. He identifies sin as slavery and explains that true children of Abraham would receive the One sent by God. The conflict reaches its height when Jesus says that before Abraham existed, “I am,” and the crowd takes up stones.`,
     keyVerse: {
       reference: 'John 8:12',
-      translation: 'KJV',
-      text: `“Then spake Jesus again unto them, saying, I am the light of the world: he that followeth me shall not walk in darkness, but shall have the light of life.”`,
       note: `Jesus presents Himself as the world's light and connects freedom from darkness with following Him.`,
     },
     contexts: [
@@ -378,8 +362,6 @@ const JOHN_CHAPTER_CONTENT: JohnChapterContent[] = [
     summary: `Jesus and His disciples meet a man blind from birth, and Jesus rejects the assumption that a particular sin directly caused his condition. Jesus makes clay, sends the man to wash in the pool of Siloam, and the man returns seeing. Neighbors question whether he is the same person, and the Pharisees investigate because Jesus healed on the Sabbath. The man's testimony grows bolder as repeated questioning moves him from calling Jesus a man to recognizing Him as a prophet and someone from God. His parents fear being put out of the synagogue, and the leaders eventually cast the healed man out. Jesus finds him, reveals Himself as the Son of God, receives his worship, and turns the discussion toward spiritual sight and blindness.`,
     keyVerse: {
       reference: 'John 9:25',
-      translation: 'KJV',
-      text: `“He answered and said, Whether he be a sinner or no, I know not: one thing I know, that, whereas I was blind, now I see.”`,
       note: `The healed man holds to the clear work of Jesus even while powerful people pressure him to deny it.`,
     },
     contexts: [
@@ -417,8 +399,6 @@ const JOHN_CHAPTER_CONTENT: JohnChapterContent[] = [
     summary: `Jesus describes a sheepfold where the true shepherd enters properly, calls his own sheep by name, and leads them out. Because His hearers do not understand, He explains that He is both the door for the sheep and the good shepherd. Unlike thieves and hired workers, He comes to give life and willingly lays down His life for the sheep. He knows His sheep, is known by them, and speaks of bringing other sheep into one flock. At the Feast of Dedication, leaders demand a plain answer about whether He is the Christ. Jesus points to His works, promises that no one will snatch His sheep from His hand, and declares His unity with the Father, leading again to an attempt to seize Him.`,
     keyVerse: {
       reference: 'John 10:11',
-      translation: 'KJV',
-      text: `“I am the good shepherd: the good shepherd giveth his life for the sheep.”`,
       note: `Jesus defines His shepherding authority by His willing, self-giving death for those who belong to Him.`,
     },
     contexts: [
@@ -456,8 +436,6 @@ const JOHN_CHAPTER_CONTENT: JohnChapterContent[] = [
     summary: `Martha and Mary send word that their brother Lazarus is sick, yet Jesus remains where He is for two more days. He tells His disciples that Lazarus has died and then travels toward Bethany despite danger near Jerusalem. Martha meets Him with grief and faith, and Jesus identifies Himself as the resurrection and the life. Mary later comes weeping, and Jesus is deeply moved and weeps beside the mourners. At the tomb, He thanks the Father, calls Lazarus out, and tells the people to unbind him. Many believe, but the sign also leads the council to plan Jesus' death, with Caiaphas unknowingly speaking of one man dying for the people.`,
     keyVerse: {
       reference: 'John 11:25–26',
-      translation: 'KJV',
-      text: `“Jesus said unto her, I am the resurrection, and the life: he that believeth in me, though he were dead, yet shall he live: And whosoever liveth and believeth in me shall never die. Believest thou this?”`,
       note: `Jesus directs Martha's hope beyond a future event to Himself as the source of resurrection and life.`,
     },
     contexts: [
@@ -495,8 +473,6 @@ const JOHN_CHAPTER_CONTENT: JohnChapterContent[] = [
     summary: `Six days before Passover, Mary anoints Jesus' feet with costly perfume, and Jesus receives the act in light of His burial. A crowd gathers because of Lazarus, leading the chief priests to plan Lazarus's death as well as Jesus'. Jesus enters Jerusalem on a young donkey while people greet Him as Israel's king. When Greeks ask to see Him, Jesus announces that His hour has come and compares His death to a grain of wheat that bears fruit by falling into the ground. A voice from heaven answers as Jesus speaks of the world's judgment and of drawing people to Himself when He is lifted up. The chapter closes by showing both persistent unbelief and hidden belief, then summarizes Jesus' call to believe in the One who sent Him and walk in His light.`,
     keyVerse: {
       reference: 'John 12:24–25',
-      translation: 'KJV',
-      text: `“Verily, verily, I say unto you, Except a corn of wheat fall into the ground and die, it abideth alone: but if it die, it bringeth forth much fruit. He that loveth his life shall lose it; and he that hateth his life in this world shall keep it unto life eternal.”`,
       note: `Jesus interprets His approaching death as the fruitful path of glory and calls His followers into the same surrendered pattern.`,
     },
     contexts: [
@@ -534,8 +510,6 @@ const JOHN_CHAPTER_CONTENT: JohnChapterContent[] = [
     summary: `Before Passover, Jesus knows His hour has come and loves His own to the end. During supper, He rises, washes His disciples' feet, and returns to explain the example He has given them. Peter first refuses and then asks for more, but Jesus tells him that receiving His cleansing is necessary. Jesus identifies Judas as the betrayer by giving him a morsel, and Judas leaves into the night. With betrayal underway, Jesus speaks of the Son of Man being glorified and gives His disciples a new command to love one another as He has loved them. Peter promises to lay down his life for Jesus, but Jesus predicts that he will deny Him three times before the rooster crows.`,
     keyVerse: {
       reference: 'John 13:34–35',
-      translation: 'KJV',
-      text: `“A new commandment I give unto you, That ye love one another; as I have loved you, that ye also love one another. By this shall all men know that ye are my disciples, if ye have love one to another.”`,
       note: `Jesus makes His own self-giving love both the pattern and the public mark of His disciples.`,
     },
     contexts: [
@@ -573,8 +547,6 @@ const JOHN_CHAPTER_CONTENT: JohnChapterContent[] = [
     summary: `After predicting betrayal and denial, Jesus tells His troubled disciples to believe in God and in Him. He promises room in His Father's house and says He will prepare a place and receive them to Himself. When Thomas asks the way, Jesus identifies Himself as the way, the truth, and the life, the One through whom people come to the Father. In response to Philip, Jesus explains that seeing Him is seeing the Father because He and the Father dwell in one another. He promises that the Father will give another Comforter, the Spirit of truth, who will remain with and in His disciples and teach them. Jesus leaves His own peace, calls His followers to love Him through obedience, and prepares them for His departure before it occurs.`,
     keyVerse: {
       reference: 'John 14:6',
-      translation: 'KJV',
-      text: `“Jesus saith unto him, I am the way, the truth, and the life: no man cometh unto the Father, but by me.”`,
       note: `Jesus answers the question of the way not with a route or method but with His own person and relationship to the Father.`,
     },
     contexts: [
@@ -612,8 +584,6 @@ const JOHN_CHAPTER_CONTENT: JohnChapterContent[] = [
     summary: `Jesus identifies Himself as the true vine and His Father as the husbandman who tends every branch. He calls His disciples to abide in Him because a branch cannot bear fruit apart from the vine. Fruitfulness grows from this continuing union, while separation from Jesus leaves people unable to accomplish anything of lasting spiritual value. Abiding also includes receiving His words, obeying His commands, and remaining in His love and joy. Jesus commands His disciples to love one another as He has loved them, a love defined by laying down one's life for friends. He then prepares them for the world's hatred and promises the Spirit of truth, who will testify about Him alongside their own witness.`,
     keyVerse: {
       reference: 'John 15:5',
-      translation: 'KJV',
-      text: `“I am the vine, ye are the branches: He that abideth in me, and I in him, the same bringeth forth much fruit: for without me ye can do nothing.”`,
       note: `Jesus makes ongoing dependence on Him, rather than self-generated effort, the source of genuine fruitfulness.`,
     },
     contexts: [
@@ -651,8 +621,6 @@ const JOHN_CHAPTER_CONTENT: JohnChapterContent[] = [
     summary: `Jesus warns His disciples that exclusion and persecution will come from people who believe they are serving God. He explains that His departure is for their good because He will send the Comforter. The Spirit will expose the world's error concerning sin, righteousness, and judgment and will guide the disciples into truth while glorifying Jesus. Jesus speaks of a little while in which they will not see Him and then will see Him again, a saying they struggle to understand. He compares their coming sorrow and joy to a woman whose labor anguish gives way when a child is born. The chapter ends with the disciples claiming understanding, Jesus predicting their scattering, and His promise that they can have peace in Him because He has overcome the world.`,
     keyVerse: {
       reference: 'John 16:33',
-      translation: 'KJV',
-      text: `“These things I have spoken unto you, that in me ye might have peace. In the world ye shall have tribulation: but be of good cheer; I have overcome the world.”`,
       note: `Jesus offers peace without denying real trouble, grounding courage in His completed victory over the world.`,
     },
     contexts: [
@@ -690,8 +658,6 @@ const JOHN_CHAPTER_CONTENT: JohnChapterContent[] = [
     summary: `Jesus lifts His eyes to the Father and announces that His hour has come. He asks to be glorified so that He may glorify the Father, speaking of the glory He shared with the Father before the world existed. Jesus defines eternal life as knowing the only true God and Jesus Christ whom He sent. He prays for the disciples the Father gave Him, asking that they be protected in God's name, filled with His joy, and kept from the evil one while remaining in the world. He asks the Father to sanctify them in the truth and sends them into the world as He was sent. Jesus then prays for future believers, asking that they share a visible unity rooted in the Father and Son so the world may know the Father's mission and love.`,
     keyVerse: {
       reference: 'John 17:3',
-      translation: 'KJV',
-      text: `“And this is life eternal, that they might know thee the only true God, and Jesus Christ, whom thou hast sent.”`,
       note: `Eternal life is described not merely as endless existence but as knowing the Father through the Son He sent.`,
     },
     contexts: [
@@ -729,8 +695,6 @@ const JOHN_CHAPTER_CONTENT: JohnChapterContent[] = [
     summary: `Jesus enters a garden with His disciples, where Judas arrives with soldiers and officers to arrest Him. Jesus steps forward, identifies Himself, protects His disciples, and stops Peter's attempt to defend Him with a sword. He is taken first to Annas, where He answers questions about His teaching while being struck by an officer. Outside, Peter denies being Jesus' disciple three times, and the rooster crows. The leaders bring Jesus to Pilate while avoiding ceremonial defilement, and Pilate questions Him about kingship. Jesus says His kingdom is not from this world and that He came to bear witness to the truth, yet the crowd chooses Barabbas when Pilate offers to release a prisoner.`,
     keyVerse: {
       reference: 'John 18:37',
-      translation: 'KJV',
-      text: `“Pilate therefore said unto him, Art thou a king then? Jesus answered, Thou sayest that I am a king. To this end was I born, and for this cause came I into the world, that I should bear witness unto the truth. Every one that is of the truth heareth my voice.”`,
       note: `Before political power, Jesus defines His royal mission as bearing witness to truth and gathering those who hear His voice.`,
     },
     contexts: [
@@ -768,8 +732,6 @@ const JOHN_CHAPTER_CONTENT: JohnChapterContent[] = [
     summary: `Pilate has Jesus flogged, and soldiers dress Him in a crown of thorns and a purple robe to mock His kingship. Though Pilate repeatedly says he finds no fault in Jesus, pressure from the leaders and crowd leads him to hand Jesus over for crucifixion. Jesus carries the cross to Golgotha, where He is crucified between two others under a title naming Him King of the Jews. Soldiers divide His garments, and Jesus entrusts His mother to the beloved disciple. Knowing that His work is accomplished, Jesus receives vinegar, says, “It is finished,” and gives up His spirit. His side is pierced rather than His legs broken, and Joseph of Arimathea and Nicodemus place His body in a nearby new tomb.`,
     keyVerse: {
       reference: 'John 19:30',
-      translation: 'KJV',
-      text: `“When Jesus therefore had received the vinegar, he said, It is finished: and he bowed his head, and gave up the ghost.”`,
       note: `Jesus' final word announces that the work entrusted to Him has been brought to its intended completion.`,
     },
     contexts: [
@@ -807,8 +769,6 @@ const JOHN_CHAPTER_CONTENT: JohnChapterContent[] = [
     summary: `Mary Magdalene comes to the tomb while it is still dark and finds the stone removed. Peter and the beloved disciple run to the tomb, see the linen cloths, and return home while still not understanding the Scripture. Mary remains weeping until Jesus calls her by name, and she recognizes the risen Lord and carries His message to the disciples. That evening Jesus appears among the fearful disciples, shows His wounds, speaks peace, and sends them as the Father sent Him. Thomas is absent and refuses the others' testimony unless he sees and touches the wounds. Eight days later Jesus meets Thomas's demand with His presence, receives his confession as Lord and God, and John explains that his written signs are meant to lead readers to belief and life.`,
     keyVerse: {
       reference: 'John 20:31',
-      translation: 'KJV',
-      text: `“But these are written, that ye might believe that Jesus is the Christ, the Son of God; and that believing ye might have life through his name.”`,
       note: `John states the purpose of his Gospel: its selected signs bear witness to Jesus so readers may believe and have life.`,
     },
     contexts: [
@@ -846,8 +806,6 @@ const JOHN_CHAPTER_CONTENT: JohnChapterContent[] = [
     summary: `Seven disciples fish through the night on the Sea of Tiberias but catch nothing. At daybreak, the risen Jesus directs them to cast the net on the right side, and the great catch leads the beloved disciple to recognize Him. Jesus has prepared a charcoal fire with bread and fish and invites the disciples to breakfast. After the meal, He asks Peter three times whether he loves Him and entrusts him with feeding and tending His sheep. Jesus then speaks of the death by which Peter will glorify God and renews the call, “Follow me.” When Peter asks about the beloved disciple's future, Jesus redirects him from comparison to personal faithfulness, and the Gospel closes by affirming its witness while acknowledging that Jesus did far more than any book could contain.`,
     keyVerse: {
       reference: 'John 21:17',
-      translation: 'KJV',
-      text: `“He saith unto him the third time, Simon, son of Jonas, lovest thou me? Peter was grieved because he said unto him the third time, Lovest thou me? And he said unto him, Lord, thou knowest all things; thou knowest that I love thee. Jesus saith unto him, Feed my sheep.”`,
       note: `Jesus brings Peter's threefold failure into a threefold conversation of love, responsibility, and restored service.`,
     },
     contexts: [

@@ -22,8 +22,7 @@ describe('John chapter companions', () => {
       expect(wordCount(study.subtitle)).toBeLessThanOrEqual(15);
       expect(sentenceCount(study.summary)).toBeGreaterThanOrEqual(5);
       expect(sentenceCount(study.summary)).toBeLessThanOrEqual(10);
-      expect(study.keyVerse.translation).toBe('KJV');
-      expect(study.keyVerse.text).toBeTruthy();
+      expect(Object.keys(study.keyVerse).sort()).toEqual(['note', 'reference']);
       expect(sentenceCount(study.keyVerse.note)).toBe(1);
       expect(study.contexts.length).toBeGreaterThanOrEqual(1);
       expect(study.contexts.length).toBeLessThanOrEqual(3);

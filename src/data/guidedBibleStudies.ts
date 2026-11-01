@@ -33,8 +33,6 @@ export interface GuidedBibleStudy {
   summary: string;
   keyVerse: {
     reference: string;
-    translation: string;
-    text: string;
     note: string;
   };
   contexts: GuidedBibleStudyContext[];
@@ -55,8 +53,6 @@ export const MATTHEW_23_GUIDED_STUDY: GuidedBibleStudy = {
   summary: 'Matthew 23 begins with Jesus speaking to the crowds and His disciples about the scribes and Pharisees, warning that their actions do not match what they teach. He describes leaders who place heavy burdens on others, seek public recognition, and love positions and titles of honor, then tells His followers that greatness among them is found in serving and humility. Jesus turns directly to the scribes and Pharisees with a series of severe woes that expose different forms of hypocrisy and distorted religious priorities. He condemns leadership that shuts people out of the kingdom, misdirects converts, creates misleading distinctions in oaths, and carefully tithes small herbs while neglecting the weightier matters of the law: justice, mercy, and faithfulness. He compares outwardly respectable religion with a cup cleaned only on the outside and with whitewashed tombs that appear beautiful while concealing uncleanness within. Jesus also confronts leaders who honor the tombs of the prophets while continuing the pattern of those who rejected and killed God\'s messengers. His warnings culminate in strong language about judgment and accountability for the rejection of righteous messengers. Yet the chapter does not end with denunciation alone: Jesus laments over Jerusalem, describing His desire to gather its children as a hen gathers her chicks under her wings and grieving that they were unwilling. Matthew 23 therefore exposes religious hypocrisy while emphasizing humility, inward integrity, justice, mercy, faithfulness, and Jesus\' grief over persistent rejection.',
   keyVerse: {
     reference: 'Matthew 23:23',
-    translation: 'KJV',
-    text: '“Woe unto you, scribes and Pharisees, hypocrites! for ye pay tithe of mint and anise and cummin, and have omitted the weightier matters of the law, judgment, mercy, and faith: these ought ye to have done, and not to leave the other undone.”',
     note: 'This verse captures Jesus\' central criticism: careful outward observance cannot replace the weightier matters of justice, mercy, and faithfulness.',
   },
   contexts: [

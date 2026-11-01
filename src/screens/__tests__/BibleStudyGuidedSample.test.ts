@@ -20,9 +20,8 @@ describe('Bible Study guided sample', () => {
     expect(MATTHEW_23_GUIDED_STUDY.summary).toContain('Jesus laments over Jerusalem');
     expect(MATTHEW_23_GUIDED_STUDY.keyVerse).toMatchObject({
       reference: 'Matthew 23:23',
-      translation: 'KJV',
     });
-    expect(MATTHEW_23_GUIDED_STUDY.keyVerse.text).toContain('judgment, mercy, and faith');
+    expect(Object.keys(MATTHEW_23_GUIDED_STUDY.keyVerse).sort()).toEqual(['note', 'reference']);
     expect(MATTHEW_23_GUIDED_STUDY.lookAgain.guideAnswer).toBeTruthy();
     expect(MATTHEW_23_GUIDED_STUDY.reflect.guideAnswer).toBeTruthy();
     expect(MATTHEW_23_GUIDED_STUDY.respond.guideAnswer).toBeTruthy();
@@ -55,6 +54,9 @@ describe('Bible Study guided sample', () => {
     }
     expect(pageSource).toContain("page === 'understand' || page === 'context'");
     expect(pageSource).toContain('guide.contexts.map');
+    expect(pageSource).toContain('useGuidedKeyVerse(guide.keyVerse.reference, bibleVersion)');
+    expect(pageSource).not.toContain('guide.keyVerse.text');
+    expect(pageSource).not.toContain('guide.keyVerse.translation');
     expect(pageSource).toContain("page === 'pray'");
     expect(pageSource).toContain('OF 7');
     expect(pageSource).toContain('<PrayerWritingSheet');

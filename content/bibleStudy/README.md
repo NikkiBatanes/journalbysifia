@@ -7,6 +7,7 @@ This directory contains editorial source content for Bible study collections. It
 - The app owns the reusable study UI, local answer storage, offline cache, and entitlement checks.
 - Supabase owns the published collection catalog, chapter content, release state, access model, and announcements.
 - Editorial files in this directory are validated and uploaded to Supabase by a publishing workflow.
+- A chapter stores the key-verse reference and study note only; the app retrieves the verse text in the reader's selected Bible version.
 - Publishing or correcting a chapter updates remote content and does not require an App Store or Play Store build.
 - A new app build is needed only when the study schema, reader behavior, purchase flow, or visual experience changes.
 

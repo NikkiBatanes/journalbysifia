@@ -782,6 +782,7 @@ const BibleStudyScreen = () => {
         guideVersion: guide.version,
       }),
       loadPassageText(passage.reference, preferredBibleVersion),
+      preloadScripturePassages([guide.keyVerse.reference], preferredBibleVersion),
     ]);
     setSession(newSession);
   }, [applyContent, loadPassageText, preferredBibleVersion, requestedSelectedDate]);
@@ -2064,6 +2065,7 @@ const BibleStudyScreen = () => {
   const renderGuided = () => activeGuide ? (
     <GuidedBibleStudyPageView
       guide={activeGuide}
+      bibleVersion={session?.passage.translation ?? preferredBibleVersion}
       page={guidedPage}
       observation={observationText}
       reflection={understandingText}

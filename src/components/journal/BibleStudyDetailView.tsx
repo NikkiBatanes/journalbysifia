@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { AccessibilityInfo, Alert, Animated, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { AccessibilityInfo, ActivityIndicator, Alert, Animated, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { FileText, Leaf, Pencil, Sparkles, X } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { format } from 'date-fns';
@@ -12,7 +12,8 @@ import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
 import { triggerLightHaptic } from '../../utils/haptics';
 import {getScripturePassage} from '../../services/scriptureReaderService';
-import {getGuidedBibleStudy, type GuidedAnswerSection} from '../../data/guidedBibleStudies';
+import {getGuidedBibleStudy, type GuidedAnswerSection, type GuidedBibleStudy} from '../../data/guidedBibleStudies';
+import {useGuidedKeyVerse} from '../../hooks/useGuidedKeyVerse';
 import {
   formatScripturePassage,
   type FormattedScripturePassage,
@@ -46,6 +47,36 @@ interface Props {
   onEdit: () => Promise<void> | void;
   onClose: () => void;
 }
+
+const SavedGuidedKeyVerse = ({
+  guide,
+  bibleVersion,
+}: {
+  guide: GuidedBibleStudy;
+  bibleVersion: string;
+}) => {
+  const keyVerse = useGuidedKeyVerse(guide.keyVerse.reference, bibleVersion);
+  return (
+    <View style={styles.guideKeyVerse}>
+      <ThemedText weight="bold" style={styles.guideKeyVerseReference}>
+        {guide.keyVerse.reference} · {keyVerse.version}
+      </ThemedText>
+      {keyVerse.loading ? (
+        <ActivityIndicator size="small" color={Colors.sage} style={styles.guideKeyVerseLoader} />
+      ) : keyVerse.error ? (
+        <View style={styles.guideKeyVerseError}>
+          <ThemedText style={styles.guideKeyVerseStatus}>{keyVerse.error}</ThemedText>
+          <TouchableOpacity onPress={keyVerse.retry} activeOpacity={0.7} accessibilityRole="button">
+            <ThemedText weight="semiBold" style={styles.guideKeyVerseRetry}>Try again</ThemedText>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <ThemedText selectable style={styles.guideKeyVerseText}>{keyVerse.text}</ThemedText>
+      )}
+      <ThemedText style={styles.guideKeyVerseNote}>{guide.keyVerse.note}</ThemedText>
+    </View>
+  );
+};
 
 export default function BibleStudyDetailView({ reference, selectedDate, translation = 'NASB', content, onEdit, onClose }: Props) {
   const [readerOpen, setReaderOpen] = useState(false);
@@ -213,11 +244,7 @@ export default function BibleStudyDetailView({ reference, selectedDate, translat
             {guide ? <View style={styles.guideOverview}>
               <ThemedText weight="bold" style={styles.sectionLabel}>WHAT HAPPENS HERE?</ThemedText>
               <ThemedText style={styles.guideSummary}>{guide.summary}</ThemedText>
-              <View style={styles.guideKeyVerse}>
-                <ThemedText weight="bold" style={styles.guideKeyVerseReference}>{guide.keyVerse.reference} · {guide.keyVerse.translation}</ThemedText>
-                <ThemedText style={styles.guideKeyVerseText}>{guide.keyVerse.text}</ThemedText>
-                <ThemedText style={styles.guideKeyVerseNote}>{guide.keyVerse.note}</ThemedText>
-              </View>
+              <SavedGuidedKeyVerse guide={guide} bibleVersion={translation} />
               <View style={styles.savedContextSection}>
                 <ThemedText weight="bold" style={styles.sectionLabel}>HELPFUL CONTEXT</ThemedText>
                 {guide.contexts.map((context, index) => (
@@ -357,6 +384,10 @@ const styles = StyleSheet.create({
   guideKeyVerse: { borderLeftWidth: 3, borderLeftColor: '#B89B67', paddingLeft: 16, marginTop: 18 },
   guideKeyVerseReference: { fontFamily: Fonts.lora.bold, fontSize: 18, color: Colors.text, marginBottom: 6 },
   guideKeyVerseText: { fontFamily: Fonts.lora.regular, fontSize: 15, lineHeight: 25, color: Colors.text, marginBottom: 9 },
+  guideKeyVerseLoader: {alignSelf: 'flex-start', marginVertical: 10},
+  guideKeyVerseError: {alignItems: 'flex-start', gap: 6, marginBottom: 9},
+  guideKeyVerseStatus: {fontSize: 13, lineHeight: 20, color: Colors.textGray},
+  guideKeyVerseRetry: {fontSize: 13, color: Colors.sage},
   guideKeyVerseNote: { fontSize: 14, lineHeight: 22, color: Colors.textGray },
   savedContextSection: { marginTop: 26 },
   savedContextCard: { flexDirection: 'row', gap: 12, backgroundColor: Colors.cardBackground, borderWidth: 1, borderColor: Colors.cardBorder, borderRadius: 18, padding: 16, marginBottom: 11 },
