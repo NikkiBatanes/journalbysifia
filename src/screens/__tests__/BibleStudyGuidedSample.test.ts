@@ -38,16 +38,16 @@ describe('Bible Study guided sample', () => {
     expect(source).toContain('createBibleStudySession(passage, requestedSelectedDate)');
     expect(source).toContain("studyMode: 'guided'");
     expect(source).toContain('guideId: guide.id');
-    expect(source).toContain('Try the guided format');
+    expect(source).toContain('CHAPTER COMPANION');
     expect(source).toContain("activeGuide ? advanceGuided('understand') : advance('observe')");
     expect(source).not.toContain('Color & Reflect');
   });
 
-  it('renders every guided companion page and saves the guide identity with the study', () => {
+  it('renders the full companion as one continuous study and saves its identity', () => {
     const pageSource = fs.readFileSync(path.resolve(__dirname, '../../components/journal/GuidedBibleStudyPage.tsx'), 'utf8');
     const storageSource = fs.readFileSync(path.resolve(__dirname, '../../storage/bibleStudyStorage.ts'), 'utf8');
-    for (const page of ['understand', 'context', 'look_again', 'reflect', 'respond']) {
-      expect(pageSource).toContain(`page === '${page}'`);
+    for (const step of ['Understand', 'Know the Context', 'Look Again', 'Reflect', 'Respond', 'Pray']) {
+      expect(pageSource).toContain(`label="${step}"`);
     }
     expect(pageSource).toContain('accessibilityLabel="Guided study prayer"');
     expect(pageSource).toContain('CARRY THIS WITH YOU');

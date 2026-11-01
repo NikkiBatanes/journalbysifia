@@ -108,15 +108,6 @@ const STAGES: BibleStudyStage[] = [
   'detail',
 ];
 
-const GUIDED_PAGES: GuidedBibleStudyPage[] = [
-  'understand',
-  'context',
-  'look_again',
-  'reflect',
-  'respond',
-  'pray',
-];
-
 const OBSERVE_PROMPTS = [
   'Repeated words',
   'Commands',
@@ -528,13 +519,11 @@ const BibleStudyScreen = () => {
   const progress = useMemo(() => {
     if (stage === 'home' || stage === 'saved' || stage === 'detail') {return 0;}
     if (session?.study_mode === 'guided') {
-      if (stage === 'read') {return 1 / (GUIDED_PAGES.length + 1);}
-      if (stage === 'guided') {
-        return (GUIDED_PAGES.indexOf(guidedPage) + 2) / (GUIDED_PAGES.length + 1);
-      }
+      if (stage === 'read') {return 0.25;}
+      if (stage === 'guided') {return 0.75;}
     }
     return (stageIndex / (STAGES.length - 1));
-  }, [guidedPage, session?.study_mode, stage, stageIndex]);
+  }, [session?.study_mode, stage, stageIndex]);
 
   const formattedPassage = useMemo(
     () => formatScripturePassage(
@@ -726,8 +715,8 @@ const BibleStudyScreen = () => {
     setUnderstandingPhase('main');
     setResponsePhase('journal');
     setGuidedPage('understand');
-    setRevealedGuideSections([]);
     applyContent(createEmptyBibleStudyContent());
+    setRevealedGuideSections([]);
     setPassageVerses([]);
     setPassageLoadError(null);
     setStage('read');
@@ -755,8 +744,8 @@ const BibleStudyScreen = () => {
     setUnderstandingPhase('main');
     setResponsePhase('journal');
     setGuidedPage('understand');
-    setRevealedGuideSections([]);
     applyContent(createEmptyBibleStudyContent());
+    setRevealedGuideSections(['look_again', 'reflect', 'respond']);
     setPrayerText('');
     setPassageVerses([]);
     setPassageLoadError(null);
@@ -849,7 +838,7 @@ const BibleStudyScreen = () => {
         current_step: nextStep,
         guided_page: nextPage,
       });
-      if (nextPage === 'pray' && !prayerText.trim()) {
+      if (!prayerText.trim()) {
         setPrayerText(activeGuide.prayer);
       }
       setSession(updated);
@@ -887,12 +876,7 @@ const BibleStudyScreen = () => {
       return;
     }
     if (stage === 'guided') {
-      const guidedIndex = GUIDED_PAGES.indexOf(guidedPage);
-      if (guidedIndex <= 0) {
-        setStage('read');
-      } else {
-        setGuidedPage(GUIDED_PAGES[guidedIndex - 1]);
-      }
+      setStage('read');
       return;
     }
     const prevIndex = stageIndex - 1;
@@ -903,7 +887,7 @@ const BibleStudyScreen = () => {
       }
       setStage(previousStage);
     }
-  }, [closeBibleStudy, guidedPage, homeRevealAnims, observeHighlightIndex, prepareReveal, responsePhase, selectedTopic, stage, stageIndex, topicRevealAnims, understandingPhase]);
+  }, [closeBibleStudy, homeRevealAnims, observeHighlightIndex, prepareReveal, responsePhase, selectedTopic, stage, stageIndex, topicRevealAnims, understandingPhase]);
 
   const toggleHighlightPrompt = (highlightId: string, prompt: string) => {
     triggerLightHaptic();
@@ -1252,15 +1236,16 @@ const BibleStudyScreen = () => {
           accessibilityLabel="Try the Matthew 23 Guided Study"
         >
           <View style={styles.guidedSampleTopRow}>
-            <View style={styles.guidedSampleBadge}>
-              <ThemedText weight="bold" style={styles.guidedSampleBadgeText}>NEW · GUIDED STUDY</ThemedText>
-            </View>
+            <ThemedText weight="bold" style={styles.guidedSampleBadgeText}>THE GOSPEL ACCORDING TO MATTHEW · CHAPTER COMPANION</ThemedText>
             <ThemedText style={styles.guidedSampleTime}>{MATTHEW_23_GUIDED_STUDY.estimatedMinutes} min</ThemedText>
           </View>
-          <ThemedText weight="bold" style={styles.guidedSampleTitle}>{MATTHEW_23_GUIDED_STUDY.title}</ThemedText>
+          <ThemedText style={styles.guidedSampleTitle}>{MATTHEW_23_GUIDED_STUDY.title}</ThemedText>
           <ThemedText style={styles.guidedSampleDescription}>{MATTHEW_23_GUIDED_STUDY.subtitle}</ThemedText>
           <View style={styles.guidedSampleAction}>
-            <ThemedText weight="semiBold" style={styles.guidedSampleActionText}>Try the guided format</ThemedText>
+            <View>
+              <ThemedText weight="semiBold" style={styles.guidedSampleActionText}>Read Matthew 23</ThemedText>
+              <ThemedText style={styles.guidedSampleActionHint}>Read → Understand → Context → Reflect → Respond → Pray</ThemedText>
+            </View>
             <Ionicons name="arrow-forward" size={17} color={Colors.sage} />
           </View>
         </TouchableOpacity>
@@ -1563,7 +1548,26 @@ const BibleStudyScreen = () => {
   const renderRead = () => (
     <View style={styles.page}>
       {activeGuide
-        ? animatedStageHeading('1 · Read', `Read ${activeGuide.reference}`, 'Notice the contrast between outward religion and the character Jesus requires.')
+        ? <>
+          <View style={styles.companionHero}>
+            <ThemedText weight="bold" style={styles.companionEyebrow}>THE GOSPEL ACCORDING TO MATTHEW · CHAPTER COMPANION</ThemedText>
+            <ThemedText style={styles.companionTitle}>{activeGuide.title}</ThemedText>
+            <ThemedText style={styles.companionSubtitle}>{activeGuide.subtitle}</ThemedText>
+          </View>
+          <View style={styles.companionReadSection}>
+            <View style={styles.companionStepRow}>
+              <View style={styles.companionStepNumber}><ThemedText style={styles.companionStepNumberText}>1</ThemedText></View>
+              <ThemedText weight="bold" style={styles.companionStepLabel}>READ</ThemedText>
+            </View>
+            <View style={styles.companionReadBox}>
+              <View style={styles.companionReadCopy}>
+                <ThemedText style={styles.companionReadTitle}>Read {activeGuide.reference}</ThemedText>
+                <ThemedText style={styles.companionReadLead}>Notice the contrast between outward religion and the character Jesus requires.</ThemedText>
+              </View>
+              <ThemedText style={styles.companionChapterMarker}>23 / 28</ThemedText>
+            </View>
+          </View>
+        </>
         : animatedStageHeading('Read', 'Read slowly.', 'Press and hold, then drag to select the words you want to highlight.')}
 
 
@@ -1951,7 +1955,6 @@ const BibleStudyScreen = () => {
   const renderGuided = () => activeGuide ? (
     <GuidedBibleStudyPageView
       guide={activeGuide}
-      page={guidedPage}
       observation={observationText}
       reflection={understandingText}
       response={responseText}
@@ -2175,21 +2178,6 @@ const BibleStudyScreen = () => {
           </View>
         );
       case 'guided': {
-        if (guidedPage !== 'pray') {
-          const currentIndex = GUIDED_PAGES.indexOf(guidedPage);
-          const nextPage = GUIDED_PAGES[Math.min(currentIndex + 1, GUIDED_PAGES.length - 1)];
-          return (
-            <TouchableOpacity
-              onPress={() => advanceGuided(nextPage)}
-              activeOpacity={0.7}
-              style={styles.nextButton}
-              accessibilityRole="button"
-              accessibilityLabel="Continue guided study"
-            >
-              <Ionicons name="chevron-forward" size={24} color={Colors.hopeWhite} />
-            </TouchableOpacity>
-          );
-        }
         return (
           <View style={styles.prayerFooterRow}>
             <View style={styles.prayerFooterChoices}>
@@ -2805,57 +2793,150 @@ const styles = StyleSheet.create({
     marginBottom: 18,
   },
   guidedSampleCard: {
-    backgroundColor: Colors.cardBackground,
-    borderWidth: 1,
-    borderColor: Colors.cardBorder,
-    borderRadius: 24,
-    padding: 20,
+    backgroundColor: Colors.inputBackground,
+    borderRadius: 4,
+    paddingHorizontal: 24,
+    paddingVertical: 28,
     marginBottom: 22,
   },
   guidedSampleTopRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
-    marginBottom: 14,
-  },
-  guidedSampleBadge: {
-    backgroundColor: Colors.anchorBlueLight,
-    borderRadius: 999,
-    paddingHorizontal: 11,
-    paddingVertical: 7,
+    gap: 14,
+    marginBottom: 12,
   },
   guidedSampleBadgeText: {
     fontSize: 9,
-    letterSpacing: 1.1,
+    lineHeight: 14,
+    letterSpacing: 1.3,
     color: Colors.sage,
+    flex: 1,
   },
   guidedSampleTime: {
     fontSize: 12,
     color: Colors.textGray,
   },
   guidedSampleTitle: {
-    fontFamily: Fonts.lora.bold,
-    fontSize: 24,
+    fontFamily: Fonts.lora.regular,
+    fontSize: 42,
+    lineHeight: 52,
     color: Colors.text,
-    marginBottom: 7,
+    marginBottom: 10,
   },
   guidedSampleDescription: {
     fontSize: 14,
     lineHeight: 22,
     color: Colors.textGray,
-    marginBottom: 16,
+    marginBottom: 22,
   },
   guidedSampleAction: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    borderTopWidth: 1,
-    borderTopColor: Colors.cardBorder,
-    paddingTop: 14,
+    backgroundColor: Colors.anchorBlueLight,
+    borderRadius: 16,
+    paddingHorizontal: 18,
+    paddingVertical: 16,
   },
   guidedSampleActionText: {
     fontSize: 14,
     color: Colors.sage,
+  },
+  guidedSampleActionHint: {
+    fontSize: 10,
+    lineHeight: 16,
+    color: Colors.textGray,
+    marginTop: 4,
+  },
+  companionHero: {
+    backgroundColor: Colors.inputBackground,
+    marginHorizontal: -6,
+    marginTop: -14,
+    marginBottom: 28,
+    paddingHorizontal: 24,
+    paddingTop: 44,
+    paddingBottom: 36,
+  },
+  companionEyebrow: {
+    fontSize: 9,
+    lineHeight: 15,
+    letterSpacing: 1.5,
+    color: Colors.sage,
+  },
+  companionTitle: {
+    fontFamily: Fonts.lora.regular,
+    fontSize: 48,
+    lineHeight: 58,
+    color: Colors.text,
+    marginTop: 10,
+    marginBottom: 14,
+  },
+  companionSubtitle: {
+    fontSize: 15,
+    lineHeight: 24,
+    color: Colors.textGray,
+  },
+  companionReadSection: {
+    backgroundColor: Colors.cardBackground,
+    marginHorizontal: -6,
+    paddingHorizontal: 24,
+    paddingBottom: 32,
+  },
+  companionStepRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 14,
+  },
+  companionStepNumber: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    borderWidth: 1,
+    borderColor: Colors.sageMuted,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  companionStepNumberText: {
+    fontFamily: Fonts.lora.regular,
+    fontSize: 13,
+    color: Colors.text,
+  },
+  companionStepLabel: {
+    fontSize: 11,
+    letterSpacing: 1.7,
+    color: Colors.sage,
+  },
+  companionReadBox: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: 16,
+    backgroundColor: Colors.anchorBlueLight,
+    borderRadius: 18,
+    paddingHorizontal: 22,
+    paddingVertical: 22,
+  },
+  companionReadCopy: {
+    flex: 1,
+  },
+  companionReadTitle: {
+    fontFamily: Fonts.lora.regular,
+    fontSize: 24,
+    lineHeight: 31,
+    color: Colors.text,
+    marginBottom: 6,
+  },
+  companionReadLead: {
+    fontSize: 13,
+    lineHeight: 21,
+    color: Colors.textGray,
+  },
+  companionChapterMarker: {
+    fontFamily: Fonts.lora.regular,
+    fontSize: 15,
+    color: Colors.textGray,
   },
   topicGrid: {
     flexDirection: 'row',
