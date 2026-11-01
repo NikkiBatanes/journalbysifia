@@ -1,18 +1,20 @@
 import React from 'react';
-import { StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
+import {StyleSheet, TextInput, TouchableOpacity, View} from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
 import ThemedText from '../common/ThemedText';
 import {
   GuidedAnswerSection,
   GuidedBibleStudy,
+  GuidedBibleStudyPage,
   GuidedBibleStudyPrompt,
 } from '../../data/guidedBibleStudies';
-import { Colors } from '../../theme/colors';
-import { Fonts } from '../../theme/fonts';
+import {Colors} from '../../theme/colors';
+import {Fonts} from '../../theme/fonts';
 
 interface Props {
   guide: GuidedBibleStudy;
+  page: GuidedBibleStudyPage;
   observation: string;
   reflection: string;
   response: string;
@@ -26,19 +28,29 @@ interface Props {
   onBlur: () => void;
 }
 
-const StepHeader = ({ number, label }: { number: string; label: string }) => (
-  <View style={styles.stepHeader}>
-    <View style={styles.stepNumber}>
-      <ThemedText style={styles.stepNumberText}>{number}</ThemedText>
+const PageHeader = ({step, label, title, support}: {
+  step: number;
+  label: string;
+  title: string;
+  support: string;
+}) => (
+  <View style={styles.headerBlock}>
+    <View style={styles.stageRow}>
+      <View style={styles.stagePill}>
+        <ThemedText weight="bold" style={styles.stagePillText}>{step} OF 7</ThemedText>
+      </View>
+      <ThemedText weight="semiBold" style={styles.stageLabel}>{label}</ThemedText>
     </View>
-    <ThemedText weight="bold" style={styles.stepLabel}>{label}</ThemedText>
+    <ThemedText weight="bold" style={styles.title}>{title}</ThemedText>
+    <ThemedText style={styles.support}>{support}</ThemedText>
   </View>
 );
 
-const PromptSection = ({
-  number,
+const PromptPage = ({
+  step,
   label,
-  hint,
+  title,
+  support,
   prompt,
   value,
   section,
@@ -47,9 +59,10 @@ const PromptSection = ({
   onReveal,
   onBlur,
 }: {
-  number: string;
+  step: number;
   label: string;
-  hint: string;
+  title: string;
+  support: string;
   prompt: GuidedBibleStudyPrompt;
   value: string;
   section: GuidedAnswerSection;
@@ -58,53 +71,58 @@ const PromptSection = ({
   onReveal: () => void;
   onBlur: () => void;
 }) => (
-  <View style={styles.section}>
-    <StepHeader number={number} label={label} />
-    <View style={[styles.questionCard, section === 'reflect' && styles.reflectCard, section === 'respond' && styles.respondCard]}>
-      <ThemedText weight="semiBold" style={styles.hint}>{hint}</ThemedText>
-      <ThemedText style={styles.question}>{prompt.question}</ThemedText>
-      <View style={styles.notesBlock}>
-        <ThemedText weight="semiBold" style={styles.notesLabel}>YOUR NOTES</ThemedText>
-        <View style={styles.linedInputWrap}>
-          {[1, 2, 3, 4].map(line => <View key={line} style={[styles.writeLine, {top: line * 34}]} />)}
-          <TextInput
-            multiline
-            value={value}
-            onChangeText={onChange}
-            onBlur={onBlur}
-            placeholder={prompt.placeholder}
-            placeholderTextColor={Colors.placeholderText}
-            selectionColor={Colors.sage}
-            cursorColor={Colors.sage}
-            style={styles.input}
-            accessibilityLabel={`${section.replace('_', ' ')} response`}
-          />
+  <View style={styles.page}>
+    <PageHeader step={step} label={label} title={title} support={support} />
+    <View style={styles.promptCard}>
+      <View style={styles.promptIcon}>
+        <Ionicons name="sparkles-outline" size={17} color={Colors.sage} />
+      </View>
+      <ThemedText style={styles.promptQuestion}>{prompt.question}</ThemedText>
+    </View>
+    <View style={styles.responseCard}>
+      <ThemedText weight="semiBold" style={styles.responseLabel}>YOUR RESPONSE</ThemedText>
+      <TextInput
+        multiline
+        value={value}
+        onChangeText={onChange}
+        onBlur={onBlur}
+        placeholder={prompt.placeholder}
+        placeholderTextColor={Colors.placeholderText}
+        selectionColor={Colors.sage}
+        cursorColor={Colors.sage}
+        style={styles.input}
+        accessibilityLabel={`${section.replace('_', ' ')} response`}
+      />
+    </View>
+    <TouchableOpacity
+      style={[styles.revealButton, revealed && styles.revealButtonOpen]}
+      activeOpacity={0.72}
+      onPress={onReveal}
+      accessibilityRole="button"
+      accessibilityState={{expanded: revealed}}
+    >
+      <View style={styles.revealCopy}>
+        <Ionicons name="book-outline" size={18} color={Colors.sage} />
+        <View>
+          <ThemedText weight="semiBold" style={styles.revealTitle}>{revealed ? 'Hide companion insight' : prompt.guideLabel}</ThemedText>
+          {!revealed ? <ThemedText style={styles.revealHint}>Compare after writing your own response</ThemedText> : null}
         </View>
       </View>
-      <TouchableOpacity
-        style={styles.revealButton}
-        activeOpacity={0.72}
-        onPress={onReveal}
-        accessibilityRole="button"
-        accessibilityState={{ expanded: revealed }}
-      >
-        <ThemedText weight="semiBold" style={styles.revealButtonText}>{revealed ? 'Hide companion answer' : prompt.guideLabel}</ThemedText>
-        <Ionicons name={revealed ? 'chevron-up' : 'chevron-down'} size={17} color={Colors.sage} />
-      </TouchableOpacity>
-      {revealed ? (
-        <View style={styles.guideAnswer}>
-          <ThemedText style={styles.guideAnswerText}>
-            <ThemedText weight="bold" style={styles.answerLead}>Answer: </ThemedText>
-            {prompt.guideAnswer}
-          </ThemedText>
-        </View>
-      ) : null}
-    </View>
+      <Ionicons name={revealed ? 'chevron-up' : 'chevron-down'} size={18} color={Colors.sage} />
+    </TouchableOpacity>
+    {revealed ? (
+      <View style={styles.insightCard}>
+        <ThemedText weight="semiBold" style={styles.insightLabel}>COMPANION INSIGHT</ThemedText>
+        <ThemedText style={styles.insightText}>{prompt.guideAnswer}</ThemedText>
+      </View>
+    ) : null}
+    <View style={styles.spacer} />
   </View>
 );
 
 export default function GuidedBibleStudyPageView({
   guide,
+  page,
   observation,
   reflection,
   response,
@@ -117,57 +135,82 @@ export default function GuidedBibleStudyPageView({
   onReveal,
   onBlur,
 }: Props) {
-  return (
-    <View style={styles.page}>
-      <View style={styles.section}>
-        <StepHeader number="2" label="Understand" />
-        <ThemedText style={styles.title}>What Happens Here?</ThemedText>
-        <ThemedText style={styles.summary}>{guide.summary}</ThemedText>
+  if (page === 'understand') {
+    return (
+      <View style={styles.page}>
+        <PageHeader step={2} label="UNDERSTAND" title="What happens here?" support="See the movement of the whole chapter before looking closer." />
+        <View style={styles.overviewCard}>
+          <ThemedText style={styles.overviewText}>{guide.summary}</ThemedText>
+        </View>
         <View style={styles.keyVerseCard}>
-          <ThemedText weight="semiBold" style={styles.keyVerseLabel}>KEY VERSE</ThemedText>
-          <ThemedText weight="bold" style={styles.keyVerseReference}>{guide.keyVerse.reference} · {guide.keyVerse.translation}</ThemedText>
+          <View style={styles.keyVerseTopRow}>
+            <ThemedText weight="bold" style={styles.keyVerseLabel}>KEY VERSE</ThemedText>
+            <ThemedText weight="semiBold" style={styles.translation}>{guide.keyVerse.translation}</ThemedText>
+          </View>
+          <ThemedText weight="bold" style={styles.keyVerseReference}>{guide.keyVerse.reference}</ThemedText>
           <ThemedText style={styles.keyVerseText}>{guide.keyVerse.text}</ThemedText>
+          <View style={styles.keyVerseDivider} />
           <ThemedText style={styles.keyVerseNote}>{guide.keyVerse.note}</ThemedText>
         </View>
+        <View style={styles.spacer} />
       </View>
+    );
+  }
 
-      <View style={styles.section}>
-        <StepHeader number="3" label="Know the Context" />
-        <ThemedText style={styles.title}>Context that helps the chapter make sense.</ThemedText>
-        {guide.contexts.map(context => (
+  if (page === 'context') {
+    return (
+      <View style={styles.page}>
+        <PageHeader step={3} label="CONTEXT" title="Details that make the chapter clearer." support="A little background can help you read the passage on its own terms." />
+        {guide.contexts.map((context, index) => (
           <View key={context.title} style={styles.contextCard}>
-            <ThemedText weight="bold" style={styles.contextTitle}>{context.title}</ThemedText>
-            <ThemedText style={styles.contextBody}>{context.body}</ThemedText>
+            <View style={styles.contextNumber}>
+              <ThemedText weight="bold" style={styles.contextNumberText}>0{index + 1}</ThemedText>
+            </View>
+            <View style={styles.contextCopy}>
+              <ThemedText weight="bold" style={styles.contextTitle}>{context.title}</ThemedText>
+              <ThemedText style={styles.contextBody}>{context.body}</ThemedText>
+            </View>
           </View>
         ))}
+        <View style={styles.spacer} />
       </View>
+    );
+  }
 
-      <PromptSection number="4" label="Look Again" hint="GO BACK TO THE CHAPTER" prompt={guide.lookAgain} value={observation} section="look_again" revealed={revealedSections.includes('look_again')} onChange={onObservationChange} onReveal={() => onReveal('look_again')} onBlur={onBlur} />
+  if (page === 'look_again') {
+    return <PromptPage step={4} label="LOOK AGAIN" title="Return to the passage." support="Notice the repeated contrast, then compare what you saw with the companion." prompt={guide.lookAgain} value={observation} section="look_again" revealed={revealedSections.includes('look_again')} onChange={onObservationChange} onReveal={() => onReveal('look_again')} onBlur={onBlur} />;
+  }
 
-      <PromptSection number="5" label="Reflect" hint="SIT WITH WHAT YOU READ" prompt={guide.reflect} value={reflection} section="reflect" revealed={revealedSections.includes('reflect')} onChange={onReflectionChange} onReveal={() => onReveal('reflect')} onBlur={onBlur} />
+  if (page === 'reflect') {
+    return <PromptPage step={5} label="REFLECT" title="Let the truth examine the heart." support="Move from understanding the passage to receiving what it reveals." prompt={guide.reflect} value={reflection} section="reflect" revealed={revealedSections.includes('reflect')} onChange={onReflectionChange} onReveal={() => onReveal('reflect')} onBlur={onBlur} />;
+  }
 
-      <PromptSection number="6" label="Respond" hint="CARRY THE TRUTH FORWARD" prompt={guide.respond} value={response} section="respond" revealed={revealedSections.includes('respond')} onChange={onResponseChange} onReveal={() => onReveal('respond')} onBlur={onBlur} />
+  if (page === 'respond') {
+    return <PromptPage step={6} label="RESPOND" title="Carry the truth forward." support="Choose one faithful response that is concrete and possible." prompt={guide.respond} value={response} section="respond" revealed={revealedSections.includes('respond')} onChange={onResponseChange} onReveal={() => onReveal('respond')} onBlur={onBlur} />;
+  }
 
-      <View style={styles.section}>
-        <StepHeader number="7" label="Pray" />
-        <View style={styles.prayerCard}>
-          <ThemedText style={styles.prayerTitle}>Turn what you read into prayer.</ThemedText>
-          <TextInput
-            multiline
-            value={prayer}
-            onChangeText={onPrayerChange}
-            onBlur={onBlur}
-            placeholder="Lord Jesus…"
-            placeholderTextColor="rgba(255,255,255,0.66)"
-            selectionColor={Colors.hopeWhite}
-            cursorColor={Colors.hopeWhite}
-            style={styles.prayerInput}
-            accessibilityLabel="Guided study prayer"
-          />
+  return (
+    <View style={styles.page}>
+      <PageHeader step={7} label="PRAY" title="Turn what you read into prayer." support="Begin with the companion prayer, then make the words your own." />
+      <View style={styles.prayerCard}>
+        <View style={styles.prayerIcon}>
+          <Ionicons name="heart-outline" size={20} color={Colors.hopeWhite} />
         </View>
+        <TextInput
+          multiline
+          value={prayer}
+          onChangeText={onPrayerChange}
+          onBlur={onBlur}
+          placeholder="Lord Jesus…"
+          placeholderTextColor="rgba(255,255,255,0.62)"
+          selectionColor={Colors.hopeWhite}
+          cursorColor={Colors.hopeWhite}
+          style={styles.prayerInput}
+          accessibilityLabel="Guided study prayer"
+        />
       </View>
-
       <View style={styles.carryCard}>
+        <Ionicons name="bookmark-outline" size={20} color={Colors.sage} />
         <ThemedText weight="semiBold" style={styles.carryLabel}>CARRY THIS WITH YOU</ThemedText>
         <ThemedText style={styles.carryText}>{guide.carryTruth}</ThemedText>
       </View>
@@ -177,42 +220,49 @@ export default function GuidedBibleStudyPageView({
 }
 
 const styles = StyleSheet.create({
-  page: { marginHorizontal: 14, paddingHorizontal: 24, paddingTop: 28, backgroundColor: Colors.cardBackground },
-  section: { marginBottom: 54 },
-  stepHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 16 },
-  stepNumber: { width: 30, height: 30, borderRadius: 15, borderWidth: 1, borderColor: Colors.sageMuted, alignItems: 'center', justifyContent: 'center' },
-  stepNumberText: { fontFamily: Fonts.lora.regular, fontSize: 13, color: Colors.text },
-  stepLabel: { fontSize: 11, letterSpacing: 1.7, textTransform: 'uppercase', color: Colors.sage },
-  title: { fontFamily: Fonts.lora.regular, fontSize: 30, lineHeight: 39, color: Colors.text, marginBottom: 18 },
-  summary: { fontFamily: Fonts.lora.regular, fontSize: 17, lineHeight: 30, color: Colors.text },
-  keyVerseCard: { borderLeftWidth: 3, borderLeftColor: Colors.faithGold, paddingLeft: 20, paddingVertical: 7, marginTop: 34 },
-  keyVerseLabel: { fontSize: 10, letterSpacing: 1.5, color: Colors.sage, marginBottom: 8 },
-  keyVerseReference: { fontFamily: Fonts.lora.bold, fontSize: 22, color: Colors.text, marginBottom: 8 },
-  keyVerseText: { fontFamily: Fonts.lora.regular, fontSize: 17, lineHeight: 29, color: Colors.text, marginBottom: 12 },
-  keyVerseNote: { fontSize: 15, lineHeight: 23, color: Colors.textGray },
-  contextCard: { borderColor: Colors.cardBorder, borderWidth: 1, borderRadius: 15, padding: 20, marginBottom: 12 },
-  contextTitle: { fontFamily: Fonts.lora.regular, fontSize: 20, color: Colors.text, marginBottom: 7 },
-  contextBody: { fontSize: 15, lineHeight: 24, color: Colors.textGray },
-  questionCard: { backgroundColor: Colors.inputBackground, borderRadius: 18, padding: 24 },
-  reflectCard: { backgroundColor: Colors.anchorBlueLight },
-  respondCard: { backgroundColor: Colors.lightBackground },
-  hint: { fontSize: 10, letterSpacing: 1.4, color: Colors.textGray, marginBottom: 10 },
-  question: { fontFamily: Fonts.lora.regular, fontSize: 21, lineHeight: 31, color: Colors.text },
-  notesBlock: { marginTop: 22 },
-  notesLabel: { fontSize: 9, letterSpacing: 1.3, color: Colors.sage, marginBottom: 6 },
-  linedInputWrap: { minHeight: 150, position: 'relative' },
-  writeLine: { position: 'absolute', left: 0, right: 0, height: 1, backgroundColor: Colors.cardBorder },
-  input: { minHeight: 150, fontFamily: Fonts.regular, fontSize: 16, lineHeight: 34, color: Colors.text, paddingHorizontal: 0, paddingVertical: 0, textAlignVertical: 'top' },
-  revealButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 13, marginTop: 8 },
-  revealButtonText: { fontSize: 14, color: Colors.sage },
-  guideAnswer: { backgroundColor: Colors.cardBackground, borderColor: Colors.cardBorder, borderWidth: 1, borderRadius: 12, padding: 17, marginTop: 2 },
-  answerLead: { fontFamily: Fonts.lora.bold, color: Colors.text },
-  guideAnswerText: { fontFamily: Fonts.lora.regular, fontSize: 16, lineHeight: 27, color: Colors.text },
-  prayerCard: { backgroundColor: Colors.sage, borderRadius: 18, padding: 26, marginBottom: 18 },
-  prayerTitle: { fontFamily: Fonts.lora.regular, fontSize: 27, lineHeight: 35, color: Colors.hopeWhite, marginBottom: 16 },
-  prayerInput: { minHeight: 170, fontFamily: Fonts.lora.regular, fontSize: 17, lineHeight: 29, color: Colors.hopeWhite, padding: 0, textAlignVertical: 'top' },
-  carryCard: { backgroundColor: Colors.lightBackground, paddingVertical: 38, paddingHorizontal: 24, alignItems: 'center', marginHorizontal: -24 },
-  carryLabel: { fontSize: 10, letterSpacing: 1.4, color: Colors.sage, marginBottom: 10 },
-  carryText: { fontFamily: Fonts.lora.regular, fontSize: 25, lineHeight: 36, color: Colors.text, textAlign: 'center' },
-  spacer: { height: 130 },
+  page: {paddingHorizontal: 20, paddingTop: 18},
+  headerBlock: {marginBottom: 24},
+  stageRow: {flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 14},
+  stagePill: {backgroundColor: Colors.anchorBlueLight, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 6},
+  stagePillText: {fontSize: 9, letterSpacing: 1, color: Colors.sage},
+  stageLabel: {fontSize: 10, letterSpacing: 1.6, color: Colors.sage},
+  title: {fontFamily: Fonts.lora.bold, fontSize: 30, lineHeight: 39, color: Colors.text, marginBottom: 9},
+  support: {fontSize: 14, lineHeight: 22, color: Colors.textGray},
+  overviewCard: {backgroundColor: Colors.cardBackground, borderRadius: 24, borderWidth: 1, borderColor: Colors.cardBorder, padding: 21, marginBottom: 18},
+  overviewText: {fontFamily: Fonts.lora.regular, fontSize: 16, lineHeight: 29, color: Colors.text},
+  keyVerseCard: {backgroundColor: Colors.anchorBlueLight, borderRadius: 24, padding: 21, borderLeftWidth: 4, borderLeftColor: Colors.faithGold},
+  keyVerseTopRow: {flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10},
+  keyVerseLabel: {fontSize: 9, letterSpacing: 1.5, color: Colors.sage},
+  translation: {fontSize: 10, color: Colors.textGray},
+  keyVerseReference: {fontFamily: Fonts.lora.bold, fontSize: 22, color: Colors.text, marginBottom: 10},
+  keyVerseText: {fontFamily: Fonts.lora.regular, fontSize: 16, lineHeight: 28, color: Colors.text},
+  keyVerseDivider: {height: 1, backgroundColor: Colors.cardBorder, marginVertical: 16},
+  keyVerseNote: {fontSize: 14, lineHeight: 22, color: Colors.textGray},
+  contextCard: {flexDirection: 'row', gap: 14, backgroundColor: Colors.cardBackground, borderWidth: 1, borderColor: Colors.cardBorder, borderRadius: 22, padding: 18, marginBottom: 13},
+  contextNumber: {width: 34, height: 34, borderRadius: 17, backgroundColor: Colors.anchorBlueLight, alignItems: 'center', justifyContent: 'center'},
+  contextNumberText: {fontSize: 10, letterSpacing: 0.7, color: Colors.sage},
+  contextCopy: {flex: 1},
+  contextTitle: {fontFamily: Fonts.lora.bold, fontSize: 19, color: Colors.text, marginBottom: 7},
+  contextBody: {fontSize: 14, lineHeight: 23, color: Colors.textGray},
+  promptCard: {backgroundColor: Colors.anchorBlueLight, borderRadius: 24, padding: 21, marginBottom: 16},
+  promptIcon: {width: 34, height: 34, borderRadius: 17, backgroundColor: Colors.cardBackground, alignItems: 'center', justifyContent: 'center', marginBottom: 14},
+  promptQuestion: {fontFamily: Fonts.lora.bold, fontSize: 20, lineHeight: 31, color: Colors.text},
+  responseCard: {backgroundColor: Colors.cardBackground, borderWidth: 1, borderColor: Colors.cardBorder, borderRadius: 22, padding: 19, marginBottom: 14},
+  responseLabel: {fontSize: 9, letterSpacing: 1.5, color: Colors.sage, marginBottom: 9},
+  input: {minHeight: 150, fontFamily: Fonts.regular, fontSize: 16, lineHeight: 27, color: Colors.text, padding: 0, textAlignVertical: 'top'},
+  revealButton: {flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: 'rgba(82,106,91,0.08)', borderRadius: 20, padding: 16},
+  revealButtonOpen: {borderBottomLeftRadius: 10, borderBottomRightRadius: 10},
+  revealCopy: {flexDirection: 'row', alignItems: 'center', gap: 11},
+  revealTitle: {fontSize: 13, color: Colors.sage},
+  revealHint: {fontSize: 10, color: Colors.textGray, marginTop: 2},
+  insightCard: {backgroundColor: Colors.cardBackground, borderWidth: 1, borderColor: Colors.cardBorder, borderRadius: 20, padding: 19, marginTop: 10},
+  insightLabel: {fontSize: 9, letterSpacing: 1.4, color: Colors.sage, marginBottom: 9},
+  insightText: {fontFamily: Fonts.lora.regular, fontSize: 16, lineHeight: 28, color: Colors.text},
+  prayerCard: {backgroundColor: Colors.sage, borderRadius: 26, padding: 22, marginBottom: 16},
+  prayerIcon: {width: 38, height: 38, borderRadius: 19, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center', marginBottom: 14},
+  prayerInput: {minHeight: 190, fontFamily: Fonts.lora.regular, fontSize: 17, lineHeight: 30, color: Colors.hopeWhite, padding: 0, textAlignVertical: 'top'},
+  carryCard: {backgroundColor: Colors.cardBackground, borderWidth: 1, borderColor: Colors.cardBorder, borderRadius: 24, padding: 21, alignItems: 'center'},
+  carryLabel: {fontSize: 9, letterSpacing: 1.5, color: Colors.sage, marginTop: 10, marginBottom: 9},
+  carryText: {fontFamily: Fonts.lora.bold, fontSize: 19, lineHeight: 29, color: Colors.text, textAlign: 'center'},
+  spacer: {height: 130},
 });
