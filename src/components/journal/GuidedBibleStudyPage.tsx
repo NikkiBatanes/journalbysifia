@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useEffect, useState} from 'react';
 import {StyleSheet, TextInput, TouchableOpacity, View} from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -140,6 +140,12 @@ export default function GuidedBibleStudyPageView({
   onReveal,
   onBlur,
 }: Props) {
+  const [personalPrayerOpen, setPersonalPrayerOpen] = useState(Boolean(prayer.trim()));
+
+  useEffect(() => {
+    if (prayer.trim()) {setPersonalPrayerOpen(true);}
+  }, [prayer]);
+
   // Older in-progress sessions may still point to the retired context page.
   // Treat it as Understand so those studies resume in the combined experience.
   if (page === 'understand' || page === 'context') {
@@ -220,26 +226,42 @@ export default function GuidedBibleStudyPageView({
             </ThemedText>
           </TouchableOpacity>
         </View>
-        <View style={styles.prayerChoiceRow}>
-          <View style={styles.prayerChoiceLine} />
-          <ThemedText weight="semiBold" style={styles.prayerChoiceLabel}>OR WRITE YOUR OWN</ThemedText>
-          <View style={styles.prayerChoiceLine} />
-        </View>
-        <View style={styles.personalPrayerCard}>
-          <ThemedText weight="semiBold" style={styles.responseLabel}>MY PRAYER</ThemedText>
-          <TextInput
-            multiline
-            value={prayer}
-            onChangeText={onPrayerChange}
-            onBlur={onBlur}
-            placeholder="Lord Jesus…"
-            placeholderTextColor={Colors.placeholderText}
-            selectionColor={Colors.sage}
-            cursorColor={Colors.sage}
-            style={styles.prayerInput}
-            accessibilityLabel="Guided study personal prayer"
-          />
-        </View>
+        <TouchableOpacity
+          style={[styles.writePrayerButton, personalPrayerOpen && styles.writePrayerButtonOpen]}
+          activeOpacity={0.75}
+          onPress={() => setPersonalPrayerOpen(open => !open)}
+          accessibilityRole="button"
+          accessibilityState={{expanded: personalPrayerOpen}}
+        >
+          <View style={styles.writePrayerButtonCopy}>
+            <View style={styles.writePrayerIcon}>
+              <Ionicons name="pencil-outline" size={17} color={Colors.sage} />
+            </View>
+            <View style={styles.writePrayerButtonTextBlock}>
+              <ThemedText weight="semiBold" style={styles.writePrayerButtonTitle}>{prayer.trim() ? 'Edit my prayer' : 'Write my own prayer'}</ThemedText>
+              {!personalPrayerOpen ? <ThemedText style={styles.writePrayerButtonHint}>Respond to God in your own words</ThemedText> : null}
+            </View>
+          </View>
+          <Ionicons name={personalPrayerOpen ? 'chevron-up' : 'chevron-down'} size={18} color={Colors.sage} />
+        </TouchableOpacity>
+        {personalPrayerOpen ? (
+          <View style={styles.personalPrayerCard}>
+            <ThemedText weight="semiBold" style={styles.responseLabel}>MY PRAYER</ThemedText>
+            <TextInput
+              multiline
+              autoFocus={!prayer.trim()}
+              value={prayer}
+              onChangeText={onPrayerChange}
+              onBlur={onBlur}
+              placeholder="Lord Jesus…"
+              placeholderTextColor={Colors.placeholderText}
+              selectionColor={Colors.sage}
+              cursorColor={Colors.sage}
+              style={styles.prayerInput}
+              accessibilityLabel="Guided study personal prayer"
+            />
+          </View>
+        ) : null}
         <View style={styles.spacer} />
       </View>
     );
@@ -309,10 +331,14 @@ const styles = StyleSheet.create({
   prayedButtonActive: {backgroundColor: 'rgba(255,107,107,0.15)', borderColor: 'rgba(255,107,107,0.3)'},
   prayedButtonText: {fontSize: 14, color: Colors.hopeWhite},
   prayedButtonTextActive: {color: Colors.alertCoral},
-  prayerChoiceRow: {flexDirection: 'row', alignItems: 'center', gap: 12, marginVertical: 20},
-  prayerChoiceLine: {height: 1, flex: 1, backgroundColor: Colors.cardBorder},
-  prayerChoiceLabel: {fontSize: 9, letterSpacing: 1.35, color: Colors.textGray},
-  personalPrayerCard: {backgroundColor: Colors.cardBackground, borderWidth: 1, borderColor: Colors.cardBorder, borderRadius: 22, padding: 19},
+  writePrayerButton: {flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: Colors.cardBackground, borderWidth: 1, borderColor: Colors.cardBorder, borderRadius: 22, padding: 16, marginTop: 16},
+  writePrayerButtonOpen: {borderBottomLeftRadius: 12, borderBottomRightRadius: 12},
+  writePrayerButtonCopy: {flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1},
+  writePrayerIcon: {width: 36, height: 36, borderRadius: 18, backgroundColor: Colors.anchorBlueLight, alignItems: 'center', justifyContent: 'center'},
+  writePrayerButtonTextBlock: {flex: 1},
+  writePrayerButtonTitle: {fontSize: 14, color: Colors.sage},
+  writePrayerButtonHint: {fontSize: 11, color: Colors.textGray, marginTop: 3},
+  personalPrayerCard: {backgroundColor: Colors.cardBackground, borderWidth: 1, borderColor: Colors.cardBorder, borderRadius: 22, padding: 19, marginTop: 10},
   prayerInput: {minHeight: 150, fontFamily: Fonts.lora.regular, fontSize: 17, lineHeight: 30, color: Colors.text, padding: 0, textAlignVertical: 'top'},
   carryCard: {backgroundColor: Colors.cardBackground, borderWidth: 1, borderColor: Colors.cardBorder, borderRadius: 24, padding: 21, alignItems: 'center'},
   carryLabel: {fontSize: 9, letterSpacing: 1.5, color: Colors.sage, marginTop: 10, marginBottom: 9},
