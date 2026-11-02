@@ -1,5 +1,12 @@
 # Journal by siFia — Project Notes
 
+## Shared records, backup, and cloud
+
+- Product decisions and delivery gates: [Shared Journal implementation plan](docs/shared-journal-inventory-and-implementation-plan.md).
+- `src/compatibility/sharedJournalCapabilityContract.ts` defines free shared records versus Journal Cloud persistence. Future siFia extension permissions are read-only declarations, not enabled access.
+- `sharedJournalMergePreview.ts` is metadata-only preflight, not a sync executor or upload consent. Keep account checks, complete remote pagination, stable identity, and conflict preservation before wiring any writes.
+- Legacy `reflection_log` rows may contain multiple children. Preserve the table/row/child identity from `sifiaReflectionBundleCompatibility.ts`; never collapse siblings to a daily container ID.
+
 ## Moments scrolling
 
 - Confirmed September 22, 2026: sticky date headers reported inner `y=0` to VirtualizedList, corrupting spacing and causing jumps between dates. Keep `MomentsStickyHeader` wired into the renderer and date headers free of entrance transforms.

@@ -2,6 +2,7 @@ import {
   SHARED_JOURNAL_CAPABILITIES,
   canJournalMutateSharedBase,
   getSharedJournalCapability,
+  getJournalPersistencePolicy,
   isFreeSharedCapability,
   requiresJournalCloudForAutomaticRemotePersistence,
   validateSharedJournalCapabilityContract,
@@ -37,13 +38,56 @@ describe('shared journal capability contract', () => {
     }
   });
 
-  it('classifies review and routine state as references rather than copied canonical content', () => {
+  it('backs up review answers and routine progress separately from their canonical references', () => {
     for (const id of ['review', 'routine_state'] as const) {
       expect(getSharedJournalCapability(id)).toMatchObject({
         scope: 'journal_orchestration',
-        remotePersistence: 'follows_referenced_records',
+        remotePersistence: 'journal_cloud_or_manual_export',
       });
     }
+  });
+
+  it('plans future read-only extension display without enabling current siFia access', () => {
+    for (const id of ['journal_extension', 'journal_media'] as const) {
+      expect(getSharedJournalCapability(id)).toMatchObject({
+        sifiaOperations: [], futureSifiaOperations: ['read'],
+      });
+    }
+    expect(getSharedJournalCapability('bible_study').futureSifiaOperations).toBeUndefined();
+  });
+
+  it('keeps Journal usable and exportable without signing in, even with stale paid state', () => {
+    for (const item of SHARED_JOURNAL_CAPABILITIES) {
+      expect(getJournalPersistencePolicy(item.id, {
+        accountId: null, sharedSyncConnected: true, journalCloudEntitled: true,
+      })).toEqual({ local: true, manualExport: true, freeSharedSync: false, journalCloudSync: false });
+    }
+  });
+
+  it('does not enable free shared sync on sign-in until the user connects it', () => {
+    expect(getJournalPersistencePolicy('reflection', {
+      accountId: 'account-a', sharedSyncConnected: false, journalCloudEntitled: false,
+    }).freeSharedSync).toBe(false);
+  });
+
+  it('syncs Heart Journal bases free while a photo remains local without cloud', () => {
+    const context = { accountId: 'account-a', sharedSyncConnected: true, journalCloudEntitled: false };
+    expect(getJournalPersistencePolicy('reflection', context)).toMatchObject({ freeSharedSync: true, journalCloudSync: false });
+    expect(getJournalPersistencePolicy('journal_media', context)).toMatchObject({ freeSharedSync: false, journalCloudSync: false });
+  });
+
+  it('supports Journal-only subscribers without connecting the siFia shared-data path', () => {
+    expect(getJournalPersistencePolicy('bible_study', {
+      accountId: 'journal-only-account', sharedSyncConnected: false, journalCloudEntitled: true,
+    })).toEqual({ local: true, manualExport: true, freeSharedSync: false, journalCloudSync: true });
+  });
+
+  it('keeps free sync and export available after the cloud subscription expires', () => {
+    const context = { accountId: 'account-a', sharedSyncConnected: true, journalCloudEntitled: false };
+    expect(getJournalPersistencePolicy('reflection', context).freeSharedSync).toBe(true);
+    expect(getJournalPersistencePolicy('review', context)).toEqual({
+      local: true, manualExport: true, freeSharedSync: false, journalCloudSync: false,
+    });
   });
 
   it('uses unique capability identifiers', () => {

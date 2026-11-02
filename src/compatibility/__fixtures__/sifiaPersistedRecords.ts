@@ -9,3 +9,17 @@ export const faithfulAction = { id: 'action-step-1', playbook_id: 'playbook-1', 
 export const devotionalPrayer = { id: 'devotional-prayer-1', server_id: 'server-devotional-prayer-1', prayer_type: 'devotional', source: 'devotional', content: 'Help me wait with hope.', devotional_title: 'Hope in Waiting', day_number: 2, day_title: 'Remain', selected_date: '2025-04-12', created_at: stamp, updated_at: stamp, metadata: { devotional_id: 'devotional-1' } };
 export const playbookPrayer = { id: 'playbook-prayer-1', server_id: 'server-playbook-prayer-1', prayer_type: 'guided_playbook', source: 'playbook', content: 'Give me courage to act.', selected_date: '2025-04-12', created_at: stamp, updated_at: stamp, metadata: { playbook_id: 'playbook-1', playbook_title: 'Courage for Today', step_id: 'action-step-1', subtask_id: 'subtask-1', prompt: 'Pray before acting.' } };
 export const sharedTimeBlock = { id: 'time-block-1', user_id: 'user-1', selected_date: '2025-04-12', start_time: '2025-04-12T09:00:00', end_time: '2025-04-12T10:00:00', all_day: false, title: 'Quiet time', category: 'faith', version: 2, created_at: stamp, updated_at: stamp };
+
+/** Legacy day-bundled storage shape; the row ID is NOT either child entry ID. */
+export const legacyBundledReflections = {
+  id: 'reflection-day-container', user_id: 'user-1', content_type: 'reflection_log',
+  selected_date: '2025-04-12', created_at: stamp, updated_at: stamp,
+  content: { entries: [
+    { id: 'legacy-heart-1', user_id: 'user-1', title: 'Morning', content: 'First entry.',
+      type: 'free-form', source: 'freeform', date: stamp, tags: [],
+      selected_date: '2025-04-12', created_at: stamp, updated_at: stamp },
+    { id: 'legacy-heart-2', user_id: 'user-1', title: 'Evening', content: 'Second entry.',
+      type: 'free-form', source: 'freeform', date: stamp, tags: [],
+      selected_date: '2025-04-12', created_at: stamp, updated_at: stamp },
+  ] },
+};

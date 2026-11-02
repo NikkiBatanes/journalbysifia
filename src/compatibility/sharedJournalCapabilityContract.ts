@@ -7,7 +7,7 @@
  * same boundary.
  */
 
-export const SHARED_JOURNAL_CONTRACT_VERSION = 1 as const;
+export const SHARED_JOURNAL_CONTRACT_VERSION = 2 as const;
 
 export type JournalCapabilityScope =
   | 'shared_read_write'
@@ -19,8 +19,7 @@ export type JournalCapabilityOperation = 'create' | 'read' | 'update' | 'delete'
 
 export type JournalRemotePersistence =
   | 'free_sifia_account'
-  | 'journal_cloud_or_manual_export'
-  | 'follows_referenced_records';
+  | 'journal_cloud_or_manual_export';
 
 export type JournalCapabilityReadiness = 'existing' | 'partial' | 'missing';
 
@@ -48,6 +47,8 @@ export interface SharedJournalCapability {
   /** Known subtype/origin discriminators. This is not a database enum. */
   variants: readonly string[];
   sifiaOperations: readonly JournalCapabilityOperation[];
+  /** Planned renderer permissions; never enables a feature or grants authorization. */
+  futureSifiaOperations?: readonly JournalCapabilityOperation[];
   journalOperations: readonly JournalCapabilityOperation[];
   remotePersistence: JournalRemotePersistence;
   readiness: JournalCapabilityReadiness;
@@ -192,9 +193,9 @@ export const SHARED_JOURNAL_CAPABILITIES: readonly SharedJournalCapability[] = [
     variants: ['weekly', 'monthly', 'quarterly', 'year_end', 'begin_year'],
     sifiaOperations: NO_OPERATIONS,
     journalOperations: CRUD,
-    remotePersistence: 'follows_referenced_records',
+    remotePersistence: 'journal_cloud_or_manual_export',
     readiness: 'existing',
-    notes: 'Reviews store answers and stable references to canonical content. Sync and restore must never replace source records with review snapshots.',
+    notes: 'Review answers and selection state need their own export/cloud persistence. Canonical references retain their source identity; never replace source records with review snapshots.',
   },
   {
     id: 'routine_state',
@@ -205,9 +206,9 @@ export const SHARED_JOURNAL_CAPABILITIES: readonly SharedJournalCapability[] = [
     variants: ['morning', 'evening'],
     sifiaOperations: NO_OPERATIONS,
     journalOperations: CRUD,
-    remotePersistence: 'follows_referenced_records',
+    remotePersistence: 'journal_cloud_or_manual_export',
     readiness: 'existing',
-    notes: 'Routine state references journal, reflection, and prayer records and does not duplicate their authored bodies.',
+    notes: 'Routine progress needs its own export/cloud persistence. Its references resolve to canonical journal, reflection, and prayer records without duplicating their authored bodies.',
   },
   {
     id: 'prayer_draft',
@@ -230,6 +231,7 @@ export const SHARED_JOURNAL_CAPABILITIES: readonly SharedJournalCapability[] = [
     journalSources: ['JournalBlock[] attached to a shared parent record'],
     variants: ['advanced_block', 'table', 'column', 'scripture', 'photo', 'voice'],
     sifiaOperations: NO_OPERATIONS,
+    futureSifiaOperations: READ_ONLY,
     journalOperations: CRUD,
     remotePersistence: 'journal_cloud_or_manual_export',
     readiness: 'partial',
@@ -243,6 +245,7 @@ export const SHARED_JOURNAL_CAPABILITIES: readonly SharedJournalCapability[] = [
     journalSources: ['JournalBlock:photo', 'JournalBlock:voice'],
     variants: ['photo', 'voice'],
     sifiaOperations: NO_OPERATIONS,
+    futureSifiaOperations: READ_ONLY,
     journalOperations: CRUD,
     remotePersistence: 'journal_cloud_or_manual_export',
     readiness: 'partial',
@@ -276,6 +279,25 @@ export const requiresJournalCloudForAutomaticRemotePersistence = (
 ): boolean =>
   getSharedJournalCapability(id).remotePersistence === 'journal_cloud_or_manual_export';
 
+/** Product policy only. Backend authorization and device-key access are separate. */
+export const getJournalPersistencePolicy = (
+  id: SharedJournalCapabilityId,
+  context: {
+    accountId: string | null;
+    sharedSyncConnected: boolean;
+    journalCloudEntitled: boolean;
+  },
+): { local: true; manualExport: true; freeSharedSync: boolean; journalCloudSync: boolean } => {
+  const signedIn = Boolean(context.accountId?.trim());
+  return {
+    local: true,
+    manualExport: true,
+    freeSharedSync: signedIn && context.sharedSyncConnected && isFreeSharedCapability(id),
+    journalCloudSync: signedIn && context.journalCloudEntitled
+      && requiresJournalCloudForAutomaticRemotePersistence(id),
+  };
+};
+
 export const validateSharedJournalCapabilityContract = (): string[] => {
   const issues: string[] = [];
   const ids = new Set<string>();
@@ -305,6 +327,18 @@ export const validateSharedJournalCapabilityContract = (): string[] => {
 
     if ((capability.scope === 'journal_only' || capability.scope === 'journal_orchestration') && capability.sifiaOperations.length > 0) {
       issues.push(`${capability.id}: Journal-only records cannot expose siFia operations`);
+    }
+
+    if ((capability.scope === 'journal_only' || capability.scope === 'journal_orchestration')
+      && capability.remotePersistence !== 'journal_cloud_or_manual_export') {
+      issues.push(`${capability.id}: Journal-owned state requires its own export/cloud persistence`);
+    }
+
+    if (capability.futureSifiaOperations?.length) {
+      if (!['journal_extension', 'journal_media'].includes(capability.id)
+        || capability.futureSifiaOperations.some(operation => operation !== 'read')) {
+        issues.push(`${capability.id}: future siFia extension access may only allow reading`);
+      }
     }
   });
 
