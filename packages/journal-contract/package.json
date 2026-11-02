@@ -1,0 +1,11 @@
+{
+  "name": "@sifia/journal-contract",
+  "version": "0.1.1",
+  "private": true,
+  "description": "Pure shared account, journal compatibility, preflight, and field contracts",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": ["dist", "README.md"],
+  "sideEffects": false,
+  "engines": { "node": ">=18" }
+}

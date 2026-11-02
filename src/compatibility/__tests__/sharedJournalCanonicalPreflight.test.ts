@@ -32,14 +32,29 @@ describe('canonical journal preflight composition', () => {
   it('explains held mapping cases using only IDs/family/reason, without a body preview', () => {
     const result = buildCanonicalJournalMergePreflight({ ...input, snapshot: { ...empty,
       prayerRecords: [trackedJournalPrayer],
-      journalRecords: [{ ...sharedDailyFixtures[0], content_type: 'time_block' }],
+      journalRecords: [{ ...sharedDailyFixtures[0], id: 'repeat-block', content_type: 'time_block', content: JSON.stringify({
+        title: 'Repeat', category: 'faith', all_day: false,
+        start_time: '2026-11-03T00:00:00.000Z', end_time: '2026-11-03T01:00:00.000Z',
+        timezone: 'Asia/Manila', repeat_rule: { frequency: 'daily' },
+      }) }],
     } });
     expect(result.preview.status).toBe('review_required');
     expect(result.heldRecords).toEqual([
-      { localId: 'gratitude', family: 'journal', reason: 'requires_time_block_adapter' },
+      { localId: 'repeat-block', family: 'journal', reason: 'recurrence_requires_mapping' },
       { localId: 'tracked', family: 'prayer', reason: 'lifecycle_requires_mapping' },
     ]);
     expect(JSON.stringify(result)).not.toMatch(/Health|Work|answerHistory/);
+  });
+
+  it('routes a persisted one-off Time Block to its own shared family', () => {
+    const result = buildCanonicalJournalMergePreflight({ ...input, snapshot: { ...empty, journalRecords: [
+      { ...sharedDailyFixtures[0], id: 'block', content_type: 'time_block', content: JSON.stringify({
+        title: 'Quiet time', category: 'faith', all_day: false,
+        start_time: '2026-11-03T00:00:00.000Z', end_time: '2026-11-03T01:00:00.000Z',
+        timezone: 'Asia/Manila', repeat_rule: { frequency: 'never' },
+      }) },
+    ] } });
+    expect(result.preview.entries).toEqual([{ localId: 'block', capabilityId: 'time_block', action: 'upload_shared_base', reason: 'new_shared_record' }]);
   });
 
   it('blocks incomplete local snapshots before showing any proposed uploads', () => {

@@ -9,6 +9,7 @@ import { toLocalDailyJournalMergePreview, projectLocalDailyJournalForSharing } f
 import { toLocalReflectionMergePreview, projectLocalReflectionForSharing } from './sharedReflectionFieldContract';
 import { toLocalPrayerMergePreview, projectLocalPrayerForSharing } from './sharedPrayerFieldContract';
 import { isNonemptyString, type LocalSharedRecord } from './sharedJournalFieldValidation';
+import { toLocalTimeBlockMergePreview, projectLocalTimeBlockForSharing } from './sharedTimeBlockFieldContract';
 
 export const buildCanonicalJournalMergePreflight = (input: {
   targetAccountId: string;
@@ -44,7 +45,9 @@ export const buildCanonicalJournalMergePreflight = (input: {
       }
     }
   };
-  append(input.snapshot.journalRecords, 'journal', toLocalDailyJournalMergePreview, projectLocalDailyJournalForSharing);
+  append(input.snapshot.journalRecords, 'journal',
+    entry => entry.content_type === 'time_block' ? toLocalTimeBlockMergePreview(entry) : toLocalDailyJournalMergePreview(entry),
+    entry => entry.content_type === 'time_block' ? projectLocalTimeBlockForSharing(entry) : projectLocalDailyJournalForSharing(entry));
   append(input.snapshot.reflectionRecords, 'reflection', toLocalReflectionMergePreview, projectLocalReflectionForSharing);
   append(input.snapshot.prayerRecords, 'prayer', toLocalPrayerMergePreview, projectLocalPrayerForSharing);
   const preview = buildSharedJournalMergePreview({

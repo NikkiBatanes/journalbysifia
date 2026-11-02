@@ -21,7 +21,7 @@ This plan supersedes the earlier proposal to migrate all siFia content immediate
 13. Journal Cloud expiry stops paid remote writes after applicable billing grace. Local writing, free shared sync, and free export remain available. Cancellation does not immediately delete content.
 14. Paid recovery snapshots cover the complete Journal-owned inventory, including locally stored shared-capable base records when free shared sync is disconnected. Canonical sync routing and snapshot coverage are distinct. A snapshot preserves IDs/provenance; restoring it must reconcile existing account records rather than create a second canonical copy. Snapshot eligibility never substitutes for account adoption/backup consent or key enrollment.
 
-The machine-readable contract is `src/compatibility/sharedJournalCapabilityContract.ts` (version 3). It represents future extension read permissions, paid persistence of review/routine state, and Journal-specific check-in/weekly Moments that have no current siFia renderer. Shared packaging, remaining per-field adapters, and runtime/server enforcement remain Phase 1/2 work; passing pure contract tests does not establish those features.
+The shared core is `packages/journal-contract/src` (`@sifia/journal-contract` package 0.1.1, capability contract version 3). Existing `src/compatibility` entry points delegate to the installed package. Both repositories pin the same vendored archive and lockfile integrity; only Journal owns the package source. It represents future extension read permissions, paid persistence of review/routine state, and Journal-specific check-in/weekly Moments that have no current siFia renderer. Remaining structured field mappings and runtime/server enforcement are still Phase 1/2 work; passing pure contract tests does not establish those features.
 
 ## Current architecture discovered in source
 
@@ -67,7 +67,7 @@ This is a source-backed starting inventory. Each row still requires a fixture fr
 | Morning check-in / weekly gratitude / weekly looking forward | No matching source types/renderers found | Local canonical Moments | Journal-only; never coerce into a different shared daily type | Local export or paid Journal Cloud |
 | Heart Journal/reflections | Create/read/edit/delete | Read adapter plus local CRUD | Shared base record, bidirectional | Free siFia account |
 | Prayers/needs/responses | Create/read/edit/delete | Read adapter plus local CRUD | Simple supported base fields mapped; rich Journal lifecycle/history requires an explicit mapping | Free siFia account for compatible base; Journal-specific extensions remain separate |
-| Time blocks | Create/read/edit/delete | Local and legacy implementations | Shared after recurrence contract is consolidated | Free siFia account |
+| Time blocks | Create/read/edit/delete | Local and legacy implementations | Explicit-zone one-off parent mapping implemented; recurring/virtual/exception records held for consolidation | Free siFia account for compatible base |
 | Saved devotional artifact | Full siFia experience | Partial derived-record compatibility | Display-only in Journal initially | Free siFia account |
 | Saved playbook artifact/actions | Full siFia experience | Partial derived-record/action compatibility | Display-only in Journal initially | Free siFia account |
 | Bible Study | Unsupported | Full local feature | Journal-only | Local export or paid Journal Cloud |
@@ -123,13 +123,29 @@ The local reflection adapter now feeds metadata into the merge preview. No body,
 
 ### Daily journal and prayer mappings
 
-`sharedDailyJournalFieldContract.ts` validates the actual JSON shapes emitted by both apps for gratitude, Todo, focus, win, and looking-forward entries, including proven older variants. It checks nested item fields, preserves original supported JSON bytes and known playbook context, and excludes private metadata from the shared DTO. Unknown keys inside the JSON body require mapping review rather than being silently dropped or uploaded. Contradictory Todo completion flags require reconciliation. Time Blocks remain held for a dedicated time-zone/recurrence adapter.
+`sharedDailyJournalFieldContract.ts` validates the actual JSON shapes emitted by both apps for gratitude, Todo, focus, win, and looking-forward entries, including proven older variants. It checks nested item fields, preserves original supported JSON bytes and known playbook context, and excludes private metadata from the shared DTO. Unknown keys inside the JSON body require mapping review rather than being silently dropped or uploaded. Contradictory Todo completion flags require reconciliation. The canonical composer routes Time Blocks to their dedicated adapter rather than the daily adapter.
 
 Source inventory found no `morning_check_in`, `weekly_gratitude`, or `weekly_looking_forward` types in the siFia client. Contract v3 assigns these to `journal_only_moment`; the broad daily-journal contract no longer implies that a Journal morning check-in can already round-trip through siFia.
 
 `sharedPrayerFieldContract.ts` maps simple journal/ACTS, people/request, devotional, and guided-playbook prayers using explicit fields and known scalar origin context. Text patches cannot mutate prayer lifecycle state, reparent the record, or replace private metadata. Rich `prayer_needs`, answer/update/lifecycle histories, and tracking flags are held for an explicit lifecycle mapping; the existing siFia client does not model these structures, so flattening them into one answered flag would lose meaning. These cases remain intact locally and are surfaced with a reason in preflight. This is a temporary compatibility gate, not a paid restriction on otherwise compatible base writing.
 
 `sharedJournalCanonicalPreflight.ts` now composes the daily, reflection, and prayer adapters for a caller-supplied, validated canonical snapshot. A 300-record fixture includes 80 Heart Journals, 20 daily gratitude records, 20 simple prayers, 100 Bible Studies, and 80 Session Notes: 120 shared bases and 180 Journal-only documents. The result contains IDs/classifications/counts/reasons, never bodies or attachment URIs. Both snapshot-completeness flags are required by the composer; incomplete snapshots and account mismatches return a blocked preview. This helper neither reads the live stores nor certifies the current AsyncStorage inventory as transactionally consistent. Reviews, routines, drafts, and legacy bundles are not included in this canonical-entry count; their cloud/export inventory remains separate.
+
+### Time Blocks and shared package distribution
+
+The package Time Block adapter reads persisted parent envelopes, preserves aware start/end instants and their named time zone, and checks the selected calendar date in that zone. It supports one-off timed/all-day records without forcing every all-day interval to be exactly 24 hours. Unknown/missing zones, naive timestamps, inconsistent dates, and malformed completion state require review. Text-only patches preserve local metadata and calendar linkage. Schedule changes require the future transactional/series protocol.
+
+Both app sources expand recurring series into UI occurrences that reuse the parent ID and attach `_virtualInstance`, `_originalDate`, and `_virtualDate` metadata. Those derived occurrences must never be uploaded as new parents. Custom/aliased repeat rules, series cutoffs, and exception dates remain held until their zone-aware semantics are reconciled and tested on devices.
+
+| Time Block fields | Prepared behavior |
+| --- | --- |
+| Aware start/end, selected date, zone, all-day flag, title/category/location/plain description | Explicit supported base projection |
+| Known `playbookId`, `stepId`, `subtaskId`, titles/source/action-step context | Retained using scalar allowlists; conflicting inner/outer parent context requires review |
+| Private/unknown note metadata | Retained locally; excluded from the shared base |
+| Native `calendar_event_id`, alert, alarm minutes | Device-local; never copied into a shared cloud row |
+| Recurrence, exceptions, virtual occurrences | Held for dedicated mapping; no expansion or parent creation in the adapter |
+
+The core package owns capability policy, merge preflight, common validation, and the Time Block boundary. Journal-specific daily/reflection/prayer adapters still use its core through compatibility facades; siFia imports the same installed package through `src/compatibility/journalContract.ts`. Vendored archives let independent checkouts resolve the package without a sibling repository or registry publication. `contract:check` rebuilds and compares archive bytes; it refuses a changed archive at the same version. Both lockfiles pin integrity. Package installation adds one dependency and no native modules, third-party runtime dependencies, or lifecycle install scripts.
 
 ## Inventory work still required
 
@@ -150,18 +166,18 @@ No record bodies should be placed in tickets, analytics, logs, or committed fixt
 
 Percentages below are conservative planning estimates against the deliverables and exit gates in this version, not a security certification or a shipped-feature percentage. A phase reaches 100% only when its exit gate has recorded evidence. Existing local editors, auth helpers, or IAP dependencies alone do not complete a new integration phase.
 
-Weights total 100%. Overall delivery estimate is `sum(weight × phase completion / 100)`, currently 10.2%, reported as **approximately 10%**. The finalized baseline was 6.1%; subsequent increments reached 8%, then 8.6%, and now add the daily/prayer field contracts and composed canonical preflight. This replaces the earlier approximately 19% groundwork/readiness estimate, which measured a different scope. Future optional display work is excluded from the launch denominator.
+Weights total 100%. Overall delivery estimate is `sum(weight × phase completion / 100)`, currently 11.8%, reported as **approximately 12%**. Previous increments reached 10.2%; the shared package adoption and first Time Block mapping add 1.6 percentage points. This replaces the earlier approximately 19% groundwork/readiness estimate, which measured a different scope. Future optional display work is excluded from the launch denominator.
 
 | Phase | Deliverable | Weight | Completion estimate | Status / evidence |
 | --- | --- | ---: | ---: | --- |
 | 0 | Complete inventory and compatibility fixtures | 6% | 65% | Legacy bundle fixtures/read adapter and metadata audit script added; live schema/policies and full variant coverage remain |
-| 1 | Shared field and capability contract | 6% | 65% | V3 policy plus reflection, daily, and simple prayer adapters tested; Time Blocks, rich lifecycle/structured mappings, shared packaging, and runtime adoption remain |
+| 1 | Shared field and capability contract | 6% | 80% | Versioned core consumed by both apps; one-off Time Block/daily/reflection/simple prayer mappings tested; recurring/lifecycle/structured mappings and write-path adoption remain |
 | 2 | Secure backend and legacy compatibility | 12% | 0% | New ownership/revision/change-feed enforcement unverified |
 | 3 | Transactional encrypted local storage | 12% | 0% | Existing AsyncStorage records are groundwork, not the target implementation |
 | 4 | Durable media and extension storage | 8% | 0% | Current URI blocks need durable bytes and independent extension identity |
 | 5 | Free encrypted export and safe restore | 10% | 10% | In-memory inventory/validation exists; file, encryption, media packaging, and restore remain |
 | 6 | Account connection and device enrollment | 8% | 0% | Existing auth is groundwork; safe combining/enrollment flow remains |
-| 7 | Free bidirectional sync and initial merge | 14% | 10% | Three canonical field adapters compose into metadata preflight; consistent storage snapshots, remote adapters, confirmation UI, executor, outbox/cursor/conflict engine remain |
+| 7 | Free bidirectional sync and initial merge | 14% | 15% | Canonical preflight includes one-off Time Blocks through the shared core; consistent storage snapshots, remote adapters, confirmation UI, executor, outbox/cursor/conflict engine remain |
 | 8 | Encrypted Journal Cloud and versioned recovery | 12% | 0% | Cloud protocol, key recovery, and verified snapshots remain |
 | 9 | Monthly/annual billing and lifecycle UX | 6% | 0% | IAP dependency exists; Journal entitlement is not implemented |
 | 10 | Security review, disaster recovery, staged release | 6% | 0% | Launch evidence and recovery drill remain |
@@ -214,6 +230,7 @@ Exit gate: a Heart Journal with text, note blocks, photos, and voice survives ed
 1. Build a versioned portable archive containing canonical records, Journal-only records, review answers/references, routine state, authored drafts, relevant settings, tombstones, and actual media bytes. Take a consistent snapshot. Exclude auth tokens, private device keys, and recreatable caches.
 2. Use a vetted authenticated-encryption library and a suitable password/recovery-key scheme with explicit recovery instructions. Validate schema, integrity, resource limits, and archive paths before any restore writes; checksums alone do not authenticate a backup.
 3. Save through the system file picker/share flow outside the app container. Mark success only after a successful file-write/hand-off, and explain that the user must retain that file. Provide restore preview, staged import, account-remapping confirmation, conflict handling, and rollback. Never start cloud sync from restored outbox data without reconciliation.
+4. Treat calendar event IDs, notification IDs, and similar installation-owned links as device state. Never reuse another device/app's OS identifiers from a restored snapshot or legacy cloud row. Calendar reconnection and alarm scheduling require current permissions and explicit user opt-in; restore must not silently enable calendar writes or duplicate events.
 
 Exit gate: restore onto a clean iOS and Android installation succeeds with media and references intact. Wrong password, corruption, unsafe archive paths, interrupted restore, newer schema, and disk-full tests leave existing data intact. No purchase or account is required.
 
@@ -316,7 +333,27 @@ Live audit attempt (including retry after the checkpoint): `supabase db query --
 
 Remaining inventory findings: legacy `reflection_log` is a day container alongside individual `ReflectionApiEntry` rows; mapping requires table/row/child provenance. Modern Journal `metadata.journalBlocks` is separate from the main text, while structured guided content needs an explicit safe projection. Do not classify all JSON/string payloads as free shared text without inspecting their family. Existing reflection API error logging also includes a full entry/raw error context; remove content-bearing diagnostics during Phase 2's privacy audit before enabling new remote paths.
 
-Next implementation milestone: collect the deployed metadata audit, map Time Blocks and remaining structured/lifecycle variants, and package Phase 1 contracts for both apps. Daily, reflection, and simple prayer adapters feed the canonical preflight composer, while remote snapshot adapters remain; the preview is not wired to storage reads or the account screen. Build and prove local media/export/restore before enabling first-time remote merges or charging for Journal Cloud. Remote changes start in staging with additive migrations; live access and store setup remain operational prerequisites.
+Second reference checkpoint: [`431aae90`](https://github.com/NikkiBatanes/journalbysifia/commit/431aae903744c30d71a7bfa26e1d6fd4445289f2), pushed to GitHub `main` before the shared package/Time Block work. Subsequent packaging changes in both repositories remain local for review; unrelated user screen/native edits are preserved.
+
+Package verification notes: both consumers pin `vendor/sifia-journal-contract-0.1.1.tgz`, SHA-256 `dad04bcc22474cef60978ba6158d2a671b4c6494b8079cc620978d84fd83f5d2`. Journal's existing React 19/masonry-list/Expo peer conflict required `--legacy-peer-deps` during offline install. siFia installed with existing peer warnings. Each lockfile adds only the contract dependency; no other library was upgraded. Whole-app CI dependency cleanup is outside this increment.
+
+Verification of this increment (2026-11-03):
+
+| Check | Result / scope |
+| --- | --- |
+| Journal focused tests | 13 suites / 250 tests passed, including installed-package delegation, archive integrity, canonical preflight, Time Block zone/DST/relationship checks, and existing backup contracts |
+| siFia consumer tests | 1 suite / 4 tests passed against the same installed package |
+| TypeScript | Journal full check passed; siFia contract boundary's scoped check passed; existing siFia full-project errors remain as documented below |
+| Lint | Changed/new Journal/package TypeScript and siFia consumer files passed with zero warnings; pack script syntax check passed |
+| Source/archive reproducibility | `npm run contract:check` passed; both vendored archives are byte-identical and lockfile integrity matches |
+| Independent consumer | Clean temporary project completed offline install, offline `npm ci`, and runtime conformance loading using only its copied archive; no sibling checkout required |
+| Mobile bundle resolution | Contract-entry Metro bundles succeeded for Journal iOS/Android and siFia iOS/Android. Sandboxed attempts hit a watcher limit; authorized retries outside the sandbox succeeded |
+
+These are focused package/bundle checks, not full app release builds, device-based DST verification, CI certification, encryption validation, or live synchronization tests. No new cross-app network write path was enabled.
+
+siFia full-project type checking reports six existing errors in unchanged `OnboardingSalesOfferScreen.tsx` (lines 493, 504, 561, 2328, 2358, 2401). A compiler run excluding the new contract boundary reproduces those same six errors. The package boundary has an independent scoped type check; this is not a claim that siFia's full build is green.
+
+Next implementation milestone: collect the deployed metadata audit; finish recurrence, rich lifecycle, and structured guided-content mappings; then implement schema/RLS and transactional account-isolated storage behind the documented gates. The preview is not wired to storage reads or the account screen. Build and prove local media/export/restore before enabling first-time remote merges or charging for Journal Cloud. Remote changes start in staging with additive migrations; live access and store setup remain operational prerequisites.
 
 ## Primary references checked on 2026-11-03
 
