@@ -16,6 +16,7 @@ import {
   Animated,
   findNodeHandle,
   StatusBar,
+  useWindowDimensions,
 } from 'react-native';
 import {useFocusEffect, useNavigation, useRoute} from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -27,6 +28,7 @@ import { format } from 'date-fns';
 
 import ThemedText from '../components/common/ThemedText';
 import HeaderBackButton from '../components/common/HeaderBackButton';
+import {useDuoEveningCloseStyle} from '../hooks/useDuoEveningCloseStyle';
 import ScriptureReaderModal from '../components/ScriptureReaderModal';
 import BibleStudyDetailView from '../components/journal/BibleStudyDetailView';
 import AnimatedBibleStudyTopics from '../components/journal/AnimatedBibleStudyTopics';
@@ -282,6 +284,9 @@ const Card = ({
 
 const BibleStudyScreen = () => {
   const insets = useSafeAreaInsets();
+  const duoCloseStyle = useDuoEveningCloseStyle(true);
+  const {width: screenWidth, height: screenHeight} = useWindowDimensions();
+  const isInnerDuoDisplay = Boolean(duoCloseStyle) && Math.min(screenWidth, screenHeight) >= 600;
   const navigation = useNavigation();
   const {preferences} = useAuth();
   const route = useRoute<any>();
@@ -923,6 +928,19 @@ const BibleStudyScreen = () => {
     );
   };
 
+  const aaControl = (
+    <TouchableOpacity
+      style={[styles.aaHeaderButton, showTextSettings && styles.aaHeaderButtonActive]}
+      onPress={() => setShowTextSettings(value => !value)}
+      activeOpacity={0.72}
+      accessibilityRole="button"
+      accessibilityLabel="Text settings"
+      accessibilityState={{expanded: showTextSettings}}
+    >
+      <ThemedText weight="bold" style={[styles.aaHeaderButtonText, showTextSettings && styles.aaHeaderButtonTextActive]}>aA</ThemedText>
+    </TouchableOpacity>
+  );
+
   const renderTop = () => stage === 'home' ? (
     <View style={[styles.homeTop, { top: insets.top + 8 }]} pointerEvents="box-none">
       {selectedTopic ? (
@@ -932,7 +950,7 @@ const BibleStudyScreen = () => {
             prepareReveal(homeRevealAnims);
             setSelectedTopic(null);
           }}
-          style={[styles.homeNavButton, styles.homeBackButton]}
+          style={[styles.homeNavButton, styles.homeBackButton, duoCloseStyle && {left: 74}]}
         />
       ) : null}
       <TouchableOpacity
@@ -941,7 +959,7 @@ const BibleStudyScreen = () => {
           triggerLightHaptic();
           closeBibleStudy();
         }}
-        style={[styles.homeNavButton, styles.homeCloseButton]}
+        style={[styles.homeNavButton, styles.homeCloseButton, duoCloseStyle && {left: 24, right: undefined}]}
         activeOpacity={0.7}
         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
       >
@@ -949,12 +967,29 @@ const BibleStudyScreen = () => {
       </TouchableOpacity>
     </View>
   ) : (
-    <View style={styles.top}>
+    <View style={[styles.top, duoCloseStyle && editingSavedStudy && {paddingHorizontal: 20}, duoCloseStyle && stage === 'read' && {paddingHorizontal: 24, paddingVertical: 16}]}>
       {stage === 'saved' ? (
         <View style={styles.topIcon} />
       ) : editingSavedStudy ? (
-        <View style={styles.editingBackSlot}>
+        <View style={[styles.editingBackSlot, duoCloseStyle && {flexDirection: 'row', alignItems: 'center', gap: 10}]}>
+          {duoCloseStyle ? (
+            <TouchableOpacity
+              onPress={() => { triggerLightHaptic(); closeBibleStudy(); }}
+              activeOpacity={0.7}
+              hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}
+              accessibilityRole="button"
+              accessibilityLabel="Close Bible Study"
+              style={styles.editingCloseButton}
+            >
+              <Ionicons name="close" size={17} color={Colors.sage} />
+            </TouchableOpacity>
+          ) : null}
           <HeaderBackButton onPress={back} color={Colors.text} />
+        </View>
+      ) : duoCloseStyle && stage === 'read' ? (
+        <View style={styles.duoReaderControls}>
+          <HeaderBackButton onPress={back} color={Colors.text} />
+          {aaControl}
         </View>
       ) : (
         <HeaderBackButton onPress={back} color={Colors.text} />
@@ -989,7 +1024,7 @@ const BibleStudyScreen = () => {
           >
             <Trash2 size={18} color={Colors.textGray} />
           </TouchableOpacity>
-          <TouchableOpacity
+          {!duoCloseStyle ? <TouchableOpacity
             onPress={() => {
               triggerLightHaptic();
               closeBibleStudy();
@@ -1001,19 +1036,10 @@ const BibleStudyScreen = () => {
             style={styles.editingCloseButton}
           >
             <Ionicons name="close" size={17} color={Colors.sage} />
-          </TouchableOpacity>
+          </TouchableOpacity> : <View style={styles.topIcon} />}
         </View>
       ) : stage === 'read' ? (
-        <TouchableOpacity
-          style={[styles.aaHeaderButton, showTextSettings && styles.aaHeaderButtonActive]}
-          onPress={() => setShowTextSettings(value => !value)}
-          activeOpacity={0.72}
-          accessibilityRole="button"
-          accessibilityLabel="Text settings"
-          accessibilityState={{ expanded: showTextSettings }}
-        >
-          <ThemedText weight="bold" style={[styles.aaHeaderButtonText, showTextSettings && styles.aaHeaderButtonTextActive]}>aA</ThemedText>
-        </TouchableOpacity>
+        duoCloseStyle ? <View style={{width: 92}} /> : aaControl
       ) : (
         <View style={styles.topIcon} />
       )}
@@ -1193,8 +1219,8 @@ const BibleStudyScreen = () => {
     return false; // A cursor alone must not automatically open highlight controls.
   }) : undefined;
 
-  const dismissHighlightActions = () => {
-    triggerLightHaptic();
+  const dismissHighlightActions = ({withHaptic = true}: {withHaptic?: boolean} = {}) => {
+    if (withHaptic) {triggerLightHaptic();}
     ignoreSelectionEvents.current = true;
     setHighlightActionsVisible(false);
     setActiveHighlightId(null);
@@ -1405,7 +1431,7 @@ const BibleStudyScreen = () => {
         style={styles.paletteRemoveButton} accessibilityRole="button" accessibilityLabel="Remove this highlight">
         <Ionicons name="trash-outline" size={17} color={Colors.textGray} />
       </TouchableOpacity> : null}
-      <TouchableOpacity onPress={dismissHighlightActions} style={styles.paletteRemoveButton}
+      <TouchableOpacity onPress={() => dismissHighlightActions()} style={styles.paletteRemoveButton}
         accessibilityRole="button" accessibilityLabel="Dismiss highlight controls">
         <Ionicons name="close" size={17} color={Colors.textGray} />
       </TouchableOpacity>
@@ -1486,7 +1512,7 @@ const BibleStudyScreen = () => {
                             setActiveHighlightId(segment.key);
                             setPassageSelection({ start: range.start, end: range.start });
                             setHighlightActionsVisible(true);
-                          } : dismissHighlightActions}
+                          } : () => dismissHighlightActions()}
                           accessibilityRole={segment.color ? 'button' : undefined}
                           accessibilityLabel={segment.color ? 'Edit highlight' : undefined}
                         >
@@ -2146,7 +2172,7 @@ const BibleStudyScreen = () => {
 
   return (
     <KeyboardAvoidingView
-      onTouchEnd={() => { if (stage === 'read') {dismissHighlightActions();} }}
+      onTouchEnd={() => { if (stage === 'read') {dismissHighlightActions({withHaptic: false});} }}
       style={[
         styles.container,
         stage === 'home' && styles.homeContainer,
@@ -2156,7 +2182,7 @@ const BibleStudyScreen = () => {
     >
       <StatusBar hidden barStyle="dark-content" />
       <ScrollView
-        onScrollBeginDrag={() => { if (stage === 'read') {dismissHighlightActions();} }}
+        onScrollBeginDrag={() => { if (stage === 'read') {dismissHighlightActions({withHaptic: false});} }}
         onScroll={({ nativeEvent }) => {
           const opacity = Math.min(1, Math.max(0, nativeEvent.contentOffset.y / 18));
           headerGlassOpacity.setValue(opacity);
@@ -2198,7 +2224,16 @@ const BibleStudyScreen = () => {
         {renderTop()}
         {renderProgress()}
       </View>
-      <View pointerEvents="box-none" style={[styles.textSettingsOverlay, { top: insets.top + 56 }]}>
+      <View pointerEvents="box-none" style={[
+        styles.textSettingsOverlay,
+        {top: insets.top + 56},
+        duoCloseStyle && {
+          top: insets.top + 74,
+          left: 24,
+          right: undefined,
+          width: isInnerDuoDisplay ? Math.min(360, screenWidth - 48) : Math.min(320, screenWidth - 64),
+        },
+      ]}>
         {textSettingsOverlay}
       </View>
       {renderFooter() ? (
@@ -2428,6 +2463,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#EDF2EA',
     borderWidth: 0.5,
     borderColor: 'rgba(82, 106, 91, 0.2)',
+  },
+  duoReaderControls: {
+    width: 92,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   aaHeaderButtonActive: {
     backgroundColor: '#E2EBDD',
