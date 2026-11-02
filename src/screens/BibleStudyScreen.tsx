@@ -483,7 +483,15 @@ const BibleStudyScreen = () => {
       screenScrollRef.current?.scrollTo({ y: 0, animated: false });
     });
     return () => cancelAnimationFrame(frame);
-  }, [stage, observeHighlightIndex, understandingPhase, responsePhase, guidedPage]);
+  }, [
+    stage,
+    selectedTopic?.id,
+    johnCollectionOpen,
+    observeHighlightIndex,
+    understandingPhase,
+    responsePhase,
+    guidedPage,
+  ]);
 
   const [passageVerses, setPassageVerses] = useState<ScriptureVerse[]>([]);
   const [passageLoading, setPassageLoading] = useState(false);

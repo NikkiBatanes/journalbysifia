@@ -42,6 +42,8 @@ describe('Bible Study guided sample', () => {
     expect(source).toContain('The Gospel According to John');
     expect(source).toContain('johnStudies.map');
     expect(source).not.toContain('DEVELOPMENT PREVIEW');
+    expect(source).toContain('selectedTopic?.id,');
+    expect(source).toContain('johnCollectionOpen,');
     expect(source).toContain("activeGuide ? advanceGuided('understand') : advance('observe')");
     expect(source).not.toContain('Color & Reflect');
   });
