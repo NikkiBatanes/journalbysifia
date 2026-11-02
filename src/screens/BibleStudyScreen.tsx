@@ -328,7 +328,7 @@ const BibleStudyScreen = () => {
 
   const [search, setSearch] = useState('');
   const [selectedTopic, setSelectedTopic] = useState<BibleStudyTopic | null>(null);
-  const [johnPreviewOpen, setJohnPreviewOpen] = useState(false);
+  const [johnCollectionOpen, setJohnCollectionOpen] = useState(false);
   const homeRevealAnims = useRef(
     Array.from({length: 5}, () => new Animated.Value(0)),
   ).current;
@@ -389,7 +389,7 @@ const BibleStudyScreen = () => {
   }, []);
 
   useEffect(() => {
-    if (!screenEntranceReady || isLoading || stage !== 'home' || selectedTopic || johnPreviewOpen) {return;}
+    if (!screenEntranceReady || isLoading || stage !== 'home' || selectedTopic || johnCollectionOpen) {return;}
     homeRevealAnims.forEach(animation => {
       animation.stopAnimation();
       animation.setValue(reduceMotion.current ? 1 : 0);
@@ -408,7 +408,7 @@ const BibleStudyScreen = () => {
     );
     requestAnimationFrame(() => entrance.start());
     return () => entrance.stop();
-  }, [homeRevealAnims, isLoading, johnPreviewOpen, openRequestId, screenEntranceReady, selectedTopic, stage]);
+  }, [homeRevealAnims, isLoading, johnCollectionOpen, openRequestId, screenEntranceReady, selectedTopic, stage]);
 
   const homeRevealStyle = (animation: Animated.Value) => ({
     opacity: animation,
@@ -645,7 +645,7 @@ const BibleStudyScreen = () => {
     setEditingSavedStudy(false);
     setSearch('');
     setSelectedTopic(null);
-    setJohnPreviewOpen(false);
+    setJohnCollectionOpen(false);
     setObserveHighlightIndex(0);
     setUnderstandingPhase('main');
     setResponsePhase('journal');
@@ -1062,13 +1062,13 @@ const BibleStudyScreen = () => {
 
   const renderTop = () => stage === 'home' ? (
     <View style={[styles.homeTop, { top: insets.top + 8 }]} pointerEvents="box-none">
-      {selectedTopic || johnPreviewOpen ? (
+      {selectedTopic || johnCollectionOpen ? (
         <HeaderBackButton
           onPress={() => {
             triggerLightHaptic();
             prepareReveal(homeRevealAnims);
             setSelectedTopic(null);
-            setJohnPreviewOpen(false);
+            setJohnCollectionOpen(false);
           }}
           style={[styles.homeNavButton, styles.homeBackButton]}
         />
@@ -1171,15 +1171,13 @@ const BibleStudyScreen = () => {
     setSelectedTopic(topic);
   };
 
-  const johnPreviewStudies = __DEV__
-    ? GUIDED_BIBLE_STUDIES.filter(guide => guide.reference.startsWith('John '))
-    : [];
+  const johnStudies = GUIDED_BIBLE_STUDIES.filter(guide => guide.reference.startsWith('John '));
 
-  const renderJohnPreview = () => (
+  const renderJohnCollection = () => (
     <View style={[styles.homePage, {paddingTop: insets.top + 8}]}>
       <View style={styles.homeLabelContainer}>
-        <Ionicons name="flask-outline" size={15} color={Colors.sage} />
-        <ThemedText weight="semiBold" style={styles.homeEyebrow}>Development preview</ThemedText>
+        <Ionicons name="library-outline" size={15} color={Colors.sage} />
+        <ThemedText weight="semiBold" style={styles.homeEyebrow}>Chapter companion</ThemedText>
       </View>
       <ThemedText weight="semiBold" style={styles.homeTitle}>The Gospel According to John</ThemedText>
       <ThemedText style={styles.homeLead}>
@@ -1188,7 +1186,7 @@ const BibleStudyScreen = () => {
 
       <ThemedText weight="semiBold" style={styles.sectionLabel}>Choose a chapter</ThemedText>
       <View style={styles.johnChapterGrid}>
-        {johnPreviewStudies.map(guide => {
+        {johnStudies.map(guide => {
           const chapter = guide.reference.replace('John ', '');
           return (
             <TouchableOpacity
@@ -1205,8 +1203,8 @@ const BibleStudyScreen = () => {
           );
         })}
       </View>
-      <ThemedText style={styles.johnPreviewNote}>
-        Preview only. This collection stays hidden from production until remote access and purchasing are ready.
+      <ThemedText style={styles.johnCollectionNote}>
+        Move at your own pace. Your responses and prayers are saved with each chapter.
       </ThemedText>
     </View>
   );
@@ -1253,8 +1251,8 @@ const BibleStudyScreen = () => {
 
   const renderHome = () => selectedTopic
     ? renderTopic(selectedTopic)
-    : johnPreviewOpen
-      ? renderJohnPreview()
+    : johnCollectionOpen
+      ? renderJohnCollection()
       : (
     <View style={[styles.homePage, { paddingTop: insets.top + 8 }]}>
       <Animated.View
@@ -1335,36 +1333,34 @@ const BibleStudyScreen = () => {
           </View>
         </TouchableOpacity>
       </Animated.View>
-      {__DEV__ ? (
-        <Animated.View style={homeRevealStyle(homeRevealAnims[4])}>
-          <TouchableOpacity
-            style={styles.johnPreviewCard}
-            activeOpacity={0.72}
-            onPress={() => {
-              triggerLightHaptic();
-              setJohnPreviewOpen(true);
-            }}
-            accessibilityRole="button"
-            accessibilityLabel="Preview the Gospel According to John chapter companions"
-          >
-            <View style={styles.guidedSampleTopRow}>
-              <View style={styles.johnPreviewBadge}>
-                <Ionicons name="flask-outline" size={13} color={Colors.sage} />
-                <ThemedText weight="bold" style={styles.guidedSampleBadgeText}>DEVELOPMENT PREVIEW</ThemedText>
-              </View>
-              <ThemedText style={styles.guidedSampleTime}>21 chapters</ThemedText>
+      <Animated.View style={homeRevealStyle(homeRevealAnims[4])}>
+        <TouchableOpacity
+          style={styles.johnCollectionCard}
+          activeOpacity={0.72}
+          onPress={() => {
+            triggerLightHaptic();
+            setJohnCollectionOpen(true);
+          }}
+          accessibilityRole="button"
+          accessibilityLabel="Open the Gospel According to John chapter companions"
+        >
+          <View style={styles.guidedSampleTopRow}>
+            <View style={styles.johnCollectionBadge}>
+              <Ionicons name="library-outline" size={13} color={Colors.sage} />
+              <ThemedText weight="bold" style={styles.guidedSampleBadgeText}>GUIDED STUDY COLLECTION</ThemedText>
             </View>
-            <ThemedText weight="bold" style={styles.guidedSampleTitle}>The Gospel According to John</ThemedText>
-            <ThemedText style={styles.guidedSampleDescription}>
-              Study the whole book chapter by chapter using the new companion experience.
-            </ThemedText>
-            <View style={styles.guidedSampleAction}>
-              <ThemedText weight="semiBold" style={styles.guidedSampleActionText}>Choose a chapter</ThemedText>
-              <Ionicons name="arrow-forward" size={17} color={Colors.sage} />
-            </View>
-          </TouchableOpacity>
-        </Animated.View>
-      ) : null}
+            <ThemedText style={styles.guidedSampleTime}>21 chapters</ThemedText>
+          </View>
+          <ThemedText weight="bold" style={styles.guidedSampleTitle}>The Gospel According to John</ThemedText>
+          <ThemedText style={styles.guidedSampleDescription}>
+            Study the whole book chapter by chapter using the new companion experience.
+          </ThemedText>
+          <View style={styles.guidedSampleAction}>
+            <ThemedText weight="semiBold" style={styles.guidedSampleActionText}>Choose a chapter</ThemedText>
+            <Ionicons name="arrow-forward" size={17} color={Colors.sage} />
+          </View>
+        </TouchableOpacity>
+      </Animated.View>
       <AnimatedBibleStudyTopics suggestions={suggestedTopics} topics={BIBLE_STUDY_TOPICS} expanded
         animateOnMount entranceDelay={190}
         reduceMotion={reduceMotion.current} onSelect={selectTopic} gridStyle={styles.topicGrid}
@@ -2140,7 +2136,7 @@ const BibleStudyScreen = () => {
 
   const contentAnimationKey = [
     stage,
-    stage === 'home' ? selectedTopic?.id ?? (johnPreviewOpen ? 'john-preview' : 'root') : '',
+    stage === 'home' ? selectedTopic?.id ?? (johnCollectionOpen ? 'john-collection' : 'root') : '',
     stage === 'observe' ? observeHighlightIndex : '',
     stage === 'understand' ? understandingPhase : '',
     stage === 'respond' ? responsePhase : '',
@@ -3001,7 +2997,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.sage,
   },
-  johnPreviewCard: {
+  johnCollectionCard: {
     backgroundColor: '#F1F4EE',
     borderWidth: 1,
     borderColor: 'rgba(82,106,91,0.2)',
@@ -3009,7 +3005,7 @@ const styles = StyleSheet.create({
     padding: 20,
     marginBottom: 22,
   },
-  johnPreviewBadge: {
+  johnCollectionBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
@@ -3046,7 +3042,7 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     color: Colors.sageMuted,
   },
-  johnPreviewNote: {
+  johnCollectionNote: {
     fontSize: 12,
     lineHeight: 19,
     color: Colors.textGray,
