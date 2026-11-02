@@ -11,6 +11,7 @@ import {
   TextInput,
   TouchableOpacity,
   UIManager,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -45,6 +46,7 @@ import { isTrackedPrayer, isPrayerActive, isPrayerLetGo, hasAnswerHistory, track
 import { getLatestPrayerDraft, PrayerDraft } from '../storage/prayerDraftStorage';
 import { useScroll } from '../context/ScrollContext';
 import {useExpandTabBarOnScrollEnd} from '../hooks/useExpandTabBarOnScrollEnd';
+import {useIOSSizeClasses} from '../hooks/useIOSSizeClasses';
 
 type PrayerTab = 'active' | 'released' | 'needs' | 'requests' | 'answered' | 'all';
 type PrayerTimeframe = 'day' | 'week' | 'month';
@@ -83,6 +85,9 @@ const SORT_OPTIONS: {key: PrayerSort; label: string}[] = [
 ];
 
 const CAST_ORDER = ['confession', 'adoration', 'supplication', 'thanksgiving'];
+const PRAYERS_DUO_HEADER_TOP_SPACING = 12;
+const PRAYERS_PAGE_MAX_WIDTH = 760;
+const DUO_INNER_LANDSCAPE_ACTION_OFFSET = 132;
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -129,6 +134,29 @@ const groupPrayerEntries = (prayers: PrayerApiEntry[]): PrayerHomeEntry[] => {
 
 const PrayerListScreen = () => {
   const insets = useSafeAreaInsets();
+  const {width, height} = useWindowDimensions();
+  const [screenFrame, setScreenFrame] = useState({width, height});
+  const handleScreenLayout = (event: import('react-native').LayoutChangeEvent) => {
+    const {width: measuredWidth, height: measuredHeight} = event.nativeEvent.layout;
+    setScreenFrame(current => current.width === measuredWidth && current.height === measuredHeight
+      ? current : {width: measuredWidth, height: measuredHeight});
+  };
+  const hasMeasuredInnerLandscape = Platform.OS === 'ios'
+    && !Platform.isPad
+    && screenFrame.width > screenFrame.height
+    && screenFrame.height >= 600;
+  const sizeClasses = useIOSSizeClasses();
+  const usesSideSystemRegion = Platform.OS === 'ios' && insets.left !== insets.right;
+  const hasOpenLandscapeSizeClasses = sizeClasses.horizontal === 'regular' && width > height;
+  const hasOpenLandscapeProportions = sizeClasses.horizontal === 'unspecified'
+    && sizeClasses.vertical === 'unspecified'
+    && width > height
+    && height / width > 0.58;
+  const isDuoLandscape = Platform.OS === 'ios'
+    && !Platform.isPad
+    && width > height
+    && (usesSideSystemRegion || hasOpenLandscapeSizeClasses || hasOpenLandscapeProportions);
+  const usesDuoLayout = usesSideSystemRegion || isDuoLandscape;
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const { user, preferences: appPreferences } = useAuth();
@@ -645,30 +673,48 @@ const PrayerListScreen = () => {
     });
   }, [groupedResults, hasActiveFilterChips, isLoading, latestDraft, prayerContentReady, showSavedConfirmation]);
 
+  const headerActionButtons = (
+    <>
+      <TouchableOpacity style={styles.headerControlPill} onPress={() => { triggerLightHaptic(); setTimeframeOpen(true); }}>
+        <ThemedText weight="semiBold" style={styles.headerControlText}>{TIMEFRAMES.find(item => item.key === timeframe)?.label}</ThemedText>
+        <ChevronDown size={14} color={Colors.text} />
+      </TouchableOpacity>
+      <TouchableOpacity style={styles.headerCircleButton} onPress={() => { triggerLightHaptic(); setFilterOpen(true); }} accessibilityLabel="Filter prayers">
+        <MaterialCommunityIcons name="tune" size={16} color={Colors.text} />
+        {totalFilterCount > 0 && <View style={styles.filterBadge}><ThemedText weight="bold" style={styles.filterBadgeText}>{totalFilterCount}</ThemedText></View>}
+      </TouchableOpacity>
+      <TouchableOpacity style={styles.headerCircleButton} onPress={() => { triggerLightHaptic(); setShowSearch(value => !value); if (showSearch) setSearchQuery(''); }} accessibilityLabel={showSearch ? 'Close prayer search' : 'Search prayers'}>
+        <Ionicons name={showSearch ? 'close' : 'search'} size={17} color={Colors.text} />
+      </TouchableOpacity>
+    </>
+  );
+
   return (
-    <View style={styles.container}>
-      <View style={[styles.header, {paddingTop: insets.top}]}>
+    <View style={styles.container} onLayout={handleScreenLayout}>
+      <View style={[
+        styles.headerBar,
+        usesDuoLayout && !isDuoLandscape && {paddingLeft: insets.left, paddingRight: insets.right},
+        {backgroundColor: Colors.lightBackground},
+      ]}>
+        <View style={[styles.header, {paddingTop: usesDuoLayout ? insets.top + (isDuoLandscape ? 0 : PRAYERS_DUO_HEADER_TOP_SPACING) : insets.top}]}>
         <View style={styles.headerTopRow}>
           <View style={styles.headerLeftRow}>
             <PrayerHandsIcon size={20} color={Colors.text} />
             <ThemedText weight="bold" style={styles.headerTitle}>Prayers</ThemedText>
           </View>
-          <View style={styles.headerActions}>
-            <TouchableOpacity style={styles.headerControlPill} onPress={() => { triggerLightHaptic(); setTimeframeOpen(true); }}>
-              <ThemedText weight="semiBold" style={styles.headerControlText}>{TIMEFRAMES.find(item => item.key === timeframe)?.label}</ThemedText>
-              <ChevronDown size={14} color={Colors.text} />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.headerCircleButton} onPress={() => { triggerLightHaptic(); setFilterOpen(true); }} accessibilityLabel="Filter prayers">
-              <MaterialCommunityIcons name="tune" size={16} color={Colors.text} />
-              {totalFilterCount > 0 && <View style={styles.filterBadge}><ThemedText weight="bold" style={styles.filterBadgeText}>{totalFilterCount}</ThemedText></View>}
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.headerCircleButton} onPress={() => { triggerLightHaptic(); setShowSearch(value => !value); if (showSearch) setSearchQuery(''); }} accessibilityLabel={showSearch ? 'Close prayer search' : 'Search prayers'}>
-              <Ionicons name={showSearch ? 'close' : 'search'} size={17} color={Colors.text} />
-            </TouchableOpacity>
+          <View style={[
+            styles.headerActions,
+            usesSideSystemRegion && !isDuoLandscape && styles.coverHeaderActions,
+            (isDuoLandscape || hasMeasuredInnerLandscape) && styles.foldedHeaderActions,
+          ]}>
+            {headerActionButtons}
           </View>
         </View>
         {!showSearch && <ThemedText style={styles.headerSubtitle}>Your prayers and prayer requests</ThemedText>}
-        {showSearch && <View style={styles.searchBar}>
+        {showSearch && <View style={[
+          styles.searchBar,
+          (isDuoLandscape || hasMeasuredInnerLandscape) && styles.innerLandscapeSearchBar,
+        ]}>
           <Ionicons name="search-outline" size={16} color={Colors.textGray} style={styles.searchIcon} />
           <View style={styles.searchInputWrapper}>
             <TextInput
@@ -677,6 +723,8 @@ const PrayerListScreen = () => {
               onChangeText={setSearchQuery}
               placeholder="Search Prayers..."
               placeholderTextColor={Colors.placeholderText}
+              selectionColor={Colors.sage}
+              cursorColor={Colors.sage}
               textAlignVertical="center"
               autoCapitalize="none"
               autoCorrect={false}
@@ -686,6 +734,7 @@ const PrayerListScreen = () => {
           </View>
           {!!searchQuery && <TouchableOpacity onPress={() => { triggerLightHaptic(); setSearchQuery(''); }} style={styles.clearButton} accessibilityLabel="Clear prayer search"><Ionicons name="close-circle" size={16} color={Colors.placeholderText} /></TouchableOpacity>}
         </View>}
+      </View>
       </View>
       <View style={styles.scrollContainer}>
         <ScrollView
@@ -765,7 +814,7 @@ const PrayerListScreen = () => {
                 <Animated.View
                   key={`${prayerEntranceRun}:header-${timeframe}-${section.key}`}
                   entering={FadeInUp.delay(Math.min(sectionIndex * 160, 560)).springify().damping(14).stiffness(180)}
-                  style={styles.sectionHeader}
+                  style={[styles.sectionHeader, width > height && styles.innerLandscapeSectionDivider]}
                   onLayout={sectionIndex === 0 ? event => {
                     const y = event.nativeEvent.layout.y;
                     firstSectionHeaderYRef.current = y;
@@ -893,10 +942,23 @@ const styles = StyleSheet.create({
     paddingBottom: 0,
     backgroundColor: Colors.lightBackground,
   },
+  headerBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    width: '100%',
+    paddingHorizontal: 0,
+    paddingTop: 0,
+    paddingBottom: 0,
+    backgroundColor: Colors.lightBackground,
+  },
   headerTopRow: {flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-start', marginTop: 6, marginBottom: 0},
   headerLeftRow: {flexDirection: 'row', alignItems: 'center', gap: 8},
   headerTitle: {fontSize: 24, fontFamily: Fonts.bold, color: Colors.text, letterSpacing: 0.5, flex: 0},
   headerActions: {flexDirection: 'row', alignItems: 'center', gap: 6, marginLeft: 'auto'},
+  foldedHeaderActions: {transform: [{translateX: DUO_INNER_LANDSCAPE_ACTION_OFFSET}]},
+  innerLandscapeSearchBar: {marginRight: -DUO_INNER_LANDSCAPE_ACTION_OFFSET},
+  coverHeaderActions: {transform: [{translateX: 24}]},
   headerControlPill: {flexDirection: 'row', alignItems: 'center', gap: 5, paddingVertical: 7, paddingHorizontal: 12, borderRadius: 999, backgroundColor: 'rgba(82, 106, 91, 0.08)', borderWidth: 0.5, borderColor: 'rgba(82, 106, 91, 0.2)'},
   headerControlText: {fontSize: 13, fontFamily: Fonts.regular, color: Colors.text},
   headerCircleButton: {width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(82, 106, 91, 0.08)', borderWidth: 0.5, borderColor: 'rgba(82, 106, 91, 0.2)'},
@@ -935,6 +997,7 @@ const styles = StyleSheet.create({
   quickPill: {paddingHorizontal: 12, paddingVertical: 8, borderRadius: 17, backgroundColor: Colors.actionBackground},
   quickText: {fontSize: 10, color: Colors.sage},
   sectionHeader: {alignSelf: 'stretch', position: 'relative', height: 38, marginHorizontal: -18, marginBottom: 10, borderBottomWidth: 1, borderBottomColor: Colors.borderLight, backgroundColor: Colors.lightBackground},
+  innerLandscapeSectionDivider: {marginHorizontal: -1000},
   sectionTitle: {position: 'absolute', left: 18, right: 18, top: 3, fontSize: 18, lineHeight: 24, color: Colors.text, fontFamily: Fonts.semiBold},
   sectionTitleWithRequestBadge: {right: 122},
   filterButton: {minHeight: 36, flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 13, borderRadius: 18, borderWidth: 1, borderColor: Colors.cardBorder, backgroundColor: Colors.cardBackground},

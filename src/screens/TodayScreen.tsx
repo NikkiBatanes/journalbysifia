@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { DeviceEventEmitter, InteractionManager, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { DeviceEventEmitter, InteractionManager, Platform, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View, useWindowDimensions, type LayoutChangeEvent } from 'react-native';
 import Animated, { Easing, FadeInUp, useAnimatedStyle, useSharedValue, withSequence, withSpring, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
@@ -36,9 +36,17 @@ import { playTodayOpeningSound } from '../utils/soundUtils';
 import {getReviewQAScenario} from '../dev/reviews/reviewQAFixtures';
 import {gospelStorage, type ForMeDaySettings} from '../storage/gospelStorage';
 import {isForMeDay, scheduleForMeDayReminder} from '../services/forMeDayService';
+import {useIOSSizeClasses} from '../hooks/useIOSSizeClasses';
 
 const CALENDAR_SHEET_HEIGHT = 60;
 const CALENDAR_SPRING = { damping: 12, stiffness: 185, mass: 0.85 };
+const TODAY_READABLE_MAX_WIDTH = 760;
+const TODAY_HORIZONTAL_MARGIN = 18;
+const SIDE_REGION_TOP_SPACING = 20;
+const INNER_PORTRAIT_TOP_SPACING = 18;
+const INNER_PORTRAIT_STATUS_CLEARANCE = 128;
+const INNER_PORTRAIT_CALENDAR_CONTROL_WIDTH = 52;
+const INNER_PORTRAIT_CALENDAR_GAP = 12;
 
 const SectionHeading = ({ title, detail, compactTop = false }: { title: string; detail: string; compactTop?: boolean }) => (
   <View style={[styles.sectionHeading, compactTop && styles.sectionHeadingCompact]}>
@@ -124,6 +132,8 @@ const buildPreviewReview = (type: ReviewType, periodStart: string, periodEnd: st
 
 const TodayScreen = () => {
   const insets = useSafeAreaInsets();
+  const {width: windowWidth, height: windowHeight} = useWindowDimensions();
+  const sizeClasses = useIOSSizeClasses();
   const navigation = useNavigation();
   const { user, preferences: appPreferences, profile } = useAuth();
   const { showTabBar, setShowTabBar } = useScroll();
@@ -144,7 +154,47 @@ const TodayScreen = () => {
   const [displayDate, setDisplayDate] = useState(() => now);
   const [manualDate, setManualDate] = useState(false);
   const [calendarVisible, setCalendarVisible] = useState(false);
+  const [readableContentLeading, setReadableContentLeading] = useState<number | null>(null);
   const calendarProgress = useSharedValue(0);
+  // Duo exposes its camera/status-bar side as an asymmetric safe area. Key the
+  // layout to that live environment instead of guessing a display from width.
+  const usesSideSystemRegion = Platform.OS === 'ios' && insets.left !== insets.right;
+  const hasInnerPortraitSizeClasses = sizeClasses.horizontal === 'regular'
+    && sizeClasses.vertical === 'regular';
+  // Compatibility path for a running JS bundle that predates the native size-
+  // class bridge. The open portrait is taller than wide but much squarer than
+  // an outer iPhone screen; the asymmetric outer screen is excluded below.
+  const hasInnerPortraitProportions = sizeClasses.horizontal === 'unspecified'
+    && sizeClasses.vertical === 'unspecified'
+    && windowHeight > windowWidth
+    && windowWidth / windowHeight > 0.58;
+  // Keep this treatment on the open Duo phone rather than regular-size iPads.
+  const usesInnerPortraitRail = Platform.OS === 'ios'
+    && !Platform.isPad
+    && !usesSideSystemRegion
+    && (hasInnerPortraitSizeClasses || hasInnerPortraitProportions);
+  const usesTopCalendarRail = usesSideSystemRegion || usesInnerPortraitRail;
+  const readableOuterWidth = Math.min(TODAY_READABLE_MAX_WIDTH, windowWidth);
+  const readableLeadingPadding = Math.max(0, (windowWidth - readableOuterWidth) / 2)
+    + TODAY_HORIZONTAL_MARGIN;
+  const calendarLeadingPadding = Math.max(
+    readableContentLeading ?? readableLeadingPadding,
+    insets.left + TODAY_HORIZONTAL_MARGIN,
+  );
+  const calendarTrailingPadding = insets.right + TODAY_HORIZONTAL_MARGIN;
+  const topCalendarTrailingPadding = usesInnerPortraitRail
+    ? Math.max(
+        calendarTrailingPadding,
+        insets.right + INNER_PORTRAIT_STATUS_CLEARANCE + INNER_PORTRAIT_CALENDAR_CONTROL_WIDTH,
+      )
+    : calendarTrailingPadding;
+  const scrollTopPadding = usesInnerPortraitRail
+    ? INNER_PORTRAIT_TOP_SPACING
+    : insets.top + (usesSideSystemRegion ? SIDE_REGION_TOP_SPACING : 0);
+  const handleReadableContentLayout = useCallback((event: LayoutChangeEvent) => {
+    const leading = event.nativeEvent.layout.x + TODAY_HORIZONTAL_MARGIN;
+    setReadableContentLeading(current => Math.abs((current ?? -1) - leading) > 0.5 ? leading : current);
+  }, []);
   const greetingIconScale = useSharedValue(1);
   const greetingIconRotation = useSharedValue(0);
   const greetingIconLift = useSharedValue(0);
@@ -459,6 +509,32 @@ const TodayScreen = () => {
     transform: [{ scaleY: 0.96 + Math.min(1, calendarProgress.value) * 0.04 }],
   }));
 
+  const calendarSheet = (
+    <Animated.View
+      style={[styles.calendarSheet, calendarSheetStyle]}
+      pointerEvents={calendarVisible ? 'auto' : 'none'}
+      accessibilityElementsHidden={!calendarVisible}
+    >
+      <View>
+        <JournalCalendarStrip
+          currentDate={displayDate}
+          onSelectDate={(date) => {
+            triggerLightHaptic();
+            setManualDate(true);
+            const picked = new Date(date);
+            if (isSameDay(picked, now)) {
+              picked.setHours(now.getHours(), now.getMinutes(), now.getSeconds(), now.getMilliseconds());
+            } else {
+              picked.setHours(0, 0, 0, 0);
+            }
+            setDisplayDate(picked);
+          }}
+          weekStartsOn={weekStartsOn}
+        />
+      </View>
+    </Animated.View>
+  );
+
   const reviewCard = useMemo(() => {
     if (!displayedEligibility?.main) {return null;}
     const main = displayedEligibility.main;
@@ -557,7 +633,13 @@ const TodayScreen = () => {
       <ScrollView
         ref={scrollRef}
         style={styles.scroll}
-        contentContainerStyle={[styles.content, { paddingTop: insets.top, paddingBottom: insets.bottom + 80 }]}
+        contentContainerStyle={[
+          styles.content,
+          {
+            paddingTop: scrollTopPadding,
+            paddingBottom: insets.bottom + 80,
+          },
+        ]}
         showsVerticalScrollIndicator={false}
         onScroll={handleScroll}
         onScrollEndDrag={handleTabBarScrollEndDrag}
@@ -565,67 +647,87 @@ const TodayScreen = () => {
         onMomentumScrollEnd={handleTabBarMomentumScrollEnd}
         scrollEventThrottle={16}
       >
-        <View style={styles.headerColumn}>
-          <Animated.View
-            style={[styles.calendarSheet, calendarSheetStyle]}
-            pointerEvents={calendarVisible ? 'auto' : 'none'}
-            accessibilityElementsHidden={!calendarVisible}
+        {usesTopCalendarRail ? (
+          <View
+            style={[
+              styles.sideCalendarRail,
+              usesInnerPortraitRail && styles.innerPortraitCalendarRail,
+              usesInnerPortraitRail && calendarVisible && styles.innerPortraitCalendarRailOpen,
+              { paddingLeft: calendarLeadingPadding, paddingRight: topCalendarTrailingPadding },
+            ]}
           >
-            <View>
-              <JournalCalendarStrip
-                currentDate={displayDate}
-                onSelectDate={(date) => {
-                  triggerLightHaptic();
-                  setManualDate(true);
-                  const picked = new Date(date);
-                  if (isSameDay(picked, now)) {
-                    picked.setHours(now.getHours(), now.getMinutes(), now.getSeconds(), now.getMilliseconds());
-                  } else {
-                    picked.setHours(0, 0, 0, 0);
-                  }
-                  setDisplayDate(picked);
-                }}
-                weekStartsOn={weekStartsOn}
-              />
-            </View>
-          </Animated.View>
-          <View style={styles.headerIconsRow}>
-            <TouchableOpacity
-              style={styles.calendarButton}
-              activeOpacity={0.7}
-              onPress={toggleCalendar}
-              accessibilityRole="button"
-              accessibilityLabel="Open calendar"
-            >
-              <CalendarDays size={24} color={Colors.text} strokeWidth={1.6} />
-            </TouchableOpacity>
-          </View>
-          <View style={styles.headerGreeting}>
-            <ThemedText style={styles.date}>{format(displayDate, 'EEE, MMM d').toUpperCase()}</ThemedText>
-            <ThemedText style={styles.greeting}>{greetingText},</ThemedText>
-            <View style={styles.nameRow}>
-              <ThemedText style={styles.name}>{firstName}.</ThemedText>
-              <Animated.View style={greetingIconStyle}>
-                {isEvening ? (
-                  <Moon size={24} color={Colors.sage} strokeWidth={1.6} />
-                ) : (
-                  <Sun size={24} color={Colors.sage} strokeWidth={1.6} />
-                )}
-              </Animated.View>
-            </View>
-            {isToday ? (
-              <ThemedText style={styles.subtitle}>{dailyLine.text}</ThemedText>
+            {calendarSheet}
+            {usesInnerPortraitRail ? (
+              <TouchableOpacity
+                style={styles.innerPortraitCalendarButton}
+                activeOpacity={0.7}
+                onPress={toggleCalendar}
+                accessibilityRole="button"
+                accessibilityLabel={calendarVisible ? 'Close calendar' : 'Open calendar'}
+                accessibilityState={{expanded: calendarVisible}}
+              >
+                <CalendarDays size={24} color={Colors.text} strokeWidth={1.6} />
+              </TouchableOpacity>
             ) : null}
           </View>
-          <DashboardHeaderScripture
-            date={displayDate}
-            bibleVersion={appPreferences?.content?.bibleVersion || 'NASB'}
-            centered
-          />
-        </View>
+        ) : null}
+        <View style={styles.readableRail}>
+          <View style={styles.readableContent} onLayout={handleReadableContentLayout}>
+            <View style={styles.headerColumn}>
+              {!usesTopCalendarRail ? calendarSheet : null}
+              {!usesTopCalendarRail ? <View style={styles.headerIconsRow}>
+                <TouchableOpacity
+                  style={styles.calendarButton}
+                  activeOpacity={0.7}
+                  onPress={toggleCalendar}
+                  accessibilityRole="button"
+                  accessibilityLabel={calendarVisible ? 'Close calendar' : 'Open calendar'}
+                  accessibilityState={{expanded: calendarVisible}}
+                >
+                  <CalendarDays size={24} color={Colors.text} strokeWidth={1.6} />
+                </TouchableOpacity>
+              </View> : null}
+              <View style={styles.headerGreeting}>
+                <View style={usesSideSystemRegion ? styles.dateRow : undefined}>
+                  <ThemedText style={styles.date}>{format(displayDate, 'EEE, MMM d').toUpperCase()}</ThemedText>
+                  {usesSideSystemRegion ? (
+                    <TouchableOpacity
+                      style={styles.sideCalendarButton}
+                      hitSlop={{top: 6, right: 6, bottom: 6, left: 6}}
+                      activeOpacity={0.7}
+                      onPress={toggleCalendar}
+                      accessibilityRole="button"
+                      accessibilityLabel={calendarVisible ? 'Close calendar' : 'Open calendar'}
+                      accessibilityState={{expanded: calendarVisible}}
+                    >
+                      <CalendarDays size={18} color={Colors.sage} strokeWidth={1.7} />
+                    </TouchableOpacity>
+                  ) : null}
+                </View>
+                <ThemedText style={styles.greeting}>{greetingText},</ThemedText>
+                <View style={styles.nameRow}>
+                  <ThemedText style={styles.name}>{firstName}.</ThemedText>
+                  <Animated.View style={greetingIconStyle}>
+                    {isEvening ? (
+                      <Moon size={24} color={Colors.sage} strokeWidth={1.6} />
+                    ) : (
+                      <Sun size={24} color={Colors.sage} strokeWidth={1.6} />
+                    )}
+                  </Animated.View>
+                </View>
+                {isToday ? (
+                  <ThemedText style={styles.subtitle}>{dailyLine.text}</ThemedText>
+                ) : null}
+              </View>
+              <DashboardHeaderScripture
+                date={displayDate}
+                bibleVersion={appPreferences?.content?.bibleVersion || 'NASB'}
+                centered
+              />
+            </View>
 
-        {/* Resolve the birthday before mounting the sequence so it cannot pop in after the other cards. */}
-        {forMeDaySettings !== undefined && <Stagger prioritizeFirst={showForMeDay}>
+            {/* Resolve the birthday before mounting the sequence so it cannot pop in after the other cards. */}
+            {forMeDaySettings !== undefined && <Stagger prioritizeFirst={showForMeDay}>
         {showForMeDay && forMeDaySettings ? <ForMeDayCard key="for-me-day" settings={forMeDaySettings} /> : null}
         {dateContext === 'today' && reviewCard ? <React.Fragment key="review-card">{reviewCard}</React.Fragment> : null}
         {__DEV__ && reviewCardPreview ? <React.Fragment key="review-card-preview">{reviewCardPreview}</React.Fragment> : null}
@@ -897,7 +999,9 @@ const TodayScreen = () => {
           </View>
         )}
 
-        </Stagger>}
+            </Stagger>}
+          </View>
+        </View>
       </ScrollView>
     </View>
   );
@@ -906,8 +1010,11 @@ const TodayScreen = () => {
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: Colors.lightBackground },
   scroll: { flex: 1 },
-  content: { paddingHorizontal: 18, maxWidth: 760, width: '100%', alignSelf: 'center' },
+  content: { width: '100%' },
+  readableRail: { width: '100%' },
+  readableContent: { paddingHorizontal: TODAY_HORIZONTAL_MARGIN, maxWidth: TODAY_READABLE_MAX_WIDTH, width: '100%', alignSelf: 'center' },
   date: { color: Colors.sageMuted, fontFamily: Fonts.semiBold, fontSize: 12, lineHeight: 16, letterSpacing: 1.8 },
+  dateRow: { minHeight: 36, flexDirection: 'row', alignItems: 'center', gap: 3 },
   greeting: { color: Colors.text, fontFamily: Fonts.bold, fontWeight: '900', fontSize: 31, lineHeight: 39, marginTop: 8, letterSpacing: -0.5 },
   name: { color: Colors.text, fontFamily: Fonts.bold, fontWeight: '900', fontSize: 31, lineHeight: 39, letterSpacing: -0.5 },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
@@ -916,8 +1023,13 @@ const styles = StyleSheet.create({
   headerIconsRow: { flexDirection: 'row', justifyContent: 'flex-end', width: '100%', padding: 4, gap: 4 },
   notificationsButton: { padding: 4 },
   calendarButton: { padding: 4 },
+  sideCalendarButton: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
   headerGreeting: { width: '100%', alignItems: 'flex-start' },
   calendarSheet: { width: '100%', backgroundColor: Colors.hopeWhite, borderRadius: 22, overflow: 'hidden' },
+  sideCalendarRail: { width: '100%' },
+  innerPortraitCalendarRail: { height: CALENDAR_SHEET_HEIGHT, justifyContent: 'center' },
+  innerPortraitCalendarRailOpen: { marginBottom: INNER_PORTRAIT_CALENDAR_GAP },
+  innerPortraitCalendarButton: { position: 'absolute', right: INNER_PORTRAIT_STATUS_CLEARANCE, top: 8, width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   sectionHeading: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, marginTop: 24, marginBottom: 10, paddingHorizontal: 2 },
   sectionHeadingCompact: { marginTop: 0 },
   eyebrow: { color: Colors.text, fontFamily: Fonts.bold, fontSize: 12, lineHeight: 16, letterSpacing: 2 },

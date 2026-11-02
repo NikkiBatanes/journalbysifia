@@ -2,6 +2,7 @@ import React, {useMemo} from 'react';
 import {Animated, StyleProp, StyleSheet, Text, TextStyle, View} from 'react-native';
 
 import type {FormattedScripturePassage} from '../../services/scripturePassageFormatting';
+import {Colors} from '../../theme/colors';
 
 interface Props {
   passage: FormattedScripturePassage;
@@ -155,7 +156,7 @@ const styles = StyleSheet.create({
     color: 'rgba(90, 98, 93, 0.62)',
   },
   wordsOfJesus: {
-    color: '#9B1C1C',
+    color: Colors.alertCoral,
   },
 });
 

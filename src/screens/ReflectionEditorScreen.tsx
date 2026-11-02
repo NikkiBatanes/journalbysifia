@@ -471,6 +471,7 @@ const ReflectionEditorScreen: React.FC = () => {
   const showClassificationChooser = !existingReflection && !guidedMode && !journalClassification;
   if (showClassificationChooser) {
     return <View style={{ flex: 1, backgroundColor: Colors.sage }}>
+      <StatusBar hidden />
       <TouchableOpacity
         accessibilityRole="button"
         accessibilityLabel="Close"
@@ -555,6 +556,7 @@ const ReflectionEditorScreen: React.FC = () => {
   if (showGuidedExperience) {
     return (
       <>
+        <StatusBar hidden />
         <GuidedReflectionExperience
           selectedDate={dateStr}
           existingContent={existingReflection?.content}
@@ -584,6 +586,7 @@ const ReflectionEditorScreen: React.FC = () => {
 
   return (
     <>
+      <StatusBar hidden />
       <View style={{ flex: 1, backgroundColor: '#526A5B' }}>
         <ReflectionLogEditor
           ref={editorRef}

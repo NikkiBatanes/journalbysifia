@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, StyleSheet, RefreshControl, StatusBar, DeviceEventEmitter, TextInput, TouchableOpacity, LayoutAnimation, Platform, UIManager, Alert } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { View, StyleSheet, RefreshControl, StatusBar, DeviceEventEmitter, TextInput, TouchableOpacity, LayoutAnimation, Platform, UIManager, Alert, useWindowDimensions } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { Feather, ChevronDown } from 'lucide-react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -23,6 +23,7 @@ import { getSavedBibleStudyReflections, parseSavedBibleStudy } from '../storage/
 import { useScroll } from '../context/ScrollContext';
 import {useExpandTabBarOnScrollEnd} from '../hooks/useExpandTabBarOnScrollEnd';
 import {canRevealMomentsContent} from '../utils/momentsReady';
+import {useIOSSizeClasses} from '../hooks/useIOSSizeClasses';
 
 // Enable LayoutAnimation on Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -31,8 +32,37 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 
 type PrayerAnswerFilter = 'all' | 'answered' | 'unanswered';
 
+const MOMENTS_DUO_HEADER_TOP_SPACING = 12;
+const MOMENTS_PAGE_MAX_WIDTH = 760;
+const DUO_INNER_LANDSCAPE_ACTION_OFFSET = 132;
+
 export const MomentsScreen: React.FC = () => {
   const IS_IPAD = Platform.OS === 'ios' && (Platform as any).isPad === true;
+  const insets = useSafeAreaInsets();
+  const {width, height} = useWindowDimensions();
+  const [screenFrame, setScreenFrame] = useState({width, height});
+  const handleScreenLayout = (event: import('react-native').LayoutChangeEvent) => {
+    const {width: measuredWidth, height: measuredHeight} = event.nativeEvent.layout;
+    setScreenFrame(current => current.width === measuredWidth && current.height === measuredHeight
+      ? current : {width: measuredWidth, height: measuredHeight});
+  };
+  const hasMeasuredInnerLandscape = Platform.OS === 'ios'
+    && !Platform.isPad
+    && screenFrame.width > screenFrame.height
+    && screenFrame.height >= 600;
+  const sizeClasses = useIOSSizeClasses();
+  const usesSideSystemRegion = Platform.OS === 'ios' && insets.left !== insets.right;
+  const hasOpenLandscapeSizeClasses = sizeClasses.horizontal === 'regular'
+    && width > height;
+  const hasOpenLandscapeProportions = sizeClasses.horizontal === 'unspecified'
+    && sizeClasses.vertical === 'unspecified'
+    && width > height
+    && height / width > 0.58;
+  const isDuoLandscape = Platform.OS === 'ios'
+    && !Platform.isPad
+    && width > height
+    && (usesSideSystemRegion || hasOpenLandscapeSizeClasses || hasOpenLandscapeProportions);
+  const usesDuoLayout = usesSideSystemRegion || isDuoLandscape;
   const navigation = useNavigation();
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';
@@ -259,6 +289,37 @@ export const MomentsScreen: React.FC = () => {
       endDate: new Date(now.getFullYear(), now.getMonth() + 6, now.getDate()), label: 'Upcoming' };
   }, [filterType, selectedDate, selectedRange, activeFilters, refreshKey]);
 
+  const headerActionButtons = (
+    <>
+      <TouchableOpacity
+        style={styles.statusDropdownBtn}
+        onPress={() => { triggerLightHaptic(); groupingRef.current?.open(); }}
+        activeOpacity={0.75}
+      >
+        <ThemedText weight="semiBold" style={[styles.statusDropdownBtnText, { fontFamily: fontRegular, color: Colors.text }]}>
+          {groupingMode === 'day' ? 'Days' : groupingMode === 'week' ? 'Weeks' : groupingMode === 'month' ? 'Months' : 'Years'}
+        </ThemedText>
+        <ChevronDown size={14} color={Colors.text} />
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={styles.dateFilterCircleButton}
+        onPress={() => { triggerLightHaptic(); filterRef.current?.open(); }}
+        activeOpacity={0.75}
+      >
+        <MaterialCommunityIcons name="tune" size={16} color={Colors.text} />
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={styles.searchCircleButton}
+        onPress={toggleSearch}
+        activeOpacity={0.75}
+      >
+        <Ionicons name={showSearch ? 'close' : 'search'} size={17} color={Colors.text} />
+      </TouchableOpacity>
+    </>
+  );
+
   const screenContent = (
     <>
       <StatusBar
@@ -267,44 +328,31 @@ export const MomentsScreen: React.FC = () => {
         translucent={false}
       />
 
-      <View style={[styles.headerBar, IS_IPAD && styles.headerBarPad, { backgroundColor: Colors.lightBackground }]}>
-        <View style={[styles.pageInner, IS_IPAD && styles.pageInnerPad]}>
+      <View style={[
+        styles.headerBar,
+        IS_IPAD && styles.headerBarPad,
+        usesDuoLayout && !isDuoLandscape && {paddingLeft: insets.left, paddingRight: insets.right},
+        {backgroundColor: Colors.lightBackground},
+      ]}>
+        <View style={[
+          styles.pageInner,
+          IS_IPAD && styles.pageInnerPad,
+          usesDuoLayout && {
+            paddingTop: insets.top + (isDuoLandscape ? 0 : MOMENTS_DUO_HEADER_TOP_SPACING),
+          },
+        ]}>
           {/* Row 1: Title with icon left, actions right */}
           <View style={styles.headerTopRow}>
             <View style={styles.headerLeftRow}>
               <Feather size={20} color={Colors.text} />
               <ThemedText weight="bold" onLongPress={__DEV__ ? showBibleStudyDiagnostics : undefined} style={[styles.headerTitle, styles.marginLeft8, { fontFamily: fontBold, color: Colors.text }]}>Moments</ThemedText>
             </View>
-            <View style={styles.headerActions}>
-              {/* Days pill with arrow down */}
-              <TouchableOpacity
-                style={styles.statusDropdownBtn}
-                onPress={() => { triggerLightHaptic(); groupingRef.current?.open(); }}
-                activeOpacity={0.75}
-              >
-                <ThemedText weight="semiBold" style={[styles.statusDropdownBtnText, { fontFamily: fontRegular, color: Colors.text }]}>
-                  {groupingMode === 'day' ? 'Days' : groupingMode === 'week' ? 'Weeks' : groupingMode === 'month' ? 'Months' : 'Years'}
-                </ThemedText>
-                <ChevronDown size={14} color={Colors.text} />
-              </TouchableOpacity>
-
-              {/* Filter icon button */}
-              <TouchableOpacity
-                style={styles.dateFilterCircleButton}
-                onPress={() => { triggerLightHaptic(); filterRef.current?.open(); }}
-                activeOpacity={0.75}
-              >
-                <MaterialCommunityIcons name="tune" size={16} color={Colors.text} />
-              </TouchableOpacity>
-
-              {/* Search circle button */}
-              <TouchableOpacity
-                style={styles.searchCircleButton}
-                onPress={toggleSearch}
-                activeOpacity={0.75}
-              >
-                <Ionicons name={showSearch ? 'close' : 'search'} size={17} color={Colors.text} />
-              </TouchableOpacity>
+            <View style={[
+              styles.headerActions,
+              usesSideSystemRegion && !isDuoLandscape && styles.coverHeaderActions,
+              (isDuoLandscape || hasMeasuredInnerLandscape) && styles.foldedHeaderActions,
+            ]}>
+              {headerActionButtons}
             </View>
           </View>
 
@@ -315,7 +363,10 @@ export const MomentsScreen: React.FC = () => {
 
           {/* Row 2: Search bar — height animated by LayoutAnimation (native thread) */}
           {showSearch && (
-            <View style={styles.searchBar}>
+            <View style={[
+              styles.searchBar,
+              (isDuoLandscape || hasMeasuredInnerLandscape) && styles.innerLandscapeSearchBar,
+            ]}>
               <Ionicons name="search-outline" size={16} color={Colors.textGray} style={styles.searchIcon} />
               <View style={styles.searchInputWrapper}>
                 <TextInput
@@ -323,6 +374,8 @@ export const MomentsScreen: React.FC = () => {
                   style={styles.searchInput}
                   placeholder="Search Moments..."
                   placeholderTextColor={Colors.placeholderText}
+                  selectionColor={Colors.sage}
+                  cursorColor={Colors.sage}
                   value={searchQuery}
                   onChangeText={setSearchQuery}
                   textAlignVertical="center"
@@ -380,6 +433,9 @@ export const MomentsScreen: React.FC = () => {
           onScrollEndDrag={handleTabBarScrollEndDrag}
           onMomentumScrollBegin={handleTabBarMomentumScrollBegin}
           onMomentumScrollEnd={handleTabBarMomentumScrollEnd}
+          sectionHorizontalInsets={usesDuoLayout ? {left: insets.left, right: insets.right} : undefined}
+          dateHeaderDividerRightInset={width > height ? 0 : (usesSideSystemRegion ? 32 : 0)}
+          dateHeaderDividerFullWidth={width > height}
           headerComponents={[]}
           refreshControl={
             <RefreshControl
@@ -394,11 +450,11 @@ export const MomentsScreen: React.FC = () => {
     </>
   );
 
-  return (
-    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
-      {screenContent}
-    </SafeAreaView>
-  );
+  if (usesDuoLayout) {
+    return <View style={styles.container} onLayout={handleScreenLayout}>{screenContent}</View>;
+  }
+
+  return <SafeAreaView style={styles.container} edges={['top', 'left', 'right']} onLayout={handleScreenLayout}>{screenContent}</SafeAreaView>;
 };
 
 const styles = StyleSheet.create({
@@ -420,12 +476,12 @@ const styles = StyleSheet.create({
   },
   pageInner: {
     width: '100%',
-    maxWidth: 760,
+    maxWidth: MOMENTS_PAGE_MAX_WIDTH,
     alignSelf: 'center',
     paddingHorizontal: 18,
   },
   pageInnerPad: {
-    maxWidth: 760,
+    maxWidth: MOMENTS_PAGE_MAX_WIDTH,
     paddingHorizontal: 18,
   },
   headerTopRow: {
@@ -483,6 +539,15 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(82, 106, 91, 0.2)',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  foldedHeaderActions: {
+    transform: [{ translateX: DUO_INNER_LANDSCAPE_ACTION_OFFSET }],
+  },
+  innerLandscapeSearchBar: {
+    marginRight: -DUO_INNER_LANDSCAPE_ACTION_OFFSET,
+  },
+  coverHeaderActions: {
+    transform: [{ translateX: 24 }],
   },
   searchBar: {
     flexDirection: 'row',

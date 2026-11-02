@@ -19,6 +19,7 @@ import {
   Alert,
   Animated,
   Easing,
+  useWindowDimensions,
 } from 'react-native';
 
 import {Pencil, Trash2} from 'lucide-react-native';
@@ -831,6 +832,37 @@ const ReflectionLogEditor = React.forwardRef<
     // const [showAddMenu, setShowAddMenu] = React.useState(false);
     const [showFormattingModal] = React.useState(false);
     const insets = useSafeAreaInsets();
+    useEffect(() => {
+      StatusBar.setHidden(true, 'none');
+      return () => StatusBar.setHidden(false, 'none');
+    }, []);
+    const {width, height} = useWindowDimensions();
+    const [editorFrame, setEditorFrame] = React.useState<{width: number; height: number} | null>(null);
+    const handleEditorLayout = useCallback((event: import('react-native').LayoutChangeEvent) => {
+      const {width: frameWidth, height: frameHeight} = event.nativeEvent.layout;
+      setEditorFrame(current => current?.width === frameWidth && current?.height === frameHeight
+        ? current
+        : {width: frameWidth, height: frameHeight});
+    }, []);
+    const editorWidth = editorFrame?.width ?? width;
+    const editorHeight = editorFrame?.height ?? height;
+    const usesSideSystemRegion = Platform.OS === 'ios' && insets.left !== insets.right;
+    // The open display has a phone-scale short edge of at least 600 points.
+    // Both displays can have asymmetric system insets, so those insets cannot
+    // distinguish the cover from the inner display.
+    const isInnerDuoDisplay = Platform.OS === 'ios'
+      && !Platform.isPad
+      && Math.min(editorWidth, editorHeight) >= 600;
+    const isInnerPortraitDuo = isInnerDuoDisplay && editorHeight > editorWidth;
+    const isDuoDisplay = Platform.OS === 'ios'
+      && !Platform.isPad
+      && (isInnerDuoDisplay || usesSideSystemRegion);
+    const duoHeaderActionsStyle = isInnerPortraitDuo ? {
+      position: 'absolute' as const,
+      right: 16 + 120,
+      top: 26,
+    } : isDuoDisplay ? {marginRight: 68} : undefined;
+    const innerPortraitHeaderStyle = isInnerPortraitDuo ? {minHeight: 102} : undefined;
     const {bottom: fabAnimatedValue, keyboardVisible: isKeyboardVisible} =
       useFloatingKeyboardButton(insets.bottom);
     // Set to true at the START of handleCancel so any auto-focus timers that
@@ -1803,15 +1835,18 @@ const ReflectionLogEditor = React.forwardRef<
       );
 
       return (
-        <View style={s.container}>
+        <View style={s.container} onLayout={handleEditorLayout}>
           <StatusBar hidden />
-          <View style={s.header}>
+          <View style={[s.header, innerPortraitHeaderStyle]}>
             {!!dateString && (
               <ThemedText weight="bold" style={s.title}>
                 {dateString}
               </ThemedText>
             )}
-            <View style={s.headerActions}>
+            <View style={[
+              s.headerActions,
+              duoHeaderActionsStyle,
+            ]}>
               <TouchableOpacity
                 style={s.headerPlainButton}
                 accessibilityRole="button"
@@ -1918,7 +1953,7 @@ const ReflectionLogEditor = React.forwardRef<
     }
 
     return (
-      <View style={s.container}>
+      <View style={s.container} onLayout={handleEditorLayout}>
         {showDraftNotification && (
           <View style={s.draftNotification}>
             <Ionicons
@@ -1933,13 +1968,17 @@ const ReflectionLogEditor = React.forwardRef<
           </View>
         )}
         <StatusBar hidden />
-        <View style={s.header}>
+        <View style={[s.header, innerPortraitHeaderStyle]}>
           {!!dateString && (
             <ThemedText weight="bold" style={s.title}>
               {dateString}
             </ThemedText>
           )}
-          <Animated.View style={[s.headerActions, editorHeaderEntranceStyle]}>
+          <Animated.View style={[
+            s.headerActions,
+            duoHeaderActionsStyle,
+            editorHeaderEntranceStyle,
+          ]}>
             {/* Delete icon - only visible in edit mode and when onDelete is provided */}
             {isEditing && onDelete && (
               <TouchableOpacity

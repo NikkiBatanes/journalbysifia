@@ -6,7 +6,7 @@ import { BookHeart, Feather, Heart, ListTodo, Pencil, Sun } from 'lucide-react-n
 import Svg, { Line } from 'react-native-svg';
 import { BlurView } from '@react-native-community/blur';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { StyleSheet, Pressable, TouchableOpacity, Animated, Easing, NativeModules, View, Text, Dimensions, DeviceEventEmitter, StatusBar, Platform } from 'react-native';
+import { StyleSheet, Pressable, TouchableOpacity, Animated, Easing, NativeModules, View, Text, Dimensions, DeviceEventEmitter, StatusBar, Platform, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useScroll } from '../context/ScrollContext';
 import { getFocusedRouteNameFromRoute, ParamListBase, TabNavigationState } from '@react-navigation/native';
@@ -27,6 +27,7 @@ import { triggerLightHaptic } from '../utils/haptics';
 import { openPrayerFlow } from './openPrayerFlow';
 import PrayerHandsIcon from '../components/common/PrayerHandsIcon';
 import LiquidGlassView from '../components/common/LiquidGlassView';
+import {useIOSSizeClasses} from '../hooks/useIOSSizeClasses';
 
 const Tab = createBottomTabNavigator();
 
@@ -41,8 +42,7 @@ type CustomTabBarProps = {
 // Glass-looking pill background - opaque blue with glass-like border
 const PILL_BG = Colors.sage;
 
-// Pill now occupies the full screen width
-const PILL_WIDTH = Dimensions.get('window').width - 32;
+const DUO_INNER_PILL_MAX_WIDTH = 520;
 export const PILL_HEIGHT = 64;
 const TAB_CIRCLE_SIZE = 48;
 const COLLAPSED_WIDTH = 66;
@@ -120,7 +120,25 @@ export const CustomTabBarComponent = ({
   const currentFont = theme.currentFont || 'lexend';
   const fontRegular = getFontFamily(currentFont, 'regular');
   const insets = useSafeAreaInsets();
+  const {width: windowWidth, height: windowHeight} = useWindowDimensions();
+  const sizeClasses = useIOSSizeClasses();
   const screenHeight = Dimensions.get('window').height;
+  const usesSideSystemRegion = Platform.OS === 'ios' && insets.left !== insets.right;
+  const hasInnerDuoAspect = Math.min(windowWidth, windowHeight) / Math.max(windowWidth, windowHeight) > 0.58;
+  const hasInnerDuoSizeClasses = sizeClasses.horizontal === 'regular'
+    && (windowWidth > windowHeight || sizeClasses.vertical === 'regular');
+  const hasInnerDuoProportions = sizeClasses.horizontal === 'unspecified'
+    && sizeClasses.vertical === 'unspecified';
+  const isInnerDuoDisplay = Platform.OS === 'ios'
+    && !Platform.isPad
+    && !usesSideSystemRegion
+    && hasInnerDuoAspect
+    && (hasInnerDuoSizeClasses || hasInnerDuoProportions);
+  const fullPillWidth = Math.max(0, windowWidth - 32);
+  const pillWidth = isInnerDuoDisplay
+    ? Math.min(fullPillWidth, DUO_INNER_PILL_MAX_WIDTH)
+    : fullPillWidth;
+  const pillLeadingOffset = Math.max(0, (fullPillWidth - pillWidth) / 2);
   const [showLabels, setShowLabels] = React.useState(experiencePreferences.showTabLabelsEnabled);
   const [visualActiveIndex, setVisualActiveIndex] = React.useState(state.index);
   const [showAddMenu, setShowAddMenu] = React.useState(false);
@@ -423,6 +441,12 @@ export const CustomTabBarComponent = ({
   const isBibleStudy = activeNestedRouteName === 'BibleStudy';
   const isReview = activeNestedRouteName === 'Review';
 
+  React.useEffect(() => {
+    if (!isReflectionEditor) return;
+    StatusBar.setHidden(true, 'fade');
+    return () => StatusBar.setHidden(false, 'fade');
+  }, [isReflectionEditor]);
+
   // Keep the pencil selected only while its explicitly recorded tab-owned
   // destination is active, then restore the real tab on back/navigation.
   React.useEffect(() => {
@@ -599,7 +623,7 @@ export const CustomTabBarComponent = ({
     extrapolate: 'clamp',
   });
   // Pill shape grows left→right on expand: scaleX from circle ratio → 1, pinned at left edge
-  const CIRCLE_RATIO = COLLAPSED_WIDTH / PILL_WIDTH;
+  const CIRCLE_RATIO = COLLAPSED_WIDTH / Math.max(pillWidth, COLLAPSED_WIDTH);
   const pillShapeScaleX = collapseAnim.interpolate({
     inputRange: [0, 1],
     outputRange: [1, CIRCLE_RATIO],
@@ -608,7 +632,7 @@ export const CustomTabBarComponent = ({
   // translateX compensation to pin the left edge during scale
   const pillShapeTranslateX = collapseAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: [0, -(PILL_WIDTH / 2) * (1 - CIRCLE_RATIO)],
+    outputRange: [0, -(pillWidth / 2) * (1 - CIRCLE_RATIO)],
     extrapolate: 'clamp',
   });
 
@@ -669,6 +693,8 @@ export const CustomTabBarComponent = ({
         style={[
           styles.pill,
           {
+            width: pillWidth,
+            alignSelf: 'center',
             opacity: pillShapeOpacity,
             transform: [
               { translateX: pillShapeTranslateX },
@@ -904,7 +930,7 @@ export const CustomTabBarComponent = ({
       </View>
 
       {/* ── Collapsed circle (fades in from left as pill collapses) ─────── */}
-      {collapsedControlVisible ? <Animated.View testID="collapsed-tab-bar" style={[styles.collapsedCircle, { transform: [{ scale: collapsedScale }] }]}>
+      {collapsedControlVisible ? <Animated.View testID="collapsed-tab-bar" style={[styles.collapsedCircle, { left: pillLeadingOffset, transform: [{ scale: collapsedScale }] }]}>
         {Platform.OS === 'ios' ? (
           <View pointerEvents="none" style={styles.collapsedGlassClip}>
             <LiquidGlassView
