@@ -53,7 +53,7 @@ export interface JournalMergePreview {
   status: 'blocked' | 'review_required' | 'ready_for_confirmation';
   /** A ready preview is not upload consent. Execution needs a fresh confirmation. */
   requiresConfirmation: true;
-  issues: Array<'missing_account' | 'incomplete_remote_snapshot' | 'invalid_identity' | 'duplicate_identity' | 'account_mismatch'>;
+  issues: Array<'missing_account' | 'incomplete_local_snapshot' | 'incomplete_remote_snapshot' | 'invalid_identity' | 'duplicate_identity' | 'account_mismatch'>;
   entries: JournalMergePreviewEntry[];
   downloads: Array<{ remoteId: string; capabilityId: SharedJournalCapabilityId }>;
   remoteReview: Array<{
@@ -78,6 +78,8 @@ const validId = (id: unknown): id is string => typeof id === 'string' && id.trim
 
 export const buildSharedJournalMergePreview = (input: {
   targetAccountId: string;
+  /** Explicit false blocks previews from an incomplete local inventory. */
+  localSnapshotComplete?: boolean;
   /** All free shared families and retained tombstones must be paged before preview. */
   remoteSnapshotComplete: boolean;
   localRecords: readonly JournalMergePreviewRecord[];
@@ -86,6 +88,7 @@ export const buildSharedJournalMergePreview = (input: {
   const { targetAccountId, localRecords, remoteRecords } = input;
   const issues = new Set<JournalMergePreview['issues'][number]>();
   if (!validId(targetAccountId)) { issues.add('missing_account'); }
+  if (input.localSnapshotComplete === false) { issues.add('incomplete_local_snapshot'); }
   if (input.remoteSnapshotComplete !== true) { issues.add('incomplete_remote_snapshot'); }
 
   for (const [records, remote] of [[localRecords, false], [remoteRecords, true]] as const) {

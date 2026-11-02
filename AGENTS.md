@@ -5,6 +5,8 @@
 - Product decisions and delivery gates: [Shared Journal implementation plan](docs/shared-journal-inventory-and-implementation-plan.md).
 - `src/compatibility/sharedJournalCapabilityContract.ts` defines free shared records versus Journal Cloud persistence. Future siFia extension permissions are read-only declarations, not enabled access.
 - `sharedJournalMergePreview.ts` is metadata-only preflight, not a sync executor or upload consent. Keep account checks, complete remote pagination, stable identity, and conflict preservation before wiring any writes.
+- `sharedReflectionFieldContract.ts` prepares allowlisted shared text and preserves Journal metadata/blocks on incoming patches. Structured/unknown content and unsynced local edits require reconciliation. Its prepared next record must use the future transactional writer, not the existing version-incrementing AsyncStorage helper.
+- Daily/prayer field boundaries and `sharedJournalCanonicalPreflight.ts` compose the three canonical stores' metadata only. The caller must provide validated complete snapshots; the composer does not certify AsyncStorage consistency. Journal check-ins/weekly Moments remain Journal-only, and rich prayer lifecycle/history requires an explicit mapping before free shared writes are enabled.
 - Legacy `reflection_log` rows may contain multiple children. Preserve the table/row/child identity from `sifiaReflectionBundleCompatibility.ts`; never collapse siblings to a daily container ID.
 
 ## Moments scrolling

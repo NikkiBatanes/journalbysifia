@@ -7,7 +7,7 @@
  * same boundary.
  */
 
-export const SHARED_JOURNAL_CONTRACT_VERSION = 2 as const;
+export const SHARED_JOURNAL_CONTRACT_VERSION = 3 as const;
 
 export type JournalCapabilityScope =
   | 'shared_read_write'
@@ -26,6 +26,7 @@ export type JournalCapabilityReadiness = 'existing' | 'partial' | 'missing';
 export interface SharedJournalCapability {
   id:
     | 'daily_journal'
+    | 'journal_only_moment'
     | 'reflection'
     | 'prayer'
     | 'time_block'
@@ -67,7 +68,6 @@ export const SHARED_JOURNAL_CAPABILITIES: readonly SharedJournalCapability[] = [
     sifiaSources: ['journal_entries'],
     journalSources: ['LocalJournalEntry'],
     variants: [
-      'morning_check_in',
       'todays_focus',
       'todo',
       'gratitude',
@@ -79,6 +79,19 @@ export const SHARED_JOURNAL_CAPABILITIES: readonly SharedJournalCapability[] = [
     remotePersistence: 'free_sifia_account',
     readiness: 'partial',
     notes: 'Both apps model these records, but Journal local-first writes and siFia cloud writes are not yet one bidirectional repository.',
+  },
+  {
+    id: 'journal_only_moment',
+    label: 'Journal check-ins and weekly moments',
+    scope: 'journal_only',
+    sifiaSources: [],
+    journalSources: ['LocalJournalEntry:morning_check_in', 'LocalJournalEntry:weekly_gratitude', 'LocalJournalEntry:weekly_looking_forward'],
+    variants: ['morning_check_in', 'weekly_gratitude', 'weekly_looking_forward'],
+    sifiaOperations: NO_OPERATIONS,
+    journalOperations: CRUD,
+    remotePersistence: 'journal_cloud_or_manual_export',
+    readiness: 'existing',
+    notes: 'Source inventory found no matching siFia types/renderers. Keep these separate from daily shared records; do not silently coerce weekly gratitude into daily gratitude.',
   },
   {
     id: 'reflection',
@@ -279,7 +292,11 @@ export const requiresJournalCloudForAutomaticRemotePersistence = (
 ): boolean =>
   getSharedJournalCapability(id).remotePersistence === 'journal_cloud_or_manual_export';
 
-/** Product policy only. Backend authorization and device-key access are separate. */
+/**
+ * Product eligibility only: no guest-data adoption or upload consent is granted.
+ * Canonical record sync and immutable recovery snapshots are separate paths.
+ * Backend authorization, enrollment, and device-key access remain mandatory.
+ */
 export const getJournalPersistencePolicy = (
   id: SharedJournalCapabilityId,
   context: {
@@ -287,7 +304,7 @@ export const getJournalPersistencePolicy = (
     sharedSyncConnected: boolean;
     journalCloudEntitled: boolean;
   },
-): { local: true; manualExport: true; freeSharedSync: boolean; journalCloudSync: boolean } => {
+): { local: true; manualExport: true; freeSharedSync: boolean; journalCloudSync: boolean; journalCloudBackupEligible: boolean } => {
   const signedIn = Boolean(context.accountId?.trim());
   return {
     local: true,
@@ -295,6 +312,9 @@ export const getJournalPersistencePolicy = (
     freeSharedSync: signedIn && context.sharedSyncConnected && isFreeSharedCapability(id),
     journalCloudSync: signedIn && context.journalCloudEntitled
       && requiresJournalCloudForAutomaticRemotePersistence(id),
+    // Full-journal recovery must include shared-capable bases too. A snapshot
+    // preserves their IDs/provenance; it does not create a second canonical row.
+    journalCloudBackupEligible: signedIn && context.journalCloudEntitled,
   };
 };
 
