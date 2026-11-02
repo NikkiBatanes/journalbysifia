@@ -30,14 +30,13 @@ import HeaderBackButton from '../components/common/HeaderBackButton';
 import ScriptureReaderModal from '../components/ScriptureReaderModal';
 import BibleStudyDetailView from '../components/journal/BibleStudyDetailView';
 import AnimatedBibleStudyTopics from '../components/journal/AnimatedBibleStudyTopics';
-import GuidedBibleStudyPageView from '../components/journal/GuidedBibleStudyPage';
 import ScriptureLoadingSkeleton from '../components/scripture/ScriptureLoadingSkeleton';
 import LiquidGlassView from '../components/common/LiquidGlassView';
 import { Colors } from '../theme/colors';
 import { Fonts, FontFamily, getFontFamily } from '../theme/fonts';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { claimFaithfulRhythmCelebration, FAITHFUL_RHYTHM_UPDATED } from '../services/faithfulRhythmService';
-import { triggerLightHaptic, triggerSuccessHaptic } from '../utils/haptics';
+import { triggerLightHaptic } from '../utils/haptics';
 import {
   getScripturePassage,
   preloadScripturePassages,
@@ -45,14 +44,6 @@ import {
 } from '../services/scriptureReaderService';
 import {formatScripturePassage} from '../services/scripturePassageFormatting';
 import { BIBLE_STUDY_TOPICS, BibleStudyTopic } from '../data/bibleStudyTopics';
-import {
-  GUIDED_BIBLE_STUDIES,
-  GuidedAnswerSection,
-  GuidedBibleStudy,
-  GuidedBibleStudyPage,
-  MATTHEW_23_GUIDED_STUDY,
-  getGuidedBibleStudy,
-} from '../data/guidedBibleStudies';
 import { deleteLocalReflection, getLocalReflection, LocalReflectionEntry } from '../storage/reflectionStorage';
 import { parseSavedBibleStudy } from '../storage/bibleStudyMomentsStorage';
 import {
@@ -108,15 +99,6 @@ const STAGES: BibleStudyStage[] = [
   'respond',
   'saved',
   'detail',
-];
-
-const GUIDED_PAGES: GuidedBibleStudyPage[] = [
-  'understand',
-  'look_again',
-  'reflect',
-  'respond',
-  'pray',
-  'carry',
 ];
 
 const OBSERVE_PROMPTS = [
@@ -309,7 +291,7 @@ const BibleStudyScreen = () => {
   const savedSessionId = creatingStudy ? undefined : route.params?.sessionId as string | undefined;
   const savedReflectionId = creatingStudy ? undefined : route.params?.reflectionId as string | undefined;
   const savedSelectedDate = creatingStudy ? undefined : route.params?.selectedDate as string | undefined;
-  const closeBibleStudy = useCallback(() => {
+  const closeBibleStudy = () => {
     DeviceEventEmitter.emit('pencilAddFlowClosed');
     if (route.params?.openedFromPencil) {
       // Pop across any stale editors to Moments. Unlike reset(), popTo keeps
@@ -318,7 +300,7 @@ const BibleStudyScreen = () => {
       return;
     }
     if (navigation.canGoBack()) {navigation.goBack();}
-  }, [navigation, route.params?.openedFromPencil]);
+  };
   const [savedReflection, setSavedReflection] = useState<LocalReflectionEntry | null>(null);
 
   const [isLoading, setIsLoading] = useState(true);
@@ -328,7 +310,6 @@ const BibleStudyScreen = () => {
 
   const [search, setSearch] = useState('');
   const [selectedTopic, setSelectedTopic] = useState<BibleStudyTopic | null>(null);
-  const [johnCollectionOpen, setJohnCollectionOpen] = useState(false);
   const homeRevealAnims = useRef(
     Array.from({length: 5}, () => new Animated.Value(0)),
   ).current;
@@ -389,7 +370,7 @@ const BibleStudyScreen = () => {
   }, []);
 
   useEffect(() => {
-    if (!screenEntranceReady || isLoading || stage !== 'home' || selectedTopic || johnCollectionOpen) {return;}
+    if (!screenEntranceReady || isLoading || stage !== 'home' || selectedTopic) {return;}
     homeRevealAnims.forEach(animation => {
       animation.stopAnimation();
       animation.setValue(reduceMotion.current ? 1 : 0);
@@ -408,7 +389,7 @@ const BibleStudyScreen = () => {
     );
     requestAnimationFrame(() => entrance.start());
     return () => entrance.stop();
-  }, [homeRevealAnims, isLoading, johnCollectionOpen, openRequestId, screenEntranceReady, selectedTopic, stage]);
+  }, [homeRevealAnims, isLoading, openRequestId, screenEntranceReady, selectedTopic, stage]);
 
   const homeRevealStyle = (animation: Animated.Value) => ({
     opacity: animation,
@@ -474,24 +455,13 @@ const BibleStudyScreen = () => {
   const [prayerText, setPrayerText] = useState('');
   const [saveToPrayerJournal, setSaveToPrayerJournal] = useState(true);
   const [trackAnsweredPrayer, setTrackAnsweredPrayer] = useState(false);
-  const [guidedPage, setGuidedPage] = useState<GuidedBibleStudyPage>('understand');
-  const [revealedGuideSections, setRevealedGuideSections] = useState<GuidedAnswerSection[]>([]);
-  const [prayedCompanionPrayer, setPrayedCompanionPrayer] = useState(false);
 
   useEffect(() => {
     const frame = requestAnimationFrame(() => {
       screenScrollRef.current?.scrollTo({ y: 0, animated: false });
     });
     return () => cancelAnimationFrame(frame);
-  }, [
-    stage,
-    selectedTopic?.id,
-    johnCollectionOpen,
-    observeHighlightIndex,
-    understandingPhase,
-    responsePhase,
-    guidedPage,
-  ]);
+  }, [stage, observeHighlightIndex, understandingPhase, responsePhase]);
 
   const [passageVerses, setPassageVerses] = useState<ScriptureVerse[]>([]);
   const [passageLoading, setPassageLoading] = useState(false);
@@ -507,8 +477,6 @@ const BibleStudyScreen = () => {
   const [scriptureLetterSpacing, setScriptureLetterSpacing] = useState(0);
   const [scriptureIndent, setScriptureIndent] = useState(0);
   const [advancedTextSettings, setAdvancedTextSettings] = useState(false);
-  const preferredBibleVersion = String(preferences?.content?.bibleVersion || 'NASB').trim().toUpperCase();
-  const activeGuide = getGuidedBibleStudy(session?.guide_id);
 
   useFocusEffect(
     useCallback(() => () => {
@@ -539,14 +507,8 @@ const BibleStudyScreen = () => {
   const stageIndex = STAGES.indexOf(stage);
   const progress = useMemo(() => {
     if (stage === 'home' || stage === 'saved' || stage === 'detail') {return 0;}
-    if (session?.study_mode === 'guided') {
-      if (stage === 'read') {return 1 / (GUIDED_PAGES.length + 1);}
-      if (stage === 'guided') {
-        return (GUIDED_PAGES.indexOf(guidedPage) + 2) / (GUIDED_PAGES.length + 1);
-      }
-    }
     return (stageIndex / (STAGES.length - 1));
-  }, [guidedPage, session?.study_mode, stage, stageIndex]);
+  }, [stage, stageIndex]);
 
   const formattedPassage = useMemo(
     () => formatScripturePassage(
@@ -589,21 +551,8 @@ const BibleStudyScreen = () => {
       prompts: responsePromptSelections,
       byPrompt: responsePromptNotes,
     },
-    prayer: {
-      text: activeGuide && prayedCompanionPrayer && !prayerText.trim() ? activeGuide.prayer : prayerText,
-      saveToPrayerJournal,
-      trackAnswered: trackAnsweredPrayer,
-    },
-    ...(activeGuide ? {
-      guided: {
-        guideId: activeGuide.id,
-        guideVersion: activeGuide.version,
-        revealedSections: revealedGuideSections,
-        personalPrayer: prayerText,
-        prayedCompanionPrayer,
-      },
-    } : {}),
-  }), [passageRead, highlights, observationText, observationTags, highlightObservations, highlightPromptSelections, highlightPromptNotes, understandingText, understandingPromptSelections, understandingPromptNotes, responseText, responsePromptSelections, responsePromptNotes, prayerText, saveToPrayerJournal, trackAnsweredPrayer, activeGuide, revealedGuideSections, prayedCompanionPrayer]);
+    prayer: { text: prayerText, saveToPrayerJournal, trackAnswered: trackAnsweredPrayer },
+  }), [passageRead, highlights, observationText, observationTags, highlightObservations, highlightPromptSelections, highlightPromptNotes, understandingText, understandingPromptSelections, understandingPromptNotes, responseText, responsePromptSelections, responsePromptNotes, prayerText, saveToPrayerJournal, trackAnsweredPrayer]);
 
   const applyContent = useCallback((content: BibleStudyContent) => {
     setPassageRead(content.passageRead === true);
@@ -619,11 +568,9 @@ const BibleStudyScreen = () => {
     setResponseText(content.response?.text ?? '');
     setResponsePromptSelections(content.response?.prompts ?? []);
     setResponsePromptNotes(content.response?.byPrompt ?? {});
-    setPrayerText(content.guided?.personalPrayer ?? content.prayer?.text ?? '');
+    setPrayerText(content.prayer?.text ?? '');
     setSaveToPrayerJournal(content.prayer?.saveToPrayerJournal ?? true);
     setTrackAnsweredPrayer(content.prayer?.trackAnswered ?? false);
-    setRevealedGuideSections(content.guided?.revealedSections ?? []);
-    setPrayedCompanionPrayer(content.guided?.prayedCompanionPrayer ?? false);
   }, []);
 
   const loadPassageText = useCallback(async (reference: string, translation = 'NASB') => {
@@ -653,13 +600,9 @@ const BibleStudyScreen = () => {
     setEditingSavedStudy(false);
     setSearch('');
     setSelectedTopic(null);
-    setJohnCollectionOpen(false);
     setObserveHighlightIndex(0);
     setUnderstandingPhase('main');
     setResponsePhase('journal');
-    setGuidedPage('understand');
-    setRevealedGuideSections([]);
-    setPrayedCompanionPrayer(false);
     setPassageRead(false);
     setPassageVerses([]);
     setPassageLoadError(null);
@@ -695,13 +638,12 @@ const BibleStudyScreen = () => {
       if (!mounted) {return;}
       if (active) {
         setSession(active);
-        setGuidedPage(active.guided_page === 'context' ? 'understand' : active.guided_page ?? 'understand');
         const content = await loadBibleStudyContent(active);
         if (!mounted) {return;}
         applyContent(content);
         if (savedSessionId) {setStage('detail');}
         if (active.passage.reference) {
-          await loadPassageText(active.passage.reference, active.passage.translation ?? preferredBibleVersion);
+          await loadPassageText(active.passage.reference, active.passage.translation ?? 'NASB');
         }
       }
       setIsLoading(false);
@@ -711,7 +653,7 @@ const BibleStudyScreen = () => {
       Alert.alert('Unable to open Bible Study', error.message, [{ text: 'Close', onPress: closeBibleStudy }]);
     });
     return () => { mounted = false; };
-  }, [applyContent, closeBibleStudy, creatingStudy, loadPassageText, navigation, openRequestId, preferredBibleVersion, requestedSelectedDate, savedReflectionId, savedSelectedDate, savedSessionId]);
+  }, [applyContent, creatingStudy, loadPassageText, navigation, openRequestId, requestedSelectedDate, savedReflectionId, savedSelectedDate, savedSessionId]);
 
   const debouncedSave = useRef<NodeJS.Timeout | null>(null);
   const saveDraft = useCallback(async () => {
@@ -736,7 +678,7 @@ const BibleStudyScreen = () => {
 
   const startStudy = useCallback(async (reference: string) => {
     triggerLightHaptic();
-    const passage = {...parsePassageReference(reference), translation: preferredBibleVersion};
+    const passage = parsePassageReference(reference);
     setSession(null);
     setPendingPassageReference(passage.reference);
     setPassageSelection({ start: 0, end: 0 });
@@ -746,9 +688,6 @@ const BibleStudyScreen = () => {
     setObserveHighlightIndex(0);
     setUnderstandingPhase('main');
     setResponsePhase('journal');
-    setGuidedPage('understand');
-    setRevealedGuideSections([]);
-    setPrayedCompanionPrayer(false);
     applyContent(createEmptyBibleStudyContent());
     setPassageVerses([]);
     setPassageLoadError(null);
@@ -758,42 +697,10 @@ const BibleStudyScreen = () => {
     // can safely happen together while the reader displays its loading state.
     const [newSession] = await Promise.all([
       createBibleStudySession(passage, requestedSelectedDate),
-      loadPassageText(passage.reference, preferredBibleVersion),
+      loadPassageText(passage.reference),
     ]);
     setSession(newSession);
-  }, [applyContent, loadPassageText, preferredBibleVersion, requestedSelectedDate]);
-
-  const startGuidedStudy = useCallback(async (guide: GuidedBibleStudy) => {
-    triggerLightHaptic();
-    const passage = {...parsePassageReference(guide.reference), translation: preferredBibleVersion};
-    setSession(null);
-    setPendingPassageReference(passage.reference);
-    setPassageSelection({ start: 0, end: 0 });
-    setHighlightActionsVisible(false);
-    ignoreSelectionEvents.current = true;
-    setPassageRead(false);
-    setObserveHighlightIndex(0);
-    setUnderstandingPhase('main');
-    setResponsePhase('journal');
-    setGuidedPage('understand');
-    setRevealedGuideSections([]);
-    applyContent(createEmptyBibleStudyContent());
-    setPrayerText('');
-    setPassageVerses([]);
-    setPassageLoadError(null);
-    setStage('read');
-
-    const [newSession] = await Promise.all([
-      createBibleStudySession(passage, requestedSelectedDate, {
-        studyMode: 'guided',
-        guideId: guide.id,
-        guideVersion: guide.version,
-      }),
-      loadPassageText(passage.reference, preferredBibleVersion),
-      preloadScripturePassages([guide.keyVerse.reference], preferredBibleVersion),
-    ]);
-    setSession(newSession);
-  }, [applyContent, loadPassageText, preferredBibleVersion, requestedSelectedDate]);
+  }, [applyContent, loadPassageText, requestedSelectedDate]);
 
   useEffect(() => {
     if (!selectedTopic) {return;}
@@ -852,49 +759,6 @@ const BibleStudyScreen = () => {
     }
   }, [session, buildContent, stage, navigation, preferences?.weekStart]);
 
-  const advanceGuided = useCallback(async (nextPage: GuidedBibleStudyPage) => {
-    if (!session || !activeGuide) {return;}
-    if (debouncedSave.current) {clearTimeout(debouncedSave.current);}
-    triggerLightHaptic();
-    try {
-      const withContent = await saveBibleStudyContent(session, buildContent());
-      const nextStep = nextPage === 'look_again'
-        ? 'observe'
-        : nextPage === 'reflect'
-          ? 'understand'
-          : nextPage === 'respond' || nextPage === 'pray' || nextPage === 'carry'
-            ? 'respond'
-            : 'read';
-      const updated = await updateBibleStudySession({
-        ...withContent,
-        current_stage: 'guided',
-        current_step: nextStep,
-        guided_page: nextPage,
-      });
-      setSession(updated);
-      setGuidedPage(nextPage);
-      setStage('guided');
-    } catch (error) {
-      console.warn('Guided Bible Study save error:', error);
-    }
-  }, [activeGuide, buildContent, session]);
-
-  const toggleGuideAnswer = useCallback((section: GuidedAnswerSection) => {
-    triggerLightHaptic();
-    setRevealedGuideSections(current => current.includes(section)
-      ? current.filter(item => item !== section)
-      : [...current, section]);
-    scheduleDraftSave();
-  }, [scheduleDraftSave]);
-
-  const togglePrayedCompanionPrayer = useCallback(() => {
-    setPrayedCompanionPrayer(current => {
-      if (!current) {triggerSuccessHaptic();} else {triggerLightHaptic();}
-      return !current;
-    });
-    scheduleDraftSave();
-  }, [scheduleDraftSave]);
-
   const back = useCallback(() => {
     triggerLightHaptic();
     if (stage === 'home' || stage === 'saved' || stage === 'detail') {
@@ -913,15 +777,6 @@ const BibleStudyScreen = () => {
       setResponsePhase('journal');
       return;
     }
-    if (stage === 'guided') {
-      const guidedIndex = GUIDED_PAGES.indexOf(guidedPage);
-      if (guidedIndex <= 0) {
-        setStage('read');
-      } else {
-        setGuidedPage(GUIDED_PAGES[guidedIndex - 1]);
-      }
-      return;
-    }
     const prevIndex = stageIndex - 1;
     if (prevIndex >= 0) {
       const previousStage = STAGES[prevIndex];
@@ -930,7 +785,7 @@ const BibleStudyScreen = () => {
       }
       setStage(previousStage);
     }
-  }, [closeBibleStudy, guidedPage, homeRevealAnims, observeHighlightIndex, prepareReveal, responsePhase, selectedTopic, stage, stageIndex, topicRevealAnims, understandingPhase]);
+  }, [homeRevealAnims, navigation, observeHighlightIndex, prepareReveal, responsePhase, selectedTopic, stage, stageIndex, topicRevealAnims, understandingPhase]);
 
   const toggleHighlightPrompt = (highlightId: string, prompt: string) => {
     triggerLightHaptic();
@@ -1070,13 +925,12 @@ const BibleStudyScreen = () => {
 
   const renderTop = () => stage === 'home' ? (
     <View style={[styles.homeTop, { top: insets.top + 8 }]} pointerEvents="box-none">
-      {selectedTopic || johnCollectionOpen ? (
+      {selectedTopic ? (
         <HeaderBackButton
           onPress={() => {
             triggerLightHaptic();
             prepareReveal(homeRevealAnims);
             setSelectedTopic(null);
-            setJohnCollectionOpen(false);
           }}
           style={[styles.homeNavButton, styles.homeBackButton]}
         />
@@ -1108,7 +962,7 @@ const BibleStudyScreen = () => {
       {topTitle ? (
         <View style={[styles.topTitleRow, editingSavedStudy && styles.editingTopTitleRow]}>
           <ThemedText weight="semiBold" style={styles.topTitle}>{topTitle}</ThemedText>
-          {(stage === 'observe' || stage === 'understand' || stage === 'respond' || stage === 'guided') ? (
+          {(stage === 'observe' || stage === 'understand' || stage === 'respond') ? (
             <TouchableOpacity
               onPress={() => { triggerLightHaptic(); setScriptureReaderOpen(true); }}
               style={styles.topReaderIcon}
@@ -1179,44 +1033,6 @@ const BibleStudyScreen = () => {
     setSelectedTopic(topic);
   };
 
-  const johnStudies = GUIDED_BIBLE_STUDIES.filter(guide => guide.reference.startsWith('John '));
-
-  const renderJohnCollection = () => (
-    <View style={[styles.homePage, {paddingTop: insets.top + 8}]}>
-      <View style={styles.homeLabelContainer}>
-        <Ionicons name="library-outline" size={15} color={Colors.sage} />
-        <ThemedText weight="semiBold" style={styles.homeEyebrow}>Chapter companion</ThemedText>
-      </View>
-      <ThemedText weight="semiBold" style={styles.homeTitle}>The Gospel According to John</ThemedText>
-      <ThemedText style={styles.homeLead}>
-        Choose a chapter to open its complete Scripture-first companion.
-      </ThemedText>
-
-      <ThemedText weight="semiBold" style={styles.sectionLabel}>Choose a chapter</ThemedText>
-      <View style={styles.johnChapterGrid}>
-        {johnStudies.map(guide => {
-          const chapter = guide.reference.replace('John ', '');
-          return (
-            <TouchableOpacity
-              key={guide.id}
-              style={styles.johnChapterButton}
-              activeOpacity={0.68}
-              onPress={() => startGuidedStudy(guide)}
-              accessibilityRole="button"
-              accessibilityLabel={`Start John chapter ${chapter}`}
-            >
-              <ThemedText weight="bold" style={styles.johnChapterNumber}>{chapter}</ThemedText>
-              <ThemedText style={styles.johnChapterLabel}>John</ThemedText>
-            </TouchableOpacity>
-          );
-        })}
-      </View>
-      <ThemedText style={styles.johnCollectionNote}>
-        Move at your own pace. Your responses and prayers are saved with each chapter.
-      </ThemedText>
-    </View>
-  );
-
   const renderTopic = (topic: BibleStudyTopic) => (
     <View style={[styles.homePage, { paddingTop: insets.top + 8 }]}>
       <Animated.View
@@ -1257,11 +1073,7 @@ const BibleStudyScreen = () => {
     </View>
   );
 
-  const renderHome = () => selectedTopic
-    ? renderTopic(selectedTopic)
-    : johnCollectionOpen
-      ? renderJohnCollection()
-      : (
+  const renderHome = () => selectedTopic ? renderTopic(selectedTopic) : (
     <View style={[styles.homePage, { paddingTop: insets.top + 8 }]}>
       <Animated.View
         style={[styles.homeLabelContainer, homeRevealStyle(homeRevealAnims[0])]}
@@ -1312,62 +1124,6 @@ const BibleStudyScreen = () => {
 
       <Animated.View style={homeRevealStyle(homeRevealAnims[4])}>
         <ThemedText weight="semiBold" style={styles.sectionLabel}>Or browse by topic</ThemedText>
-      </Animated.View>
-      <Animated.View style={homeRevealStyle(homeRevealAnims[4])}>
-        <TouchableOpacity
-          style={styles.guidedSampleCard}
-          activeOpacity={0.72}
-          onPress={() => startGuidedStudy(MATTHEW_23_GUIDED_STUDY)}
-          accessibilityRole="button"
-          accessibilityLabel="Try the Matthew 23 Guided Study"
-        >
-          <View style={styles.guidedSampleTopRow}>
-            <View style={styles.guidedSampleBadge}>
-              <Ionicons name="sparkles-outline" size={13} color={Colors.sage} />
-              <ThemedText weight="bold" style={styles.guidedSampleBadgeText}>INCLUDED GUIDED STUDY</ThemedText>
-            </View>
-            <ThemedText style={styles.guidedSampleTime}>{MATTHEW_23_GUIDED_STUDY.estimatedMinutes} min</ThemedText>
-          </View>
-          <ThemedText weight="bold" style={styles.guidedSampleTitle}>{MATTHEW_23_GUIDED_STUDY.title}</ThemedText>
-          <ThemedText style={styles.guidedSampleDescription}>Study a complete chapter with context, companion insights, personal reflection, and prayer.</ThemedText>
-          <View style={styles.guidedSampleSteps}>
-            {['Read', 'Understand', 'Reflect', 'Pray'].map(step => (
-              <View key={step} style={styles.guidedSampleStep}><ThemedText style={styles.guidedSampleStepText}>{step}</ThemedText></View>
-            ))}
-          </View>
-          <View style={styles.guidedSampleAction}>
-            <ThemedText weight="semiBold" style={styles.guidedSampleActionText}>Start guided study</ThemedText>
-            <Ionicons name="arrow-forward" size={17} color={Colors.sage} />
-          </View>
-        </TouchableOpacity>
-      </Animated.View>
-      <Animated.View style={homeRevealStyle(homeRevealAnims[4])}>
-        <TouchableOpacity
-          style={styles.johnCollectionCard}
-          activeOpacity={0.72}
-          onPress={() => {
-            triggerLightHaptic();
-            setJohnCollectionOpen(true);
-          }}
-          accessibilityRole="button"
-          accessibilityLabel="Open the Gospel According to John chapter companions"
-        >
-          <View style={styles.guidedSampleTopRow}>
-            <View style={styles.johnCollectionBadge}>
-              <Ionicons name="library-outline" size={13} color={Colors.sage} />
-              <ThemedText weight="bold" style={styles.guidedSampleBadgeText}>GUIDED STUDY COLLECTION</ThemedText>
-            </View>
-            <ThemedText style={styles.guidedSampleTime}>21 chapters</ThemedText>
-          </View>
-          <ThemedText weight="bold" style={styles.guidedSampleTitle}>The Gospel According to John</ThemedText>
-          <ThemedText style={styles.guidedSampleDescription}>
-            Study the whole book chapter by chapter using the new companion experience.
-          </ThemedText>
-          <View style={styles.guidedSampleAction}>
-            <ThemedText weight="semiBold" style={styles.guidedSampleActionText}>Choose a chapter</ThemedText>
-            <Ionicons name="arrow-forward" size={17} color={Colors.sage} />
-          </View>
-        </TouchableOpacity>
       </Animated.View>
       <AnimatedBibleStudyTopics suggestions={suggestedTopics} topics={BIBLE_STUDY_TOPICS} expanded
         animateOnMount entranceDelay={190}
@@ -1666,23 +1422,7 @@ const BibleStudyScreen = () => {
 
   const renderRead = () => (
     <View style={styles.page}>
-      {activeGuide
-        ? <View style={styles.guidedReadHeader}>
-          <View style={styles.guidedReadStageRow}>
-            <View style={styles.guidedReadStagePill}><ThemedText weight="bold" style={styles.guidedReadStagePillText}>1 OF 7</ThemedText></View>
-            <ThemedText weight="semiBold" style={styles.guidedReadStageLabel}>READ</ThemedText>
-          </View>
-          <ThemedText weight="bold" style={styles.guidedReadTitle}>Read {activeGuide.reference}</ThemedText>
-          <ThemedText style={styles.guidedReadSupport}>Begin with the passage itself. Highlight anything you want to return to.</ThemedText>
-          <View style={styles.guidedReadCue}>
-            <View style={styles.guidedReadCueIcon}><Ionicons name="eye-outline" size={18} color={Colors.sage} /></View>
-            <View style={styles.guidedReadCueCopy}>
-              <ThemedText weight="semiBold" style={styles.guidedReadCueLabel}>NOTICE AS YOU READ</ThemedText>
-              <ThemedText style={styles.guidedReadCueText}>The contrast between outward religion and the character Jesus requires.</ThemedText>
-            </View>
-          </View>
-        </View>
-        : animatedStageHeading('Read', 'Read slowly.', 'Press and hold, then drag to select the words you want to highlight.')}
+      {animatedStageHeading('Read', 'Read slowly.', 'Press and hold, then drag to select the words you want to highlight.')}
 
 
       <StaggeredReveal delay={200} reduceMotion={reduceMotion.current} style={styles.scripture}>
@@ -2066,32 +1806,6 @@ const BibleStudyScreen = () => {
     );
   };
 
-  const renderGuided = () => activeGuide ? (
-    <GuidedBibleStudyPageView
-      guide={activeGuide}
-      bibleVersion={session?.passage.translation ?? preferredBibleVersion}
-      page={guidedPage}
-      observation={observationText}
-      reflection={understandingText}
-      response={responseText}
-      prayer={prayerText}
-      prayedCompanionPrayer={prayedCompanionPrayer}
-      revealedSections={revealedGuideSections}
-      onObservationChange={(text) => {setObservationText(text); scheduleDraftSave();}}
-      onReflectionChange={(text) => {setUnderstandingText(text); scheduleDraftSave();}}
-      onResponseChange={(text) => {setResponseText(text); scheduleDraftSave();}}
-      onPrayerChange={(text) => {setPrayerText(text); scheduleDraftSave();}}
-      onTogglePrayedCompanionPrayer={togglePrayedCompanionPrayer}
-      onReveal={toggleGuideAnswer}
-      onBlur={saveDraft}
-    />
-  ) : (
-    <View style={styles.page}>
-      <PageTitle>Guided study unavailable</PageTitle>
-      <PageLead>This guided study could not be loaded. Return to choose another passage.</PageLead>
-    </View>
-  );
-
   const renderSaved = () => {
     if (!session) {return null;}
     const content = buildContent();
@@ -2104,17 +1818,17 @@ const BibleStudyScreen = () => {
         <StaggeredReveal delay={20} reduceMotion={reduceMotion.current} style={styles.checkCircle}>
           <Ionicons name="checkmark" size={32} color={Colors.hopeWhite} />
         </StaggeredReveal>
-        <StaggeredReveal delay={80} reduceMotion={reduceMotion.current}><ThemedText weight="semiBold" style={styles.eyebrow}>{activeGuide ? 'Guided Study saved' : 'Bible Study saved'}</ThemedText></StaggeredReveal>
+        <StaggeredReveal delay={80} reduceMotion={reduceMotion.current}><ThemedText weight="semiBold" style={styles.eyebrow}>Bible Study saved</ThemedText></StaggeredReveal>
         <StaggeredReveal delay={135} reduceMotion={reduceMotion.current}><ThemedText weight="bold" style={styles.title}>{session.passage.reference}</ThemedText></StaggeredReveal>
         <StaggeredReveal delay={190} reduceMotion={reduceMotion.current}><ThemedText style={styles.lead}>{dateText}</ThemedText></StaggeredReveal>
 
         <StaggeredReveal delay={245} reduceMotion={reduceMotion.current} style={{width: '100%'}}><Card soft style={{ width: '100%' }}>
           {[
             content.highlights.length ? { label: 'Highlights', value: `${content.highlights.length} verse${content.highlights.length === 1 ? '' : 's'} marked` } : null,
-            content.observation.text.trim() ? { label: activeGuide ? 'Look Again' : 'Observation', value: content.observation.text.trim() } : null,
-            content.understanding.text.trim() ? { label: activeGuide ? 'Reflection' : 'Understanding', value: content.understanding.text.trim() } : null,
+            content.observation.text.trim() ? { label: 'Observation', value: content.observation.text.trim() } : null,
+            content.understanding.text.trim() ? { label: 'Understanding', value: content.understanding.text.trim() } : null,
             content.response.text.trim() ? { label: 'Response', value: content.response.text.trim() } : null,
-            content.prayer.text.trim() && content.prayer.saveToPrayerJournal ? { label: 'Prayer', value: 'Saved to Prayer Journal' } : null,
+            content.prayer.saveToPrayerJournal ? { label: 'Prayer', value: 'Saved to Prayer Journal' } : null,
           ].filter(Boolean).map((row, index, rows) => (
             <View key={(row as {label: string}).label} style={[styles.summaryRow, index === rows.length - 1 && { marginBottom: 0 }]}>
               <Eyebrow>{(row as {label: string}).label}</Eyebrow>
@@ -2128,13 +1842,6 @@ const BibleStudyScreen = () => {
           ) : null}
         </Card></StaggeredReveal>
 
-        {activeGuide ? <StaggeredReveal delay={280} reduceMotion={reduceMotion.current} style={{width: '100%'}}>
-          <View style={styles.savedCarryCard}>
-            <ThemedText weight="semiBold" style={styles.savedCarryLabel}>CARRY THIS WITH YOU</ThemedText>
-            <ThemedText style={styles.savedCarryText}>{activeGuide.carryTruth}</ThemedText>
-          </View>
-        </StaggeredReveal> : null}
-
         <StaggeredReveal delay={300} reduceMotion={reduceMotion.current} style={{width: '100%'}}><PrimaryButton onPress={() => setStage('detail')}>View Bible Study</PrimaryButton></StaggeredReveal>
         <StaggeredReveal delay={350} reduceMotion={reduceMotion.current} style={{width: '100%'}}><SecondaryButton onPress={closeBibleStudy}>Done</SecondaryButton></StaggeredReveal>
       </View>
@@ -2144,11 +1851,10 @@ const BibleStudyScreen = () => {
 
   const contentAnimationKey = [
     stage,
-    stage === 'home' ? selectedTopic?.id ?? (johnCollectionOpen ? 'john-collection' : 'root') : '',
+    stage === 'home' ? selectedTopic?.id ?? 'root' : '',
     stage === 'observe' ? observeHighlightIndex : '',
     stage === 'understand' ? understandingPhase : '',
     stage === 'respond' ? responsePhase : '',
-    stage === 'guided' ? guidedPage : '',
   ].join(':');
 
   const content = () => {
@@ -2158,7 +1864,6 @@ const BibleStudyScreen = () => {
       case 'observe': return renderObserve();
       case 'understand': return renderUnderstand();
       case 'respond': return renderRespond();
-      case 'guided': return renderGuided();
       case 'saved': return renderSaved();
       case 'detail': return null; // The saved view owns its own scrolling and action bar.
       default: return renderHome();
@@ -2188,7 +1893,7 @@ const BibleStudyScreen = () => {
               </ThemedText>
             </TouchableOpacity>
             <TouchableOpacity
-              onPress={() => activeGuide ? advanceGuided('understand') : advance('observe')}
+              onPress={() => advance('observe')}
               disabled={passageLoading || !!passageLoadError || !session}
               activeOpacity={0.7}
               style={[styles.nextButton, (passageLoading || !!passageLoadError || !session) && styles.disabledButton]}
@@ -2295,72 +2000,6 @@ const BibleStudyScreen = () => {
             </TouchableOpacity>
           </View>
         );
-      case 'guided': {
-        if (guidedPage === 'carry') {
-          return (
-            <TouchableOpacity onPress={() => advance('saved')} activeOpacity={0.7} style={styles.nextButton} accessibilityRole="button" accessibilityLabel="Save Guided Study">
-              <Ionicons name="checkmark" size={24} color={Colors.hopeWhite} />
-            </TouchableOpacity>
-          );
-        }
-        if (guidedPage !== 'pray') {
-          const currentIndex = GUIDED_PAGES.indexOf(guidedPage);
-          const nextPage = GUIDED_PAGES[Math.min(currentIndex + 1, GUIDED_PAGES.length - 1)];
-          return (
-            <TouchableOpacity
-              onPress={() => advanceGuided(nextPage)}
-              activeOpacity={0.7}
-              style={styles.nextButton}
-              accessibilityRole="button"
-              accessibilityLabel="Continue guided study"
-            >
-              <Ionicons name="chevron-forward" size={24} color={Colors.hopeWhite} />
-            </TouchableOpacity>
-          );
-        }
-        return (
-          <View style={styles.prayerFooterRow}>
-            <View style={styles.prayerFooterChoices}>
-              <TouchableOpacity
-                style={[styles.prayerToggle, saveToPrayerJournal && styles.prayerToggleSelected]}
-                activeOpacity={0.7}
-                onPress={() => {
-                  triggerLightHaptic();
-                  setSaveToPrayerJournal(value => {
-                    if (value) {setTrackAnsweredPrayer(false);}
-                    return !value;
-                  });
-                  scheduleDraftSave();
-                }}
-                accessibilityRole="checkbox"
-                accessibilityState={{ checked: saveToPrayerJournal }}
-              >
-                <View style={[styles.prayerToggleCircle, saveToPrayerJournal && styles.prayerToggleCircleSelected]}>
-                  {saveToPrayerJournal ? <Ionicons name="checkmark" size={13} color={Colors.hopeWhite} /> : null}
-                </View>
-                <ThemedText weight="medium" style={[styles.prayerToggleText, saveToPrayerJournal && styles.prayerToggleTextSelected]}>Save to journal</ThemedText>
-              </TouchableOpacity>
-              {saveToPrayerJournal ? (
-                <TouchableOpacity
-                  style={[styles.prayerToggle, trackAnsweredPrayer && styles.prayerToggleSelected]}
-                  activeOpacity={0.7}
-                  onPress={() => {triggerLightHaptic(); setTrackAnsweredPrayer(value => !value); scheduleDraftSave();}}
-                  accessibilityRole="checkbox"
-                  accessibilityState={{ checked: trackAnsweredPrayer }}
-                >
-                  <View style={[styles.prayerToggleCircle, trackAnsweredPrayer && styles.prayerToggleCircleSelected]}>
-                    {trackAnsweredPrayer ? <Ionicons name="checkmark" size={13} color={Colors.hopeWhite} /> : null}
-                  </View>
-                  <ThemedText weight="medium" style={[styles.prayerToggleText, trackAnsweredPrayer && styles.prayerToggleTextSelected]}>Track if answered</ThemedText>
-                </TouchableOpacity>
-              ) : null}
-            </View>
-            <TouchableOpacity onPress={() => advanceGuided('carry')} activeOpacity={0.7} style={styles.nextButton} accessibilityRole="button" accessibilityLabel="Continue to Carry This With You">
-              <Ionicons name="chevron-forward" size={24} color={Colors.hopeWhite} />
-            </TouchableOpacity>
-          </View>
-        );
-      }
       default:
         return null;
     }
@@ -2415,10 +2054,9 @@ const BibleStudyScreen = () => {
         setObserveHighlightIndex(0);
         setUnderstandingPhase('main');
         setResponsePhase('journal');
-        setGuidedPage('understand');
         setPassageRead(originalContent.passageRead === true);
         setEditingSavedStudy(true);
-        await loadPassageText(originalSession.passage.reference, originalSession.passage.translation ?? preferredBibleVersion);
+        await loadPassageText(originalSession.passage.reference, originalSession.passage.translation ?? 'NASB');
         setStage('read');
           }}
         />
@@ -2566,8 +2204,8 @@ const BibleStudyScreen = () => {
       {renderFooter() ? (
         <View style={[
           styles.footer,
-          (stage === 'read' || stage === 'observe' || stage === 'understand' || stage === 'respond' || stage === 'guided') && styles.floatingReadFooter,
-          (stage === 'read' || stage === 'observe' || stage === 'understand' || stage === 'respond' || stage === 'guided') && {
+          (stage === 'read' || stage === 'observe' || stage === 'understand' || stage === 'respond') && styles.floatingReadFooter,
+          (stage === 'read' || stage === 'observe' || stage === 'understand' || stage === 'respond') && {
             bottom: keyboardHeight > 0 ? keyboardHeight : insets.bottom,
           },
         ]}>
@@ -2932,200 +2570,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 18,
   },
-  guidedSampleCard: {
-    backgroundColor: Colors.cardBackground,
-    borderWidth: 1,
-    borderColor: Colors.cardBorder,
-    borderRadius: 24,
-    padding: 20,
-    marginBottom: 22,
-  },
-  guidedSampleTopRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 16,
-  },
-  guidedSampleBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: Colors.anchorBlueLight,
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-  },
-  guidedSampleBadgeText: {
-    fontSize: 9,
-    letterSpacing: 1,
-    color: Colors.sage,
-  },
-  guidedSampleTime: {
-    fontSize: 12,
-    color: Colors.textGray,
-  },
-  guidedSampleTitle: {
-    fontFamily: Fonts.lora.bold,
-    fontSize: 27,
-    lineHeight: 35,
-    color: Colors.text,
-    marginBottom: 8,
-  },
-  guidedSampleDescription: {
-    fontSize: 14,
-    lineHeight: 22,
-    color: Colors.textGray,
-    marginBottom: 16,
-  },
-  guidedSampleSteps: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 7,
-    marginBottom: 18,
-  },
-  guidedSampleStep: {
-    backgroundColor: 'rgba(82,106,91,0.08)',
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-  },
-  guidedSampleStepText: {
-    fontSize: 10,
-    color: Colors.textGray,
-  },
-  guidedSampleAction: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderTopWidth: 1,
-    borderTopColor: Colors.cardBorder,
-    paddingTop: 15,
-  },
-  guidedSampleActionText: {
-    fontSize: 14,
-    color: Colors.sage,
-  },
-  johnCollectionCard: {
-    backgroundColor: '#F1F4EE',
-    borderWidth: 1,
-    borderColor: 'rgba(82,106,91,0.2)',
-    borderRadius: 24,
-    padding: 20,
-    marginBottom: 22,
-  },
-  johnCollectionBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: 'rgba(82,106,91,0.1)',
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-  },
-  johnChapterGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    rowGap: 12,
-  },
-  johnChapterButton: {
-    width: '30.5%',
-    minHeight: 82,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: Colors.cardBackground,
-    borderWidth: 1,
-    borderColor: Colors.cardBorder,
-    borderRadius: 20,
-  },
-  johnChapterNumber: {
-    fontFamily: Fonts.lora.bold,
-    fontSize: 24,
-    lineHeight: 29,
-    color: Colors.text,
-  },
-  johnChapterLabel: {
-    fontSize: 10,
-    letterSpacing: 0.8,
-    textTransform: 'uppercase',
-    color: Colors.sageMuted,
-  },
-  johnCollectionNote: {
-    fontSize: 12,
-    lineHeight: 19,
-    color: Colors.textGray,
-    textAlign: 'center',
-    marginTop: 20,
-    marginBottom: 12,
-    paddingHorizontal: 12,
-  },
-  guidedReadHeader: {
-    marginBottom: 26,
-  },
-  guidedReadStageRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginBottom: 14,
-  },
-  guidedReadStagePill: {
-    backgroundColor: Colors.anchorBlueLight,
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-  },
-  guidedReadStagePillText: {
-    fontSize: 9,
-    letterSpacing: 1,
-    color: Colors.sage,
-  },
-  guidedReadStageLabel: {
-    fontSize: 10,
-    letterSpacing: 1.6,
-    color: Colors.sage,
-  },
-  guidedReadTitle: {
-    fontFamily: Fonts.lora.bold,
-    fontSize: 30,
-    lineHeight: 39,
-    color: Colors.text,
-    marginBottom: 9,
-  },
-  guidedReadSupport: {
-    fontSize: 14,
-    lineHeight: 22,
-    color: Colors.textGray,
-    marginBottom: 18,
-  },
-  guidedReadCue: {
-    flexDirection: 'row',
-    gap: 12,
-    backgroundColor: Colors.anchorBlueLight,
-    borderRadius: 20,
-    padding: 16,
-  },
-  guidedReadCueIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: Colors.cardBackground,
-  },
-  guidedReadCueCopy: {
-    flex: 1,
-  },
-  guidedReadCueLabel: {
-    fontSize: 9,
-    letterSpacing: 1.3,
-    color: Colors.sage,
-    marginBottom: 4,
-  },
-  guidedReadCueText: {
-    fontSize: 13,
-    lineHeight: 21,
-    color: Colors.textGray,
-  },
   topicGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -3234,27 +2678,6 @@ const styles = StyleSheet.create({
     color: Colors.textGray,
     textAlign: 'center',
     marginTop: 22,
-  },
-  savedCarryCard: {
-    width: '100%',
-    backgroundColor: Colors.anchorBlueLight,
-    borderRadius: 20,
-    padding: 20,
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  savedCarryLabel: {
-    fontSize: 10,
-    letterSpacing: 1.4,
-    color: Colors.sage,
-    marginBottom: 9,
-  },
-  savedCarryText: {
-    fontFamily: Fonts.lora.bold,
-    fontSize: 18,
-    lineHeight: 27,
-    color: Colors.text,
-    textAlign: 'center',
   },
   chips: {
     flexDirection: 'row',

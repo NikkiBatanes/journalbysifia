@@ -1,19 +1,16 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { AccessibilityInfo, ActivityIndicator, Alert, Animated, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { AccessibilityInfo, Alert, Animated, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { FileText, Leaf, Pencil, Sparkles, X } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { format } from 'date-fns';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import ScriptureReaderModal from '../ScriptureReaderModal';
 import ThemedText from '../common/ThemedText';
-import PrayerHandsIcon from '../common/PrayerHandsIcon';
 import { BibleStudyContent } from '../../storage/bibleStudyStorage';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
 import { triggerLightHaptic } from '../../utils/haptics';
 import {getScripturePassage} from '../../services/scriptureReaderService';
-import {getGuidedBibleStudy, type GuidedAnswerSection, type GuidedBibleStudy} from '../../data/guidedBibleStudies';
-import {useGuidedKeyVerse} from '../../hooks/useGuidedKeyVerse';
 import {
   formatScripturePassage,
   type FormattedScripturePassage,
@@ -48,36 +45,6 @@ interface Props {
   onClose: () => void;
 }
 
-const SavedGuidedKeyVerse = ({
-  guide,
-  bibleVersion,
-}: {
-  guide: GuidedBibleStudy;
-  bibleVersion: string;
-}) => {
-  const keyVerse = useGuidedKeyVerse(guide.keyVerse.reference, bibleVersion);
-  return (
-    <View style={styles.guideKeyVerse}>
-      <ThemedText weight="bold" style={styles.guideKeyVerseReference}>
-        {guide.keyVerse.reference} · {keyVerse.version}
-      </ThemedText>
-      {keyVerse.loading ? (
-        <ActivityIndicator size="small" color={Colors.sage} style={styles.guideKeyVerseLoader} />
-      ) : keyVerse.error ? (
-        <View style={styles.guideKeyVerseError}>
-          <ThemedText style={styles.guideKeyVerseStatus}>{keyVerse.error}</ThemedText>
-          <TouchableOpacity onPress={keyVerse.retry} activeOpacity={0.7} accessibilityRole="button">
-            <ThemedText weight="semiBold" style={styles.guideKeyVerseRetry}>Try again</ThemedText>
-          </TouchableOpacity>
-        </View>
-      ) : (
-        <ThemedText selectable style={styles.guideKeyVerseText}>{keyVerse.text}</ThemedText>
-      )}
-      <ThemedText style={styles.guideKeyVerseNote}>{guide.keyVerse.note}</ThemedText>
-    </View>
-  );
-};
-
 export default function BibleStudyDetailView({ reference, selectedDate, translation = 'NASB', content, onEdit, onClose }: Props) {
   const [readerOpen, setReaderOpen] = useState(false);
   const [passageLayout, setPassageLayout] = useState<FormattedScripturePassage | null>(null);
@@ -111,10 +78,6 @@ export default function BibleStudyDetailView({ reference, selectedDate, translat
     return () => {active = false;};
   }, [reference, translation]);
   const shown = content;
-  const guide = getGuidedBibleStudy(content.guided?.guideId);
-  const guidedPersonalPrayer = guide
-    ? shown.guided?.personalPrayer ?? (shown.prayer.text.trim() === guide.prayer.trim() ? '' : shown.prayer.text)
-    : shown.prayer.text;
   const [year, month, day] = selectedDate.split('-').map(Number);
   const savedChoices = (choices: string[]) => choices.length ? (
     <View style={styles.savedChoices}>
@@ -139,14 +102,6 @@ export default function BibleStudyDetailView({ reference, selectedDate, translat
       <ThemedText weight="bold" style={styles.sectionLabel}>{label.toUpperCase()}</ThemedText>
       <ThemedText selectable style={styles.answer}>{shown[key].text.trim() || 'Nothing recorded yet.'}</ThemedText>
     </View>
-  );
-  const companionInsight = (label: string, key: GuidedAnswerSection, text: string) => (
-    guide && shown.guided?.revealedSections.includes(key) ? (
-      <View style={styles.companionInsight}>
-        <ThemedText weight="bold" style={styles.companionInsightLabel}>{label.toUpperCase()}</ThemedText>
-        <ThemedText selectable style={styles.companionInsightText}>{text}</ThemedText>
-      </View>
-    ) : null
   );
   const highlightPresentation = (highlight: BibleStudyContent['highlights'][number]) => {
     let selectionStart = -1;
@@ -219,7 +174,7 @@ export default function BibleStudyDetailView({ reference, selectedDate, translat
         contentContainerStyle={{ paddingTop: insets.top + 90, paddingBottom: insets.bottom + 60 }}>
         <DetailReveal delay={20} reduceMotion={reduceMotion} style={styles.hero}>
           <ThemedText style={styles.date}>{format(new Date(year, month - 1, day), year === new Date().getFullYear() ? 'EEE, MMMM d' : 'EEE, MMMM d, yyyy').toUpperCase()}</ThemedText>
-          <ThemedText weight="bold" style={styles.eyebrow}>{guide ? 'GUIDED STUDY' : 'BIBLE STUDY'}</ThemedText>
+          <ThemedText weight="bold" style={styles.eyebrow}>BIBLE STUDY</ThemedText>
           <View style={styles.titleRow}>
             <ThemedText weight="bold" style={styles.title}>{reference}</ThemedText>
             <TouchableOpacity accessibilityRole="button" accessibilityLabel="Read study passage" hitSlop={10}
@@ -241,25 +196,6 @@ export default function BibleStudyDetailView({ reference, selectedDate, translat
         </View>
         <DetailReveal key={tab} delay={215} reduceMotion={reduceMotion} style={styles.body}>
           {tab === 'study' && <>
-            {guide ? <View style={styles.guideOverview}>
-              <ThemedText weight="bold" style={styles.sectionLabel}>WHAT HAPPENS HERE?</ThemedText>
-              <ThemedText style={styles.guideSummary}>{guide.summary}</ThemedText>
-              <SavedGuidedKeyVerse guide={guide} bibleVersion={translation} />
-              <View style={styles.savedContextSection}>
-                <ThemedText weight="bold" style={styles.sectionLabel}>HELPFUL CONTEXT</ThemedText>
-                {guide.contexts.map((context, index) => (
-                  <View key={context.title} style={styles.savedContextCard}>
-                    <View style={styles.savedContextNumber}>
-                      <ThemedText weight="bold" style={styles.savedContextNumberText}>0{index + 1}</ThemedText>
-                    </View>
-                    <View style={styles.savedContextCopy}>
-                      <ThemedText weight="bold" style={styles.savedContextTitle}>{context.title}</ThemedText>
-                      <ThemedText style={styles.savedContextBody}>{context.body}</ThemedText>
-                    </View>
-                  </View>
-                ))}
-              </View>
-            </View> : null}
             {shown.highlights.length > 0 && <View style={styles.section}>
               <ThemedText weight="bold" style={styles.sectionLabel}>PASSAGES THAT STOOD OUT</ThemedText>
               {shown.highlights.map(highlight => {
@@ -279,10 +215,8 @@ export default function BibleStudyDetailView({ reference, selectedDate, translat
               })}
             </View>}
             {savedChoices(shown.observation.tags ?? [])}
-            {section(guide ? 'My Look Again response' : 'What I noticed', 'observation')}
-            {guide ? companionInsight('Look Again · Companion insight', 'look_again', guide.lookAgain.guideAnswer) : null}
-            {section(guide ? 'My reflection' : 'What the passage is teaching', 'understanding')}
-            {guide ? companionInsight('Reflect · Companion insight', 'reflect', guide.reflect.guideAnswer) : null}
+            {section('What I noticed', 'observation')}
+            {section('What the passage is teaching', 'understanding')}
             {(shown.understanding.prompts ?? Object.keys(shown.understanding.byPrompt ?? {})).map(prompt => {
               const answer = shown.understanding.byPrompt?.[prompt] ?? '';
               return <View key={prompt} style={styles.section}>
@@ -294,32 +228,8 @@ export default function BibleStudyDetailView({ reference, selectedDate, translat
           {tab === 'response' && <>
             {savedChoices(shown.response.prompts ?? Object.keys(shown.response.byPrompt ?? {}))}
             {section('My response', 'response')}
-            {guide ? companionInsight('Respond · Companion insight', 'respond', guide.respond.guideAnswer) : null}
-            {guide ? <View style={styles.carryCard}>
-              <ThemedText weight="bold" style={styles.sectionLabel}>CARRY THIS WITH YOU</ThemedText>
-              <ThemedText style={styles.carryText}>{guide.carryTruth}</ThemedText>
-            </View> : null}
           </>}
-          {tab === 'prayer' && <>{guide ? (
-            <>
-              <View style={styles.savedCompanionPrayer}>
-                <ThemedText weight="bold" style={styles.savedCompanionPrayerLabel}>COMPANION PRAYER</ThemedText>
-                <ThemedText selectable style={styles.savedCompanionPrayerText}>{guide.prayer}</ThemedText>
-                {shown.guided?.prayedCompanionPrayer ? (
-                  <View style={styles.savedPrayedBadge}>
-                    <PrayerHandsIcon size={16} color={Colors.hopeWhite} />
-                    <ThemedText weight="medium" style={styles.savedPrayedBadgeText}>Prayed</ThemedText>
-                  </View>
-                ) : null}
-              </View>
-              {guidedPersonalPrayer.trim() ? (
-                <View style={styles.section}>
-                  <ThemedText weight="bold" style={styles.sectionLabel}>MY PRAYER</ThemedText>
-                  <ThemedText selectable style={styles.answer}>{guidedPersonalPrayer}</ThemedText>
-                </View>
-              ) : null}
-            </>
-          ) : section('My prayer', 'prayer')}
+          {tab === 'prayer' && <>{section('My prayer', 'prayer')}
             {shown.prayer.saveToPrayerJournal && !!shown.prayer.text.trim() && <ThemedText style={styles.status}>Saved to Prayer Journal{shown.prayer.trackAnswered ? ' · Tracking if answered' : ''}</ThemedText>}
           </>}
         </DetailReveal>
@@ -379,33 +289,6 @@ const styles = StyleSheet.create({
   savedChoiceText: { fontSize: 13, color: Colors.sage },
   body: { paddingHorizontal: 22, paddingTop: 20 },
   section: { paddingVertical: 20, borderBottomWidth: 1, borderBottomColor: Colors.cardBorder },
-  guideOverview: { paddingVertical: 20, borderBottomWidth: 1, borderBottomColor: Colors.cardBorder },
-  guideSummary: { fontFamily: Fonts.lora.regular, fontSize: 16, lineHeight: 28, color: Colors.text },
-  guideKeyVerse: { borderLeftWidth: 3, borderLeftColor: '#B89B67', paddingLeft: 16, marginTop: 18 },
-  guideKeyVerseReference: { fontFamily: Fonts.lora.bold, fontSize: 18, color: Colors.text, marginBottom: 6 },
-  guideKeyVerseText: { fontFamily: Fonts.lora.regular, fontSize: 15, lineHeight: 25, color: Colors.text, marginBottom: 9 },
-  guideKeyVerseLoader: {alignSelf: 'flex-start', marginVertical: 10},
-  guideKeyVerseError: {alignItems: 'flex-start', gap: 6, marginBottom: 9},
-  guideKeyVerseStatus: {fontSize: 13, lineHeight: 20, color: Colors.textGray},
-  guideKeyVerseRetry: {fontSize: 13, color: Colors.sage},
-  guideKeyVerseNote: { fontSize: 14, lineHeight: 22, color: Colors.textGray },
-  savedContextSection: { marginTop: 26 },
-  savedContextCard: { flexDirection: 'row', gap: 12, backgroundColor: Colors.cardBackground, borderWidth: 1, borderColor: Colors.cardBorder, borderRadius: 18, padding: 16, marginBottom: 11 },
-  savedContextNumber: { width: 30, height: 30, borderRadius: 15, backgroundColor: Colors.anchorBlueLight, alignItems: 'center', justifyContent: 'center' },
-  savedContextNumberText: { fontSize: 9, letterSpacing: 0.6, color: Colors.sage },
-  savedContextCopy: { flex: 1 },
-  savedContextTitle: { fontFamily: Fonts.lora.bold, fontSize: 17, lineHeight: 23, color: Colors.text, marginBottom: 5 },
-  savedContextBody: { fontSize: 14, lineHeight: 22, color: Colors.textGray },
-  companionInsight: { backgroundColor: Colors.anchorBlueLight, borderRadius: 18, padding: 17, marginTop: 12, marginBottom: 8 },
-  companionInsightLabel: { fontSize: 9, letterSpacing: 1.25, color: Colors.sage, marginBottom: 8 },
-  companionInsightText: { fontFamily: Fonts.lora.regular, fontSize: 15, lineHeight: 25, color: Colors.text },
-  savedCompanionPrayer: { backgroundColor: Colors.sage, borderRadius: 22, padding: 20, marginVertical: 12 },
-  savedCompanionPrayerLabel: { fontSize: 9, letterSpacing: 1.4, color: 'rgba(255,255,255,0.68)', marginBottom: 10 },
-  savedCompanionPrayerText: { fontFamily: Fonts.lora.regular, fontSize: 16, lineHeight: 28, color: Colors.hopeWhite },
-  savedPrayedBadge: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', gap: 7, backgroundColor: 'rgba(255,255,255,0.18)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.55)', borderRadius: 16, paddingHorizontal: 13, paddingVertical: 9, marginTop: 18 },
-  savedPrayedBadgeText: { fontSize: 13, color: Colors.hopeWhite },
-  carryCard: { backgroundColor: Colors.anchorBlueLight, borderRadius: 18, padding: 18, marginTop: 20 },
-  carryText: { fontFamily: Fonts.lora.bold, fontSize: 17, lineHeight: 27, color: Colors.text, textAlign: 'center' },
   sectionLabel: { fontSize: 11, letterSpacing: 1.3, color: Colors.sage, marginBottom: 14 },
   answer: { fontSize: 16, lineHeight: 27, color: Colors.text },
   input: { minHeight: 100, fontFamily: Fonts.regular, fontSize: 16, lineHeight: 27, color: Colors.text, padding: 0, textAlignVertical: 'top' },
