@@ -7,6 +7,7 @@ import { getProverbReflection } from '../../data/getProverbReflection';
 import {getDailyProverbNumber, resolveSavedProverbNumber} from '../../services/dailyScriptureSequence';
 import {getDailyClosingMessage} from '../../services/dailyClosingMessageService';
 import RoutineStepShell from '../../components/routine/RoutineStepShell';
+import {useDuoEveningCloseStyle} from '../../hooks/useDuoEveningCloseStyle';
 import { useFloatingKeyboardButton } from '../../hooks/useFloatingKeyboardButton';
 import React, { useState } from 'react';
 import {
@@ -56,10 +57,11 @@ import {
 
 const EveningCloseButton = () => {
   const insets = useSafeAreaInsets();
+  const duoCloseStyle = useDuoEveningCloseStyle(true);
   const navigation = useNavigation<any>();
   return (
     <TouchableOpacity
-      style={{ position: 'absolute', top: insets.top + 8, right: 20, width: 42, height: 42, borderRadius: 21, backgroundColor: Colors.cardBackground, alignItems: 'center', justifyContent: 'center', zIndex: 100 }}
+      style={[{ position: 'absolute', top: insets.top + 8, right: 20, width: 42, height: 42, borderRadius: 21, backgroundColor: Colors.cardBackground, alignItems: 'center', justifyContent: 'center', zIndex: 100 }, duoCloseStyle]}
       onPress={() => { triggerLightHaptic(); Keyboard.dismiss(); exitEveningFlow(navigation, 'Today'); }}
       accessibilityRole="button"
       accessibilityLabel="Close"

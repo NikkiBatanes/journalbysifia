@@ -1,4 +1,5 @@
 import { useFloatingKeyboardButton } from '../../hooks/useFloatingKeyboardButton';
+import {useDuoEveningCloseStyle} from '../../hooks/useDuoEveningCloseStyle';
 import React, { useRef, useEffect, useImperativeHandle, useCallback } from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import {
@@ -247,6 +248,7 @@ const GratitudeLogEditorInner = (
   const fontKey = currentFont || 'lexend';
   const fontRegular = getFontFamily(fontKey, 'regular');
   const insets = useSafeAreaInsets();
+  const duoCloseStyle = useDuoEveningCloseStyle(routineDraft?.routine === 'evening', 20);
   const {width: screenWidth} = useWindowDimensions();
 
   const s = { ...defaultStyles, ...styles };
@@ -542,7 +544,7 @@ const GratitudeLogEditorInner = (
         </View>
       </KeyboardAvoidingView>
 
-      <View style={[s.closeButton, { top: insets.top + 8 }]}>
+      <View style={[s.closeButton, { top: insets.top + 8 }, duoCloseStyle]}>
         <TouchableOpacity
         onPress={() => { triggerLightHaptic(); _onCancel(); }}
         style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}

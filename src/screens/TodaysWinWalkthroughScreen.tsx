@@ -1,5 +1,6 @@
 import { getWinVerse } from '../data/getWinVerse';
 import { useFloatingKeyboardButton } from '../hooks/useFloatingKeyboardButton';
+import {useDuoEveningCloseStyle} from '../hooks/useDuoEveningCloseStyle';
 import * as React from 'react';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import {
@@ -316,7 +317,9 @@ const WinTypeSelectionStep: React.FC<{
   setCustomWin: (text: string) => void;
   dateContext: DateContext;
   selectedDate: Date;
-}> = ({ selectedWinType, onSelect, onNext, onOtherStateChange, insets, onClose, customWin, setCustomWin, dateContext, selectedDate }) => {
+  eveningFlow?: boolean;
+}> = ({ selectedWinType, onSelect, onNext, onOtherStateChange, insets, onClose, customWin, setCustomWin, dateContext, selectedDate, eveningFlow = false }) => {
+  const duoCloseStyle = useDuoEveningCloseStyle(eveningFlow);
   const winVerse = getWinVerse(selectedDate);
   const {user} = useAuth();
   const bibleVersion = (user as any)?.user_metadata?.preferences?.content?.bibleVersion?.trim() || 'NASB';
@@ -601,7 +604,7 @@ const WinTypeSelectionStep: React.FC<{
       )}
 
       {/* Close button - top right */}
-      <View style={[styles.closeButton, { top: insets.top + 8 }]}>
+      <View style={[styles.closeButton, { top: insets.top + 8 }, duoCloseStyle]}>
         <TouchableOpacity
           onPress={() => {
             triggerLightHaptic();
@@ -629,7 +632,9 @@ const QuietWinStep: React.FC<{
   selectedWinType: WinType | null;
   customWin: string;
   dateContext: DateContext;
-}> = ({ quietWin, onChange, onNext, onBack: _onBack, insets, onClose, selectedWinType, customWin, dateContext }) => {
+  eveningFlow?: boolean;
+}> = ({ quietWin, onChange, onNext, onBack: _onBack, insets, onClose, selectedWinType, customWin, dateContext, eveningFlow = false }) => {
+  const duoCloseStyle = useDuoEveningCloseStyle(eveningFlow);
   const verticalLineHeight = useRef(new Animated.Value(0)).current;
   const { bottom: buttonPosition, keyboardVisible } = useFloatingKeyboardButton(insets.bottom);
 
@@ -741,7 +746,7 @@ const QuietWinStep: React.FC<{
       </Animated.View>
 
       {/* Close button - top right */}
-      <View style={[styles.closeButton, { top: insets.top + 8 }]}>
+      <View style={[styles.closeButton, { top: insets.top + 8 }, duoCloseStyle]}>
         <TouchableOpacity
           onPress={() => {
             triggerLightHaptic();
@@ -1109,6 +1114,7 @@ export const TodayWinExperience: React.FC<{
           onNext={handleNext}
           insets={insets}
           onClose={onClose}
+          eveningFlow={routineDraft?.routine === 'evening'}
           customWin={customWin}
           setCustomWin={setCustomWin}
           onOtherStateChange={setIsOtherStateActive}
@@ -1125,6 +1131,7 @@ export const TodayWinExperience: React.FC<{
           onBack={handleBack}
           insets={insets}
           onClose={onClose}
+          eveningFlow={routineDraft?.routine === 'evening'}
           selectedWinType={selectedWinType}
           customWin={customWin}
           dateContext={dateContext}

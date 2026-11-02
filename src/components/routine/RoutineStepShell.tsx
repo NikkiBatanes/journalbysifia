@@ -3,6 +3,7 @@ import {
   Keyboard,
   Animated,
   PanResponder,
+  Platform,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -71,7 +72,12 @@ const RoutineStepShell: React.FC<RoutineStepShellProps> = ({
   overlay,
 }) => {
   const insets = useSafeAreaInsets();
-  const {width: screenWidth} = useWindowDimensions();
+  const {width: screenWidth, height: screenHeight} = useWindowDimensions();
+  const isDuoDisplay = Platform.OS === 'ios'
+    && !Platform.isPad
+    && (insets.left !== insets.right || Math.min(screenWidth, screenHeight) >= 600);
+  const isInnerDuoDisplay = isDuoDisplay && Math.min(screenWidth, screenHeight) >= 600;
+  const headerControlWidth = rightControl ? 92 : 42;
   const { bottom: buttonBottom, keyboardVisible } = useFloatingKeyboardButton(insets.bottom);
   const isLight = backgroundColor === Colors.lightBackground;
 
@@ -132,8 +138,8 @@ const RoutineStepShell: React.FC<RoutineStepShellProps> = ({
 
   const headerControls = (
     <View style={styles.headerControls}>
-      {rightControl ? <HeaderControlPop delay={620}>{rightControl}</HeaderControlPop> : null}
-      <HeaderControlPop delay={rightControl ? 740 : 620}>{closeControl}</HeaderControlPop>
+      {rightControl && !isDuoDisplay ? <HeaderControlPop delay={620}>{rightControl}</HeaderControlPop> : null}
+      {!isDuoDisplay ? <HeaderControlPop delay={rightControl ? 740 : 620}>{closeControl}</HeaderControlPop> : null}
     </View>
   );
 
@@ -146,7 +152,11 @@ const RoutineStepShell: React.FC<RoutineStepShellProps> = ({
         <ThemedText weight="semiBold" style={[styles.eyebrow, { color: mutedColor }]}>{eyebrow}</ThemedText>
       </StepFadeIn>
 
-      {stickyRightControls
+      {isInnerDuoDisplay ? (
+        <View style={{width: headerControlWidth}}>
+          {!stickyRightControls ? headerControls : null}
+        </View>
+      ) : stickyRightControls
         ? <View style={{width: rightControl ? 92 : 42}} />
         : headerControls}
     </View>
@@ -158,6 +168,8 @@ const RoutineStepShell: React.FC<RoutineStepShellProps> = ({
         ref={scrollViewRef}
         onContentSizeChange={onContentSizeChange}
         style={styles.scroll}
+        contentInsetAdjustmentBehavior={isInnerDuoDisplay ? 'never' : undefined}
+        automaticallyAdjustContentInsets={isInnerDuoDisplay ? false : undefined}
         contentContainerStyle={[styles.scrollContent, { paddingBottom: (keyboardVisible ? 320 : 30) + extraScrollBottomPadding }]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
@@ -165,13 +177,21 @@ const RoutineStepShell: React.FC<RoutineStepShellProps> = ({
       >
         {header}
         {title ? (
-          <StepFadeIn delay={80} style={styles.titleRow}>
+          <StepFadeIn delay={80} style={[styles.titleRow, isInnerDuoDisplay && {width: '100%'}]}>
             <ThemedText weight="semiBold" style={[styles.title, { color: textColor, marginBottom: titleBottomSpacing }]}>{title}</ThemedText>
           </StepFadeIn>
         ) : null}
         {children}
       </ScrollView>
-      {stickyRightControls ? (
+      {isDuoDisplay ? (
+        <View pointerEvents="box-none" style={[styles.duoCloseControl, {top: insets.top + 16}]}>
+          <HeaderControlPop delay={rightControl ? 740 : 620}>
+            {closeControl}
+          </HeaderControlPop>
+          {rightControl ? <HeaderControlPop delay={620}>{rightControl}</HeaderControlPop> : null}
+        </View>
+      ) : null}
+      {stickyRightControls && !isDuoDisplay ? (
         <View
           testID="routine-sticky-header-controls"
           style={[styles.stickyHeaderControls, {top: insets.top + 8}]}
@@ -180,7 +200,20 @@ const RoutineStepShell: React.FC<RoutineStepShellProps> = ({
         </View>
       ) : null}
       {overlay ? (
-        <View pointerEvents="box-none" style={[styles.overlay, {top: insets.top + 56}]}>
+        <View
+          pointerEvents="box-none"
+          style={[
+            styles.overlay,
+            {top: insets.top + 56},
+            isDuoDisplay && {
+              top: insets.top + 74,
+              right: undefined,
+              width: isInnerDuoDisplay
+                ? Math.min(360, screenWidth - 48)
+                : Math.min(320, screenWidth - 64),
+            },
+          ]}
+        >
           {overlay}
         </View>
       ) : null}
@@ -279,6 +312,14 @@ const styles = StyleSheet.create({
   backPlaceholder: {
     width: 42,
     height: 42,
+  },
+  duoCloseControl: {
+    position: 'absolute',
+    left: 24,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    zIndex: 100,
   },
   eyebrow: {
     fontSize: 11,

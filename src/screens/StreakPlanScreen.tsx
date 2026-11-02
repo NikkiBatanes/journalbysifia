@@ -5,7 +5,7 @@
  */
 
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, Animated, Easing, StatusBar, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, Animated, Easing, StatusBar, Platform, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StackActions, useRoute, useNavigation } from '@react-navigation/native';
 import { useTheme } from '../theme/ThemeContext';
@@ -94,6 +94,10 @@ const StreakPlanScreen: React.FC = () => {
   const params = (route.params || {}) as RouteParams;
   const { user, preferences: appPreferences } = useAuth();
   const insets = useSafeAreaInsets();
+  const {width, height} = useWindowDimensions();
+  const isDuoDisplay = Platform.OS === 'ios' && !IS_IPAD
+    && (insets.left !== insets.right || Math.min(width, height) >= 600);
+  const ScreenContainer = isDuoDisplay ? View : SafeAreaView;
   const androidScrollInsets = Platform.OS === 'android'
     ? {
         paddingTop: 40 + insets.top,
@@ -478,7 +482,7 @@ const StreakPlanScreen: React.FC = () => {
   const streakShareText = `${streakTitle}\n\n${streakMessage}\n\nJournal by siFia`;
 
   return (
-    <SafeAreaView
+    <ScreenContainer
       style={[styles.container, { backgroundColor: Colors.lightBackground }]}
     >
       <StatusBar
@@ -486,6 +490,18 @@ const StreakPlanScreen: React.FC = () => {
         backgroundColor={Platform.OS === 'android' ? 'transparent' : Colors.lightBackground}
         translucent={Platform.OS === 'android'}
       />
+      {isDuoDisplay ? (
+        <TouchableOpacity
+          style={[styles.closeButton, {left: 24, right: undefined, top: insets.top + 16}]}
+          onPress={handleContinue}
+          activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel="Close streak"
+          hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}
+        >
+          <Ionicons name="close" size={17} color={Colors.sage} />
+        </TouchableOpacity>
+      ) : null}
       {/* Share button */}
       <Animated.View
         style={[
@@ -517,7 +533,14 @@ const StreakPlanScreen: React.FC = () => {
       </Animated.View>
 
       <ScrollView
-        contentContainerStyle={[styles.scrollContent, androidScrollInsets]}
+        style={isDuoDisplay ? styles.duoScroll : undefined}
+        contentInsetAdjustmentBehavior={isDuoDisplay ? 'never' : undefined}
+        automaticallyAdjustContentInsets={isDuoDisplay ? false : undefined}
+        contentContainerStyle={[
+          styles.scrollContent,
+          androidScrollInsets,
+          isDuoDisplay && {paddingVertical: Math.max(80, insets.top + 74, insets.bottom + 40)},
+        ]}
         showsVerticalScrollIndicator={false}
       >
         {/* Quiet routine marker */}
@@ -533,7 +556,7 @@ const StreakPlanScreen: React.FC = () => {
 
         {/* Hero text */}
         {contentReady ? (
-          <StreakPop delay={180} style={styles.textContainer}>
+          <StreakPop delay={180} style={[styles.textContainer, isDuoDisplay && styles.duoContent]}>
             {rhythmEyebrow ? (
               <Text style={[styles.rhythmLabel, font]}>
                 {rhythmEyebrow}
@@ -559,7 +582,7 @@ const StreakPlanScreen: React.FC = () => {
 
         {/* Action buttons */}
         {contentReady ? (
-          <StreakPop delay={460} scale style={[styles.buttonsContainer, IS_IPAD && styles.buttonsContainerPad]}>
+          <StreakPop delay={460} scale style={[styles.buttonsContainer, IS_IPAD && styles.buttonsContainerPad, isDuoDisplay && styles.duoContent]}>
             <TouchableOpacity
               style={[styles.primaryButton, IS_IPAD && styles.primaryButtonPad]}
               onPress={handleContinue}
@@ -590,13 +613,22 @@ const StreakPlanScreen: React.FC = () => {
         }}
         onClose={() => setShowShareComposer(false)}
       />
-    </SafeAreaView>
+    </ScreenContainer>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  duoScroll: {
+    flex: 1,
+    width: '100%',
+  },
+  duoContent: {
+    width: '100%',
+    maxWidth: 480,
+    alignSelf: 'center',
   },
   closeButton: {
     position: 'absolute',

@@ -32,6 +32,8 @@ import { triggerLightHaptic, triggerMediumHaptic } from '../../utils/haptics';
 import { toLocalDateString, getDateContext, type DateContext } from '../../utils/date';
 import { saveLocalJournalSingleton, getLocalJournalSingleton } from '../../storage/journalStorage';
 
+import {useDuoEveningCloseStyle} from '../../hooks/useDuoEveningCloseStyle';
+
 const IS_IPAD = Platform.OS === 'ios' && (Platform as any).isPad === true;
 
 export interface LookingForwardExperienceProps {
@@ -94,7 +96,9 @@ export const LookingForwardEmotionStep: React.FC<{
   dateContext: DateContext;
   weekly?: boolean;
   embedded?: boolean;
-}> = ({ selectedEmotion, onSelect, onNext, insets, onClose, customEmotion, setCustomEmotion, dateContext, weekly = false, embedded = false }) => {
+  eveningFlow?: boolean;
+}> = ({ selectedEmotion, onSelect, onNext, insets, onClose, customEmotion, setCustomEmotion, dateContext, weekly = false, embedded = false, eveningFlow = false }) => {
+  const duoCloseStyle = useDuoEveningCloseStyle(eveningFlow);
   const [isOtherSelected, setIsOtherSelected] = React.useState(false);
   const [showAllEmotions, setShowAllEmotions] = React.useState(false);
   const { bottom: buttonPosition, keyboardVisible } = useFloatingKeyboardButton(insets.bottom);
@@ -356,7 +360,7 @@ export const LookingForwardEmotionStep: React.FC<{
       )}
 
       {/* Close button - top right */}
-      {!embedded && <View style={[styles.closeButton, { top: insets.top + 8 }]}>
+      {!embedded && <View style={[styles.closeButton, { top: insets.top + 8 }, duoCloseStyle]}>
         <TouchableOpacity
           onPress={() => {
             triggerLightHaptic();
@@ -385,7 +389,9 @@ export const LookingForwardWritingStep: React.FC<{
   dateContext: DateContext;
   weekly?: boolean;
   embedded?: boolean;
-}> = ({ emotion, lookingAheadText, onChange, onNext, insets, onClose, customEmotion, dateContext, weekly = false, embedded = false }) => {
+  eveningFlow?: boolean;
+}> = ({ emotion, lookingAheadText, onChange, onNext, insets, onClose, customEmotion, dateContext, weekly = false, embedded = false, eveningFlow = false }) => {
+  const duoCloseStyle = useDuoEveningCloseStyle(eveningFlow);
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';
   const verticalLineHeight = React.useRef(new Animated.Value(0)).current;
@@ -518,7 +524,7 @@ export const LookingForwardWritingStep: React.FC<{
       </Animated.View>}
 
       {/* Close button - top right */}
-      {!embedded && <View style={[styles.closeButton, { top: insets.top + 8 }]}>
+      {!embedded && <View style={[styles.closeButton, { top: insets.top + 8 }, duoCloseStyle]}>
         <TouchableOpacity
           onPress={() => {
             triggerLightHaptic();
@@ -861,6 +867,7 @@ export const LookingForwardExperience: React.FC<LookingForwardExperienceProps> =
           onNext={handleNext}
           insets={insets}
           onClose={onClose}
+          eveningFlow={routineDraft?.routine === 'evening'}
           customEmotion={customEmotion}
           setCustomEmotion={setCustomEmotion}
           dateContext={dateContext}
@@ -875,6 +882,7 @@ export const LookingForwardExperience: React.FC<LookingForwardExperienceProps> =
           onNext={handleNext}
           insets={insets}
           onClose={onClose}
+          eveningFlow={routineDraft?.routine === 'evening'}
           customEmotion={customEmotion}
           dateContext={dateContext}
         />
