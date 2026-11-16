@@ -843,11 +843,13 @@ const SermonNotesScreen = ({navigation, route}: any) => {
     if (!blockId) {
       return;
     }
+    const shouldScrollToEnd = pendingFocusShouldScrollEndRef.current;
+    pendingFocusBlockIdRef.current = null;
 
     const frame = requestAnimationFrame(() => {
       blockInputRefs.current.get(blockId)?.focus();
       const layout = blockLayoutsRef.current.get(blockId);
-      if (layout && !pendingFocusShouldScrollEndRef.current) {
+      if (layout && !shouldScrollToEnd) {
         const baseY = editorLayout.current?.y || 0;
         scrollRef.current?.scrollTo({
           y: Math.max(0, baseY + layout.y - 20),
@@ -861,12 +863,11 @@ const SermonNotesScreen = ({navigation, route}: any) => {
       }
       focusScrollTimerRef.current = setTimeout(() => {
         blockInputRefs.current.get(blockId)?.focus();
-        if (pendingFocusShouldScrollEndRef.current) {
+        if (shouldScrollToEnd) {
           scrollRef.current?.scrollToEnd({animated: true});
         }
         focusScrollTimerRef.current = null;
       }, 320);
-      pendingFocusBlockIdRef.current = null;
     });
 
     return () => cancelAnimationFrame(frame);
@@ -884,6 +885,19 @@ const SermonNotesScreen = ({navigation, route}: any) => {
     [],
   );
 
+  const cancelAutomaticScroll = useCallback(() => {
+    keepScrollAtEndRef.current = false;
+    pendingFocusBlockIdRef.current = null;
+    if (keepAtEndTimerRef.current) {
+      clearTimeout(keepAtEndTimerRef.current);
+      keepAtEndTimerRef.current = null;
+    }
+    if (focusScrollTimerRef.current) {
+      clearTimeout(focusScrollTimerRef.current);
+      focusScrollTimerRef.current = null;
+    }
+  }, []);
+
   useEffect(() => {
     if (stage !== 1) {
       return;
@@ -899,16 +913,7 @@ const SermonNotesScreen = ({navigation, route}: any) => {
       triggerLightHaptic();
     }
     Keyboard.dismiss();
-    keepScrollAtEndRef.current = false;
-    pendingFocusBlockIdRef.current = null;
-    if (keepAtEndTimerRef.current) {
-      clearTimeout(keepAtEndTimerRef.current);
-      keepAtEndTimerRef.current = null;
-    }
-    if (focusScrollTimerRef.current) {
-      clearTimeout(focusScrollTimerRef.current);
-      focusScrollTimerRef.current = null;
-    }
+    cancelAutomaticScroll();
     if (next === 1) {
       setReturningToSessionSetup(true);
       // Page one may be revisited through the in-screen swipe gesture while
@@ -1264,7 +1269,7 @@ const SermonNotesScreen = ({navigation, route}: any) => {
     keepAtEndTimerRef.current = setTimeout(() => {
       keepScrollAtEndRef.current = false;
       keepAtEndTimerRef.current = null;
-    }, 2500);
+    }, 600);
     const selectedBlock = {
       ...newBlock(kind),
       ...(destination
@@ -2375,8 +2380,14 @@ const SermonNotesScreen = ({navigation, route}: any) => {
           ]}
           keyboardShouldPersistTaps="always"
           showsVerticalScrollIndicator={false}
+          onScrollBeginDrag={cancelAutomaticScroll}
           onContentSizeChange={() => {
             if (keepScrollAtEndRef.current) {
+              keepScrollAtEndRef.current = false;
+              if (keepAtEndTimerRef.current) {
+                clearTimeout(keepAtEndTimerRef.current);
+                keepAtEndTimerRef.current = null;
+              }
               scrollRef.current?.scrollToEnd({animated: true});
             }
           }}>

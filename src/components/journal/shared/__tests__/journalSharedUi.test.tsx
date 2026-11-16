@@ -1651,6 +1651,19 @@ describe('shared Journal UI extraction', () => {
     expect(draggable).toContain('left: -26');
   });
 
+  it('lets a manual Session Notes scroll cancel pending automatic scrolling', () => {
+    const session = fs.readFileSync(
+      path.resolve(__dirname, '../../../../screens/SermonNotesScreen.tsx'),
+      'utf8',
+    );
+    expect(session).toContain('onScrollBeginDrag={cancelAutomaticScroll}');
+    expect(session).toMatch(
+      /onContentSizeChange=\{\(\) => \{[\s\S]*?keepScrollAtEndRef\.current = false;[\s\S]*?scrollRef\.current\?\.scrollToEnd/,
+    );
+    expect(session).toContain('const shouldScrollToEnd = pendingFocusShouldScrollEndRef.current;');
+    expect(session).toContain('if (shouldScrollToEnd) {');
+  });
+
   it('persists drag reordering from saved Reflection and Session Notes views', () => {
     const reflection = fs.readFileSync(
       path.resolve(__dirname, '../../ReflectionLogEditor.tsx'),
