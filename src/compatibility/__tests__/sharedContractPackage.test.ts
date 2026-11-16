@@ -19,9 +19,9 @@ describe('versioned shared contract package', () => {
     const root = path.resolve(__dirname, '../../..');
     const lock = JSON.parse(fs.readFileSync(path.join(root, 'package-lock.json'), 'utf8'));
     const entry = lock.packages['node_modules/@sifia/journal-contract'];
-    const bytes = fs.readFileSync(path.join(root, 'vendor/sifia-journal-contract-0.1.1.tgz'));
-    expect(entry.version).toBe('0.1.1');
-    expect(entry.resolved).toBe('file:vendor/sifia-journal-contract-0.1.1.tgz');
+    const bytes = fs.readFileSync(path.join(root, 'vendor/sifia-journal-contract-0.1.2.tgz'));
+    expect(entry.version).toBe('0.1.2');
+    expect(entry.resolved).toBe('file:vendor/sifia-journal-contract-0.1.2.tgz');
     expect(entry.integrity).toBe(`sha512-${createHash('sha512').update(bytes).digest('base64')}`);
   });
 

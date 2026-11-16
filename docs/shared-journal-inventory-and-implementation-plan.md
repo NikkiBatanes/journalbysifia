@@ -21,9 +21,15 @@ This plan supersedes the earlier proposal to migrate all siFia content immediate
 13. Journal Cloud expiry stops paid remote writes after applicable billing grace. Local writing, free shared sync, and free export remain available. Cancellation does not immediately delete content.
 14. Paid recovery snapshots cover the complete Journal-owned inventory, including locally stored shared-capable base records when free shared sync is disconnected. Canonical sync routing and snapshot coverage are distinct. A snapshot preserves IDs/provenance; restoring it must reconcile existing account records rather than create a second canonical copy. Snapshot eligibility never substitutes for account adoption/backup consent or key enrollment.
 
-The shared core is `packages/journal-contract/src` (`@sifia/journal-contract` package 0.1.1, capability contract version 3). Existing `src/compatibility` entry points delegate to the installed package. Both repositories pin the same vendored archive and lockfile integrity; only Journal owns the package source. It represents future extension read permissions, paid persistence of review/routine state, and Journal-specific check-in/weekly Moments that have no current siFia renderer. Remaining structured field mappings and runtime/server enforcement are still Phase 1/2 work; passing pure contract tests does not establish those features.
+The shared core is `packages/journal-contract/src` (`@sifia/journal-contract` package 0.1.2, capability contract version 3). Existing `src/compatibility` entry points delegate to the installed package. Both repositories pin the same vendored archive and lockfile integrity; only Journal owns the package source. It represents future extension read permissions, paid persistence of review/routine state, and Journal-specific check-in/weekly Moments that have no current siFia renderer. Remaining structured field mappings and runtime/server enforcement are still Phase 1/2 work; passing pure contract tests does not establish those features.
 
 ## Current architecture discovered in source
+
+Execution rule: **you run all SQL manually in Supabase**, including read-only
+audits, migrations, verification, and staging SQL tests. The agent prepares and
+reviews files and reviews your results; it does not execute SQL through CLI,
+API, a database connection, browser SQL Editor, or automated tests. The earlier
+audit executions predate this rule. Non-SQL local code/tests can continue.
 
 ### siFia
 
@@ -38,7 +44,9 @@ siFia Moments currently queries several Supabase sources directly:
 | `devotionals` | Generated/saved devotional artifact | siFia-owned artifact; full Journal display mapping still needs confirmation |
 | `playbooks` and faithful actions | Generated/saved playbook artifact and actions | siFia-owned artifact; Journal has partial compatibility models |
 
-The production database definitions and complete RLS policies for the legacy authored-content tables are not present in this repository. They must be exported and audited before a migration is approved.
+The live catalog confirms `playbooks.action_steps` alongside related tables such as `playbook_action_steps`, `playbook_sub_tasks`, and `playbook_screens`. Generic tables named `action_steps` and `faithful_actions` do not exist in the audited project. `reflection_entries` also lacks several advanced fields declared by the Journal DTO; use the reviewed per-family projection rather than inserting that DTO directly.
+
+Deployed schema/RLS/grant metadata was collected read-only on 2026-11-04. The [first deployed security audit](shared-journal-security-audit-2026-11-04.md) records the evidence, authorization findings, schema differences, and remaining checks. Raw definitions stay in private local evidence storage; no customer content was read. Remediate the privileged RPC and entitlement-write findings before enabling new Journal network paths.
 
 ### Journal by siFia
 
@@ -59,7 +67,7 @@ Journal also contains a read-only siFia compatibility boundary for reflections, 
 
 ## Compatibility inventory v1
 
-This is a source-backed starting inventory. Each row still requires a fixture from real persisted data before migration code is written.
+This is a source-backed starting inventory supplemented by deployed column/policy metadata. Each family still needs synthetic fixtures matching its proven persisted shapes before migration code is written; no customer-authored content is required for those fixtures.
 
 | Family | siFia | Journal | Intended behavior | Remote persistence |
 | --- | --- | --- | --- | --- |
@@ -166,13 +174,13 @@ No record bodies should be placed in tickets, analytics, logs, or committed fixt
 
 Percentages below are conservative planning estimates against the deliverables and exit gates in this version, not a security certification or a shipped-feature percentage. A phase reaches 100% only when its exit gate has recorded evidence. Existing local editors, auth helpers, or IAP dependencies alone do not complete a new integration phase.
 
-Weights total 100%. Overall delivery estimate is `sum(weight × phase completion / 100)`, currently 11.8%, reported as **approximately 12%**. Previous increments reached 10.2%; the shared package adoption and first Time Block mapping add 1.6 percentage points. This replaces the earlier approximately 19% groundwork/readiness estimate, which measured a different scope. Future optional display work is excluded from the launch denominator.
+Weights total 100%. Overall delivery estimate is `sum(weight × phase completion / 100)`, currently 13.3%, reported as **approximately 13%**. The deployed profile-helper fix raises Phase 2 from 0% to a conservative 5%; the many remaining authorization, entitlement, receipt, deletion, revision/change-feed, and compatibility deliverables keep this credit narrow. The earlier approximately 19% groundwork/readiness estimate measured a different scope. Future optional display work is excluded from the launch denominator.
 
 | Phase | Deliverable | Weight | Completion estimate | Status / evidence |
 | --- | --- | ---: | ---: | --- |
-| 0 | Complete inventory and compatibility fixtures | 6% | 65% | Legacy bundle fixtures/read adapter and metadata audit script added; live schema/policies and full variant coverage remain |
+| 0 | Complete inventory and compatibility fixtures | 6% | 80% | Live schema/policies/grants, selected function bodies, and deployed receipt source reviewed; deletion-source verification, full variant fixtures, and remaining configuration review are open |
 | 1 | Shared field and capability contract | 6% | 80% | Versioned core consumed by both apps; one-off Time Block/daily/reflection/simple prayer mappings tested; recurring/lifecycle/structured mappings and write-path adoption remain |
-| 2 | Secure backend and legacy compatibility | 12% | 0% | New ownership/revision/change-feed enforcement unverified |
+| 2 | Secure backend and legacy compatibility | 12% | 5% | Owner-bound profile bootstrap is deployed and passed synthetic, metadata, and A/B app tests; other privileged RPCs, entitlements, receipt/deletion authorization, and revision/change-feed enforcement remain |
 | 3 | Transactional encrypted local storage | 12% | 0% | Existing AsyncStorage records are groundwork, not the target implementation |
 | 4 | Durable media and extension storage | 8% | 0% | Current URI blocks need durable bytes and independent extension identity |
 | 5 | Free encrypted export and safe restore | 10% | 10% | In-memory inventory/validation exists; file, encryption, media packaging, and restore remain |
@@ -182,6 +190,28 @@ Weights total 100%. Overall delivery estimate is `sum(weight × phase completion
 | 9 | Monthly/annual billing and lifecycle UX | 6% | 0% | IAP dependency exists; Journal entitlement is not implemented |
 | 10 | Security review, disaster recovery, staged release | 6% | 0% | Launch evidence and recovery drill remain |
 | 11 | Future siFia read-only extension display | Excluded | 0% | Planned after the core launch |
+
+## Required handoff after every increment
+
+At each completion, report the delivered changes, verification and limitations,
+phase/weighted progress, Git/GitHub checkpoint state, and **what the user must do
+before the next step**. If nothing is required, say so explicitly. Identify which
+work can continue independently, rather than treating an operational prerequisite
+as a blocker for all development. Record required actions here as they change.
+
+Current handoff:
+
+| Next work | User action | Dependency / owner |
+| --- | --- | --- |
+| Remaining recurrence, lifecycle, and structured field contracts | None | Implementation can continue locally |
+| Profile bootstrap security increment | None | Guarded deploy, metadata verification, A/B app smoke test, Auth-user deletion, and synthetic-profile cleanup all passed; this narrow increment is complete |
+| Local entitlement replacement preparation | None | Source inventory found 32 siFia mobile subscription writes; prepare compatible server operations before changing policies |
+| Follow-up deployed security verification | SQL checks will be handed to you for manual execution | Deletion source retrieval and Data API/configuration checks remain; do not infer them from metadata flags alone |
+| Broader backend/schema changes | None yet | The guarded live exception applies only to the narrow profile helper. Entitlements, deletion, receipt binding, shared sync, storage, and billing still require isolated rehearsal/staged rollout before launch |
+
+Existing siFia onboarding type errors and Journal peer-dependency/CI cleanup are
+engineering release gates for us to address before launch, not instructions for
+the user to change authentication or weaken database policies.
 
 ## Phase-by-phase execution
 
@@ -202,6 +232,8 @@ Exit gate: every supported variant has a documented field mapping and fixture; u
 Exit gate: both apps pass round-trip fixture tests; editing a shared note in either app preserves its structured Journal blocks. Exact pricing, quotas, and retention policy values are documented before related features launch.
 
 ### Phase 2 — Backend authorization and compatibility
+
+Immediate prerequisite from the 2026-11-04 deployed audit: trace legitimate callers and close AJ-01/AJ-02 privileged-RPC and entitlement-write gaps; bind receipt/deletion operations to verified identities. These affect the existing backend. Prepare narrow, compatible fixes and synthetic staging tests before adding the Journal sync/cloud surface. See the [audit and remediation order](shared-journal-security-audit-2026-11-04.md).
 
 1. Add owner-scoped schema changes using an expand-and-contract migration. Keep current siFia shared tables authoritative initially; do not create a second canonical copy of every legacy record. Add stable mapping IDs where needed, revisions, a resumable change feed, idempotency keys, and a merge ledger.
 2. Enforce ownership, field allowlists, version checks, deletion rules, quotas, and entitlement-sensitive writes on the server. Audit table/storage RLS and RPC grants. Keep service-role credentials on trusted servers. Validate input sizes and rate-limit abuse.
@@ -321,21 +353,21 @@ Reference commit: [`8b11f096`](https://github.com/NikkiBatanes/journalbysifia/co
 
 Next increment: `sharedReflectionFieldContract.ts` adds explicit base projection, local reflection metadata adaptation into merge preflight, and conditional incoming text-patch preparation. Tests exercise actual synthetic `LocalReflectionEntry` records with photos, private blocks, unknown fields, structured documents, stale revisions, and pending local changes. It remains a pure boundary awaiting the transactional store/sync executor, rather than an active sync path.
 
-Next-increment validation: **8 suites / 131 tests passed**, TypeScript checking passed, and ESLint passed for the new field contract and its tests with zero warnings. Verification includes nested JSON encoding (private structured payloads stay out of the shared text DTO), account/revision checks, protected-field rejection, and retention of unknown local extension data. These changes are local work after the pushed reference commit.
+Next-increment validation: **8 suites / 131 tests passed**, TypeScript checking passed, and ESLint passed for the new field contract and its tests with zero warnings. Verification includes nested JSON encoding (private structured payloads stay out of the shared text DTO), account/revision checks, protected-field rejection, and retention of unknown local extension data. These changes are included in the second reference checkpoint below.
 
-Following increment: added the daily journal and simple prayer field boundaries, shared validation helpers, composed canonical preflight, and synthetic persisted-shape fixtures. Corrected check-in/weekly Moment classification in contract v3 using the source evidence above. Verification covers nested private JSON, coupled Todo flags, rich prayer lifecycle holds, invalid calendar dates, incomplete snapshots, and cross-account previews. All work after the reference checkpoint remains local/uncommitted until the next requested checkpoint.
+Following increment: added the daily journal and simple prayer field boundaries, shared validation helpers, composed canonical preflight, and synthetic persisted-shape fixtures. Corrected check-in/weekly Moment classification in contract v3 using the source evidence above. Verification covers nested private JSON, coupled Todo flags, rich prayer lifecycle holds, invalid calendar dates, incomplete snapshots, and cross-account previews. These field boundaries are included in the second reference checkpoint below.
 
 Latest validation: **11 suites / 211 tests passed**, `npx tsc --noEmit` passed, and ESLint passed for all changed/new compatibility files with `--max-warnings=0`. A broader compatibility-folder lint run also found six existing `curly` style warnings in the unchanged `sifiaReadCompatibility.ts`; those are not new failures in this increment. No native-device sync, file export/restore, encryption, or deployed RLS validation is claimed.
 
 Backup-coverage correction: `getJournalPersistencePolicy` now reports `journalCloudBackupEligible` independently from canonical `journalCloudSync` routing. Full-journal encrypted recovery snapshots must also cover locally held Heart Journal bases for subscribed Journal-only accounts that have not enabled free shared sync. This is an eligibility contract, not a scheduler or consent grant; cloud-only live multi-device editing of shared-capable bases still needs an explicit routing decision before Phase 8 launches.
 
-Live audit attempt (including retry after the checkpoint): `supabase db query --linked` failed before executing its metadata SELECT because the CLI has no access token. The audit SQL has therefore not been executed or validated against the linked database. Run `supabase login` locally (do not paste tokens into chat), then collect the read-only report and inspect relevant function bodies and Edge Function authorization separately. CLI binary/project-link cache presence alone is not proof of authenticated access.
+Earlier live audit attempts: `supabase db query --linked` failed before executing its metadata SELECT because the CLI had no access token. Login was completed on 2026-11-04: the CLI reported success and exited with code 0; a separate authenticated read-only project-list request succeeded and confirmed access to the linked project. Three projects are accessible. No credential or verification code is recorded in this plan. The sandboxed authentication request initially failed with a transport error; the network-enabled retry succeeded. Both repository metadata SELECT scripts and supplementary private catalog queries subsequently executed successfully on 2026-11-04. The first audit report records the reviewed bodies, confirmed gaps, and unverified deletion source. Database-query access is now established; client A/B authorization tests and remediation are still outstanding. No further user action is currently required for local fix preparation.
 
-Remaining inventory findings: legacy `reflection_log` is a day container alongside individual `ReflectionApiEntry` rows; mapping requires table/row/child provenance. Modern Journal `metadata.journalBlocks` is separate from the main text, while structured guided content needs an explicit safe projection. Do not classify all JSON/string payloads as free shared text without inspecting their family. Existing reflection API error logging also includes a full entry/raw error context; remove content-bearing diagnostics during Phase 2's privacy audit before enabling new remote paths.
+Remaining inventory findings: legacy `reflection_log` is a day container alongside individual `ReflectionApiEntry` rows; mapping requires table/row/child provenance. Modern Journal `metadata.journalBlocks` is separate from the main text, while structured guided content needs an explicit safe projection. Do not classify all JSON/string payloads as free shared text without inspecting their family. The earlier audit found full-entry/raw-error logging in the reflection API; the reflection failure boundary below now removes these diagnostics from both reflection APIs. Other APIs, hooks, server logs, and telemetry still require the Phase 2 privacy audit before new remote paths are enabled.
 
-Second reference checkpoint: [`431aae90`](https://github.com/NikkiBatanes/journalbysifia/commit/431aae903744c30d71a7bfa26e1d6fd4445289f2), pushed to GitHub `main` before the shared package/Time Block work. Subsequent packaging changes in both repositories remain local for review; unrelated user screen/native edits are preserved.
+Second reference checkpoint: [`431aae90`](https://github.com/NikkiBatanes/journalbysifia/commit/431aae903744c30d71a7bfa26e1d6fd4445289f2), pushed to GitHub `main` before the shared package/Time Block work. The subsequent shared package/Time Block work was checkpointed in both repositories as recorded below; unrelated user screen/native edits are preserved.
 
-Package verification notes: both consumers pin `vendor/sifia-journal-contract-0.1.1.tgz`, SHA-256 `dad04bcc22474cef60978ba6158d2a671b4c6494b8079cc620978d84fd83f5d2`. Journal's existing React 19/masonry-list/Expo peer conflict required `--legacy-peer-deps` during offline install. siFia installed with existing peer warnings. Each lockfile adds only the contract dependency; no other library was upgraded. Whole-app CI dependency cleanup is outside this increment.
+Package verification at the third checkpoint: both consumers pinned `vendor/sifia-journal-contract-0.1.1.tgz`, SHA-256 `dad04bcc22474cef60978ba6158d2a671b4c6494b8079cc620978d84fd83f5d2`. Journal's existing React 19/masonry-list/Expo peer conflict required `--legacy-peer-deps` during offline install. siFia installed with existing peer warnings. Each lockfile adds only the contract dependency; no other library was upgraded. Whole-app CI dependency cleanup is outside this increment.
 
 Verification of this increment (2026-11-03):
 
@@ -353,7 +385,207 @@ These are focused package/bundle checks, not full app release builds, device-bas
 
 siFia full-project type checking reports six existing errors in unchanged `OnboardingSalesOfferScreen.tsx` (lines 493, 504, 561, 2328, 2358, 2401). A compiler run excluding the new contract boundary reproduces those same six errors. The package boundary has an independent scoped type check; this is not a claim that siFia's full build is green.
 
-Next implementation milestone: collect the deployed metadata audit; finish recurrence, rich lifecycle, and structured guided-content mappings; then implement schema/RLS and transactional account-isolated storage behind the documented gates. The preview is not wired to storage reads or the account screen. Build and prove local media/export/restore before enabling first-time remote merges or charging for Journal Cloud. Remote changes start in staging with additive migrations; live access and store setup remain operational prerequisites.
+Next implementation milestone: trace callers and prepare fixes for the deployed privileged-RPC, client-writable entitlement, receipt-ownership, and deletion findings. Verify fixes with synthetic staging identities before production changes. Finish recurrence, rich lifecycle, and structured guided-content mappings in parallel; then implement additive sync schema and transactional account-isolated storage behind the documented gates. The preview is not wired to storage reads or the account screen. Build and prove local media/export/restore before enabling first-time remote merges or charging for Journal Cloud. Remote changes start in staging with additive migrations; live access and store setup remain operational prerequisites.
+
+Third reference checkpoint, pushed to both GitHub `main` branches on 2026-11-03:
+
+| Repository | Commit | Included work |
+| --- | --- | --- |
+| Journal by siFia | [`3744a634`](https://github.com/NikkiBatanes/journalbysifia/commit/3744a634) | Shared package 0.1.1, consumer facades, safe one-off Time Block mapping, package/build evidence |
+| siFia | [`7d1e01bf`](https://github.com/NikkiBatanes/siFia/commit/7d1e01bf) | Matching immutable package archive and consumer conformance tests |
+
+Continuation after that checkpoint: both reflection APIs use the shared
+`PrivateReflectionApiError` from package 0.1.2. All returned failure branches
+stop logging raw messages, details, hints, input records, or original causes.
+The request wrapper also sanitizes rejected promises and synchronous SDK/query
+construction failures. Only fixed action/messages and allowlisted error codes or
+numeric statuses reach the logger/tracker. Successful authored data and existing
+missing-record/network-search fallback behavior are preserved. Search still has
+its legacy empty-results fallback; it must not be used as a complete remote
+snapshot for merge/sync.
+
+The 0.1.2 archive has SHA-256
+`597a6761564dd9113248d9961ae5290ab58c8797f925eba69ead49b991709d3b`.
+Both apps pin identical bytes and lockfile integrity; previous checkpoint
+archives remain unchanged. No other dependency version was changed.
+
+Verification of the privacy continuation (2026-11-03):
+
+| Check | Result / limit |
+| --- | --- |
+| Journal focused tests | 15 suites / 331 tests passed |
+| siFia consumer/privacy tests | 2 suites / 71 tests passed |
+| Diagnostic coverage | Every reflection API method tested for returned failures, rejected promises, synchronous query-construction failures, and successful calls; private marker absent from logger buffers/tracker errors and context |
+| TypeScript | Journal full check passed; siFia full check reports only the same six existing onboarding errors documented above |
+| Lint | All changed/new TypeScript files passed with zero warnings in both repositories |
+| Package | Standalone build/source-archive check passed; consumer archives are byte-identical and each lockfile integrity test passed |
+
+These are synthetic client-level checks. They do not establish live database
+authorization, full native release-build success, or removal of content already
+stored in historical logs. No deployed infrastructure was modified.
+
+This continuation is local/uncommitted pending the next requested checkpoint.
+It hardens one existing API family and does not establish privacy across all
+hooks, other APIs, server logs, or telemetry. Deployed RLS/authorization and full
+app release checks remain open; no cross-app write path was enabled. At that increment,
+weighted progress remained **11.8% (approximately 12%)** because privacy
+groundwork did not complete the backend delivery gate. The deployed audit below
+subsequently raises inventory progress only.
+
+## First deployed audit, 2026-11-04
+
+The [read-only security audit](shared-journal-security-audit-2026-11-04.md) and
+`scripts/audit-shared-journal-security-surface.sql` are new local artifacts.
+Both metadata reports and supplementary catalog queries executed successfully
+against the verified shared project. No authored rows were queried and no
+application RPC, deployment, or database mutation was run. Private source/metadata
+evidence has a hash manifest outside Git.
+
+Confirmed foundations include RLS on the six existing content tables and
+`security_invoker=true` on all six public views. Priority gaps are unguarded
+privileged RPCs, owner-writable entitlement fields, and deployed receipt identity
+binding. Deletion source verification, full client-role tests, private backup
+storage, and recovery validation remain open. Preserve those distinctions when
+reporting progress; this is a first audit pass, not a security certification.
+
+Verification for this increment consists of successful execution of the read-only
+SQL and source/metadata review. No app code changed, so the prior focused test
+results are retained rather than represented as newly run tests. Phase 0 is now
+80%; weighted implementation is **12.7% (approximately 13%)**. Phase 2 stays at
+0% until security/backend deliverables have implementation evidence.
+
+At the audit handoff, no user action was required for local fix preparation and
+separate staging was the recommendation. The later guarded-live risk decision
+for this one helper is recorded below; it does not change the audit's broader
+staging requirement. Existing local code and these audit additions remain
+uncommitted; GitHub reference heads remain Journal `3744a634` and siFia `7d1e01bf`.
+
+## Manual security fix preparation, 2026-11-04
+
+The [profile bootstrap package](manual-sql/profile-bootstrap/README.md) prepares
+the first narrow AJ-01 fix. It contains a read-only preflight, baseline-guarded
+replacement with integrated synthetic assertions/savepoint cleanup, metadata
+verification, app smoke checklist, containment, and last-resort rollback. All
+SQL remains **draft SQL pending your manual execution**;
+none was executed by the agent after your manual-only instruction. Files live
+outside automatic migration discovery.
+
+Both apps' `AuthApiService` fallback now requires a verified matching identity,
+does not invent a missing email, rejects a mismatched response, and avoids raw
+profile/error logging in this helper. The server function remains vulnerable
+until the manual SQL is applied and runtime-verified; the client guard cannot
+enforce database authorization for other callers.
+
+Source-only AST inventory (`scripts/inventory-journal-security-callers.cjs`)
+found one direct profile RPC call per app, two default-seeker calls in siFia,
+and 32 direct subscription-write sites in siFia mobile source versus zero in
+Journal mobile source. Each repository has 18 additional subscription writes
+in Edge Function source copies. Aliases, dynamic SQL, outside workers, and
+deployed bundles remain separate review items; source counts are not runtime
+authorization evidence. Entitlement replacement must cover existing purchase,
+trial, usage, discount, and onboarding flows before permission changes.
+
+Local validation: Journal's three focused suites passed **38 tests**, including
+the legacy-auth and Journal subscription-boundary suites; siFia's two auth
+suites passed **30 tests**. Changed TypeScript passed lint with zero warnings;
+the inventory script syntax check passed. Database SQL and real-session/API
+tests have not been run and are not counted as passing checks.
+
+Journal's full TypeScript check passed. siFia's full check still reports only
+the same six pre-existing onboarding errors documented above; no new errors
+were reported in the changed profile helper or tests.
+
+Backend phase completion remains **0%** and overall delivery remains **12.7%
+(approximately 13%)**. This work and earlier continuations remain uncommitted;
+no SQL, deployment, or database permission change was made in this increment.
+
+The user subsequently ran [01-preflight.sql](manual-sql/profile-bootstrap/01-preflight.sql)
+manually in the existing siFia project and shared the result. The
+[review](manual-sql/profile-bootstrap/01-preflight-reviewed.md) accepts the audited
+baseline, required columns/RLS, and absence of reported dependency candidates.
+Anonymous execute access remains present; the server fix has not been applied.
+
+**Current user dependency for this helper:** review the guarded runbook, then
+create two new temporary Auth test users without opening either app. Their exact
+UUID/email pairs are entered only in Supabase SQL Editor when running the
+guarded script. No identifier, password, or token should be saved in Git or
+shared in chat. Broader backend work still requires isolated rehearsal/staged
+rollout. Local entitlement preparation can continue independently. Overall
+implementation remains approximately 13%.
+
+Budget steering: the user cannot take on paid staging. A local Supabase/Studio
+environment remains available for later broader schema work without an
+additional Supabase hosting charge. Docker availability was verified, but no
+local environment was initialized and no SQL was executed. For this one narrow
+existing profile helper, the user chose a guarded live transaction with two
+new synthetic Auth identities, automatic database assertions, savepoint cleanup,
+post-commit verification, real-app smoke testing, containment, and a last-resort
+service rollback. This is a documented risk exception, not a replacement for
+staging across the rest of Phase 2.
+
+## Guarded profile deployment preparation, 2026-11-16
+
+The profile package was restructured after the user's decision to avoid a paid
+staging project and combine application with database tests. `02-apply.sql` now
+requires two new temporary Auth users and validates their exact UUID/email pairs
+and absence from `user_profiles` before changing anything. It applies the
+owner-bound helper inside a transaction, simulates owner/cross-owner/missing/
+anonymous calls, rolls all synthetic profile writes back to a savepoint, checks
+the hardened function/grants and absence of fixture rows, then commits. A
+post-commit marker prevents a rolled-back execution from being reported as a
+pass. Real identifiers are entered only in Supabase SQL Editor, not saved in
+Git or shared in chat.
+
+`03-verify.sql` remains the read-only deployed metadata check.
+`04-app-smoke-test.md` covers real-session A/B sign-in and account switching.
+`05-containment.sql` now refuses to disable an unknown/unpatched function.
+`06-restore-audited-baseline.sql` is a deliberately insecure last-resort service
+rollback and reopens AJ-01; containment plus a corrected forward patch is
+preferred. `07-cleanup-test-profiles.sql` requires Auth-user deletion first and
+removes only exact matching synthetic profile rows. The older staging-test file
+was removed because its assertions are now integrated into the guarded
+transaction.
+
+Official PostgreSQL savepoint documentation confirms that commands after a
+savepoint can be discarded while earlier transaction changes remain. Supabase
+guidance confirms that definer functions run with owner privileges, require an
+explicit owner check, and should have PUBLIC/anonymous execution narrowed. The
+files received static review only: the user still owns all SQL execution, and
+no database/parser/runtime validation is claimed.
+
+Preparation alone did not complete the backend exit gate. The accepted deploy,
+verification, and app evidence recorded below subsequently raise Phase 2 to 5%
+and overall implementation to **13.3% (approximately 13%)**.
+
+The user manually ran the guarded `02-apply.sql` on 2026-11-16 and supplied its
+expected final JSON: `deployment_committed=true`, synthetic database assertions
+passed, and no synthetic profile rows persisted. This confirms the transaction
+committed past its post-commit marker. Keep the two temporary Auth users for the
+pending real-session A/B smoke test. Independent `03-verify.sql` metadata and
+the app smoke test are still required before crediting Phase 2 progress or
+declaring this helper closed.
+
+The user subsequently ran `03-verify.sql`. The deployed helper exists under the
+expected signature, is owned by `postgres`, remains `SECURITY DEFINER`, has an
+empty pinned search path, denies PUBLIC/anonymous execution, allows authenticated
+execution, and carries the guarded 2026-11-16 marker. Deployed definition MD5 is
+`569bb4004827e98027690d98ea33af59`. At that handoff, the remaining gate was the
+real-session A/B app smoke test, so the temporary users were retained.
+
+The user then completed all eight siFia smoke-test steps and the Journal by
+siFia account/profile checks successfully. Journal showed the temporary account
+name while authenticated and returned to the independent device-local name on
+logout, matching the local-only/optional-account model. No authored test content
+was created; platform was not reported. This closes the runtime gate for this
+narrow helper and raises Phase 2 to 5%. Overall weighted progress is now 13.3%,
+still reported as approximately 13%. At that handoff, temporary Auth/profile
+cleanup remained and was completed as recorded below.
+
+The user deleted both temporary Auth identities and ran
+`07-cleanup-test-profiles.sql`. It reported `auth_users_present=false`, zero
+profiles deleted, and cleanup passed. This confirms Auth deletion had already
+removed the synthetic profiles and no matching test profile remained. No further
+Supabase action is required for this narrow increment.
 
 ## Primary references checked on 2026-11-03
 

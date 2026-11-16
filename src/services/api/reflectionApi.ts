@@ -1,6 +1,7 @@
 // src/services/api/reflectionApi.clean.ts
 import { supabase } from '../supabaseClient';
 import { Logger } from '../../utils/ProductionLogger';
+import { PrivateReflectionApiError, type ReflectionApiAction } from '@sifia/journal-contract';
 import type { GuidedReflectionPayload } from '../../types/guidedReflection';
 import type { GuidedReflectionNote } from '../../types/guidedReflection';
 
@@ -41,21 +42,37 @@ export interface SearchReflectionsOptions {
   userId: string;
 }
 
+// Only fixed diagnostics cross this boundary; no raw backend error/cause/payload.
+function reportReflectionFailure(action: ReflectionApiAction, original: unknown): PrivateReflectionApiError {
+  const failure = new PrivateReflectionApiError(action, original);
+  Logger.error('Reflection request failed', failure, {
+    component: 'reflectionApi', action: failure.action,
+    diagnosticCode: failure.diagnosticCode, status: failure.status,
+  });
+  return failure;
+}
+
+async function runReflectionQuery<T>(action: ReflectionApiAction, query: () => PromiseLike<T>): Promise<T> {
+  try {
+    return await query();
+  } catch (error) {
+    throw reportReflectionFailure(action, error);
+  }
+}
+
 export class ReflectionApi {
   // Get all reflection entries for a user and date
   static async getReflectionEntries(userId: string, date: string): Promise<ReflectionApiEntry[]> {
-    const { data, error } = await supabase
+    const { data, error } = await runReflectionQuery('read', () => supabase
       .from('reflection_entries')
       .select('*')
       .eq('user_id', userId)
       .eq('selected_date', date)
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false }));
 
     if (error) {
-      Logger.error('Error fetching reflection entries', error as Error, {
-      component: 'reflectionApi',
-    });
-      throw new Error(`Failed to fetch reflection entries: ${error.message}`);
+      const failure = reportReflectionFailure('read', error);
+      throw failure;
     }
 
     return data || [];
@@ -67,19 +84,17 @@ export class ReflectionApi {
     date: string,
     type: 'free' | 'guided'
   ): Promise<ReflectionApiEntry[]> {
-    const { data, error } = await supabase
+    const { data, error } = await runReflectionQuery('read', () => supabase
       .from('reflection_entries')
       .select('*')
       .eq('user_id', userId)
       .eq('selected_date', date)
       .eq('type', type)
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false }));
 
     if (error) {
-      Logger.error('Error fetching reflection entries by type', error as Error, {
-      component: 'reflectionApi',
-    });
-      throw new Error(`Failed to fetch reflection entries: ${error.message}`);
+      const failure = reportReflectionFailure('read', error);
+      throw failure;
     }
 
     return data || [];
@@ -87,19 +102,17 @@ export class ReflectionApi {
 
   // Get playbook reflections
   static async getPlaybookReflections(userId: string, date: string): Promise<ReflectionApiEntry[]> {
-    const { data, error } = await supabase
+    const { data, error } = await runReflectionQuery('read', () => supabase
       .from('reflection_entries')
       .select('*')
       .eq('user_id', userId)
       .eq('selected_date', date)
       .eq('type', 'playbook')
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false }));
 
     if (error) {
-      Logger.error('Error fetching playbook reflections', error as Error, {
-      component: 'reflectionApi',
-    });
-      throw new Error(`Failed to fetch playbook reflections: ${error.message}`);
+      const failure = reportReflectionFailure('read', error);
+      throw failure;
     }
 
     return data || [];
@@ -107,18 +120,16 @@ export class ReflectionApi {
 
   // Get reflections by playbook ID
   static async getReflectionsByPlaybook(userId: string, playbookId: string): Promise<ReflectionApiEntry[]> {
-    const { data, error } = await supabase
+    const { data, error } = await runReflectionQuery('read', () => supabase
       .from('reflection_entries')
       .select('*')
       .eq('user_id', userId)
       .eq('playbook_id', playbookId)
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false }));
 
     if (error) {
-      Logger.error('Error fetching reflections by playbook', error as Error, {
-      component: 'reflectionApi',
-    });
-      throw new Error(`Failed to fetch reflections by playbook: ${error.message}`);
+      const failure = reportReflectionFailure('read', error);
+      throw failure;
     }
 
     return data || [];
@@ -126,23 +137,21 @@ export class ReflectionApi {
 
   // Get reflection by subtask ID
   static async getReflectionBySubtask(userId: string, subtaskId: string): Promise<ReflectionApiEntry | null> {
-    const { data, error } = await supabase
+    const { data, error } = await runReflectionQuery('read', () => supabase
       .from('reflection_entries')
       .select('*')
       .eq('user_id', userId)
       .eq('subtask_id', subtaskId)
       .order('created_at', { ascending: false })
       .limit(1)
-      .single();
+      .single());
 
     if (error) {
       if (error.code === 'PGRST116') {
         return null;
       }
-      Logger.error('Error fetching reflection by subtask', error as Error, {
-      component: 'reflectionApi',
-    });
-      throw new Error(`Failed to fetch reflection by subtask: ${error.message}`);
+      const failure = reportReflectionFailure('read', error);
+      throw failure;
     }
 
     return data;
@@ -159,19 +168,15 @@ export class ReflectionApi {
       updated_at: now,
     };
 
-    const { data, error } = await supabase
+    const { data, error } = await runReflectionQuery('create', () => supabase
       .from('reflection_entries')
       .insert(entryWithTimestamps)
       .select()
-      .single();
+      .single());
 
     if (error) {
-      Logger.error('Error creating reflection entry', new Error(error.message || JSON.stringify(error)), {
-      component: 'reflectionApi',
-      errorDetails: error,
-      entry: entryWithTimestamps,
-    });
-      throw new Error(`Failed to create reflection entry: ${error.message}`);
+      const failure = reportReflectionFailure('create', error);
+      throw failure;
     }
 
     return data;
@@ -187,18 +192,16 @@ export class ReflectionApi {
       updated_at: new Date().toISOString(),
     };
 
-    const { data, error } = await supabase
+    const { data, error } = await runReflectionQuery('update', () => supabase
       .from('reflection_entries')
       .update(updateData)
       .eq('id', id)
       .select()
-      .single();
+      .single());
 
     if (error) {
-      Logger.error('Error updating reflection entry', error as Error, {
-      component: 'reflectionApi',
-    });
-      throw new Error(`Failed to update reflection entry: ${error.message}`);
+      const failure = reportReflectionFailure('update', error);
+      throw failure;
     }
 
     return data;
@@ -206,16 +209,14 @@ export class ReflectionApi {
 
   // Delete a reflection entry
   static async deleteReflectionEntry(id: string): Promise<void> {
-    const { error } = await supabase
+    const { error } = await runReflectionQuery('delete', () => supabase
       .from('reflection_entries')
       .delete()
-      .eq('id', id);
+      .eq('id', id));
 
     if (error) {
-      Logger.error('Error deleting reflection entry', error as Error, {
-      component: 'reflectionApi',
-    });
-      throw new Error(`Failed to delete reflection entry: ${error.message}`);
+      const failure = reportReflectionFailure('delete', error);
+      throw failure;
     }
   }
 
@@ -225,20 +226,18 @@ export class ReflectionApi {
     startDate: string,
     endDate: string
   ): Promise<ReflectionApiEntry[]> {
-    const { data, error } = await supabase
+    const { data, error } = await runReflectionQuery('read', () => supabase
       .from('reflection_entries')
       .select('*')
       .eq('user_id', userId)
       .gte('selected_date', startDate)
       .lte('selected_date', endDate)
       .order('selected_date', { ascending: false })
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false }));
 
     if (error) {
-      Logger.error('Error fetching reflections in date range', error as Error, {
-      component: 'reflectionApi',
-    });
-      throw new Error(`Failed to fetch reflections: ${error.message}`);
+      const failure = reportReflectionFailure('read', error);
+      throw failure;
     }
 
     return data || [];
@@ -248,29 +247,31 @@ export class ReflectionApi {
   static async searchReflections(options: SearchReflectionsOptions): Promise<ReflectionApiEntry[]> {
     const { searchTerm, dayNumber, questionNumber, limit = 10, userId } = options;
 
-    let query = supabase
-      .from('reflection_entries')
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false });
+    const { data, error } = await runReflectionQuery('search', () => {
+      let query = supabase
+        .from('reflection_entries')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
 
-    if (searchTerm) {
-      query = query.or(`title.ilike.%${searchTerm}%,content.ilike.%${searchTerm}%`);
-    }
+      if (searchTerm) {
+        query = query.or(`title.ilike.%${searchTerm}%,content.ilike.%${searchTerm}%`);
+      }
 
-    if (dayNumber !== undefined) {
-      query = query.eq('day_number', dayNumber);
-    }
+      if (dayNumber !== undefined) {
+        query = query.eq('day_number', dayNumber);
+      }
 
-    if (questionNumber !== undefined) {
-      query = query.eq('question_number', questionNumber);
-    }
+      if (questionNumber !== undefined) {
+        query = query.eq('question_number', questionNumber);
+      }
 
-    if (limit) {
-      query = query.limit(limit);
-    }
+      if (limit) {
+        query = query.limit(limit);
+      }
 
-    const { data, error } = await query;
+      return query;
+    });
 
     if (error) {
       // Check if it's a network error
@@ -281,16 +282,14 @@ export class ReflectionApi {
       if (isNetworkError) {
         Logger.warn('Network error searching reflections - returning empty results', {
           component: 'reflectionApi',
-          errorMessage: error.message,
+          action: 'search',
         });
         // Return empty array instead of throwing for network errors
         return [];
       }
 
-      Logger.error('Error searching reflections', error as Error, {
-        component: 'reflectionApi',
-      });
-      throw new Error(`Failed to search reflections: ${error.message}`);
+      const failure = reportReflectionFailure('search', error);
+      throw failure;
     }
 
     return data || [];
@@ -302,18 +301,16 @@ export class ReflectionApi {
     startDate: string,
     endDate: string
   ): Promise<{ total: number; free: number; guided: number }> {
-    const { data, error } = await supabase
+    const { data, error } = await runReflectionQuery('read', () => supabase
       .from('reflection_entries')
       .select('type, source, created_at')
       .eq('user_id', userId)
       .gte('selected_date', startDate)
-      .lte('selected_date', endDate);
+      .lte('selected_date', endDate));
 
     if (error) {
-      Logger.error('Error fetching reflection stats', error as Error, {
-      component: 'reflectionApi',
-    });
-      throw new Error(`Failed to fetch reflection stats: ${error.message}`);
+      const failure = reportReflectionFailure('read', error);
+      throw failure;
     }
 
     return {
@@ -329,19 +326,17 @@ export class ReflectionApi {
     page: number = 0,
     pageSize: number = 20
   ): Promise<ReflectionApiEntry[]> {
-    const { data, error } = await supabase
+    const { data, error } = await runReflectionQuery('read', () => supabase
       .from('reflection_entries')
       .select('*')
       .eq('user_id', userId)
       .order('selected_date', { ascending: false })
       .order('created_at', { ascending: false })
-      .range(page * pageSize, (page + 1) * pageSize - 1);
+      .range(page * pageSize, (page + 1) * pageSize - 1));
 
     if (error) {
-      Logger.error('Error fetching paginated reflections', error as Error, {
-      component: 'reflectionApi',
-    });
-      throw new Error(`Failed to fetch reflections: ${error.message}`);
+      const failure = reportReflectionFailure('read', error);
+      throw failure;
     }
 
     return data || [];
@@ -358,16 +353,14 @@ export class ReflectionApi {
       updated_at: now,
     }));
 
-    const { data, error } = await supabase
+    const { data, error } = await runReflectionQuery('batch_create', () => supabase
       .from('reflection_entries')
       .insert(entriesWithTimestamps)
-      .select();
+      .select());
 
     if (error) {
-      Logger.error('Error batch creating reflections', error as Error, {
-      component: 'reflectionApi',
-    });
-      throw new Error(`Failed to create reflections: ${error.message}`);
+      const failure = reportReflectionFailure('batch_create', error);
+      throw failure;
     }
 
     return data || [];
@@ -375,16 +368,14 @@ export class ReflectionApi {
 
   // Get reflections count for a user
   static async getReflectionsCount(userId: string): Promise<number> {
-    const { count, error } = await supabase
+    const { count, error } = await runReflectionQuery('count', () => supabase
       .from('reflection_entries')
       .select('*', { count: 'exact', head: true })
-      .eq('user_id', userId);
+      .eq('user_id', userId));
 
     if (error) {
-      Logger.error('Error getting reflections count', error as Error, {
-      component: 'reflectionApi',
-    });
-      throw new Error(`Failed to get reflections count: ${error.message}`);
+      const failure = reportReflectionFailure('count', error);
+      throw failure;
     }
 
     return count || 0;
@@ -392,16 +383,14 @@ export class ReflectionApi {
 
   // Get reflection by ID
   static async getReflectionById(id: string): Promise<ReflectionApiEntry | null> {
-    const { data, error } = await supabase
+    const { data, error } = await runReflectionQuery('read', () => supabase
       .from('reflection_entries')
       .select('*')
       .eq('id', id)
-      .single();
+      .single());
 
     if (error) {
-      Logger.error('Error fetching reflection by ID', error as Error, {
-      component: 'reflectionApi',
-    });
+      reportReflectionFailure('read', error);
       return null;
     }
 

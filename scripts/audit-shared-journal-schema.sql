@@ -1,7 +1,7 @@
 -- Phase 0 metadata audit, not a migration. One SELECT returns one report so
 -- SQL editors/API clients do not discard intermediate result sets.
 -- No authored records, object paths/bytes, function bodies, or secrets.
--- Usage: supabase db query --linked --file scripts/audit-shared-journal-schema.sql --output json
+-- User runs this manually in the Supabase SQL Editor; the agent must not execute it.
 -- Review results privately before committing synthetic schema fixtures.
 
 -- Confirm presence, relation kind, and RLS configuration. Missing relations

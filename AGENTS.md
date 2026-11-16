@@ -2,7 +2,11 @@
 
 ## Shared records, backup, and cloud
 
+- User rule: all SQL execution is manual in Supabase, including read-only audits, migrations, validation, and staging SQL tests. Prepare/review SQL files and explain their order; do not run SQL through a CLI, API, database connection, browser SQL editor, or automated test. Review results the user supplies. Non-SQL local code/tests remain authorized.
+- Budget constraint: do not require or create paid cloud staging. An isolated local Supabase environment with Studio is the preferred no-additional-hosting-cost option; manual SQL control still applies. Docker availability was verified, but no local test environment has been started or initialized.
 - Product decisions and delivery gates: [Shared Journal implementation plan](docs/shared-journal-inventory-and-implementation-plan.md).
+- At every phase/increment handoff, state what finished, verification and progress, checkpoint status, and any action the user must take before the next step. Say explicitly when no user action is required; distinguish prerequisites for live backend work from code work that can continue.
+- The [2026-11-04 deployed audit](docs/shared-journal-security-audit-2026-11-04.md) confirms privileged-RPC and client-writable entitlement gaps. Trace callers and prepare narrow, staging-tested fixes before new shared-sync/cloud paths. Do not trust the current client-writable subscription row to authorize paid cloud. Deployed deletion source remains unverified; do not infer live handler safety from repository code or JWT flags alone.
 - `packages/journal-contract/src` owns the versioned pure core (`@sifia/journal-contract`); existing compatibility entry points re-export it. Both app repositories pin the same vendored archive/integrity. Build/check with `npm run contract:pack` / `npm run contract:check`; bump the package version before changing a distributed archive.
 - The capability contract defines free shared records versus Journal Cloud persistence. Future siFia extension permissions are read-only declarations, not enabled access.
 - `sharedJournalMergePreview.ts` is metadata-only preflight, not a sync executor or upload consent. Keep account checks, complete remote pagination, stable identity, and conflict preservation before wiring any writes.

@@ -4,6 +4,10 @@
 Its source lives in `packages/journal-contract` in this repository. The same
 archive is used by the siFia app; application builds need no sibling checkout.
 
+Current consumer pin: `sifia-journal-contract-0.1.2.tgz`. The 0.1.1 archive is
+retained as the previous GitHub checkpoint artifact. Capability protocol remains
+version 3; 0.1.2 adds the shared reflection failure diagnostics boundary.
+
 Build: `npm run contract:pack`. Verify source/archive agreement:
 `npm run contract:check`. The pack script refuses to replace an existing archive
 with different bytes at the same version. For changes, bump the package version,

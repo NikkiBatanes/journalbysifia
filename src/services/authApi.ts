@@ -695,29 +695,41 @@ class AuthApiService {
   }
 
   private async createDefaultProfile(userId: string): Promise<any> {
+    // This client guard limits accidental requests; the manual SQL patch must
+    // independently enforce auth.uid(), ownership, and a server-derived email.
     try {
-      // Get user email from Supabase auth
-      const { data: authUser } = await supabase.auth.getUser();
-      const userEmail = authUser.user?.email || 'user@example.com';
+      const { data: authUser, error: identityError } = await supabase.auth.getUser();
+      if (identityError || !authUser.user || authUser.user.id !== userId || !authUser.user.email) {
+        Logger.warn('Profile bootstrap identity could not be verified', {
+          component: 'authApi', action: 'createDefaultProfile',
+        });
+        return null;
+      }
 
-      // Use the secure database function to create profile (bypasses RLS)
       const { data, error } = await supabase.rpc('create_default_user_profile', {
-        p_user_id: userId,
-        p_email: userEmail,
+        p_user_id: authUser.user.id,
+        p_email: authUser.user.email,
       });
 
       if (error) {
-        Logger.error('Create default profile error', error as Error, {
-      component: 'authApi',
-    });
+        Logger.warn('Profile bootstrap request failed', {
+          component: 'authApi', action: 'createDefaultProfile',
+        });
+        return null;
+      }
+      if (!data || typeof data !== 'object' || Array.isArray(data) || data.id !== authUser.user.id) {
+        Logger.warn('Profile bootstrap response did not match the verified identity', {
+          component: 'authApi', action: 'createDefaultProfile',
+        });
         return null;
       }
 
       return data;
-    } catch (error) {
-      Logger.error('Create default profile error', error as Error, {
-      component: 'authApi',
-    });
+    } catch {
+      // Backend/SDK failures can contain private profile fields; do not retain them.
+      Logger.warn('Profile bootstrap request could not be completed', {
+        component: 'authApi', action: 'createDefaultProfile',
+      });
       return null;
     }
   }
