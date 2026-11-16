@@ -14,6 +14,7 @@ import { Logger } from '../utils/ProductionLogger';
 import NewSuccessModal from '../components/NewSuccessModal';
 import { useSuccessModal } from '../hooks/useSuccessModal';
 import { triggerLightHaptic } from '../utils/haptics';
+import {useDuoEveningCloseStyle} from '../hooks/useDuoEveningCloseStyle';
 import { useEditModeSafe } from '../systems/journal/context/EditModeContext';
 import { claimFaithfulRhythmCelebration, FAITHFUL_RHYTHM_UPDATED } from '../services/faithfulRhythmService';
 import { findLocalReflection } from '../storage/reflectionStorage';
@@ -57,6 +58,7 @@ const ReflectionEditorScreen: React.FC = () => {
   const { user } = useAuth();
   const globalEditMode = useEditModeSafe();
   const insets = useSafeAreaInsets();
+  const duoCloseStyle = useDuoEveningCloseStyle(true);
 
   // ReflectionEditor owns every Heart Journal surface (classification,
   // Guided, single-question, saved entry, and free-form writing), so manage
@@ -483,6 +485,7 @@ const ReflectionEditorScreen: React.FC = () => {
           position: 'absolute',
           top: insets.top + 10,
           right: 20,
+          ...(duoCloseStyle ? {left: 24, right: undefined} : {}),
           zIndex: 10,
           width: 36,
           height: 36,

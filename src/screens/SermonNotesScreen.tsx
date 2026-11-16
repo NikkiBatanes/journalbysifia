@@ -2,6 +2,7 @@ import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {
   Alert,
   Animated,
+  AppState,
   DeviceEventEmitter,
   Easing,
   Keyboard,
@@ -39,6 +40,12 @@ import {
   getLocalReflections,
   updateLocalReflection,
 } from '../storage/reflectionStorage';
+import {
+  clearSessionNotesDraft,
+  loadSessionNotesDraft,
+  saveSessionNotesDraft,
+  type SessionNotesDraftInput,
+} from '../storage/sessionNotesDraftStorage';
 import {
   getScripturePassage,
   type ScriptureReaderResult,
@@ -299,6 +306,10 @@ const SermonNotesScreen = ({navigation, route}: any) => {
   const keepAtEndTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const keepScrollAtEndRef = useRef(false);
   const keyboardVisibleRef = useRef(false);
+  const draftSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const latestDraftRef = useRef<SessionNotesDraftInput | null>(null);
+  const draftAutosaveEnabledRef = useRef(true);
+  const skipNextDraftEffectRef = useRef(true);
   const startButtonBottom = useRef(
     new Animated.Value(insets.bottom + 20),
   ).current;
@@ -353,6 +364,7 @@ const SermonNotesScreen = ({navigation, route}: any) => {
   const [inputLayoutVersion, setInputLayoutVersion] = useState(0);
   const [saved, setSaved] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [draftReady, setDraftReady] = useState(false);
   const [savedReflectionId, setSavedReflectionId] = useState<string | null>(
     null,
   );
@@ -470,10 +482,18 @@ const SermonNotesScreen = ({navigation, route}: any) => {
     return formatted;
   }, [selectedDate]);
 
-  // Load an existing sermon note when opened from Moments, or the most recent
-  // in-progress sermon note for today when starting fresh.
+  // Load an existing Session Note, its latest incomplete canonical record, or
+  // a local editor checkpoint that was created before the user reached Save.
   useEffect(() => {
     let mounted = true;
+    draftAutosaveEnabledRef.current = true;
+    latestDraftRef.current = null;
+    skipNextDraftEffectRef.current = true;
+    setDraftReady(false);
+    if (draftSaveTimerRef.current) {
+      clearTimeout(draftSaveTimerRef.current);
+      draftSaveTimerRef.current = null;
+    }
     (async () => {
       try {
         let entry: any = null;
@@ -497,37 +517,86 @@ const SermonNotesScreen = ({navigation, route}: any) => {
             }
           }
         }
-        if (!entry || !mounted) {
+        const resolvedType = entry
+          ? resolveSessionNoteType(entry)
+          : requestedSessionType;
+        const resolvedReflectionId = reflectionId || entry?.id || null;
+        const [recordDraft, newDraft] = await Promise.all([
+          resolvedReflectionId
+            ? loadSessionNotesDraft(
+                selectedDate,
+                resolvedType,
+                resolvedReflectionId,
+              )
+            : Promise.resolve(null),
+          loadSessionNotesDraft(selectedDate, requestedSessionType),
+        ]);
+        const latestDraft =
+          recordDraft && newDraft
+            ? recordDraft.updatedAt >= newDraft.updatedAt
+              ? recordDraft
+              : newDraft
+            : recordDraft || newDraft;
+        const draft =
+          latestDraft &&
+          (!entry || latestDraft.updatedAt > entry.updated_at)
+            ? latestDraft
+            : null;
+
+        if (!mounted) {
           return;
         }
-        const content =
-          typeof entry.content === 'string'
-            ? JSON.parse(entry.content)
-            : entry.content;
-        const metadata = entry.metadata || {};
+        if (entry) {
+          const content =
+            typeof entry.content === 'string'
+              ? JSON.parse(entry.content)
+              : entry.content;
+          const metadata = entry.metadata || {};
+          const entryType = resolveSessionNoteType(entry);
+          const context = getSessionNoteContext(metadata, entryType);
 
-        setSavedReflectionId(entry.id);
-        setSessionNoteType(resolveSessionNoteType(entry));
-        setTitle(entry.title || '');
-        persistedMetadataRef.current = metadata;
-        const context = getSessionNoteContext(
-          metadata,
-          resolveSessionNoteType(entry),
-        );
-        setMainScripture(context.topic);
-        setSeries(context.event);
-        setPart(metadata.part || '');
-        setSpeaker(context.person);
-        setChurch(context.location);
-        setNotice(metadata.notice || '');
-        setCarry(metadata.carry || '');
-        setPrayer(metadata.prayer || '');
-        setPrayerAnswer(metadata.prayer_answer || '');
-        setBlocks(content?.blocks || []);
-        setShowDetails(false);
+          setSavedReflectionId(entry.id);
+          setSessionNoteType(entryType);
+          setTitle(entry.title || '');
+          persistedMetadataRef.current = metadata;
+          setMainScripture(context.topic);
+          setSeries(context.event);
+          setPart(metadata.part || '');
+          setSpeaker(context.person);
+          setChurch(context.location);
+          setNotice(metadata.notice || '');
+          setCarry(metadata.carry || '');
+          setPrayer(metadata.prayer || '');
+          setPrayerAnswer(metadata.prayer_answer || '');
+          setBlocks(content?.blocks || []);
+          setShowDetails(false);
+        }
+        if (draft) {
+          setSavedReflectionId(draft.reflectionId || entry?.id || null);
+          setSessionNoteType(draft.sessionNoteType);
+          setTitle(draft.title);
+          setMainScripture(draft.mainScripture);
+          setMainScriptureInput(draft.mainScriptureInput);
+          setSeries(draft.series);
+          setPart(draft.part);
+          setSpeaker(draft.speaker);
+          setChurch(draft.church);
+          setBlocks(draft.blocks);
+          setNotice(draft.notice);
+          setCarry(draft.carry);
+          setPrayer(draft.prayer);
+          setPrayerAnswer(draft.prayerAnswer);
+          setShowDetails(draft.showDetails);
+          setStage(draft.stage);
+          setReflectionStep(draft.reflectionStep);
+        }
         setSaved(false);
       } catch (error) {
         console.warn('Error loading local sermon notes:', error);
+      } finally {
+        if (mounted) {
+          setDraftReady(true);
+        }
       }
     })();
     return () => {
@@ -535,9 +604,137 @@ const SermonNotesScreen = ({navigation, route}: any) => {
     };
   }, [selectedDate, reflectionId, requestedSessionType]);
 
+  const flushSessionNotesDraft = useCallback(async () => {
+    if (draftSaveTimerRef.current) {
+      clearTimeout(draftSaveTimerRef.current);
+      draftSaveTimerRef.current = null;
+    }
+    const pendingDraft = latestDraftRef.current;
+    if (!draftAutosaveEnabledRef.current || !pendingDraft) {
+      return;
+    }
+    try {
+      await saveSessionNotesDraft(pendingDraft);
+    } catch (error) {
+      console.warn('Session Notes draft save error:', error);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!draftReady || !draftAutosaveEnabledRef.current || stage === 5) {
+      return;
+    }
+    if (skipNextDraftEffectRef.current) {
+      skipNextDraftEffectRef.current = false;
+      return;
+    }
+    const hasRecoverableContent =
+      [
+        title,
+        mainScripture,
+        mainScriptureInput,
+        series,
+        part,
+        speaker,
+        church,
+        notice,
+        carry,
+        prayer,
+        prayerAnswer,
+      ].some(value => value.trim().length > 0) ||
+      blocks.some(hasMeaningfulJournalBlock);
+    if (!hasRecoverableContent && !savedReflectionId && !reflectionId) {
+      latestDraftRef.current = null;
+      return;
+    }
+
+    latestDraftRef.current = {
+      selectedDate,
+      reflectionId: savedReflectionId || reflectionId || null,
+      sessionNoteType,
+      title,
+      mainScripture,
+      mainScriptureInput,
+      series,
+      part,
+      speaker,
+      church,
+      blocks,
+      notice,
+      carry,
+      prayer,
+      prayerAnswer,
+      showDetails,
+      stage,
+      reflectionStep,
+    };
+    if (draftSaveTimerRef.current) {
+      clearTimeout(draftSaveTimerRef.current);
+    }
+    draftSaveTimerRef.current = setTimeout(() => {
+      draftSaveTimerRef.current = null;
+      flushSessionNotesDraft();
+    }, 700);
+    return () => {
+      if (draftSaveTimerRef.current) {
+        clearTimeout(draftSaveTimerRef.current);
+        draftSaveTimerRef.current = null;
+      }
+    };
+  }, [
+    blocks,
+    carry,
+    church,
+    draftReady,
+    flushSessionNotesDraft,
+    mainScripture,
+    mainScriptureInput,
+    notice,
+    part,
+    prayer,
+    prayerAnswer,
+    reflectionId,
+    reflectionStep,
+    savedReflectionId,
+    selectedDate,
+    series,
+    sessionNoteType,
+    showDetails,
+    speaker,
+    stage,
+    title,
+  ]);
+
+  useEffect(() => {
+    const appStateSubscription = AppState.addEventListener(
+      'change',
+      nextState => {
+        if (nextState === 'inactive' || nextState === 'background') {
+          flushSessionNotesDraft();
+        }
+      },
+    );
+    return () => {
+      appStateSubscription.remove();
+      flushSessionNotesDraft();
+    };
+  }, [flushSessionNotesDraft]);
+
   const changeSessionNoteType = useCallback(
     (nextType: SessionNoteType) => {
-      if (nextType === sessionNoteType) return;
+      if (nextType === sessionNoteType) {
+        return;
+      }
+      if (!savedReflectionId && !reflectionId) {
+        if (draftSaveTimerRef.current) {
+          clearTimeout(draftSaveTimerRef.current);
+          draftSaveTimerRef.current = null;
+        }
+        latestDraftRef.current = null;
+        clearSessionNotesDraft(selectedDate, sessionNoteType).catch(error =>
+          console.warn('Session Notes draft cleanup error:', error),
+        );
+      }
       const currentMetadata = persistedMetadataRef.current;
       const details = {...(currentMetadata.sessionNoteDetails || {})};
       if (sessionNoteType !== 'sermon') {
@@ -574,7 +771,17 @@ const SermonNotesScreen = ({navigation, route}: any) => {
       setChurch(next.location);
       setShowDetails(false);
     },
-    [church, mainScripture, part, series, sessionNoteType, speaker],
+    [
+      church,
+      mainScripture,
+      part,
+      reflectionId,
+      savedReflectionId,
+      selectedDate,
+      series,
+      sessionNoteType,
+      speaker,
+    ],
   );
 
   useFocusEffect(
@@ -933,6 +1140,7 @@ const SermonNotesScreen = ({navigation, route}: any) => {
   const closeSessionNotes = () => {
     triggerLightHaptic();
     Keyboard.dismiss();
+    flushSessionNotesDraft();
     DeviceEventEmitter.emit('pencilAddFlowClosed');
     if (route?.params?.openedFromPencil) {
       // Keep Moments mounted while closing. Resetting the whole stack tears
@@ -964,6 +1172,18 @@ const SermonNotesScreen = ({navigation, route}: any) => {
           onPress: async () => {
             try {
               await deleteLocalReflection(reflectionId, 'sermon', selectedDate);
+              draftAutosaveEnabledRef.current = false;
+              latestDraftRef.current = null;
+              await Promise.all([
+                clearSessionNotesDraft(selectedDate, sessionNoteType),
+                clearSessionNotesDraft(
+                  selectedDate,
+                  sessionNoteType,
+                  reflectionId,
+                ),
+              ]).catch(error =>
+                console.warn('Session Notes draft cleanup error:', error),
+              );
               DeviceEventEmitter.emit('sermon_saved', {
                 reflectionId,
                 type: 'deleted',
@@ -1510,9 +1730,17 @@ const SermonNotesScreen = ({navigation, route}: any) => {
       return false;
     }
     setIsSaving(true);
+    if (draftSaveTimerRef.current) {
+      clearTimeout(draftSaveTimerRef.current);
+      draftSaveTimerRef.current = null;
+    }
+    const draftAtSaveStart = latestDraftRef.current;
+    const draftReflectionIdAtStart =
+      savedReflectionId || reflectionId || null;
     const meaningfulBlocks = prepareJournalBlocksForSave(blocks);
     if (!title.trim() && meaningfulBlocks.length === 0) {
       setIsSaving(false);
+      flushSessionNotesDraft();
       Alert.alert(
         'Nothing to save',
         `Add a ${sessionConfig.titleLabel.toLowerCase()} or a note first.`,
@@ -1566,6 +1794,7 @@ const SermonNotesScreen = ({navigation, route}: any) => {
 
       const fallbackTitle =
         title.trim() || sessionNoteTypeLabel(sessionNoteType);
+      let persistedReflectionId = savedReflectionId;
       if (savedReflectionId) {
         const existing = await getLocalReflection(
           savedReflectionId,
@@ -1580,6 +1809,7 @@ const SermonNotesScreen = ({navigation, route}: any) => {
             metadata,
           });
           setSavedReflectionId(updated.id);
+          persistedReflectionId = updated.id;
         } else {
           const created = await createLocalReflection({
             title: fallbackTitle,
@@ -1591,6 +1821,7 @@ const SermonNotesScreen = ({navigation, route}: any) => {
             metadata,
           });
           setSavedReflectionId(created.id);
+          persistedReflectionId = created.id;
         }
       } else {
         const created = await createLocalReflection({
@@ -1603,7 +1834,41 @@ const SermonNotesScreen = ({navigation, route}: any) => {
           metadata,
         });
         setSavedReflectionId(created.id);
+        persistedReflectionId = created.id;
       }
+      if (markComplete) {
+        draftAutosaveEnabledRef.current = false;
+        latestDraftRef.current = null;
+      } else if (latestDraftRef.current === draftAtSaveStart) {
+        latestDraftRef.current = null;
+      }
+      const draftCleanupTasks: Promise<void>[] = [
+        clearSessionNotesDraft(selectedDate, sessionNoteType),
+      ];
+      if (draftReflectionIdAtStart) {
+        draftCleanupTasks.push(
+          clearSessionNotesDraft(
+            selectedDate,
+            sessionNoteType,
+            draftReflectionIdAtStart,
+          ),
+        );
+      }
+      if (
+        persistedReflectionId &&
+        persistedReflectionId !== draftReflectionIdAtStart
+      ) {
+        draftCleanupTasks.push(
+          clearSessionNotesDraft(
+            selectedDate,
+            sessionNoteType,
+            persistedReflectionId,
+          ),
+        );
+      }
+      await Promise.all(draftCleanupTasks).catch(error =>
+        console.warn('Session Notes draft cleanup error:', error),
+      );
       if (markComplete) {
         setSaved(true);
       }
@@ -1672,6 +1937,7 @@ const SermonNotesScreen = ({navigation, route}: any) => {
     } catch (error) {
       console.error('Error saving sermon notes locally:', error);
       setIsSaving(false);
+      flushSessionNotesDraft();
       Alert.alert(
         'Could not save',
         `Your ${sessionConfig.displayLabel.toLowerCase()} could not be saved. Please try again.`,

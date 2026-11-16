@@ -1664,6 +1664,20 @@ describe('shared Journal UI extraction', () => {
     expect(session).toContain('if (shouldScrollToEnd) {');
   });
 
+  it('checkpoints unfinished Session Notes and restores the exact editor state', () => {
+    const session = fs.readFileSync(
+      path.resolve(__dirname, '../../../../screens/SermonNotesScreen.tsx'),
+      'utf8',
+    );
+    expect(session).toContain('saveSessionNotesDraft(pendingDraft)');
+    expect(session).toMatch(/AppState\.addEventListener\(\s*'change'/);
+    expect(session).toContain('flushSessionNotesDraft();');
+    expect(session).toContain('setBlocks(draft.blocks)');
+    expect(session).toContain('setStage(draft.stage)');
+    expect(session).toContain('clearSessionNotesDraft(selectedDate, sessionNoteType)');
+    expect(session).toContain('draftAutosaveEnabledRef.current = false');
+  });
+
   it('persists drag reordering from saved Reflection and Session Notes views', () => {
     const reflection = fs.readFileSync(
       path.resolve(__dirname, '../../ReflectionLogEditor.tsx'),

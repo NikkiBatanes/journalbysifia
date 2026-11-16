@@ -174,13 +174,13 @@ No record bodies should be placed in tickets, analytics, logs, or committed fixt
 
 Percentages below are conservative planning estimates against the deliverables and exit gates in this version, not a security certification or a shipped-feature percentage. A phase reaches 100% only when its exit gate has recorded evidence. Existing local editors, auth helpers, or IAP dependencies alone do not complete a new integration phase.
 
-Weights total 100%. Overall delivery estimate is `sum(weight × phase completion / 100)`, currently 13.3%, reported as **approximately 13%**. The deployed profile-helper fix raises Phase 2 from 0% to a conservative 5%; the many remaining authorization, entitlement, receipt, deletion, revision/change-feed, and compatibility deliverables keep this credit narrow. The earlier approximately 19% groundwork/readiness estimate measured a different scope. Future optional display work is excluded from the launch denominator.
+Weights total 100%. Overall delivery estimate is `sum(weight × phase completion / 100)`, currently 13.9%, reported as **approximately 14%**. The deployed and verified profile and Seeker helper fixes each contribute a conservative five points to Phase 2; the many remaining authorization, entitlement, receipt, deletion, revision/change-feed, and compatibility deliverables keep this credit narrow. The earlier approximately 19% groundwork/readiness estimate measured a different scope. Future optional display work is excluded from the launch denominator.
 
 | Phase | Deliverable | Weight | Completion estimate | Status / evidence |
 | --- | --- | ---: | ---: | --- |
 | 0 | Complete inventory and compatibility fixtures | 6% | 80% | Live schema/policies/grants, selected function bodies, and deployed receipt source reviewed; deletion-source verification, full variant fixtures, and remaining configuration review are open |
 | 1 | Shared field and capability contract | 6% | 80% | Versioned core consumed by both apps; one-off Time Block/daily/reflection/simple prayer mappings tested; recurring/lifecycle/structured mappings and write-path adoption remain |
-| 2 | Secure backend and legacy compatibility | 12% | 5% | Owner-bound profile bootstrap is deployed and passed synthetic, metadata, and A/B app tests; other privileged RPCs, entitlements, receipt/deletion authorization, and revision/change-feed enforcement remain |
+| 2 | Secure backend and legacy compatibility | 12% | 10% | Owner-bound profile and fixed-Seeker bootstraps are deployed and passed synthetic, metadata, and A/B app tests; other privileged RPCs, table entitlements, receipt/deletion authorization, and revision/change-feed enforcement remain |
 | 3 | Transactional encrypted local storage | 12% | 0% | Existing AsyncStorage records are groundwork, not the target implementation |
 | 4 | Durable media and extension storage | 8% | 0% | Current URI blocks need durable bytes and independent extension identity |
 | 5 | Free encrypted export and safe restore | 10% | 10% | In-memory inventory/validation exists; file, encryption, media packaging, and restore remain |
@@ -205,7 +205,8 @@ Current handoff:
 | --- | --- | --- |
 | Remaining recurrence, lifecycle, and structured field contracts | None | Implementation can continue locally |
 | Profile bootstrap security increment | None | Guarded deploy, metadata verification, A/B app smoke test, Auth-user deletion, and synthetic-profile cleanup all passed; this narrow increment is complete |
-| Local entitlement replacement preparation | None | Source inventory found 32 siFia mobile subscription writes; prepare compatible server operations before changing policies |
+| Seeker subscription bootstrap guarded deployment | None | Guarded deployment, metadata verification, iOS A/B smoke test, exact-row verification, Auth-user deletion, and cleanup all passed; this narrow increment is complete |
+| Local entitlement replacement preparation | None | Source inventory now finds 30 siFia mobile subscription writes after removing two unsafe initialization writes; prepare compatible server operations before changing policies |
 | Follow-up deployed security verification | SQL checks will be handed to you for manual execution | Deletion source retrieval and Data API/configuration checks remain; do not infer them from metadata flags alone |
 | Broader backend/schema changes | None yet | The guarded live exception applies only to the narrow profile helper. Entitlements, deletion, receipt binding, shared sync, storage, and billing still require isolated rehearsal/staged rollout before launch |
 
@@ -586,6 +587,81 @@ The user deleted both temporary Auth identities and ran
 profiles deleted, and cleanup passed. This confirms Auth deletion had already
 removed the synthetic profiles and no matching test profile remained. No further
 Supabase action is required for this narrow increment.
+
+Fourth reference checkpoint, pushed to both GitHub `main` branches on
+2026-11-16:
+
+| Repository | Commit | Included work |
+| --- | --- | --- |
+| Journal by siFia | `aa47e6b4` | Contract 0.1.2 diagnostics, reflection privacy boundary, deployed audit/runbook, owner-bound profile bootstrap evidence |
+| siFia | `6359c919` | Matching contract consumer, reflection privacy guard, profile-bootstrap client guard and tests |
+
+Both branches were verified at 0 ahead / 0 behind after push. Unrelated Journal
+editor/session-note work and siFia Moments/native work remained unstaged.
+
+## Seeker subscription bootstrap preparation, 2026-11-16
+
+The next AJ-01/AJ-02 slice consolidates siFia's default free-subscription
+initializer. `NewSubscriptionService.createDefaultSeekerSubscription` now
+requires a verified current Auth identity, sends only that identity to the
+legacy RPC, performs one non-recursive owner-checked readback, and uses fixed
+sanitized failures. If a trusted billing race has already created a trial or
+paid row, the client preserves it instead of downgrading it.
+
+`IndustryStandardAuthContext` now delegates to that single service path. Its
+duplicate RPC call, raw backend-error logging, and direct client rewrite of tier,
+limits, and counters were removed. Static inventory therefore moves from two to
+one direct `create_default_seeker_subscription` caller and from 32 to 30 direct
+mobile subscription-table writes, now across five services instead of six. The
+remaining writes still cover purchase, trial, usage, expiry, discount, and
+webhook behavior; do not revoke table permissions until compatible trusted
+operations replace them.
+
+Focused verification: 9 new subscription-bootstrap tests pass, covering owner,
+identity failure/mismatch, server denial, sanitized diagnostics, non-recursive
+readback, cross-owner response, and preservation of an existing paid row. ESLint
+passes with zero warnings for the changed service, AuthContext, and test.
+
+The [manual Seeker bootstrap package](manual-sql/seeker-subscription-bootstrap/README.md)
+began with a read-only metadata preflight. It expects the audited function
+definition MD5 `1375a3a42b6e82c8bee176040ddca33a` and reports function grants/
+callers plus the subscription table's columns, constraints, enum labels,
+policies, and authenticated table privileges.
+
+The user manually ran that preflight in the existing siFia project. It matched
+the audited definition, owner, void result, required columns, RLS, unique
+Auth-linked `user_id`, and Seeker/active enum labels. No Auth trigger or textual
+database-function caller was reported. It also reconfirmed PUBLIC/anonymous
+function execution and authenticated CRUD plus REFERENCES/TRIGGER/TRUNCATE on
+the subscription table under permissive PUBLIC-role policies. The narrow
+function baseline is accepted; AJ-02 remains open.
+
+The package now includes a baseline-guarded owner-bound apply with integrated
+synthetic assertions/savepoint cleanup, independent metadata verification,
+siFia A/B and optional Journal-only smoke checks, containment, last-resort
+rollback, and exact test-account cleanup. The user created two temporary Auth
+users and manually executed the guarded apply. No SQL was executed by the
+agent; subscription-table policies and grants were not changed.
+
+The user then manually ran the guarded `02-apply.sql` on 2026-11-16. Its final
+JSON reported `deployment_committed=true`, synthetic database assertions passed,
+the simulated existing paid row was preserved, and no synthetic subscription
+rows persisted. This confirms the hardened function committed past its
+post-commit marker. The subsequent read-only `03-verify.sql` also passed: owner
+postgres, definer true, void result, empty search path, PUBLIC/anonymous execute
+false, authenticated execute true, and the expected deployment marker. The
+deployed definition MD5 is `066542bb60eee673b2f3298e150e95ee`. Real app/session
+testing then passed all seven prescribed checks on iOS: A initialized as Seeker,
+survived sign-out/restart/sign-in, B initialized independently, and switching
+back to A remained isolated. The final exact-row read-only SQL result confirmed
+A and B independently had active Seeker rows; the optional Journal-only boundary
+was not tested. The broader subscription-table policies and grants remain
+unchanged and AJ-02 remains open.
+
+This completes the Seeker helper's deployment evidence and raises Phase 2 from
+5% to 10%. Overall weighted progress is now **13.9% (approximately 14%)**.
+The user then deleted temporary Auth users A/B and the exact cleanup reported no
+Auth users or residual subscription/profile rows. No synthetic test data remains.
 
 ## Primary references checked on 2026-11-03
 
