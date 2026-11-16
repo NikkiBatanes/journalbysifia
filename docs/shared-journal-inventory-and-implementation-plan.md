@@ -1,6 +1,9 @@
 # Shared Journal inventory and implementation plan
 
-Status: Finalized implementation baseline, 2026-11-03. Planning and repository inspection are underway; production shared sync, encrypted file backup, and Journal Cloud are not delivered.
+Status: Finalized implementation baseline, 2026-11-03; Journal-only cloud
+entitlement boundary clarified 2026-11-16. Planning and repository inspection
+are underway; production shared sync, encrypted file backup, and Journal Cloud
+are not delivered.
 
 This plan supersedes the earlier proposal to migrate all siFia content immediately into one paid encrypted vault. Its product model is **two independent apps, one optional account identity, free compatible-record sync, and optional paid Journal Cloud**.
 
@@ -20,6 +23,7 @@ This plan supersedes the earlier proposal to migrate all siFia content immediate
 12. Existing siFia shared fields are server-readable unless a separate encryption migration is completed. Journal Cloud is designed for client-side encryption with user-controlled recovery. Neither shared-account authentication nor disk encryption alone is end-to-end encryption.
 13. Journal Cloud expiry stops paid remote writes after applicable billing grace. Local writing, free shared sync, and free export remain available. Cancellation does not immediately delete content.
 14. Paid recovery snapshots cover the complete Journal-owned inventory, including locally stored shared-capable base records when free shared sync is disconnected. Canonical sync routing and snapshot coverage are distinct. A snapshot preserves IDs/provenance; restoring it must reconcile existing account records rather than create a second canonical copy. Snapshot eligibility never substitutes for account adoption/backup consent or key enrollment.
+15. Journal Cloud uses a dedicated server-owned entitlement. No current siFia tier, playbook/devotional counter, onboarding flag, or client-writable subscription field grants it. siFia AI-generation hardening is tracked separately unless a path becomes a direct shared-sync dependency.
 
 The shared core is `packages/journal-contract/src` (`@sifia/journal-contract` package 0.1.2, capability contract version 3). Existing `src/compatibility` entry points delegate to the installed package. Both repositories pin the same vendored archive and lockfile integrity; only Journal owns the package source. It represents future extension read permissions, paid persistence of review/routine state, and Journal-specific check-in/weekly Moments that have no current siFia renderer. Remaining structured field mappings and runtime/server enforcement are still Phase 1/2 work; passing pure contract tests does not establish those features.
 
@@ -166,7 +170,7 @@ Before schema implementation, capture sanitized fixtures for every production di
 5. Which playbook fields/actions must Journal display, and which interactions must open siFia?
 6. Which records use a stable UUID today and which rely on natural keys or duplicated IDs?
 7. What are the live RLS policies, foreign keys, triggers, uniqueness constraints, and deletion cascades?
-8. Which current siFia subscription tiers, if any, should include `journal_cloud` as a bundle entitlement?
+8. No current siFia subscription tier includes `journal_cloud`. Any future bundle requires an explicit product decision and server-issued entitlement source; it is not inferred from the siFia tier.
 
 No record bodies should be placed in tickets, analytics, logs, or committed fixtures. Fixtures must be synthetic but structurally faithful.
 
@@ -206,7 +210,8 @@ Current handoff:
 | Remaining recurrence, lifecycle, and structured field contracts | None | Implementation can continue locally |
 | Profile bootstrap security increment | None | Guarded deploy, metadata verification, A/B app smoke test, Auth-user deletion, and synthetic-profile cleanup all passed; this narrow increment is complete |
 | Seeker subscription bootstrap guarded deployment | None | Guarded deployment, metadata verification, iOS A/B smoke test, exact-row verification, Auth-user deletion, and cleanup all passed; this narrow increment is complete |
-| Local entitlement replacement preparation | None | Source inventory now finds 30 siFia mobile subscription writes after removing two unsafe initialization writes; prepare compatible server operations before changing policies |
+| Journal Cloud entitlement boundary | None while the additive server design is prepared locally; provider and retention approval is required before SDK/schema implementation | Dedicated Journal-only entitlement and lifecycle/test matrix are documented; free compatible sync never depends on payment; no current siFia tier grants cloud; existing siFia generation/onboarding findings are deferred to a separate security backlog |
+| siFia generation/onboarding hardening | None; do not prepare or apply further production changes in this track without separate approval | Read-only evidence is retained, but a generation ledger is not a Journal Cloud launch prerequisite |
 | Follow-up deployed security verification | SQL checks will be handed to you for manual execution | Deletion source retrieval and Data API/configuration checks remain; do not infer them from metadata flags alone |
 | Broader backend/schema changes | None yet | The guarded live exception applies only to the narrow profile helper. Entitlements, deletion, receipt binding, shared sync, storage, and billing still require isolated rehearsal/staged rollout before launch |
 
@@ -234,10 +239,17 @@ Exit gate: both apps pass round-trip fixture tests; editing a shared note in eit
 
 ### Phase 2 — Backend authorization and compatibility
 
-Immediate prerequisite from the 2026-11-04 deployed audit: trace legitimate callers and close AJ-01/AJ-02 privileged-RPC and entitlement-write gaps; bind receipt/deletion operations to verified identities. These affect the existing backend. Prepare narrow, compatible fixes and synthetic staging tests before adding the Journal sync/cloud surface. See the [audit and remediation order](shared-journal-security-audit-2026-11-04.md).
+Immediate prerequisite from the 2026-11-04 deployed audit: secure only the
+existing boundaries that Journal directly depends on—shared account ownership,
+compatible-record access, receipt/deletion authorization, and revision/change
+enforcement. Journal Cloud uses the dedicated server-owned boundary in
+[Journal Cloud entitlement and free-sync boundary](journal-cloud-entitlement-boundary.md),
+not siFia AI counters or current tiers. Other discovered siFia generation,
+onboarding, queue, and FaithPoints findings remain a separate security backlog
+and must not expand the Journal launch path without a direct dependency.
 
 1. Add owner-scoped schema changes using an expand-and-contract migration. Keep current siFia shared tables authoritative initially; do not create a second canonical copy of every legacy record. Add stable mapping IDs where needed, revisions, a resumable change feed, idempotency keys, and a merge ledger.
-2. Enforce ownership, field allowlists, version checks, deletion rules, quotas, and entitlement-sensitive writes on the server. Audit table/storage RLS and RPC grants. Keep service-role credentials on trusted servers. Validate input sizes and rate-limit abuse.
+2. Enforce ownership, field allowlists, version checks, deletion rules, free-sync fair-use limits, and the dedicated Journal Cloud entitlement on the server. Audit only the table/storage/RPC surface used by Journal and shared sync for this launch slice. Keep service-role credentials on trusted servers. Validate input sizes and rate-limit abuse.
 3. Capture writes/deletes from older siFia clients using audited database triggers or a controlled compatibility path. Update siFia writers for conditional edits; gate Journal two-way launch on a safe supported version. Resolve unsafe deletion code that currently accepts a body-supplied user ID before using admin privileges; deployed exposure still needs verification.
 
 Exit gate: account A cannot read/write account B's rows or files; clients cannot set their own entitlement; stale writes cannot silently overwrite newer text; rollback and old-client behavior pass in staging.
@@ -293,7 +305,7 @@ Exit gate: a new device recovers writing and media with the account plus a valid
 
 ### Phase 9 — Subscriptions, costs, and backup UX
 
-1. Offer one `journal_cloud` entitlement with monthly and annual products and the same feature/storage allowance. Use Apple IAP and Google Play Billing as the baseline mobile checkout. Recommend RevenueCat for lifecycle processing with a server-side entitlement mirror keyed to the stable account UUID; the existing billing stack must be assessed before adopting or replacing it.
+1. Offer one `journal_cloud` entitlement with monthly and annual products and the same feature/storage allowance. Use Apple IAP and Google Play Billing as the baseline mobile checkout. The [billing lifecycle and test matrix](journal-cloud-billing-lifecycle-and-test-matrix.md) recommends RevenueCat for the first release with a dedicated Supabase entitlement mirror and opaque billing subject. Journal is currently on React Native 0.79.2 while RevenueCat's current guide requires 0.80+, so SDK installation is gated on a supported runtime decision.
 2. Authenticate webhook ingestion, reject duplicate/replayed events, reconcile out-of-order changes against authoritative status, and enforce uploads server-side. Test pending purchases, renewal, grace, billing failure, refund/revocation, purchase restore, account switching, and cross-platform access. Avoid a second subscription when the account already has the entitlement. Subscription management remains with its purchase store.
 3. Set price and allowance from measured storage, transfer, retained versions, processing, billing fees, and support costs. Publish upload limits and fair-use rules for free shared sync too; a text-only history is not costless. Do not promise unlimited storage.
 4. Show backup coverage in Profile: free shared records versus local-only Journal items versus cloud-protected items. Offer reminders with Back up now and Get Journal Cloud as separate choices. Track export and cloud timestamps independently; never show a green global backed-up badge while attachments are unprotected. Explain uninstall risk during onboarding/settings/export; an app cannot reliably intercept its own uninstall.
@@ -386,7 +398,18 @@ These are focused package/bundle checks, not full app release builds, device-bas
 
 siFia full-project type checking reports six existing errors in unchanged `OnboardingSalesOfferScreen.tsx` (lines 493, 504, 561, 2328, 2358, 2401). A compiler run excluding the new contract boundary reproduces those same six errors. The package boundary has an independent scoped type check; this is not a claim that siFia's full build is green.
 
-Next implementation milestone: trace callers and prepare fixes for the deployed privileged-RPC, client-writable entitlement, receipt-ownership, and deletion findings. Verify fixes with synthetic staging identities before production changes. Finish recurrence, rich lifecycle, and structured guided-content mappings in parallel; then implement additive sync schema and transactional account-isolated storage behind the documented gates. The preview is not wired to storage reads or the account screen. Build and prove local media/export/restore before enabling first-time remote merges or charging for Journal Cloud. Remote changes start in staging with additive migrations; live access and store setup remain operational prerequisites.
+Next implementation milestone: review the dedicated entitlement/lifecycle
+contract, then trace only the receipt/deletion and shared-record authorization
+paths Journal directly uses. Do not continue the siFia AI generation-ledger
+work as a Journal prerequisite. In parallel, finish recurrence, rich lifecycle,
+and structured guided-content mappings and resolve the React Native/billing SDK
+compatibility gate. Only after those designs are accepted should we prepare an
+additive sync/entitlement schema and transactional account-isolated storage
+behind the documented gates. The preview is not wired to storage reads or the
+account screen. Build and prove local media/export/restore before enabling
+first-time remote merges or charging for Journal Cloud. Remote changes remain
+additive and feature-gated; live access and store setup are operational
+prerequisites.
 
 Third reference checkpoint, pushed to both GitHub `main` branches on 2026-11-03:
 
@@ -662,6 +685,56 @@ This completes the Seeker helper's deployment evidence and raises Phase 2 from
 5% to 10%. Overall weighted progress is now **13.9% (approximately 14%)**.
 The user then deleted temporary Auth users A/B and the exact cleanup reported no
 Auth users or residual subscription/profile rows. No synthetic test data remains.
+
+## siFia subscription-usage audit continuation, 2026-11-16
+
+After the GitHub checkpoint, the siFia caller inventory removed an unreachable
+legacy mobile cluster: the client-side Apple webhook handler, its duplicate trial
+service, and an unused discount service. Two additional uncalled mutations were
+removed from `NewSubscriptionService`: a duplicate trial conversion path and a
+client-wide expired-trial batch update. Static regression coverage now freezes
+the remaining direct `user_subscriptions_new` mobile writes at 16: 13 in
+`NewSubscriptionService` and three in `AppleStoreKitService`. This is local
+surface reduction, not closure of AJ-02.
+
+Five 2024 subscription documents that still described the retired services are
+now explicitly archived and point to the current entitlement write-boundary
+document. The real `supabase/functions/apple-webhook` handler remains; its only
+change in this continuation is a non-executable comment correcting the stale
+mobile-service reference. No Edge Function was deployed.
+
+The user manually ran the first read-only subscription-usage preflight. It
+confirmed that `user_subscriptions_new` and `validated_receipts` exist with RLS,
+while repository-referenced `usage_tracking`, `subscription_usage_tracking`, and
+`discount_codes` tables do not exist in the deployed project. Both anonymous and
+authenticated roles retain effective SELECT, INSERT, UPDATE, DELETE, TRUNCATE,
+REFERENCES, and TRIGGER privileges on both existing tables. The owner-scoped
+subscription `ALL` policy restricts rows but not entitlement fields. Only the
+paid-to-trial special-case trigger constrains entitlement transitions.
+
+Four legacy usage helper overloads plus trial/expiry helpers remain broadly
+executable, accept supplied identities in several signatures, and lack pinned
+search paths. Their names/grants disqualify them from blind reuse, but exact
+behavior required the prepared read-only function-source review. The user ran
+that review manually. It confirmed arbitrary dynamic-column updates, definer
+functions accepting supplied UUIDs, writes to missing/legacy tables, and a
+PUBLIC/anonymous global expired-trial downgrade. The paid-to-trial trigger only
+blocks one transition. None of the eight functions is accepted for reuse.
+
+Repository tracing finds only the UUID `increment_usage_tracking` overload in a
+current mobile caller. That analytics path does not inspect the returned
+Supabase error, so the missing-table failure can be silent; it is not
+authoritative entitlement accounting. No repository caller was found for the
+other seven, but external cron/old-client use is still unknown. A replacement
+would need a distinct owner-derived operation without immediately revoking
+legacy functions.
+
+Subsequent product clarification separated this siFia generation-usage issue
+from Journal Cloud. The evidence remains valid security backlog input, but no
+replacement operation or apply package will be prepared as a Journal launch
+prerequisite without separate approval. Phase 2 remains 10% and overall
+weighted progress remains **13.9% (approximately 14%)**; read-only caller
+inventory and this scope correction do not receive deployment credit.
 
 ## Primary references checked on 2026-11-03
 
