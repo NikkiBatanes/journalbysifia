@@ -41,6 +41,23 @@ buying Journal Cloud.
 7. No current siFia tier automatically grants Journal Cloud. A future bundle
    must be an explicit server-issued entitlement source with its own product and
    migration decision.
+8. V1 uses the opaque Supabase Auth UUID as RevenueCat's App User ID. Webhooks
+   may reconcile only when the event identity and aliases resolve to exactly one
+   such UUID. Anonymous-only or multiple-account aliases are quarantined.
+
+## RevenueCat webhook contract
+
+The Journal Cloud webhook is separate from the existing siFia Apple webhook.
+It requires both the exact Authorization value configured in RevenueCat and
+RevenueCat's HMAC-SHA256 signature over the raw request body. Signature
+timestamps have a five-minute tolerance; provider retries retain the event ID,
+which is the database idempotency key.
+
+An authenticated event does not directly set `active`, `expired`, or another
+state. Relevant lifecycle events trigger a trusted lookup of the customer's
+current RevenueCat entitlement, followed by one server-owned database
+transaction. Transfers, temporary outage grants, ambiguous owners, unknown
+products, and environment mismatches fail closed into review/quarantine.
 
 ## Logical server model
 

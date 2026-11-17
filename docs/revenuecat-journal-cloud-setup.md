@@ -106,7 +106,10 @@ release build.
   post-expiry retention promise, image limits/compression policy, and support
   process are not final.
 
-The next engineering increment is the authenticated webhook and server-owned
-entitlement mirror. The webhook/server design must pass manual SQL
-preflight/apply/verify gates before sandbox purchasing is enabled and before any
-cloud write relies on it. Android catalog setup can proceed independently.
+The pure authenticated-webhook contract and metadata-only entitlement preflight
+are now prepared. The user runs
+`docs/manual-sql/journal-cloud-entitlement/01-preflight.sql` manually and shares
+its single JSON result before additive schema/apply SQL is designed. The future
+webhook/server implementation must pass guarded apply/verify gates before
+sandbox purchasing is enabled and before any cloud write relies on it. Android
+catalog setup can proceed independently.

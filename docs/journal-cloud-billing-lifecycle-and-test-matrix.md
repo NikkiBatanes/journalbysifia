@@ -91,9 +91,10 @@ V1 recommendations:
 ## Identity and ownership
 
 1. `auth.users.id` is the internal owner of the Journal vault.
-2. A server-created random billing subject maps one-to-one to that user. Send
-   the opaque subject—not email, name, journal data, or an admin identifier—to
-   the billing provider.
+2. V1 uses the Supabase Auth UUID as RevenueCat's App User ID. It is an opaque,
+   stable identifier and is never replaced by email, name, journal data, or an
+   admin identifier. If a later privacy migration introduces a separate billing
+   subject, it must preserve ownership without silently transferring purchases.
 3. Never silently merge an anonymous billing identity into a signed-in user.
    V1 starts purchase only after account connection, avoiding ambiguous aliases.
 4. A store transaction/source may be claimed by only one billing subject. If a
@@ -117,7 +118,6 @@ These are design names, not SQL:
 
 | Record | Access | Purpose |
 | --- | --- | --- |
-| `journal_cloud_billing_subjects` | Owner can request its opaque public value; trusted server manages mapping | Maps Auth owner to billing identity without exposing email |
 | `journal_cloud_entitlement_sources` | Trusted server only | One normalized Apple/Google/provider source, environment, product, period, renewal and verification state |
 | `journal_cloud_entitlements` | Owner reads a minimal projection; trusted server writes | Effective account-level state derived from all valid sources |
 | `journal_cloud_billing_events` | Trusted server/support only | Idempotent normalized event ledger with provider event ID, event time, receipt time and payload hash |
@@ -306,3 +306,10 @@ when later prepared, is run manually by the user.
 - RevenueCat entitlements and webhook behavior:
   <https://www.revenuecat.com/docs/getting-started/entitlements> and
   <https://www.revenuecat.com/docs/integrations/webhooks>
+- RevenueCat HMAC signature verification over the raw webhook body:
+  <https://www.revenuecat.com/docs/integrations/webhooks#webhook-signature-verification-hmac>
+- RevenueCat server-side active-entitlement lookup:
+  <https://www.revenuecat.com/docs/api-v2/customer/resources>
+- Supabase external-webhook function authentication and secrets:
+  <https://supabase.com/docs/guides/functions/auth-headers> and
+  <https://supabase.com/docs/guides/functions/secrets>

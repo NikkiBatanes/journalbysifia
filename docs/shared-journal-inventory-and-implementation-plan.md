@@ -178,7 +178,7 @@ No record bodies should be placed in tickets, analytics, logs, or committed fixt
 
 Percentages below are conservative planning estimates against the deliverables and exit gates in this version, not a security certification or a shipped-feature percentage. A phase reaches 100% only when its exit gate has recorded evidence. Existing local editors, auth helpers, or IAP dependencies alone do not complete a new integration phase.
 
-Weights total 100%. Overall delivery estimate is `sum(weight × phase completion / 100)`, currently 16.9%, reported as **approximately 17%**. The deployed and verified profile and Seeker helper fixes each contribute a conservative five points to Phase 2. RevenueCat client/identity support, the configured Apple product catalog, the approved pricing/5 GB allowance, a successful localized iOS offering read, and the non-purchasing Journal Cloud preview contribute fifty points to Phase 9. The many remaining authorization, server entitlement, receipt/webhook, deletion, revision/change-feed, cloud, recovery, Android billing, purchase/restore, lifecycle, and release deliverables keep this credit narrow. The earlier approximately 19% groundwork/readiness estimate measured a different scope. Future optional display work is excluded from the launch denominator.
+Weights total 100%. Overall delivery estimate is `sum(weight × phase completion / 100)`, currently 17.2%, reported as **approximately 17%**. The deployed and verified profile and Seeker helper fixes each contribute a conservative five points to Phase 2. RevenueCat client/identity support, the configured Apple product catalog, approved pricing/5 GB allowance, localized iOS offering read, non-purchasing preview, and tested pure webhook security contract contribute fifty-five points to Phase 9. The many remaining deployed authorization, server entitlement, reconciliation, deletion, revision/change-feed, cloud, recovery, Android billing, purchase/restore, lifecycle, and release deliverables keep this credit narrow. The earlier approximately 19% groundwork/readiness estimate measured a different scope. Future optional display work is excluded from the launch denominator.
 
 | Phase | Deliverable | Weight | Completion estimate | Status / evidence |
 | --- | --- | ---: | ---: | --- |
@@ -191,7 +191,7 @@ Weights total 100%. Overall delivery estimate is `sum(weight × phase completion
 | 6 | Account connection and device enrollment | 8% | 0% | Existing auth is groundwork; safe combining/enrollment flow remains |
 | 7 | Free bidirectional sync and initial merge | 14% | 15% | Canonical preflight includes one-off Time Blocks through the shared core; consistent storage snapshots, remote adapters, confirmation UI, executor, outbox/cursor/conflict engine remain |
 | 8 | Encrypted Journal Cloud and versioned recovery | 12% | 0% | Cloud protocol, key recovery, and verified snapshots remain |
-| 9 | Monthly/annual billing and lifecycle UX | 6% | 50% | RevenueCat 11.0.2 client/identity foundation compiles on iOS/Android; Apple monthly/annual products map to `journal_cloud`; the read-only Journal Cloud preview displays validated localized prices, 5 GB, and the free-sync boundary; Android catalog, purchase/restore lifecycle, webhook, and server entitlement mirror remain |
+| 9 | Monthly/annual billing and lifecycle UX | 6% | 55% | Client/identity, Apple catalog, localized read-only preview, and the pure dual-auth/HMAC webhook decision contract are tested; Android catalog, receiving endpoint, authoritative reconciliation, purchase/restore lifecycle, and server entitlement mirror remain |
 | 10 | Security review, disaster recovery, staged release | 6% | 0% | Launch evidence and recovery drill remain |
 | 11 | Future siFia read-only extension display | Excluded | 0% | Planned after the core launch |
 
@@ -210,7 +210,8 @@ Current handoff:
 | Remaining recurrence, lifecycle, and structured field contracts | None | Implementation can continue locally |
 | Profile bootstrap security increment | None | Guarded deploy, metadata verification, A/B app smoke test, Auth-user deletion, and synthetic-profile cleanup all passed; this narrow increment is complete |
 | Seeker subscription bootstrap guarded deployment | None | Guarded deployment, metadata verification, iOS A/B smoke test, exact-row verification, Auth-user deletion, and cleanup all passed; this narrow increment is complete |
-| Journal Cloud billing foundation | No action is required for the completed read-only iOS preview. Before sandbox purchase testing, configure the Android app/catalog and approve the guarded server-entitlement/webhook increment; never paste private credentials or secret keys into chat or source control | SDK/identity and localized iOS preview are implemented; purchase/restore and all cloud authorization remain disabled; free compatible sync never depends on payment; server mirror/webhook work remains additive and any SQL will be run manually by the user |
+| Journal Cloud entitlement preflight | Manually run `docs/manual-sql/journal-cloud-entitlement/01-preflight.sql` in the existing siFia Supabase SQL Editor and share its single JSON result; do not create or share secrets | Metadata-only preflight; no customer rows or mutation. The result is required before additive schema/apply SQL is prepared |
+| Journal Cloud billing foundation | Configure the Android app/catalog before cross-platform sandbox purchase testing; never paste private credentials or secret keys into chat or source control | SDK/identity, localized iOS preview, and pure webhook security contract are implemented; purchase/restore and cloud authorization remain disabled; server mirror/reconciliation remains additive and all SQL is manual |
 | siFia generation/onboarding hardening | None; do not prepare or apply further production changes in this track without separate approval | Read-only evidence is retained, but a generation ledger is not a Journal Cloud launch prerequisite |
 | Follow-up deployed security verification | SQL checks will be handed to you for manual execution | Deletion source retrieval and Data API/configuration checks remain; do not infer them from metadata flags alone |
 | Broader backend/schema changes | None yet | The guarded live exception applies only to the narrow profile helper. Entitlements, deletion, receipt binding, shared sync, storage, and billing still require isolated rehearsal/staged rollout before launch |
@@ -816,6 +817,31 @@ and USD 1.99 monthly store prices, signed-out sign-in action, and disabled
 restore state. This checkpoint raises Phase 9 to 50% and weighted delivery to
 **16.9% (approximately 17%)**. The trusted entitlement mirror and webhook are
 the next authorization gate before a sandbox purchase button can be enabled.
+
+## RevenueCat webhook security-contract checkpoint, 2026-11-17
+
+A new pure server contract validates the exact Authorization value configured
+in RevenueCat and its HMAC-SHA256 signature over the unchanged request body,
+with a five-minute timestamp tolerance. It defensively parses the documented
+event envelope, resolves only one Supabase Auth UUID, allowlists the current
+Apple Journal Cloud products, separates sandbox/production, and quarantines
+anonymous owners, transfers, temporary grants, ambiguous aliases, and unknown
+products.
+
+The contract never converts a webhook type directly into cloud access. Initial
+purchase, renewal, cancellation, billing issue, and expiry events are only
+triggers for a future authoritative RevenueCat customer reconciliation. Nine
+focused tests pass, including invalid authorization, body tampering, replay,
+identity ambiguity, environment isolation and lifecycle ordering boundaries.
+No receiving endpoint, provider lookup, secret, database write, purchase, or
+cloud authorization exists yet.
+
+A read-only catalog preflight is prepared under
+`docs/manual-sql/journal-cloud-entitlement`. The user must run it manually and
+share its single JSON result before additive schema/apply SQL is designed. This
+checkpoint raises Phase 9 to 55% and weighted delivery to **17.2%
+(approximately 17%)**; Phase 2 remains 10% because no backend enforcement has
+been deployed.
 
 ## Primary references checked on 2026-11-03
 
