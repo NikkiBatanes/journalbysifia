@@ -57,6 +57,12 @@ export interface JournalCloudOfferingSnapshot {
   packages: JournalCloudOfferingPackageSnapshot[];
 }
 
+export interface JournalCloudPlanSnapshot {
+  billingPeriod: 'monthly' | 'annual';
+  localizedPrice: string;
+  productIdentifier: string;
+}
+
 export class JournalCloudAccountRequiredError extends Error {
   constructor() {
     super('Sign in to a siFia account before restoring Journal Cloud purchases.');
@@ -142,6 +148,44 @@ export const validateJournalCloudOffering = (
   }
 
   return issues;
+};
+
+/**
+ * Returns display-only plan data in the order used by the Journal Cloud screen.
+ * An invalid or incomplete catalog never falls back to a hardcoded price.
+ */
+export const toJournalCloudPlanSnapshots = (
+  snapshot: JournalCloudOfferingSnapshot | null,
+): JournalCloudPlanSnapshot[] => {
+  if (validateJournalCloudOffering(snapshot).length > 0 || !snapshot) {
+    return [];
+  }
+
+  const annual = snapshot.packages.find(
+    packageItem =>
+      packageItem.productIdentifier === JOURNAL_CLOUD_ANNUAL_PRODUCT,
+  );
+  const monthly = snapshot.packages.find(
+    packageItem =>
+      packageItem.productIdentifier === JOURNAL_CLOUD_MONTHLY_PRODUCT,
+  );
+
+  if (!annual || !monthly) {
+    return [];
+  }
+
+  return [
+    {
+      billingPeriod: 'annual',
+      localizedPrice: annual.localizedPrice,
+      productIdentifier: annual.productIdentifier,
+    },
+    {
+      billingPeriod: 'monthly',
+      localizedPrice: monthly.localizedPrice,
+      productIdentifier: monthly.productIdentifier,
+    },
+  ];
 };
 
 export class JournalCloudBillingCoordinator {

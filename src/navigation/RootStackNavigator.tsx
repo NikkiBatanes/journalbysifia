@@ -29,6 +29,7 @@ import ActionStepsProviderWrapper from '../context/ActionStepsProviderWrapper';
 // import { useAuth } from '../context/IndustryStandardAuthContext'; // Unused after removing ProfileImage
 import UserProfileScreen from '../screens/UserProfileScreen';
 import NotificationsScreen from '../screens/NotificationsScreen';
+import JournalCloudScreen from '../screens/JournalCloudScreen';
 import AdminDashboardScreen from '../screens/AdminDashboardScreen';
 import GospelScreen from '../screens/GospelScreen';
 import ForMeDayScreen from '../screens/ForMeDayScreen';
@@ -241,6 +242,17 @@ export default function RootStackNavigator({
           headerShown: false,
           animation: 'fade',
           gestureEnabled: false,
+        }}
+      />
+
+      <Stack.Screen
+        name="JournalCloud"
+        component={JournalCloudScreen as React.ComponentType}
+        options={{
+          headerShown: false,
+          presentation: 'card',
+          animation: 'slide_from_right',
+          contentStyle: {backgroundColor: Colors.lightBackground},
         }}
       />
 

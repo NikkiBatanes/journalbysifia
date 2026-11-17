@@ -1,9 +1,11 @@
 # Journal Cloud billing lifecycle and test matrix
 
-Status: client foundation in progress, November 17, 2026. RevenueCat 11.0.2 is
-installed in Journal by siFia and verified by focused tests plus native iOS and
-Android builds. No store, RevenueCat project, product catalog, paywall, purchase,
-webhook, SQL, server entitlement, or live siFia backend change is enabled yet.
+Status: client and read-only iOS catalog preview in progress, November 17, 2026.
+RevenueCat 11.0.2 is installed in Journal by siFia and verified by focused tests
+plus native iOS and Android builds. The Apple catalog and current RevenueCat
+offering are configured. A non-purchasing screen displays validated localized
+prices and plan scope. No purchase, restore, webhook, SQL, server entitlement,
+cloud authorization, or live siFia backend change is enabled yet.
 
 This document implements the product boundary in
 [Journal Cloud entitlement and free-sync boundary](journal-cloud-entitlement-boundary.md):

@@ -80,7 +80,7 @@ const { width } = Dimensions.get('window');
 const APPLE_APP_ID = '6751785713';
 // Android package is already defined in app.json and native; keep here for clarity
 const ANDROID_PACKAGE = 'app.journal.sifia';
-const MORE_ENTRY_COUNT = 11;
+const MORE_ENTRY_COUNT = 12;
 const MORE_ENTRY_STAGGER_MS = 55;
 const FAVORITE_ORDER_GAP = 8;
 const PERSONALIZABLE_NOTE_BLOCKS = Object.values(NOTE_BLOCK_REGISTRY).filter(
@@ -1492,6 +1492,34 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
     </View>
   );
 
+  const renderJournalCloudSection = () => (
+    <View>
+      <Text style={[styles.sectionLabel, styles.sectionLabelRight, font]}>ACCOUNT & DATA</Text>
+      <View style={styles.menuContainer}>
+        <TouchableOpacity
+          style={[styles.menuItem, styles.menuItemSpaced]}
+          onPress={() => {
+            try { triggerLightHaptic(); } catch {}
+            navigateFromRoot(navigation, 'JournalCloud');
+          }}
+          accessibilityRole="button"
+          accessibilityLabel="Open Journal Cloud">
+          <View style={styles.menuIconBox}>
+            <Ionicons name="cloud-outline" size={18} color={Colors.sage} />
+          </View>
+          <View style={styles.featureMenuCopy}>
+            <Text style={[styles.featureMenuTitle, font]}>Journal Cloud</Text>
+            <Text style={[styles.featureMenuSubtitle, font]}>
+              Back up Journal-only entries and photos
+            </Text>
+          </View>
+          <Text style={[styles.menuValueText, font]}>5 GB</Text>
+          <Ionicons name="chevron-forward" size={20} color={theme.colors.chevronColor} />
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+
   const renderMenuOptions = () => (
     <View>
       <Text style={[styles.sectionLabel, styles.sectionLabelRight, font]}>PERSONALIZATION</Text>
@@ -2647,12 +2675,13 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           {renderEntry(3, renderReflectionSection())}
           {renderEntry(4, renderMenuOptions())}
           {/* POST-LAUNCH: {renderFamilyManagementSection()} */}
-          {renderEntry(5, renderAppBehaviorSection())}
-          {renderEntry(6, renderCommunitySection())}
-          {renderEntry(7, renderHelpSupportSection())}
-          {renderEntry(8, renderLegalPrivacySection())}
-          {isAdmin && renderEntry(9, renderAdminSection())}
-          {renderEntry(10, renderLogoutSection())}
+          {renderEntry(5, renderJournalCloudSection())}
+          {renderEntry(6, renderAppBehaviorSection())}
+          {renderEntry(7, renderCommunitySection())}
+          {renderEntry(8, renderHelpSupportSection())}
+          {renderEntry(9, renderLegalPrivacySection())}
+          {isAdmin && renderEntry(10, renderAdminSection())}
+          {renderEntry(11, renderLogoutSection())}
         </ScrollView>
       </View>
 

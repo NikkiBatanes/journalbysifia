@@ -6,6 +6,7 @@ import {
   hasActiveJournalCloudEntitlement,
   toJournalCloudEntitlementSnapshot,
   toJournalCloudOfferingSnapshot,
+  toJournalCloudPlanSnapshots,
   validateJournalCloudOffering,
   type JournalCloudBillingSdk,
 } from '../journalCloudBillingService';
@@ -188,6 +189,30 @@ describe('Journal Cloud offering helpers', () => {
   it('accepts the expected default monthly and annual catalog', () => {
     expect(validateJournalCloudOffering(toJournalCloudOfferingSnapshot(offering)))
       .toEqual([]);
+  });
+
+  it('builds annual-first display plans using only store-localized prices', () => {
+    expect(toJournalCloudPlanSnapshots(toJournalCloudOfferingSnapshot(offering)))
+      .toEqual([
+        {
+          billingPeriod: 'annual',
+          localizedPrice: '₱599.00',
+          productIdentifier: 'app.journal.sifia.cloud.annual',
+        },
+        {
+          billingPeriod: 'monthly',
+          localizedPrice: '₱59.00',
+          productIdentifier: 'app.journal.sifia.cloud.monthly',
+        },
+      ]);
+  });
+
+  it('does not invent prices when the store catalog is incomplete', () => {
+    expect(toJournalCloudPlanSnapshots(null)).toEqual([]);
+    expect(toJournalCloudPlanSnapshots({
+      offeringIdentifier: 'default',
+      packages: [],
+    })).toEqual([]);
   });
 
   it('reports missing products without treating the catalog as purchase authority', () => {

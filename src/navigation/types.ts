@@ -36,6 +36,7 @@ export type RootStackParamList = {
   Gospel: { returnTo?: 'More' } | undefined;
   ForMeDay: { mode?: 'celebrate' | 'settings'; returnTo?: 'More' } | undefined;
   UserProfileModal: undefined;
+  JournalCloud: undefined;
   PlaybookDetail: {
     playbook: Playbook;
     isFromOnboarding?: boolean;

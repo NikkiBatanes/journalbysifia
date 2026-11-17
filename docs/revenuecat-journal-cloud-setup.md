@@ -1,10 +1,11 @@
 # RevenueCat setup for Journal Cloud
 
-Status: iOS catalog checkpoint verified, November 17, 2026. The client SDK
-foundation is installed. The Apple public SDK key remains local and untracked;
-the app successfully fetched the real `default` offering from RevenueCat in an
-iOS simulator. This test commerce configuration does not by itself authorize
-Journal Cloud server access.
+Status: iOS catalog and read-only preview checkpoints verified, November 17,
+2026. The client SDK foundation is installed. The Apple public SDK key remains
+local and untracked; the app successfully fetched the real `default` offering
+from RevenueCat in an iOS simulator and displayed its localized prices on the
+Journal Cloud screen. This test commerce configuration does not by itself
+authorize Journal Cloud server access.
 
 ## Fixed product boundary
 
@@ -85,9 +86,19 @@ application identifiers, not server secrets. Enter them only in the untracked
 local `.env.mobile` while testing. Never use a RevenueCat Test Store key in a
 release build.
 
+## Read-only preview now implemented
+
+- Profile includes an Account & Data entry for Journal Cloud.
+- The preview discloses 5 GB total storage, compressed-photo scope, and the
+  separation between free compatible siFia sync and paid Journal-only cloud.
+- Prices come from the validated current store offering. An incomplete or
+  unavailable catalog shows a retry state and never a guessed price.
+- Signed-out users can go to the existing sign-in flow. Purchase and restore
+  controls remain unavailable.
+
 ## Deliberately not enabled yet
 
-- No purchase button or provider paywall is connected.
+- No purchase button or provider purchase sheet is connected.
 - No client entitlement enables cloud storage.
 - No RevenueCat webhook endpoint or Supabase entitlement tables exist.
 - No SQL should be run for this checklist.
@@ -95,7 +106,7 @@ release build.
   post-expiry retention promise, image limits/compression policy, and support
   process are not final.
 
-After the dashboard checklist is complete, the next engineering increment is a
-sandbox offering/paywall read path followed by the authenticated webhook and
-server-owned entitlement mirror. The webhook/server design must pass manual SQL
-preflight/apply/verify gates before any cloud write relies on it.
+The next engineering increment is the authenticated webhook and server-owned
+entitlement mirror. The webhook/server design must pass manual SQL
+preflight/apply/verify gates before sandbox purchasing is enabled and before any
+cloud write relies on it. Android catalog setup can proceed independently.
