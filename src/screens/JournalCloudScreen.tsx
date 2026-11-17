@@ -18,6 +18,7 @@ import {useAuth} from '../context/IndustryStandardAuthContext';
 import {
   journalCloudBillingService,
   toJournalCloudPlanSnapshots,
+  validateJournalCloudOffering,
   type JournalCloudPlanSnapshot,
 } from '../services/journalCloudBillingService';
 import {Colors} from '../theme/colors';
@@ -32,25 +33,42 @@ const FEATURES = [
   '5 GB total storage for one private Journal Vault',
 ];
 
+type CatalogIssue =
+  | 'not_configured'
+  | 'catalog_incomplete'
+  | 'provider_unavailable'
+  | null;
+
 const JournalCloudScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const insets = useSafeAreaInsets();
   const {user} = useAuth();
   const [plans, setPlans] = useState<JournalCloudPlanSnapshot[]>([]);
   const [loading, setLoading] = useState(true);
-  const [catalogUnavailable, setCatalogUnavailable] = useState(false);
+  const [catalogIssue, setCatalogIssue] = useState<CatalogIssue>(null);
 
   const loadPlans = useCallback(async () => {
     setLoading(true);
-    setCatalogUnavailable(false);
+    setCatalogIssue(null);
     try {
       const snapshot = await journalCloudBillingService.getCurrentOfferingSnapshot();
       const nextPlans = toJournalCloudPlanSnapshots(snapshot);
+      const validationIssues = validateJournalCloudOffering(snapshot);
       setPlans(nextPlans);
-      setCatalogUnavailable(nextPlans.length === 0);
+      if (nextPlans.length === 0) {
+        const issue = journalCloudBillingService.isConfigured()
+          ? 'catalog_incomplete'
+          : 'not_configured';
+        setCatalogIssue(issue);
+        Logger.warn('Journal Cloud offering is not ready for display', {
+          component: 'JournalCloudScreen',
+          issue,
+          validationIssues,
+        });
+      }
     } catch (error) {
       setPlans([]);
-      setCatalogUnavailable(true);
+      setCatalogIssue('provider_unavailable');
       Logger.warn('Journal Cloud offering could not be displayed', {
         component: 'JournalCloudScreen',
         reason: error instanceof Error ? error.message : String(error),
@@ -157,14 +175,24 @@ const JournalCloudScreen: React.FC = () => {
             <ActivityIndicator size="small" color={Colors.sage} />
             <ThemedText style={styles.catalogStateText}>Loading store prices…</ThemedText>
           </View>
-        ) : catalogUnavailable ? (
+        ) : catalogIssue ? (
           <View style={styles.catalogState}>
             <ThemedText weight="semiBold" style={styles.catalogStateTitle}>
-              Store prices are temporarily unavailable
+              App Store prices aren't available right now
             </ThemedText>
             <ThemedText style={styles.catalogStateText}>
-              No price has been guessed or substituted. Check your connection and try again.
+              Pricing will appear here when the secure store connection is
+              ready. Your local journal is not affected.
             </ThemedText>
+            {__DEV__ && (
+              <ThemedText style={styles.catalogDiagnosticText}>
+                {catalogIssue === 'not_configured'
+                  ? 'Developer note: rebuild the iOS app so the local RevenueCat public key is included.'
+                  : catalogIssue === 'catalog_incomplete'
+                    ? 'Developer note: the current offering is missing or does not contain both expected plans.'
+                    : 'Developer note: Apple or RevenueCat did not return the catalog. Check the debug log and retry.'}
+              </ThemedText>
+            )}
             <TouchableOpacity
               accessibilityRole="button"
               accessibilityLabel="Retry loading Journal Cloud prices"
@@ -214,19 +242,49 @@ const JournalCloudScreen: React.FC = () => {
         )}
 
         {!user ? (
-          <TouchableOpacity
-            accessibilityRole="button"
-            accessibilityLabel="Sign in to continue with Journal Cloud"
-            activeOpacity={0.8}
-            onPress={() => {
-              triggerLightHaptic();
-              navigateFromRoot(navigation, 'Auth', {screen: 'Login'});
-            }}
-            style={styles.primaryButton}>
-            <ThemedText weight="semiBold" style={styles.primaryButtonText}>
-              Sign in to continue
-            </ThemedText>
-          </TouchableOpacity>
+          <View style={styles.accountSection}>
+            <View style={styles.accountExplanation}>
+              <Ionicons name="person-circle-outline" size={22} color={Colors.sage} />
+              <View style={styles.accountExplanationCopy}>
+                <ThemedText weight="semiBold" style={styles.accountExplanationTitle}>
+                  New to siFia?
+                </ThemedText>
+                <ThemedText style={styles.accountExplanationText}>
+                  Create a free account to keep a Journal Cloud subscription
+                  connected to you. You can continue journaling locally without
+                  an account or subscription.
+                </ThemedText>
+              </View>
+            </View>
+
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel="Create a free siFia account for Journal Cloud"
+              activeOpacity={0.8}
+              onPress={() => {
+                triggerLightHaptic();
+                navigateFromRoot(navigation, 'Auth', {screen: 'Register'});
+              }}
+              style={[styles.primaryButton, styles.accountPrimaryButton]}>
+              <ThemedText weight="semiBold" style={styles.primaryButtonText}>
+                Create free account
+              </ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel="Sign in to an existing siFia account"
+              activeOpacity={0.7}
+              onPress={() => {
+                triggerLightHaptic();
+                navigateFromRoot(navigation, 'Auth', {screen: 'Login'});
+              }}
+              style={styles.existingAccountButton}>
+              <ThemedText weight="semiBold" style={styles.existingAccountText}>
+                I already have a siFia account
+              </ThemedText>
+            </TouchableOpacity>
+          </View>
         ) : (
           <View
             accessibilityLabel="Journal Cloud purchases are not enabled yet"
@@ -371,6 +429,7 @@ const styles = StyleSheet.create({
   },
   catalogStateTitle: {fontSize: 15, textAlign: 'center', color: Colors.text},
   catalogStateText: {marginTop: 8, fontSize: 13, lineHeight: 19, textAlign: 'center', color: Colors.textGray},
+  catalogDiagnosticText: {marginTop: 10, fontSize: 11, lineHeight: 16, textAlign: 'center', color: Colors.textGray},
   retryButton: {marginTop: 14, paddingHorizontal: 18, paddingVertical: 9, borderRadius: 999, backgroundColor: Colors.anchorBlueLight},
   retryButtonText: {fontSize: 14, color: Colors.sage},
   plans: {marginTop: 12, gap: 12},
@@ -402,6 +461,22 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   primaryButtonText: {fontSize: 16, color: Colors.hopeWhite},
+  accountSection: {marginTop: 22},
+  accountExplanation: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    padding: 16,
+    borderRadius: 18,
+    backgroundColor: Colors.anchorBlueLight,
+    borderWidth: 1,
+    borderColor: Colors.lightBorder,
+  },
+  accountExplanationCopy: {flex: 1, marginLeft: 11},
+  accountExplanationTitle: {fontSize: 15, lineHeight: 20, color: Colors.text},
+  accountExplanationText: {marginTop: 4, fontSize: 13, lineHeight: 20, color: Colors.textGray},
+  accountPrimaryButton: {marginTop: 14},
+  existingAccountButton: {alignSelf: 'center', marginTop: 13, paddingHorizontal: 12, paddingVertical: 8},
+  existingAccountText: {fontSize: 14, color: Colors.sage},
   disabledButton: {backgroundColor: Colors.lightGray},
   disabledButtonText: {fontSize: 15, color: Colors.textGray},
   purchaseNotice: {marginTop: 12, fontSize: 12, lineHeight: 18, textAlign: 'center', color: Colors.textGray},
