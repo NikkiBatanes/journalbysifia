@@ -1,7 +1,7 @@
 # Journal Cloud encrypted storage and recovery plan
 
 Status: implementation design; not yet a shipped backup, sync, or recovery feature
-Last reviewed: 2026-11-17
+Last reviewed: 2026-11-18
 Applies to: Journal by siFia on iOS and Android
 
 ## Decision summary
@@ -27,10 +27,13 @@ recovery:
   cloud snapshot may protect a copy for recovery, but restore must reconcile
   IDs rather than create a second canonical record.
 
-This plan deliberately does not select a React Native encryption/database
-package yet. The implementation spike must prove that a maintained, audited
-native binding works on the repository's exact iOS and Android targets before
-we commit user data to its format.
+OP-SQLite with SQLCipher is the first React Native database candidate, not an
+approved production dependency. The implementation spike must prove that a
+maintained, auditable native binding and its complete cryptographic dependency
+graph work on the repository's exact iOS and Android targets before customer
+data is committed to its format. The 2026-11-18 review keeps this candidate
+synthetic-only because its current OpenSSL dependency does not pass the
+production support gate described below.
 
 ## What exists today
 
@@ -428,7 +431,7 @@ before marketing Journal Cloud as end-to-end encrypted.
 | Increment | Deliverable | Exit evidence | Current status |
 | --- | --- | --- | ---: |
 | A | Inventory correction and recovery boundary | Every authored store/settings/cache/secret classified; synthetic fixtures for every supported variant | Design documented; fixture coverage incomplete |
-| B | Crypto/database spike | Cross-platform native test vectors, crash/disk-full tests, dependency review, no plaintext artifacts | In progress: isolated candidate, key tests, and native integration prepared; device runtime/crash/disk-full/plaintext-artifact evidence remains |
+| B | Crypto/database spike | Cross-platform native test vectors, crash/disk-full tests, dependency review, no plaintext artifacts | Conditional: runtime, forced-interruption recovery, disk-full rollback, and raw-file checks passed; production adoption is blocked by the current native dependency graph |
 | C | Transactional local migration | Restartable count/hash/reference verified migration and rollback on iOS/Android | Not started |
 | D | Managed media | Photo/voice bytes survive restart/export/restore; missing legacy URI is disclosed | Not started |
 | E | Free encrypted export/restore | Clean-device iOS/Android restore; wrong key/corruption/interruption/disk-full leave existing data intact | Not started |
@@ -439,8 +442,9 @@ before marketing Journal Cloud as end-to-end encrypted.
 ## Synthetic encrypted-database spike checkpoint — 2026-11-17
 
 The first database candidate is OP-SQLite 19.0.5 compiled with SQLCipher. The
-probe uses a separate `journal-cloud-storage-spike-v1.sqlite` database and a
-generated 256-bit key held through the platform Keychain/Keystore boundary.
+probe uses a separate `journal-cloud-storage-spike-v1.sqlite` database and 32
+random bytes encoded as a 64-character secret, held through the platform
+Keychain/Keystore boundary.
 The key is device-only, cloud synchronization is disabled, malformed stored
 keys fail closed, and neither the probe nor its database is connected to app
 startup or any customer journal read/write path.
@@ -452,20 +456,121 @@ tests pass. Android builds with SQLCipher enabled, and CocoaPods resolves the
 SQLCipher/OpenSSL native graph. These are integration checks, not device
 runtime evidence and not approval to migrate live records.
 
-The iOS development diagnostic passed all four runtime assertions on
+The iOS development diagnostic passed the initial four runtime assertions on
 2026-11-17 using SQLCipher 4.19.0 Community. The Android development diagnostic
-passed the same assertions on 2026-11-18 using SQLCipher 4.19.0. Cross-platform
-activation, rollback, reopen, and wrong-key rejection are therefore verified
-for the synthetic database. Crash/disk-full behavior and plaintext-artifact
-inspection remain open.
+passed the same assertions on 2026-11-18 using SQLCipher 4.19.0. Both platforms
+then passed a deterministic simulated-disk-full transaction: the constrained
+write failed, the committed baseline remained readable, and no partial row was
+left behind.
+
+The raw 12,288-byte synthetic database from each app sandbox was copied to a
+temporary audit directory on 2026-11-18. Binary inspection found neither the
+known `synthetic-only-no-customer-data` probe text nor the standard
+`SQLite format 3` header in either platform file. Their first 16 bytes and
+SHA-256 hashes also differed, as expected for separately encrypted files. This
+is evidence for this controlled fixture only; it is not yet evidence that every
+future journal field, attachment, log, cache, or export is plaintext-free.
+
+On 2026-11-18, each development app committed a synthetic baseline, opened a
+second transaction, inserted a different synthetic row, and intentionally left
+that transaction unresolved. Android was force-stopped and iOS was terminated
+through the simulator while the transaction remained open. After a cold
+relaunch, `PRAGMA integrity_check` returned `ok` on both platforms, the
+committed baseline remained intact, and the interrupted row was absent. This
+proves recovery for the controlled process-termination fixture; abrupt device
+power loss and filesystem/hardware faults remain platform risks rather than a
+claim this app can eliminate. The dependency/security review and its blocking
+production decision follow.
+
+## Dependency and supply-chain review — 2026-11-18
+
+Decision: **retain OP-SQLite/SQLCipher only as a synthetic development
+candidate; do not migrate or open customer journal data with this dependency
+graph.** A production migration prototype may begin only after the blocking
+native dependency is upgraded or a replacement candidate passes the same
+cross-platform tests.
+
+Evidence and findings:
+
+- `@op-engineering/op-sqlite` is exactly pinned to `19.0.5`, and
+  `react-native-keychain` is exactly pinned to `11.0.0`. Their npm tarball
+  integrity hashes are committed in `package-lock.json`; both packages declare
+  the MIT license. OP-SQLite 19.0.5 is the current npm release as of this
+  review.
+- The installed OP-SQLite version is newer than its published moderate
+  commit/rollback-hook use-after-free advisory's patched version, 18.2.4. The
+  spike does not register those hooks, but the patched version remains a hard
+  minimum.
+- The binding supplies the secret through `sqlite3_key_v2` with an explicit
+  length, not through `PRAGMA key` SQL. The spike generates 32 random bytes and
+  stores their 64-character lowercase hexadecimal representation in the
+  device-only Keychain/Keystore boundary. SQLCipher receives those 64 ASCII
+  characters as high-entropy passphrase material and applies its KDF; this is
+  not SQLCipher's raw-key `x'...'` form. No code or documentation should call
+  it a raw 32-byte database key.
+- Both native runtimes report SQLCipher 4.19.0 Community. SQLCipher 4.20.0 is
+  available, so 4.19.0 is recent but not current. Major-version upgrades and
+  any change to cipher defaults require explicit database-compatibility and
+  migration tests before rollout.
+- The decisive blocker is the cryptographic provider: Android declares
+  `io.github.ronickg:openssl:3.6.2-3`, while the iOS lockfile resolves
+  `OpenSSL-Universal 3.6.2000`. OpenSSL 3.6 has reached end of life, 3.6.5 was
+  its later security patch, and additional advisories were published after
+  3.6.2. This does not prove every advisory is reachable through SQLCipher on
+  these mobile targets, but an unsupported provider is not acceptable for a
+  new encrypted customer-data store.
+- OP-SQLite has a published advisory but no repository `SECURITY.md`. That is a
+  governance risk rather than proof of an active defect in 19.0.5. Production
+  approval requires a documented monitoring and response owner, not reliance
+  on package popularity alone.
+- `npm audit --omit=dev --audit-level=high` reported 21 production dependency
+  findings across the repository: 1 low, 8 moderate, and 12 high. None was
+  attributed directly to OP-SQLite or react-native-keychain, but the high
+  findings still require reachability/upgrade triage before a release. No
+  automatic `npm audit fix` was run because it could change unrelated and
+  potentially breaking dependencies.
+
+Production re-entry gate:
+
+1. OP-SQLite must package a supported OpenSSL release, or a replacement
+   encrypted database binding must be selected.
+2. Re-run iOS and Android activation, rollback, reopen, wrong-key, disk-full,
+   forced-interruption, raw-file, and release-build tests on the exact upgraded
+   graph.
+3. Add an automated dependency advisory check and a scheduled review of
+   OP-SQLite, SQLCipher, OpenSSL, and react-native-keychain.
+4. Triage the repository-wide production audit findings; resolve or document
+   non-reachability and compensating controls before release approval.
+5. Require an independent mobile security review before marketing the vault as
+   end-to-end encrypted.
+
+### Production candidate decision matrix
+
+| Candidate | Current evidence | Main risk | Decision |
+| --- | --- | --- | --- |
+| OP-SQLite 19.0.5 with its packaged SQLCipher graph | Exact app integration and all synthetic runtime tests passed on iOS and Android | Its resolved OpenSSL 3.6 provider is end-of-life | Keep only as the development control; do not open customer data |
+| A future OP-SQLite release with a supported cryptographic provider | Lowest migration and API-change cost if upstream publishes one | Availability and security-response timing are outside siFia's control | Preferred re-test path when an eligible release exists |
+| A maintained internal OP-SQLite/OpenSSL fork | Could preserve the tested API while selecting a supported provider | siFia would own native crypto patching, reproducible builds, advisories, and ABI testing | Do not choose unless upstream cannot provide a supported build and an independent reviewer approves the maintenance plan |
+| Expo SQLite with SQLCipher | Official Expo documentation supports SQLCipher configuration | Requires Expo-module integration and a new audit of the exact iOS/Android SQLCipher and provider graph | Viable isolated replacement spike; no production approval yet |
+| Realm community database | Encrypted local database capability exists independently of Atlas Device Sync | The former Atlas Device SDKs reached end-of-life and the database now depends on community branches/governance | Not preferred for this launch |
+
+The current recommendation is to keep the proven OP-SQLite test harness as a
+behavioral control and prototype the least disruptive eligible provider in an
+isolated build. No dependency swap may be merged merely because it compiles:
+it must identify the packaged native provider and pass every production
+re-entry check above.
 
 ## Immediate next implementation step
 
 The controlled development diagnostic has passed on one iOS and one Android
-installation and never runs automatically. Next, inspect the app sandbox for
-plaintext artifacts and exercise interruption, crash, and disk-full behavior
-with synthetic fixtures. Do not design the production migration until those
-checks pass and the dependency/security review is recorded.
+installation and never runs automatically. Forced-interruption recovery,
+deterministic disk-full rollback, and raw-file plaintext checks also passed for
+the synthetic fixture. The dependency review did not approve the current
+native graph for customer data because OpenSSL 3.6 is end-of-life. Next,
+monitor for a supported OP-SQLite build and prepare an isolated Expo SQLite
+SQLCipher feasibility spike. Do not install that candidate in the main app
+runtime or implement the production migration until its exact native graph has
+been inspected and the user approves the dependency change.
 
 No user action or manual SQL is required for the next local implementation
 increment. No key or journal content should be shared.
@@ -475,6 +580,16 @@ increment. No key or journal content should be shared.
 - [Apple: restricting Keychain item accessibility](https://developer.apple.com/documentation/Security/restricting-keychain-item-accessibility)
 - [Apple: `kSecAttrAccessibleWhenPasscodeSetThisDeviceOnly`](https://developer.apple.com/documentation/security/ksecattraccessiblewhenpasscodesetthisdeviceonly)
 - [Android Keystore system](https://developer.android.com/privacy-and-security/keystore)
+- [OP-SQLite npm versions](https://www.npmjs.com/package/%40op-engineering/op-sqlite?activeTab=versions)
+- [OP-SQLite security advisory GHSA-jmwq-c3hg-34pw](https://github.com/OP-Engineering/op-sqlite/security/advisories/GHSA-jmwq-c3hg-34pw)
+- [OP-SQLite security policy status](https://github.com/OP-Engineering/op-sqlite/security)
+- [OP-SQLite SQLCipher installation configuration](https://op-engineering.github.io/op-sqlite/docs/installation/)
+- [SQLCipher changelog](https://github.com/sqlcipher/sqlcipher/blob/master/CHANGELOG.md)
+- [Expo SQLite SQLCipher configuration](https://docs.expo.dev/versions/latest/sdk/sqlite/)
+- [MongoDB Atlas Device SDK deprecation](https://www.mongodb.com/docs/device-sdks-deprecation/)
+- [OpenSSL 3.6 release notes](https://openssl-library.org/news/openssl-3.6-notes/)
+- [OpenSSL 3.4 and 3.6 end-of-life notice](https://openssl-library.org/post/2026-11-01-eol34-36/)
+- [OpenSSL security advisory timeline](https://openssl-library.org/news/timeline/)
 - [libsodium encrypted streams and file encryption](https://doc.libsodium.org/secret-key_cryptography/secretstream)
 - [libsodium password hashing/key derivation](https://doc.libsodium.org/password_hashing/default_phf)
 - [Supabase resumable Storage uploads](https://supabase.com/docs/guides/storage/uploads/resumable-uploads)

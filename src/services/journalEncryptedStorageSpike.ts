@@ -8,7 +8,15 @@ const SPIKE_KEYCHAIN_SERVICE =
 const SPIKE_KEYCHAIN_USERNAME = 'journal-cloud-storage-spike';
 const SPIKE_MARKER_ID = 'encrypted-storage-spike';
 const SPIKE_MARKER_PAYLOAD = 'synthetic-only-no-customer-data';
+const SPIKE_DISK_FULL_ID = 'synthetic-disk-full-write';
+const SPIKE_INTERRUPTION_BASELINE_ID = 'synthetic-interruption-baseline';
+const SPIKE_INTERRUPTION_BASELINE_PAYLOAD =
+  'synthetic-interruption-baseline-data';
+const SPIKE_INTERRUPTED_WRITE_ID = 'synthetic-interrupted-write';
+const SPIKE_INTERRUPTED_WRITE_PAYLOAD =
+  'synthetic-uncommitted-interruption-data';
 const ENCRYPTION_KEY_BYTES = 32;
+const SQLITE_MAX_PAGE_COUNT = 2_147_483_646;
 
 type RandomFill = (bytes: Uint8Array) => Uint8Array;
 
@@ -18,6 +26,14 @@ export interface JournalEncryptedStorageSpikeResult {
   rollbackVerified: true;
   reopenVerified: true;
   wrongKeyRejected: true;
+  diskFullRollbackVerified: true;
+}
+
+export interface JournalEncryptedStorageInterruptionResult {
+  databaseName: string;
+  integrityCheck: 'ok';
+  baselinePreserved: true;
+  interruptedWriteDiscarded: true;
 }
 
 const bytesToHex = (bytes: Uint8Array): string =>
@@ -83,6 +99,26 @@ const readSingleText = (
   return typeof value === 'string' && value.length > 0 ? value : null;
 };
 
+const readSingleNumber = (
+  rows: Array<Record<string, unknown>>,
+  fields: string[],
+): number | null => {
+  const row = rows[0];
+  if (!row) {
+    return null;
+  }
+
+  const labelledValue = fields
+    .map(field => row[field])
+    .find(value => value !== undefined && value !== null);
+  const fallbackValue =
+    labelledValue ??
+    (Object.keys(row).length === 1 ? Object.values(row)[0] : undefined);
+  const value = Number(fallbackValue);
+
+  return Number.isSafeInteger(value) ? value : null;
+};
+
 const closeQuietly = (database: DB | null): void => {
   try {
     database?.close();
@@ -90,6 +126,109 @@ const closeQuietly = (database: DB | null): void => {
     // The spike reports the primary verification error, not a close failure.
   }
 };
+
+const ensureSpikeTable = async (database: DB): Promise<void> => {
+  await database.execute(`
+    CREATE TABLE IF NOT EXISTS encrypted_storage_spike (
+      id TEXT PRIMARY KEY NOT NULL,
+      payload TEXT NOT NULL
+    )
+  `);
+};
+
+/**
+ * Development-only interruption fixture. After onArmed fires, the caller must
+ * terminate the native app process without allowing this promise to resolve.
+ * SQLite should roll back the open transaction during recovery on next launch.
+ */
+export const armJournalEncryptedStorageInterruptionProbe = async (
+  onArmed: () => void,
+): Promise<never> => {
+  const encryptionKey = await getOrCreateSpikeEncryptionKey();
+  let database: DB | null = null;
+
+  try {
+    database = open({
+      name: SPIKE_DATABASE_NAME,
+      encryptionKey,
+    });
+    await ensureSpikeTable(database);
+    await database.transaction(async transaction => {
+      await transaction.execute(
+        'DELETE FROM encrypted_storage_spike WHERE id IN (?, ?)',
+        [SPIKE_INTERRUPTION_BASELINE_ID, SPIKE_INTERRUPTED_WRITE_ID],
+      );
+      await transaction.execute(
+        'INSERT INTO encrypted_storage_spike (id, payload) VALUES (?, ?)',
+        [
+          SPIKE_INTERRUPTION_BASELINE_ID,
+          SPIKE_INTERRUPTION_BASELINE_PAYLOAD,
+        ],
+      );
+    });
+
+    await database.transaction(async transaction => {
+      await transaction.execute(
+        'INSERT INTO encrypted_storage_spike (id, payload) VALUES (?, ?)',
+        [SPIKE_INTERRUPTED_WRITE_ID, SPIKE_INTERRUPTED_WRITE_PAYLOAD],
+      );
+      onArmed();
+      await new Promise<never>(() => {
+        // Intentionally unresolved. The native process must be terminated.
+      });
+    });
+
+    throw new Error('Interruption probe unexpectedly completed');
+  } finally {
+    closeQuietly(database);
+  }
+};
+
+export const verifyJournalEncryptedStorageInterruptionRecovery =
+  async (): Promise<JournalEncryptedStorageInterruptionResult> => {
+    const encryptionKey = await getOrCreateSpikeEncryptionKey();
+    let database: DB | null = null;
+
+    try {
+      database = open({
+        name: SPIKE_DATABASE_NAME,
+        encryptionKey,
+        failOnCreate: true,
+      });
+      const integrityResult = await database.execute('PRAGMA integrity_check');
+      const integrityCheck = readSingleText(integrityResult.rows, 'integrity_check');
+      const rows = await database.execute(
+        `SELECT id, payload FROM encrypted_storage_spike
+         WHERE id IN (?, ?) ORDER BY id`,
+        [SPIKE_INTERRUPTION_BASELINE_ID, SPIKE_INTERRUPTED_WRITE_ID],
+      );
+      const baseline = rows.rows.find(
+        row => row.id === SPIKE_INTERRUPTION_BASELINE_ID,
+      );
+      const interruptedWrite = rows.rows.find(
+        row => row.id === SPIKE_INTERRUPTED_WRITE_ID,
+      );
+
+      if (
+        integrityCheck !== 'ok' ||
+        baseline?.payload !== SPIKE_INTERRUPTION_BASELINE_PAYLOAD ||
+        interruptedWrite
+      ) {
+        throw new Error(
+          'Encrypted storage did not recover safely from interruption',
+        );
+      }
+
+      return {
+        databaseName: SPIKE_DATABASE_NAME,
+        integrityCheck: 'ok',
+        baselinePreserved: true,
+        interruptedWriteDiscarded: true,
+      };
+    } finally {
+      closeQuietly(database);
+    }
+  };
 
 /**
  * Explicit development probe only. A development menu command may invoke it,
@@ -172,6 +311,76 @@ export const runJournalEncryptedStorageSpike =
       if (readSingleText(reopened.rows, 'payload') !== SPIKE_MARKER_PAYLOAD) {
         throw new Error('Encrypted storage did not persist across reopen');
       }
+
+      // This database contains synthetic probe data only. Compact it first so
+      // no free pages can absorb the constrained write and make this failure
+      // simulation device-dependent.
+      await database.execute('VACUUM');
+      const pageCountResult = await database.execute('PRAGMA page_count');
+      const pageSizeResult = await database.execute('PRAGMA cipher_page_size');
+      const freeListResult = await database.execute('PRAGMA freelist_count');
+      const pageCount = readSingleNumber(pageCountResult.rows, ['page_count']);
+      const pageSize = readSingleNumber(pageSizeResult.rows, [
+        'cipher_page_size',
+        'page_size',
+      ]);
+      const freePageCount = readSingleNumber(freeListResult.rows, [
+        'freelist_count',
+      ]);
+      if (
+        pageCount === null ||
+        pageCount < 1 ||
+        pageSize === null ||
+        pageSize < 512 ||
+        freePageCount !== 0
+      ) {
+        throw new Error(
+          'Could not determine encrypted database page limits ' +
+            `(pages=${String(pageCount)}, pageSize=${String(pageSize)}, ` +
+            `freePages=${String(freePageCount)})`,
+        );
+      }
+
+      await database.execute(`PRAGMA max_page_count = ${pageCount}`);
+
+      let diskFullWriteRejected = false;
+      try {
+        await database.transaction(async transaction => {
+          await transaction.execute(
+            `INSERT INTO encrypted_storage_spike (id, payload)
+             VALUES (?, zeroblob(?))`,
+            [SPIKE_DISK_FULL_ID, pageSize * 16],
+          );
+        });
+      } catch {
+        diskFullWriteRejected = true;
+      } finally {
+        await database.execute(
+          `PRAGMA max_page_count = ${SQLITE_MAX_PAGE_COUNT}`,
+        );
+      }
+
+      const diskFullState = await database.execute(
+        `SELECT id, payload FROM encrypted_storage_spike
+         WHERE id IN (?, ?) ORDER BY id`,
+        [SPIKE_MARKER_ID, SPIKE_DISK_FULL_ID],
+      );
+      const baselineAfterDiskFull = diskFullState.rows.find(
+        row => row.id === SPIKE_MARKER_ID,
+      );
+      const partialDiskFullRow = diskFullState.rows.find(
+        row => row.id === SPIKE_DISK_FULL_ID,
+      );
+      if (
+        !diskFullWriteRejected ||
+        baselineAfterDiskFull?.payload !== SPIKE_MARKER_PAYLOAD ||
+        partialDiskFullRow
+      ) {
+        throw new Error(
+          'Synthetic disk-full transaction was not safely rolled back',
+        );
+      }
+
       database.close();
       database = null;
 
@@ -204,6 +413,7 @@ export const runJournalEncryptedStorageSpike =
         rollbackVerified: true,
         reopenVerified: true,
         wrongKeyRejected: true,
+        diskFullRollbackVerified: true,
       };
     } finally {
       closeQuietly(database);

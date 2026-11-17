@@ -1,6 +1,10 @@
 import {Alert, DevSettings} from 'react-native';
 
-import {runJournalEncryptedStorageSpike} from '../services/journalEncryptedStorageSpike';
+import {
+  armJournalEncryptedStorageInterruptionProbe,
+  runJournalEncryptedStorageSpike,
+  verifyJournalEncryptedStorageInterruptionRecovery,
+} from '../services/journalEncryptedStorageSpike';
 
 let installed = false;
 
@@ -24,6 +28,7 @@ export const installJournalEncryptedStorageSpikeMenu = (): void => {
             'Transaction rollback: passed',
             'Close and reopen: passed',
             'Wrong key rejected: passed',
+            'Simulated disk-full rollback: passed',
           ].join('\n'),
         );
       },
@@ -31,6 +36,41 @@ export const installJournalEncryptedStorageSpikeMenu = (): void => {
         const message =
           error instanceof Error ? error.message : 'Unknown diagnostic error';
         Alert.alert('Encrypted storage failed', message);
+      },
+    );
+  });
+
+  DevSettings.addMenuItem('Arm encrypted interruption test', () => {
+    armJournalEncryptedStorageInterruptionProbe(() => {
+      Alert.alert(
+        'Interruption test armed',
+        'The synthetic write is open and uncommitted. Terminate the app ' +
+          'process externally now, then relaunch and choose “Verify encrypted ' +
+          'interruption recovery”.',
+      );
+    }).catch(error => {
+      const message =
+        error instanceof Error ? error.message : 'Unknown diagnostic error';
+      Alert.alert('Could not arm interruption test', message);
+    });
+  });
+
+  DevSettings.addMenuItem('Verify encrypted interruption recovery', () => {
+    verifyJournalEncryptedStorageInterruptionRecovery().then(
+      () => {
+        Alert.alert(
+          'Interruption recovery passed',
+          [
+            'Database integrity: passed',
+            'Committed baseline preserved: passed',
+            'Interrupted write discarded: passed',
+          ].join('\n'),
+        );
+      },
+      error => {
+        const message =
+          error instanceof Error ? error.message : 'Unknown diagnostic error';
+        Alert.alert('Interruption recovery failed', message);
       },
     );
   });
