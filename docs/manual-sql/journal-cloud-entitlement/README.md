@@ -1,8 +1,8 @@
 # Journal Cloud entitlement — metadata preflight
 
-Status: **read-only preflight prepared; not run**. No entitlement schema,
-webhook endpoint, secret, purchase, cloud access, or live database change has
-been created.
+Status: **read-only preflight run manually and accepted on November 17, 2026**.
+No entitlement schema, webhook endpoint, secret, purchase, cloud access, or
+live database change has been created. See `01-preflight-reviewed.md`.
 
 This package starts the trusted Journal Cloud entitlement boundary without
 reusing siFia's existing `user_subscriptions_new`, `validated_receipts`, Apple
@@ -37,8 +37,8 @@ The intended v1 boundary is:
 
 | Step | File/action | Effect |
 | ---: | --- | --- |
-| 1 | Run `01-preflight.sql` in the existing siFia Supabase SQL Editor | Metadata read only |
-| 2 | Share its single JSON result | Review only; do not include secrets or customer data |
+| 1 | Run `01-preflight.sql` in the existing siFia Supabase SQL Editor | Completed; metadata read only |
+| 2 | Share its single JSON result | Completed and accepted; no conflicts found |
 | 3 | Configure the exact Google Play product/base-plan identifiers | Required before the cross-platform allowlist and live apply are finalized |
 | 4 | Review the additive apply/verify/containment package after it is prepared | No execution until explicitly approved |
 
