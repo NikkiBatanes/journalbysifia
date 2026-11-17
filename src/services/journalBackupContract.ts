@@ -126,6 +126,16 @@ export const validateJournalBackup = (candidate: unknown): JournalBackupValidati
   const inventory = candidate.inventory;
   const requiredCollections = ['journalRecords', 'reflectionRecords', 'prayerRecords', 'bibleStudySessions', 'routineStates', 'reviews', 'prayerDrafts'];
   requiredCollections.forEach(key => { if (!hasArray(inventory, key)) {add(issue('fatal', 'malformed_collection', `$.inventory.${key}`, 'Required collection must be an array.'));} });
+  const locatedCollections = ['journalRecords', 'reflectionRecords', 'prayerRecords', 'bibleStudySessions', 'routineStates', 'reviews'];
+  if (!isObject(inventory.recordLocations)) {
+    add(issue('fatal', 'missing_record_locations', '$.inventory.recordLocations', 'Exact source-key locations are required for safe restore planning.'));
+  } else {
+    locatedCollections.forEach(key => {
+      if (!hasArray(inventory.recordLocations, key)) {
+        add(issue('fatal', 'malformed_record_locations', `$.inventory.recordLocations.${key}`, 'Record locations must be an array.'));
+      }
+    });
+  }
   if (!isObject(inventory.authoredDrafts)
     || !hasArray(inventory.authoredDrafts, 'sessionNotes')
     || !hasArray(inventory.authoredDrafts, 'guidedReflections')
@@ -145,6 +155,15 @@ export const validateJournalBackup = (candidate: unknown): JournalBackupValidati
     add(issue('fatal', 'malformed_review_settings', '$.inventory.reviewSettings', 'Review settings must be an object or null.'));
   }
   if (fatal.length) {return { valid: false, fatal, warnings };}
+
+  locatedCollections.forEach(section => {
+    const locations = inventory.recordLocations[section];
+    locations.forEach((location: unknown, index: number) => {
+      if (!isObject(location) || typeof location.id !== 'string' || !location.id || typeof location.key !== 'string' || !location.key) {
+        add(issue('fatal', 'invalid_record_location', `$.inventory.recordLocations.${section}[${index}]`, 'Record location requires a non-empty id and key.'));
+      }
+    });
+  });
 
   const keyedSections: Array<[string, unknown[]]> = [
     ['authoredDrafts.sessionNotes', inventory.authoredDrafts.sessionNotes],

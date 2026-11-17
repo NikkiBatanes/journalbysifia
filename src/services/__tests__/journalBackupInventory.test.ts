@@ -21,6 +21,7 @@ beforeEach(() => {
 
 it('enumerates raw canonical records, tombstones, relationships, settings, and prayer drafts without mutating storage', async () => {
   put('journal_local:todo:2026-09-17:todo-active', { id: 'todo-active', content_type: 'todo', selected_date: '2026-09-17', content: '{"text":"Active"}', created_at: timestamp, updated_at: timestamp });
+  put('journal_local_singleton:morning_check_in:2026-09-17', { id: 'morning-check', content_type: 'morning_check_in', selected_date: '2026-09-17', content: '{"feeling":"Hopeful"}', created_at: timestamp, updated_at: timestamp });
   put('journal_local:todo:2026-09-17:todo-deleted', { id: 'todo-deleted', content_type: 'todo', selected_date: '2026-09-17', content: '{}', created_at: timestamp, updated_at: timestamp, deleted: true });
   put('journal_local:time_block:2026-09-17:time-block-local', { id: 'time-block-local', content_type: 'time_block', selected_date: '2026-09-17', content: '{"title":"Plan locally","start_time":"2026-09-17T09:00:00.000Z","end_time":"2026-09-17T10:00:00.000Z"}', created_at: timestamp, updated_at: timestamp });
   put('reflection_local:scripture:2026-09-17:study-reflection', { id: 'study-reflection', type: 'scripture', source: 'bible_study', selected_date: '2026-09-17', content: '{}', created_at: timestamp, updated_at: timestamp });
@@ -59,7 +60,8 @@ it('enumerates raw canonical records, tombstones, relationships, settings, and p
   const second = await getJournalBackupInventory();
 
   expect(first).toEqual(second);
-  expect(first.journalRecords.map(record => record.id)).toEqual(['time-block-local', 'todo-active', 'todo-deleted']);
+  expect(first.journalRecords.map(record => record.id)).toEqual(['morning-check', 'time-block-local', 'todo-active', 'todo-deleted']);
+  expect(first.recordLocations.journalRecords).toContainEqual({ id: 'morning-check', key: 'journal_local_singleton:morning_check_in:2026-09-17' });
   expect(first.journalRecords.find(record => record.id === 'time-block-local')?.content_type).toBe('time_block');
   expect(first.reflectionRecords.map(record => record.id)).toEqual(['classified-reflection', 'guided-journey', 'reflection-deleted', 'study-reflection']);
   expect(first.reflectionRecords.find(record => record.id === 'classified-reflection')?.metadata?.journalClassification).toBe('brain_dump');

@@ -47,6 +47,18 @@ time-block stores are excluded. This is useful groundwork, but it does not
 write an archive, encrypt bytes, package media, upload to cloud, or restore data
 transactionally.
 
+The 2026-11-18 restore-planning increment also preserves each canonical
+record's exact original storage key. This is necessary because journal
+singletons and ordinary collection records cannot be distinguished safely from
+their bodies alone. `journalBackupRestorePlan.ts` is a pure, no-storage-import
+planner: it fails closed on missing/mismatched locations, duplicate output
+keys, serialization failures, and keyed values outside exact owned namespaces.
+For a valid backup it reconstructs active indexes, derives the latest Bible
+Study pointer deterministically, and explicitly excludes unmapped legacy data.
+It still performs no mutation. A later executor must stage a rollback snapshot
+and recovery marker, enforce resource limits, and survive interruption before
+this can be called a restore feature.
+
 The current app primarily stores journal state in AsyncStorage. That means a
 multi-key save or restore is not a database transaction. The current restore
 policy correctly requires a staged rollback snapshot and recovery marker, but
@@ -523,12 +535,22 @@ Evidence and findings:
   governance risk rather than proof of an active defect in 19.0.5. Production
   approval requires a documented monitoring and response owner, not reliance
   on package popularity alone.
-- `npm audit --omit=dev --audit-level=high` reported 21 production dependency
-  findings across the repository: 1 low, 8 moderate, and 12 high. None was
-  attributed directly to OP-SQLite or react-native-keychain, but the high
-  findings still require reachability/upgrade triage before a release. No
-  automatic `npm audit fix` was run because it could change unrelated and
-  potentially breaking dependencies.
+- The initial `npm audit --omit=dev` pass reported 21 production dependency
+  findings: 1 low, 8 moderate, and 12 high. Two deliberately narrow updates
+  now pin `uuid` 11.1.1 and `expensify-common` 2.0.207. The latter also fixes
+  the installed peer mismatch with `@expensify/react-native-live-markdown` and
+  moves its Lodash dependency beyond the reported vulnerable range. The
+  repeat audit reports 18 findings: 1 low, 7 moderate, and 10 high, with no
+  critical findings. None is attributed directly to OP-SQLite or
+  react-native-keychain.
+- The remaining audit set includes user-content Markdown parsing, navigation
+  query parsing, Sentry/build tooling, APNs token-generation tooling, and
+  other transitive dependencies. Markdown and navigation are app-reachable
+  and require isolated compatibility upgrades and regression tests. The
+  `jsonwebtoken` finding is currently reached only by local APNs token scripts,
+  not by the shipped React Native application, but it still remains a release
+  tooling fix. No automatic `npm audit fix` was run because its proposed
+  changes include unrelated or backward dependency moves.
 
 Production re-entry gate:
 
@@ -537,8 +559,10 @@ Production re-entry gate:
 2. Re-run iOS and Android activation, rollback, reopen, wrong-key, disk-full,
    forced-interruption, raw-file, and release-build tests on the exact upgraded
    graph.
-3. Add an automated dependency advisory check and a scheduled review of
-   OP-SQLite, SQLCipher, OpenSSL, and react-native-keychain.
+3. Wire the automated dependency advisory check into release CI when an
+   approved graph exists, and establish a scheduled review of OP-SQLite,
+   SQLCipher, OpenSSL, and react-native-keychain. The current command is
+   expected to fail closed while OpenSSL 3.6 remains installed.
 4. Triage the repository-wide production audit findings; resolve or document
    non-reachability and compensating controls before release approval.
 5. Require an independent mobile security review before marketing the vault as
@@ -551,7 +575,7 @@ Production re-entry gate:
 | OP-SQLite 19.0.5 with its packaged SQLCipher graph | Exact app integration and all synthetic runtime tests passed on iOS and Android | Its resolved OpenSSL 3.6 provider is end-of-life | Keep only as the development control; do not open customer data |
 | A future OP-SQLite release with a supported cryptographic provider | Lowest migration and API-change cost if upstream publishes one | Availability and security-response timing are outside siFia's control | Preferred re-test path when an eligible release exists |
 | A maintained internal OP-SQLite/OpenSSL fork | Could preserve the tested API while selecting a supported provider | siFia would own native crypto patching, reproducible builds, advisories, and ABI testing | Do not choose unless upstream cannot provide a supported build and an independent reviewer approves the maintenance plan |
-| Expo SQLite with SQLCipher | Official Expo documentation supports SQLCipher configuration | Requires Expo-module integration and a new audit of the exact iOS/Android SQLCipher and provider graph | Viable isolated replacement spike; no production approval yet |
+| Expo SQLite with SQLCipher | Official Expo documentation supports SQLCipher configuration | This is a bare React Native 0.88 app with no Expo runtime; adoption would add Expo Modules and a second native database graph that still needs a provider audit | Deferred unless OP-SQLite cannot supply an eligible build; no production approval |
 | Realm community database | Encrypted local database capability exists independently of Atlas Device Sync | The former Atlas Device SDKs reached end-of-life and the database now depends on community branches/governance | Not preferred for this launch |
 
 The current recommendation is to keep the proven OP-SQLite test harness as a
@@ -560,17 +584,33 @@ isolated build. No dependency swap may be merged merely because it compiles:
 it must identify the packaged native provider and pass every production
 re-entry check above.
 
+The repository now includes `npm run security:journal-storage`, a fail-closed
+static gate that checks exact OP-SQLite pinning, package-lock integrity, the
+patched advisory floor, SQLCipher configuration, and the resolved iOS and
+Android OpenSSL branches. Its four unit tests pass. Against the current graph,
+the command exits non-zero and identifies iOS `3.6.2000` and Android
+`3.6.2-3` as unapproved. The approved branch allowlist currently contains only
+OpenSSL 3.5 LTS; any future branch must be deliberately reviewed before it is
+added. This static gate complements rather than replaces device runtime,
+release-build, binary, and migration testing.
+
+The npm registry was rechecked on 2026-11-18. OP-SQLite 19.0.5 remains the
+latest published release, so there is no newer upstream candidate to install
+or re-test yet.
+
 ## Immediate next implementation step
 
 The controlled development diagnostic has passed on one iOS and one Android
 installation and never runs automatically. Forced-interruption recovery,
 deterministic disk-full rollback, and raw-file plaintext checks also passed for
 the synthetic fixture. The dependency review did not approve the current
-native graph for customer data because OpenSSL 3.6 is end-of-life. Next,
-monitor for a supported OP-SQLite build and prepare an isolated Expo SQLite
-SQLCipher feasibility spike. Do not install that candidate in the main app
-runtime or implement the production migration until its exact native graph has
-been inspected and the user approves the dependency change.
+native graph for customer data because OpenSSL 3.6 is end-of-life. The Expo
+SQLite feasibility review found that this bare React Native app would require
+Expo Modules, so it is not the preferred narrow replacement. Next, monitor for
+a supported OP-SQLite build while the automated gate keeps customer migration
+blocked. Do not install another database stack or implement the production
+migration until its exact native graph has been inspected and the user
+approves the dependency change.
 
 No user action or manual SQL is required for the next local implementation
 increment. No key or journal content should be shared.

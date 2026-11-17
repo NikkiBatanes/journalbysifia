@@ -15,6 +15,7 @@ import type { ReviewSettings } from '../storage/reviewSettingsStorage';
 import type { PrayerDraft } from '../storage/prayerDraftStorage';
 
 export type KeyedBackupRecord = { key: string; value: unknown };
+export type BackupRecordLocation = { id: string; key: string };
 type ReferenceIssue = { owner: string; reference: string; status: 'dangling' | 'legacy_unresolved' };
 
 const GOSPEL_AUTHORED_KEYS = new Set([
@@ -57,6 +58,19 @@ export interface JournalBackupInventory {
   reviews: LocalReviewEntry[];
   reviewSettings: ReviewSettings | null;
   prayerDrafts: PrayerDraft[];
+  /**
+   * Exact source keys for records whose storage shape cannot always be inferred
+   * from their bodies (notably journal singleton records). A future restore must
+   * validate these keys against each record before preparing any write.
+   */
+  recordLocations: {
+    journalRecords: BackupRecordLocation[];
+    reflectionRecords: BackupRecordLocation[];
+    prayerRecords: BackupRecordLocation[];
+    bibleStudySessions: BackupRecordLocation[];
+    routineStates: BackupRecordLocation[];
+    reviews: BackupRecordLocation[];
+  };
   authoredDrafts: {
     sessionNotes: KeyedBackupRecord[];
     guidedReflections: KeyedBackupRecord[];
@@ -68,6 +82,22 @@ export interface JournalBackupInventory {
   legacyAuthoredContent: { reflectionLogs: KeyedBackupRecord[]; journalRecords: KeyedBackupRecord[] };
   integrity: JournalBackupIntegrityReport;
 }
+
+const readLocatedRecords = async <T extends { id: string }>(predicate: (key: string) => boolean): Promise<{
+  records: T[];
+  locations: BackupRecordLocation[];
+}> => {
+  const keys = (await AsyncStorage.getAllKeys()).filter(predicate).sort();
+  if (!keys.length) {return { records: [], locations: [] };}
+  const rows = (await AsyncStorage.multiGet(keys))
+    .map(([key, raw]) => ({ key, value: safeJsonParse<T>(raw || '', { fallback: null }) }))
+    .filter((row): row is { key: string; value: T } => row.value !== null && typeof row.value.id === 'string');
+  return {
+    records: rows.map(row => row.value),
+    locations: rows.map(row => ({ id: row.value.id, key: row.key }))
+      .sort((a, b) => `${a.id}|${a.key}`.localeCompare(`${b.id}|${b.key}`)),
+  };
+};
 
 const readRecords = async <T>(predicate: (key: string) => boolean): Promise<T[]> => {
   const keys = (await AsyncStorage.getAllKeys()).filter(predicate).sort();
@@ -112,12 +142,12 @@ export const getJournalBackupInventory = async (): Promise<JournalBackupInventor
     legacyJournalRecords,
     reviewSettingsRaw,
   ] = await Promise.all([
-    readRecords<LocalJournalEntry>(key => key.startsWith('journal_local:') || key.startsWith('journal_local_singleton:')),
-    readRecords<LocalReflectionEntry>(key => key.startsWith('reflection_local:')),
-    readRecords<LocalPrayerEntry>(key => key.startsWith('prayer_local:')),
-    readRecords<BibleStudySession>(key => key.startsWith('bible_study_session:')),
-    readRecords<RoutineState>(key => key.startsWith('routine_state:')),
-    readRecords<LocalReviewEntry>(key => key.startsWith('review_local:')),
+    readLocatedRecords<LocalJournalEntry>(key => key.startsWith('journal_local:') || key.startsWith('journal_local_singleton:')),
+    readLocatedRecords<LocalReflectionEntry>(key => key.startsWith('reflection_local:')),
+    readLocatedRecords<LocalPrayerEntry>(key => key.startsWith('prayer_local:')),
+    readLocatedRecords<BibleStudySession>(key => key.startsWith('bible_study_session:')),
+    readLocatedRecords<RoutineState>(key => key.startsWith('routine_state:')),
+    readLocatedRecords<LocalReviewEntry>(key => key.startsWith('review_local:')),
     readRecords<PrayerDraft>(key => key.startsWith('prayer_draft:')),
     readKeyedRecords(key => key.startsWith('session_notes_draft_v1:')),
     readKeyedRecords(key => key.startsWith('guided_reflection_draft_v1:')),
@@ -129,12 +159,12 @@ export const getJournalBackupInventory = async (): Promise<JournalBackupInventor
     AsyncStorage.getItem('review_settings_v1'),
   ]);
 
-  const journalRecords = sortRecords(journal, item => item.selected_date, item => item.updated_at);
-  const reflectionRecords = sortRecords(reflections, item => item.selected_date, item => item.updated_at);
-  const prayerRecords = sortRecords(prayers, item => item.selected_date, item => item.updated_at);
-  const sortedSessions = sortRecords(bibleStudySessions, item => item.selected_date, item => item.updated_at);
-  const sortedRoutineStates = sortRecords(routineStates, item => item.selected_date, item => item.completed_at || item.started_at || '');
-  const sortedReviews = sortRecords(reviews, item => item.periodStart, item => item.updatedAt);
+  const journalRecords = sortRecords(journal.records, item => item.selected_date, item => item.updated_at);
+  const reflectionRecords = sortRecords(reflections.records, item => item.selected_date, item => item.updated_at);
+  const prayerRecords = sortRecords(prayers.records, item => item.selected_date, item => item.updated_at);
+  const sortedSessions = sortRecords(bibleStudySessions.records, item => item.selected_date, item => item.updated_at);
+  const sortedRoutineStates = sortRecords(routineStates.records, item => item.selected_date, item => item.completed_at || item.started_at || '');
+  const sortedReviews = sortRecords(reviews.records, item => item.periodStart, item => item.updatedAt);
   const sortedPrayerDrafts = [...prayerDrafts].sort((a, b) => `${a.key}|${a.updatedAt}`.localeCompare(`${b.key}|${b.updatedAt}`));
   const reviewSettings = safeJsonParse<ReviewSettings>(reviewSettingsRaw || '', { fallback: null });
 
@@ -175,6 +205,14 @@ export const getJournalBackupInventory = async (): Promise<JournalBackupInventor
     reviews: sortedReviews,
     reviewSettings,
     prayerDrafts: sortedPrayerDrafts,
+    recordLocations: {
+      journalRecords: journal.locations,
+      reflectionRecords: reflections.locations,
+      prayerRecords: prayers.locations,
+      bibleStudySessions: bibleStudySessions.locations,
+      routineStates: routineStates.locations,
+      reviews: reviews.locations,
+    },
     authoredDrafts: {
       sessionNotes: sessionNoteDrafts,
       guidedReflections: guidedReflectionDrafts,

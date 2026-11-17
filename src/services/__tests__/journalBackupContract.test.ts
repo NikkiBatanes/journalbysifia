@@ -7,6 +7,14 @@ const mockInventory = {
   reviews: [{ id: 'review-1', type: 'weekly', periodStart: '2026-09-14', periodEnd: '2026-09-20', status: 'completed', memorableItems: [{ id: 'todo-1' }], answers: {}, createdAt: '2026-09-17T10:00:00.000Z', updatedAt: '2026-09-17T10:00:00.000Z' }],
   reviewSettings: { weekEndsOn: 0, reminderTime: '19:00', enabledCadences: { weekly: true } },
   prayerDrafts: [{ key: 'prayer_draft:open:2026-09-17:default', type: 'open', selectedDate: '2026-09-17', updatedAt: '2026-09-17T10:00:00.000Z', data: { content: 'Draft' } }],
+  recordLocations: {
+    journalRecords: [{ id: 'todo-1', key: 'journal_local:todo:2026-09-17:todo-1' }],
+    reflectionRecords: [{ id: 'study-reflection', key: 'reflection_local:scripture:2026-09-17:study-reflection' }],
+    prayerRecords: [{ id: 'study-prayer', key: 'prayer_local:2026-09-17:study-prayer' }],
+    bibleStudySessions: [{ id: 'study-session', key: 'bible_study_session:study-session' }],
+    routineStates: [{ id: 'routine-1', key: 'routine_state:morning:2026-09-17' }],
+    reviews: [{ id: 'review-1', key: 'review_local:weekly:review-1' }],
+  },
   authoredDrafts: {
     sessionNotes: [{ key: 'session_notes_draft_v1:2026-09-17:new:sermon', value: { title: 'Draft' } }],
     guidedReflections: [],
@@ -33,7 +41,8 @@ it('creates and validates a deterministic V1 envelope without rewriting canonica
 });
 
 it('accepts a structurally valid empty Journal backup', () => {
-  const empty = { format: JOURNAL_BACKUP_FORMAT, appIdentifier: JOURNAL_BACKUP_APP_IDENTIFIER, schemaVersion: 1, exportedAt: '2026-09-17T12:00:00.000Z', sensitive: true, inventory: { ...mockInventory, journalRecords: [], reflectionRecords: [], prayerRecords: [], bibleStudySessions: [], routineStates: [], reviews: [], prayerDrafts: [], authoredDrafts: { sessionNotes: [], guidedReflections: [], routines: [] }, gospelAuthoredContent: [], preferences: [], legacyAuthoredContent: { reflectionLogs: [], journalRecords: [] } }, integrity: mockInventory.integrity };
+  const emptyLocations = { journalRecords: [], reflectionRecords: [], prayerRecords: [], bibleStudySessions: [], routineStates: [], reviews: [] };
+  const empty = { format: JOURNAL_BACKUP_FORMAT, appIdentifier: JOURNAL_BACKUP_APP_IDENTIFIER, schemaVersion: 1, exportedAt: '2026-09-17T12:00:00.000Z', sensitive: true, inventory: { ...mockInventory, journalRecords: [], reflectionRecords: [], prayerRecords: [], bibleStudySessions: [], routineStates: [], reviews: [], prayerDrafts: [], recordLocations: emptyLocations, authoredDrafts: { sessionNotes: [], guidedReflections: [], routines: [] }, gospelAuthoredContent: [], preferences: [], legacyAuthoredContent: { reflectionLogs: [], journalRecords: [] } }, integrity: mockInventory.integrity };
   expect(validateJournalBackup(empty).valid).toBe(true);
 });
 

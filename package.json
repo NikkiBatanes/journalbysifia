@@ -9,6 +9,8 @@
   "scripts": {
     "contract:pack": "node scripts/package-journal-contract.cjs",
     "contract:check": "node scripts/package-journal-contract.cjs --check",
+    "security:journal-storage": "node scripts/check-journal-storage-dependencies.cjs",
+    "security:journal-storage:test": "node --test scripts/check-journal-storage-dependencies.test.cjs",
     "android": "react-native run-android",
     "ios": "react-native run-ios",
     "ios:release": "npx react-native run-ios --mode Release",
@@ -50,7 +52,7 @@
     "base-64": "^1.0.0",
     "date-fns": "^4.1.0",
     "dotenv": "^17.2.1",
-    "expensify-common": "^2.0.152",
+    "expensify-common": "2.0.207",
     "html-entities": "^2.5.3",
     "immer": "^10.1.1",
     "jsonwebtoken": "^9.0.2",
@@ -98,7 +100,7 @@
     "react-native-worklets": "0.13.1",
     "react-navigation-shared-element": "^3.1.3",
     "text-encoding": "^0.7.0",
-    "uuid": "^11.1.0",
+    "uuid": "11.1.1",
     "web-streams-polyfill": "3.2.1",
     "zustand": "^5.0.6"
   },
