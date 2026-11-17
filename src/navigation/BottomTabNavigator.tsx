@@ -39,8 +39,22 @@ type CustomTabBarProps = {
 };
 
 
-// Glass-looking pill background - opaque blue with glass-like border
+// iOS uses the native liquid-glass view. Android uses a blurred warm surface
+// with a translucent sage selector so every destination remains legible.
 const PILL_BG = Colors.sage;
+
+export const resolveBottomTabVisualTokens = (platform: string) => ({
+  pillSurface: platform === 'ios' ? 'transparent' : 'rgba(246, 245, 239, 0.76)',
+  selectorSurface: platform === 'ios' ? 'transparent' : 'rgba(82, 106, 91, 0.9)',
+  collapsedSurface: platform === 'ios' ? PILL_BG : 'rgba(82, 106, 91, 0.86)',
+  borderColor: platform === 'ios'
+    ? 'rgba(255, 255, 255, 0.44)'
+    : 'rgba(255, 255, 255, 0.72)',
+  inactiveContent: Colors.sage,
+  activeContent: Colors.hopeWhite,
+});
+
+const TAB_BAR_VISUALS = resolveBottomTabVisualTokens(Platform.OS);
 
 const DUO_INNER_PILL_MAX_WIDTH = 520;
 export const PILL_HEIGHT = 64;
@@ -704,20 +718,35 @@ export const CustomTabBarComponent = ({
         ]}
         pointerEvents={showTabBar ? 'box-none' : 'none'}
       >
-        {Platform.OS === 'ios' ? (
-          <View
-            testID="expanded-tab-bar-glass"
-            pointerEvents="none"
-            style={styles.pillGlassBackground}
-          >
+        <View
+          testID="expanded-tab-bar-glass"
+          pointerEvents="none"
+          style={styles.pillGlassBackground}
+        >
+          {Platform.OS === 'ios' ? (
             <LiquidGlassView
               tintColor="rgba(82, 106, 91, 0.32)"
               cornerRadius={31}
               isInteractive
               style={StyleSheet.absoluteFill}
             />
-          </View>
-        ) : null}
+          ) : (
+            <>
+              <BlurView
+                pointerEvents="none"
+                style={StyleSheet.absoluteFill}
+                blurType="light"
+                blurAmount={18}
+                reducedTransparencyFallbackColor={Colors.lightBackground}
+              />
+              <View
+                pointerEvents="none"
+                style={[StyleSheet.absoluteFill, {backgroundColor: TAB_BAR_VISUALS.pillSurface}]}
+              />
+              <View pointerEvents="none" style={styles.androidGlassHighlight} />
+            </>
+          )}
+        </View>
         {/* pillInner: shared coordinate system for selector + tabs.
             Selector is absolute here; tabs fill the same space via absoluteFillObject.
             Both use x=0 as origin → onLayout x values align with selector translateX. */}
@@ -737,22 +766,39 @@ export const CustomTabBarComponent = ({
               },
             ]}
           >
-            {Platform.OS === 'ios' ? (
-              <View pointerEvents="none" style={styles.selectorGlassLens}>
+            <View pointerEvents="none" style={styles.selectorGlassLens}>
+              {Platform.OS === 'ios' ? (
                 <LiquidGlassView
                   tintColor={Colors.sage}
                   cornerRadius={26}
                   isInteractive
                   style={StyleSheet.absoluteFill}
                 />
-              </View>
-            ) : null}
+              ) : (
+                <>
+                  <BlurView
+                    pointerEvents="none"
+                    style={StyleSheet.absoluteFill}
+                    blurType="light"
+                    blurAmount={12}
+                    reducedTransparencyFallbackColor={Colors.sage}
+                  />
+                  <View
+                    pointerEvents="none"
+                    style={[StyleSheet.absoluteFill, {backgroundColor: TAB_BAR_VISUALS.selectorSurface}]}
+                  />
+                  <View pointerEvents="none" style={styles.androidSelectorHighlight} />
+                </>
+              )}
+            </View>
           </Animated.View>
           {/* Tabs overlay — same bounds as pillInner, fade independently */}
           <Animated.View style={[StyleSheet.absoluteFillObject, { flexDirection: 'row', opacity: pillContentOpacity }]}>
           {state.routes.flatMap((route, index) => {
             const isFocused = !showAddMenu && !addFlowActive && visualActiveIndex === index;
-            const iconColor = isFocused ? Colors.hopeWhite : Colors.sage;
+            const iconColor = isFocused
+              ? TAB_BAR_VISUALS.activeContent
+              : TAB_BAR_VISUALS.inactiveContent;
 
             const onPress = () => {
               setVisualActiveIndex(index);
@@ -845,7 +891,7 @@ export const CustomTabBarComponent = ({
                               y1="1.5"
                               x2="6.5"
                               y2="11.5"
-                              stroke={showAddMenu || addFlowActive ? Colors.hopeWhite : Colors.sage}
+                              stroke={showAddMenu || addFlowActive ? TAB_BAR_VISUALS.activeContent : TAB_BAR_VISUALS.inactiveContent}
                               strokeWidth={1.7}
                               strokeLinecap="round"
                             />
@@ -854,7 +900,7 @@ export const CustomTabBarComponent = ({
                               y1="6.5"
                               x2="11.5"
                               y2="6.5"
-                              stroke={showAddMenu || addFlowActive ? Colors.hopeWhite : Colors.sage}
+                              stroke={showAddMenu || addFlowActive ? TAB_BAR_VISUALS.activeContent : TAB_BAR_VISUALS.inactiveContent}
                               strokeWidth={1.7}
                               strokeLinecap="round"
                             />
@@ -869,7 +915,7 @@ export const CustomTabBarComponent = ({
                           <Pencil
                             size={20}
                             strokeWidth={2}
-                            color={showAddMenu || addFlowActive ? Colors.hopeWhite : Colors.sage}
+                            color={showAddMenu || addFlowActive ? TAB_BAR_VISUALS.activeContent : TAB_BAR_VISUALS.inactiveContent}
                           />
                         </Animated.View>
                       </View>
@@ -935,16 +981,31 @@ export const CustomTabBarComponent = ({
 
       {/* ── Collapsed circle (fades in from left as pill collapses) ─────── */}
       {collapsedControlVisible ? <Animated.View testID="collapsed-tab-bar" style={[styles.collapsedCircle, { left: pillLeadingOffset, transform: [{ scale: collapsedScale }] }]}>
-        {Platform.OS === 'ios' ? (
-          <View pointerEvents="none" style={styles.collapsedGlassClip}>
+        <View pointerEvents="none" style={styles.collapsedGlassClip}>
+          {Platform.OS === 'ios' ? (
             <LiquidGlassView
               tintColor={Colors.sage}
               cornerRadius={26}
               isInteractive
               style={StyleSheet.absoluteFill}
             />
-          </View>
-        ) : null}
+          ) : (
+            <>
+              <BlurView
+                pointerEvents="none"
+                style={StyleSheet.absoluteFill}
+                blurType="light"
+                blurAmount={14}
+                reducedTransparencyFallbackColor={Colors.sage}
+              />
+              <View
+                pointerEvents="none"
+                style={[StyleSheet.absoluteFill, {backgroundColor: TAB_BAR_VISUALS.collapsedSurface}]}
+              />
+              <View pointerEvents="none" style={styles.androidSelectorHighlight} />
+            </>
+          )}
+        </View>
         <TouchableOpacity
           accessibilityRole="button"
           accessibilityLabel="Expand navigation"
@@ -1090,9 +1151,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     height: PILL_HEIGHT,
     borderRadius: 31,
-    backgroundColor: Platform.OS === 'ios' ? 'transparent' : PILL_BG,
-    borderWidth: Platform.OS === 'ios' ? 0 : 1,
-    borderColor: Platform.OS === 'ios' ? 'rgba(255, 255, 255, 0.44)' : Colors.sageMuted,
+    backgroundColor: 'transparent',
+    borderWidth: Platform.OS === 'ios' ? 0 : StyleSheet.hairlineWidth,
+    borderColor: TAB_BAR_VISUALS.borderColor,
     paddingHorizontal: 4,
     shadowColor: Colors.darkBackground,
     shadowOffset: { width: 0, height: 4 },
@@ -1107,6 +1168,14 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     borderRadius: 31,
+    overflow: 'hidden',
+  },
+  androidGlassHighlight: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 31,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(255, 255, 255, 0.78)',
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
   },
   // Shared container — selector and tabs both reference x=0 from here
   pillInner: {
@@ -1139,7 +1208,7 @@ const styles = StyleSheet.create({
     borderRadius: TAB_CIRCLE_SIZE / 2,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: Platform.OS === 'ios' ? 'transparent' : Colors.sageMuted,
+    backgroundColor: 'transparent',
   },
   selectorGlassLens: {
     position: 'absolute',
@@ -1147,6 +1216,14 @@ const styles = StyleSheet.create({
     width: 66,
     height: 56,
     borderRadius: 26,
+    overflow: 'hidden',
+  },
+  androidSelectorHighlight: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 26,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(255, 255, 255, 0.42)',
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
   },
   selectorGlassClip: {
     ...StyleSheet.absoluteFillObject,
@@ -1260,9 +1337,9 @@ const styles = StyleSheet.create({
     height: COLLAPSED_HEIGHT,
     borderRadius: 26,
     // Keep the cream icon legible while iOS mounts/recreates its glass effect.
-    backgroundColor: PILL_BG,
-    borderWidth: Platform.OS === 'ios' ? 0 : 1,
-    borderColor: Colors.sageMuted,
+    backgroundColor: Platform.OS === 'ios' ? PILL_BG : 'transparent',
+    borderWidth: Platform.OS === 'ios' ? 0 : StyleSheet.hairlineWidth,
+    borderColor: TAB_BAR_VISUALS.borderColor,
     shadowColor: Colors.darkBackground,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: Platform.OS === 'ios' ? 0.2 : 0.18,
@@ -1278,6 +1355,7 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     borderRadius: 26,
+    overflow: 'hidden',
   },
   collapsedCircleTouchable: {
     width: '100%',

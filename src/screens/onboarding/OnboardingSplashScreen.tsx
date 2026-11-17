@@ -9,7 +9,6 @@ import {
   View,
   StyleSheet,
   StatusBar,
-  Platform,
   Image,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -51,9 +50,6 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
     // Set status bar for splash
     try {
       StatusBar.setBarStyle('light-content');
-      if (Platform.OS === 'android') {
-        StatusBar.setBackgroundColor(Colors.sage);
-      }
     } catch (error) {
       logger.error('Error setting status bar:', error as Error);
     }

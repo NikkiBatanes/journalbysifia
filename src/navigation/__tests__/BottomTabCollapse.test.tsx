@@ -1,7 +1,7 @@
 import React from 'react';
 import {Animated, StyleSheet, Text} from 'react-native';
 import TestRenderer, {act} from 'react-test-renderer';
-import {CustomTabBarComponent} from '../BottomTabNavigator';
+import {CustomTabBarComponent, resolveBottomTabVisualTokens} from '../BottomTabNavigator';
 import {Colors} from '../../theme/colors';
 
 let mockShowTabBar = true;
@@ -48,6 +48,16 @@ const opacity = (renderer: TestRenderer.ReactTestRenderer) => {
   return typeof value === 'number' ? value : value.__getValue();
 };
 let renderer: TestRenderer.ReactTestRenderer;
+
+it('uses a light Android glass surface with contrasting navigation content', () => {
+  const tokens = resolveBottomTabVisualTokens('android');
+
+  expect(tokens.pillSurface).toBe('rgba(246, 245, 239, 0.76)');
+  expect(tokens.inactiveContent).toBe(Colors.sage);
+  expect(tokens.pillSurface).not.toBe(tokens.inactiveContent);
+  expect(tokens.selectorSurface).not.toBe(tokens.activeContent);
+  expect(tokens.activeContent).toBe(Colors.hopeWhite);
+});
 
 beforeEach(() => {
   jest.useFakeTimers();

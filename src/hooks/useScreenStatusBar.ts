@@ -1,4 +1,4 @@
-import { StatusBar, Platform } from 'react-native';
+import { StatusBar } from 'react-native';
 import { useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 
@@ -41,7 +41,9 @@ function chooseStyleFromColor(backgroundColor?: string): 'light' | 'dark' {
  * - style 'light' => light-content (white icons/text)
  * - style 'dark'  => dark-content (black icons/text)
  * - style 'auto'  => inferred from backgroundColor luminance
- * Optionally set Android backgroundColor.
+ * `backgroundColor` is used only to resolve `auto` contrast. React Native 0.88
+ * removed Android's imperative status-bar background API as part of the
+ * edge-to-edge migration, so screens must paint behind the status bar instead.
  */
 export const resolveStatusBarStyle = (
   style: StatusBarStylePref = 'auto',
@@ -56,9 +58,6 @@ export function useScreenStatusBar(style: StatusBarStylePref = 'auto', backgroun
     useCallback(() => {
       const barStyle = resolveStatusBarStyle(style, backgroundColor);
       StatusBar.setBarStyle(barStyle, true);
-      if (Platform.OS === 'android' && backgroundColor) {
-        StatusBar.setBackgroundColor(backgroundColor, true);
-      }
       return () => {
         // no-op cleanup; let next screen override
       };
