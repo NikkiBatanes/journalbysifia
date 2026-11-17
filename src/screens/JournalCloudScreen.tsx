@@ -140,11 +140,11 @@ const JournalCloudScreen: React.FC = () => {
           <Ionicons name="sync-outline" size={22} color={Colors.sage} />
           <View style={styles.boundaryCopy}>
             <ThemedText weight="semiBold" style={styles.boundaryTitle}>
-              Your existing siFia sync stays free
+              Journal works on its own
             </ThemedText>
             <ThemedText style={styles.boundaryText}>
-              Compatible records from your siFia account continue syncing at no
-              extra cost. Journal Cloud covers Journal-only data and media.
+              Keep journaling locally without an account. Journal Cloud is an
+              optional backup for Journal-only entries, note blocks and media.
             </ThemedText>
           </View>
         </View>
@@ -247,19 +247,19 @@ const JournalCloudScreen: React.FC = () => {
               <Ionicons name="person-circle-outline" size={22} color={Colors.sage} />
               <View style={styles.accountExplanationCopy}>
                 <ThemedText weight="semiBold" style={styles.accountExplanationTitle}>
-                  New to siFia?
+                  Keep your cloud backup connected
                 </ThemedText>
                 <ThemedText style={styles.accountExplanationText}>
-                  Create a free account to keep a Journal Cloud subscription
-                  connected to you. You can continue journaling locally without
-                  an account or subscription.
+                  Create a free Journal account to subscribe and restore your
+                  backup on another device. Local journaling does not require an
+                  account or subscription.
                 </ThemedText>
               </View>
             </View>
 
             <TouchableOpacity
               accessibilityRole="button"
-              accessibilityLabel="Create a free siFia account for Journal Cloud"
+              accessibilityLabel="Create a free Journal account for Journal Cloud"
               activeOpacity={0.8}
               onPress={() => {
                 triggerLightHaptic();
@@ -267,13 +267,17 @@ const JournalCloudScreen: React.FC = () => {
               }}
               style={[styles.primaryButton, styles.accountPrimaryButton]}>
               <ThemedText weight="semiBold" style={styles.primaryButtonText}>
-                Create free account
+                Create Journal account
               </ThemedText>
             </TouchableOpacity>
 
+            <ThemedText style={styles.sifiaConnectionNote}>
+              Already use the siFia app? Use the same account to connect your
+              compatible entries at no extra cost.
+            </ThemedText>
             <TouchableOpacity
               accessibilityRole="button"
-              accessibilityLabel="Sign in to an existing siFia account"
+              accessibilityLabel="Connect an existing siFia app account"
               activeOpacity={0.7}
               onPress={() => {
                 triggerLightHaptic();
@@ -281,7 +285,7 @@ const JournalCloudScreen: React.FC = () => {
               }}
               style={styles.existingAccountButton}>
               <ThemedText weight="semiBold" style={styles.existingAccountText}>
-                I already have a siFia account
+                Connect my siFia account
               </ThemedText>
             </TouchableOpacity>
           </View>
@@ -475,7 +479,8 @@ const styles = StyleSheet.create({
   accountExplanationTitle: {fontSize: 15, lineHeight: 20, color: Colors.text},
   accountExplanationText: {marginTop: 4, fontSize: 13, lineHeight: 20, color: Colors.textGray},
   accountPrimaryButton: {marginTop: 14},
-  existingAccountButton: {alignSelf: 'center', marginTop: 13, paddingHorizontal: 12, paddingVertical: 8},
+  sifiaConnectionNote: {marginTop: 17, fontSize: 12, lineHeight: 18, textAlign: 'center', color: Colors.textGray},
+  existingAccountButton: {alignSelf: 'center', marginTop: 5, paddingHorizontal: 12, paddingVertical: 8},
   existingAccountText: {fontSize: 14, color: Colors.sage},
   disabledButton: {backgroundColor: Colors.lightGray},
   disabledButtonText: {fontSize: 15, color: Colors.textGray},
