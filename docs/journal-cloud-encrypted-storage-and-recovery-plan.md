@@ -428,7 +428,7 @@ before marketing Journal Cloud as end-to-end encrypted.
 | Increment | Deliverable | Exit evidence | Current status |
 | --- | --- | --- | ---: |
 | A | Inventory correction and recovery boundary | Every authored store/settings/cache/secret classified; synthetic fixtures for every supported variant | Design documented; fixture coverage incomplete |
-| B | Crypto/database spike | Cross-platform native test vectors, crash/disk-full tests, dependency review, no plaintext artifacts | Not started |
+| B | Crypto/database spike | Cross-platform native test vectors, crash/disk-full tests, dependency review, no plaintext artifacts | In progress: isolated candidate, key tests, and native integration prepared; device runtime/crash/disk-full/plaintext-artifact evidence remains |
 | C | Transactional local migration | Restartable count/hash/reference verified migration and rollback on iOS/Android | Not started |
 | D | Managed media | Photo/voice bytes survive restart/export/restore; missing legacy URI is disclosed | Not started |
 | E | Free encrypted export/restore | Clean-device iOS/Android restore; wrong key/corruption/interruption/disk-full leave existing data intact | Not started |
@@ -436,16 +436,39 @@ before marketing Journal Cloud as end-to-end encrypted.
 | G | Paid encrypted upload/snapshots | Entitlement enforced server-side; resumable upload, quota, commit, versions, expiry/retrieval proven | Not started |
 | H | Operational recovery/security release | Isolated DR drill, deletion non-resurrection, independent findings resolved, staged rollout/kill switch | Not started |
 
+## Synthetic encrypted-database spike checkpoint — 2026-11-17
+
+The first database candidate is OP-SQLite 19.0.5 compiled with SQLCipher. The
+probe uses a separate `journal-cloud-storage-spike-v1.sqlite` database and a
+generated 256-bit key held through the platform Keychain/Keystore boundary.
+The key is device-only, cloud synchronization is disabled, malformed stored
+keys fail closed, and neither the probe nor its database is connected to app
+startup or any customer journal read/write path.
+
+Prepared runtime assertions verify that SQLCipher is active, a transaction
+rollback leaves no row, a committed synthetic row survives close/reopen, and a
+wrong key cannot read the database. Focused key-generation/reuse/fail-closed
+tests pass. Android builds with SQLCipher enabled, and CocoaPods resolves the
+SQLCipher/OpenSSL native graph. These are integration checks, not device
+runtime evidence and not approval to migrate live records.
+
+The iOS development diagnostic passed all four runtime assertions on
+2026-11-17 using SQLCipher 4.19.0 Community. The Android development diagnostic
+passed the same assertions on 2026-11-18 using SQLCipher 4.19.0. Cross-platform
+activation, rollback, reopen, and wrong-key rejection are therefore verified
+for the synthetic database. Crash/disk-full behavior and plaintext-artifact
+inspection remain open.
+
 ## Immediate next implementation step
 
-Build a no-production-data technical spike that compares candidate encrypted
-transactional databases and streaming crypto bindings on the exact current
-iOS/Android projects. Use generated fixtures only. The spike must not migrate
-customer data, create live Storage buckets, enable checkout, or change Supabase
-schema. Its result is a recorded decision with test evidence and a rollback
-path, not just a package installation.
+The controlled development diagnostic has passed on one iOS and one Android
+installation and never runs automatically. Next, inspect the app sandbox for
+plaintext artifacts and exercise interruption, crash, and disk-full behavior
+with synthetic fixtures. Do not design the production migration until those
+checks pass and the dependency/security review is recorded.
 
-No user action or manual SQL is required for this design increment.
+No user action or manual SQL is required for the next local implementation
+increment. No key or journal content should be shared.
 
 ## Primary references
 

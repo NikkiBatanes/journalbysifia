@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "siFia mobile app",
   "private": true,
+  "op-sqlite": {
+    "sqlcipher": true
+  },
   "scripts": {
     "contract:pack": "node scripts/package-journal-contract.cjs",
     "contract:check": "node scripts/package-journal-contract.cjs --check",
@@ -19,6 +22,7 @@
   "dependencies": {
     "@expensify/react-native-live-markdown": "0.1.372",
     "@invertase/react-native-apple-authentication": "^2.4.1",
+    "@op-engineering/op-sqlite": "19.0.5",
     "@react-native-async-storage/async-storage": "^2.2.0",
     "@react-native-camera-roll/camera-roll": "^7.10.2",
     "@react-native-community/blur": "^4.4.1",

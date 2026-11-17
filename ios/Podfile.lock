@@ -106,6 +106,31 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - Yoga
+  - op-sqlite (19.0.5):
+    - hermes-engine
+    - OpenSSL-Universal
+    - RCTRequired
+    - RCTTypeSafety
+    - React-bridging
+    - React-Core
+    - React-Core-prebuilt
+    - React-cxxstableapi
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/core
+    - ReactNativeDependencies
+    - Yoga
+  - OpenSSL-Universal (3.6.2000)
   - PromisesObjC (2.4.0)
   - PurchasesHybridCommon (20.7.0):
     - RevenueCat (= 5.102.2)
@@ -2658,6 +2683,7 @@ DEPENDENCIES:
   - hermes-engine (from `../node_modules/react-native/sdks/hermes-engine/hermes-engine.podspec`)
   - HtmlToPdf (from `../node_modules/react-native-html-to-pdf`)
   - lottie-react-native (from `../node_modules/lottie-react-native`)
+  - "op-sqlite (from `../node_modules/@op-engineering/op-sqlite`)"
   - RCT-Folly (from `build/rndeps-facades/RCT-Folly`)
   - RCTDeprecation (from `build/rncore-facades/RCTDeprecation`)
   - RCTRequired (from `build/rncore-facades/RCTRequired`)
@@ -2787,6 +2813,7 @@ SPEC REPOS:
     - GTMAppAuth
     - GTMSessionFetcher
     - lottie-ios
+    - OpenSSL-Universal
     - PromisesObjC
     - PurchasesHybridCommon
     - PurchasesHybridCommonUI
@@ -2815,6 +2842,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native-html-to-pdf"
   lottie-react-native:
     :path: "../node_modules/lottie-react-native"
+  op-sqlite:
+    :path: "../node_modules/@op-engineering/op-sqlite"
   RCT-Folly:
     :path: build/rndeps-facades/RCT-Folly
   RCTDeprecation:
@@ -3064,6 +3093,8 @@ SPEC CHECKSUMS:
   HtmlToPdf: cf699cf4048fdff5a9fa20078fa00169b0ab8aa9
   lottie-ios: a881093fab623c467d3bce374367755c272bdd59
   lottie-react-native: 95d8cd3790b76b7a8976ee63d9bc15a8f3c426a1
+  op-sqlite: df0dc218c123696c1e4be9672a419d81bcdaadb0
+  OpenSSL-Universal: ecee7b138fa75a74ecf00d7ffd248fb584739b9e
   PromisesObjC: f5707f49cb48b9636751c5b2e7d227e43fba9f47
   PurchasesHybridCommon: 1b2af5db5bc2d870bccb5e09f2c180bf38362a11
   PurchasesHybridCommonUI: 2997c48aec5b2f4a31953ac813125f45f6ccf91a

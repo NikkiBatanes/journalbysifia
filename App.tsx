@@ -157,6 +157,18 @@ function App(): React.JSX.Element {
   useEffect(() => {
     initializeMetaAppEvents();
     experiencePreferences.loadOnce();
+    if (__DEV__) {
+      import('./src/dev/installJournalEncryptedStorageSpikeMenu').then(
+        ({installJournalEncryptedStorageSpikeMenu}) => {
+          installJournalEncryptedStorageSpikeMenu();
+        },
+      ).catch(error => {
+        console.error(
+          '[EncryptedStorageSpike] Could not install development diagnostic',
+          error,
+        );
+      });
+    }
     void clearJournalDevelopmentDataOnce().then(removed => {
       if (removed > 0) {queryClient.invalidateQueries();}
     }).catch(error => {
