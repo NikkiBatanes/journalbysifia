@@ -279,6 +279,42 @@ The spike must prove:
 
 No production archive is created until this gate passes.
 
+### Native provider review, 2026-11-18
+
+No reviewed React Native package currently satisfies the complete gate, so no
+archive-encryption dependency has been added to the app:
+
+| Candidate | Useful evidence | Blocking gap |
+| --- | --- | --- |
+| `react-native-quick-crypto` 1.1.9 | Maintained native implementation with current React Native support and XChaCha20-Poly1305 support | Exposes one-shot AEAD rather than libsodium `secretstream`; it does not provide the required Argon2id archive KDF |
+| `react-native-libsodium` 1.7.0 | Maintained Serenity binding with iOS, Android, and new-architecture support | Its exposed native API does not include `secretstream`; password hashing is not available through the required native mobile surface |
+| `sodium-react-native-direct` 0.4.4 | Thin native binding exposes libsodium `secretstream` and password hashing | Bundles libsodium 1.0.19 while the reviewed upstream release is 1.0.22; no React Native 0.88/new-architecture or off-JS-thread Argon2id proof |
+| `@ammarahmed/react-native-sodium` 2.0.0-alpha.3 | Advertises file streaming and Argon2 support | Alpha release without the production maturity and cross-platform evidence required for private customer journals |
+
+`scripts/check-journal-archive-crypto-provider.cjs` is the executable
+acceptance boundary. It fails closed until an exact lockfile dependency with
+verified upstream libsodium 1.0.22 or newer supplies native iOS/Android
+`secretstream`, final-tag detection, Argon2id off the JavaScript thread, secure
+randomness and memory clearing, and bounded native streaming. Separate
+clean-build evidence on React Native 0.88.1 must prove known-answer and
+cross-platform round trips plus wrong-key, corruption, truncation, reordering,
+missing-final-tag, memory, interruption, and logging assertions. A package
+passing static review is approved only for a spike; it still cannot receive
+customer data until device evidence passes.
+
+Primary evidence:
+
+- [libsodium 1.0.22 release](https://github.com/jedisct1/libsodium/releases/tag/1.0.22-RELEASE)
+- [libsodium encrypted streams and file encryption](https://doc.libsodium.org/secret-key_cryptography/secretstream)
+- [libsodium Argon2id password hashing](https://doc.libsodium.org/password_hashing/default_phf)
+- [react-native-quick-crypto](https://github.com/margelo/react-native-quick-crypto)
+- [Serenity react-native-libsodium](https://github.com/serenity-kit/react-native-libsodium)
+- [sodium-react-native-direct](https://github.com/synonymdev/sodium-react-native)
+
+The main gate command intentionally exits nonzero today. Its focused unit test
+proves both the complete synthetic acceptance case and rejection of missing,
+outdated, blocking, or incomplete evidence.
+
 ### Free-export keying
 
 Free encrypted export cannot depend on a siFia account, RevenueCat, Journal

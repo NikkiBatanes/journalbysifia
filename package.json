@@ -11,6 +11,8 @@
     "contract:check": "node scripts/package-journal-contract.cjs --check",
     "security:journal-storage": "node scripts/check-journal-storage-dependencies.cjs",
     "security:journal-storage:test": "node --test scripts/check-journal-storage-dependencies.test.cjs",
+    "security:journal-archive-crypto": "node scripts/check-journal-archive-crypto-provider.cjs",
+    "security:journal-archive-crypto:test": "node --test scripts/check-journal-archive-crypto-provider.test.cjs",
     "android": "react-native run-android",
     "ios": "react-native run-ios",
     "ios:release": "npx react-native run-ios --mode Release",
