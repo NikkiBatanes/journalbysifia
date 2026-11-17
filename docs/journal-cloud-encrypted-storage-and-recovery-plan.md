@@ -59,6 +59,17 @@ It still performs no mutation. A later executor must stage a rollback snapshot
 and recovery marker, enforce resource limits, and survive interruption before
 this can be called a restore feature.
 
+`journalBackupArchiveContract.ts` now defines the next pure boundary: a
+versioned portable manifest that is valid only as authenticated plaintext
+inside the future encrypted stream. It caps manifest/container/asset bytes,
+record and asset counts, nesting depth, structural nodes, string size, and key
+size before restore allocation. Asset paths must be exact opaque
+`objects/<UUID>` paths; only allowlisted image/audio MIME types are accepted;
+IDs and paths must be unique; hashes, sizes, totals, and owning record IDs must
+match. Restore preflight also requires native evidence that the authenticated
+final marker and every observed object length were verified. These checks do
+not replace AEAD authentication and do not create a plaintext archive.
+
 The current app primarily stores journal state in AsyncStorage. That means a
 multi-key save or restore is not a database transaction. The current restore
 policy correctly requires a staged rollback snapshot and recovery marker, but
