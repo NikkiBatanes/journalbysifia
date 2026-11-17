@@ -74,6 +74,10 @@ V1 recommendations:
   family sharing until the base lifecycle passes production-like sandbox tests;
 - monthly and annual provide the same capability and storage allowance; annual
   is a billing discount, not a different entitlement;
+- approved launch pricing is USD 1.99 monthly / USD 19.99 annual as the United
+  States base, with a Philippines override of PHP 59 monthly / PHP 599 annual;
+- both plans provide 5 GB total per account for documents and compressed
+  photos; v1 excludes video and never describes the allowance as unlimited;
 - display localized store price/period from the store SDK, never a hard-coded
   price;
 - require a Journal/siFia account before purchase because the capability is

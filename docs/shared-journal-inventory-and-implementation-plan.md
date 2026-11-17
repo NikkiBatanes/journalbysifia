@@ -178,7 +178,7 @@ No record bodies should be placed in tickets, analytics, logs, or committed fixt
 
 Percentages below are conservative planning estimates against the deliverables and exit gates in this version, not a security certification or a shipped-feature percentage. A phase reaches 100% only when its exit gate has recorded evidence. Existing local editors, auth helpers, or IAP dependencies alone do not complete a new integration phase.
 
-Weights total 100%. Overall delivery estimate is `sum(weight × phase completion / 100)`, currently 15.1%, reported as **approximately 15%**. The deployed and verified profile and Seeker helper fixes each contribute a conservative five points to Phase 2. The RevenueCat client foundation contributes twenty points to Phase 9 after focused identity tests, iOS compilation and no-key simulator launch, and a full Android APK build. The many remaining authorization, entitlement, receipt, deletion, revision/change-feed, cloud, recovery, and release deliverables keep this credit narrow. The earlier approximately 19% groundwork/readiness estimate measured a different scope. Future optional display work is excluded from the launch denominator.
+Weights total 100%. Overall delivery estimate is `sum(weight × phase completion / 100)`, currently 16.3%, reported as **approximately 16%**. The deployed and verified profile and Seeker helper fixes each contribute a conservative five points to Phase 2. RevenueCat client/identity support, the configured Apple product catalog, the approved pricing/5 GB allowance, and a successful localized iOS offering read contribute forty points to Phase 9. The many remaining authorization, server entitlement, receipt/webhook, deletion, revision/change-feed, cloud, recovery, Android billing, paywall, lifecycle, and release deliverables keep this credit narrow. The earlier approximately 19% groundwork/readiness estimate measured a different scope. Future optional display work is excluded from the launch denominator.
 
 | Phase | Deliverable | Weight | Completion estimate | Status / evidence |
 | --- | --- | ---: | ---: | --- |
@@ -191,7 +191,7 @@ Weights total 100%. Overall delivery estimate is `sum(weight × phase completion
 | 6 | Account connection and device enrollment | 8% | 0% | Existing auth is groundwork; safe combining/enrollment flow remains |
 | 7 | Free bidirectional sync and initial merge | 14% | 15% | Canonical preflight includes one-off Time Blocks through the shared core; consistent storage snapshots, remote adapters, confirmation UI, executor, outbox/cursor/conflict engine remain |
 | 8 | Encrypted Journal Cloud and versioned recovery | 12% | 0% | Cloud protocol, key recovery, and verified snapshots remain |
-| 9 | Monthly/annual billing and lifecycle UX | 6% | 20% | RevenueCat 11.0.2 client foundation and account-identity coordinator are installed and compile on iOS/Android; no live keys, catalog, purchase UI, webhook, or server entitlement mirror exists yet |
+| 9 | Monthly/annual billing and lifecycle UX | 6% | 40% | RevenueCat 11.0.2 client/identity foundation compiles on iOS/Android; Apple monthly/annual products map to `journal_cloud`, `default` returned both localized products on iOS, and pricing/5 GB are approved; Android catalog, paywall/purchase/restore UX, webhook, and server entitlement mirror remain |
 | 10 | Security review, disaster recovery, staged release | 6% | 0% | Launch evidence and recovery drill remain |
 | 11 | Future siFia read-only extension display | Excluded | 0% | Planned after the core launch |
 
@@ -771,6 +771,30 @@ server entitlement mirror, SQL, cloud access, or live backend deployment was
 created. It raises Phase 9 from 0% to 20% and the weighted roadmap from 13.9% to
 **15.1% (approximately 15%)**. Store/provider setup and the trusted server
 boundary are the next gates.
+
+## RevenueCat iOS catalog checkpoint, 2026-11-17
+
+The Apple `Journal Cloud` subscription group now contains monthly and annual
+auto-renewable products with identifiers
+`app.journal.sifia.cloud.monthly` and `app.journal.sifia.cloud.annual`.
+RevenueCat maps both to the single `journal_cloud` entitlement and exposes them
+as `$rc_monthly` and `$rc_annual` in the current `default` offering. The iOS
+public SDK key is present only in the ignored local `.env.mobile` file.
+
+An iPhone simulator build succeeded and launched. A real SDK offering read then
+returned `default`, USD 1.99 / `P1M`, and USD 19.99 / `P1Y`; the exact catalog
+validator passed with no issues. This was read-only: no purchase, restore,
+entitlement grant, webhook, SQL, or cloud access occurred. Focused billing tests
+now cover safe offering projection plus exact current-offering/product/period
+validation.
+
+Launch pricing is USD 1.99 monthly / USD 19.99 annual as the United States base,
+with a Philippines override of PHP 59 monthly / PHP 599 annual. Both periods
+provide one account-level 5 GB total allowance for documents and compressed
+photos; video and unlimited storage are excluded from v1. This checkpoint raises
+Phase 9 to 40% and weighted delivery to **16.3% (approximately 16%)**. Android
+catalog setup, the customer-facing paywall and purchase/restore lifecycle, and
+the trusted webhook/server entitlement mirror remain.
 
 ## Primary references checked on 2026-11-03
 

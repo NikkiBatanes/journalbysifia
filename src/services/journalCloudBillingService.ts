@@ -2,6 +2,7 @@ import {Platform} from 'react-native';
 import Purchases, {
   LOG_LEVEL,
   type CustomerInfo,
+  type PurchasesOffering,
   type PurchasesConfiguration,
   type PurchasesOfferings,
 } from 'react-native-purchases';
@@ -10,6 +11,11 @@ import {ENV} from '../config/environment';
 import {Logger} from '../utils/ProductionLogger';
 
 export const DEFAULT_JOURNAL_CLOUD_ENTITLEMENT = 'journal_cloud';
+export const DEFAULT_JOURNAL_CLOUD_OFFERING = 'default';
+export const JOURNAL_CLOUD_MONTHLY_PRODUCT =
+  'app.journal.sifia.cloud.monthly';
+export const JOURNAL_CLOUD_ANNUAL_PRODUCT =
+  'app.journal.sifia.cloud.annual';
 
 export type JournalCloudBillingPlatform = 'ios' | 'android' | 'unsupported';
 
@@ -35,6 +41,20 @@ export interface JournalCloudEntitlementSnapshot {
   entitlementIdentifier: string;
   expirationDate: string | null;
   willRenew: boolean;
+}
+
+export interface JournalCloudOfferingPackageSnapshot {
+  packageIdentifier: string;
+  packageType: string;
+  productIdentifier: string;
+  localizedPrice: string;
+  currencyCode: string;
+  subscriptionPeriod: string | null;
+}
+
+export interface JournalCloudOfferingSnapshot {
+  offeringIdentifier: string;
+  packages: JournalCloudOfferingPackageSnapshot[];
 }
 
 export class JournalCloudAccountRequiredError extends Error {
@@ -66,6 +86,62 @@ export const toJournalCloudEntitlementSnapshot = (
     expirationDate: entitlement?.expirationDate ?? null,
     willRenew: entitlement?.willRenew ?? false,
   };
+};
+
+export const toJournalCloudOfferingSnapshot = (
+  offering: PurchasesOffering | null,
+): JournalCloudOfferingSnapshot | null => {
+  if (!offering) {
+    return null;
+  }
+
+  return {
+    offeringIdentifier: offering.identifier,
+    packages: offering.availablePackages.map(packageItem => ({
+      packageIdentifier: packageItem.identifier,
+      packageType: packageItem.packageType,
+      productIdentifier: packageItem.product.identifier,
+      localizedPrice: packageItem.product.priceString,
+      currencyCode: packageItem.product.currencyCode,
+      subscriptionPeriod: packageItem.product.subscriptionPeriod,
+    })),
+  };
+};
+
+export const validateJournalCloudOffering = (
+  snapshot: JournalCloudOfferingSnapshot | null,
+): string[] => {
+  if (!snapshot) {
+    return ['current_offering_missing'];
+  }
+
+  const issues: string[] = [];
+  if (snapshot.offeringIdentifier !== DEFAULT_JOURNAL_CLOUD_OFFERING) {
+    issues.push('unexpected_current_offering');
+  }
+
+  const monthly = snapshot.packages.find(
+    packageItem =>
+      packageItem.productIdentifier === JOURNAL_CLOUD_MONTHLY_PRODUCT,
+  );
+  const annual = snapshot.packages.find(
+    packageItem =>
+      packageItem.productIdentifier === JOURNAL_CLOUD_ANNUAL_PRODUCT,
+  );
+
+  if (!monthly) {
+    issues.push('monthly_product_missing');
+  } else if (monthly.subscriptionPeriod !== 'P1M') {
+    issues.push('monthly_period_invalid');
+  }
+
+  if (!annual) {
+    issues.push('annual_product_missing');
+  } else if (annual.subscriptionPeriod !== 'P1Y') {
+    issues.push('annual_period_invalid');
+  }
+
+  return issues;
 };
 
 export class JournalCloudBillingCoordinator {
@@ -168,6 +244,11 @@ export class JournalCloudBillingCoordinator {
     }
 
     return this.sdk.getOfferings();
+  }
+
+  async getCurrentOfferingSnapshot(): Promise<JournalCloudOfferingSnapshot | null> {
+    const offerings = await this.getOfferings();
+    return toJournalCloudOfferingSnapshot(offerings?.current ?? null);
   }
 
   async restorePurchases(): Promise<JournalCloudEntitlementSnapshot> {

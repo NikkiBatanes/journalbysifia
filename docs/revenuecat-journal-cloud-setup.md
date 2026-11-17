@@ -1,8 +1,10 @@
 # RevenueCat setup for Journal Cloud
 
-Status: operator checklist, November 17, 2026. The client SDK foundation is
-installed but safely disabled. Completing this checklist configures test
-commerce; it does not by itself authorize Journal Cloud server access.
+Status: iOS catalog checkpoint verified, November 17, 2026. The client SDK
+foundation is installed. The Apple public SDK key remains local and untracked;
+the app successfully fetched the real `default` offering from RevenueCat in an
+iOS simulator. This test commerce configuration does not by itself authorize
+Journal Cloud server access.
 
 ## Fixed product boundary
 
@@ -34,6 +36,21 @@ Complete these steps in test/sandbox mode first.
 | 9 | RevenueCat | Create offering `default` with monthly and annual packages | The offering returns both localized store products |
 | 10 | Local `.env.mobile` | Add the two platform **public SDK keys** and retain `REVENUECAT_JOURNAL_CLOUD_ENTITLEMENT=journal_cloud` | A local sandbox build can fetch the `default` offering |
 
+### Verified iOS checkpoint — November 17, 2026
+
+- Apple subscription group: `Journal Cloud`.
+- Apple products: `app.journal.sifia.cloud.monthly` and
+  `app.journal.sifia.cloud.annual`.
+- RevenueCat entitlement: `journal_cloud`; both products attached.
+- RevenueCat current offering: `default`, containing `$rc_monthly` and
+  `$rc_annual`.
+- The local iOS SDK returned the monthly product as USD 1.99 / `P1M` and the
+  annual product as USD 19.99 / `P1Y`; catalog validation reported no issues.
+- Products were added to RevenueCat manually. The optional App Store Connect
+  API key for automatic catalog/price synchronization remains a pre-release
+  credential task; it is different from the already-valid In-App Purchase key.
+- No purchase, restore, entitlement grant, webhook, or cloud write was invoked.
+
 Working Apple product identifiers are
 `app.journal.sifia.cloud.monthly` and
 `app.journal.sifia.cloud.annual`. Confirm them before creation because store
@@ -41,6 +58,20 @@ identifiers are difficult or impossible to rename after use. Google uses the
 single subscription ID `journal_cloud` with `monthly` and `annual` base plans.
 Monthly and annual must provide the same storage/features; annual is only a
 billing-period discount.
+
+## Approved launch pricing and allowance
+
+| Storefront | Monthly | Annual |
+| --- | ---: | ---: |
+| Philippines override | PHP 59 | PHP 599 |
+| United States base | USD 1.99 | USD 19.99 |
+| Other storefronts | Apple-equivalent localized price | Apple-equivalent localized price |
+
+Both billing periods grant one account-level **5 GB total Journal Cloud
+allowance**. The allowance is not renewed or multiplied each month. V1 includes
+journal documents and compressed photos; it does not include video or promise
+unlimited storage. The paywall, store metadata, settings usage meter, FAQ, and
+subscription terms must disclose the 5 GB total before purchase.
 
 ## Keep these values private
 
@@ -60,8 +91,9 @@ release build.
 - No client entitlement enables cloud storage.
 - No RevenueCat webhook endpoint or Supabase entitlement tables exist.
 - No SQL should be run for this checklist.
-- No pricing, storage quota, recovery window, or post-expiry retention promise
-  is final until cost and policy approval.
+- Pricing and the 5 GB total allowance are approved. The recovery window,
+  post-expiry retention promise, image limits/compression policy, and support
+  process are not final.
 
 After the dashboard checklist is complete, the next engineering increment is a
 sandbox offering/paywall read path followed by the authenticated webhook and

@@ -5,6 +5,8 @@ import {
   JournalCloudBillingCoordinator,
   hasActiveJournalCloudEntitlement,
   toJournalCloudEntitlementSnapshot,
+  toJournalCloudOfferingSnapshot,
+  validateJournalCloudOffering,
   type JournalCloudBillingSdk,
 } from '../journalCloudBillingService';
 
@@ -129,5 +131,74 @@ describe('Journal Cloud entitlement helpers', () => {
       expirationDate: null,
       willRenew: false,
     });
+  });
+});
+
+describe('Journal Cloud offering helpers', () => {
+  const offering = {
+    identifier: 'default',
+    availablePackages: [
+      {
+        identifier: '$rc_monthly',
+        packageType: 'MONTHLY',
+        product: {
+          identifier: 'app.journal.sifia.cloud.monthly',
+          priceString: '₱59.00',
+          currencyCode: 'PHP',
+          subscriptionPeriod: 'P1M',
+        },
+      },
+      {
+        identifier: '$rc_annual',
+        packageType: 'ANNUAL',
+        product: {
+          identifier: 'app.journal.sifia.cloud.annual',
+          priceString: '₱599.00',
+          currencyCode: 'PHP',
+          subscriptionPeriod: 'P1Y',
+        },
+      },
+    ],
+  } as unknown as NonNullable<PurchasesOfferings['current']>;
+
+  it('keeps only safe catalog fields for the paywall read path', () => {
+    expect(toJournalCloudOfferingSnapshot(offering)).toEqual({
+      offeringIdentifier: 'default',
+      packages: [
+        {
+          packageIdentifier: '$rc_monthly',
+          packageType: 'MONTHLY',
+          productIdentifier: 'app.journal.sifia.cloud.monthly',
+          localizedPrice: '₱59.00',
+          currencyCode: 'PHP',
+          subscriptionPeriod: 'P1M',
+        },
+        {
+          packageIdentifier: '$rc_annual',
+          packageType: 'ANNUAL',
+          productIdentifier: 'app.journal.sifia.cloud.annual',
+          localizedPrice: '₱599.00',
+          currencyCode: 'PHP',
+          subscriptionPeriod: 'P1Y',
+        },
+      ],
+    });
+  });
+
+  it('accepts the expected default monthly and annual catalog', () => {
+    expect(validateJournalCloudOffering(toJournalCloudOfferingSnapshot(offering)))
+      .toEqual([]);
+  });
+
+  it('reports missing products without treating the catalog as purchase authority', () => {
+    expect(validateJournalCloudOffering(null)).toEqual([
+      'current_offering_missing',
+    ]);
+    expect(
+      validateJournalCloudOffering({
+        offeringIdentifier: 'default',
+        packages: [],
+      }),
+    ).toEqual(['monthly_product_missing', 'annual_product_missing']);
   });
 });
