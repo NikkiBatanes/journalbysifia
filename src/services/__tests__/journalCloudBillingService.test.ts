@@ -1,4 +1,8 @@
-import type {CustomerInfo, PurchasesOfferings} from 'react-native-purchases';
+import type {
+  CustomerInfo,
+  MakePurchaseResult,
+  PurchasesOfferings,
+} from 'react-native-purchases';
 
 import {
   JournalCloudAccountRequiredError,
@@ -11,18 +15,19 @@ import {
   type JournalCloudBillingSdk,
 } from '../journalCloudBillingService';
 
-const customerInfo = (active = false): CustomerInfo => ({
-  entitlements: {
-    active: active
-      ? {
-          journal_cloud: {
-            expirationDate: '2027-01-01T00:00:00Z',
-            willRenew: true,
-          },
-        }
-      : {},
-  },
-} as unknown as CustomerInfo);
+const customerInfo = (active = false): CustomerInfo =>
+  ({
+    entitlements: {
+      active: active
+        ? {
+            journal_cloud: {
+              expirationDate: '2027-01-01T00:00:00Z',
+              willRenew: true,
+            },
+          }
+        : {},
+    },
+  } as unknown as CustomerInfo);
 
 const createSdk = (): jest.Mocked<JournalCloudBillingSdk> => ({
   setLogLevel: jest.fn().mockResolvedValue(undefined),
@@ -31,18 +36,50 @@ const createSdk = (): jest.Mocked<JournalCloudBillingSdk> => ({
   logOut: jest.fn().mockResolvedValue(customerInfo()),
   getCustomerInfo: jest.fn().mockResolvedValue(customerInfo()),
   getOfferings: jest.fn().mockResolvedValue({} as PurchasesOfferings),
+  purchasePackage: jest.fn().mockResolvedValue({
+    productIdentifier: 'app.journal.sifia.cloud.annual',
+    customerInfo: customerInfo(true),
+    transaction: {},
+  } as MakePurchaseResult),
   restorePurchases: jest.fn().mockResolvedValue(customerInfo(true)),
 });
 
 const createCoordinator = (
   sdk: jest.Mocked<JournalCloudBillingSdk>,
   apiKey = 'appl_public_test_key',
-) => new JournalCloudBillingCoordinator(sdk, {
-  platform: 'ios',
-  apiKey,
-  entitlementIdentifier: 'journal_cloud',
-  debugLogging: false,
-});
+) =>
+  new JournalCloudBillingCoordinator(sdk, {
+    platform: 'ios',
+    apiKey,
+    entitlementIdentifier: 'journal_cloud',
+    debugLogging: false,
+  });
+
+const offering = {
+  identifier: 'default',
+  availablePackages: [
+    {
+      identifier: '$rc_monthly',
+      packageType: 'MONTHLY',
+      product: {
+        identifier: 'app.journal.sifia.cloud.monthly',
+        priceString: '₱59.00',
+        currencyCode: 'PHP',
+        subscriptionPeriod: 'P1M',
+      },
+    },
+    {
+      identifier: '$rc_annual',
+      packageType: 'ANNUAL',
+      product: {
+        identifier: 'app.journal.sifia.cloud.annual',
+        priceString: '₱349.00',
+        currencyCode: 'PHP',
+        subscriptionPeriod: 'P1Y',
+      },
+    },
+  ],
+} as unknown as NonNullable<PurchasesOfferings['current']>;
 
 describe('JournalCloudBillingCoordinator', () => {
   it('stays disabled when no public SDK key is configured', async () => {
@@ -79,7 +116,9 @@ describe('JournalCloudBillingCoordinator', () => {
     await coordinator.syncIdentity('user-a');
     await coordinator.syncIdentity(null);
 
-    expect(sdk.configure).toHaveBeenCalledWith({apiKey: 'appl_public_test_key'});
+    expect(sdk.configure).toHaveBeenCalledWith({
+      apiKey: 'appl_public_test_key',
+    });
     expect(sdk.logIn).toHaveBeenCalledWith('user-a');
     expect(sdk.logOut).toHaveBeenCalledTimes(1);
   });
@@ -120,6 +159,57 @@ describe('JournalCloudBillingCoordinator', () => {
       willRenew: true,
     });
   });
+
+  it('requires an account before starting a purchase', async () => {
+    const sdk = createSdk();
+    const coordinator = createCoordinator(sdk);
+
+    await coordinator.syncIdentity(null);
+
+    await expect(coordinator.purchasePlan('annual')).rejects.toBeInstanceOf(
+      JournalCloudAccountRequiredError,
+    );
+    expect(sdk.purchasePackage).not.toHaveBeenCalled();
+  });
+
+  it('purchases only the validated selected package and requires server confirmation', async () => {
+    const sdk = createSdk();
+    const coordinator = createCoordinator(sdk);
+    sdk.getOfferings.mockResolvedValue({
+      current: offering,
+    } as PurchasesOfferings);
+
+    await coordinator.syncIdentity('user-a');
+
+    await expect(coordinator.purchasePlan('annual')).resolves.toEqual({
+      productIdentifier: 'app.journal.sifia.cloud.annual',
+      clientEntitlement: {
+        active: true,
+        entitlementIdentifier: 'journal_cloud',
+        expirationDate: '2027-01-01T00:00:00Z',
+        willRenew: true,
+      },
+      serverConfirmationRequired: true,
+    });
+    expect(sdk.purchasePackage).toHaveBeenCalledWith(
+      offering.availablePackages[1],
+    );
+  });
+
+  it('refuses to purchase from an incomplete or unexpected catalog', async () => {
+    const sdk = createSdk();
+    const coordinator = createCoordinator(sdk);
+    sdk.getOfferings.mockResolvedValue({
+      current: null,
+    } as PurchasesOfferings);
+
+    await coordinator.syncIdentity('user-a');
+
+    await expect(coordinator.purchasePlan('monthly')).rejects.toThrow(
+      'Journal Cloud store catalog is unavailable',
+    );
+    expect(sdk.purchasePackage).not.toHaveBeenCalled();
+  });
 });
 
 describe('Journal Cloud entitlement helpers', () => {
@@ -136,14 +226,14 @@ describe('Journal Cloud entitlement helpers', () => {
 });
 
 describe('Journal Cloud offering helpers', () => {
-  const offering = {
+  const androidOffering = {
     identifier: 'default',
     availablePackages: [
       {
         identifier: '$rc_monthly',
         packageType: 'MONTHLY',
         product: {
-          identifier: 'app.journal.sifia.cloud.monthly',
+          identifier: 'journal_cloud:monthly',
           priceString: '₱59.00',
           currencyCode: 'PHP',
           subscriptionPeriod: 'P1M',
@@ -153,7 +243,7 @@ describe('Journal Cloud offering helpers', () => {
         identifier: '$rc_annual',
         packageType: 'ANNUAL',
         product: {
-          identifier: 'app.journal.sifia.cloud.annual',
+          identifier: 'journal_cloud:annual',
           priceString: '₱349.00',
           currencyCode: 'PHP',
           subscriptionPeriod: 'P1Y',
@@ -187,32 +277,54 @@ describe('Journal Cloud offering helpers', () => {
   });
 
   it('accepts the expected default monthly and annual catalog', () => {
-    expect(validateJournalCloudOffering(toJournalCloudOfferingSnapshot(offering)))
-      .toEqual([]);
+    expect(
+      validateJournalCloudOffering(toJournalCloudOfferingSnapshot(offering)),
+    ).toEqual([]);
+  });
+
+  it('accepts Google Play base-plan product identifiers', () => {
+    const snapshot = toJournalCloudOfferingSnapshot(androidOffering);
+
+    expect(validateJournalCloudOffering(snapshot)).toEqual([]);
+    expect(toJournalCloudPlanSnapshots(snapshot)).toEqual([
+      {
+        billingPeriod: 'annual',
+        localizedPrice: '₱349.00',
+        productIdentifier: 'journal_cloud:annual',
+      },
+      {
+        billingPeriod: 'monthly',
+        localizedPrice: '₱59.00',
+        productIdentifier: 'journal_cloud:monthly',
+      },
+    ]);
   });
 
   it('builds annual-first display plans using only store-localized prices', () => {
-    expect(toJournalCloudPlanSnapshots(toJournalCloudOfferingSnapshot(offering)))
-      .toEqual([
-        {
-          billingPeriod: 'annual',
-          localizedPrice: '₱349.00',
-          productIdentifier: 'app.journal.sifia.cloud.annual',
-        },
-        {
-          billingPeriod: 'monthly',
-          localizedPrice: '₱59.00',
-          productIdentifier: 'app.journal.sifia.cloud.monthly',
-        },
-      ]);
+    expect(
+      toJournalCloudPlanSnapshots(toJournalCloudOfferingSnapshot(offering)),
+    ).toEqual([
+      {
+        billingPeriod: 'annual',
+        localizedPrice: '₱349.00',
+        productIdentifier: 'app.journal.sifia.cloud.annual',
+      },
+      {
+        billingPeriod: 'monthly',
+        localizedPrice: '₱59.00',
+        productIdentifier: 'app.journal.sifia.cloud.monthly',
+      },
+    ]);
   });
 
   it('does not invent prices when the store catalog is incomplete', () => {
     expect(toJournalCloudPlanSnapshots(null)).toEqual([]);
-    expect(toJournalCloudPlanSnapshots({
-      offeringIdentifier: 'default',
-      packages: [],
-    })).toEqual([]);
+    expect(
+      toJournalCloudPlanSnapshots({
+        offeringIdentifier: 'default',
+        packages: [],
+      }),
+    ).toEqual([]);
   });
 
   it('reports missing products without treating the catalog as purchase authority', () => {
@@ -223,6 +335,24 @@ describe('Journal Cloud offering helpers', () => {
       validateJournalCloudOffering({
         offeringIdentifier: 'default',
         packages: [],
+      }),
+    ).toEqual(['monthly_product_missing', 'annual_product_missing']);
+  });
+
+  it('rejects products attached to the wrong standard package', () => {
+    expect(
+      validateJournalCloudOffering({
+        offeringIdentifier: 'default',
+        packages: [
+          {
+            packageIdentifier: '$rc_monthly',
+            packageType: 'MONTHLY',
+            productIdentifier: 'journal_cloud:annual',
+            localizedPrice: '₱349.00',
+            currencyCode: 'PHP',
+            subscriptionPeriod: 'P1Y',
+          },
+        ],
       }),
     ).toEqual(['monthly_product_missing', 'annual_product_missing']);
   });

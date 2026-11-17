@@ -1,7 +1,9 @@
 export const JOURNAL_CLOUD_ENTITLEMENT_ID = 'journal_cloud';
-export const JOURNAL_CLOUD_APPLE_PRODUCTS = new Set([
+export const JOURNAL_CLOUD_PRODUCTS = new Set([
   'app.journal.sifia.cloud.monthly',
   'app.journal.sifia.cloud.annual',
+  'journal_cloud:monthly',
+  'journal_cloud:annual',
 ]);
 
 export type RevenueCatEnvironment = 'SANDBOX' | 'PRODUCTION';
@@ -229,12 +231,18 @@ export const decideJournalCloudWebhook = (
 ): JournalCloudWebhookDecision => {
   const {event} = payload;
   const ownerCandidates = collectOwnerCandidates(event);
+  const environment = event.environment === 'SANDBOX' || event.environment === 'PRODUCTION'
+    ? event.environment
+    : null;
+  const productId = typeof event.product_id === 'string' && event.product_id.length <= 255
+    ? event.product_id
+    : null;
   const base = {
     eventId: event.id,
     eventType: event.type,
     ownerUserId: ownerCandidates.length === 1 ? ownerCandidates[0] : null,
-    environment: event.environment ?? null,
-    productId: event.product_id ?? null,
+    environment,
+    productId,
     eventTimestampMs:
       typeof event.event_timestamp_ms === 'number' &&
         Number.isSafeInteger(event.event_timestamp_ms)
@@ -263,12 +271,12 @@ export const decideJournalCloudWebhook = (
     return {...base, disposition: 'ignore', reason: 'unrelated_entitlement'};
   }
   if (
-    !event.product_id ||
-    !JOURNAL_CLOUD_APPLE_PRODUCTS.has(event.product_id)
+    !productId ||
+    !JOURNAL_CLOUD_PRODUCTS.has(productId)
   ) {
     return {...base, disposition: 'quarantine', reason: 'unsupported_product'};
   }
-  if (event.environment !== expectedEnvironment) {
+  if (environment !== expectedEnvironment) {
     return {...base, disposition: 'quarantine', reason: 'environment_mismatch'};
   }
   if (ownerCandidates.length === 0) {

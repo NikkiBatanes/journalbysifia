@@ -1,8 +1,24 @@
-# Journal Cloud entitlement — metadata preflight
+# Journal Cloud entitlement boundary
 
-Status: **read-only preflight run manually and accepted on November 17, 2026**.
-No entitlement schema, webhook endpoint, secret, purchase, cloud access, or
-live database change has been created. See `01-preflight-reviewed.md`.
+Status: **guarded additive schema applied manually on November 17, 2026**.
+The additive schema, verification, synthetic-test, containment, and empty-only
+rollback scripts are now drafted locally. `02-apply.sql` committed successfully:
+legacy siFia billing was unchanged and no customer rows were read or changed.
+The independent `03-verify.sql` result was accepted: all four tables have
+forced RLS, authenticated clients have owner-scoped SELECT only on the minimal
+entitlement projection, private billing tables expose no authenticated table
+privileges, and only `service_role` can execute reconciliation. Synthetic
+database tests also passed: owner read, denied owner writes, denied cross-owner
+reads, replay/payload-mismatch handling, sandbox isolation, and active/inactive
+reconciliation were verified, with all synthetic rows rolled back. The
+separate production and sandbox Edge Functions have been deployed to the
+existing siFia Supabase project with gateway JWT verification disabled; each
+function instead requires its own exact webhook authorization value and HMAC
+signature. Both production and sandbox webhooks now have distinct private
+authorization and HMAC secrets, and both passed RevenueCat's signed end-to-end
+tests. Their dashboard `TEST` events were recorded as ignored and granted no
+access. Purchases and cloud storage authorization are not yet complete. See
+`01-preflight-reviewed.md`.
 
 This package starts the trusted Journal Cloud entitlement boundary without
 reusing siFia's existing `user_subscriptions_new`, `validated_receipts`, Apple
@@ -39,33 +55,50 @@ The intended v1 boundary is:
 | ---: | --- | --- |
 | 1 | Run `01-preflight.sql` in the existing siFia Supabase SQL Editor | Completed; metadata read only |
 | 2 | Share its single JSON result | Completed and accepted; no conflicts found |
-| 3 | Configure the exact Google Play product/base-plan identifiers | Required before the cross-platform allowlist and live apply are finalized |
-| 4 | Review the additive apply/verify/containment package after it is prepared | No execution until explicitly approved |
+| 3 | Configure the exact Google Play product/base-plan identifiers | Completed: `journal_cloud:monthly` and `journal_cloud:annual` |
+| 4 | Review and locally test the additive package and Edge Function contract | Completed: 30 focused tests pass; no SQL execution |
+| 5 | Run `02-apply.sql` manually in the existing siFia Supabase SQL Editor | Completed; guarded apply committed |
+| 6 | Run `03-verify.sql` manually and share its single JSON result | Completed and accepted |
+| 7 | Create two new temporary Auth users, then run `04-synthetic-tests.sql` manually | Completed; all assertions passed and rows rolled back |
+| 8 | Deploy the two isolated Edge Functions and enter secrets privately | Completed; API/project and distinct webhook secrets saved privately |
+| 9 | Configure separate RevenueCat sandbox and production webhooks | Completed; both signed end-to-end tests passed |
 
-Do not create webhook secrets or a RevenueCat secret REST API key yet. Those
-are created only when the receiving function and database transaction have
-passed local/synthetic review. When needed, credentials must be entered
-directly in RevenueCat and Supabase Edge Function Secrets—never pasted into
-chat, committed, or placed in the mobile app.
+`05-contain.sql` is the emergency access-containment procedure. It revokes
+the server reconciliation function and the mobile owner-read path without
+deleting billing evidence. `06-rollback-empty-only.sql` is available only
+while every new Journal Cloud table remains empty; it intentionally refuses
+to remove a boundary that contains any rows.
+
+Credentials are entered directly in RevenueCat and Supabase Edge Function
+Secrets—never pasted into chat, committed, or placed in the mobile app. The
+RevenueCat v2 key has subscription-read permission only.
 
 ## Current local evidence
 
 The pure webhook contract is implemented in
-`supabase/functions/_shared/revenueCatJournalCloud.ts`. Focused tests cover
+`supabase/functions/_shared/revenueCatJournalCloud.ts`. The authoritative
+RevenueCat v2 lookup is isolated in `revenueCatSubscriptionState.ts`, and the
+shared server handler is in `revenueCatJournalCloudHandler.ts`. Separate
+production and sandbox wrappers prevent one endpoint from silently accepting
+the other environment. Focused tests cover
 dual authentication, HMAC body tampering, timestamp replay, strict envelope
 parsing, account ambiguity, anonymous identities, transfer/temporary-grant
 quarantine, environment isolation, product allowlisting, and lifecycle events
-as reconciliation triggers. It performs no database or network work.
+as reconciliation triggers. The production authorization projection is
+updated only from a production RevenueCat lookup; sandbox state is retained
+for evidence but cannot activate production access.
 
-## Gate after the preflight
+## Remaining launch gates
 
-The preflight result can authorize design of the additive schema, but not a
-live purchase. Before deployment we still need:
+The schema and webhook boundary are deployed and verified, but this does not
+authorize charging ordinary users or storing their private journals. Remaining
+gates are:
 
-- exact Android product identifiers;
-- separate sandbox and production webhook integrations;
-- least-privilege RevenueCat server API credentials;
-- guarded apply, independent verify, containment and rollback scripts;
-- synthetic owner/cross-owner/replay/stale-event tests;
-- the user to run all SQL manually;
-- sandbox purchase, renewal, expiry, refund, restore and account-switch tests.
+- real sandbox purchase and restore tests on both stores;
+- renewal, grace, billing failure, expiry, refund/revocation, and account-switch
+  lifecycle tests;
+- client-side encrypted upload, download, recovery, quota, and deletion paths;
+- an operational recovery drill and final security/release review.
+
+The user continues to run every SQL script manually in Supabase. No further SQL
+is required for the current app-side billing increment.

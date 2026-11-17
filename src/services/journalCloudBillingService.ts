@@ -2,9 +2,11 @@ import {Platform} from 'react-native';
 import Purchases, {
   LOG_LEVEL,
   type CustomerInfo,
+  type MakePurchaseResult,
   type PurchasesOffering,
   type PurchasesConfiguration,
   type PurchasesOfferings,
+  type PurchasesPackage,
 } from 'react-native-purchases';
 
 import {ENV} from '../config/environment';
@@ -12,10 +14,16 @@ import {Logger} from '../utils/ProductionLogger';
 
 export const DEFAULT_JOURNAL_CLOUD_ENTITLEMENT = 'journal_cloud';
 export const DEFAULT_JOURNAL_CLOUD_OFFERING = 'default';
-export const JOURNAL_CLOUD_MONTHLY_PRODUCT =
-  'app.journal.sifia.cloud.monthly';
-export const JOURNAL_CLOUD_ANNUAL_PRODUCT =
-  'app.journal.sifia.cloud.annual';
+export const JOURNAL_CLOUD_MONTHLY_PACKAGE = '$rc_monthly';
+export const JOURNAL_CLOUD_ANNUAL_PACKAGE = '$rc_annual';
+export const JOURNAL_CLOUD_MONTHLY_PRODUCTS = new Set([
+  'app.journal.sifia.cloud.monthly',
+  'journal_cloud:monthly',
+]);
+export const JOURNAL_CLOUD_ANNUAL_PRODUCTS = new Set([
+  'app.journal.sifia.cloud.annual',
+  'journal_cloud:annual',
+]);
 
 export type JournalCloudBillingPlatform = 'ios' | 'android' | 'unsupported';
 
@@ -26,6 +34,9 @@ export interface JournalCloudBillingSdk {
   logOut: () => Promise<CustomerInfo>;
   getCustomerInfo: () => Promise<CustomerInfo>;
   getOfferings: () => Promise<PurchasesOfferings>;
+  purchasePackage: (
+    packageItem: PurchasesPackage,
+  ) => Promise<MakePurchaseResult>;
   restorePurchases: () => Promise<CustomerInfo>;
 }
 
@@ -63,9 +74,37 @@ export interface JournalCloudPlanSnapshot {
   productIdentifier: string;
 }
 
+export interface JournalCloudPurchaseSnapshot {
+  productIdentifier: string;
+  clientEntitlement: JournalCloudEntitlementSnapshot;
+  serverConfirmationRequired: true;
+}
+
+const findJournalCloudPlanPackage = (
+  snapshot: JournalCloudOfferingSnapshot,
+  billingPeriod: JournalCloudPlanSnapshot['billingPeriod'],
+): JournalCloudOfferingPackageSnapshot | undefined => {
+  const packageIdentifier =
+    billingPeriod === 'monthly'
+      ? JOURNAL_CLOUD_MONTHLY_PACKAGE
+      : JOURNAL_CLOUD_ANNUAL_PACKAGE;
+  const acceptedProducts =
+    billingPeriod === 'monthly'
+      ? JOURNAL_CLOUD_MONTHLY_PRODUCTS
+      : JOURNAL_CLOUD_ANNUAL_PRODUCTS;
+
+  return snapshot.packages.find(
+    packageItem =>
+      packageItem.packageIdentifier === packageIdentifier &&
+      acceptedProducts.has(packageItem.productIdentifier),
+  );
+};
+
 export class JournalCloudAccountRequiredError extends Error {
   constructor() {
-    super('Sign in to a siFia account before restoring Journal Cloud purchases.');
+    super(
+      'Create a Journal account or sign in before purchasing or restoring Journal Cloud.',
+    );
     this.name = 'JournalCloudAccountRequiredError';
   }
 }
@@ -126,14 +165,8 @@ export const validateJournalCloudOffering = (
     issues.push('unexpected_current_offering');
   }
 
-  const monthly = snapshot.packages.find(
-    packageItem =>
-      packageItem.productIdentifier === JOURNAL_CLOUD_MONTHLY_PRODUCT,
-  );
-  const annual = snapshot.packages.find(
-    packageItem =>
-      packageItem.productIdentifier === JOURNAL_CLOUD_ANNUAL_PRODUCT,
-  );
+  const monthly = findJournalCloudPlanPackage(snapshot, 'monthly');
+  const annual = findJournalCloudPlanPackage(snapshot, 'annual');
 
   if (!monthly) {
     issues.push('monthly_product_missing');
@@ -161,14 +194,8 @@ export const toJournalCloudPlanSnapshots = (
     return [];
   }
 
-  const annual = snapshot.packages.find(
-    packageItem =>
-      packageItem.productIdentifier === JOURNAL_CLOUD_ANNUAL_PRODUCT,
-  );
-  const monthly = snapshot.packages.find(
-    packageItem =>
-      packageItem.productIdentifier === JOURNAL_CLOUD_MONTHLY_PRODUCT,
-  );
+  const annual = findJournalCloudPlanPackage(snapshot, 'annual');
+  const monthly = findJournalCloudPlanPackage(snapshot, 'monthly');
 
   if (!annual || !monthly) {
     return [];
@@ -295,6 +322,61 @@ export class JournalCloudBillingCoordinator {
     return toJournalCloudOfferingSnapshot(offerings?.current ?? null);
   }
 
+  async purchasePlan(
+    billingPeriod: JournalCloudPlanSnapshot['billingPeriod'],
+  ): Promise<JournalCloudPurchaseSnapshot> {
+    if (!this.currentUserId) {
+      throw new JournalCloudAccountRequiredError();
+    }
+
+    if (!this.initialize(this.currentUserId)) {
+      throw new Error('Journal Cloud billing is not configured.');
+    }
+
+    const offerings = await this.sdk.getOfferings();
+    const currentOffering = offerings.current ?? null;
+    const snapshot = toJournalCloudOfferingSnapshot(currentOffering);
+    const validationIssues = validateJournalCloudOffering(snapshot);
+    if (!currentOffering || validationIssues.length > 0) {
+      throw new Error(
+        `Journal Cloud store catalog is unavailable (${
+          validationIssues.join(',') || 'missing_offering'
+        }).`,
+      );
+    }
+
+    const expectedPackage = findJournalCloudPlanPackage(
+      snapshot!,
+      billingPeriod,
+    );
+    const packageItem = currentOffering.availablePackages.find(
+      item =>
+        item.identifier === expectedPackage?.packageIdentifier &&
+        item.product.identifier === expectedPackage?.productIdentifier,
+    );
+    if (!packageItem) {
+      throw new Error('The selected Journal Cloud plan is unavailable.');
+    }
+
+    const result = await this.sdk.purchasePackage(packageItem);
+    if (result.productIdentifier !== expectedPackage?.productIdentifier) {
+      throw new Error(
+        'The store returned an unexpected Journal Cloud product.',
+      );
+    }
+
+    return {
+      productIdentifier: result.productIdentifier,
+      clientEntitlement: toJournalCloudEntitlementSnapshot(
+        result.customerInfo,
+        this.configuration.entitlementIdentifier,
+      ),
+      // CustomerInfo is useful for immediate UX only. The mobile app must wait
+      // for the owner-scoped Supabase projection before enabling cloud access.
+      serverConfirmationRequired: true,
+    };
+  }
+
   async restorePurchases(): Promise<JournalCloudEntitlementSnapshot> {
     if (!this.currentUserId) {
       throw new JournalCloudAccountRequiredError();
@@ -321,8 +403,8 @@ const apiKey =
   platform === 'ios'
     ? ENV.REVENUECAT_IOS_API_KEY
     : platform === 'android'
-      ? ENV.REVENUECAT_ANDROID_API_KEY
-      : '';
+    ? ENV.REVENUECAT_ANDROID_API_KEY
+    : '';
 
 /**
  * Client CustomerInfo is a presentation cache only. Journal Cloud upload and

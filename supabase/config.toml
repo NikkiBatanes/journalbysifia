@@ -79,6 +79,14 @@ verify_jwt = false
 [functions.journal-early-access]
 verify_jwt = false
 
+# External RevenueCat requests are authenticated by an exact Authorization
+# value plus HMAC over the raw body. Supabase JWT verification must stay off.
+[functions.revenuecat-journal-cloud-production]
+verify_jwt = false
+
+[functions.revenuecat-journal-cloud-sandbox]
+verify_jwt = false
+
 [studio]
 enabled = true
 # Port to use for Supabase Studio.

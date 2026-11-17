@@ -45,9 +45,22 @@ export const JOURNAL_BACKUP_RESTORE_POLICY = {
     'bible_study_session:', 'bible_study_latest_session',
     'routine_state:', 'review_local:', 'review_local_index:',
     'review_settings_v1', 'prayer_draft:',
+    'session_notes_draft_v1:', 'guided_reflection_draft_v1:', 'routine_draft:',
+    'journal:gospel:people:v1', 'journal:gospel:self-response:v1',
+    'journal:gospel:for-me-day-settings:v1', 'journal:gospel:share-events:v1',
+    'journal:local-profile', 'journal:local-preferences',
+    'journal:review-week-start', 'journal:onboarding:setup:v1',
+    'journal:scripture-sequence-start:v1', 'prefs:noteBlocks:v1',
+    'prefs:noteBlocks:v2', 'prefs:hapticsEnabled', 'prefs:soundsEnabled',
+    'prefs:showTabLabelsEnabled',
   ],
-  excludedPrefixes: ['routine_draft:', 'timeblock_', 'time_blocks_', 'journal_cache_'],
-  restoreOrder: ['journalRecords', 'reflectionRecords', 'prayerRecords', 'bibleStudySessions', 'routineStates', 'reviews', 'reviewSettings', 'prayerDrafts', 'rebuildIndexes', 'validateRelationships'],
+  excludedPrefixes: ['timeblock_', 'time_blocks_', 'journal_cache_'],
+  prohibitedKeys: ['@sifia/gospel-share-owner-key', '@siFia:offlineQueue'],
+  prohibitedPrefixes: [
+    'journal:impact-outbox:', 'supabase.auth.token', 'notification_queue:',
+    'device:', 'installation:', 'push:',
+  ],
+  restoreOrder: ['journalRecords', 'reflectionRecords', 'prayerRecords', 'bibleStudySessions', 'routineStates', 'reviews', 'reviewSettings', 'prayerDrafts', 'authoredDrafts', 'gospelAuthoredContent', 'preferences', 'rebuildIndexes', 'validateRelationships'],
   reconstructableIndexes: ['journal_local_index:', 'reflection_local_index:', 'prayer_local_index:', 'review_local_index:'],
   derivedPointers: ['bible_study_latest_session'],
   // AsyncStorage has no multi-key transaction. A future restore must first validate
@@ -62,6 +75,8 @@ export const JOURNAL_BACKUP_RESTORE_POLICY = {
 const ymd = /^\d{4}-\d{2}-\d{2}$/;
 const isObject = (value: unknown): value is Record<string, any> => !!value && typeof value === 'object' && !Array.isArray(value);
 const hasArray = (value: Record<string, any>, key: string) => Array.isArray(value[key]);
+const isKeyedRecord = (value: unknown): value is { key: string; value: unknown } =>
+  isObject(value) && typeof value.key === 'string' && value.key.length > 0 && Object.prototype.hasOwnProperty.call(value, 'value');
 
 /** Creates an in-memory, serializable V1 envelope without writing data or files. */
 export const createJournalBackup = async (exportedAt = new Date().toISOString()): Promise<JournalBackupEnvelopeV1> => {
@@ -111,6 +126,18 @@ export const validateJournalBackup = (candidate: unknown): JournalBackupValidati
   const inventory = candidate.inventory;
   const requiredCollections = ['journalRecords', 'reflectionRecords', 'prayerRecords', 'bibleStudySessions', 'routineStates', 'reviews', 'prayerDrafts'];
   requiredCollections.forEach(key => { if (!hasArray(inventory, key)) {add(issue('fatal', 'malformed_collection', `$.inventory.${key}`, 'Required collection must be an array.'));} });
+  if (!isObject(inventory.authoredDrafts)
+    || !hasArray(inventory.authoredDrafts, 'sessionNotes')
+    || !hasArray(inventory.authoredDrafts, 'guidedReflections')
+    || !hasArray(inventory.authoredDrafts, 'routines')) {
+    add(issue('fatal', 'malformed_authored_drafts', '$.inventory.authoredDrafts', 'Authored drafts must remain separated by type.'));
+  }
+  if (!hasArray(inventory, 'gospelAuthoredContent')) {
+    add(issue('fatal', 'malformed_gospel_section', '$.inventory.gospelAuthoredContent', 'Gospel-authored content must be an array.'));
+  }
+  if (!hasArray(inventory, 'preferences')) {
+    add(issue('fatal', 'malformed_preferences', '$.inventory.preferences', 'Meaningful preferences must be an array.'));
+  }
   if (!isObject(inventory.legacyAuthoredContent) || !hasArray(inventory.legacyAuthoredContent, 'reflectionLogs') || !hasArray(inventory.legacyAuthoredContent, 'journalRecords')) {
     add(issue('fatal', 'malformed_legacy_section', '$.inventory.legacyAuthoredContent', 'Legacy compatibility data must remain separated.'));
   }
@@ -118,6 +145,21 @@ export const validateJournalBackup = (candidate: unknown): JournalBackupValidati
     add(issue('fatal', 'malformed_review_settings', '$.inventory.reviewSettings', 'Review settings must be an object or null.'));
   }
   if (fatal.length) {return { valid: false, fatal, warnings };}
+
+  const keyedSections: Array<[string, unknown[]]> = [
+    ['authoredDrafts.sessionNotes', inventory.authoredDrafts.sessionNotes],
+    ['authoredDrafts.guidedReflections', inventory.authoredDrafts.guidedReflections],
+    ['authoredDrafts.routines', inventory.authoredDrafts.routines],
+    ['gospelAuthoredContent', inventory.gospelAuthoredContent],
+    ['preferences', inventory.preferences],
+    ['legacyAuthoredContent.reflectionLogs', inventory.legacyAuthoredContent.reflectionLogs],
+    ['legacyAuthoredContent.journalRecords', inventory.legacyAuthoredContent.journalRecords],
+  ];
+  keyedSections.forEach(([section, records]) => records.forEach((record, index) => {
+    if (!isKeyedRecord(record)) {
+      add(issue('fatal', 'invalid_keyed_record', `$.inventory.${section}[${index}]`, 'Keyed backup record requires a non-empty key and value.'));
+    }
+  }));
 
   const canonical = [...inventory.journalRecords, ...inventory.reflectionRecords, ...inventory.prayerRecords];
   const ids = new Set<string>();

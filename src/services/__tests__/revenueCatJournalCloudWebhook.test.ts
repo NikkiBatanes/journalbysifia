@@ -122,6 +122,16 @@ describe('RevenueCat Journal Cloud webhook decisions', () => {
     });
   });
 
+  it.each([
+    'app.journal.sifia.cloud.monthly',
+    'app.journal.sifia.cloud.annual',
+    'journal_cloud:monthly',
+    'journal_cloud:annual',
+  ])('allows the configured cross-platform product %s', productId => {
+    expect(decideJournalCloudWebhook(makePayload({product_id: productId}), 'PRODUCTION'))
+      .toMatchObject({disposition: 'reconcile', reason: 'journal_cloud_event'});
+  });
+
   it('quarantines cross-account aliases instead of transferring ownership', () => {
     const payload = makePayload({
       aliases: [

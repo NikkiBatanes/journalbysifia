@@ -178,20 +178,20 @@ No record bodies should be placed in tickets, analytics, logs, or committed fixt
 
 Percentages below are conservative planning estimates against the deliverables and exit gates in this version, not a security certification or a shipped-feature percentage. A phase reaches 100% only when its exit gate has recorded evidence. Existing local editors, auth helpers, or IAP dependencies alone do not complete a new integration phase.
 
-Weights total 100%. Overall delivery estimate is `sum(weight × phase completion / 100)`, currently 17.2%, reported as **approximately 17%**. The deployed and verified profile and Seeker helper fixes each contribute a conservative five points to Phase 2. RevenueCat client/identity support, the configured Apple product catalog, approved pricing/5 GB allowance, localized iOS offering read, non-purchasing preview, and tested pure webhook security contract contribute fifty-five points to Phase 9. The many remaining deployed authorization, server entitlement, reconciliation, deletion, revision/change-feed, cloud, recovery, Android billing, purchase/restore, lifecycle, and release deliverables keep this credit narrow. The earlier approximately 19% groundwork/readiness estimate measured a different scope. Future optional display work is excluded from the launch denominator.
+Weights total 100%. Overall delivery estimate is `sum(weight × phase completion / 100)`, currently 21.5%, reported as **approximately 22%**. The deployed and verified profile and Seeker helper fixes each contribute a conservative five points to Phase 2. Phase 9 now includes RevenueCat client identity, both store catalogs, localized cross-platform offering reads, the non-purchasing preview, isolated signed webhooks, authoritative provider reconciliation, forced-RLS server entitlement projection, and guarded app-side purchase/owner-read foundations. The encrypted-storage design now classifies authored drafts, Gospel history, preferences, disposable state, credentials, and media gaps; defines the key/recovery, snapshot, restore, and disaster-recovery boundaries; and deliberately gives only narrow design credit because no encrypted persistence or cloud snapshot exists yet. The local in-memory recovery contract now also enumerates unfinished session notes, guided reflections, routine drafts, Gospel-authored content, and a strict preference allowlist while excluding tokens, device secrets, analytics outboxes, offline queues, and caches. Real sandbox purchase/restore and lifecycle evidence remain before Phase 9 can exit. The many remaining deletion, revision/change-feed, implementation, recovery-drill, shared-sync, and release deliverables keep overall credit narrow. The earlier approximately 19% groundwork/readiness estimate measured a different scope. Future optional display work is excluded from the launch denominator.
 
 | Phase | Deliverable | Weight | Completion estimate | Status / evidence |
 | --- | --- | ---: | ---: | --- |
-| 0 | Complete inventory and compatibility fixtures | 6% | 80% | Live schema/policies/grants, selected function bodies, and deployed receipt source reviewed; deletion-source verification, full variant fixtures, and remaining configuration review are open |
+| 0 | Complete inventory and compatibility fixtures | 6% | 88% | Live schema/policies/grants, selected function bodies, deployed receipt source, and local recovery stores including authored drafts/Gospel/settings are classified; deletion-source verification, full variant fixtures, and remaining configuration review are open |
 | 1 | Shared field and capability contract | 6% | 80% | Versioned core consumed by both apps; one-off Time Block/daily/reflection/simple prayer mappings tested; recurring/lifecycle/structured mappings and write-path adoption remain |
 | 2 | Secure backend and legacy compatibility | 12% | 10% | Owner-bound profile and fixed-Seeker bootstraps are deployed and passed synthetic, metadata, and A/B app tests; other privileged RPCs, table entitlements, receipt/deletion authorization, and revision/change-feed enforcement remain |
-| 3 | Transactional encrypted local storage | 12% | 0% | Existing AsyncStorage records are groundwork, not the target implementation |
-| 4 | Durable media and extension storage | 8% | 0% | Current URI blocks need durable bytes and independent extension identity |
-| 5 | Free encrypted export and safe restore | 10% | 10% | In-memory inventory/validation exists; file, encryption, media packaging, and restore remain |
+| 3 | Transactional encrypted local storage | 12% | 2% | Migration/key/namespace requirements are designed; database/library selection and implementation remain |
+| 4 | Durable media and extension storage | 8% | 3% | Picker-URI and voice-manifest gaps plus target ingestion protocol are documented; durable encrypted assets remain |
+| 5 | Free encrypted export and safe restore | 10% | 15% | In-memory inventory/validation now covers authored drafts, Gospel data, and allowlisted preferences with prohibited-state tests; file, encryption, media packaging, and restore implementation remain |
 | 6 | Account connection and device enrollment | 8% | 0% | Existing auth is groundwork; safe combining/enrollment flow remains |
 | 7 | Free bidirectional sync and initial merge | 14% | 15% | Canonical preflight includes one-off Time Blocks through the shared core; consistent storage snapshots, remote adapters, confirmation UI, executor, outbox/cursor/conflict engine remain |
-| 8 | Encrypted Journal Cloud and versioned recovery | 12% | 0% | Cloud protocol, key recovery, and verified snapshots remain |
-| 9 | Monthly/annual billing and lifecycle UX | 6% | 55% | Client/identity, Apple catalog, localized selectable optional-subscription preview, and the pure dual-auth/HMAC webhook decision contract are tested; Android catalog, receiving endpoint, authoritative reconciliation, purchase/restore lifecycle, and server entitlement mirror remain |
+| 8 | Encrypted Journal Cloud and versioned recovery | 12% | 3% | Key hierarchy, recovery, minimal-metadata, commit, version, and DR boundaries are designed; implementation and verified snapshots remain |
+| 9 | Monthly/annual billing and lifecycle UX | 6% | 97% | Apple/Google catalogs, localized preview, SDK identity, isolated signed webhooks, authoritative reconciliation, forced-RLS server projection, guarded purchase method, and owner-only server-entitlement read are implemented/tested; real sandbox purchase/restore and complete lifecycle evidence remain |
 | 10 | Security review, disaster recovery, staged release | 6% | 0% | Launch evidence and recovery drill remain |
 | 11 | Future siFia read-only extension display | Excluded | 0% | Planned after the core launch |
 
@@ -211,7 +211,9 @@ Current handoff:
 | Profile bootstrap security increment | None | Guarded deploy, metadata verification, A/B app smoke test, Auth-user deletion, and synthetic-profile cleanup all passed; this narrow increment is complete |
 | Seeker subscription bootstrap guarded deployment | None | Guarded deployment, metadata verification, iOS A/B smoke test, exact-row verification, Auth-user deletion, and cleanup all passed; this narrow increment is complete |
 | Journal Cloud entitlement preflight | None; the manual metadata preflight passed and is recorded in `01-preflight-reviewed.md` | Intended relation/type names are unused, Auth ownership is UUID, required roles/extensions exist, and legacy siFia billing objects remain isolated |
-| Journal Cloud billing foundation | Configure the Android app/catalog before cross-platform sandbox purchase testing; never paste private credentials or secret keys into chat or source control | SDK/identity, localized iOS preview, and pure webhook security contract are implemented; purchase/restore and cloud authorization remain disabled; server mirror/reconciliation remains additive and all SQL is manual |
+| Journal Cloud billing foundation | None for the current code increment; do not enable ordinary-user checkout yet | Both stores, signed production/sandbox webhooks, authoritative reconciliation, and server entitlement projection are verified. Guarded purchase code and owner-only reads are present, but the UI remains disabled pending real sandbox lifecycle tests and encrypted cloud recovery |
+| Encrypted storage and recovery design | None; no SQL or production change is required | [The encrypted storage and recovery plan](journal-cloud-encrypted-storage-and-recovery-plan.md) now classifies recoverable data, documents current media gaps, and defines the crypto, key enrollment, snapshot, restore, retention, and DR gates. The next step is a synthetic-only native library/database spike |
+| Local recovery inventory correction | None | The read-only inventory and V1 validation contract now preserve unfinished authored drafts, Gospel data, and meaningful preferences while excluding credentials, device secrets, analytics/outbox state, offline operations, and caches; 9 focused tests pass and no export file or restore write is enabled |
 | siFia generation/onboarding hardening | None; do not prepare or apply further production changes in this track without separate approval | Read-only evidence is retained, but a generation ledger is not a Journal Cloud launch prerequisite |
 | Follow-up deployed security verification | SQL checks will be handed to you for manual execution | Deletion source retrieval and Data API/configuration checks remain; do not infer them from metadata flags alone |
 | Broader backend/schema changes | None yet | The guarded live exception applies only to the narrow profile helper. Entitlements, deletion, receipt binding, shared sync, storage, and billing still require isolated rehearsal/staged rollout before launch |
@@ -257,6 +259,8 @@ Exit gate: account A cannot read/write account B's rows or files; clients cannot
 
 ### Phase 3 — Reliable local persistence
 
+Detailed design: [Journal Cloud encrypted storage and recovery plan](journal-cloud-encrypted-storage-and-recovery-plan.md).
+
 1. Select and validate an encrypted transactional database for React Native on both platforms; migrate canonical AsyncStorage records through a restartable, count-verified process with a rollback snapshot.
 2. Introduce separate guest and account namespaces, a durable outbox saved in the same transaction as each edit, cryptographically generated IDs, explicit indexes, and migration versions. Scope caches, queries, media, and background jobs to the same namespace.
 3. Store secrets through iOS Keychain / Android Keystore-backed facilities. Lock keys on sign-out and ensure pending uploads cannot run under a different account. Explain local-only data before destructive cache removal. Review OS backup exclusions and reinstall behavior on real devices.
@@ -297,6 +301,8 @@ Exit gate: either app works without the other installed; the same account resolv
 Exit gate: 300 guest records including 80 Heart Journals combine correctly with an existing account, with and without attachments and with no cloud subscription. Repeating or interrupting the merge creates no additional records. Test concurrent edits, delete-versus-edit, poor network, large histories, and both app versions on both OSes.
 
 ### Phase 8 — Encrypted Journal Cloud and recovery history
+
+Detailed design: [Journal Cloud encrypted storage and recovery plan](journal-cloud-encrypted-storage-and-recovery-plan.md).
 
 1. Create a logically separate private cloud area under the same identity system for encrypted Journal-only records, extensions, media, manifests, and wrapped device keys. Minimize readable metadata. Implement reviewed authenticated encryption and key wrapping using maintained libraries, not custom cryptography.
 2. Implement resumable encrypted uploads/downloads, device authorization/revocation, quota accounting, and key recovery. Revocation blocks future access; it cannot erase plaintext already downloaded to a formerly authorized device. Shared base records continue using the free path and must be reconciled rather than duplicated by cloud restore.
@@ -842,6 +848,35 @@ share its single JSON result before additive schema/apply SQL is designed. This
 checkpoint raises Phase 9 to 55% and weighted delivery to **17.2%
 (approximately 17%)**; Phase 2 remains 10% because no backend enforcement has
 been deployed.
+
+## Cross-platform entitlement deployment checkpoint, 2026-11-17
+
+Apple and Google monthly/annual products are attached to the same RevenueCat
+`journal_cloud` entitlement and current offering. Store credentials validate,
+Google real-time developer notifications are connected, and distinct
+production and sandbox Edge Function endpoints require separate exact
+authorization and HMAC secrets. Signed RevenueCat `TEST` deliveries from both
+App Store and Play Store returned success, were recorded as processed, and had
+the expected `ignore` disposition without granting access.
+
+The guarded additive Supabase package was run manually. All four Journal Cloud
+tables use forced RLS; authenticated clients have owner-scoped SELECT only on
+the minimal entitlement projection, while private billing evidence has no
+client table privileges. Reconciliation is executable only by `service_role`.
+Independent metadata verification and synthetic owner/cross-owner, replay,
+payload-mismatch, active/inactive, and sandbox-isolation tests passed with no
+synthetic rows persisted. Legacy siFia billing objects were unchanged.
+
+The mobile billing service now contains a guarded plan-purchase method that
+requires an authenticated account and an exact complete offering. A separate
+owner-derived service reads the Supabase projection and treats only a current
+production `active` row as server-authorized. Neither method is allowed to
+authorize private uploads from RevenueCat client state alone. Focused billing,
+webhook, and entitlement tests pass 36/36; targeted lint and diff checks are
+clean. The checkout UI remains disabled because a successful store receipt is
+not yet a promise that encrypted upload, restore, deletion, and recovery are
+ready. Phase 9 is now 97%, and weighted roadmap delivery is **19.7%
+(approximately 20%)**.
 
 ## Primary references checked on 2026-11-03
 

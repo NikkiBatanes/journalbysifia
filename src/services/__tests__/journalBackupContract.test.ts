@@ -7,6 +7,13 @@ const mockInventory = {
   reviews: [{ id: 'review-1', type: 'weekly', periodStart: '2026-09-14', periodEnd: '2026-09-20', status: 'completed', memorableItems: [{ id: 'todo-1' }], answers: {}, createdAt: '2026-09-17T10:00:00.000Z', updatedAt: '2026-09-17T10:00:00.000Z' }],
   reviewSettings: { weekEndsOn: 0, reminderTime: '19:00', enabledCadences: { weekly: true } },
   prayerDrafts: [{ key: 'prayer_draft:open:2026-09-17:default', type: 'open', selectedDate: '2026-09-17', updatedAt: '2026-09-17T10:00:00.000Z', data: { content: 'Draft' } }],
+  authoredDrafts: {
+    sessionNotes: [{ key: 'session_notes_draft_v1:2026-09-17:new:sermon', value: { title: 'Draft' } }],
+    guidedReflections: [],
+    routines: [{ key: 'routine_draft:morning:2026-09-17:todos', value: { text: 'Draft' } }],
+  },
+  gospelAuthoredContent: [{ key: 'journal:gospel:self-response:v1', value: { testimony: 'Grace' } }],
+  preferences: [{ key: 'prefs:hapticsEnabled', value: true }],
   legacyAuthoredContent: { reflectionLogs: [{ key: 'reflection_log_legacy', value: {} }], journalRecords: [] },
   integrity: { counts: {}, tombstones: { journalRecords: 1, reflectionRecords: 0, prayerRecords: 0 }, duplicateIds: [], danglingReferences: [], legacyOnlyRecords: { reflectionLogs: 1, journalRecords: 0 } },
 };
@@ -26,8 +33,20 @@ it('creates and validates a deterministic V1 envelope without rewriting canonica
 });
 
 it('accepts a structurally valid empty Journal backup', () => {
-  const empty = { format: JOURNAL_BACKUP_FORMAT, appIdentifier: JOURNAL_BACKUP_APP_IDENTIFIER, schemaVersion: 1, exportedAt: '2026-09-17T12:00:00.000Z', sensitive: true, inventory: { ...mockInventory, journalRecords: [], reflectionRecords: [], prayerRecords: [], bibleStudySessions: [], routineStates: [], reviews: [], prayerDrafts: [], legacyAuthoredContent: { reflectionLogs: [], journalRecords: [] } }, integrity: mockInventory.integrity };
+  const empty = { format: JOURNAL_BACKUP_FORMAT, appIdentifier: JOURNAL_BACKUP_APP_IDENTIFIER, schemaVersion: 1, exportedAt: '2026-09-17T12:00:00.000Z', sensitive: true, inventory: { ...mockInventory, journalRecords: [], reflectionRecords: [], prayerRecords: [], bibleStudySessions: [], routineStates: [], reviews: [], prayerDrafts: [], authoredDrafts: { sessionNotes: [], guidedReflections: [], routines: [] }, gospelAuthoredContent: [], preferences: [], legacyAuthoredContent: { reflectionLogs: [], journalRecords: [] } }, integrity: mockInventory.integrity };
   expect(validateJournalBackup(empty).valid).toBe(true);
+});
+
+it('rejects malformed keyed authored content before any future restore can write', async () => {
+  const backup = await createJournalBackup('2026-09-17T12:00:00.000Z');
+  const malformed = {
+    ...backup,
+    inventory: {
+      ...backup.inventory,
+      gospelAuthoredContent: [{ value: { testimony: 'Missing storage key' } }],
+    },
+  };
+  expect(validateJournalBackup(malformed).fatal.map(entry => entry.code)).toContain('invalid_keyed_record');
 });
 
 it.each([

@@ -1,11 +1,15 @@
 # Journal Cloud billing lifecycle and test matrix
 
-Status: client and read-only iOS catalog preview in progress, November 17, 2026.
-RevenueCat 11.0.2 is installed in Journal by siFia and verified by focused tests
-plus native iOS and Android builds. The Apple catalog and current RevenueCat
-offering are configured. A non-purchasing screen displays validated localized
-prices and plan scope. No purchase, restore, webhook, SQL, server entitlement,
-cloud authorization, or live siFia backend change is enabled yet.
+Status: cross-platform billing and trusted entitlement foundation deployed,
+November 17, 2026. RevenueCat 11.0.2 is installed in Journal by siFia and
+verified by focused tests plus native iOS and Android builds. Apple and Google
+catalog products are attached to the current offering. A non-purchasing screen
+displays validated localized prices and plan scope. The additive Supabase
+entitlement schema, service-only reconciliation RPC, and isolated production
+and sandbox webhooks are deployed and verified. Signed RevenueCat `TEST`
+events from both App Store and Play Store were recorded and deliberately
+ignored. Ordinary-user checkout, restore, and private cloud storage remain
+disabled until sandbox lifecycle and encrypted recovery gates pass.
 
 This document implements the product boundary in
 [Journal Cloud entitlement and free-sync boundary](journal-cloud-entitlement-boundary.md):
@@ -42,9 +46,12 @@ Java runtime. This passes the SDK/runtime compile gate, not the store lifecycle
 or launch gate.
 
 The SDK configuration is intentionally inert when a platform public SDK key is
-missing. No private provider key belongs in the mobile application. Store
-sandbox purchases, restores, account switching, webhook reconciliation, and
-server-side authorization remain mandatory before sale.
+missing. No private provider key belongs in the mobile application. Both public
+SDK keys are configured privately for local/store builds. Webhook
+authentication, authoritative provider reconciliation, forced-RLS projection,
+and owner-only entitlement reads now pass focused and synthetic tests. Real
+store sandbox purchases, restores, account switching, lifecycle transitions,
+and encrypted cloud recovery remain mandatory before sale.
 
 ### Direct-store fallback
 
@@ -54,6 +61,21 @@ That avoids a billing aggregator but adds two verification stacks, App Store
 Server Notifications V2, Google Cloud Pub/Sub RTDN, reconciliation jobs, key
 rotation, and more on-call responsibility. It does not change the Supabase
 entitlement or cloud-access contract below.
+
+## Paid app purchase is separate from Journal Cloud
+
+Journal by siFia is configured as a paid download in both stores. The current
+launch price is PHP 599 in the Philippines and USD 12.99 in the United States,
+with store-localized equivalents elsewhere. This is a launch/founding price,
+not an introductory-offer object or an in-app purchase. The store price may be
+changed later for future buyers; existing owners do not repay merely because
+the download price changes.
+
+RevenueCat does not represent the upfront App Store/Google Play app download as
+the `journal_cloud` entitlement. RevenueCat remains scoped to the optional
+monthly/annual cloud subscription. Marketing may say “Launch price” and “Price
+may increase in the future,” but must not promise a permanent discount or
+confuse paid app ownership with 5 GB Journal Cloud access.
 
 ## Product catalog
 

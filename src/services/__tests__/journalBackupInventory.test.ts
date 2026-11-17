@@ -34,7 +34,22 @@ it('enumerates raw canonical records, tombstones, relationships, settings, and p
   put('review_local:weekly:review-1', { id: 'review-1', type: 'weekly', periodStart: '2026-09-14', periodEnd: '2026-09-20', status: 'completed', memorableItems: [{ kind: 'journal', id: 'todo-active', selectedDate: '2026-09-17' }, { kind: 'journal', id: 'missing', selectedDate: '2026-09-17' }], answers: {}, createdAt: timestamp, updatedAt: timestamp });
   put('review_settings_v1', { weekEndsOn: 0, reminderTime: '19:00', enabledCadences: { weekly: true } });
   put('prayer_draft:open:2026-09-17:default', { key: 'prayer_draft:open:2026-09-17:default', type: 'open', selectedDate: '2026-09-17', updatedAt: timestamp, data: { content: 'Unfinished' } });
-  put('routine_draft:morning:2026-09-17:todos', { ignored: true });
+  put('session_notes_draft_v1:2026-09-17:new:sermon', { title: 'Unfinished sermon notes' });
+  put('guided_reflection_draft_v1:2026-09-17:mind-feels-full', { answers: ['Unfinished reflection'] });
+  put('routine_draft:morning:2026-09-17:todos', { text: 'Unfinished routine writing' });
+  put('journal:gospel:people:v1', [{ id: 'person-1', name: 'A friend' }]);
+  put('journal:gospel:self-response:v1', { testimony: 'Grace changed me' });
+  put('journal:gospel:for-me-day-settings:v1', { completedDays: [1, 2] });
+  put('journal:gospel:share-events:v1', [{ id: 'share-1' }]);
+  put('journal:local-profile', { firstName: 'Nikki' });
+  put('journal:local-preferences', { weekStart: 'monday' });
+  put('journal:review-week-start', 'thursday');
+  put('prefs:noteBlocks:v2', { enabledKinds: ['key'] });
+  put('prefs:hapticsEnabled', true);
+  put('@sifia/gospel-share-owner-key', 'device-secret');
+  put('@siFia:offlineQueue', [{ secret: 'pending-network-operation' }]);
+  put('journal:impact-outbox:v1', [{ event: 'private-analytics-queue' }]);
+  put('supabase.auth.token', { access_token: 'never-export' });
   put('timeblock_user_2026-09-17', [{ id: 'excluded' }]);
   put('reflection_log_legacy-user_2026-09-16', { content: { entries: [{ id: 'legacy-reflection' }] } });
   put('journal_gratitude_2026-09-16_legacy-user', { id: 'legacy-journal' });
@@ -60,11 +75,30 @@ it('enumerates raw canonical records, tombstones, relationships, settings, and p
   expect(first.reviews[0].id).toBe('review-1');
   expect(first.reviewSettings?.reminderTime).toBe('19:00');
   expect(first.prayerDrafts[0].data.content).toBe('Unfinished');
+  expect(first.authoredDrafts.sessionNotes[0].key).toBe('session_notes_draft_v1:2026-09-17:new:sermon');
+  expect(first.authoredDrafts.guidedReflections[0].key).toBe('guided_reflection_draft_v1:2026-09-17:mind-feels-full');
+  expect(first.authoredDrafts.routines[0].value).toEqual({ text: 'Unfinished routine writing' });
+  expect(first.gospelAuthoredContent.map(record => record.key)).toEqual([
+    'journal:gospel:for-me-day-settings:v1',
+    'journal:gospel:people:v1',
+    'journal:gospel:self-response:v1',
+    'journal:gospel:share-events:v1',
+  ]);
+  expect(first.preferences.map(record => record.key)).toEqual([
+    'journal:local-preferences',
+    'journal:local-profile',
+    'journal:review-week-start',
+    'prefs:hapticsEnabled',
+    'prefs:noteBlocks:v2',
+  ]);
   expect(first.legacyAuthoredContent.reflectionLogs).toHaveLength(1);
   expect(first.legacyAuthoredContent.journalRecords).toHaveLength(1);
   expect(first.integrity.danglingReferences).toContainEqual({ owner: 'review:review-1', reference: 'missing', status: 'legacy_unresolved' });
-  expect(JSON.stringify(first)).not.toContain('routine_draft');
   expect(JSON.stringify(first)).not.toContain('timeblock_user');
+  expect(JSON.stringify(first)).not.toContain('gospel-share-owner-key');
+  expect(JSON.stringify(first)).not.toContain('offlineQueue');
+  expect(JSON.stringify(first)).not.toContain('impact-outbox');
+  expect(JSON.stringify(first)).not.toContain('access_token');
   expect(AsyncStorage.setItem).not.toHaveBeenCalled();
   expect(AsyncStorage.removeItem).not.toHaveBeenCalled();
 });

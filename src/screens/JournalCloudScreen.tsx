@@ -2,6 +2,7 @@ import React, {useCallback, useEffect, useState} from 'react';
 import {
   ActivityIndicator,
   Linking,
+  Platform,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -42,6 +43,7 @@ const JournalCloudScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const insets = useSafeAreaInsets();
   const {user} = useAuth();
+  const storeName = Platform.OS === 'android' ? 'Google Play' : 'App Store';
   const [plans, setPlans] = useState<JournalCloudPlanSnapshot[]>([]);
   const [loading, setLoading] = useState(true);
   const [catalogIssue, setCatalogIssue] = useState<CatalogIssue>(null);
@@ -53,7 +55,8 @@ const JournalCloudScreen: React.FC = () => {
     setLoading(true);
     setCatalogIssue(null);
     try {
-      const snapshot = await journalCloudBillingService.getCurrentOfferingSnapshot();
+      const snapshot =
+        await journalCloudBillingService.getCurrentOfferingSnapshot();
       const nextPlans = toJournalCloudPlanSnapshots(snapshot);
       const validationIssues = validateJournalCloudOffering(snapshot);
       setPlans(nextPlans);
@@ -143,7 +146,11 @@ const JournalCloudScreen: React.FC = () => {
         </ThemedText>
 
         <View style={styles.boundaryCard}>
-          <Ionicons name="phone-portrait-outline" size={22} color={Colors.sage} />
+          <Ionicons
+            name="phone-portrait-outline"
+            size={22}
+            color={Colors.sage}
+          />
           <View style={styles.boundaryCopy}>
             <ThemedText weight="semiBold" style={styles.boundaryTitle}>
               Journal continues without a subscription
@@ -173,18 +180,22 @@ const JournalCloudScreen: React.FC = () => {
           Choose a plan
         </ThemedText>
         <ThemedText style={styles.storePriceNote}>
-          Your App Store shows the final price for your country.
+          {`Your ${storeName} shows the final price for your country.`}
         </ThemedText>
 
         {loading ? (
-          <View style={styles.catalogState} accessibilityLabel="Loading Journal Cloud prices">
+          <View
+            style={styles.catalogState}
+            accessibilityLabel="Loading Journal Cloud prices">
             <ActivityIndicator size="small" color={Colors.sage} />
-            <ThemedText style={styles.catalogStateText}>Loading store prices…</ThemedText>
+            <ThemedText style={styles.catalogStateText}>
+              Loading store prices…
+            </ThemedText>
           </View>
         ) : catalogIssue ? (
           <View style={styles.catalogState}>
             <ThemedText weight="semiBold" style={styles.catalogStateTitle}>
-              App Store prices aren't available right now
+              {`${storeName} prices aren't available right now`}
             </ThemedText>
             <ThemedText style={styles.catalogStateText}>
               Pricing will appear here when the secure store connection is
@@ -193,10 +204,12 @@ const JournalCloudScreen: React.FC = () => {
             {__DEV__ && (
               <ThemedText style={styles.catalogDiagnosticText}>
                 {catalogIssue === 'not_configured'
-                  ? 'Developer note: rebuild the iOS app so the local RevenueCat public key is included.'
+                  ? `Developer note: rebuild the ${
+                      Platform.OS === 'android' ? 'Android' : 'iOS'
+                    } app so the local RevenueCat public key is included.`
                   : catalogIssue === 'catalog_incomplete'
-                    ? 'Developer note: the current offering is missing or does not contain both expected plans.'
-                    : 'Developer note: Apple or RevenueCat did not return the catalog. Check the debug log and retry.'}
+                  ? 'Developer note: the current offering is missing or does not contain both expected plans.'
+                  : `Developer note: ${storeName} or RevenueCat did not return the catalog. Check the debug log and retry.`}
               </ThemedText>
             )}
             <TouchableOpacity
@@ -208,7 +221,9 @@ const JournalCloudScreen: React.FC = () => {
                 loadPlans();
               }}
               style={styles.retryButton}>
-              <ThemedText weight="semiBold" style={styles.retryButtonText}>Retry</ThemedText>
+              <ThemedText weight="semiBold" style={styles.retryButtonText}>
+                Retry
+              </ThemedText>
             </TouchableOpacity>
           </View>
         ) : (
@@ -221,7 +236,9 @@ const JournalCloudScreen: React.FC = () => {
                   key={plan.productIdentifier}
                   accessibilityRole="radio"
                   accessibilityState={{selected}}
-                  accessibilityLabel={`${annual ? 'Annual' : 'Monthly'} plan, ${plan.localizedPrice}`}
+                  accessibilityLabel={`${annual ? 'Annual' : 'Monthly'} plan, ${
+                    plan.localizedPrice
+                  }`}
                   activeOpacity={0.8}
                   onPress={() => {
                     triggerLightHaptic();
@@ -238,13 +255,17 @@ const JournalCloudScreen: React.FC = () => {
                         {annual ? 'Annual' : 'Monthly'}
                       </ThemedText>
                       <ThemedText style={styles.planCaption}>
-                        {annual ? 'Billed once each year' : 'Billed every month'}
+                        {annual
+                          ? 'Billed once each year'
+                          : 'Billed every month'}
                       </ThemedText>
                     </View>
                     <View style={styles.planIndicators}>
                       {annual && (
                         <View style={styles.valueBadge}>
-                          <ThemedText weight="semiBold" style={styles.valueBadgeText}>
+                          <ThemedText
+                            weight="semiBold"
+                            style={styles.valueBadgeText}>
                             BEST VALUE
                           </ThemedText>
                         </View>
@@ -257,8 +278,12 @@ const JournalCloudScreen: React.FC = () => {
                     </View>
                   </View>
                   <View style={styles.priceRow}>
-                    <ThemedText weight="bold" style={styles.price}>{plan.localizedPrice}</ThemedText>
-                    <ThemedText style={styles.pricePeriod}>/{annual ? 'year' : 'month'}</ThemedText>
+                    <ThemedText weight="bold" style={styles.price}>
+                      {plan.localizedPrice}
+                    </ThemedText>
+                    <ThemedText style={styles.pricePeriod}>
+                      /{annual ? 'year' : 'month'}
+                    </ThemedText>
                   </View>
                 </TouchableOpacity>
               );
@@ -272,18 +297,32 @@ const JournalCloudScreen: React.FC = () => {
             accessibilityState={{disabled: true}}
             accessibilityLabel={`Continue with ${selectedBillingPeriod}, not yet available`}
             style={[styles.primaryButton, styles.disabledButton]}>
-            <Ionicons name="lock-closed-outline" size={17} color={Colors.textGray} />
+            <Ionicons
+              name="lock-closed-outline"
+              size={17}
+              color={Colors.textGray}
+            />
             <ThemedText weight="semiBold" style={styles.disabledButtonText}>
-              Continue with {selectedBillingPeriod === 'annual' ? 'Annual' : 'Monthly'} · Coming soon
+              Continue with{' '}
+              {selectedBillingPeriod === 'annual' ? 'Annual' : 'Monthly'} ·
+              Coming soon
             </ThemedText>
           </View>
         )}
 
         <View style={styles.accountExplanation}>
-          <Ionicons name="person-circle-outline" size={22} color={Colors.sage} />
+          <Ionicons
+            name="person-circle-outline"
+            size={22}
+            color={Colors.sage}
+          />
           <View style={styles.accountExplanationCopy}>
-            <ThemedText weight="semiBold" style={styles.accountExplanationTitle}>
-              {user ? 'Your account is ready for checkout' : 'Account comes at checkout'}
+            <ThemedText
+              weight="semiBold"
+              style={styles.accountExplanationTitle}>
+              {user
+                ? 'Your account is ready for checkout'
+                : 'Account comes at checkout'}
             </ThemedText>
             <ThemedText style={styles.accountExplanationText}>
               {user
@@ -390,7 +429,12 @@ const styles = StyleSheet.create({
   },
   boundaryCopy: {flex: 1, marginLeft: 12},
   boundaryTitle: {fontSize: 15, lineHeight: 20, color: Colors.text},
-  boundaryText: {marginTop: 5, fontSize: 13, lineHeight: 20, color: Colors.textGray},
+  boundaryText: {
+    marginTop: 5,
+    fontSize: 13,
+    lineHeight: 20,
+    color: Colors.textGray,
+  },
   sectionTitle: {marginTop: 28, fontSize: 18, color: Colors.text},
   featureCard: {
     marginTop: 12,
@@ -411,8 +455,19 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.sage,
     marginTop: 1,
   },
-  featureText: {flex: 1, marginLeft: 11, fontSize: 14, lineHeight: 21, color: Colors.text},
-  storePriceNote: {marginTop: 5, fontSize: 13, lineHeight: 19, color: Colors.textGray},
+  featureText: {
+    flex: 1,
+    marginLeft: 11,
+    fontSize: 14,
+    lineHeight: 21,
+    color: Colors.text,
+  },
+  storePriceNote: {
+    marginTop: 5,
+    fontSize: 13,
+    lineHeight: 19,
+    color: Colors.textGray,
+  },
   catalogState: {
     marginTop: 12,
     minHeight: 126,
@@ -425,9 +480,27 @@ const styles = StyleSheet.create({
     borderColor: Colors.lightBorder,
   },
   catalogStateTitle: {fontSize: 15, textAlign: 'center', color: Colors.text},
-  catalogStateText: {marginTop: 8, fontSize: 13, lineHeight: 19, textAlign: 'center', color: Colors.textGray},
-  catalogDiagnosticText: {marginTop: 10, fontSize: 11, lineHeight: 16, textAlign: 'center', color: Colors.textGray},
-  retryButton: {marginTop: 14, paddingHorizontal: 18, paddingVertical: 9, borderRadius: 999, backgroundColor: Colors.anchorBlueLight},
+  catalogStateText: {
+    marginTop: 8,
+    fontSize: 13,
+    lineHeight: 19,
+    textAlign: 'center',
+    color: Colors.textGray,
+  },
+  catalogDiagnosticText: {
+    marginTop: 10,
+    fontSize: 11,
+    lineHeight: 16,
+    textAlign: 'center',
+    color: Colors.textGray,
+  },
+  retryButton: {
+    marginTop: 14,
+    paddingHorizontal: 18,
+    paddingVertical: 9,
+    borderRadius: 999,
+    backgroundColor: Colors.anchorBlueLight,
+  },
   retryButtonText: {fontSize: 14, color: Colors.sage},
   plans: {marginTop: 12, gap: 12},
   planCard: {
@@ -439,10 +512,19 @@ const styles = StyleSheet.create({
   },
   recommendedPlan: {backgroundColor: Colors.anchorBlueLight},
   selectedPlanCard: {borderWidth: 2, borderColor: Colors.sage},
-  planHeading: {flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between'},
+  planHeading: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+  },
   planTitle: {fontSize: 17, color: Colors.text},
   planCaption: {marginTop: 3, fontSize: 12, color: Colors.textGray},
-  valueBadge: {paddingHorizontal: 9, paddingVertical: 5, borderRadius: 999, backgroundColor: Colors.sage},
+  valueBadge: {
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+    borderRadius: 999,
+    backgroundColor: Colors.sage,
+  },
   valueBadgeText: {fontSize: 10, letterSpacing: 0.6, color: Colors.hopeWhite},
   planIndicators: {flexDirection: 'row', alignItems: 'center', gap: 8},
   priceRow: {marginTop: 17, flexDirection: 'row', alignItems: 'baseline'},
@@ -472,14 +554,40 @@ const styles = StyleSheet.create({
   },
   accountExplanationCopy: {flex: 1, marginLeft: 11},
   accountExplanationTitle: {fontSize: 15, lineHeight: 20, color: Colors.text},
-  accountExplanationText: {marginTop: 4, fontSize: 13, lineHeight: 20, color: Colors.textGray},
+  accountExplanationText: {
+    marginTop: 4,
+    fontSize: 13,
+    lineHeight: 20,
+    color: Colors.textGray,
+  },
   disabledButton: {backgroundColor: Colors.lightGray},
   disabledButtonText: {fontSize: 15, color: Colors.textGray},
-  purchaseNotice: {marginTop: 12, fontSize: 12, lineHeight: 18, textAlign: 'center', color: Colors.textGray},
-  restoreButton: {alignSelf: 'center', marginTop: 18, paddingVertical: 8, opacity: 0.6},
+  purchaseNotice: {
+    marginTop: 12,
+    fontSize: 12,
+    lineHeight: 18,
+    textAlign: 'center',
+    color: Colors.textGray,
+  },
+  restoreButton: {
+    alignSelf: 'center',
+    marginTop: 18,
+    paddingVertical: 8,
+    opacity: 0.6,
+  },
   restoreText: {fontSize: 13, color: Colors.textGray},
-  legalRow: {marginTop: 18, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 10},
-  legalLink: {fontSize: 12, color: Colors.sage, textDecorationLine: 'underline'},
+  legalRow: {
+    marginTop: 18,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 10,
+  },
+  legalLink: {
+    fontSize: 12,
+    color: Colors.sage,
+    textDecorationLine: 'underline',
+  },
   legalDot: {fontSize: 12, color: Colors.textGray},
 });
 

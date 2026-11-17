@@ -14,8 +14,31 @@ import type { LocalReviewEntry } from '../storage/reviewStorage';
 import type { ReviewSettings } from '../storage/reviewSettingsStorage';
 import type { PrayerDraft } from '../storage/prayerDraftStorage';
 
-type LegacyRecord = { key: string; value: unknown };
+export type KeyedBackupRecord = { key: string; value: unknown };
 type ReferenceIssue = { owner: string; reference: string; status: 'dangling' | 'legacy_unresolved' };
+
+const GOSPEL_AUTHORED_KEYS = new Set([
+  'journal:gospel:people:v1',
+  'journal:gospel:self-response:v1',
+  'journal:gospel:for-me-day-settings:v1',
+  'journal:gospel:share-events:v1',
+]);
+
+// These values affect the user's Journal experience and are safe to restore.
+// Keep this exact allowlist narrow: broad `journal:`/`prefs:` enumeration would
+// also collect auth, device, analytics, notification, or queue state.
+const MEANINGFUL_PREFERENCE_KEYS = new Set([
+  'journal:local-profile',
+  'journal:local-preferences',
+  'journal:review-week-start',
+  'journal:onboarding:setup:v1',
+  'journal:scripture-sequence-start:v1',
+  'prefs:noteBlocks:v1',
+  'prefs:noteBlocks:v2',
+  'prefs:hapticsEnabled',
+  'prefs:soundsEnabled',
+  'prefs:showTabLabelsEnabled',
+]);
 
 export interface JournalBackupIntegrityReport {
   counts: Record<string, number>;
@@ -34,8 +57,15 @@ export interface JournalBackupInventory {
   reviews: LocalReviewEntry[];
   reviewSettings: ReviewSettings | null;
   prayerDrafts: PrayerDraft[];
+  authoredDrafts: {
+    sessionNotes: KeyedBackupRecord[];
+    guidedReflections: KeyedBackupRecord[];
+    routines: KeyedBackupRecord[];
+  };
+  gospelAuthoredContent: KeyedBackupRecord[];
+  preferences: KeyedBackupRecord[];
   /** Compatibility data that cannot be proven canonical. Never merge it with the records above. */
-  legacyAuthoredContent: { reflectionLogs: LegacyRecord[]; journalRecords: LegacyRecord[] };
+  legacyAuthoredContent: { reflectionLogs: KeyedBackupRecord[]; journalRecords: KeyedBackupRecord[] };
   integrity: JournalBackupIntegrityReport;
 }
 
@@ -47,7 +77,7 @@ const readRecords = async <T>(predicate: (key: string) => boolean): Promise<T[]>
     .filter((value): value is T => value !== null);
 };
 
-const readLegacyRecords = async (predicate: (key: string) => boolean): Promise<LegacyRecord[]> => {
+const readKeyedRecords = async (predicate: (key: string) => boolean): Promise<KeyedBackupRecord[]> => {
   const keys = (await AsyncStorage.getAllKeys()).filter(predicate).sort();
   if (!keys.length) {return [];}
   return (await AsyncStorage.multiGet(keys)).map(([key, raw]) => ({
@@ -65,7 +95,23 @@ const collectRefs = (value: ContentRef | ContentRef[] | undefined): ContentRef[]
 export const getJournalBackupInventory = async (): Promise<JournalBackupInventory> => {
   // Prefix enumeration intentionally reads records, not indexes. Index updates are
   // separate writes and must not determine backup completeness.
-  const [journal, reflections, prayers, bibleStudySessions, routineStates, reviews, prayerDrafts, legacyReflectionLogs, legacyJournalRecords, reviewSettingsRaw] = await Promise.all([
+  const [
+    journal,
+    reflections,
+    prayers,
+    bibleStudySessions,
+    routineStates,
+    reviews,
+    prayerDrafts,
+    sessionNoteDrafts,
+    guidedReflectionDrafts,
+    routineDrafts,
+    gospelAuthoredContent,
+    preferences,
+    legacyReflectionLogs,
+    legacyJournalRecords,
+    reviewSettingsRaw,
+  ] = await Promise.all([
     readRecords<LocalJournalEntry>(key => key.startsWith('journal_local:') || key.startsWith('journal_local_singleton:')),
     readRecords<LocalReflectionEntry>(key => key.startsWith('reflection_local:')),
     readRecords<LocalPrayerEntry>(key => key.startsWith('prayer_local:')),
@@ -73,8 +119,13 @@ export const getJournalBackupInventory = async (): Promise<JournalBackupInventor
     readRecords<RoutineState>(key => key.startsWith('routine_state:')),
     readRecords<LocalReviewEntry>(key => key.startsWith('review_local:')),
     readRecords<PrayerDraft>(key => key.startsWith('prayer_draft:')),
-    readLegacyRecords(key => key.startsWith('reflection_log_')),
-    readLegacyRecords(key => key.startsWith('journal_') && !key.startsWith('journal_local') && !key.startsWith('journal_cache')),
+    readKeyedRecords(key => key.startsWith('session_notes_draft_v1:')),
+    readKeyedRecords(key => key.startsWith('guided_reflection_draft_v1:')),
+    readKeyedRecords(key => key.startsWith('routine_draft:')),
+    readKeyedRecords(key => GOSPEL_AUTHORED_KEYS.has(key)),
+    readKeyedRecords(key => MEANINGFUL_PREFERENCE_KEYS.has(key)),
+    readKeyedRecords(key => key.startsWith('reflection_log_')),
+    readKeyedRecords(key => key.startsWith('journal_') && !key.startsWith('journal_local') && !key.startsWith('journal_cache')),
     AsyncStorage.getItem('review_settings_v1'),
   ]);
 
@@ -124,6 +175,13 @@ export const getJournalBackupInventory = async (): Promise<JournalBackupInventor
     reviews: sortedReviews,
     reviewSettings,
     prayerDrafts: sortedPrayerDrafts,
+    authoredDrafts: {
+      sessionNotes: sessionNoteDrafts,
+      guidedReflections: guidedReflectionDrafts,
+      routines: routineDrafts,
+    },
+    gospelAuthoredContent,
+    preferences,
     legacyAuthoredContent,
     integrity: {
       counts: {
@@ -134,6 +192,11 @@ export const getJournalBackupInventory = async (): Promise<JournalBackupInventor
         routineStates: sortedRoutineStates.length,
         reviews: sortedReviews.length,
         prayerDrafts: sortedPrayerDrafts.length,
+        sessionNoteDrafts: sessionNoteDrafts.length,
+        guidedReflectionDrafts: guidedReflectionDrafts.length,
+        routineDrafts: routineDrafts.length,
+        gospelAuthoredContent: gospelAuthoredContent.length,
+        preferences: preferences.length,
       },
       tombstones: {
         journalRecords: journalRecords.filter(item => item.deleted).length,
