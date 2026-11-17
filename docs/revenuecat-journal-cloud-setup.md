@@ -64,7 +64,7 @@ billing-period discount.
 
 | Storefront | Monthly | Annual |
 | --- | ---: | ---: |
-| Philippines override | PHP 59 | PHP 599 |
+| Philippines override | PHP 59 | PHP 349 |
 | United States base | USD 1.99 | USD 19.99 |
 | Other storefronts | Apple-equivalent localized price | Apple-equivalent localized price |
 

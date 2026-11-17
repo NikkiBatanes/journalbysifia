@@ -154,7 +154,7 @@ describe('Journal Cloud offering helpers', () => {
         packageType: 'ANNUAL',
         product: {
           identifier: 'app.journal.sifia.cloud.annual',
-          priceString: '₱599.00',
+          priceString: '₱349.00',
           currencyCode: 'PHP',
           subscriptionPeriod: 'P1Y',
         },
@@ -178,7 +178,7 @@ describe('Journal Cloud offering helpers', () => {
           packageIdentifier: '$rc_annual',
           packageType: 'ANNUAL',
           productIdentifier: 'app.journal.sifia.cloud.annual',
-          localizedPrice: '₱599.00',
+          localizedPrice: '₱349.00',
           currencyCode: 'PHP',
           subscriptionPeriod: 'P1Y',
         },
@@ -196,7 +196,7 @@ describe('Journal Cloud offering helpers', () => {
       .toEqual([
         {
           billingPeriod: 'annual',
-          localizedPrice: '₱599.00',
+          localizedPrice: '₱349.00',
           productIdentifier: 'app.journal.sifia.cloud.annual',
         },
         {

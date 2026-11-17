@@ -790,7 +790,7 @@ now cover safe offering projection plus exact current-offering/product/period
 validation.
 
 Launch pricing is USD 1.99 monthly / USD 19.99 annual as the United States base,
-with a Philippines override of PHP 59 monthly / PHP 599 annual. Both periods
+with a Philippines override of PHP 59 monthly / PHP 349 annual. Both periods
 provide one account-level 5 GB total allowance for documents and compressed
 photos; video and unlimited storage are excluded from v1. This checkpoint raises
 Phase 9 to 40% and weighted delivery to **16.3% (approximately 16%)**. Android
