@@ -88,13 +88,19 @@ release build.
 
 ## Read-only preview now implemented
 
-- Profile includes an Account & Data entry for Journal Cloud.
+- Profile includes an Account & Data entry labeled `Get Journal Cloud`, with
+  optional cloud backup/recovery/device-sync language and no storage allowance
+  that could be mistaken for an active grant.
 - The preview discloses 5 GB total storage, compressed-photo scope, and the
   separation between free compatible siFia sync and paid Journal-only cloud.
 - Prices come from the validated current store offering. An incomplete or
   unavailable catalog shows a retry state and never a guessed price.
-- Signed-out users can go to the existing sign-in flow. Purchase and restore
-  controls remain unavailable.
+- The screen is explicitly labeled `Optional subscription`. Monthly and annual
+  store plans are selectable, and the disabled Continue label follows the
+  selection so the preview reads as an offer without initiating commerce.
+- Account creation/sign-in is explained as a future checkout step; existing
+  siFia users may use the same account. Purchase and restore controls remain
+  unavailable.
 
 ## Deliberately not enabled yet
 

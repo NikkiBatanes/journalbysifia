@@ -191,7 +191,7 @@ Weights total 100%. Overall delivery estimate is `sum(weight × phase completion
 | 6 | Account connection and device enrollment | 8% | 0% | Existing auth is groundwork; safe combining/enrollment flow remains |
 | 7 | Free bidirectional sync and initial merge | 14% | 15% | Canonical preflight includes one-off Time Blocks through the shared core; consistent storage snapshots, remote adapters, confirmation UI, executor, outbox/cursor/conflict engine remain |
 | 8 | Encrypted Journal Cloud and versioned recovery | 12% | 0% | Cloud protocol, key recovery, and verified snapshots remain |
-| 9 | Monthly/annual billing and lifecycle UX | 6% | 55% | Client/identity, Apple catalog, localized read-only preview, and the pure dual-auth/HMAC webhook decision contract are tested; Android catalog, receiving endpoint, authoritative reconciliation, purchase/restore lifecycle, and server entitlement mirror remain |
+| 9 | Monthly/annual billing and lifecycle UX | 6% | 55% | Client/identity, Apple catalog, localized selectable optional-subscription preview, and the pure dual-auth/HMAC webhook decision contract are tested; Android catalog, receiving endpoint, authoritative reconciliation, purchase/restore lifecycle, and server entitlement mirror remain |
 | 10 | Security review, disaster recovery, staged release | 6% | 0% | Launch evidence and recovery drill remain |
 | 11 | Future siFia read-only extension display | Excluded | 0% | Planned after the core launch |
 

@@ -1503,17 +1503,16 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
             navigateFromRoot(navigation, 'JournalCloud');
           }}
           accessibilityRole="button"
-          accessibilityLabel="Open Journal Cloud">
+          accessibilityLabel="Explore optional Journal Cloud subscription">
           <View style={styles.menuIconBox}>
             <Ionicons name="cloud-outline" size={18} color={Colors.sage} />
           </View>
           <View style={styles.featureMenuCopy}>
-            <Text style={[styles.featureMenuTitle, font]}>Journal Cloud</Text>
+            <Text style={[styles.featureMenuTitle, font]}>Get Journal Cloud</Text>
             <Text style={[styles.featureMenuSubtitle, font]}>
-              Back up Journal-only entries and photos
+              Optional cloud backup, recovery and device sync
             </Text>
           </View>
-          <Text style={[styles.menuValueText, font]}>5 GB</Text>
           <Ionicons name="chevron-forward" size={20} color={theme.colors.chevronColor} />
         </TouchableOpacity>
       </View>

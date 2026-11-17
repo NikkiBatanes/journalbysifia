@@ -23,7 +23,6 @@ import {
 } from '../services/journalCloudBillingService';
 import {Colors} from '../theme/colors';
 import {triggerLightHaptic} from '../utils/haptics';
-import {navigateFromRoot} from '../utils/navigationHelpers';
 import {Logger} from '../utils/ProductionLogger';
 
 const FEATURES = [
@@ -46,6 +45,9 @@ const JournalCloudScreen: React.FC = () => {
   const [plans, setPlans] = useState<JournalCloudPlanSnapshot[]>([]);
   const [loading, setLoading] = useState(true);
   const [catalogIssue, setCatalogIssue] = useState<CatalogIssue>(null);
+  const [selectedBillingPeriod, setSelectedBillingPeriod] = useState<
+    'monthly' | 'annual'
+  >('annual');
 
   const loadPlans = useCallback(async () => {
     setLoading(true);
@@ -92,6 +94,10 @@ const JournalCloudScreen: React.FC = () => {
     });
   }, []);
 
+  const selectedPlan = plans.find(
+    plan => plan.billingPeriod === selectedBillingPeriod,
+  );
+
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
       <StatusBar
@@ -119,9 +125,9 @@ const JournalCloudScreen: React.FC = () => {
         ]}
         showsVerticalScrollIndicator={false}>
         <View style={styles.previewBadge}>
-          <Ionicons name="shield-checkmark-outline" size={15} color={Colors.sage} />
+          <Ionicons name="cloud-outline" size={15} color={Colors.sage} />
           <ThemedText weight="semiBold" style={styles.previewBadgeText}>
-            SECURE PREVIEW
+            OPTIONAL SUBSCRIPTION
           </ThemedText>
         </View>
 
@@ -129,22 +135,22 @@ const JournalCloudScreen: React.FC = () => {
           <Ionicons name="cloud-done-outline" size={42} color={Colors.sage} />
         </View>
         <ThemedText weight="bold" style={styles.title}>
-          Your journal, backed up wherever you go.
+          Protect your journal with Journal Cloud
         </ThemedText>
         <ThemedText style={styles.subtitle}>
-          Protect the Journal by siFia content that lives beyond the siFia app,
-          including richer entries, note blocks and photos.
+          Add automatic cloud backup, recovery and device sync for your
+          Journal-only entries, note blocks and compressed photos.
         </ThemedText>
 
         <View style={styles.boundaryCard}>
-          <Ionicons name="sync-outline" size={22} color={Colors.sage} />
+          <Ionicons name="phone-portrait-outline" size={22} color={Colors.sage} />
           <View style={styles.boundaryCopy}>
             <ThemedText weight="semiBold" style={styles.boundaryTitle}>
-              Journal works on its own
+              Journal continues without a subscription
             </ThemedText>
             <ThemedText style={styles.boundaryText}>
-              Keep journaling locally without an account. Journal Cloud is an
-              optional backup for Journal-only entries, note blocks and media.
+              You can keep writing and saving locally. Journal Cloud is an
+              optional paid service for automatic protection and recovery.
             </ThemedText>
           </View>
         </View>
@@ -209,11 +215,23 @@ const JournalCloudScreen: React.FC = () => {
           <View style={styles.plans}>
             {plans.map(plan => {
               const annual = plan.billingPeriod === 'annual';
+              const selected = plan.billingPeriod === selectedBillingPeriod;
               return (
-                <View
+                <TouchableOpacity
                   key={plan.productIdentifier}
+                  accessibilityRole="radio"
+                  accessibilityState={{selected}}
                   accessibilityLabel={`${annual ? 'Annual' : 'Monthly'} plan, ${plan.localizedPrice}`}
-                  style={[styles.planCard, annual && styles.recommendedPlan]}>
+                  activeOpacity={0.8}
+                  onPress={() => {
+                    triggerLightHaptic();
+                    setSelectedBillingPeriod(plan.billingPeriod);
+                  }}
+                  style={[
+                    styles.planCard,
+                    annual && styles.recommendedPlan,
+                    selected && styles.selectedPlanCard,
+                  ]}>
                   <View style={styles.planHeading}>
                     <View>
                       <ThemedText weight="semiBold" style={styles.planTitle}>
@@ -223,82 +241,57 @@ const JournalCloudScreen: React.FC = () => {
                         {annual ? 'Billed once each year' : 'Billed every month'}
                       </ThemedText>
                     </View>
-                    {annual && (
-                      <View style={styles.valueBadge}>
-                        <ThemedText weight="semiBold" style={styles.valueBadgeText}>
-                          BEST VALUE
-                        </ThemedText>
-                      </View>
-                    )}
+                    <View style={styles.planIndicators}>
+                      {annual && (
+                        <View style={styles.valueBadge}>
+                          <ThemedText weight="semiBold" style={styles.valueBadgeText}>
+                            BEST VALUE
+                          </ThemedText>
+                        </View>
+                      )}
+                      <Ionicons
+                        name={selected ? 'radio-button-on' : 'radio-button-off'}
+                        size={21}
+                        color={selected ? Colors.sage : Colors.textGray}
+                      />
+                    </View>
                   </View>
                   <View style={styles.priceRow}>
                     <ThemedText weight="bold" style={styles.price}>{plan.localizedPrice}</ThemedText>
                     <ThemedText style={styles.pricePeriod}>/{annual ? 'year' : 'month'}</ThemedText>
                   </View>
-                </View>
+                </TouchableOpacity>
               );
             })}
           </View>
         )}
 
-        {!user ? (
-          <View style={styles.accountSection}>
-            <View style={styles.accountExplanation}>
-              <Ionicons name="person-circle-outline" size={22} color={Colors.sage} />
-              <View style={styles.accountExplanationCopy}>
-                <ThemedText weight="semiBold" style={styles.accountExplanationTitle}>
-                  Keep your cloud backup connected
-                </ThemedText>
-                <ThemedText style={styles.accountExplanationText}>
-                  Create a free Journal account to subscribe and restore your
-                  backup on another device. Local journaling does not require an
-                  account or subscription.
-                </ThemedText>
-              </View>
-            </View>
-
-            <TouchableOpacity
-              accessibilityRole="button"
-              accessibilityLabel="Create a free Journal account for Journal Cloud"
-              activeOpacity={0.8}
-              onPress={() => {
-                triggerLightHaptic();
-                navigateFromRoot(navigation, 'Auth', {screen: 'Register'});
-              }}
-              style={[styles.primaryButton, styles.accountPrimaryButton]}>
-              <ThemedText weight="semiBold" style={styles.primaryButtonText}>
-                Create Journal account
-              </ThemedText>
-            </TouchableOpacity>
-
-            <ThemedText style={styles.sifiaConnectionNote}>
-              Already use the siFia app? Use the same account to connect your
-              compatible entries at no extra cost.
-            </ThemedText>
-            <TouchableOpacity
-              accessibilityRole="button"
-              accessibilityLabel="Connect an existing siFia app account"
-              activeOpacity={0.7}
-              onPress={() => {
-                triggerLightHaptic();
-                navigateFromRoot(navigation, 'Auth', {screen: 'Login'});
-              }}
-              style={styles.existingAccountButton}>
-              <ThemedText weight="semiBold" style={styles.existingAccountText}>
-                Connect my siFia account
-              </ThemedText>
-            </TouchableOpacity>
-          </View>
-        ) : (
+        {selectedPlan && (
           <View
-            accessibilityLabel="Journal Cloud purchases are not enabled yet"
+            accessibilityRole="button"
+            accessibilityState={{disabled: true}}
+            accessibilityLabel={`Continue with ${selectedBillingPeriod}, not yet available`}
             style={[styles.primaryButton, styles.disabledButton]}>
             <Ionicons name="lock-closed-outline" size={17} color={Colors.textGray} />
             <ThemedText weight="semiBold" style={styles.disabledButtonText}>
-              Secure purchase setup in progress
+              Continue with {selectedBillingPeriod === 'annual' ? 'Annual' : 'Monthly'} · Coming soon
             </ThemedText>
           </View>
         )}
+
+        <View style={styles.accountExplanation}>
+          <Ionicons name="person-circle-outline" size={22} color={Colors.sage} />
+          <View style={styles.accountExplanationCopy}>
+            <ThemedText weight="semiBold" style={styles.accountExplanationTitle}>
+              {user ? 'Your account is ready for checkout' : 'Account comes at checkout'}
+            </ThemedText>
+            <ThemedText style={styles.accountExplanationText}>
+              {user
+                ? 'When purchases open, Journal Cloud will be connected to your signed-in account.'
+                : 'When purchases open, Continue will ask you to create an account or sign in. Already use the siFia app? You can use that same account.'}
+            </ThemedText>
+          </View>
+        </View>
 
         <ThemedText style={styles.purchaseNotice}>
           Purchases and cloud uploads are not enabled in this preview. A store
@@ -444,12 +437,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.lightBorder,
   },
-  recommendedPlan: {borderWidth: 2, borderColor: Colors.sage},
+  recommendedPlan: {backgroundColor: Colors.anchorBlueLight},
+  selectedPlanCard: {borderWidth: 2, borderColor: Colors.sage},
   planHeading: {flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between'},
   planTitle: {fontSize: 17, color: Colors.text},
   planCaption: {marginTop: 3, fontSize: 12, color: Colors.textGray},
   valueBadge: {paddingHorizontal: 9, paddingVertical: 5, borderRadius: 999, backgroundColor: Colors.sage},
   valueBadgeText: {fontSize: 10, letterSpacing: 0.6, color: Colors.hopeWhite},
+  planIndicators: {flexDirection: 'row', alignItems: 'center', gap: 8},
   priceRow: {marginTop: 17, flexDirection: 'row', alignItems: 'baseline'},
   price: {fontSize: 25, color: Colors.text},
   pricePeriod: {marginLeft: 5, fontSize: 13, color: Colors.textGray},
@@ -465,8 +460,8 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   primaryButtonText: {fontSize: 16, color: Colors.hopeWhite},
-  accountSection: {marginTop: 22},
   accountExplanation: {
+    marginTop: 14,
     flexDirection: 'row',
     alignItems: 'flex-start',
     padding: 16,
@@ -478,10 +473,6 @@ const styles = StyleSheet.create({
   accountExplanationCopy: {flex: 1, marginLeft: 11},
   accountExplanationTitle: {fontSize: 15, lineHeight: 20, color: Colors.text},
   accountExplanationText: {marginTop: 4, fontSize: 13, lineHeight: 20, color: Colors.textGray},
-  accountPrimaryButton: {marginTop: 14},
-  sifiaConnectionNote: {marginTop: 17, fontSize: 12, lineHeight: 18, textAlign: 'center', color: Colors.textGray},
-  existingAccountButton: {alignSelf: 'center', marginTop: 5, paddingHorizontal: 12, paddingVertical: 8},
-  existingAccountText: {fontSize: 14, color: Colors.sage},
   disabledButton: {backgroundColor: Colors.lightGray},
   disabledButtonText: {fontSize: 15, color: Colors.textGray},
   purchaseNotice: {marginTop: 12, fontSize: 12, lineHeight: 18, textAlign: 'center', color: Colors.textGray},
