@@ -1,6 +1,6 @@
 {
   "name": "React-featureflags",
-  "version": "0.79.2",
+  "version": "0.88.1",
   "summary": "React Native internal feature flags",
   "homepage": "https://reactnative.dev/",
   "license": "MIT",
@@ -10,19 +10,27 @@
   },
   "source": {
     "git": "https://github.com/facebook/react-native.git",
-    "tag": "v0.79.2"
+    "tag": "v0.88.1"
   },
-  "source_files": "*.{cpp,h}",
-  "compiler_flags": "-DFOLLY_NO_CONFIG -DFOLLY_MOBILE=1 -DFOLLY_USE_LIBCPP=1 -DFOLLY_CFG_NO_COROUTINES=1 -DFOLLY_HAVE_CLOCK_GETTIME=1 -Wno-comma -Wno-shorten-64-to-32",
+  "source_files": "*.h",
   "header_dir": "react/featureflags",
   "pod_target_xcconfig": {
     "CLANG_CXX_LANGUAGE_STANDARD": "c++20",
-    "HEADER_SEARCH_PATHS": "",
-    "DEFINES_MODULE": "YES"
+    "HEADER_SEARCH_PATHS": " \"$(PODS_ROOT)/ReactNativeDependencies/Headers\"",
+    "DEFINES_MODULE": "YES",
+    "GCC_PREPROCESSOR_DEFINITIONS": "$(inherited) RN_BUILDING=1"
   },
   "dependencies": {
-    "RCT-Folly": [
-      "2024.11.18.00"
-    ]
-  }
+    "React-cxxstableapi": [],
+    "ReactNativeDependencies": [],
+    "React-Core-prebuilt": []
+  },
+  "subspecs": [
+    {
+      "name": "featureflagsUmbrella",
+      "source_files": "React/*.h",
+      "header_dir": "",
+      "header_mappings_dir": "."
+    }
+  ]
 }

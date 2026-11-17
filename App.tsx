@@ -91,6 +91,7 @@ import {
   getPostAuthRedirect,
 } from './src/utils/postAuthRedirect';
 import {clearJournalDevelopmentDataOnce} from './src/dev/clearDevelopmentData';
+import {journalCloudBillingService} from './src/services/journalCloudBillingService';
 
 // Hide debug notifications
 LogBox.ignoreLogs(['Warning: ...']); // Ignore specific warnings if needed
@@ -218,6 +219,18 @@ function AppWithAuth({
   const lastHandledLoginRedirectRef = React.useRef<string | null>(null);
   // Journal first-launch flag (local, auth-independent). null = not loaded yet.
   const [journalOnboarded, setJournalOnboarded] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    if (bootstrapping) {
+      return;
+    }
+
+    journalCloudBillingService
+      .syncIdentity(user?.id ?? null)
+      .catch(error => {
+        console.warn('[JournalCloudBilling] Identity synchronization failed', error);
+      });
+  }, [bootstrapping, user?.id]);
 
   useEffect(() => {
     const claimFromUrl = (url: string | null) => {

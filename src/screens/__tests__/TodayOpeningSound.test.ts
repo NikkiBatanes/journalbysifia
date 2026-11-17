@@ -6,7 +6,7 @@ describe('Today opening sound', () => {
 
   it('waits for the focused Today screen transition to settle before playing', () => {
     expect(source).toContain('useFocusEffect(useCallback(() => {');
-    expect(source).toContain('InteractionManager.runAfterInteractions(() => {');
+    expect(source).toContain('runWhenIdle(() => {');
     expect(source).toContain('interactionTask.cancel();');
   });
 });

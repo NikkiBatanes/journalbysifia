@@ -42,12 +42,12 @@
 		AAMW00000000000000000120 /* MorningWidgetShared.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAMW00000000000000000112 /* MorningWidgetShared.swift */; };
 		AAMW00000000000000000121 /* MorningWidgetBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAMW00000000000000000113 /* MorningWidgetBridge.swift */; };
 		AAMW00000000000000000122 /* MorningWidgetBridge.m in Sources */ = {isa = PBXBuildFile; fileRef = AAMW00000000000000000114 /* MorningWidgetBridge.m */; };
-		D0A000000000000000000001 /* InterfaceEnvironmentBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0A000000000000000000003 /* InterfaceEnvironmentBridge.swift */; };
-		D0A000000000000000000002 /* InterfaceEnvironmentBridge.m in Sources */ = {isa = PBXBuildFile; fileRef = D0A000000000000000000004 /* InterfaceEnvironmentBridge.m */; };
 		AAMW00000000000000000123 /* SiFiaMorningWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = AAMW00000000000000000107 /* SiFiaMorningWidget.appex */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		AAMW00000000000000000128 /* journalbysifiaheartv2sage.png in Resources */ = {isa = PBXBuildFile; fileRef = AAMW00000000000000000129 /* journalbysifiaheartv2sage.png */; };
 		AFC685DFDB184B2AA9A3469B /* Lexend-SemiBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 43D1FCFBE4BC418F8F1B879C /* Lexend-SemiBold.ttf */; };
 		B8CE4D9A00F44E6791846BFA /* OleoScriptSwashCaps-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 3FC4D19ABE124930A1FA5919 /* OleoScriptSwashCaps-Regular.ttf */; };
+		D0A000000000000000000001 /* InterfaceEnvironmentBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0A000000000000000000003 /* InterfaceEnvironmentBridge.swift */; };
+		D0A000000000000000000002 /* InterfaceEnvironmentBridge.m in Sources */ = {isa = PBXBuildFile; fileRef = D0A000000000000000000004 /* InterfaceEnvironmentBridge.m */; };
 		DEC88A0E5D7A4B109D7344A9 /* IndieFlower.ttf in Resources */ = {isa = PBXBuildFile; fileRef = B87BB3F4758C430CAFB73965 /* IndieFlower.ttf */; };
 		ED3D520D83354468A016F1B8 /* Lora-SemiBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 0236ACB8DAE6421C87EDBC23 /* Lora-SemiBold.ttf */; };
 		F54AE62EBA9E4307958CDFDB /* AlexBrush-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = A541C99736F94480818FEB74 /* AlexBrush-Regular.ttf */; };
@@ -118,8 +118,6 @@
 		AAMW00000000000000000112 /* MorningWidgetShared.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MorningWidgetShared.swift; sourceTree = "<group>"; };
 		AAMW00000000000000000113 /* MorningWidgetBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JournalBySiFia/MorningWidgetBridge.swift; sourceTree = "<group>"; };
 		AAMW00000000000000000114 /* MorningWidgetBridge.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = JournalBySiFia/MorningWidgetBridge.m; sourceTree = "<group>"; };
-		D0A000000000000000000003 /* InterfaceEnvironmentBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JournalBySiFia/InterfaceEnvironmentBridge.swift; sourceTree = "<group>"; };
-		D0A000000000000000000004 /* InterfaceEnvironmentBridge.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = JournalBySiFia/InterfaceEnvironmentBridge.m; sourceTree = "<group>"; };
 		AAMW00000000000000000115 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		AAMW00000000000000000116 /* SiFiaMorningWidget.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = SiFiaMorningWidget.entitlements; sourceTree = "<group>"; };
 		AAMW00000000000000000129 /* journalbysifiaheartv2sage.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = journalbysifiaheartv2sage.png; path = ../../assets/images/journalbysifiaheartv2sage.png; sourceTree = "<group>"; };
@@ -130,6 +128,8 @@
 		C25CAFB41141C4BF044BE084 /* Pods-JournalBySiFia.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-JournalBySiFia.debug.xcconfig"; path = "Target Support Files/Pods-JournalBySiFia/Pods-JournalBySiFia.debug.xcconfig"; sourceTree = "<group>"; };
 		CA99DA14CC894AFAB6807E65 /* Lexend-Regular.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Lexend-Regular.ttf"; path = "../assets/fonts/Lexend/Lexend-Regular.ttf"; sourceTree = "<group>"; };
 		D044DFC269B948D8BFD99AE7 /* Lora-Regular.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Lora-Regular.ttf"; path = "../assets/fonts/Lora/Lora-Regular.ttf"; sourceTree = "<group>"; };
+		D0A000000000000000000003 /* InterfaceEnvironmentBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JournalBySiFia/InterfaceEnvironmentBridge.swift; sourceTree = "<group>"; };
+		D0A000000000000000000004 /* InterfaceEnvironmentBridge.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = JournalBySiFia/InterfaceEnvironmentBridge.m; sourceTree = "<group>"; };
 		DC8E06AD3847B6FCF573388F /* LiquidGlassViewManager.m */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.objc; name = LiquidGlassViewManager.m; path = JournalBySiFia/LiquidGlassViewManager.m; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
 		EF8F79F8ECACC81C33EBBDF8 /* LiquidGlassViewManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = LiquidGlassViewManager.swift; path = JournalBySiFia/LiquidGlassViewManager.swift; sourceTree = "<group>"; };
@@ -724,6 +724,10 @@
 				);
 				MTL_ENABLE_DEBUG_INFO = YES;
 				ONLY_ACTIVE_ARCH = YES;
+				OTHER_CFLAGS = (
+					"$(inherited)",
+					"-DRCT_REMOVE_LEGACY_ARCH=1",
+				);
 				OTHER_CPLUSPLUSFLAGS = (
 					"$(OTHER_CFLAGS)",
 					"-DFOLLY_NO_CONFIG",
@@ -731,11 +735,13 @@
 					"-DFOLLY_USE_LIBCPP=1",
 					"-DFOLLY_CFG_NO_COROUTINES=1",
 					"-DFOLLY_HAVE_CLOCK_GETTIME=1",
+					"-DRCT_REMOVE_LEGACY_ARCH=1",
 				);
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					" ",
 				);
+				PODFILE_DIR = "$(SRCROOT)";
 				REACT_NATIVE_PATH = "${PODS_ROOT}/../../node_modules/react-native";
 				SDKROOT = iphoneos;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) DEBUG";
@@ -797,6 +803,10 @@
 					"\"$(inherited)\"",
 				);
 				MTL_ENABLE_DEBUG_INFO = NO;
+				OTHER_CFLAGS = (
+					"$(inherited)",
+					"-DRCT_REMOVE_LEGACY_ARCH=1",
+				);
 				OTHER_CPLUSPLUSFLAGS = (
 					"$(OTHER_CFLAGS)",
 					"-DFOLLY_NO_CONFIG",
@@ -804,11 +814,13 @@
 					"-DFOLLY_USE_LIBCPP=1",
 					"-DFOLLY_CFG_NO_COROUTINES=1",
 					"-DFOLLY_HAVE_CLOCK_GETTIME=1",
+					"-DRCT_REMOVE_LEGACY_ARCH=1",
 				);
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					" ",
 				);
+				PODFILE_DIR = "$(SRCROOT)";
 				REACT_NATIVE_PATH = "${PODS_ROOT}/../../node_modules/react-native";
 				SDKROOT = iphoneos;
 				USE_HERMES = true;

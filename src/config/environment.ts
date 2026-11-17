@@ -24,6 +24,12 @@ export const ENV = {
   // Payment Configuration - Philippines Market
   PAYMONGO_PUBLIC_KEY: Config.PAYMONGO_PUBLIC_KEY || '',
 
+  // Journal Cloud billing (public, app-specific RevenueCat SDK keys only)
+  REVENUECAT_IOS_API_KEY: Config.REVENUECAT_IOS_API_KEY || '',
+  REVENUECAT_ANDROID_API_KEY: Config.REVENUECAT_ANDROID_API_KEY || '',
+  REVENUECAT_JOURNAL_CLOUD_ENTITLEMENT:
+    Config.REVENUECAT_JOURNAL_CLOUD_ENTITLEMENT || 'journal_cloud',
+
   // App Configuration
   APP_ENV: Config.APP_ENV || 'production',
   API_BASE_URL: Config.API_BASE_URL || 'https://api.sifia.app',

@@ -73,6 +73,20 @@ jest.mock('react-native-config', () => ({
   OPENAI_API_KEY: 'test-openai-key',
 }));
 
+jest.mock('react-native-purchases', () => ({
+  __esModule: true,
+  LOG_LEVEL: {DEBUG: 'DEBUG', INFO: 'INFO'},
+  default: {
+    setLogLevel: jest.fn(() => Promise.resolve()),
+    configure: jest.fn(),
+    logIn: jest.fn(() => Promise.resolve({})),
+    logOut: jest.fn(() => Promise.resolve({entitlements: {active: {}}})),
+    getCustomerInfo: jest.fn(() => Promise.resolve({entitlements: {active: {}}})),
+    getOfferings: jest.fn(() => Promise.resolve({all: {}, current: null})),
+    restorePurchases: jest.fn(() => Promise.resolve({entitlements: {active: {}}})),
+  },
+}));
+
 // Mock @tanstack/react-query
 jest.mock('@tanstack/react-query', () => ({
   ...jest.requireActual('@tanstack/react-query'),

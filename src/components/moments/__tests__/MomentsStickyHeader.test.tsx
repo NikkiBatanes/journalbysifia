@@ -2,15 +2,26 @@ import React from 'react';
 import {Animated, View} from 'react-native';
 import type {LayoutChangeEvent} from 'react-native';
 import TestRenderer, {act} from 'react-test-renderer';
-import {MomentsStickyHeader} from '../MomentsStickyHeader';
+import {
+  MomentsStickyHeader,
+  resolveNativeStickyHeader,
+} from '../MomentsStickyHeader';
 
 // Use RN's actual CellRenderer: its inner y=0 layout event is the regression.
-const CellRenderer = require('react-native/node_modules/@react-native/virtualized-lists/Lists/VirtualizedListCellRenderer').default;
-const NativeStickyHeader = require('react-native/Libraries/Components/ScrollView/ScrollViewStickyHeader').default;
+const CellRenderer = require('@react-native/virtualized-lists/Lists/VirtualizedListCellRenderer').default;
+const NativeStickyHeaderModule = require('react-native/Libraries/Components/ScrollView/ScrollViewStickyHeader');
+const NativeStickyHeader = resolveNativeStickyHeader(NativeStickyHeaderModule);
 
 const layout = (y: number): LayoutChangeEvent => ({
   nativeEvent: {layout: {x: 0, y, width: 440, height: 48}},
 } as LayoutChangeEvent);
+
+it('accepts both React Native sticky-header module shapes', () => {
+  expect(resolveNativeStickyHeader(NativeStickyHeader)).toBe(NativeStickyHeader);
+  expect(resolveNativeStickyHeader({default: NativeStickyHeader})).toBe(
+    NativeStickyHeader,
+  );
+});
 
 it('measures the date in scroll-content coordinates and ignores the inner cell origin', () => {
   const onCellLayout = jest.fn();

@@ -22,11 +22,32 @@ interface StickyHeaderHandle {
   setNextHeaderY: (y: number) => void;
 }
 
-// Keep React Native's native-driven pinning and touch handling. This adapter is
-// specific to RN 0.79's CellRenderer/ScrollViewStickyHeader layout contract;
-// recheck it when upgrading React Native.
-const NativeStickyHeader = require('react-native/Libraries/Components/ScrollView/ScrollViewStickyHeader').default as
-  React.ForwardRefExoticComponent<StickyHeaderProps & React.RefAttributes<StickyHeaderHandle>>;
+type NativeStickyHeaderComponent = React.ForwardRefExoticComponent<
+  StickyHeaderProps & React.RefAttributes<StickyHeaderHandle>
+>;
+
+export const resolveNativeStickyHeader = (
+  moduleValue: NativeStickyHeaderComponent | {default?: NativeStickyHeaderComponent},
+): NativeStickyHeaderComponent => {
+  if (typeof moduleValue === 'function') {
+    return moduleValue;
+  }
+
+  if (typeof moduleValue.default === 'function') {
+    return moduleValue.default;
+  }
+
+  throw new Error('React Native ScrollViewStickyHeader export is unavailable');
+};
+
+// Keep React Native's native-driven pinning and touch handling. RN 0.88 Metro
+// returns this internal component directly while Jest/older RN expose it under
+// `.default`. Resolve both shapes so the adapter cannot render `undefined`.
+// The internal CellRenderer/ScrollViewStickyHeader contract remains an upgrade
+// checkpoint until React Native exposes an equivalent public hook.
+const NativeStickyHeader = resolveNativeStickyHeader(
+  require('react-native/Libraries/Components/ScrollView/ScrollViewStickyHeader'),
+);
 
 export const MomentsStickyHeader = React.forwardRef<StickyHeaderHandle, StickyHeaderProps>(
   ({children, onLayout, ...props}, ref) => {

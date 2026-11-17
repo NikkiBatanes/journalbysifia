@@ -1,7 +1,9 @@
 # Journal Cloud billing lifecycle and test matrix
 
-Status: design proposal, November 16, 2026. This document does not configure a
-store, install a billing SDK, create SQL, or change the live siFia backend.
+Status: client foundation in progress, November 17, 2026. RevenueCat 11.0.2 is
+installed in Journal by siFia and verified by focused tests plus native iOS and
+Android builds. No store, RevenueCat project, product catalog, paywall, purchase,
+webhook, SQL, server entitlement, or live siFia backend change is enabled yet.
 
 This document implements the product boundary in
 [Journal Cloud entitlement and free-sync boundary](journal-cloud-entitlement-boundary.md):
@@ -27,19 +29,20 @@ UI, but neither RevenueCat client state nor a mobile boolean authorizes a cloud
 write. Journal Cloud upload/download endpoints read the dedicated Supabase
 projection written by a trusted webhook/reconciliation path.
 
-### Compatibility gate
+### Compatibility gate — passed for the client foundation
 
-Journal currently uses React Native 0.79.2 and has no `react-native-iap` or
-RevenueCat runtime. RevenueCat's current React Native installation guide lists
-React Native 0.80+ as a prerequisite. Do not install its current SDK until one
-of these paths is proven in a clean branch and on both devices:
+Journal now uses React Native 0.88.1. Exact `react-native-purchases` and
+`react-native-purchases-ui` 11.0.2 dependencies are installed. CocoaPods
+resolved and an unsigned iOS simulator build succeeded; the app then launched
+and rendered normally with RevenueCat keys absent. A full four-architecture
+Android Play debug APK also built successfully using Android Studio's bundled
+Java runtime. This passes the SDK/runtime compile gate, not the store lifecycle
+or launch gate.
 
-1. upgrade Journal to a supported React Native release; or
-2. obtain an explicitly supported RevenueCat SDK/runtime combination and accept
-   its maintenance/security window.
-
-Do not select an old SDK merely because it builds. Store/API support, security,
-and minimum-platform requirements are release gates.
+The SDK configuration is intentionally inert when a platform public SDK key is
+missing. No private provider key belongs in the mobile application. Store
+sandbox purchases, restores, account switching, webhook reconciliation, and
+server-side authorization remain mandatory before sale.
 
 ### Direct-store fallback
 

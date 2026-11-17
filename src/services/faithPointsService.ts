@@ -4,9 +4,9 @@
  * NO UI changes - integrates with existing components
  */
 
-import { InteractionManager } from 'react-native';
 import { supabase } from './supabaseClient';
 import { Logger } from '../utils/ProductionLogger';
+import {runWhenIdle} from '../utils/runWhenIdle';
 import { notificationService } from './notificationService';
 import { faithPointsEvents, FAITH_POINTS_EVENTS } from './faithPointsEvents';
 import { milestoneCelebrationService } from './milestoneCelebrationService';
@@ -203,7 +203,7 @@ export class FaithPointsService {
     };
 
     try {
-      InteractionManager.runAfterInteractions(requestAfterInteractions);
+      runWhenIdle(requestAfterInteractions);
     } catch {
       setTimeout(requestAfterInteractions, 500);
     }
@@ -1381,7 +1381,7 @@ export class FaithPointsService {
       // PERFORMANCE FIX: Wait for navigation animations to complete before heavy DB work
       // This prevents UI freezes when badge check fires during screen transitions
       await new Promise<void>(resolve => {
-        InteractionManager.runAfterInteractions(() => resolve());
+        runWhenIdle(() => resolve());
       });
 
       // Now check for badges asynchronously (non-blocking)

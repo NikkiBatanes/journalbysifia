@@ -1,7 +1,10 @@
 import React, { useRef, useCallback, forwardRef, useImperativeHandle } from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { View, StyleSheet, Animated } from 'react-native';
-import { Swipeable, RectButton } from 'react-native-gesture-handler';
+import { View, StyleSheet } from 'react-native';
+import { RectButton } from 'react-native-gesture-handler';
+import ReanimatedSwipeable, {
+  type SwipeableMethods,
+} from 'react-native-gesture-handler/ReanimatedSwipeable';
 import { TouchableOpacity } from 'react-native';
 
 import { Check } from 'lucide-react-native';
@@ -46,25 +49,13 @@ export const SwipeableTodoItem = forwardRef<SwipeableRef, SwipeableTodoItemProps
   containerStyle,
 }, ref) => {
   const momentsPalette = useMomentsPalette();
-  const swipeableRef = useRef<Swipeable>(null);
+  const swipeableRef = useRef<SwipeableMethods>(null);
 
   const closeSwipeable = useCallback(() => {
     swipeableRef.current?.close();
   }, []);
 
-  const renderRightActions = (progress: any, dragX: any) => {
-    const scale = dragX.interpolate({
-      inputRange: [-160, 0],
-      outputRange: [1, 0.8],
-      extrapolate: 'clamp',
-    });
-
-    const opacity = dragX.interpolate({
-      inputRange: [-160, -20, 0],
-      outputRange: [1, 0.9, 0],
-      extrapolate: 'clamp',
-    });
-
+  const renderRightActions = () => {
     const handleDelete = () => {
       closeSwipeable();
       // Small delay to allow the swipeable to close before deleting
@@ -80,15 +71,7 @@ export const SwipeableTodoItem = forwardRef<SwipeableRef, SwipeableTodoItemProps
     // If onEdit is provided, show both edit and delete buttons like TimeBlocks
     if (onEdit) {
       return (
-        <Animated.View
-          style={[
-            styles.swipeActions,
-            {
-              opacity,
-              transform: [{ scale }],
-            },
-          ]}
-        >
+        <View style={styles.swipeActions}>
           <TouchableOpacity
             onPress={handleEdit}
             style={styles.editButton}
@@ -103,28 +86,20 @@ export const SwipeableTodoItem = forwardRef<SwipeableRef, SwipeableTodoItemProps
           >
             <Ionicons name="trash-outline" size={22} color="white" />
           </TouchableOpacity>
-        </Animated.View>
+        </View>
       );
     }
 
     // Playbook-like single delete pill button
     return (
-      <Animated.View
-        style={[
-          styles.singleActionContainer,
-          {
-            opacity,
-            transform: [{ scale }],
-          },
-        ]}
-      >
+      <View style={styles.singleActionContainer}>
         <RectButton
           onPress={handleDelete}
           style={styles.singleDeleteButton}
         >
           <Ionicons name="trash-outline" size={22} color="white" />
         </RectButton>
-      </Animated.View>
+      </View>
     );
   };
 
@@ -134,7 +109,7 @@ export const SwipeableTodoItem = forwardRef<SwipeableRef, SwipeableTodoItemProps
   }));
 
   return (
-    <Swipeable
+    <ReanimatedSwipeable
       ref={swipeableRef}
       renderRightActions={disableSwipe ? undefined : renderRightActions}
       rightThreshold={disableSwipe ? 0 : 40}
@@ -196,7 +171,7 @@ export const SwipeableTodoItem = forwardRef<SwipeableRef, SwipeableTodoItemProps
           )}
         </View>
       </TouchableOpacity>
-    </Swipeable>
+    </ReanimatedSwipeable>
   );
 });
 

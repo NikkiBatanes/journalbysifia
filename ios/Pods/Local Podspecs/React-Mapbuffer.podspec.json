@@ -1,6 +1,6 @@
 {
   "name": "React-Mapbuffer",
-  "version": "0.79.2",
+  "version": "0.88.1",
   "summary": "-",
   "homepage": "https://reactnative.dev/",
   "license": "MIT",
@@ -10,19 +10,33 @@
   },
   "source": {
     "git": "https://github.com/facebook/react-native.git",
-    "tag": "v0.79.2"
+    "tag": "v0.88.1"
   },
-  "source_files": "react/renderer/mapbuffer/*.{cpp,h}",
-  "exclude_files": "react/renderer/mapbuffer/tests",
+  "source_files": "react/renderer/mapbuffer/*.h",
+  "exclude_files": [
+    "react/renderer/mapbuffer/tests",
+    "react/renderer/mapbuffer/React"
+  ],
   "public_header_files": "react/renderer/mapbuffer/*.h",
   "header_dir": "react/renderer/mapbuffer",
   "pod_target_xcconfig": {
-    "HEADER_SEARCH_PATHS": "\"$(PODS_TARGET_SRCROOT)\" \"${PODS_CONFIGURATION_BUILD_DIR}/React-debug/React_debug.framework/Headers\"",
+    "HEADER_SEARCH_PATHS": "\"$(PODS_TARGET_SRCROOT)\" \"${PODS_ROOT}/React-debug\" \"$(PODS_ROOT)/ReactNativeDependencies/Headers\"",
     "USE_HEADERMAP": "YES",
-    "CLANG_CXX_LANGUAGE_STANDARD": "c++20"
+    "CLANG_CXX_LANGUAGE_STANDARD": "c++20",
+    "GCC_PREPROCESSOR_DEFINITIONS": "$(inherited) RN_BUILDING=1"
   },
   "dependencies": {
-    "glog": [],
-    "React-debug": []
-  }
+    "React-cxxstableapi": [],
+    "React-debug": [],
+    "ReactNativeDependencies": [],
+    "React-Core-prebuilt": []
+  },
+  "subspecs": [
+    {
+      "name": "mapbufferUmbrella",
+      "source_files": "react/renderer/mapbuffer/React/*.h",
+      "header_dir": "",
+      "header_mappings_dir": "react/renderer/mapbuffer"
+    }
+  ]
 }

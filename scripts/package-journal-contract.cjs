@@ -16,7 +16,10 @@ const run = (command, args, options = {}) => {
   return result.stdout;
 };
 
-run(process.execPath, [require.resolve('typescript/bin/tsc'), '-p', path.join(packageDir, 'tsconfig.json')], {stdio: 'inherit'});
+// Keep the shared archive reproducible while the mobile app uses the newer
+// compiler required by React Native. Changing compilers can change emitted
+// bytes even when the public contract source is unchanged.
+run(process.execPath, [require.resolve('typescript-contract/bin/tsc'), '-p', path.join(packageDir, 'tsconfig.json')], {stdio: 'inherit'});
 const temporary = fs.mkdtempSync(path.join(os.tmpdir(), 'sifia-contract-'));
 let packedPath;
 try {

@@ -85,6 +85,17 @@ it('mounts consistently when navigation is already collapsed', async () => {
   expect(renderer.root.findAllByProps({testID: 'collapsed-tab-bar'})).not.toHaveLength(0);
 });
 
+it('gives the expanded native glass an explicit containing block', async () => {
+  await act(async () => {renderer = TestRenderer.create(renderBar());});
+  const expanded = renderer.root.findByProps({testID: 'expanded-tab-bar'});
+  const glassHost = renderer.root.findByProps({testID: 'expanded-tab-bar-glass'});
+  expect(StyleSheet.flatten(expanded.props.style).position).toBe('relative');
+  expect(StyleSheet.flatten(glassHost.props.style)).toMatchObject({
+    width: '100%',
+    height: '100%',
+  });
+});
+
 it.each(routes.map((route, index) => [route.name, index] as const))(
   'keeps the %s capsule and label visible even when native glass is unavailable', async (name, index) => {
     mockShowTabBar = false;

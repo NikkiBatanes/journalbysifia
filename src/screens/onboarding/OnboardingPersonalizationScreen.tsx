@@ -25,7 +25,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   TextInput,
-  InteractionManager,
   Animated,
   Keyboard,
   Dimensions,
@@ -43,6 +42,7 @@ import ThemedText from '../../components/common/ThemedText';
 import ThemedTextInput from '../../components/common/ThemedTextInput';
 import OnboardingErrorBoundary from '../../components/OnboardingErrorBoundary';
 import { validatePlaybookInputQuality } from '../../utils/playbookInputValidation';
+import {runWhenIdle} from '../../utils/runWhenIdle';
 
 // const { width } = Dimensions.get('window'); // unused
 
@@ -769,7 +769,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
   }, [tooltipOpacity, tooltipTranslateY, tooltipScale]);
 
   const focusDetailsInput = useCallback(() => {
-    InteractionManager.runAfterInteractions(() => {
+    runWhenIdle(() => {
       // Long delay to allow iOS save password alert to be dismissed
       setTimeout(() => {
         detailsInputRef.current?.focus();

@@ -178,7 +178,7 @@ No record bodies should be placed in tickets, analytics, logs, or committed fixt
 
 Percentages below are conservative planning estimates against the deliverables and exit gates in this version, not a security certification or a shipped-feature percentage. A phase reaches 100% only when its exit gate has recorded evidence. Existing local editors, auth helpers, or IAP dependencies alone do not complete a new integration phase.
 
-Weights total 100%. Overall delivery estimate is `sum(weight × phase completion / 100)`, currently 13.9%, reported as **approximately 14%**. The deployed and verified profile and Seeker helper fixes each contribute a conservative five points to Phase 2; the many remaining authorization, entitlement, receipt, deletion, revision/change-feed, and compatibility deliverables keep this credit narrow. The earlier approximately 19% groundwork/readiness estimate measured a different scope. Future optional display work is excluded from the launch denominator.
+Weights total 100%. Overall delivery estimate is `sum(weight × phase completion / 100)`, currently 15.1%, reported as **approximately 15%**. The deployed and verified profile and Seeker helper fixes each contribute a conservative five points to Phase 2. The RevenueCat client foundation contributes twenty points to Phase 9 after focused identity tests, iOS compilation and no-key simulator launch, and a full Android APK build. The many remaining authorization, entitlement, receipt, deletion, revision/change-feed, cloud, recovery, and release deliverables keep this credit narrow. The earlier approximately 19% groundwork/readiness estimate measured a different scope. Future optional display work is excluded from the launch denominator.
 
 | Phase | Deliverable | Weight | Completion estimate | Status / evidence |
 | --- | --- | ---: | ---: | --- |
@@ -191,7 +191,7 @@ Weights total 100%. Overall delivery estimate is `sum(weight × phase completion
 | 6 | Account connection and device enrollment | 8% | 0% | Existing auth is groundwork; safe combining/enrollment flow remains |
 | 7 | Free bidirectional sync and initial merge | 14% | 15% | Canonical preflight includes one-off Time Blocks through the shared core; consistent storage snapshots, remote adapters, confirmation UI, executor, outbox/cursor/conflict engine remain |
 | 8 | Encrypted Journal Cloud and versioned recovery | 12% | 0% | Cloud protocol, key recovery, and verified snapshots remain |
-| 9 | Monthly/annual billing and lifecycle UX | 6% | 0% | IAP dependency exists; Journal entitlement is not implemented |
+| 9 | Monthly/annual billing and lifecycle UX | 6% | 20% | RevenueCat 11.0.2 client foundation and account-identity coordinator are installed and compile on iOS/Android; no live keys, catalog, purchase UI, webhook, or server entitlement mirror exists yet |
 | 10 | Security review, disaster recovery, staged release | 6% | 0% | Launch evidence and recovery drill remain |
 | 11 | Future siFia read-only extension display | Excluded | 0% | Planned after the core launch |
 
@@ -210,7 +210,7 @@ Current handoff:
 | Remaining recurrence, lifecycle, and structured field contracts | None | Implementation can continue locally |
 | Profile bootstrap security increment | None | Guarded deploy, metadata verification, A/B app smoke test, Auth-user deletion, and synthetic-profile cleanup all passed; this narrow increment is complete |
 | Seeker subscription bootstrap guarded deployment | None | Guarded deployment, metadata verification, iOS A/B smoke test, exact-row verification, Auth-user deletion, and cleanup all passed; this narrow increment is complete |
-| Journal Cloud entitlement boundary | None while the additive server design is prepared locally; provider and retention approval is required before SDK/schema implementation | Dedicated Journal-only entitlement and lifecycle/test matrix are documented; free compatible sync never depends on payment; no current siFia tier grants cloud; existing siFia generation/onboarding findings are deferred to a separate security backlog |
+| Journal Cloud billing foundation | Create the RevenueCat project and connect the Journal iOS/Android apps and sandbox products before purchase/paywall testing; do not paste private store credentials or RevenueCat secret keys into chat or source control | SDK/identity foundation is locally implemented and safely disabled without platform public SDK keys; free compatible sync never depends on payment; no current siFia tier grants cloud; server mirror/webhook work remains additive and must be manually deployed later |
 | siFia generation/onboarding hardening | None; do not prepare or apply further production changes in this track without separate approval | Read-only evidence is retained, but a generation ledger is not a Journal Cloud launch prerequisite |
 | Follow-up deployed security verification | SQL checks will be handed to you for manual execution | Deletion source retrieval and Data API/configuration checks remain; do not infer them from metadata flags alone |
 | Broader backend/schema changes | None yet | The guarded live exception applies only to the narrow profile helper. Entitlements, deletion, receipt binding, shared sync, storage, and billing still require isolated rehearsal/staged rollout before launch |
@@ -305,7 +305,7 @@ Exit gate: a new device recovers writing and media with the account plus a valid
 
 ### Phase 9 — Subscriptions, costs, and backup UX
 
-1. Offer one `journal_cloud` entitlement with monthly and annual products and the same feature/storage allowance. Use Apple IAP and Google Play Billing as the baseline mobile checkout. The [billing lifecycle and test matrix](journal-cloud-billing-lifecycle-and-test-matrix.md) recommends RevenueCat for the first release with a dedicated Supabase entitlement mirror and opaque billing subject. Journal is currently on React Native 0.79.2 while RevenueCat's current guide requires 0.80+, so SDK installation is gated on a supported runtime decision.
+1. Offer one `journal_cloud` entitlement with monthly and annual products and the same feature/storage allowance. Use Apple IAP and Google Play Billing as the baseline mobile checkout. The [billing lifecycle and test matrix](journal-cloud-billing-lifecycle-and-test-matrix.md) recommends RevenueCat for the first release with a dedicated Supabase entitlement mirror. Journal is now on React Native 0.88.1 and the exact RevenueCat React Native SDK/UI packages at 11.0.2 compile on both platforms. The client remains safely disabled until each platform's public SDK key is supplied; no purchase UI or live catalog is enabled by this foundation.
 2. Authenticate webhook ingestion, reject duplicate/replayed events, reconcile out-of-order changes against authoritative status, and enforce uploads server-side. Test pending purchases, renewal, grace, billing failure, refund/revocation, purchase restore, account switching, and cross-platform access. Avoid a second subscription when the account already has the entitlement. Subscription management remains with its purchase store.
 3. Set price and allowance from measured storage, transfer, retained versions, processing, billing fees, and support costs. Publish upload limits and fair-use rules for free shared sync too; a text-only history is not costless. Do not promise unlimited storage.
 4. Show backup coverage in Profile: free shared records versus local-only Journal items versus cloud-protected items. Offer reminders with Back up now and Get Journal Cloud as separate choices. Track export and cloud timestamps independently; never show a green global backed-up badge while attachments are unprotected. Explain uninstall risk during onboarding/settings/export; an app cannot reliably intercept its own uninstall.
@@ -735,6 +735,42 @@ replacement operation or apply package will be prepared as a Journal launch
 prerequisite without separate approval. Phase 2 remains 10% and overall
 weighted progress remains **13.9% (approximately 14%)**; read-only caller
 inventory and this scope correction do not receive deployment credit.
+
+## RevenueCat client foundation, 2026-11-17
+
+Journal by siFia was upgraded to React Native 0.88.1 before adding exact
+`react-native-purchases` and `react-native-purchases-ui` 11.0.2 dependencies.
+The new billing coordinator selects the platform public SDK key, remains inert
+when that key is absent, serializes account identity changes, requires a signed-
+in account for Restore Purchases, and recognizes only the named `journal_cloud`
+entitlement. App authentication now synchronizes the RevenueCat customer
+identity after bootstrap. Client `CustomerInfo` is explicitly presentation
+state only; it cannot authorize a Journal Cloud upload or download.
+
+Seven focused coordinator/helper tests passed, including missing-key disable,
+signed-in initialization, anonymous-to-account transition, account switching,
+sign-out, restore account enforcement, and exact entitlement selection. The
+existing idle-scheduling and Today opening regression suites also passed. Jest
+still retained a pre-existing open handle after reporting all suites `PASS`, so
+the completed test process required manual interruption and this runner issue
+remains open.
+
+Native verification passed on both platforms. CocoaPods installed RNPurchases
+and RNPaywalls 11.0.2, PurchasesHybridCommon 20.7.0, and RevenueCat/RevenueCatUI
+5.102.2; the unsigned iOS simulator build reported `BUILD SUCCEEDED`, and the
+app launched to its normal Today screen with no RevenueCat keys. Android's full
+four-architecture `assemblePlayDebug` reported `BUILD SUCCESSFUL`; the resulting
+APK is 348,623,031 bytes with SHA-256
+`49fa33d2f77c594b9f777b212c3e9c37a2dda2f784bffd7144961c64349d0f22`.
+The shared contract archive remains byte-identical at SHA-256
+`597a6761564dd9113248d9961ae5290ab58c8797f925eba69ead49b991709d3b`.
+
+This is a client compatibility and identity foundation only. No RevenueCat
+project, public SDK key, store product, offering, paywall, purchase, webhook,
+server entitlement mirror, SQL, cloud access, or live backend deployment was
+created. It raises Phase 9 from 0% to 20% and the weighted roadmap from 13.9% to
+**15.1% (approximately 15%)**. Store/provider setup and the trusted server
+boundary are the next gates.
 
 ## Primary references checked on 2026-11-03
 

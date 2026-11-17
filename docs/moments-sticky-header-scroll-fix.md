@@ -35,9 +35,14 @@ showed zero offsets for every date.
   ignored inner coordinates, changed cell indices, touch callbacks, and the
   forwarded header-collision ref.
 
-This adapter depends on RN 0.79's internal CellRenderer and ScrollViewStickyHeader
-contracts. Recheck them on a React Native upgrade. The fix is JavaScript and does
-not require a native rebuild; reload the development bundle to test it.
+This adapter depends on React Native's internal CellRenderer and
+ScrollViewStickyHeader contracts. The React Native 0.88 upgrade changed the
+Metro module shape from an object with `.default` to the component directly,
+which initially rendered `undefined`. The adapter now validates and accepts
+both shapes while preserving the outer-layout forwarding behavior. Recheck the
+internal layout, ref, and module contracts on every React Native upgrade. The
+fix is JavaScript and does not require a native rebuild; reload the development
+bundle to test it.
 
 ## Verification performed
 

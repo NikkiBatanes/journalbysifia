@@ -1,6 +1,6 @@
 {
   "name": "React-oscompat",
-  "version": "0.79.2",
+  "version": "0.88.1",
   "summary": "Small set of OS-level utilities for React Native",
   "homepage": "https://reactnative.dev/",
   "license": "MIT",
@@ -10,11 +10,15 @@
   },
   "source": {
     "git": "https://github.com/facebook/react-native.git",
-    "tag": "v0.79.2"
+    "tag": "v0.88.1"
   },
-  "source_files": "*.{cpp,h}",
+  "source_files": "*.{h}",
   "pod_target_xcconfig": {
-    "HEADER_SEARCH_PATHS": ""
+    "HEADER_SEARCH_PATHS": "",
+    "GCC_PREPROCESSOR_DEFINITIONS": "$(inherited) RN_BUILDING=1"
   },
-  "header_dir": "oscompat"
+  "header_dir": "oscompat",
+  "dependencies": {
+    "React-cxxstableapi": []
+  }
 }

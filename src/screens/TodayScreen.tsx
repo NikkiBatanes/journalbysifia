@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { DeviceEventEmitter, InteractionManager, Platform, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View, useWindowDimensions, type LayoutChangeEvent } from 'react-native';
+import { DeviceEventEmitter, Platform, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View, useWindowDimensions, type LayoutChangeEvent } from 'react-native';
 import Animated, { Easing, FadeInUp, useAnimatedStyle, useSharedValue, withSequence, withSpring, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
@@ -37,6 +37,7 @@ import {getReviewQAScenario} from '../dev/reviews/reviewQAFixtures';
 import {gospelStorage, type ForMeDaySettings} from '../storage/gospelStorage';
 import {isForMeDay, scheduleForMeDayReminder} from '../services/forMeDayService';
 import {useIOSSizeClasses} from '../hooks/useIOSSizeClasses';
+import {runWhenIdle} from '../utils/runWhenIdle';
 
 const CALENDAR_SHEET_HEIGHT = 60;
 const CALENDAR_SPRING = { damping: 12, stiffness: 185, mass: 0.85 };
@@ -303,7 +304,7 @@ const TodayScreen = () => {
     // On first launch, Today is mounted as onboarding resets to MainTabs. Wait
     // until that transition has settled so the welcome cue is not consumed
     // while the onboarding screen is still leaving.
-    const interactionTask = InteractionManager.runAfterInteractions(() => {
+    const interactionTask = runWhenIdle(() => {
       playTodayOpeningSound(() => {
         if (!focused) { return; }
         animateGreetingIcon(isEvening);

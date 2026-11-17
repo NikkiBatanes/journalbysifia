@@ -16,7 +16,7 @@ class SifiaKeyboardModule(
   @ReactMethod
   fun showSoftKeyboard() {
     UiThreadUtil.runOnUiThread {
-      val activity = currentActivity ?: return@runOnUiThread
+      val activity = reactApplicationContext.getCurrentActivity() ?: return@runOnUiThread
       val focusedView = activity.currentFocus ?: activity.window?.decorView ?: return@runOnUiThread
       val inputMethodManager =
         reactContext.getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager

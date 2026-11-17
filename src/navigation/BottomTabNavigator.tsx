@@ -705,7 +705,11 @@ export const CustomTabBarComponent = ({
         pointerEvents={showTabBar ? 'box-none' : 'none'}
       >
         {Platform.OS === 'ios' ? (
-          <View pointerEvents="none" style={styles.pillGlassBackground}>
+          <View
+            testID="expanded-tab-bar-glass"
+            pointerEvents="none"
+            style={styles.pillGlassBackground}
+          >
             <LiquidGlassView
               tintColor="rgba(82, 106, 91, 0.32)"
               cornerRadius={31}
@@ -1081,6 +1085,7 @@ const styles = StyleSheet.create({
   },
   // Floating pill — full width, slightly smaller to fit icon + label
   pill: {
+    position: 'relative',
     flexDirection: 'row',
     alignItems: 'center',
     height: PILL_HEIGHT,
@@ -1096,9 +1101,12 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   pillGlassBackground: {
-    ...StyleSheet.absoluteFillObject,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: '100%',
+    height: '100%',
     borderRadius: 31,
-    overflow: 'hidden',
   },
   // Shared container — selector and tabs both reference x=0 from here
   pillInner: {
@@ -1264,9 +1272,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   collapsedGlassClip: {
-    ...StyleSheet.absoluteFillObject,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: '100%',
+    height: '100%',
     borderRadius: 26,
-    overflow: 'hidden',
   },
   collapsedCircleTouchable: {
     width: '100%',

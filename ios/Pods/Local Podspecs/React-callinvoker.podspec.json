@@ -1,6 +1,6 @@
 {
   "name": "React-callinvoker",
-  "version": "0.79.2",
+  "version": "0.88.1",
   "summary": "-",
   "homepage": "https://reactnative.dev/",
   "license": "MIT",
@@ -10,8 +10,24 @@
   },
   "source": {
     "git": "https://github.com/facebook/react-native.git",
-    "tag": "v0.79.2"
+    "tag": "v0.88.1"
   },
-  "source_files": "**/*.{cpp,h}",
-  "header_dir": "ReactCommon"
+  "source_files": "**/*.h",
+  "exclude_files": "React",
+  "pod_target_xcconfig": {
+    "HEADER_SEARCH_PATHS": "",
+    "GCC_PREPROCESSOR_DEFINITIONS": "$(inherited) RN_BUILDING=1"
+  },
+  "header_dir": "ReactCommon",
+  "dependencies": {
+    "React-cxxstableapi": []
+  },
+  "subspecs": [
+    {
+      "name": "callinvokerUmbrella",
+      "source_files": "React/*.h",
+      "header_dir": "",
+      "header_mappings_dir": "."
+    }
+  ]
 }

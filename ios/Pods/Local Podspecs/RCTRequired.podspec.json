@@ -1,7 +1,7 @@
 {
   "name": "RCTRequired",
-  "version": "0.79.2",
-  "summary": "-",
+  "version": "0.88.1",
+  "summary": "Prebuilt facade for RCTRequired (code + headers live in React-Core-prebuilt).",
   "homepage": "https://reactnative.dev/",
   "license": "MIT",
   "authors": "Meta Platforms, Inc. and its affiliates",
@@ -9,9 +9,9 @@
     "ios": "15.1"
   },
   "source": {
-    "git": "https://github.com/facebook/react-native.git",
-    "tag": "v0.79.2"
+    "git": "https://github.com/facebook/react-native.git"
   },
-  "source_files": "**/*.{c,h,m,mm,cpp}",
-  "header_dir": "RCTRequired"
+  "dependencies": {
+    "React-Core-prebuilt": []
+  }
 }
