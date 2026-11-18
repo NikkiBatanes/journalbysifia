@@ -31,6 +31,12 @@ const sources = {
   transportSource: read(
     'ios/JournalArchiveCrypto/Sources/JournalArchiveFileTransport.mm',
   ).toString('utf8'),
+  mediaPackagingHeader: read(
+    'ios/JournalArchiveCrypto/Sources/JournalArchiveMediaPackaging.h',
+  ).toString('utf8'),
+  mediaPackagingSource: read(
+    'ios/JournalArchiveCrypto/Sources/JournalArchiveMediaPackaging.mm',
+  ).toString('utf8'),
   integritySource: read(
     'ios/JournalArchiveCrypto/Vendor/INTEGRITY.json',
   ).toString('utf8'),
@@ -127,6 +133,19 @@ test('rejects a caller-controlled transport payload', () => {
   assert.ok(
     result.failures.some(failure =>
       failure.includes('transport accepted forbidden input'),
+    ),
+  );
+});
+
+test('rejects a caller-controlled media payload', () => {
+  const result = inspectIosProvider({
+    ...sources,
+    mediaPackagingSource: `${sources.mediaPackagingSource}\n// customerMedia`,
+  });
+  assert.equal(result.approved, false);
+  assert.ok(
+    result.failures.some(failure =>
+      failure.includes('media packaging accepted forbidden input'),
     ),
   );
 });

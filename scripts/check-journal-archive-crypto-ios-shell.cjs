@@ -14,6 +14,10 @@ const paths = {
     'ios/JournalArchiveCrypto/Sources/JournalArchiveFileTransport.h',
   transportSource:
     'ios/JournalArchiveCrypto/Sources/JournalArchiveFileTransport.mm',
+  mediaPackagingHeader:
+    'ios/JournalArchiveCrypto/Sources/JournalArchiveMediaPackaging.h',
+  mediaPackagingSource:
+    'ios/JournalArchiveCrypto/Sources/JournalArchiveMediaPackaging.mm',
   integrity: 'ios/JournalArchiveCrypto/Vendor/INTEGRITY.json',
   framework: 'ios/JournalArchiveCrypto/Vendor/Clibsodium.xcframework',
   license: 'ios/JournalArchiveCrypto/Vendor/LICENSE.libsodium',
@@ -65,6 +69,8 @@ function inspectIosProvider(sources) {
     moduleSource,
     transportHeader,
     transportSource,
+    mediaPackagingHeader,
+    mediaPackagingSource,
     integritySource,
     frameworkDigest,
     licenseBytes,
@@ -106,6 +112,7 @@ function inspectIosProvider(sources) {
       '- (void)getProviderEvidence:(RCTPromiseResolveBlock)resolve',
       '- (void)runSyntheticSelfTest:(RCTPromiseResolveBlock)resolve',
       '- (void)runFileTransportSelfTest:(RCTPromiseResolveBlock)resolve',
+      '- (void)runMediaPackagingSelfTest:(RCTPromiseResolveBlock)resolve',
       '@"platform" : @"ios"',
       '@"runtimeOffJavaScriptThread" : @YES',
       '@"syntheticOnly" : @YES',
@@ -128,6 +135,17 @@ function inspectIosProvider(sources) {
       '@"staleTemporaryCleaned" : @(assertions[6])',
       '@"publishedBytesVerified" : @(assertions[7])',
       '@"artifactsCleaned" : @(assertions[8])',
+      '@"allowedMediaPackaged" : @(assertions[0])',
+      '@"contentTypeMismatchRejected" : @(assertions[1])',
+      '@"perAssetLimitRejected" : @(assertions[2])',
+      '@"aggregateLimitsRejected" : @(assertions[3])',
+      '@"hashMismatchRejected" : @(assertions[4])',
+      '@"ownerMismatchRejected" : @(assertions[5])',
+      '@"unsafePathRejected" : @(assertions[6])',
+      '@"duplicateAssetRejected" : @(assertions[7])',
+      '@"metadataTamperRejected" : @(assertions[8])',
+      '@"chunkReorderingRejected" : @(assertions[9])',
+      '@"missingFinalMarkerRejected" : @(assertions[10])',
       'crypto_pwhash_ALG_ARGON2ID13',
       'crypto_secretstream_xchacha20poly1305_TAG_FINAL',
       'sodium_memzero',
@@ -150,6 +168,24 @@ function inspectIosProvider(sources) {
       'assertions[8]',
     ],
     'synthetic iOS file-transport assertion',
+    failures,
+  );
+
+  requireMarkers(
+    `${mediaPackagingHeader}\n${mediaPackagingSource}`,
+    [
+      'RunJournalArchiveMediaPackagingAssertions',
+      'kMaximumAssetCount = 2',
+      'kMaximumAssetBytes = 1024',
+      'kMaximumTotalAssetBytes = 1536',
+      'journal-media-v1',
+      'objects/',
+      'crypto_hash_sha256',
+      'crypto_secretstream_xchacha20poly1305_push',
+      'crypto_secretstream_xchacha20poly1305_TAG_FINAL',
+      'assertions[10]',
+    ],
+    'synthetic iOS media-packaging assertion',
     failures,
   );
 
@@ -176,6 +212,11 @@ function inspectIosProvider(sources) {
   for (const pattern of [/password/i, /passphrase/i, /customer/i]) {
     if (pattern.test(`${transportHeader}\n${transportSource}`)) {
       failures.push(`synthetic iOS transport accepted forbidden input: ${pattern}`);
+    }
+  }
+  for (const pattern of [/password/i, /passphrase/i, /customer/i, /NSData\s*\*/]) {
+    if (pattern.test(`${mediaPackagingHeader}\n${mediaPackagingSource}`)) {
+      failures.push(`synthetic iOS media packaging accepted forbidden input: ${pattern}`);
     }
   }
 
@@ -227,6 +268,8 @@ function main() {
     moduleSource: readText('moduleSource'),
     transportHeader: readText('transportHeader'),
     transportSource: readText('transportSource'),
+    mediaPackagingHeader: readText('mediaPackagingHeader'),
+    mediaPackagingSource: readText('mediaPackagingSource'),
     integritySource: readText('integrity'),
     frameworkDigest: sha256Tree(path.join(root, paths.framework)),
     licenseBytes: fs.readFileSync(path.join(root, paths.license)),

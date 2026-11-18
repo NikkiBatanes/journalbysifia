@@ -16,6 +16,8 @@ const paths = {
   nativeSource: 'android/app/src/main/cpp/journal_archive_crypto.cpp',
   transportSource:
     'android/app/src/main/cpp/journal_archive_file_transport.cpp',
+  mediaPackagingSource:
+    'android/app/src/main/cpp/journal_archive_media_packaging.cpp',
   integritySource:
     'android/app/libs/journal-archive-libsodium/INTEGRITY.json',
   aar: 'android/app/libs/journal-archive-libsodium/libsodium-1.0.22.0.aar',
@@ -44,6 +46,7 @@ function inspectAndroidProvider(sources) {
     cmakeSource,
     nativeSource,
     transportSource,
+    mediaPackagingSource,
     integritySource,
     aarBytes,
     licenseBytes,
@@ -59,6 +62,7 @@ function inspectAndroidProvider(sources) {
       'private external fun nativeSodiumVersion(): String',
       'private external fun nativeRunSyntheticSelfTest(): BooleanArray',
       'private external fun nativeRunFileTransportSelfTest(cacheDirectory: String): BooleanArray',
+      'private external fun nativeRunMediaPackagingSelfTest(): BooleanArray',
       'putString("libsodiumVersion", nativeSodiumVersion())',
       'putString("platform", "android")',
       'putBoolean("runtimeOffJavaScriptThread", true)',
@@ -82,6 +86,17 @@ function inspectAndroidProvider(sources) {
       'putBoolean("staleTemporaryCleaned", assertions[6])',
       'putBoolean("publishedBytesVerified", assertions[7])',
       'putBoolean("artifactsCleaned", assertions[8])',
+      'putBoolean("allowedMediaPackaged", assertions[0])',
+      'putBoolean("contentTypeMismatchRejected", assertions[1])',
+      'putBoolean("perAssetLimitRejected", assertions[2])',
+      'putBoolean("aggregateLimitsRejected", assertions[3])',
+      'putBoolean("hashMismatchRejected", assertions[4])',
+      'putBoolean("ownerMismatchRejected", assertions[5])',
+      'putBoolean("unsafePathRejected", assertions[6])',
+      'putBoolean("duplicateAssetRejected", assertions[7])',
+      'putBoolean("metadataTamperRejected", assertions[8])',
+      'putBoolean("chunkReorderingRejected", assertions[9])',
+      'putBoolean("missingFinalMarkerRejected", assertions[10])',
       'cryptoExecutor.shutdownNow()',
       'System.loadLibrary("journal_archive_crypto")',
       'const val NAME = "JournalArchiveCrypto"',
@@ -131,6 +146,7 @@ function inspectAndroidProvider(sources) {
       'find_package(sodium REQUIRED CONFIG)',
       '../cpp/journal_archive_crypto.cpp',
       '../cpp/journal_archive_file_transport.cpp',
+      '../cpp/journal_archive_media_packaging.cpp',
       'target_compile_features(journal_archive_crypto PRIVATE cxx_std_20)',
       '-Werror',
       '-fvisibility=hidden',
@@ -176,6 +192,24 @@ function inspectAndroidProvider(sources) {
     failures,
   );
 
+  requireMarkers(
+    mediaPackagingSource,
+    [
+      'kMaximumAssetCount = 2',
+      'kMaximumAssetBytes = 1024',
+      'kMaximumTotalAssetBytes = 1536',
+      'journal-media-v1',
+      'objects/',
+      'crypto_hash_sha256',
+      'crypto_secretstream_xchacha20poly1305_push',
+      'crypto_secretstream_xchacha20poly1305_TAG_FINAL',
+      'nativeRunMediaPackagingSelfTest',
+      'assertions[10]',
+    ],
+    'synthetic Android media-packaging assertion',
+    failures,
+  );
+
   const forbiddenSurface = [
     /encryptFile/i,
     /decryptFile/i,
@@ -212,6 +246,19 @@ function inspectAndroidProvider(sources) {
   ]) {
     if (pattern.test(transportSource)) {
       failures.push(`synthetic Android transport accepted forbidden input: ${pattern}`);
+    }
+  }
+
+  for (const pattern of [
+    /jbyteArray/,
+    /jobjectArray/,
+    /jstring/,
+    /password/i,
+    /passphrase/i,
+    /customer/i,
+  ]) {
+    if (pattern.test(mediaPackagingSource)) {
+      failures.push(`synthetic Android media packaging accepted forbidden input: ${pattern}`);
     }
   }
 
@@ -263,6 +310,7 @@ function main() {
     cmakeSource: readText('cmakeSource'),
     nativeSource: readText('nativeSource'),
     transportSource: readText('transportSource'),
+    mediaPackagingSource: readText('mediaPackagingSource'),
     integritySource: readText('integritySource'),
     aarBytes: fs.readFileSync(path.join(root, paths.aar)),
     licenseBytes: fs.readFileSync(path.join(root, paths.license)),

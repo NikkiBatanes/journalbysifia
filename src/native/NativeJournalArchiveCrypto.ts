@@ -54,11 +54,27 @@ export type JournalArchiveCryptoFileTransportEvidence = {
   plaintextFileWritten: boolean;
 };
 
+export type JournalArchiveCryptoMediaPackagingEvidence = {
+  allowedMediaPackaged: boolean;
+  contentTypeMismatchRejected: boolean;
+  perAssetLimitRejected: boolean;
+  aggregateLimitsRejected: boolean;
+  hashMismatchRejected: boolean;
+  ownerMismatchRejected: boolean;
+  unsafePathRejected: boolean;
+  duplicateAssetRejected: boolean;
+  metadataTamperRejected: boolean;
+  chunkReorderingRejected: boolean;
+  missingFinalMarkerRejected: boolean;
+  plaintextFileWritten: boolean;
+};
+
 export interface Spec extends TurboModule {
   getProviderEvidence(): Promise<JournalArchiveCryptoProviderEvidence>;
   runSyntheticSelfTest(): Promise<JournalArchiveCryptoSyntheticEvidence>;
   runPortableVectorSelfTest(): Promise<JournalArchiveCryptoPortableVectorEvidence>;
   runFileTransportSelfTest(): Promise<JournalArchiveCryptoFileTransportEvidence>;
+  runMediaPackagingSelfTest(): Promise<JournalArchiveCryptoMediaPackagingEvidence>;
 }
 
 export default TurboModuleRegistry.getEnforcing<Spec>('JournalArchiveCrypto');

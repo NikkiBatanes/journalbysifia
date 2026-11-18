@@ -27,6 +27,9 @@ const sources = {
   transportSource: read(
     'android/app/src/main/cpp/journal_archive_file_transport.cpp',
   ).toString('utf8'),
+  mediaPackagingSource: read(
+    'android/app/src/main/cpp/journal_archive_media_packaging.cpp',
+  ).toString('utf8'),
   integritySource: read(
     'android/app/libs/journal-archive-libsodium/INTEGRITY.json',
   ).toString('utf8'),
@@ -121,6 +124,19 @@ test('rejects a caller-controlled transport payload', () => {
   assert.ok(
     result.failures.some(failure =>
       failure.includes('transport accepted forbidden input'),
+    ),
+  );
+});
+
+test('rejects a caller-controlled media payload', () => {
+  const result = inspectAndroidProvider({
+    ...sources,
+    mediaPackagingSource: `${sources.mediaPackagingSource}\n// jbyteArray customerMedia`,
+  });
+  assert.equal(result.approved, false);
+  assert.ok(
+    result.failures.some(failure =>
+      failure.includes('media packaging accepted forbidden input'),
     ),
   );
 });

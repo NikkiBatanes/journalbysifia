@@ -12,6 +12,7 @@ add_library(
   SHARED
   ../cpp/journal_archive_crypto.cpp
   ../cpp/journal_archive_file_transport.cpp
+  ../cpp/journal_archive_media_packaging.cpp
 )
 
 target_compile_features(journal_archive_crypto PRIVATE cxx_std_20)

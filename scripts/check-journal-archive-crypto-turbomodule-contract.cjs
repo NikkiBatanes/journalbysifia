@@ -33,6 +33,7 @@ function inspectContract(packageJson, spec) {
     'runSyntheticSelfTest(): Promise<JournalArchiveCryptoSyntheticEvidence>',
     'runPortableVectorSelfTest(): Promise<JournalArchiveCryptoPortableVectorEvidence>',
     'runFileTransportSelfTest(): Promise<JournalArchiveCryptoFileTransportEvidence>',
+    'runMediaPackagingSelfTest(): Promise<JournalArchiveCryptoMediaPackagingEvidence>',
     'runtimeOffJavaScriptThread: boolean',
     'syntheticOnly: boolean',
     'mobileProviderApproved: boolean',
@@ -56,6 +57,17 @@ function inspectContract(packageJson, spec) {
     'staleTemporaryCleaned: boolean',
     'publishedBytesVerified: boolean',
     'artifactsCleaned: boolean',
+    'allowedMediaPackaged: boolean',
+    'contentTypeMismatchRejected: boolean',
+    'perAssetLimitRejected: boolean',
+    'aggregateLimitsRejected: boolean',
+    'hashMismatchRejected: boolean',
+    'ownerMismatchRejected: boolean',
+    'unsafePathRejected: boolean',
+    'duplicateAssetRejected: boolean',
+    'metadataTamperRejected: boolean',
+    'chunkReorderingRejected: boolean',
+    'missingFinalMarkerRejected: boolean',
   ];
 
   for (const marker of requiredMarkers) {

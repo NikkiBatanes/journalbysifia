@@ -25,11 +25,12 @@ export const installJournalEncryptedStorageSpikeMenu = (): void => {
     DevSettings.addMenuItem(`Verify ${platformName} archive crypto`, () => {
       import('../native/NativeJournalArchiveCrypto').then(
         async ({default: archiveCrypto}) => {
-          const [provider, assertions, portable, transport] = await Promise.all([
+          const [provider, assertions, portable, transport, media] = await Promise.all([
             archiveCrypto.getProviderEvidence(),
             archiveCrypto.runSyntheticSelfTest(),
             archiveCrypto.runPortableVectorSelfTest(),
             archiveCrypto.runFileTransportSelfTest(),
+            archiveCrypto.runMediaPackagingSelfTest(),
           ]);
           const expectedAssertions = [
             assertions.argon2id,
@@ -63,6 +64,18 @@ export const installJournalEncryptedStorageSpikeMenu = (): void => {
             transport.publishedBytesVerified,
             transport.artifactsCleaned,
             !transport.plaintextFileWritten,
+            media.allowedMediaPackaged,
+            media.contentTypeMismatchRejected,
+            media.perAssetLimitRejected,
+            media.aggregateLimitsRejected,
+            media.hashMismatchRejected,
+            media.ownerMismatchRejected,
+            media.unsafePathRejected,
+            media.duplicateAssetRejected,
+            media.metadataTamperRejected,
+            media.chunkReorderingRejected,
+            media.missingFinalMarkerRejected,
+            !media.plaintextFileWritten,
           ];
           if (
             provider.platform !== nativePlatform ||
@@ -95,6 +108,11 @@ export const installJournalEncryptedStorageSpikeMenu = (): void => {
               'Atomic publish and durability sync: passed',
               'Published ciphertext verification: passed',
               'Synthetic artifacts cleaned: passed',
+              'Authenticated image/audio packaging: passed',
+              'Media signature and size limits: passed',
+              'Asset hash, owner and path binding: passed',
+              'Duplicate and metadata tamper rejection: passed',
+              'Media chunk order and final marker: passed',
               'Plaintext file written: no',
               'Customer-data API enabled: no',
             ].join('\n'),

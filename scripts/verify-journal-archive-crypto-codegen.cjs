@@ -62,6 +62,9 @@ try {
           androidFileTransportSelfTest: android.includes(
             'void runFileTransportSelfTest(Promise promise)',
           ),
+          androidMediaPackagingSelfTest: android.includes(
+            'void runMediaPackagingSelfTest(Promise promise)',
+          ),
           iosProviderEvidence: ios.includes('getProviderEvidence:(RCTPromiseResolveBlock)resolve'),
           iosSyntheticSelfTest: ios.includes('runSyntheticSelfTest:(RCTPromiseResolveBlock)resolve'),
           iosPortableVectorSelfTest: ios.includes(
@@ -69,6 +72,9 @@ try {
           ),
           iosFileTransportSelfTest: ios.includes(
             'runFileTransportSelfTest:(RCTPromiseResolveBlock)resolve',
+          ),
+          iosMediaPackagingSelfTest: ios.includes(
+            'runMediaPackagingSelfTest:(RCTPromiseResolveBlock)resolve',
           ),
           iosProviderRegistration: iosProvider.includes('@"JournalArchiveCrypto": @"JournalArchiveCrypto"'),
         };

@@ -1,5 +1,6 @@
 #import "JournalArchiveCrypto.h"
 #include "JournalArchiveFileTransport.h"
+#include "JournalArchiveMediaPackaging.h"
 
 #import <React/RCTBridgeModule.h>
 #import <sodium.h>
@@ -488,6 +489,27 @@ RCT_EXPORT_MODULE(JournalArchiveCrypto)
       @"staleTemporaryCleaned" : @(assertions[6]),
       @"publishedBytesVerified" : @(assertions[7]),
       @"artifactsCleaned" : @(assertions[8]),
+      @"plaintextFileWritten" : @NO,
+    });
+  });
+}
+
+- (void)runMediaPackagingSelfTest:(RCTPromiseResolveBlock)resolve
+                             reject:(RCTPromiseRejectBlock)reject {
+  dispatch_async(JournalArchiveCryptoQueue(), ^{
+    const auto assertions = RunJournalArchiveMediaPackagingAssertions();
+    resolve(@{
+      @"allowedMediaPackaged" : @(assertions[0]),
+      @"contentTypeMismatchRejected" : @(assertions[1]),
+      @"perAssetLimitRejected" : @(assertions[2]),
+      @"aggregateLimitsRejected" : @(assertions[3]),
+      @"hashMismatchRejected" : @(assertions[4]),
+      @"ownerMismatchRejected" : @(assertions[5]),
+      @"unsafePathRejected" : @(assertions[6]),
+      @"duplicateAssetRejected" : @(assertions[7]),
+      @"metadataTamperRejected" : @(assertions[8]),
+      @"chunkReorderingRejected" : @(assertions[9]),
+      @"missingFinalMarkerRejected" : @(assertions[10]),
       @"plaintextFileWritten" : @NO,
     });
   });
