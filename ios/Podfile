@@ -17,6 +17,8 @@ end
 target 'JournalBySiFia' do
   config = use_native_modules!
 
+  pod 'JournalArchiveCrypto', :path => './JournalArchiveCrypto'
+
   use_react_native!(
     :path => config[:reactNativePath],
     # An absolute path to your application root.

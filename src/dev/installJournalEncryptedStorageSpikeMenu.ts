@@ -19,8 +19,10 @@ export const installJournalEncryptedStorageSpikeMenu = (): void => {
 
   installed = true;
 
-  if (Platform.OS === 'android') {
-    DevSettings.addMenuItem('Verify Android archive crypto', () => {
+  if (Platform.OS === 'android' || Platform.OS === 'ios') {
+    const nativePlatform = Platform.OS;
+    const platformName = nativePlatform === 'ios' ? 'iOS' : 'Android';
+    DevSettings.addMenuItem(`Verify ${platformName} archive crypto`, () => {
       import('../native/NativeJournalArchiveCrypto').then(
         async ({default: archiveCrypto}) => {
           const [provider, assertions] = await Promise.all([
@@ -39,7 +41,7 @@ export const installJournalEncryptedStorageSpikeMenu = (): void => {
             !assertions.plaintextFileWritten,
           ];
           if (
-            provider.platform !== 'android' ||
+            provider.platform !== nativePlatform ||
             provider.libsodiumVersion !== '1.0.22' ||
             !provider.runtimeOffJavaScriptThread ||
             !provider.syntheticOnly ||
@@ -49,7 +51,7 @@ export const installJournalEncryptedStorageSpikeMenu = (): void => {
             throw new Error('One or more fail-closed crypto assertions failed');
           }
           Alert.alert(
-            'Android archive crypto passed',
+            `${platformName} archive crypto passed`,
             [
               `libsodium: ${provider.libsodiumVersion}`,
               `Architecture: ${provider.architecture}`,
@@ -67,7 +69,7 @@ export const installJournalEncryptedStorageSpikeMenu = (): void => {
       ).catch(error => {
         const message =
           error instanceof Error ? error.message : 'Unknown diagnostic error';
-        Alert.alert('Android archive crypto failed', message);
+        Alert.alert(`${platformName} archive crypto failed`, message);
       });
     });
   }

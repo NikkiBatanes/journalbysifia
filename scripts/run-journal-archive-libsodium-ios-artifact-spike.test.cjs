@@ -2,9 +2,15 @@ const assert = require('node:assert/strict');
 const test = require('node:test');
 
 const {
+  IOS_ARGON2_IMPLEMENTATION,
+  IOS_BUILD_PROFILE,
   IOS_MIN_VERSION,
   REQUIRED_SYMBOLS,
+  RETAINED_FRAMEWORK_NAME,
+  RETAINED_INTEGRITY_NAME,
+  RETAINED_LICENSE_NAME,
   assertRequiredAppleSymbols,
+  parseIosArguments,
   validateXcframeworkInfo,
 } = require('./run-journal-archive-libsodium-ios-artifact-spike.cjs');
 
@@ -19,7 +25,7 @@ function completeInfo() {
       },
       {
         LibraryIdentifier: 'ios-arm64_x86_64-simulator',
-        LibraryPath: 'libsodium-simulator.a',
+        LibraryPath: 'libsodium.a',
         SupportedArchitectures: ['arm64', 'x86_64'],
         SupportedPlatform: 'ios',
         SupportedPlatformVariant: 'simulator',
@@ -30,6 +36,26 @@ function completeInfo() {
 
 test('pins the application iOS deployment floor', () => {
   assert.equal(IOS_MIN_VERSION, '15.1');
+  assert.equal(IOS_BUILD_PROFILE, 'portable-static-minimal-xcframework');
+  assert.equal(IOS_ARGON2_IMPLEMENTATION, 'reference');
+  assert.equal(RETAINED_FRAMEWORK_NAME, 'Clibsodium.xcframework');
+  assert.equal(RETAINED_LICENSE_NAME, 'LICENSE.libsodium');
+  assert.equal(RETAINED_INTEGRITY_NAME, 'INTEGRITY.json');
+});
+
+test('parses an explicit retained-artifact directory', () => {
+  const parsed = parseIosArguments([
+    '--archive',
+    '/tmp/libsodium.tar.gz',
+    '--retain-dir',
+    '/tmp/retained-ios-sodium',
+  ]);
+  assert.equal(parsed.archivePath, '/tmp/libsodium.tar.gz');
+  assert.equal(parsed.retainDirectory, '/tmp/retained-ios-sodium');
+  assert.throws(
+    () => parseIosArguments(['--retain-dir']),
+    /requires an exact destination/,
+  );
 });
 
 test('requires device and dual-architecture simulator slices', () => {
@@ -40,6 +66,13 @@ test('requires device and dual-architecture simulator slices', () => {
   const incomplete = completeInfo();
   incomplete.AvailableLibraries[1].SupportedArchitectures = ['arm64'];
   assert.throws(() => validateXcframeworkInfo(incomplete), /x86_64 slice/);
+
+  const mismatchedName = completeInfo();
+  mismatchedName.AvailableLibraries[1].LibraryPath = 'libsodium-simulator.a';
+  assert.throws(
+    () => validateXcframeworkInfo(mismatchedName),
+    /simulator binary must be named libsodium.a/,
+  );
 });
 
 test('requires every selected symbol in Apple static libraries', () => {

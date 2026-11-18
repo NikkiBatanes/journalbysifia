@@ -20,12 +20,108 @@ const {
 } = require('./run-journal-archive-libsodium-host-spike.cjs');
 
 const IOS_MIN_VERSION = '15.1';
+const IOS_BUILD_PROFILE = 'portable-static-minimal-xcframework';
+const IOS_ARGON2_IMPLEMENTATION = 'reference';
+const RETAINED_FRAMEWORK_NAME = 'Clibsodium.xcframework';
+const RETAINED_LICENSE_NAME = 'LICENSE.libsodium';
+const RETAINED_INTEGRITY_NAME = 'INTEGRITY.json';
 const REQUIRED_SYMBOLS = [
   'crypto_pwhash_argon2id',
   'crypto_secretstream_xchacha20poly1305_init_push',
   'randombytes_buf',
   'sodium_memzero',
 ];
+
+function parseIosArguments(argv) {
+  const {archivePath} = parseArguments(argv);
+  const retainIndex = argv.indexOf('--retain-dir');
+  if (retainIndex === -1) {
+    return {archivePath, retainDirectory: null};
+  }
+  const retainDirectory = argv[retainIndex + 1];
+  if (!retainDirectory || retainDirectory.startsWith('--')) {
+    throw new Error('--retain-dir requires an exact destination directory');
+  }
+  return {archivePath, retainDirectory: path.resolve(retainDirectory)};
+}
+
+function replaceExactOnce(source, expected, replacement, label) {
+  const firstIndex = source.indexOf(expected);
+  if (firstIndex === -1 || source.indexOf(expected, firstIndex + 1) !== -1) {
+    throw new Error(`Unable to apply the reviewed ${label} source patch`);
+  }
+  return source.replace(expected, replacement);
+}
+
+function replaceExactCount(source, expected, replacement, count, label) {
+  if (source.split(expected).length - 1 !== count) {
+    throw new Error(`Unable to apply the reviewed ${label} source patch`);
+  }
+  return source.split(expected).join(replacement);
+}
+
+async function applyPortableIosBuildProfile(sourcePath) {
+  const configurePath = path.join(sourcePath, 'configure');
+  const argon2CorePath = path.join(
+    sourcePath,
+    'src',
+    'libsodium',
+    'crypto_pwhash',
+    'argon2',
+    'argon2-core.c'
+  );
+  const configure = replaceExactOnce(
+    await fsPromises.readFile(configurePath, 'utf8'),
+    'if test "x$EMSCRIPTEN" = "x"\nthen :\n\n\n  if test "x$target_cpu_aarch64" = "xyes"',
+    'if test "x$EMSCRIPTEN" = "x" && test "$enable_asm" != "no"\nthen :\n\n\n  if test "x$target_cpu_aarch64" = "xyes"',
+    'CPU-specific implementation guard'
+  );
+  const argon2NeonCondition = [
+    '#if (defined(__aarch64__) || defined(_M_ARM64)) && \\',
+    '    (defined(__ARM_NEON) || defined(__ARM_NEON__))',
+  ].join('\n');
+  const portableArgon2Condition = [
+    '#if defined(JOURNAL_ARCHIVE_ENABLE_LIBSODIUM_NEON) && \\',
+    '    (defined(__aarch64__) || defined(_M_ARM64)) && \\',
+    '    (defined(__ARM_NEON) || defined(__ARM_NEON__))',
+  ].join('\n');
+  const argon2Core = replaceExactCount(
+    await fsPromises.readFile(argon2CorePath, 'utf8'),
+    argon2NeonCondition,
+    portableArgon2Condition,
+    2,
+    'portable Argon2 implementation'
+  );
+  await Promise.all([
+    fsPromises.writeFile(configurePath, configure),
+    fsPromises.writeFile(argon2CorePath, argon2Core),
+  ]);
+}
+
+async function sha256Tree(directory) {
+  const entries = [];
+  async function visit(current, relative) {
+    const children = await fsPromises.readdir(current, {withFileTypes: true});
+    children.sort((left, right) => left.name.localeCompare(right.name));
+    for (const child of children) {
+      const childRelative = relative ? `${relative}/${child.name}` : child.name;
+      const childPath = path.join(current, child.name);
+      if (child.isDirectory()) {
+        await visit(childPath, childRelative);
+      } else if (child.isFile()) {
+        entries.push(`${childRelative}:${await sha256File(childPath)}`);
+      } else {
+        throw new Error(`Unsupported retained XCFramework entry: ${childRelative}`);
+      }
+    }
+  }
+  await visit(directory, '');
+  const crypto = require('node:crypto');
+  return {
+    entryCount: entries.length,
+    sha256: crypto.createHash('sha256').update(entries.join('\n')).digest('hex'),
+  };
+}
 
 function assertRequiredAppleSymbols(nmOutput, platform) {
   const present = new Set(
@@ -58,10 +154,16 @@ function validateXcframeworkInfo(info) {
   if (!device || !device.SupportedArchitectures?.includes('arm64')) {
     throw new Error('XCFramework is missing the iOS arm64 device slice');
   }
+  if (device.LibraryPath !== 'libsodium.a') {
+    throw new Error('XCFramework device binary must be named libsodium.a');
+  }
   for (const architecture of ['arm64', 'x86_64']) {
     if (!simulator?.SupportedArchitectures?.includes(architecture)) {
       throw new Error(`XCFramework is missing the iOS simulator ${architecture} slice`);
     }
+  }
+  if (simulator.LibraryPath !== 'libsodium.a') {
+    throw new Error('XCFramework simulator binary must be named libsodium.a');
   }
   return {device, simulator};
 }
@@ -100,6 +202,7 @@ async function configureAndBuild({
       '--disable-shared',
       '--enable-static',
       '--enable-minimal',
+      '--disable-asm',
     ],
     {capture: true, cwd: sourcePath, env: environment}
   );
@@ -112,7 +215,8 @@ async function configureAndBuild({
 }
 
 async function main(argv = process.argv.slice(2)) {
-  const {archivePath: suppliedArchivePath} = parseArguments(argv);
+  const {archivePath: suppliedArchivePath, retainDirectory} =
+    parseIosArguments(argv);
   const workspace = await fsPromises.mkdtemp(
     path.join(os.tmpdir(), 'journal-archive-libsodium-ios-artifact-spike-')
   );
@@ -140,6 +244,7 @@ async function main(argv = process.argv.slice(2)) {
     run('tar', ['-xzf', archivePath, '-C', workspace], {capture: true});
 
     const sourcePath = path.join(workspace, LIBSODIUM_ARCHIVE_ROOT);
+    await applyPortableIosBuildProfile(sourcePath);
     const deviceSdk = run('xcrun', ['--sdk', 'iphoneos', '--show-sdk-path'], {
       capture: true,
     }).trim();
@@ -193,7 +298,16 @@ async function main(argv = process.argv.slice(2)) {
     });
 
     const deviceLibrary = path.join(deviceInstall, 'lib', 'libsodium.a');
-    const simulatorLibrary = path.join(workspace, 'libsodium-simulator.a');
+    const simulatorUniversalInstall = path.join(
+      workspace,
+      'ios-simulator-universal',
+      'lib'
+    );
+    await fsPromises.mkdir(simulatorUniversalInstall, {recursive: true});
+    const simulatorLibrary = path.join(
+      simulatorUniversalInstall,
+      'libsodium.a'
+    );
     run(
       'xcrun',
       [
@@ -260,6 +374,79 @@ async function main(argv = process.argv.slice(2)) {
       };
     }
 
+    let retainedArtifact = null;
+    if (retainDirectory) {
+      const parentStats = await fsPromises.stat(path.dirname(retainDirectory));
+      if (!parentStats.isDirectory()) {
+        throw new Error('The retained-artifact parent must be a directory');
+      }
+      try {
+        await fsPromises.mkdir(retainDirectory);
+      } catch (error) {
+        if (error?.code === 'EEXIST') {
+          throw new Error(
+            'Refusing to replace an existing retained-artifact directory'
+          );
+        }
+        throw error;
+      }
+
+      try {
+        const retainedFrameworkPath = path.join(
+          retainDirectory,
+          RETAINED_FRAMEWORK_NAME
+        );
+        const retainedLicensePath = path.join(
+          retainDirectory,
+          RETAINED_LICENSE_NAME
+        );
+        await fsPromises.cp(xcframeworkPath, retainedFrameworkPath, {
+          recursive: true,
+          force: false,
+          errorOnExist: true,
+        });
+        await fsPromises.copyFile(
+          path.join(sourcePath, 'LICENSE'),
+          retainedLicensePath,
+          fs.constants.COPYFILE_EXCL
+        );
+        const frameworkDigest = await sha256Tree(retainedFrameworkPath);
+        const integrity = {
+          library: 'libsodium',
+          version: LIBSODIUM_VERSION,
+          sourceUrl: LIBSODIUM_RELEASE_URL,
+          sourceSha256: LIBSODIUM_ARCHIVE_SHA256,
+          iosMinimumVersion: IOS_MIN_VERSION,
+          xcodeVersion,
+          buildProfile: IOS_BUILD_PROFILE,
+          argon2Implementation: IOS_ARGON2_IMPLEMENTATION,
+          framework: RETAINED_FRAMEWORK_NAME,
+          frameworkSha256: frameworkDigest.sha256,
+          frameworkEntryCount: frameworkDigest.entryCount,
+          license: RETAINED_LICENSE_NAME,
+          licenseSha256: await sha256File(retainedLicensePath),
+          scope: 'journal-archive-synthetic-native-provider',
+          mobileProviderApproved: false,
+        };
+        await fsPromises.writeFile(
+          path.join(retainDirectory, RETAINED_INTEGRITY_NAME),
+          `${JSON.stringify(integrity, null, 2)}\n`,
+          {flag: 'wx', mode: 0o600}
+        );
+        retainedArtifact = {
+          directory: retainDirectory,
+          framework: RETAINED_FRAMEWORK_NAME,
+          frameworkSha256: frameworkDigest.sha256,
+          frameworkEntryCount: frameworkDigest.entryCount,
+          license: RETAINED_LICENSE_NAME,
+          integrity: RETAINED_INTEGRITY_NAME,
+        };
+      } catch (error) {
+        await fsPromises.rm(retainDirectory, {recursive: true, force: true});
+        throw error;
+      }
+    }
+
     const result = {
       source: {
         version: LIBSODIUM_VERSION,
@@ -271,13 +458,17 @@ async function main(argv = process.argv.slice(2)) {
       iosArtifactEvidence: {
         minimumVersion: IOS_MIN_VERSION,
         xcodeVersion,
+        buildProfile: IOS_BUILD_PROFILE,
+        argon2Implementation: IOS_ARGON2_IMPLEMENTATION,
         slices: evidence,
         moduleMapPresent: true,
       },
       scope: 'synthetic-ios-artifact-spike-only',
-      artifactRetained: false,
+      artifactRetained: retainedArtifact !== null,
+      retainedArtifact,
       mobileProviderApproved: false,
-      nextStep: 'Integrate the verified artifacts behind isolated React Native TurboModules.',
+      nextStep:
+        'Use only behind the synthetic provider gate; do not expose customer-data methods.',
     };
     process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
     return result;
@@ -294,8 +485,16 @@ if (require.main === module) {
 }
 
 module.exports = {
+  IOS_ARGON2_IMPLEMENTATION,
+  IOS_BUILD_PROFILE,
   IOS_MIN_VERSION,
   REQUIRED_SYMBOLS,
+  RETAINED_FRAMEWORK_NAME,
+  RETAINED_INTEGRITY_NAME,
+  RETAINED_LICENSE_NAME,
+  applyPortableIosBuildProfile,
   assertRequiredAppleSymbols,
+  parseIosArguments,
+  sha256Tree,
   validateXcframeworkInfo,
 };

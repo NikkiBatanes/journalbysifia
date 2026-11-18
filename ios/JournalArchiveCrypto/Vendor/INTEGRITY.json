@@ -1,0 +1,17 @@
+{
+  "library": "libsodium",
+  "version": "1.0.22",
+  "sourceUrl": "https://github.com/jedisct1/libsodium/releases/download/1.0.22-RELEASE/libsodium-1.0.22.tar.gz",
+  "sourceSha256": "adbdd8f16149e81ac6078a03aca6fc03b592b89ef7b5ed83841c086191be3349",
+  "iosMinimumVersion": "15.1",
+  "xcodeVersion": "Xcode 26.4.1; Build version 17E202",
+  "buildProfile": "portable-static-minimal-xcframework",
+  "argon2Implementation": "reference",
+  "framework": "Clibsodium.xcframework",
+  "frameworkSha256": "a23dcd3f22e79c9ec755cf7fffd3aac00af38110b995bb3192d6988745540156",
+  "frameworkEntryCount": 159,
+  "license": "LICENSE.libsodium",
+  "licenseSha256": "508a76d186356c0dd807a670ef510964f8724557024796a2c426c6c0e19ab683",
+  "scope": "journal-archive-synthetic-native-provider",
+  "mobileProviderApproved": false
+}

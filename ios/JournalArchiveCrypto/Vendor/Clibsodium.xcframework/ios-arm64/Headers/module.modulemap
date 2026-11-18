@@ -1,0 +1,4 @@
+module Clibsodium {
+  umbrella header "sodium.h"
+  export *
+}
