@@ -17,6 +17,7 @@ import {
   generateSpikeEncryptionKey,
   getOrCreateSpikeEncryptionKey,
   isValidSpikeEncryptionKey,
+  readSpikeEncryptionKey,
 } from '../journalEncryptedStorageSpike';
 
 const mockedKeychain = Keychain as jest.Mocked<typeof Keychain>;
@@ -60,6 +61,12 @@ describe('Journal encrypted storage spike key boundary', () => {
     await expect(getOrCreateSpikeEncryptionKey()).rejects.toThrow(
       'invalid format',
     );
+    expect(mockedKeychain.setGenericPassword).not.toHaveBeenCalled();
+  });
+
+  it('leaves a missing key missing when checking an existing test database', async () => {
+    mockedKeychain.getGenericPassword.mockResolvedValue(false);
+    await expect(readSpikeEncryptionKey()).resolves.toBeNull();
     expect(mockedKeychain.setGenericPassword).not.toHaveBeenCalled();
   });
 });

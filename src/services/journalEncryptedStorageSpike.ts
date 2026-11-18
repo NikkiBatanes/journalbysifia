@@ -59,7 +59,7 @@ export const generateSpikeEncryptionKey = (
  * This key is intentionally device-only. It must never be copied into logs,
  * AsyncStorage, cloud backup payloads, analytics, or source control.
  */
-export const getOrCreateSpikeEncryptionKey = async (): Promise<string> => {
+export const readSpikeEncryptionKey = async (): Promise<string | null> => {
   const existing = await Keychain.getGenericPassword({
     service: SPIKE_KEYCHAIN_SERVICE,
     cloudSync: false,
@@ -72,6 +72,14 @@ export const getOrCreateSpikeEncryptionKey = async (): Promise<string> => {
     return existing.password;
   }
 
+  return null;
+};
+
+export const getOrCreateSpikeEncryptionKey = async (): Promise<string> => {
+  const existing = await readSpikeEncryptionKey();
+  if (existing !== null) {
+    return existing;
+  }
   const key = generateSpikeEncryptionKey();
   const stored = await Keychain.setGenericPassword(
     SPIKE_KEYCHAIN_USERNAME,

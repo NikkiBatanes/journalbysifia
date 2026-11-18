@@ -1,10 +1,12 @@
 import {Alert, DevSettings, Platform} from 'react-native';
 import {open} from '@op-engineering/op-sqlite';
-import {verifyRestoreReopen} from './journalRestoreReopenProbe';
+import {armRestoreInterruption, verifyRecoveredRestore, verifyRestoreReopen} from './journalRestoreReopenProbe';
 
 import {
   armJournalEncryptedStorageInterruptionProbe,
   generateSpikeEncryptionKey,
+  getOrCreateSpikeEncryptionKey,
+  readSpikeEncryptionKey,
   runJournalEncryptedStorageSpike,
   verifyJournalEncryptedStorageInterruptionRecovery,
 } from '../services/journalEncryptedStorageSpike';
@@ -21,6 +23,53 @@ export const installJournalEncryptedStorageSpikeMenu = (): void => {
   }
 
   installed = true;
+
+  const relaunchDatabase = 'journal-restore-relaunch-probe-v1.sqlite';
+  let relaunchBusy = false;
+  async function runRelaunchStep(arm: boolean) {
+    if (relaunchBusy) {
+      Alert.alert('Close and reopen Journal to continue the test');
+      return;
+    }
+    relaunchBusy = true;
+    try {
+      const encryptionKey = arm ? await getOrCreateSpikeEncryptionKey() : await readSpikeEncryptionKey();
+      if (!encryptionKey) {
+        throw new Error('The saved test key is missing');
+      }
+      const db = open({name: relaunchDatabase, encryptionKey, failOnCreate: !arm});
+      let deleted = false;
+      try {
+        if (arm) {
+          await armRestoreInterruption(db, () => Alert.alert(
+            'Journal restore interruption armed',
+            'Fully close Journal, reopen it, then select Test Journal restore after relaunch and tap Verify.',
+          ));
+        } else {
+          await verifyRecoveredRestore(db);
+          db.delete();
+          deleted = true;
+          Alert.alert('Journal restore after relaunch passed');
+        }
+      } finally {
+        if (!deleted) {
+          db.close();
+        }
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown diagnostic error';
+      Alert.alert('Journal restore after relaunch failed', message.replace(/[0-9a-f]{64}/gi, '[redacted]'));
+    } finally {
+      relaunchBusy = false;
+    }
+  }
+  DevSettings.addMenuItem('Test Journal restore after relaunch', () => {
+    Alert.alert('Test Journal restore after relaunch', 'Arm before closing the app. Verify after reopening it.', [
+      {text: 'Cancel', style: 'cancel'},
+      {text: 'Arm', onPress: () => runRelaunchStep(true)},
+      {text: 'Verify', onPress: () => runRelaunchStep(false)},
+    ]);
+  });
 
   let restoreProbeRunning = false;
   DevSettings.addMenuItem('Verify Journal restore on reopen', async () => {

@@ -4,9 +4,49 @@ import {
   JOURNAL_RESTORE_ROLLBACK_SNAPSHOT_KEY as snapshot,
 } from '../services/journalBackupRestoreExecutor';
 import {openRestoreSession, type RestoreDatabase} from './journalRestoreDatabase';
+import type {JournalBackupRestorePlan} from '../services/journalBackupRestorePlan';
 
 const id = '11782d26-36db-4cb1-ac77-45c3bcff9f09';
 const key = 'review_settings_v1';
+const original = 'synthetic-original';
+const replacement = 'synthetic-interrupted';
+
+const plan = (value: string): JournalBackupRestorePlan => ({
+  valid: true, fatal: [], warnings: [], requiresRollbackSnapshot: true,
+  operations: [{key, value, kind: 'setting', section: 'reviewSettings'}],
+  operationCounts: {setting: 1}, clearOwnedKeysMatching: policy.ownedPrefixes,
+  interruptionHandling: policy.interruptionHandling,
+});
+
+// Suspend the actual executor after its changed value commits and before it
+// can verify the result or clear its rollback records. The OS ends the run.
+export async function armRestoreInterruption(db: RestoreDatabase, onArmed: () => void) {
+  const initial = await openRestoreSession(db);
+  await initial.restore(plan(original), id);
+  const interruptible: RestoreDatabase = {
+    execute: (sql, params) => db.execute(sql, params),
+    async transaction(work) {
+      await db.transaction(work);
+      const {rows} = await db.execute('SELECT v FROM restore_kv WHERE k=?', [key]);
+      if (rows[0]?.v === replacement) {
+        onArmed();
+        await new Promise<never>(() => {});
+      }
+    },
+  };
+  const session = await openRestoreSession(interruptible);
+  await session.restore(plan(replacement), id);
+  throw new Error('Restore finished without reaching the interruption point');
+}
+
+export async function verifyRecoveredRestore(db: RestoreDatabase) {
+  const session = await openRestoreSession(db);
+  if (session.recovered?.transactionId !== id ||
+      await session.read(key) !== original ||
+      await session.read(marker) !== null || await session.read(snapshot) !== null) {
+    throw new Error('Synthetic restore recovery did not verify');
+  }
+}
 
 // Supply only a dedicated synthetic database. The interruption fixture is a
 // committed partial state so the next connection must recover it on opening.
@@ -14,17 +54,12 @@ export async function verifyRestoreReopen(connect: () => RestoreDatabase & {clos
   const first = connect();
   try {
     const session = await openRestoreSession(first);
-    await session.restore({
-      valid: true, fatal: [], warnings: [], requiresRollbackSnapshot: true,
-      operations: [{key, value: 'synthetic-original', kind: 'setting', section: 'reviewSettings'}],
-      operationCounts: {setting: 1}, clearOwnedKeysMatching: policy.ownedPrefixes,
-      interruptionHandling: policy.interruptionHandling,
-    }, id);
+    await session.restore(plan(original), id);
     await first.transaction(async tx => {
       for (const [k, v] of [
-        [snapshot, JSON.stringify({version: 1, transactionId: id, entries: [{key, value: 'synthetic-original'}]})],
+        [snapshot, JSON.stringify({version: 1, transactionId: id, entries: [{key, value: original}]})],
         [marker, JSON.stringify({version: 1, transactionId: id, stage: 'applying', operationCount: 1})],
-        [key, 'synthetic-interrupted'],
+        [key, replacement],
       ]) {
         await tx.execute('INSERT OR REPLACE INTO restore_kv (k,v) VALUES (?,?)', [k, v]);
       }
@@ -35,12 +70,7 @@ export async function verifyRestoreReopen(connect: () => RestoreDatabase & {clos
 
   const second = connect();
   try {
-    const session = await openRestoreSession(second);
-    if (session.recovered?.transactionId !== id ||
-        await session.read(key) !== 'synthetic-original' ||
-        await session.read(marker) !== null || await session.read(snapshot) !== null) {
-      throw new Error('Synthetic restore recovery did not verify');
-    }
+    await verifyRecoveredRestore(second);
   } finally {
     second.close();
   }

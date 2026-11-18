@@ -3,7 +3,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 
 import {openRestoreSession, type RestoreDatabase} from '../journalRestoreDatabase';
-import {verifyRestoreReopen} from '../journalRestoreReopenProbe';
+import {armRestoreInterruption, verifyRecoveredRestore, verifyRestoreReopen} from '../journalRestoreReopenProbe';
 import {JOURNAL_RESTORE_RECOVERY_MARKER_KEY} from '../../services/journalBackupRestoreExecutor';
 
 const {DatabaseSync} = process.getBuiltinModule('node:sqlite') as typeof import('node:sqlite');
@@ -49,5 +49,29 @@ it('refuses to open a session when existing recovery evidence is invalid', async
     expect((await db.execute('SELECT v FROM restore_kv')).rows).toEqual([{v: 'invalid'}]);
   } finally {
     db.close();
+  }
+});
+
+it('recovers an executor-generated interruption once and rejects a second verification', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'journal-relaunch-test-'));
+  const file = join(dir, 'probe.sqlite');
+  const first = connect(file);
+  try {
+    await new Promise<void>((resolve, reject) => {
+      armRestoreInterruption(first, resolve).catch(reject);
+    });
+    expect((await first.execute('SELECT v FROM restore_kv WHERE k=?', ['review_settings_v1'])).rows)
+      .toEqual([{v: 'synthetic-interrupted'}]);
+  } finally {
+    first.close();
+  }
+  const second = connect(file);
+  try {
+    await verifyRecoveredRestore(second);
+    await expect(verifyRecoveredRestore(second)).rejects.toThrow('did not verify');
+  } finally {
+    second.close();
+    unlinkSync(file);
+    rmdirSync(dir);
   }
 });
