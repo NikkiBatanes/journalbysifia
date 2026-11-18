@@ -1,3 +1,4 @@
+#include "../../../native/journal-archive/SyntheticTransfer.hpp"
 #import "JournalArchiveCrypto.h"
 #include "JournalArchiveFileTransport.h"
 #include "JournalArchiveMediaPackaging.h"
@@ -411,6 +412,36 @@ RCT_EXPORT_MODULE(JournalArchiveCrypto)
 
 + (BOOL)requiresMainQueueSetup {
   return NO;
+}
+
+- (void)exportSyntheticTransfer:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject {
+#if DEBUG
+  dispatch_async(JournalArchiveCryptoQueue(), ^{
+    try {
+      auto result = journal_fixture::exportFixture([NSTemporaryDirectory() fileSystemRepresentation]);
+      resolve([NSString stringWithUTF8String:result.c_str()]);
+    } catch (const std::exception &) {
+      reject(@"JOURNAL_TRANSFER_TEST_FAILED", @"Synthetic archive export failed", nil);
+    }
+  });
+#else
+  reject(@"JOURNAL_TRANSFER_DISABLED", @"Development build required", nil);
+#endif
+}
+
+- (void)importSyntheticTransfer:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject {
+#if DEBUG
+  dispatch_async(JournalArchiveCryptoQueue(), ^{
+    try {
+      auto result = journal_fixture::importFixture([NSTemporaryDirectory() fileSystemRepresentation]);
+      resolve([NSString stringWithUTF8String:result.c_str()]);
+    } catch (const std::exception &) {
+      reject(@"JOURNAL_TRANSFER_TEST_FAILED", @"Synthetic archive import failed", nil);
+    }
+  });
+#else
+  reject(@"JOURNAL_TRANSFER_DISABLED", @"Development build required", nil);
+#endif
 }
 
 - (void)getProviderEvidence:(RCTPromiseResolveBlock)resolve

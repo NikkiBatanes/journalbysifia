@@ -29,6 +29,8 @@ function inspectContract(packageJson, spec) {
 
   const requiredMarkers = [
     "TurboModuleRegistry.getEnforcing<Spec>('JournalArchiveCrypto')",
+    'exportSyntheticTransfer(): Promise<string>',
+    'importSyntheticTransfer(): Promise<string>',
     'getProviderEvidence(): Promise<JournalArchiveCryptoProviderEvidence>',
     'runSyntheticSelfTest(): Promise<JournalArchiveCryptoSyntheticEvidence>',
     'runPortableVectorSelfTest(): Promise<JournalArchiveCryptoPortableVectorEvidence>',

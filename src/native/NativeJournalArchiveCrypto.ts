@@ -70,6 +70,8 @@ export type JournalArchiveCryptoMediaPackagingEvidence = {
 };
 
 export interface Spec extends TurboModule {
+  exportSyntheticTransfer(): Promise<string>;
+  importSyntheticTransfer(): Promise<string>;
   getProviderEvidence(): Promise<JournalArchiveCryptoProviderEvidence>;
   runSyntheticSelfTest(): Promise<JournalArchiveCryptoSyntheticEvidence>;
   runPortableVectorSelfTest(): Promise<JournalArchiveCryptoPortableVectorEvidence>;

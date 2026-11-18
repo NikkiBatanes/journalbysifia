@@ -25,6 +25,29 @@ export const installJournalEncryptedStorageSpikeMenu = (): void => {
 
   installed = true;
 
+  let transferBusy = false;
+  async function transferFixture(exporting: boolean) {
+    if (transferBusy) {return;}
+    transferBusy = true;
+    try {
+      const token = exporting
+        ? await (await import('../native/NativeJournalArchiveCrypto')).default.exportSyntheticTransfer()
+        : await (await import('./journalArchiveTransferProbe')).restoreTransferredFixture();
+      Alert.alert(exporting ? 'Test backup exported' : 'Transferred restore passed', token);
+    } catch {
+      Alert.alert('Test backup transfer failed');
+    } finally {
+      transferBusy = false;
+    }
+  }
+  DevSettings.addMenuItem('Test portable Journal backup', () => {
+    Alert.alert('Test portable Journal backup', 'Transfer the encrypted test file between installations.', [
+      {text: 'Cancel', style: 'cancel'},
+      {text: 'Export', onPress: () => transferFixture(true)},
+      {text: 'Restore', onPress: () => transferFixture(false)},
+    ]);
+  });
+
   let relaunchBusy = false;
   async function runRelaunchStep(arm: boolean) {
     if (relaunchBusy) {

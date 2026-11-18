@@ -1,3 +1,4 @@
+#include "../../../../../native/journal-archive/SyntheticTransfer.hpp"
 #include <jni.h>
 #include <sodium.h>
 
@@ -443,5 +444,20 @@ Java_app_journal_sifia_archivecrypto_JournalArchiveCryptoModule_nativeRunPortabl
     return result;
   } catch (...) {
     return falseEvidence(env);
+  }
+}
+
+extern "C" JNIEXPORT jstring JNICALL
+Java_app_journal_sifia_archivecrypto_JournalArchiveCryptoModule_nativeSyntheticTransfer(
+    JNIEnv *env, jobject, jstring directory, jboolean exporting) {
+  const char *path = env->GetStringUTFChars(directory, nullptr);
+  if (!path) return nullptr;
+  try {
+    const auto result = exporting ? journal_fixture::exportFixture(path) : journal_fixture::importFixture(path);
+    env->ReleaseStringUTFChars(directory, path);
+    return env->NewStringUTF(result.c_str());
+  } catch (const std::exception &) {
+    env->ReleaseStringUTFChars(directory, path);
+    return nullptr;
   }
 }

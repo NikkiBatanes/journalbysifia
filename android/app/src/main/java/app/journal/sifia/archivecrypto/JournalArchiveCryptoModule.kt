@@ -33,6 +33,24 @@ class JournalArchiveCryptoModule(reactContext: ReactApplicationContext) :
 
   private external fun nativeRunMediaPackagingSelfTest(): BooleanArray
 
+  private external fun nativeSyntheticTransfer(directory: String, exporting: Boolean): String?
+
+  private fun syntheticTransfer(exporting: Boolean, promise: Promise) {
+    cryptoExecutor.execute {
+      try {
+        check(app.journal.sifia.BuildConfig.DEBUG) { "Development build required" }
+        val result = nativeSyntheticTransfer(reactApplicationContext.cacheDir.absolutePath, exporting)
+        requireNotNull(result) { "Synthetic archive verification failed" }
+        promise.resolve(result)
+      } catch (error: Exception) {
+        promise.reject("JOURNAL_TRANSFER_TEST_FAILED", error)
+      }
+    }
+  }
+
+  override fun exportSyntheticTransfer(promise: Promise) = syntheticTransfer(true, promise)
+  override fun importSyntheticTransfer(promise: Promise) = syntheticTransfer(false, promise)
+
   override fun getName(): String = NAME
 
   override fun getProviderEvidence(promise: Promise) {
