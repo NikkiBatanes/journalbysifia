@@ -326,6 +326,17 @@ algorithm and supply-chain risk; it does not approve the provider for customer
 data because equivalent isolated iOS and Android new-architecture modules and
 device evidence are still required.
 
+The Android artifact checkpoint now also rebuilds the pinned source with the
+project NDK and `minSdk` 24 by using libsodium's official AAR build. The
+fail-closed verifier requires all four supported ABIs (`arm64-v8a`,
+`armeabi-v7a`, `x86`, and `x86_64`), all four Prefab modules, and exported
+Argon2id, secretstream, secure-random, and secure-memory-clear symbols in every
+full shared library. The clean run used NDK 27.1.12297006, verified 1,330 AAR
+entries and a 2,654,317-byte artifact, then deleted the temporary source and
+artifact. This proves Android packaging feasibility only; it does not add the
+AAR to the app or approve customer-data use before the TurboModule and device
+failure suites pass.
+
 ### Free-export keying
 
 Free encrypted export cannot depend on a siFia account, RevenueCat, Journal

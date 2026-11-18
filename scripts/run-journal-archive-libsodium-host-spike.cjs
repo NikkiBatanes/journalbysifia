@@ -31,6 +31,8 @@ function run(command, args, options = {}) {
   const result = spawnSync(command, args, {
     cwd: options.cwd,
     encoding: 'utf8',
+    env: options.env || process.env,
+    maxBuffer: options.maxBuffer || 64 * 1024 * 1024,
     stdio: options.capture ? ['ignore', 'pipe', 'pipe'] : 'inherit',
   });
   if (result.error) {
@@ -198,7 +200,11 @@ module.exports = {
   LIBSODIUM_ARCHIVE_SHA256,
   LIBSODIUM_RELEASE_URL,
   LIBSODIUM_VERSION,
+  MAX_ARCHIVE_BYTES,
   assertExpectedHash,
+  downloadVerifiedArchive,
   parseArguments,
+  run,
+  sha256File,
   validateArchiveEntries,
 };
