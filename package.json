@@ -17,6 +17,8 @@
     "security:journal-archive-crypto:host-spike:test": "node --test scripts/run-journal-archive-libsodium-host-spike.test.cjs",
     "security:journal-archive-crypto:android-artifact-spike": "node scripts/run-journal-archive-libsodium-android-artifact-spike.cjs",
     "security:journal-archive-crypto:android-artifact-spike:test": "node --test scripts/run-journal-archive-libsodium-android-artifact-spike.test.cjs",
+    "security:journal-archive-crypto:ios-artifact-spike": "node scripts/run-journal-archive-libsodium-ios-artifact-spike.cjs",
+    "security:journal-archive-crypto:ios-artifact-spike:test": "node --test scripts/run-journal-archive-libsodium-ios-artifact-spike.test.cjs",
     "android": "react-native run-android",
     "ios": "react-native run-ios",
     "ios:release": "npx react-native run-ios --mode Release",

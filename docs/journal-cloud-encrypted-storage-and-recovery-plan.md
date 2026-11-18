@@ -337,6 +337,15 @@ artifact. This proves Android packaging feasibility only; it does not add the
 AAR to the app or approve customer-data use before the TurboModule and device
 failure suites pass.
 
+The matching iOS checkpoint rebuilds the pinned source as a minimal static
+library for iOS arm64 devices and arm64/x86_64 simulators, then packages those
+slices with headers and a module map in a temporary XCFramework. Xcode 26.4.1
+produced both required platform entries at the app's iOS 15.1 deployment floor,
+and every slice exported the same four selected primitives. The verifier
+deletes the XCFramework and extracted source after inspection. This proves
+Apple packaging feasibility only; no framework is linked into Journal by siFia
+and no customer data can reach it.
+
 ### Free-export keying
 
 Free encrypted export cannot depend on a siFia account, RevenueCat, Journal
