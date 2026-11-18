@@ -1,71 +1,149 @@
 #!/usr/bin/env node
 
+const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
 
 const root = path.resolve(__dirname, '..');
-const mainApplicationPath = path.join(
-  root,
-  'android/app/src/main/java/app/journal/sifia/MainApplication.kt',
-);
-const modulePath = path.join(
-  root,
-  'android/app/src/main/java/app/journal/sifia/archivecrypto/JournalArchiveCryptoModule.kt',
-);
-const packagePath = path.join(
-  root,
-  'android/app/src/main/java/app/journal/sifia/archivecrypto/JournalArchiveCryptoPackage.kt',
-);
+const paths = {
+  mainApplication: 'android/app/src/main/java/app/journal/sifia/MainApplication.kt',
+  moduleSource:
+    'android/app/src/main/java/app/journal/sifia/archivecrypto/JournalArchiveCryptoModule.kt',
+  packageSource:
+    'android/app/src/main/java/app/journal/sifia/archivecrypto/JournalArchiveCryptoPackage.kt',
+  buildSource: 'android/app/build.gradle',
+  cmakeSource: 'android/app/src/main/jni/CMakeLists.txt',
+  nativeSource: 'android/app/src/main/cpp/journal_archive_crypto.cpp',
+  integritySource:
+    'android/app/libs/journal-archive-libsodium/INTEGRITY.json',
+  aar: 'android/app/libs/journal-archive-libsodium/libsodium-1.0.22.0.aar',
+  license: 'android/app/libs/journal-archive-libsodium/LICENSE.libsodium',
+};
 
-function inspectAndroidShell(mainApplication, moduleSource, packageSource) {
+function sha256(value) {
+  return crypto.createHash('sha256').update(value).digest('hex');
+}
+
+function requireMarkers(source, markers, label, failures) {
+  for (const marker of markers) {
+    if (!source.includes(marker)) {
+      failures.push(`missing ${label}: ${marker}`);
+    }
+  }
+}
+
+function inspectAndroidProvider(sources) {
   const failures = [];
-  const requiredModuleMarkers = [
-    'class JournalArchiveCryptoModule(reactContext: ReactApplicationContext)',
-    'NativeJournalArchiveCryptoSpec(reactContext)',
-    'putString("libsodiumVersion", "not-linked")',
-    'putString("platform", "android")',
-    'putBoolean("runtimeOffJavaScriptThread", false)',
-    'putBoolean("syntheticOnly", true)',
-    'putBoolean("mobileProviderApproved", false)',
-    'putBoolean("argon2id", false)',
-    'putBoolean("secretstream", false)',
-    'putBoolean("wrongPasswordRejected", false)',
-    'putBoolean("tamperRejected", false)',
-    'putBoolean("truncationRejected", false)',
-    'putBoolean("reorderingRejected", false)',
-    'putBoolean("finalTagRequired", false)',
-    'putBoolean("sensitiveBuffersCleared", false)',
-    'putBoolean("plaintextFileWritten", false)',
-    'const val NAME = "JournalArchiveCrypto"',
-  ];
+  const {
+    mainApplication,
+    moduleSource,
+    packageSource,
+    buildSource,
+    cmakeSource,
+    nativeSource,
+    integritySource,
+    aarBytes,
+    licenseBytes,
+  } = sources;
 
-  for (const marker of requiredModuleMarkers) {
-    if (!moduleSource.includes(marker)) {
-      failures.push(`missing fail-closed Android marker: ${marker}`);
-    }
-  }
+  requireMarkers(
+    moduleSource,
+    [
+      'class JournalArchiveCryptoModule(reactContext: ReactApplicationContext)',
+      'NativeJournalArchiveCryptoSpec(reactContext)',
+      'private val cryptoExecutor: ExecutorService',
+      'Thread(runnable, "journal-archive-crypto")',
+      'private external fun nativeSodiumVersion(): String',
+      'private external fun nativeRunSyntheticSelfTest(): BooleanArray',
+      'putString("libsodiumVersion", nativeSodiumVersion())',
+      'putString("platform", "android")',
+      'putBoolean("runtimeOffJavaScriptThread", true)',
+      'putBoolean("syntheticOnly", true)',
+      'putBoolean("mobileProviderApproved", false)',
+      'putBoolean("argon2id", assertions[0])',
+      'putBoolean("secretstream", assertions[1])',
+      'putBoolean("wrongPasswordRejected", assertions[2])',
+      'putBoolean("tamperRejected", assertions[3])',
+      'putBoolean("truncationRejected", assertions[4])',
+      'putBoolean("reorderingRejected", assertions[5])',
+      'putBoolean("finalTagRequired", assertions[6])',
+      'putBoolean("sensitiveBuffersCleared", assertions[7])',
+      'putBoolean("plaintextFileWritten", false)',
+      'cryptoExecutor.shutdownNow()',
+      'System.loadLibrary("journal_archive_crypto")',
+      'const val NAME = "JournalArchiveCrypto"',
+    ],
+    'synthetic Android provider marker',
+    failures,
+  );
 
-  const requiredRegistrationMarkers = [
-    'add(JournalArchiveCryptoPackage())',
-    'import app.journal.sifia.archivecrypto.JournalArchiveCryptoPackage',
-  ];
-  for (const marker of requiredRegistrationMarkers) {
-    if (!mainApplication.includes(marker)) {
-      failures.push(`missing Android application registration: ${marker}`);
-    }
-  }
+  requireMarkers(
+    mainApplication,
+    [
+      'add(JournalArchiveCryptoPackage())',
+      'import app.journal.sifia.archivecrypto.JournalArchiveCryptoPackage',
+    ],
+    'Android application registration',
+    failures,
+  );
 
-  const requiredPackageMarkers = [
-    'class JournalArchiveCryptoPackage : BaseReactPackage()',
-    'if (name == JournalArchiveCryptoModule.NAME)',
-    'JournalArchiveCryptoModule(reactContext)',
-    'JournalArchiveCryptoModule::class.java.name',
-  ];
-  for (const marker of requiredPackageMarkers) {
-    if (!packageSource.includes(marker)) {
-      failures.push(`missing Android package marker: ${marker}`);
-    }
-  }
+  requireMarkers(
+    packageSource,
+    [
+      'class JournalArchiveCryptoPackage : BaseReactPackage()',
+      'if (name == JournalArchiveCryptoModule.NAME)',
+      'JournalArchiveCryptoModule(reactContext)',
+      'JournalArchiveCryptoModule::class.java.name',
+    ],
+    'Android package marker',
+    failures,
+  );
+
+  requireMarkers(
+    buildSource,
+    [
+      'prefab true',
+      'path file("src/main/jni/CMakeLists.txt")',
+      'implementation files("libs/journal-archive-libsodium/libsodium-1.0.22.0.aar")',
+    ],
+    'Android native build marker',
+    failures,
+  );
+
+  requireMarkers(
+    cmakeSource,
+    [
+      'project(appmodules LANGUAGES C CXX)',
+      'include(${REACT_ANDROID_DIR}/cmake-utils/ReactNative-application.cmake)',
+      'find_package(sodium REQUIRED CONFIG)',
+      '../cpp/journal_archive_crypto.cpp',
+      'target_compile_features(journal_archive_crypto PRIVATE cxx_std_20)',
+      '-Werror',
+      '-fvisibility=hidden',
+      'target_link_libraries(journal_archive_crypto PRIVATE sodium::sodium)',
+    ],
+    'Android CMake boundary',
+    failures,
+  );
+
+  requireMarkers(
+    nativeSource,
+    [
+      'crypto_pwhash_ALG_ARGON2ID13',
+      'crypto_secretstream_xchacha20poly1305_TAG_FINAL',
+      'sodium_memzero',
+      'nativeSodiumVersion',
+      'nativeRunSyntheticSelfTest',
+      'assertions[2]',
+      'assertions[3]',
+      'assertions[4]',
+      'assertions[5]',
+      'assertions[6]',
+      'assertions[7]',
+    ],
+    'synthetic native assertion',
+    failures,
+  );
 
   const forbiddenSurface = [
     /encryptFile/i,
@@ -74,8 +152,6 @@ function inspectAndroidShell(mainApplication, moduleSource, packageSource) {
     /destinationPath/i,
     /\b(?:password|passphrase)\s*:/i,
     /putBoolean\("mobileProviderApproved",\s*true\)/,
-    /putBoolean\("runtimeOffJavaScriptThread",\s*true\)/,
-    /putString\("libsodiumVersion",\s*"(?!not-linked")/,
   ];
   for (const pattern of forbiddenSurface) {
     if (pattern.test(moduleSource)) {
@@ -83,15 +159,70 @@ function inspectAndroidShell(mainApplication, moduleSource, packageSource) {
     }
   }
 
+  const forbiddenNativeSurface = [
+    /Java_.*encrypt/i,
+    /Java_.*decrypt/i,
+    /fopen\s*\(/,
+    /std::filesystem/,
+    /AAssetManager/,
+  ];
+  for (const pattern of forbiddenNativeSurface) {
+    if (pattern.test(nativeSource)) {
+      failures.push(`native customer/file surface is forbidden: ${pattern}`);
+    }
+  }
+
+  let integrity;
+  try {
+    integrity = JSON.parse(integritySource);
+  } catch (error) {
+    failures.push(`invalid Android libsodium integrity manifest: ${error.message}`);
+  }
+
+  if (integrity) {
+    const expected = {
+      library: 'libsodium',
+      version: '1.0.22',
+      sourceSha256:
+        'adbdd8f16149e81ac6078a03aca6fc03b592b89ef7b5ed83841c086191be3349',
+      androidNdkVersion: '27.1.12297006',
+      androidMinSdk: 24,
+      buildProfile: 'portable-no-cpu-specific-implementations',
+      argon2Implementation: 'reference',
+      aar: 'libsodium-1.0.22.0.aar',
+      license: 'LICENSE.libsodium',
+      scope: 'journal-archive-synthetic-native-provider',
+      mobileProviderApproved: false,
+    };
+    for (const [key, value] of Object.entries(expected)) {
+      if (integrity[key] !== value) {
+        failures.push(`unexpected Android libsodium integrity value: ${key}`);
+      }
+    }
+    if (integrity.aarSha256 !== sha256(aarBytes)) {
+      failures.push('Android libsodium AAR digest does not match INTEGRITY.json');
+    }
+    if (integrity.licenseSha256 !== sha256(licenseBytes)) {
+      failures.push('Android libsodium license digest does not match INTEGRITY.json');
+    }
+  }
+
   return {approved: failures.length === 0, failures};
 }
 
 function main() {
-  const result = inspectAndroidShell(
-    fs.readFileSync(mainApplicationPath, 'utf8'),
-    fs.readFileSync(modulePath, 'utf8'),
-    fs.readFileSync(packagePath, 'utf8'),
-  );
+  const readText = key => fs.readFileSync(path.join(root, paths[key]), 'utf8');
+  const result = inspectAndroidProvider({
+    mainApplication: readText('mainApplication'),
+    moduleSource: readText('moduleSource'),
+    packageSource: readText('packageSource'),
+    buildSource: readText('buildSource'),
+    cmakeSource: readText('cmakeSource'),
+    nativeSource: readText('nativeSource'),
+    integritySource: readText('integritySource'),
+    aarBytes: fs.readFileSync(path.join(root, paths.aar)),
+    licenseBytes: fs.readFileSync(path.join(root, paths.license)),
+  });
   process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
   if (!result.approved) {
     process.exitCode = 1;
@@ -102,4 +233,4 @@ if (require.main === module) {
   main();
 }
 
-module.exports = {inspectAndroidShell};
+module.exports = {inspectAndroidProvider};

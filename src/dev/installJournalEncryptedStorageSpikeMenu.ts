@@ -1,4 +1,4 @@
-import {Alert, DevSettings} from 'react-native';
+import {Alert, DevSettings, Platform} from 'react-native';
 
 import {
   armJournalEncryptedStorageInterruptionProbe,
@@ -18,6 +18,60 @@ export const installJournalEncryptedStorageSpikeMenu = (): void => {
   }
 
   installed = true;
+
+  if (Platform.OS === 'android') {
+    DevSettings.addMenuItem('Verify Android archive crypto', () => {
+      import('../native/NativeJournalArchiveCrypto').then(
+        async ({default: archiveCrypto}) => {
+          const [provider, assertions] = await Promise.all([
+            archiveCrypto.getProviderEvidence(),
+            archiveCrypto.runSyntheticSelfTest(),
+          ]);
+          const expectedAssertions = [
+            assertions.argon2id,
+            assertions.secretstream,
+            assertions.wrongPasswordRejected,
+            assertions.tamperRejected,
+            assertions.truncationRejected,
+            assertions.reorderingRejected,
+            assertions.finalTagRequired,
+            assertions.sensitiveBuffersCleared,
+            !assertions.plaintextFileWritten,
+          ];
+          if (
+            provider.platform !== 'android' ||
+            provider.libsodiumVersion !== '1.0.22' ||
+            !provider.runtimeOffJavaScriptThread ||
+            !provider.syntheticOnly ||
+            provider.mobileProviderApproved ||
+            expectedAssertions.some(passed => !passed)
+          ) {
+            throw new Error('One or more fail-closed crypto assertions failed');
+          }
+          Alert.alert(
+            'Android archive crypto passed',
+            [
+              `libsodium: ${provider.libsodiumVersion}`,
+              `Architecture: ${provider.architecture}`,
+              'Argon2id derivation: passed',
+              'Secretstream round trip: passed',
+              'Wrong password rejection: passed',
+              'Tamper and truncation rejection: passed',
+              'Reordering and missing-final rejection: passed',
+              'Sensitive-buffer clearing: passed',
+              'Plaintext file written: no',
+              'Customer-data API enabled: no',
+            ].join('\n'),
+          );
+        },
+      ).catch(error => {
+        const message =
+          error instanceof Error ? error.message : 'Unknown diagnostic error';
+        Alert.alert('Android archive crypto failed', message);
+      });
+    });
+  }
+
   DevSettings.addMenuItem('Verify encrypted journal storage', () => {
     runJournalEncryptedStorageSpike().then(
       result => {
