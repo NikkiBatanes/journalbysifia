@@ -37,6 +37,8 @@
     "security:journal-archive-crypto:turbomodule-contract": "node scripts/check-journal-archive-crypto-turbomodule-contract.cjs",
     "security:journal-archive-crypto:turbomodule-contract:test": "node --test scripts/check-journal-archive-crypto-turbomodule-contract.test.cjs",
     "security:journal-archive-crypto:turbomodule-codegen": "node scripts/verify-journal-archive-crypto-codegen.cjs",
+    "security:journal-archive-crypto:android-shell": "node scripts/check-journal-archive-crypto-android-shell.cjs",
+    "security:journal-archive-crypto:android-shell:test": "node --test scripts/check-journal-archive-crypto-android-shell.test.cjs",
     "android": "react-native run-android",
     "ios": "react-native run-ios",
     "ios:release": "npx react-native run-ios --mode Release",
