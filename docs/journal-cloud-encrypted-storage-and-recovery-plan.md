@@ -315,6 +315,17 @@ The main gate command intentionally exits nonzero today. Its focused unit test
 proves both the complete synthetic acceptance case and rejection of missing,
 outdated, blocking, or incomplete evidence.
 
+The first provider spike now pins the official libsodium 1.0.22 source archive
+and its published SHA-256 digest. A native host harness builds the minimal
+static library from that verified source and proves Argon2id13 plus bounded
+XChaCha20-Poly1305 secretstream round-trip behavior, final-tag enforcement, and
+wrong-password, corruption, truncation, and reordering rejection. It uses only
+synthetic bytes, clears sensitive native buffers before exit, writes no
+plaintext file, and emits only non-secret assertion metadata. This narrows the
+algorithm and supply-chain risk; it does not approve the provider for customer
+data because equivalent isolated iOS and Android new-architecture modules and
+device evidence are still required.
+
 ### Free-export keying
 
 Free encrypted export cannot depend on a siFia account, RevenueCat, Journal
