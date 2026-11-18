@@ -24,6 +24,9 @@ const sources = {
   nativeSource: read(
     'android/app/src/main/cpp/journal_archive_crypto.cpp',
   ).toString('utf8'),
+  transportSource: read(
+    'android/app/src/main/cpp/journal_archive_file_transport.cpp',
+  ).toString('utf8'),
   integritySource: read(
     'android/app/libs/journal-archive-libsodium/INTEGRITY.json',
   ).toString('utf8'),
@@ -105,6 +108,19 @@ test('rejects a missing native assertion', () => {
   assert.ok(
     result.failures.some(failure =>
       failure.includes('synthetic native assertion'),
+    ),
+  );
+});
+
+test('rejects a caller-controlled transport payload', () => {
+  const result = inspectAndroidProvider({
+    ...sources,
+    transportSource: `${sources.transportSource}\n// jbyteArray customerBytes`,
+  });
+  assert.equal(result.approved, false);
+  assert.ok(
+    result.failures.some(failure =>
+      failure.includes('transport accepted forbidden input'),
     ),
   );
 });

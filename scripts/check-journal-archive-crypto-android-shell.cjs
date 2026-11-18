@@ -14,6 +14,8 @@ const paths = {
   buildSource: 'android/app/build.gradle',
   cmakeSource: 'android/app/src/main/jni/CMakeLists.txt',
   nativeSource: 'android/app/src/main/cpp/journal_archive_crypto.cpp',
+  transportSource:
+    'android/app/src/main/cpp/journal_archive_file_transport.cpp',
   integritySource:
     'android/app/libs/journal-archive-libsodium/INTEGRITY.json',
   aar: 'android/app/libs/journal-archive-libsodium/libsodium-1.0.22.0.aar',
@@ -41,6 +43,7 @@ function inspectAndroidProvider(sources) {
     buildSource,
     cmakeSource,
     nativeSource,
+    transportSource,
     integritySource,
     aarBytes,
     licenseBytes,
@@ -55,6 +58,7 @@ function inspectAndroidProvider(sources) {
       'Thread(runnable, "journal-archive-crypto")',
       'private external fun nativeSodiumVersion(): String',
       'private external fun nativeRunSyntheticSelfTest(): BooleanArray',
+      'private external fun nativeRunFileTransportSelfTest(cacheDirectory: String): BooleanArray',
       'putString("libsodiumVersion", nativeSodiumVersion())',
       'putString("platform", "android")',
       'putBoolean("runtimeOffJavaScriptThread", true)',
@@ -69,6 +73,15 @@ function inspectAndroidProvider(sources) {
       'putBoolean("finalTagRequired", assertions[6])',
       'putBoolean("sensitiveBuffersCleared", assertions[7])',
       'putBoolean("plaintextFileWritten", false)',
+      'putBoolean("boundedChunkWrites", assertions[0])',
+      'putBoolean("sizeLimitRejected", assertions[1])',
+      'putBoolean("temporaryFileUsed", assertions[2])',
+      'putBoolean("incompletePublishHidden", assertions[3])',
+      'putBoolean("atomicPublishSucceeded", assertions[4])',
+      'putBoolean("fileAndDirectorySynced", assertions[5])',
+      'putBoolean("staleTemporaryCleaned", assertions[6])',
+      'putBoolean("publishedBytesVerified", assertions[7])',
+      'putBoolean("artifactsCleaned", assertions[8])',
       'cryptoExecutor.shutdownNow()',
       'System.loadLibrary("journal_archive_crypto")',
       'const val NAME = "JournalArchiveCrypto"',
@@ -117,6 +130,7 @@ function inspectAndroidProvider(sources) {
       'include(${REACT_ANDROID_DIR}/cmake-utils/ReactNative-application.cmake)',
       'find_package(sodium REQUIRED CONFIG)',
       '../cpp/journal_archive_crypto.cpp',
+      '../cpp/journal_archive_file_transport.cpp',
       'target_compile_features(journal_archive_crypto PRIVATE cxx_std_20)',
       '-Werror',
       '-fvisibility=hidden',
@@ -145,6 +159,23 @@ function inspectAndroidProvider(sources) {
     failures,
   );
 
+  requireMarkers(
+    transportSource,
+    [
+      'kMaximumSyntheticArchiveBytes = 4096',
+      'journal-archive-transport-XXXXXX',
+      'archive.sifia.part',
+      'O_EXCL | O_CLOEXEC | O_NOFOLLOW',
+      '::fsync(',
+      '::rename(partial.c_str(), published.c_str())',
+      'RunFileTransportSelfTest',
+      'nativeRunFileTransportSelfTest',
+      'assertions[8]',
+    ],
+    'synthetic Android file-transport assertion',
+    failures,
+  );
+
   const forbiddenSurface = [
     /encryptFile/i,
     /decryptFile/i,
@@ -169,6 +200,18 @@ function inspectAndroidProvider(sources) {
   for (const pattern of forbiddenNativeSurface) {
     if (pattern.test(nativeSource)) {
       failures.push(`native customer/file surface is forbidden: ${pattern}`);
+    }
+  }
+
+  for (const pattern of [
+    /jbyteArray/,
+    /jobjectArray/,
+    /password/i,
+    /passphrase/i,
+    /customer/i,
+  ]) {
+    if (pattern.test(transportSource)) {
+      failures.push(`synthetic Android transport accepted forbidden input: ${pattern}`);
     }
   }
 
@@ -219,6 +262,7 @@ function main() {
     buildSource: readText('buildSource'),
     cmakeSource: readText('cmakeSource'),
     nativeSource: readText('nativeSource'),
+    transportSource: readText('transportSource'),
     integritySource: readText('integritySource'),
     aarBytes: fs.readFileSync(path.join(root, paths.aar)),
     licenseBytes: fs.readFileSync(path.join(root, paths.license)),

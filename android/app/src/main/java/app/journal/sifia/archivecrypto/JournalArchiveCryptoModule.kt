@@ -29,6 +29,8 @@ class JournalArchiveCryptoModule(reactContext: ReactApplicationContext) :
 
   private external fun nativeRunPortableVectorSelfTest(): BooleanArray
 
+  private external fun nativeRunFileTransportSelfTest(cacheDirectory: String): BooleanArray
+
   override fun getName(): String = NAME
 
   override fun getProviderEvidence(promise: Promise) {
@@ -101,6 +103,34 @@ class JournalArchiveCryptoModule(reactContext: ReactApplicationContext) :
     }
   }
 
+  override fun runFileTransportSelfTest(promise: Promise) {
+    cryptoExecutor.execute {
+      try {
+        val assertions = nativeRunFileTransportSelfTest(
+          reactApplicationContext.cacheDir.absolutePath,
+        )
+        require(assertions.size == NATIVE_FILE_TRANSPORT_ASSERTION_COUNT) {
+          "Unexpected file-transport assertion count"
+        }
+        val evidence = Arguments.createMap().apply {
+          putBoolean("boundedChunkWrites", assertions[0])
+          putBoolean("sizeLimitRejected", assertions[1])
+          putBoolean("temporaryFileUsed", assertions[2])
+          putBoolean("incompletePublishHidden", assertions[3])
+          putBoolean("atomicPublishSucceeded", assertions[4])
+          putBoolean("fileAndDirectorySynced", assertions[5])
+          putBoolean("staleTemporaryCleaned", assertions[6])
+          putBoolean("publishedBytesVerified", assertions[7])
+          putBoolean("artifactsCleaned", assertions[8])
+          putBoolean("plaintextFileWritten", false)
+        }
+        promise.resolve(evidence)
+      } catch (error: Throwable) {
+        promise.reject("JOURNAL_ARCHIVE_FILE_TRANSPORT_TEST_FAILED", error)
+      }
+    }
+  }
+
   override fun invalidate() {
     cryptoExecutor.shutdownNow()
     super.invalidate()
@@ -110,6 +140,7 @@ class JournalArchiveCryptoModule(reactContext: ReactApplicationContext) :
     const val NAME = "JournalArchiveCrypto"
     private const val NATIVE_ASSERTION_COUNT = 8
     private const val NATIVE_PORTABLE_ASSERTION_COUNT = 8
+    private const val NATIVE_FILE_TRANSPORT_ASSERTION_COUNT = 9
     private const val PORTABLE_VECTOR_ID = "journal-archive-portable-v1"
     private const val PORTABLE_VECTOR_SHA256 =
       "1c0177dbba76e3823eac4ed0e23b7cb44afcc9de8577a95e49c75e9f0ce72e14"

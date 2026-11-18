@@ -1,4 +1,5 @@
 #import "JournalArchiveCrypto.h"
+#include "JournalArchiveFileTransport.h"
 
 #import <React/RCTBridgeModule.h>
 #import <sodium.h>
@@ -465,6 +466,28 @@ RCT_EXPORT_MODULE(JournalArchiveCrypto)
       @"reorderingRejected" : @(assertions[5]),
       @"finalTagRequired" : @(assertions[6]),
       @"sensitiveBuffersCleared" : @(assertions[7]),
+      @"plaintextFileWritten" : @NO,
+    });
+  });
+}
+
+- (void)runFileTransportSelfTest:(RCTPromiseResolveBlock)resolve
+                           reject:(RCTPromiseRejectBlock)reject {
+  dispatch_async(JournalArchiveCryptoQueue(), ^{
+    const char *temporaryDirectory =
+        [NSTemporaryDirectory() fileSystemRepresentation];
+    const auto assertions =
+        RunJournalArchiveFileTransportAssertions(temporaryDirectory);
+    resolve(@{
+      @"boundedChunkWrites" : @(assertions[0]),
+      @"sizeLimitRejected" : @(assertions[1]),
+      @"temporaryFileUsed" : @(assertions[2]),
+      @"incompletePublishHidden" : @(assertions[3]),
+      @"atomicPublishSucceeded" : @(assertions[4]),
+      @"fileAndDirectorySynced" : @(assertions[5]),
+      @"staleTemporaryCleaned" : @(assertions[6]),
+      @"publishedBytesVerified" : @(assertions[7]),
+      @"artifactsCleaned" : @(assertions[8]),
       @"plaintextFileWritten" : @NO,
     });
   });

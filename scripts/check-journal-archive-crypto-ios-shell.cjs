@@ -10,6 +10,10 @@ const paths = {
   podspec: 'ios/JournalArchiveCrypto/JournalArchiveCrypto.podspec',
   header: 'ios/JournalArchiveCrypto/Sources/JournalArchiveCrypto.h',
   moduleSource: 'ios/JournalArchiveCrypto/Sources/JournalArchiveCrypto.mm',
+  transportHeader:
+    'ios/JournalArchiveCrypto/Sources/JournalArchiveFileTransport.h',
+  transportSource:
+    'ios/JournalArchiveCrypto/Sources/JournalArchiveFileTransport.mm',
   integrity: 'ios/JournalArchiveCrypto/Vendor/INTEGRITY.json',
   framework: 'ios/JournalArchiveCrypto/Vendor/Clibsodium.xcframework',
   license: 'ios/JournalArchiveCrypto/Vendor/LICENSE.libsodium',
@@ -59,6 +63,8 @@ function inspectIosProvider(sources) {
     podspec,
     header,
     moduleSource,
+    transportHeader,
+    transportSource,
     integritySource,
     frameworkDigest,
     licenseBytes,
@@ -99,6 +105,7 @@ function inspectIosProvider(sources) {
       '"app.journal.sifia.archive-crypto", DISPATCH_QUEUE_SERIAL',
       '- (void)getProviderEvidence:(RCTPromiseResolveBlock)resolve',
       '- (void)runSyntheticSelfTest:(RCTPromiseResolveBlock)resolve',
+      '- (void)runFileTransportSelfTest:(RCTPromiseResolveBlock)resolve',
       '@"platform" : @"ios"',
       '@"runtimeOffJavaScriptThread" : @YES',
       '@"syntheticOnly" : @YES',
@@ -112,12 +119,37 @@ function inspectIosProvider(sources) {
       '@"finalTagRequired" : @(assertions[6])',
       '@"sensitiveBuffersCleared" : @(assertions[7])',
       '@"plaintextFileWritten" : @NO',
+      '@"boundedChunkWrites" : @(assertions[0])',
+      '@"sizeLimitRejected" : @(assertions[1])',
+      '@"temporaryFileUsed" : @(assertions[2])',
+      '@"incompletePublishHidden" : @(assertions[3])',
+      '@"atomicPublishSucceeded" : @(assertions[4])',
+      '@"fileAndDirectorySynced" : @(assertions[5])',
+      '@"staleTemporaryCleaned" : @(assertions[6])',
+      '@"publishedBytesVerified" : @(assertions[7])',
+      '@"artifactsCleaned" : @(assertions[8])',
       'crypto_pwhash_ALG_ARGON2ID13',
       'crypto_secretstream_xchacha20poly1305_TAG_FINAL',
       'sodium_memzero',
       'NativeJournalArchiveCryptoSpecJSI',
     ],
     'synthetic iOS provider marker',
+    failures,
+  );
+
+  requireMarkers(
+    `${transportHeader}\n${transportSource}`,
+    [
+      'RunJournalArchiveFileTransportAssertions',
+      'kMaximumSyntheticArchiveBytes = 4096',
+      'journal-archive-transport-XXXXXX',
+      'archive.sifia.part',
+      'O_EXCL | O_CLOEXEC | O_NOFOLLOW',
+      '::fsync(',
+      '::rename(partial.c_str(), published.c_str())',
+      'assertions[8]',
+    ],
+    'synthetic iOS file-transport assertion',
     failures,
   );
 
@@ -139,6 +171,11 @@ function inspectIosProvider(sources) {
   for (const pattern of [/fopen\s*\(/, /std::filesystem/, /NSData\s*\*/]) {
     if (pattern.test(moduleSource)) {
       failures.push(`native customer/file surface is forbidden: ${pattern}`);
+    }
+  }
+  for (const pattern of [/password/i, /passphrase/i, /customer/i]) {
+    if (pattern.test(`${transportHeader}\n${transportSource}`)) {
+      failures.push(`synthetic iOS transport accepted forbidden input: ${pattern}`);
     }
   }
 
@@ -188,6 +225,8 @@ function main() {
     podspec: readText('podspec'),
     header: readText('header'),
     moduleSource: readText('moduleSource'),
+    transportHeader: readText('transportHeader'),
+    transportSource: readText('transportSource'),
     integritySource: readText('integrity'),
     frameworkDigest: sha256Tree(path.join(root, paths.framework)),
     licenseBytes: fs.readFileSync(path.join(root, paths.license)),

@@ -25,10 +25,11 @@ export const installJournalEncryptedStorageSpikeMenu = (): void => {
     DevSettings.addMenuItem(`Verify ${platformName} archive crypto`, () => {
       import('../native/NativeJournalArchiveCrypto').then(
         async ({default: archiveCrypto}) => {
-          const [provider, assertions, portable] = await Promise.all([
+          const [provider, assertions, portable, transport] = await Promise.all([
             archiveCrypto.getProviderEvidence(),
             archiveCrypto.runSyntheticSelfTest(),
             archiveCrypto.runPortableVectorSelfTest(),
+            archiveCrypto.runFileTransportSelfTest(),
           ]);
           const expectedAssertions = [
             assertions.argon2id,
@@ -52,6 +53,16 @@ export const installJournalEncryptedStorageSpikeMenu = (): void => {
             portable.finalTagRequired,
             portable.sensitiveBuffersCleared,
             !portable.plaintextFileWritten,
+            transport.boundedChunkWrites,
+            transport.sizeLimitRejected,
+            transport.temporaryFileUsed,
+            transport.incompletePublishHidden,
+            transport.atomicPublishSucceeded,
+            transport.fileAndDirectorySynced,
+            transport.staleTemporaryCleaned,
+            transport.publishedBytesVerified,
+            transport.artifactsCleaned,
+            !transport.plaintextFileWritten,
           ];
           if (
             provider.platform !== nativePlatform ||
@@ -77,6 +88,13 @@ export const installJournalEncryptedStorageSpikeMenu = (): void => {
               `Portable vector: ${portable.vectorId}`,
               'Cross-platform key and bytes: passed',
               'Cross-platform failure parity: passed',
+              'Bounded encrypted chunk writes: passed',
+              'Oversized output rejection: passed',
+              'Temporary-file isolation: passed',
+              'Interrupted-file cleanup: passed',
+              'Atomic publish and durability sync: passed',
+              'Published ciphertext verification: passed',
+              'Synthetic artifacts cleaned: passed',
               'Plaintext file written: no',
               'Customer-data API enabled: no',
             ].join('\n'),

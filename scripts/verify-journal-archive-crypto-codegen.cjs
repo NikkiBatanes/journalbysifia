@@ -59,10 +59,16 @@ try {
           androidPortableVectorSelfTest: android.includes(
             'void runPortableVectorSelfTest(Promise promise)',
           ),
+          androidFileTransportSelfTest: android.includes(
+            'void runFileTransportSelfTest(Promise promise)',
+          ),
           iosProviderEvidence: ios.includes('getProviderEvidence:(RCTPromiseResolveBlock)resolve'),
           iosSyntheticSelfTest: ios.includes('runSyntheticSelfTest:(RCTPromiseResolveBlock)resolve'),
           iosPortableVectorSelfTest: ios.includes(
             'runPortableVectorSelfTest:(RCTPromiseResolveBlock)resolve',
+          ),
+          iosFileTransportSelfTest: ios.includes(
+            'runFileTransportSelfTest:(RCTPromiseResolveBlock)resolve',
           ),
           iosProviderRegistration: iosProvider.includes('@"JournalArchiveCrypto": @"JournalArchiveCrypto"'),
         };

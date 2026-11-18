@@ -25,6 +25,12 @@ const sources = {
   moduleSource: read(
     'ios/JournalArchiveCrypto/Sources/JournalArchiveCrypto.mm',
   ).toString('utf8'),
+  transportHeader: read(
+    'ios/JournalArchiveCrypto/Sources/JournalArchiveFileTransport.h',
+  ).toString('utf8'),
+  transportSource: read(
+    'ios/JournalArchiveCrypto/Sources/JournalArchiveFileTransport.mm',
+  ).toString('utf8'),
   integritySource: read(
     'ios/JournalArchiveCrypto/Vendor/INTEGRITY.json',
   ).toString('utf8'),
@@ -108,6 +114,19 @@ test('rejects a missing native assertion', () => {
   assert.ok(
     result.failures.some(failure =>
       failure.includes('synthetic iOS provider marker'),
+    ),
+  );
+});
+
+test('rejects a caller-controlled transport payload', () => {
+  const result = inspectIosProvider({
+    ...sources,
+    transportSource: `${sources.transportSource}\n// customerPassword`,
+  });
+  assert.equal(result.approved, false);
+  assert.ok(
+    result.failures.some(failure =>
+      failure.includes('transport accepted forbidden input'),
     ),
   );
 });
