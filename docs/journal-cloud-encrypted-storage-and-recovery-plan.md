@@ -346,6 +346,16 @@ deletes the XCFramework and extracted source after inspection. This proves
 Apple packaging feasibility only; no framework is linked into Journal by siFia
 and no customer data can reach it.
 
+The next boundary is now codegen-verified without expanding data access. A
+React Native 0.88.1 TurboModule contract named `JournalArchiveCrypto` exposes
+only provider evidence and a synthetic self-test. Automated checks forbid
+encrypt/decrypt file methods and customer path/data identifiers, require the
+reviewed Android/iOS codegen mapping, and validate the generated Android
+Java/JNI and iOS Objective-C++/JSI surfaces in a disposable directory. The app
+does not import or register an implementation yet. Native implementations,
+off-JavaScript-thread execution, device failure tests, and cross-platform
+vectors remain mandatory before the provider gate can open.
+
 ### Free-export keying
 
 Free encrypted export cannot depend on a siFia account, RevenueCat, Journal

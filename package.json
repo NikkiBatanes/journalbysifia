@@ -6,6 +6,21 @@
   "op-sqlite": {
     "sqlcipher": true
   },
+  "codegenConfig": {
+    "name": "JournalArchiveCryptoSpec",
+    "type": "modules",
+    "jsSrcsDir": "src/native",
+    "android": {
+      "javaPackageName": "app.journal.sifia.archivecrypto"
+    },
+    "ios": {
+      "modules": {
+        "JournalArchiveCrypto": {
+          "className": "JournalArchiveCrypto"
+        }
+      }
+    }
+  },
   "scripts": {
     "contract:pack": "node scripts/package-journal-contract.cjs",
     "contract:check": "node scripts/package-journal-contract.cjs --check",
@@ -19,6 +34,9 @@
     "security:journal-archive-crypto:android-artifact-spike:test": "node --test scripts/run-journal-archive-libsodium-android-artifact-spike.test.cjs",
     "security:journal-archive-crypto:ios-artifact-spike": "node scripts/run-journal-archive-libsodium-ios-artifact-spike.cjs",
     "security:journal-archive-crypto:ios-artifact-spike:test": "node --test scripts/run-journal-archive-libsodium-ios-artifact-spike.test.cjs",
+    "security:journal-archive-crypto:turbomodule-contract": "node scripts/check-journal-archive-crypto-turbomodule-contract.cjs",
+    "security:journal-archive-crypto:turbomodule-contract:test": "node --test scripts/check-journal-archive-crypto-turbomodule-contract.test.cjs",
+    "security:journal-archive-crypto:turbomodule-codegen": "node scripts/verify-journal-archive-crypto-codegen.cjs",
     "android": "react-native run-android",
     "ios": "react-native run-ios",
     "ios:release": "npx react-native run-ios --mode Release",
