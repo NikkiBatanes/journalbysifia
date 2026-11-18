@@ -20,7 +20,8 @@ const plan = (value: string): JournalBackupRestorePlan => ({
 
 // Suspend the actual executor after its changed value commits and before it
 // can verify the result or clear its rollback records. The OS ends the run.
-export async function armRestoreInterruption(db: RestoreDatabase, onArmed: () => void) {
+export async function armRestoreInterruption(db: RestoreDatabase, onArmed: () => void,
+  beforeInterruption?: () => Promise<void>) {
   const initial = await openRestoreSession(db);
   await initial.restore(plan(original), id);
   const interruptible: RestoreDatabase = {
@@ -35,15 +36,23 @@ export async function armRestoreInterruption(db: RestoreDatabase, onArmed: () =>
     },
   };
   const session = await openRestoreSession(interruptible);
+  await beforeInterruption?.();
   await session.restore(plan(replacement), id);
   throw new Error('Restore finished without reaching the interruption point');
 }
 
-export async function verifyRecoveredRestore(db: RestoreDatabase) {
+export async function checkRestoreBaseline(db: RestoreDatabase) {
   const session = await openRestoreSession(db);
-  if (session.recovered?.transactionId !== id ||
+  if ((session.recovered && session.recovered.transactionId !== id) ||
       await session.read(key) !== original ||
       await session.read(marker) !== null || await session.read(snapshot) !== null) {
+    throw new Error('Synthetic restore recovery did not verify');
+  }
+  return session.recovered !== null;
+}
+
+export async function verifyRecoveredRestore(db: RestoreDatabase) {
+  if (!await checkRestoreBaseline(db)) {
     throw new Error('Synthetic restore recovery did not verify');
   }
 }

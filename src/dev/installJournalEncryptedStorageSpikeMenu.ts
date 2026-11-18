@@ -1,4 +1,5 @@
 import {Alert, DevSettings, Platform} from 'react-native';
+import {markRestoreStartupPending, relaunchDatabase} from './journalRestoreStartup';
 import {open} from '@op-engineering/op-sqlite';
 import {armRestoreInterruption, verifyRecoveredRestore, verifyRestoreReopen} from './journalRestoreReopenProbe';
 
@@ -14,8 +15,8 @@ import {
 let installed = false;
 
 /**
- * Registers an explicit development-only command. The probe never runs during
- * startup and its result deliberately excludes the encryption key.
+ * Registers an explicit development-only command. Arming is manual. Startup checks only the
+ * pending synthetic restore. Diagnostic messages exclude the encryption key.
  */
 export const installJournalEncryptedStorageSpikeMenu = (): void => {
   if (!__DEV__ || installed) {
@@ -24,7 +25,6 @@ export const installJournalEncryptedStorageSpikeMenu = (): void => {
 
   installed = true;
 
-  const relaunchDatabase = 'journal-restore-relaunch-probe-v1.sqlite';
   let relaunchBusy = false;
   async function runRelaunchStep(arm: boolean) {
     if (relaunchBusy) {
@@ -43,8 +43,8 @@ export const installJournalEncryptedStorageSpikeMenu = (): void => {
         if (arm) {
           await armRestoreInterruption(db, () => Alert.alert(
             'Journal restore interruption armed',
-            'Fully close Journal, reopen it, then select Test Journal restore after relaunch and tap Verify.',
-          ));
+            'Fully close Journal and reopen it. Journal will check the test entry automatically.',
+          ), markRestoreStartupPending);
         } else {
           await verifyRecoveredRestore(db);
           db.delete();
@@ -64,7 +64,7 @@ export const installJournalEncryptedStorageSpikeMenu = (): void => {
     }
   }
   DevSettings.addMenuItem('Test Journal restore after relaunch', () => {
-    Alert.alert('Test Journal restore after relaunch', 'Arm before closing the app. Verify after reopening it.', [
+    Alert.alert('Test Journal restore after relaunch', 'Choose Arm, then close and reopen Journal. Verify is for older tests armed before automatic checks.', [
       {text: 'Cancel', style: 'cancel'},
       {text: 'Arm', onPress: () => runRelaunchStep(true)},
       {text: 'Verify', onPress: () => runRelaunchStep(false)},

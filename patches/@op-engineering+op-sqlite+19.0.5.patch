@@ -1,0 +1,55 @@
+diff --git a/node_modules/@op-engineering/op-sqlite/cpp/OPWorkerThread.cpp b/node_modules/@op-engineering/op-sqlite/cpp/OPWorkerThread.cpp
+--- a/node_modules/@op-engineering/op-sqlite/cpp/OPWorkerThread.cpp
++++ b/node_modules/@op-engineering/op-sqlite/cpp/OPWorkerThread.cpp
+@@ -2,9 +2,10 @@
+ 
+ namespace opsqlite {
+ 
+-WorkerThread::WorkerThread() : thread(&WorkerThread::do_work, this) {
+-  thread_id = thread.get_id();
+-}
++// OS thread IDs can be reused after join, before Hermes finalizes a handle.
++static thread_local WorkerThread *currentWorker = nullptr;
++
++WorkerThread::WorkerThread() : thread(&WorkerThread::do_work, this) {}
+ 
+ // Joins the thread so the process (or in our RN case, this
+ // main-thread/runtime generation) can exit gracefully. A no-op when shutdown()
+@@ -14,7 +15,7 @@
+ void WorkerThread::shutdown() {
+   // Checked before call_once: on the worker thread it could otherwise block on
+   // another caller's join of this very thread.
+-  if (std::this_thread::get_id() == thread_id) {
++  if (currentWorker == this) {
+     throw std::system_error(
+         std::make_error_code(std::errc::resource_deadlock_would_occur),
+         "[op-sqlite] WorkerThread::shutdown() called from its own thread");
+@@ -52,6 +53,7 @@
+ }
+ 
+ void WorkerThread::do_work() {
++  currentWorker = this;
+   while (true) {
+     std::function<void(void)> task;
+ 
+@@ -63,6 +65,7 @@
+       // Shutting down: finish only once every queued task has run, so no
+       // promise is left unsettled.
+       if (work_queue.empty()) {
++        currentWorker = nullptr;
+         return;
+       }
+ 
+diff --git a/node_modules/@op-engineering/op-sqlite/cpp/OPWorkerThread.hpp b/node_modules/@op-engineering/op-sqlite/cpp/OPWorkerThread.hpp
+--- a/node_modules/@op-engineering/op-sqlite/cpp/OPWorkerThread.hpp
++++ b/node_modules/@op-engineering/op-sqlite/cpp/OPWorkerThread.hpp
+@@ -65,9 +65,6 @@
+   // it fails to start, nothing else needs cleaning up.
+   std::thread thread;
+ 
+-  // Written only by the constructor, so shutdown() can read it without a lock
+-  std::thread::id thread_id;
+-
+   // The thread's loop: runs queued tasks until shut down and drained
+   void do_work();
+ };
