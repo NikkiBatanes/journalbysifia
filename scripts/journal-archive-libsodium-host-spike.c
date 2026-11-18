@@ -28,6 +28,12 @@ static void derive_key(unsigned char key[crypto_secretstream_xchacha20poly1305_K
   }
 }
 
+static void print_hex(const unsigned char *bytes, size_t length) {
+  for (size_t index = 0; index < length; index += 1U) {
+    printf("%02x", bytes[index]);
+  }
+}
+
 int main(void) {
   static const unsigned char *plaintext_chunks[CHUNK_COUNT] = {
       (const unsigned char *)"synthetic journal archive header",
@@ -40,11 +46,18 @@ int main(void) {
   unsigned long long plaintext_lengths[CHUNK_COUNT];
   unsigned long long ciphertext_lengths[CHUNK_COUNT];
   unsigned char *ciphertext_chunks[CHUNK_COUNT] = {NULL, NULL, NULL};
-  unsigned char salt[crypto_pwhash_SALTBYTES];
+  unsigned char salt[crypto_pwhash_SALTBYTES] = {
+      0x00U, 0x01U, 0x02U, 0x03U, 0x04U, 0x05U, 0x06U, 0x07U,
+      0x08U, 0x09U, 0x0aU, 0x0bU, 0x0cU, 0x0dU, 0x0eU, 0x0fU,
+  };
   unsigned char key[crypto_secretstream_xchacha20poly1305_KEYBYTES];
   unsigned char repeated_key[crypto_secretstream_xchacha20poly1305_KEYBYTES];
   unsigned char wrong_key[crypto_secretstream_xchacha20poly1305_KEYBYTES];
-  unsigned char header[crypto_secretstream_xchacha20poly1305_HEADERBYTES];
+  unsigned char header[crypto_secretstream_xchacha20poly1305_HEADERBYTES] = {
+      0xa0U, 0xa1U, 0xa2U, 0xa3U, 0xa4U, 0xa5U, 0xa6U, 0xa7U,
+      0xa8U, 0xa9U, 0xaaU, 0xabU, 0xacU, 0xadU, 0xaeU, 0xafU,
+      0xb0U, 0xb1U, 0xb2U, 0xb3U, 0xb4U, 0xb5U, 0xb6U, 0xb7U,
+  };
   crypto_secretstream_xchacha20poly1305_state push_state;
   bool round_trip = true;
   bool final_tag_verified = false;
@@ -61,7 +74,6 @@ int main(void) {
     fail("unexpected libsodium version");
   }
 
-  randombytes_buf(salt, sizeof salt);
   derive_key(key, password, salt);
   derive_key(repeated_key, password, salt);
   derive_key(wrong_key, wrong_password, salt);
@@ -73,8 +85,14 @@ int main(void) {
     fail("different passwords derived the same key");
   }
 
-  if (crypto_secretstream_xchacha20poly1305_init_push(&push_state, header, key) != 0) {
-    fail("secretstream push initialization failed");
+  /*
+   * A production sender must use init_push() so the header is random. This
+   * fixed synthetic vector intentionally initializes the equivalent stream
+   * state from a reviewed header so every supported platform must emit the
+   * same reference bytes. It is never exposed as a customer-data operation.
+   */
+  if (crypto_secretstream_xchacha20poly1305_init_pull(&push_state, header, key) != 0) {
+    fail("portable-vector stream initialization failed");
   }
 
   for (size_t index = 0; index < CHUNK_COUNT; index += 1U) {
@@ -219,6 +237,52 @@ int main(void) {
     fail("one or more cryptographic assertions failed");
   }
 
+  printf("{\"sodiumVersion\":\"%s\","
+         "\"algorithm\":\"secretstream-xchacha20poly1305\","
+         "\"kdf\":\"argon2id13\","
+         "\"roundTrip\":true,"
+         "\"wrongPasswordRejected\":true,"
+         "\"tamperRejected\":true,"
+         "\"truncationRejected\":true,"
+         "\"reorderingRejected\":true,"
+         "\"finalTagVerified\":true,"
+         "\"missingFinalRejected\":true,"
+         "\"maxPlaintextChunkBytes\":%u,"
+         "\"plaintextWrittenToDisk\":false,"
+         "\"keysClearedBeforeExit\":true,"
+         "\"portableVector\":{"
+         "\"id\":\"journal-archive-portable-v1\","
+         "\"algorithm\":\"secretstream-xchacha20poly1305\","
+         "\"kdf\":\"argon2id13\","
+         "\"passwordUtf8\":\"%s\","
+         "\"opslimit\":%llu,"
+         "\"memlimit\":%zu,"
+         "\"saltHex\":\"",
+         sodium_version_string(),
+         MAX_PLAINTEXT_CHUNK_BYTES,
+         password,
+         (unsigned long long)crypto_pwhash_OPSLIMIT_INTERACTIVE,
+         (size_t)crypto_pwhash_MEMLIMIT_INTERACTIVE);
+  print_hex(salt, sizeof salt);
+  printf("\",\"keyHex\":\"");
+  print_hex(key, sizeof key);
+  printf("\",\"headerHex\":\"");
+  print_hex(header, sizeof header);
+  printf("\",\"plaintextChunksHex\":[");
+  for (size_t index = 0; index < CHUNK_COUNT; index += 1U) {
+    printf("%s\"", index == 0U ? "" : ",");
+    print_hex(plaintext_chunks[index], (size_t)plaintext_lengths[index]);
+    printf("\"");
+  }
+  printf("],\"ciphertextChunksHex\":[");
+  for (size_t index = 0; index < CHUNK_COUNT; index += 1U) {
+    printf("%s\"", index == 0U ? "" : ",");
+    print_hex(ciphertext_chunks[index], (size_t)ciphertext_lengths[index]);
+    printf("\"");
+  }
+  printf("],\"tags\":[\"message\",\"message\",\"final\"]}}\n");
+  fflush(stdout);
+
   sodium_memzero(&push_state, sizeof push_state);
   sodium_memzero(&pull_state, sizeof pull_state);
   sodium_memzero(&wrong_state, sizeof wrong_state);
@@ -236,20 +300,5 @@ int main(void) {
     free(ciphertext_chunks[index]);
   }
 
-  printf("{\"sodiumVersion\":\"%s\","
-         "\"algorithm\":\"secretstream-xchacha20poly1305\","
-         "\"kdf\":\"argon2id13\","
-         "\"roundTrip\":true,"
-         "\"wrongPasswordRejected\":true,"
-         "\"tamperRejected\":true,"
-         "\"truncationRejected\":true,"
-         "\"reorderingRejected\":true,"
-         "\"finalTagVerified\":true,"
-         "\"missingFinalRejected\":true,"
-         "\"maxPlaintextChunkBytes\":%u,"
-         "\"plaintextWrittenToDisk\":false,"
-         "\"keysClearedBeforeExit\":true}\n",
-         sodium_version_string(),
-         MAX_PLAINTEXT_CHUNK_BYTES);
   return EXIT_SUCCESS;
 }

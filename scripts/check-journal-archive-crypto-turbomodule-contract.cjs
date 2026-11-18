@@ -31,6 +31,7 @@ function inspectContract(packageJson, spec) {
     "TurboModuleRegistry.getEnforcing<Spec>('JournalArchiveCrypto')",
     'getProviderEvidence(): Promise<JournalArchiveCryptoProviderEvidence>',
     'runSyntheticSelfTest(): Promise<JournalArchiveCryptoSyntheticEvidence>',
+    'runPortableVectorSelfTest(): Promise<JournalArchiveCryptoPortableVectorEvidence>',
     'runtimeOffJavaScriptThread: boolean',
     'syntheticOnly: boolean',
     'mobileProviderApproved: boolean',
@@ -41,6 +42,10 @@ function inspectContract(packageJson, spec) {
     'finalTagRequired: boolean',
     'sensitiveBuffersCleared: boolean',
     'plaintextFileWritten: boolean',
+    'derivedKeyMatches: boolean',
+    'ciphertextMatches: boolean',
+    'decryptMatches: boolean',
+    'tamperAndTruncationRejected: boolean',
   ];
 
   for (const marker of requiredMarkers) {

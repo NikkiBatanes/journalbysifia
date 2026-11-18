@@ -27,6 +27,8 @@ class JournalArchiveCryptoModule(reactContext: ReactApplicationContext) :
 
   private external fun nativeRunSyntheticSelfTest(): BooleanArray
 
+  private external fun nativeRunPortableVectorSelfTest(): BooleanArray
+
   override fun getName(): String = NAME
 
   override fun getProviderEvidence(promise: Promise) {
@@ -72,6 +74,33 @@ class JournalArchiveCryptoModule(reactContext: ReactApplicationContext) :
     }
   }
 
+  override fun runPortableVectorSelfTest(promise: Promise) {
+    cryptoExecutor.execute {
+      try {
+        val assertions = nativeRunPortableVectorSelfTest()
+        require(assertions.size == NATIVE_PORTABLE_ASSERTION_COUNT) {
+          "Unexpected portable-vector assertion count"
+        }
+        val evidence = Arguments.createMap().apply {
+          putString("vectorId", PORTABLE_VECTOR_ID)
+          putString("vectorSha256", PORTABLE_VECTOR_SHA256)
+          putBoolean("derivedKeyMatches", assertions[0])
+          putBoolean("ciphertextMatches", assertions[1])
+          putBoolean("decryptMatches", assertions[2])
+          putBoolean("wrongPasswordRejected", assertions[3])
+          putBoolean("tamperAndTruncationRejected", assertions[4])
+          putBoolean("reorderingRejected", assertions[5])
+          putBoolean("finalTagRequired", assertions[6])
+          putBoolean("sensitiveBuffersCleared", assertions[7])
+          putBoolean("plaintextFileWritten", false)
+        }
+        promise.resolve(evidence)
+      } catch (error: Throwable) {
+        promise.reject("JOURNAL_ARCHIVE_PORTABLE_VECTOR_TEST_FAILED", error)
+      }
+    }
+  }
+
   override fun invalidate() {
     cryptoExecutor.shutdownNow()
     super.invalidate()
@@ -80,6 +109,10 @@ class JournalArchiveCryptoModule(reactContext: ReactApplicationContext) :
   companion object {
     const val NAME = "JournalArchiveCrypto"
     private const val NATIVE_ASSERTION_COUNT = 8
+    private const val NATIVE_PORTABLE_ASSERTION_COUNT = 8
+    private const val PORTABLE_VECTOR_ID = "journal-archive-portable-v1"
+    private const val PORTABLE_VECTOR_SHA256 =
+      "1c0177dbba76e3823eac4ed0e23b7cb44afcc9de8577a95e49c75e9f0ce72e14"
 
     init {
       System.loadLibrary("journal_archive_crypto")

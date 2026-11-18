@@ -99,7 +99,7 @@ test('rejects a changed retained XCFramework', () => {
 test('rejects a missing native assertion', () => {
   const result = inspectIosProvider({
     ...sources,
-    moduleSource: sources.moduleSource.replace(
+    moduleSource: sources.moduleSource.replaceAll(
       '@"finalTagRequired" : @(assertions[6])',
       '@"finalTagRequired" : @NO',
     ),

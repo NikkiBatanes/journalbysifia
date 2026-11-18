@@ -56,8 +56,14 @@ try {
           androidModuleName: android.includes('public static final String NAME = "JournalArchiveCrypto"'),
           androidProviderEvidence: android.includes('void getProviderEvidence(Promise promise)'),
           androidSyntheticSelfTest: android.includes('void runSyntheticSelfTest(Promise promise)'),
+          androidPortableVectorSelfTest: android.includes(
+            'void runPortableVectorSelfTest(Promise promise)',
+          ),
           iosProviderEvidence: ios.includes('getProviderEvidence:(RCTPromiseResolveBlock)resolve'),
           iosSyntheticSelfTest: ios.includes('runSyntheticSelfTest:(RCTPromiseResolveBlock)resolve'),
+          iosPortableVectorSelfTest: ios.includes(
+            'runPortableVectorSelfTest:(RCTPromiseResolveBlock)resolve',
+          ),
           iosProviderRegistration: iosProvider.includes('@"JournalArchiveCrypto": @"JournalArchiveCrypto"'),
         };
         const rejected = Object.entries(assertions)

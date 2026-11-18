@@ -27,9 +27,24 @@ export type JournalArchiveCryptoSyntheticEvidence = {
   plaintextFileWritten: boolean;
 };
 
+export type JournalArchiveCryptoPortableVectorEvidence = {
+  vectorId: string;
+  vectorSha256: string;
+  derivedKeyMatches: boolean;
+  ciphertextMatches: boolean;
+  decryptMatches: boolean;
+  wrongPasswordRejected: boolean;
+  tamperAndTruncationRejected: boolean;
+  reorderingRejected: boolean;
+  finalTagRequired: boolean;
+  sensitiveBuffersCleared: boolean;
+  plaintextFileWritten: boolean;
+};
+
 export interface Spec extends TurboModule {
   getProviderEvidence(): Promise<JournalArchiveCryptoProviderEvidence>;
   runSyntheticSelfTest(): Promise<JournalArchiveCryptoSyntheticEvidence>;
+  runPortableVectorSelfTest(): Promise<JournalArchiveCryptoPortableVectorEvidence>;
 }
 
 export default TurboModuleRegistry.getEnforcing<Spec>('JournalArchiveCrypto');

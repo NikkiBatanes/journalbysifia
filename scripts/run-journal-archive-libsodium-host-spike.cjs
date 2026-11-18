@@ -6,6 +6,7 @@ const fsPromises = require('node:fs/promises');
 const os = require('node:os');
 const path = require('node:path');
 const {spawnSync} = require('node:child_process');
+const {isDeepStrictEqual} = require('node:util');
 
 const LIBSODIUM_VERSION = '1.0.22';
 const LIBSODIUM_ARCHIVE_ROOT = `libsodium-${LIBSODIUM_VERSION}`;
@@ -14,6 +15,13 @@ const LIBSODIUM_RELEASE_URL =
 const LIBSODIUM_ARCHIVE_SHA256 =
   'adbdd8f16149e81ac6078a03aca6fc03b592b89ef7b5ed83841c086191be3349';
 const MAX_ARCHIVE_BYTES = 4 * 1024 * 1024;
+const PORTABLE_VECTOR_PATH = path.join(
+  __dirname,
+  '..',
+  'security',
+  'journal-archive-crypto',
+  'portable-v1.json',
+);
 
 function parseArguments(argv) {
   const archiveIndex = argv.indexOf('--archive');
@@ -62,6 +70,35 @@ function assertExpectedHash(actualHash) {
       `libsodium archive SHA-256 mismatch: expected ${LIBSODIUM_ARCHIVE_SHA256}, received ${actualHash}`,
     );
   }
+}
+
+function sha256(value) {
+  return crypto.createHash('sha256').update(value).digest('hex');
+}
+
+function loadPortableVectorFixture() {
+  const fixture = JSON.parse(fs.readFileSync(PORTABLE_VECTOR_PATH, 'utf8'));
+  if (
+    fixture.schema !== 'app.journal.sifia.archive-crypto-portable-vector' ||
+    fixture.schemaVersion !== 1 ||
+    fixture.source?.library !== 'libsodium' ||
+    fixture.source?.version !== LIBSODIUM_VERSION ||
+    fixture.source?.sourceSha256 !== LIBSODIUM_ARCHIVE_SHA256
+  ) {
+    throw new Error('portable vector source metadata is not the reviewed contract');
+  }
+  const digest = sha256(JSON.stringify(fixture.vector));
+  if (digest !== fixture.vectorSha256) {
+    throw new Error('portable vector digest does not match its canonical content');
+  }
+  return fixture;
+}
+
+function assertPortableVector(actual, fixture = loadPortableVectorFixture()) {
+  if (!isDeepStrictEqual(actual, fixture.vector)) {
+    throw new Error('native host output differs from portable vector v1');
+  }
+  return fixture.vectorSha256;
 }
 
 function validateArchiveEntries(listing) {
@@ -168,6 +205,9 @@ async function main(argv = process.argv.slice(2)) {
 
     const nativeOutput = run(executablePath, [], {capture: true}).trim();
     const nativeEvidence = JSON.parse(nativeOutput);
+    const portableVectorSha256 = assertPortableVector(
+      nativeEvidence.portableVector,
+    );
     const result = {
       source: {
         version: LIBSODIUM_VERSION,
@@ -177,9 +217,10 @@ async function main(argv = process.argv.slice(2)) {
         integrityVerified: true,
       },
       nativeHostEvidence: nativeEvidence,
+      portableVectorSha256,
       scope: 'synthetic-host-spike-only',
       mobileProviderApproved: false,
-      nextStep: 'Integrate the pinned source into isolated iOS and Android native modules.',
+      nextStep: 'Require the locked portable vector on Android and iOS.',
     };
     process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
     return result;
@@ -201,10 +242,13 @@ module.exports = {
   LIBSODIUM_RELEASE_URL,
   LIBSODIUM_VERSION,
   MAX_ARCHIVE_BYTES,
+  PORTABLE_VECTOR_PATH,
+  assertPortableVector,
   assertExpectedHash,
   downloadVerifiedArchive,
   parseArguments,
   run,
   sha256File,
+  loadPortableVectorFixture,
   validateArchiveEntries,
 };

@@ -25,9 +25,10 @@ export const installJournalEncryptedStorageSpikeMenu = (): void => {
     DevSettings.addMenuItem(`Verify ${platformName} archive crypto`, () => {
       import('../native/NativeJournalArchiveCrypto').then(
         async ({default: archiveCrypto}) => {
-          const [provider, assertions] = await Promise.all([
+          const [provider, assertions, portable] = await Promise.all([
             archiveCrypto.getProviderEvidence(),
             archiveCrypto.runSyntheticSelfTest(),
+            archiveCrypto.runPortableVectorSelfTest(),
           ]);
           const expectedAssertions = [
             assertions.argon2id,
@@ -39,6 +40,18 @@ export const installJournalEncryptedStorageSpikeMenu = (): void => {
             assertions.finalTagRequired,
             assertions.sensitiveBuffersCleared,
             !assertions.plaintextFileWritten,
+            portable.vectorId === 'journal-archive-portable-v1',
+            portable.vectorSha256 ===
+              '1c0177dbba76e3823eac4ed0e23b7cb44afcc9de8577a95e49c75e9f0ce72e14',
+            portable.derivedKeyMatches,
+            portable.ciphertextMatches,
+            portable.decryptMatches,
+            portable.wrongPasswordRejected,
+            portable.tamperAndTruncationRejected,
+            portable.reorderingRejected,
+            portable.finalTagRequired,
+            portable.sensitiveBuffersCleared,
+            !portable.plaintextFileWritten,
           ];
           if (
             provider.platform !== nativePlatform ||
@@ -61,6 +74,9 @@ export const installJournalEncryptedStorageSpikeMenu = (): void => {
               'Tamper and truncation rejection: passed',
               'Reordering and missing-final rejection: passed',
               'Sensitive-buffer clearing: passed',
+              `Portable vector: ${portable.vectorId}`,
+              'Cross-platform key and bytes: passed',
+              'Cross-platform failure parity: passed',
               'Plaintext file written: no',
               'Customer-data API enabled: no',
             ].join('\n'),

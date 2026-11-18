@@ -99,7 +99,7 @@ test('rejects a changed retained AAR', () => {
 test('rejects a missing native assertion', () => {
   const result = inspectAndroidProvider({
     ...sources,
-    nativeSource: sources.nativeSource.replace('assertions[6]', 'assertionSix'),
+    nativeSource: sources.nativeSource.replaceAll('assertions[6]', 'assertionSix'),
   });
   assert.equal(result.approved, false);
   assert.ok(

@@ -1,0 +1,37 @@
+{
+  "schema": "app.journal.sifia.archive-crypto-portable-vector",
+  "schemaVersion": 1,
+  "source": {
+    "library": "libsodium",
+    "version": "1.0.22",
+    "sourceSha256": "adbdd8f16149e81ac6078a03aca6fc03b592b89ef7b5ed83841c086191be3349"
+  },
+  "vector": {
+    "id": "journal-archive-portable-v1",
+    "algorithm": "secretstream-xchacha20poly1305",
+    "kdf": "argon2id13",
+    "passwordUtf8": "synthetic-correct-recovery-code",
+    "opslimit": 2,
+    "memlimit": 67108864,
+    "saltHex": "000102030405060708090a0b0c0d0e0f",
+    "keyHex": "71ca27880bd58fc77fec42bbbaba42258ab3fd5c9367c490c15050380a8a397b",
+    "headerHex": "a0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5b6b7",
+    "plaintextChunksHex": [
+      "73796e746865746963206a6f75726e616c206172636869766520686561646572",
+      "73796e74686574696320656e74727920616e64206d65646961206279746573",
+      "73796e7468657469632066696e616c2061726368697665207265636f7264"
+    ],
+    "ciphertextChunksHex": [
+      "08e0cff804b63ad37feadc35d44b4c9aa8fe43cf1d3b36862285a1cf0b2e2345c7585cada67e3cbc0d2a592087ed0bb99d",
+      "a21181073b795c1a67ed1ec661f57f3e43e8a8c3352d9835dd1a007b38eb956387489e9b760f3ac09e25cf29e1de92ae",
+      "6cbe242c8df631374a27c4f32f60dcd873971fed1a674e869d2c3be45ddc19e32f8a3a7e766c9492367c6df585cdd4"
+    ],
+    "tags": [
+      "message",
+      "message",
+      "final"
+    ]
+  },
+  "digestEncoding": "sha256 of compact JSON.stringify(vector) UTF-8 bytes in stored property order",
+  "vectorSha256": "1c0177dbba76e3823eac4ed0e23b7cb44afcc9de8577a95e49c75e9f0ce72e14"
+}

@@ -41,6 +41,8 @@
     "security:journal-archive-crypto:android-shell:test": "node --test scripts/check-journal-archive-crypto-android-shell.test.cjs",
     "security:journal-archive-crypto:ios-shell": "node scripts/check-journal-archive-crypto-ios-shell.cjs",
     "security:journal-archive-crypto:ios-shell:test": "node --test scripts/check-journal-archive-crypto-ios-shell.test.cjs",
+    "security:journal-archive-crypto:portable-vectors": "node scripts/check-journal-archive-crypto-portable-vectors.cjs",
+    "security:journal-archive-crypto:portable-vectors:test": "node --test scripts/check-journal-archive-crypto-portable-vectors.test.cjs",
     "android": "react-native run-android",
     "ios": "react-native run-ios",
     "ios:release": "npx react-native run-ios --mode Release",

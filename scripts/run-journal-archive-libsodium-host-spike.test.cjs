@@ -6,7 +6,9 @@ const {
   LIBSODIUM_ARCHIVE_SHA256,
   LIBSODIUM_RELEASE_URL,
   LIBSODIUM_VERSION,
+  assertPortableVector,
   assertExpectedHash,
+  loadPortableVectorFixture,
   parseArguments,
   validateArchiveEntries,
 } = require('./run-journal-archive-libsodium-host-spike.cjs');
@@ -28,6 +30,24 @@ test('rejects a source archive with the wrong digest', () => {
   assert.throws(
     () => assertExpectedHash('0'.repeat(64)),
     /archive SHA-256 mismatch/,
+  );
+});
+
+test('locks portable vector v1 to its source metadata and canonical digest', () => {
+  const fixture = loadPortableVectorFixture();
+  assert.equal(fixture.vector.id, 'journal-archive-portable-v1');
+  assert.equal(
+    fixture.vectorSha256,
+    '1c0177dbba76e3823eac4ed0e23b7cb44afcc9de8577a95e49c75e9f0ce72e14',
+  );
+  assert.equal(assertPortableVector(fixture.vector), fixture.vectorSha256);
+  assert.throws(
+    () =>
+      assertPortableVector({
+        ...fixture.vector,
+        headerHex: `00${fixture.vector.headerHex.slice(2)}`,
+      }),
+    /differs from portable vector v1/,
   );
 });
 

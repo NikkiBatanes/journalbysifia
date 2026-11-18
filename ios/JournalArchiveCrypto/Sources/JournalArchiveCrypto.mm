@@ -6,12 +6,15 @@
 #include <TargetConditionals.h>
 #include <array>
 #include <cstddef>
+#include <cstring>
 #include <memory>
+#include <string_view>
 #include <vector>
 
 namespace {
 
 constexpr std::size_t kAssertionCount = 8;
+constexpr std::size_t kPortableAssertionCount = 8;
 constexpr std::size_t kChunkCount = 3;
 
 using Key = std::array<unsigned char, crypto_secretstream_xchacha20poly1305_KEYBYTES>;
@@ -30,6 +33,65 @@ const std::array<Bytes, kChunkCount> kPlaintextChunks = {
     Bytes{'a', 'r', 'c', 'h', 'i', 'v', 'e'},
     Bytes{'f', 'i', 'n', 'a', 'l'},
 };
+
+constexpr std::string_view kPortablePassword =
+    "synthetic-correct-recovery-code";
+constexpr std::string_view kPortableWrongPassword =
+    "synthetic-wrong-recovery-code";
+constexpr std::string_view kPortableSaltHex =
+    "000102030405060708090a0b0c0d0e0f";
+constexpr std::string_view kPortableKeyHex =
+    "71ca27880bd58fc77fec42bbbaba42258ab3fd5c9367c490c15050380a8a397b";
+constexpr std::string_view kPortableHeaderHex =
+    "a0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5b6b7";
+const std::array<std::string_view, kChunkCount> kPortablePlaintextHex = {
+    "73796e746865746963206a6f75726e616c206172636869766520686561646572",
+    "73796e74686574696320656e74727920616e64206d65646961206279746573",
+    "73796e7468657469632066696e616c2061726368697665207265636f7264",
+};
+const std::array<std::string_view, kChunkCount> kPortableCiphertextHex = {
+    "08e0cff804b63ad37feadc35d44b4c9aa8fe43cf1d3b36862285a1cf0b2e2345c7585cada67e3cbc0d2a592087ed0bb99d",
+    "a21181073b795c1a67ed1ec661f57f3e43e8a8c3352d9835dd1a007b38eb956387489e9b760f3ac09e25cf29e1de92ae",
+    "6cbe242c8df631374a27c4f32f60dcd873971fed1a674e869d2c3be45ddc19e32f8a3a7e766c9492367c6df585cdd4",
+};
+
+int HexNibble(char value) {
+  if (value >= '0' && value <= '9') {
+    return value - '0';
+  }
+  if (value >= 'a' && value <= 'f') {
+    return value - 'a' + 10;
+  }
+  return -1;
+}
+
+bool DecodeHex(std::string_view hex, Bytes& bytes) {
+  if (hex.size() % 2 != 0) {
+    return false;
+  }
+  bytes.resize(hex.size() / 2);
+  for (std::size_t index = 0; index < bytes.size(); ++index) {
+    const int high = HexNibble(hex[index * 2]);
+    const int low = HexNibble(hex[index * 2 + 1]);
+    if (high < 0 || low < 0) {
+      return false;
+    }
+    bytes[index] = static_cast<unsigned char>((high << 4) | low);
+  }
+  return true;
+}
+
+template <std::size_t Size>
+bool DecodeFixed(std::string_view hex, std::array<unsigned char, Size>& bytes) {
+  Bytes decoded;
+  if (!DecodeHex(hex, decoded) || decoded.size() != Size) {
+    sodium_memzero(decoded.data(), decoded.size());
+    return false;
+  }
+  std::memcpy(bytes.data(), decoded.data(), Size);
+  sodium_memzero(decoded.data(), decoded.size());
+  return true;
+}
 
 dispatch_queue_t JournalArchiveCryptoQueue() {
   static dispatch_queue_t queue;
@@ -51,29 +113,44 @@ NSString *CurrentArchitecture() {
 #endif
 }
 
-bool DeriveKey(const std::array<char, 21>& password, const Salt& salt, Key& key) {
+bool DeriveKey(
+    const char* password,
+    std::size_t passwordSize,
+    const Salt& salt,
+    Key& key) {
   return crypto_pwhash(
              key.data(),
              key.size(),
-             password.data(),
-             password.size(),
+             password,
+             passwordSize,
              salt.data(),
              crypto_pwhash_OPSLIMIT_INTERACTIVE,
              crypto_pwhash_MEMLIMIT_INTERACTIVE,
              crypto_pwhash_ALG_ARGON2ID13) == 0;
 }
 
-bool EncryptSyntheticStream(const Key& key, EncryptedStream& encrypted) {
+bool EncryptSyntheticStream(
+    const Key& key,
+    const std::array<Bytes, kChunkCount>& plaintextChunks,
+    EncryptedStream& encrypted,
+    const Header* fixedSyntheticHeader = nullptr) {
   crypto_secretstream_xchacha20poly1305_state state{};
-  if (crypto_secretstream_xchacha20poly1305_init_push(
-          &state, encrypted.header.data(), key.data()) != 0) {
+  const int initResult = fixedSyntheticHeader == nullptr
+      ? crypto_secretstream_xchacha20poly1305_init_push(
+            &state, encrypted.header.data(), key.data())
+      : ([&]() {
+          encrypted.header = *fixedSyntheticHeader;
+          return crypto_secretstream_xchacha20poly1305_init_pull(
+              &state, encrypted.header.data(), key.data());
+        })();
+  if (initResult != 0) {
     sodium_memzero(&state, sizeof state);
     return false;
   }
 
   bool passed = true;
   for (std::size_t index = 0; index < kChunkCount; ++index) {
-    const auto& plaintext = kPlaintextChunks[index];
+    const auto& plaintext = plaintextChunks[index];
     auto& ciphertext = encrypted.chunks[index];
     ciphertext.resize(
         plaintext.size() + crypto_secretstream_xchacha20poly1305_ABYTES);
@@ -103,6 +180,7 @@ bool DecryptStream(
     const Key& key,
     const EncryptedStream& encrypted,
     std::size_t chunkCount,
+    const std::array<Bytes, kChunkCount>& expectedPlaintext,
     bool comparePlaintext) {
   crypto_secretstream_xchacha20poly1305_state state{};
   if (crypto_secretstream_xchacha20poly1305_init_pull(
@@ -132,7 +210,7 @@ bool DecryptStream(
     } else {
       recovered.resize(static_cast<std::size_t>(recoveredLength));
       sawFinal = tag == crypto_secretstream_xchacha20poly1305_TAG_FINAL;
-      if (comparePlaintext && recovered != kPlaintextChunks[index]) {
+      if (comparePlaintext && recovered != expectedPlaintext[index]) {
         passed = false;
       }
       if (index + 1 < kChunkCount && sawFinal) {
@@ -190,12 +268,13 @@ std::array<bool, kAssertionCount> RunSyntheticAssertions() {
   Key wrongKey{};
   EncryptedStream encrypted{};
 
-  assertions[0] = DeriveKey(password, salt, key);
-  const bool wrongKeyDerived = DeriveKey(wrongPassword, salt, wrongKey);
+  assertions[0] = DeriveKey(password.data(), password.size(), salt, key);
+  const bool wrongKeyDerived =
+      DeriveKey(wrongPassword.data(), wrongPassword.size(), salt, wrongKey);
   const bool encryptedSuccessfully =
-      assertions[0] && EncryptSyntheticStream(key, encrypted);
-  assertions[1] =
-      encryptedSuccessfully && DecryptStream(key, encrypted, kChunkCount, true);
+      assertions[0] && EncryptSyntheticStream(key, kPlaintextChunks, encrypted);
+  assertions[1] = encryptedSuccessfully &&
+      DecryptStream(key, encrypted, kChunkCount, kPlaintextChunks, true);
   assertions[2] = encryptedSuccessfully && wrongKeyDerived &&
       PullMustFail(wrongKey, encrypted.header, encrypted.chunks[0]);
 
@@ -211,7 +290,8 @@ std::array<bool, kAssertionCount> RunSyntheticAssertions() {
     sodium_memzero(truncated.data(), truncated.size());
 
     assertions[5] = PullMustFail(key, encrypted.header, encrypted.chunks[1]);
-    assertions[6] = !DecryptStream(key, encrypted, kChunkCount - 1, true);
+    assertions[6] =
+        !DecryptStream(key, encrypted, kChunkCount - 1, kPlaintextChunks, true);
   }
 
   sodium_memzero(key.data(), key.size());
@@ -234,6 +314,90 @@ std::array<bool, kAssertionCount> RunSyntheticAssertions() {
   };
   assertions[7] = allZero(key) && allZero(wrongKey) && allZero(password) &&
       allZero(wrongPassword) && allZero(salt) && allZero(encrypted.header);
+  return assertions;
+}
+
+std::array<bool, kPortableAssertionCount> RunPortableVectorAssertions() {
+  std::array<bool, kPortableAssertionCount> assertions{};
+  if (sodium_init() < 0 || crypto_pwhash_OPSLIMIT_INTERACTIVE != 2 ||
+      crypto_pwhash_MEMLIMIT_INTERACTIVE != 67108864) {
+    return assertions;
+  }
+
+  Salt salt{};
+  Key key{};
+  Key expectedKey{};
+  Key wrongKey{};
+  Header header{};
+  std::array<Bytes, kChunkCount> plaintext{};
+  std::array<Bytes, kChunkCount> expectedCiphertext{};
+  EncryptedStream emitted{};
+  EncryptedStream expected{};
+
+  bool decoded = DecodeFixed(kPortableSaltHex, salt) &&
+      DecodeFixed(kPortableKeyHex, expectedKey) &&
+      DecodeFixed(kPortableHeaderHex, header);
+  for (std::size_t index = 0; index < kChunkCount; ++index) {
+    decoded = decoded && DecodeHex(kPortablePlaintextHex[index], plaintext[index]) &&
+        DecodeHex(kPortableCiphertextHex[index], expectedCiphertext[index]);
+    expected.chunks[index] = expectedCiphertext[index];
+  }
+  expected.header = header;
+
+  const bool keyDerived = decoded && DeriveKey(
+      kPortablePassword.data(), kPortablePassword.size(), salt, key);
+  assertions[0] = keyDerived && sodium_memcmp(
+      key.data(), expectedKey.data(), key.size()) == 0;
+  const bool emittedSuccessfully = assertions[0] && EncryptSyntheticStream(
+      key, plaintext, emitted, &header);
+  assertions[1] = emittedSuccessfully && emitted.header == header &&
+      emitted.chunks == expectedCiphertext;
+  assertions[2] = assertions[1] &&
+      DecryptStream(key, expected, kChunkCount, plaintext, true);
+
+  const bool wrongKeyDerived = decoded && DeriveKey(
+      kPortableWrongPassword.data(), kPortableWrongPassword.size(), salt, wrongKey);
+  assertions[3] = wrongKeyDerived &&
+      PullMustFail(wrongKey, header, expectedCiphertext[0]);
+
+  if (decoded) {
+    Bytes tampered = expectedCiphertext[0];
+    tampered[tampered.size() / 2] ^= 0x01;
+    Bytes truncated = expectedCiphertext[0];
+    truncated.pop_back();
+    assertions[4] = PullMustFail(key, header, tampered) &&
+        PullMustFail(key, header, truncated);
+    assertions[5] = PullMustFail(key, header, expectedCiphertext[1]);
+    assertions[6] = !DecryptStream(
+        key, expected, kChunkCount - 1, plaintext, true);
+    sodium_memzero(tampered.data(), tampered.size());
+    sodium_memzero(truncated.data(), truncated.size());
+  }
+
+  sodium_memzero(key.data(), key.size());
+  sodium_memzero(expectedKey.data(), expectedKey.size());
+  sodium_memzero(wrongKey.data(), wrongKey.size());
+  sodium_memzero(salt.data(), salt.size());
+  sodium_memzero(header.data(), header.size());
+  sodium_memzero(emitted.header.data(), emitted.header.size());
+  sodium_memzero(expected.header.data(), expected.header.size());
+  for (std::size_t index = 0; index < kChunkCount; ++index) {
+    sodium_memzero(plaintext[index].data(), plaintext[index].size());
+    sodium_memzero(expectedCiphertext[index].data(), expectedCiphertext[index].size());
+    sodium_memzero(emitted.chunks[index].data(), emitted.chunks[index].size());
+    sodium_memzero(expected.chunks[index].data(), expected.chunks[index].size());
+  }
+  const auto allZero = [](const auto& buffer) {
+    for (const auto value : buffer) {
+      if (value != 0) {
+        return false;
+      }
+    }
+    return true;
+  };
+  assertions[7] = allZero(key) && allZero(expectedKey) && allZero(wrongKey) &&
+      allZero(salt) && allZero(header) && allZero(emitted.header) &&
+      allZero(expected.header);
   return assertions;
 }
 
@@ -278,6 +442,26 @@ RCT_EXPORT_MODULE(JournalArchiveCrypto)
       @"wrongPasswordRejected" : @(assertions[2]),
       @"tamperRejected" : @(assertions[3]),
       @"truncationRejected" : @(assertions[4]),
+      @"reorderingRejected" : @(assertions[5]),
+      @"finalTagRequired" : @(assertions[6]),
+      @"sensitiveBuffersCleared" : @(assertions[7]),
+      @"plaintextFileWritten" : @NO,
+    });
+  });
+}
+
+- (void)runPortableVectorSelfTest:(RCTPromiseResolveBlock)resolve
+                             reject:(RCTPromiseRejectBlock)reject {
+  dispatch_async(JournalArchiveCryptoQueue(), ^{
+    const auto assertions = RunPortableVectorAssertions();
+    resolve(@{
+      @"vectorId" : @"journal-archive-portable-v1",
+      @"vectorSha256" : @"1c0177dbba76e3823eac4ed0e23b7cb44afcc9de8577a95e49c75e9f0ce72e14",
+      @"derivedKeyMatches" : @(assertions[0]),
+      @"ciphertextMatches" : @(assertions[1]),
+      @"decryptMatches" : @(assertions[2]),
+      @"wrongPasswordRejected" : @(assertions[3]),
+      @"tamperAndTruncationRejected" : @(assertions[4]),
       @"reorderingRejected" : @(assertions[5]),
       @"finalTagRequired" : @(assertions[6]),
       @"sensitiveBuffersCleared" : @(assertions[7]),
