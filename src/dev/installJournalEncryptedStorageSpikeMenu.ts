@@ -1,7 +1,10 @@
 import {Alert, DevSettings, Platform} from 'react-native';
+import {open} from '@op-engineering/op-sqlite';
+import {verifyRestoreReopen} from './journalRestoreReopenProbe';
 
 import {
   armJournalEncryptedStorageInterruptionProbe,
+  generateSpikeEncryptionKey,
   runJournalEncryptedStorageSpike,
   verifyJournalEncryptedStorageInterruptionRecovery,
 } from '../services/journalEncryptedStorageSpike';
@@ -18,6 +21,29 @@ export const installJournalEncryptedStorageSpikeMenu = (): void => {
   }
 
   installed = true;
+
+  let restoreProbeRunning = false;
+  DevSettings.addMenuItem('Verify Journal restore on reopen', async () => {
+    if (restoreProbeRunning) {
+      return;
+    }
+    restoreProbeRunning = true;
+    try {
+      const encryptionKey = generateSpikeEncryptionKey();
+      const options = {name: `journal-restore-probe-${Date.now()}.sqlite`, encryptionKey};
+      try {
+        await verifyRestoreReopen(() => open(options));
+      } finally {
+        open(options).delete();
+      }
+      Alert.alert('Journal restore on reopen passed');
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : 'Unknown error';
+      Alert.alert('Journal restore on reopen failed', detail.replace(/[0-9a-f]{64}/gi, '[redacted]'));
+    } finally {
+      restoreProbeRunning = false;
+    }
+  });
 
   if (Platform.OS === 'android' || Platform.OS === 'ios') {
     const nativePlatform = Platform.OS;
