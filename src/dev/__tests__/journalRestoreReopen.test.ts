@@ -2,32 +2,11 @@ import {mkdtempSync, rmdirSync, unlinkSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 
-import {openRestoreSession, type RestoreDatabase} from '../journalRestoreDatabase';
+import {openRestoreSession} from '../journalRestoreDatabase';
 import {armRestoreInterruption, verifyRecoveredRestore, verifyRestoreReopen} from '../journalRestoreReopenProbe';
 import {JOURNAL_RESTORE_RECOVERY_MARKER_KEY} from '../../services/journalBackupRestoreExecutor';
 
-const {DatabaseSync} = process.getBuiltinModule('node:sqlite') as typeof import('node:sqlite');
-
-function connect(file: string) {
-  const db = new DatabaseSync(file);
-  const execute: RestoreDatabase['execute'] = async (sql, params = []) => ({
-    rows: db.prepare(sql).all(...params),
-  });
-  return {
-    execute,
-    async transaction(work: Parameters<RestoreDatabase['transaction']>[0]) {
-      db.exec('BEGIN');
-      try {
-        await work({execute});
-        db.exec('COMMIT');
-      } catch (error) {
-        db.exec('ROLLBACK');
-        throw error;
-      }
-    },
-    close: () => db.close(),
-  };
-}
+import {connect} from './restoreTestDatabase';
 
 it('recovers the original value on a fresh connection to the same file', async () => {
   const dir = mkdtempSync(join(tmpdir(), 'journal-restore-test-'));
