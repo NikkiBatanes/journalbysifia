@@ -59,6 +59,19 @@ It still performs no mutation. A later executor must stage a rollback snapshot
 and recovery marker, enforce resource limits, and survive interruption before
 this can be called a restore feature.
 
+The 2026-11-18 transactional executor checkpoint now implements that mutation
+boundary in `journalBackupRestoreExecutor.ts`. It remains storage-agnostic and
+is not wired to AsyncStorage or a customer-facing restore control. It accepts
+only the canonical reviewed ownership policy and runs through an exclusive
+mutation coordinator that future journal writers must share. Before replacing
+owned keys, it persists a bounded rollback snapshot and recovery marker; it
+then applies the reviewed plan, verifies every restored value and the complete
+owned key set, and removes recovery evidence only after verification succeeds.
+Failures restore the exact prior owned state. If rollback itself cannot finish,
+the evidence remains for explicit startup recovery. A reviewed production
+storage adapter, startup recovery wiring, and clean-device app testing remain
+required before restore can be enabled for users.
+
 `journalBackupArchiveContract.ts` now defines the next pure boundary: a
 versioned portable manifest that is valid only as authenticated plaintext
 inside the future encrypted stream. It caps manifest/container/asset bytes,
@@ -72,9 +85,10 @@ not replace AEAD authentication and do not create a plaintext archive.
 
 The current app primarily stores journal state in AsyncStorage. That means a
 multi-key save or restore is not a database transaction. The current restore
-policy correctly requires a staged rollback snapshot and recovery marker, but
-the launch implementation should move durable records to an encrypted
-transactional store rather than treating that workaround as the final design.
+executor correctly stages a rollback snapshot and recovery marker around this
+compatibility boundary, but the launch implementation should move durable
+records to an encrypted transactional store rather than treating that
+compatibility mechanism as the final design.
 
 Media has two different risk profiles:
 
