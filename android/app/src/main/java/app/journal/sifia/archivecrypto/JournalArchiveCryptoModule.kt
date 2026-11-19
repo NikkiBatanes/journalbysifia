@@ -110,9 +110,15 @@ class JournalArchiveCryptoModule(reactContext: ReactApplicationContext) :
   override fun chooseSampleBackupFile(exporting: Boolean, recoveryCode: String, promise: Promise) =
     pickSample(exporting, recoveryCode, -1, promise)
 
-  private external fun nativeInspectPickerPhoto(directory: String, name: String, remaining: Long): Long
+  private external fun nativeInspectPickerPhoto(directory: String, name: String, remaining: Long, describe: Boolean): String
 
-  override fun inspectLocalPickerPhoto(uri: String, remainingBytes: Double, promise: Promise) {
+  override fun inspectLocalPickerPhoto(uri: String, remainingBytes: Double, promise: Promise) =
+    checkPickerPhoto(uri, remainingBytes, false, promise)
+
+  override fun describeLocalPickerPhoto(uri: String, remainingBytes: Double, promise: Promise) =
+    checkPickerPhoto(uri, remainingBytes, true, promise)
+
+  private fun checkPickerPhoto(uri: String, remainingBytes: Double, describe: Boolean, promise: Promise) {
     cryptoExecutor.execute {
       try {
         check(app.journal.sifia.BuildConfig.DEBUG)
@@ -120,9 +126,9 @@ class JournalArchiveCryptoModule(reactContext: ReactApplicationContext) :
         val base = android.net.Uri.fromFile(directory).toString().trimEnd('/') + "/"
         val result = if (uri.startsWith(base) && uri.length - base.length in 1..80 &&
           remainingBytes in 0.0..5_000_000_000.0) {
-          nativeInspectPickerPhoto(directory.absolutePath, uri.substring(base.length), remainingBytes.toLong())
-        } else -2L
-        promise.resolve(result.toDouble())
+          nativeInspectPickerPhoto(directory.absolutePath, uri.substring(base.length), remainingBytes.toLong(), describe)
+        } else "-2"
+        if (describe) promise.resolve(result) else promise.resolve(result.toDouble())
       } catch (_: Exception) {
         promise.reject("PHOTO_CHECK_FAILED", "Could not check the local image.")
       }

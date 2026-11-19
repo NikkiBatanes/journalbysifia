@@ -162,3 +162,11 @@ it('rejects unsupported archive versions without migration guessing', () => {
   expect(result.valid).toBe(false);
   expect(result.fatal.map(entry => entry.code)).toContain('unsupported_archive_version');
 });
+
+it('allows shared integrity metadata and rejects a cycle before serialization', () => {
+  const manifest = makeManifest();
+  manifest.backup.integrity = manifest.backup.inventory.integrity;
+  expect(validateJournalBackupArchiveManifest(manifest).valid).toBe(true);
+  Object.assign(manifest.backup.integrity, {cycle: manifest});
+  expect(validateJournalBackupArchiveManifest(manifest).fatal.map(issue => issue.code)).toContain('cyclic_manifest');
+});

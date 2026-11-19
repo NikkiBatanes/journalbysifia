@@ -2,6 +2,7 @@ import React, {useEffect, useRef, useState} from 'react';
 import {Platform, Pressable, StyleSheet, Text, TextInput, View} from 'react-native';
 import 'react-native-get-random-values';
 import {createJournalBackup, validateJournalBackup} from '../services/journalBackupContract';
+import {prepareJournalPhotoManifest} from './prepareJournalPhotoManifest';
 import {inspectJournalPhotoReferences} from './inspectJournalPhotoReferences';
 import {planInventorySample} from './journalStagedBackup';
 import type {SampleRevision} from './journalSharedPhotoTransferProbe';
@@ -117,7 +118,7 @@ export default function SampleLocalBackup() {
       setMessage('Journal could not generate a recovery code. Try again.');
     }
   }
-  async function checkLocalJournal() {
+  async function checkLocalJournal(preparePhotos = false) {
     if (running.current) {return;}
     running.current = true;
     setBusy(true);
@@ -126,13 +127,23 @@ export default function SampleLocalBackup() {
       const backup = await createJournalBackup();
       const result = validateJournalBackup(backup);
       if (!result.valid) {throw new Error('Local backup validation failed');}
+      if (preparePhotos) {
+        const manifest = await prepareJournalPhotoManifest(backup, (uri, remaining) =>
+          nativeArchive().describeLocalPickerPhoto(uri, remaining));
+        if (mounted.current) {
+          setMessage(`Checked photo links for export. Distinct photos: ${manifest.totals.assets}, ${manifest.totals.assetBytes} bytes. No backup file was saved.`);
+        }
+        return;
+      }
       const photos = await inspectJournalPhotoReferences(backup.inventory, (uri, remaining) =>
         nativeArchive().inspectLocalPickerPhoto(uri, remaining));
       if (mounted.current) {
         setMessage(`Local journal, reflection and prayer entries: ${photos.entries}. Photo references in their journal blocks: ${photos.references}. Readable photo files: ${photos.readable}. Missing: ${photos.missing}. Unsupported: ${photos.unsupported}. Unreadable: ${photos.unreadable}. Over size limit: ${photos.overLimit}. Validation warnings: ${result.warnings.length}.`);
       }
     } catch {
-      if (mounted.current) {setMessage('Could not verify a complete local journal snapshot. Try again after saving your edits.');}
+      if (mounted.current) {setMessage(preparePhotos
+        ? 'Could not prepare photo links for export. Check local journal counts for missing or unsupported photos.'
+        : 'Could not verify a complete local journal snapshot. Try again after saving your edits.');}
     } finally {
       running.current = false;
       if (mounted.current) {setBusy(false);}
@@ -278,7 +289,8 @@ export default function SampleLocalBackup() {
         {button('Save sample backup', () => start('export'), busy)}
         {button('Save a custom sample', () => start('inventory'), busy)}
         {button('Restore sample backup', () => start('restore'), busy)}
-        {button(busy ? 'Checking…' : 'Check local journal counts', checkLocalJournal, busy)}
+        {button(busy ? 'Checking…' : 'Check local journal counts', () => checkLocalJournal(), busy)}
+        {button('Check photo links for export', () => checkLocalJournal(true), busy)}
       </>}
       {exporting && <>
         {mode === 'inventory' && <>

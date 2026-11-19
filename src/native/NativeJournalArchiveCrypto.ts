@@ -69,6 +69,7 @@ export type JournalArchiveCryptoMediaPackagingEvidence = {
 };
 
 export interface Spec extends TurboModule {
+  describeLocalPickerPhoto(uri: string, remainingBytes: number): Promise<string>;
   inspectLocalPickerPhoto(uri: string, remainingBytes: number): Promise<number>;
   interruptSyntheticPhoto(afterPublication: boolean): Promise<void>;
   checkSyntheticPhotoInterruption(afterPublication: boolean): Promise<boolean>;

@@ -22,6 +22,16 @@ int main(int argc, char **argv) {
     assert(check(jpg, bytes.size()-1) == journal_picker::tooLarge);
     assert(check("../" + jpg) == journal_picker::unsupported);
     assert(check(stem + ".heic") == journal_picker::unsupported);
+    // Replace the directory entry while the original file descriptor is open.
+    bool replaced = false;
+    auto result = journal_picker::capture(dir, jpg, prefix, bytes.size(), [&](const unsigned char *, size_t) {
+      if (replaced) return;
+      replaced = true;
+      auto replacement = path.string() + ".replacement";
+      std::ofstream(replacement, std::ios::binary).write(bytes.data(), bytes.size());
+      std::filesystem::rename(replacement, path);
+    });
+    assert(replaced && result == journal_picker::unreadable);
     auto pngPath = std::filesystem::path(dir) / png;
     std::filesystem::create_symlink(path, pngPath);
     assert(check(png) == journal_picker::unreadable);

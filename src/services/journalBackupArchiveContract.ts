@@ -119,7 +119,7 @@ const inspectStructure = (
   value: unknown,
   fatal: JournalBackupValidationIssue[],
 ): void => {
-  const seen = new WeakSet<object>();
+  const ancestors = new WeakSet<object>();
   let nodes = 0;
   const visit = (current: unknown, path: string, depth: number) => {
     nodes += 1;
@@ -140,13 +140,14 @@ const inspectStructure = (
       return;
     }
     if (!current || typeof current !== 'object') {return;}
-    if (seen.has(current)) {
+    if (ancestors.has(current)) {
       fatal.push(issue('fatal', 'cyclic_manifest', path, 'Archive manifest must be JSON-serializable and acyclic.'));
       return;
     }
-    seen.add(current);
+    ancestors.add(current);
     if (Array.isArray(current)) {
       current.forEach((child, index) => visit(child, `${path}[${index}]`, depth + 1));
+      ancestors.delete(current);
       return;
     }
     Object.keys(current).forEach(key => {
@@ -158,6 +159,7 @@ const inspectStructure = (
       }
       visit((current as Record<string, unknown>)[key], `${path}.${key}`, depth + 1);
     });
+    ancestors.delete(current);
   };
   visit(value, '$', 0);
 };
@@ -206,7 +208,7 @@ export const validateJournalBackupArchiveManifest = (
   const fatal: JournalBackupValidationIssue[] = [];
   const warnings: JournalBackupValidationIssue[] = [];
   inspectStructure(candidate, fatal);
-  const manifestBytes = safeManifestBytes(candidate, fatal);
+  const manifestBytes = fatal.length ? null : safeManifestBytes(candidate, fatal);
   if (manifestBytes !== null && manifestBytes > JOURNAL_BACKUP_ARCHIVE_LIMITS.maxManifestBytes) {
     fatal.push(issue('fatal', 'manifest_too_large', '$', 'Archive manifest exceeds the maximum byte length.'));
   }
@@ -273,9 +275,10 @@ export const validateJournalBackupArchiveManifest = (
     } else if (assetPaths.has(asset.path)) {
       fatal.push(issue('fatal', 'duplicate_asset_path', `${path}.path`, 'Asset path must be unique.'));
     } else {assetPaths.add(asset.path);}
-    if (asset.kind !== 'image' && asset.kind !== 'audio') {
+    const kind: unknown = asset.kind;
+    if (kind !== 'image' && kind !== 'audio') {
       fatal.push(issue('fatal', 'unsupported_asset_kind', `${path}.kind`, 'Only image and audio assets are supported in archive V1.'));
-    } else if (typeof asset.mediaType !== 'string' || !MEDIA_TYPES[asset.kind].has(asset.mediaType)) {
+    } else if (typeof asset.mediaType !== 'string' || !MEDIA_TYPES[kind].has(asset.mediaType)) {
       fatal.push(issue('fatal', 'unsupported_media_type', `${path}.mediaType`, 'Asset media type is not allowlisted for its kind.'));
     }
     if (!Number.isSafeInteger(asset.byteLength) || asset.byteLength < 0 || asset.byteLength > JOURNAL_BACKUP_ARCHIVE_LIMITS.maxAssetBytes) {

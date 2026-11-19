@@ -2,12 +2,14 @@ import React from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {fireEvent, render, screen, waitFor} from '@testing-library/react-native';
 import SampleLocalBackup from '../SampleLocalBackup';
-import {JOURNAL_BACKUP_RESTORE_POLICY} from '../../services/journalBackupContract';
+import {prepareJournalPhotoManifest} from '../prepareJournalPhotoManifest';
+import {createJournalBackup, JOURNAL_BACKUP_RESTORE_POLICY} from '../../services/journalBackupContract';
 import {planInventorySample} from '../journalStagedBackup';
 import archive from '../../native/NativeJournalArchiveCrypto';
 import {beginSampleComparison, restoreSharedPhotoTransfer} from '../journalSharedPhotoTransferProbe';
 
-jest.mock('../../native/NativeJournalArchiveCrypto', () => ({__esModule: true, default: {inspectLocalPickerPhoto: jest.fn(), saveInventorySample: jest.fn(), chooseSampleBackupFile: jest.fn(), finishSampleRestorePreview: jest.fn()}}));
+jest.mock('uuid', () => ({v4: require('node:crypto').randomUUID}));
+jest.mock('../../native/NativeJournalArchiveCrypto', () => ({__esModule: true, default: {describeLocalPickerPhoto: jest.fn(), inspectLocalPickerPhoto: jest.fn(), saveInventorySample: jest.fn(), chooseSampleBackupFile: jest.fn(), finishSampleRestorePreview: jest.fn()}}));
 jest.mock('../journalSharedPhotoTransferProbe', () => ({restoreSharedPhotoTransfer: jest.fn(), beginSampleComparison: jest.fn()}));
 jest.mock('../journalStagedBackup', () => ({planInventorySample: jest.fn()}));
 jest.mock('../../theme/ThemeContext', () => ({useTheme: () => ({colors: {text: 'black'}})}));
@@ -258,4 +260,35 @@ it('checks on-device counts only on request and keeps journal text and photo pat
   fireEvent.press(screen.getByText('Check local journal counts'));
   expect(await screen.findByText(/Could not verify a complete local journal snapshot/)).toBeOnTheScreen();
   expect(screen.queryByText(/private writing|private-photo|Photo references in/)).toBeNull();
+});
+
+
+it('fingerprints a shared photo once and reports when it disappears', async () => {
+  const uri = 'file:///test/51ebc779-2f01-45ca-ac72-906f4ea014a0.png';
+  const records: [string, string][] = ['r1', 'r2'].map(id => [
+    'reflection_local:free:2026-09-17:' + id, JSON.stringify({id, type: 'free', selected_date: '2026-09-17',
+      created_at: '2026-09-17T12:00:00Z', updated_at: '2026-09-17T12:00:00Z', content: 'private writing',
+      metadata: {journalBlocks: [{id: 'picture', kind: 'photo', uri}]}}),
+  ]);
+  jest.mocked(AsyncStorage.getAllKeys).mockResolvedValue(records.map(([key]) => key));
+  jest.mocked(AsyncStorage.multiGet).mockResolvedValue(records);
+  jest.mocked(archive.describeLocalPickerPhoto).mockResolvedValue('15:' + 'a'.repeat(64));
+  render(<SampleLocalBackup />);
+  fireEvent.press(screen.getByText('Check photo links for export'));
+  expect(await screen.findByText(/Distinct photos: 1, 15 bytes/)).toBeOnTheScreen();
+  expect(archive.describeLocalPickerPhoto).toHaveBeenCalledTimes(1);
+  const original = await createJournalBackup();
+  const manifest = await prepareJournalPhotoManifest(original, archive.describeLocalPickerPhoto);
+  const [asset] = manifest.assets;
+  expect(asset).toMatchObject({mediaType: 'image/png', byteLength: 15, sha256: 'a'.repeat(64), ownerRecordId: 'r1'});
+  for (const entry of manifest.backup.inventory.reflectionRecords) {
+    expect(entry.metadata?.journalBlocks).toEqual([{id: 'picture', kind: 'photo', uri: asset.path}]);
+  }
+  expect(JSON.stringify(manifest)).not.toContain(uri);
+  expect(original.inventory.reflectionRecords[0].metadata?.journalBlocks).toEqual([{id: 'picture', kind: 'photo', uri}]);
+  jest.mocked(archive.describeLocalPickerPhoto).mockResolvedValue('-1');
+  fireEvent.press(screen.getByText('Check photo links for export'));
+  expect(await screen.findByText(/Could not prepare photo links/)).toBeOnTheScreen();
+  expect(screen.queryByText(/private writing|51ebc779/)).toBeNull();
+  expect(archive.saveInventorySample).not.toHaveBeenCalled();
 });

@@ -1,6 +1,7 @@
 // Bounded development fixture for transferring practice entries and images.
 #pragma once
 #include "SyntheticFilePhoto.hpp"
+#include "PickerPhoto.hpp"
 #include <mutex>
 
 namespace journal_shared_transfer {
@@ -302,24 +303,64 @@ inline SampleRestorePreviews &samplePreviews() {
   return previews;
 }
 
-// Files can export generated journals of different sizes without reading device data.
-inline std::string exportInventory(const std::string &path, const char *code, int entryCount) {
+// This directory holds only generated test images. The picker capture path and
+// the bytes-to-manifest binding are exercised before publishing to Files.
+struct PracticePickerFiles {
+  std::string directory;
+  std::vector<std::string> files;
+  explicit PracticePickerFiles(const std::string &target) {
+    const auto slash = target.find_last_of('/');
+    directory = target.substr(0, slash == std::string::npos ? 0 : slash + 1) + ".journal-sample-XXXXXX";
+    require(mkdtemp(directory.data()) != nullptr);
+  }
+  PracticePickerFiles(const PracticePickerFiles &) = delete;
+  ~PracticePickerFiles() {
+    for (const auto &file : files) unlink(file.c_str());
+    rmdir(directory.c_str());
+  }
+  void put(const std::string &name, const std::string &bytes) {
+    files.push_back(directory + "/" + name);
+    journal_attachment::Descriptor file(open(files.back().c_str(), O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW, 0600));
+    size_t offset = 0;
+    while (offset < bytes.size()) {
+      const auto n = write(file.fd, bytes.data() + offset, bytes.size() - offset);
+      if (n < 0 && errno == EINTR) continue;
+      require(n > 0);
+      offset += static_cast<size_t>(n);
+    }
+  }
+};
+
+struct PickerAsset {
+  std::string id, name, expectedHash;
+};
+
+inline std::string exportPickerInventory(const std::string &path, const char *code, int entryCount,
+                                         const std::string &directory, std::string_view prefix,
+                                         const std::vector<PickerAsset> &sources) {
   require(entryCount >= 0 && entryCount <= 300);
+  require(entryCount < 2 ? sources.empty() : !sources.empty() && sources.front().id == sharedId);
+  require(sources.size() <= 64);
+  std::set<std::string> ids;
   const auto token = journal_fixture::freshToken();
   std::string assetList, ownerBlocks, frames;
   size_t photoCount = 0, photoBytes = 0;
-  if (entryCount >= 2) {
-    const Images images{photos::png(false), photos::png(true)};
-    for (const auto &photo : samplePhotos(images, SampleVersion::photoAdded)) {
-      if (photoCount) { assetList += ","; ownerBlocks += ","; }
-      assetList += assetJson(photo.assetId, photo.bytes);
-      ownerBlocks += photoBlock(photo.assetId);
-      frames += photo.assetId;
-      photos::append32(frames, photo.bytes.size());
-      frames += photo.bytes;
-      photoBytes += photo.bytes.size();
-      ++photoCount;
-    }
+  for (const auto &photo : sources) {
+    require(journal_picker::uuid(photo.id) && photo.id.find_first_of("ABCDEF") == std::string::npos);
+    require(ids.insert(photo.id).second && photo.name == std::string(prefix) + photo.id + ".png");
+    std::string captured;
+    const auto remaining = 2 * maxImage + sizeof(journal_fixture::photo) - photoBytes;
+    const auto length = journal_picker::capture(directory.c_str(), photo.name, prefix, std::min(maxImage, remaining),
+      [&](const unsigned char *data, size_t size) { captured.append(reinterpret_cast<const char *>(data), size); });
+    require(length > 0 && digest(captured) == photo.expectedHash);
+    if (photoCount) { assetList += ","; ownerBlocks += ","; }
+    assetList += assetJson(photo.id, captured);
+    ownerBlocks += photoBlock(photo.id);
+    frames += photo.id;
+    photos::append32(frames, captured.size());
+    frames += captured;
+    photoBytes += captured.size();
+    ++photoCount;
   }
   std::string entries, locations;
   for (int i = 0; i < entryCount; ++i) {
@@ -336,6 +377,25 @@ inline std::string exportInventory(const std::string &path, const char *code, in
   payload += frames;
   journal_fixture::writeArchive(path, journal_fixture::encrypt(payload, code));
   return token;
+}
+
+inline std::string exportInventory(const std::string &path, const char *code, int entryCount) {
+  require(entryCount >= 0 && entryCount <= 300);
+  if (entryCount < 2) return exportPickerInventory(path, code, entryCount, "", "", {});
+#ifdef __ANDROID__
+  const std::string prefix = "rn_image_picker_lib_temp_";
+#else
+  const std::string prefix;
+#endif
+  PracticePickerFiles inputs(path);
+  std::vector<PickerAsset> sources;
+  const Images images{photos::png(false), photos::png(true)};
+  for (const auto &photo : samplePhotos(images, SampleVersion::photoAdded)) {
+    const auto name = prefix + photo.assetId + ".png";
+    inputs.put(name, photo.bytes);
+    sources.push_back({photo.assetId, name, digest(photo.bytes)});
+  }
+  return exportPickerInventory(path, code, entryCount, inputs.directory, prefix, sources);
 }
 
 inline std::string sampleDocument(const std::string &path, const char *code, bool exporting, int inventoryEntries = -1) {

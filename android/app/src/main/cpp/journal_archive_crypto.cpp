@@ -1,4 +1,4 @@
-#include "../../../../../native/journal-archive/PickerPhoto.hpp"
+#include "../../../../../native/journal-archive/PickerPhotoDigest.hpp"
 #include "../../../../../native/journal-archive/SyntheticSharedTransfer.hpp"
 #include "../../../../../native/journal-archive/SyntheticFilePhoto.hpp"
 #include <jni.h>
@@ -592,17 +592,18 @@ Java_app_journal_sifia_archivecrypto_JournalArchiveCryptoModule_nativeVerifyTran
   }
 }
 
-extern "C" JNIEXPORT jlong JNICALL
+extern "C" JNIEXPORT jstring JNICALL
 Java_app_journal_sifia_archivecrypto_JournalArchiveCryptoModule_nativeInspectPickerPhoto(
-    JNIEnv *env, jobject, jstring directory, jstring name, jlong remaining) {
+    JNIEnv *env, jobject, jstring directory, jstring name, jlong remaining, jboolean describe) {
   const char *dir = env->GetStringUTFChars(directory, nullptr);
-  if (!dir) return journal_picker::unreadable;
+  if (!dir) return nullptr;
   const char *leaf = env->GetStringUTFChars(name, nullptr);
-  auto result = journal_picker::unreadable;
+  std::string result = "-3";
   if (leaf) {
-    result = journal_picker::inspect(dir, leaf, "rn_image_picker_lib_temp_", remaining);
+    result = describe ? journal_picker::fingerprint(dir, leaf, "rn_image_picker_lib_temp_", remaining)
+                      : std::to_string(journal_picker::inspect(dir, leaf, "rn_image_picker_lib_temp_", remaining));
     env->ReleaseStringUTFChars(name, leaf);
   }
   env->ReleaseStringUTFChars(directory, dir);
-  return result;
+  return env->ExceptionCheck() ? nullptr : env->NewStringUTF(result.c_str());
 }

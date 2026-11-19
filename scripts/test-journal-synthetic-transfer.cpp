@@ -1,6 +1,7 @@
 // Build against the same libsodium used by the mobile diagnostic.
 #include "../native/journal-archive/SyntheticTransfer.hpp"
 #include "../native/journal-archive/SyntheticSharedTransfer.hpp"
+#include "../native/journal-archive/PickerPhotoDigest.hpp"
 #include <csignal>
 #include <filesystem>
 #include <fstream>
@@ -57,6 +58,36 @@ void checkTransfer(const std::filesystem::path &root) {
   expectRejection([&] { fixture::importFixture(destination.string()); });
   std::filesystem::create_symlink(linkTarget, received);
   expectRejection([&] { fixture::importFixture(destination.string()); });
+}
+
+void checkCapturedPhotoExport(const std::filesystem::path &root) {
+  namespace transfer = journal_shared_transfer;
+  const auto path = (root / "captured.bin").string();
+  const auto code = fixture::freshToken();
+  transfer::PracticePickerFiles inputs(path);
+  const auto name = std::string(transfer::sharedId) + ".png";
+  const auto &image = transfer::fixturePhoto();
+  inputs.put(name, image);
+  const auto descriptor = journal_picker::fingerprint(inputs.directory.c_str(), name, "", image.size());
+  fixture::require(descriptor == std::to_string(image.size()) + ":" + transfer::digest(image));
+  const auto expectedHash = descriptor.substr(descriptor.find(':') + 1);
+  const std::vector<transfer::PickerAsset> assets{{transfer::sharedId, name, expectedHash}};
+  auto save = [&] { transfer::exportPickerInventory(path, code.c_str(), 2, inputs.directory, "", assets); };
+  save();
+  const auto sealed = transfer::readSample(path);
+  const auto result = transfer::inspect(sealed, code.c_str());
+  fixture::require(result.inventoryPhotos.size() == 1 && result.inventoryPhotos[0].first == transfer::sharedId);
+  fixture::require(result.inventoryPhotos[0].second == image);
+  fixture::require(result.document.find(transfer::assetJson(transfer::sharedId, image)) != std::string::npos);
+  auto changed = image;
+  changed.back() ^= 1;
+  const auto source = std::filesystem::path(inputs.directory) / name;
+  std::ofstream(source, std::ios::binary).write(changed.data(), changed.size());
+  expectRejection(save);
+  fixture::require(transfer::readSample(path) == sealed);
+  std::filesystem::remove(source);
+  expectRejection(save);
+  fixture::require(transfer::readSample(path) == sealed);
 }
 
 void checkSampleDocument(const std::filesystem::path &root) {
@@ -270,6 +301,7 @@ int main(int argc, char **argv) {
   try {
     checkTransfer(temp);
     checkSharedPhotoCleanup(temp);
+    checkCapturedPhotoExport(temp);
     checkSampleDocument(temp);
     std::filesystem::remove_all(temp);
     std::cout << "Portable fixture, invalid archive and shared photo cleanup checks passed\n";

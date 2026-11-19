@@ -1,4 +1,4 @@
-// Read-only inspection of the app's own image-picker files.
+// Read the app's own image-picker files without following links.
 #pragma once
 #include <algorithm>
 #include <array>
@@ -31,7 +31,21 @@ inline bool uuid(std::string_view name) {
 // Positive values are bytes read. Negative results distinguish a missing file,
 // an unsupported reference/image, a read failure and a budget limit.
 constexpr long long missing = -1, unsupported = -2, unreadable = -3, tooLarge = -4;
-inline long long inspect(const char *directory, std::string_view name, std::string_view prefix, long long budget) {
+inline bool sameVersion(const struct stat &a, const struct stat &b) {
+#ifdef __APPLE__
+  const auto am = a.st_mtimespec, bm = b.st_mtimespec, ac = a.st_ctimespec, bc = b.st_ctimespec;
+#else
+  const auto am = a.st_mtim, bm = b.st_mtim, ac = a.st_ctim, bc = b.st_ctim;
+#endif
+  return a.st_dev == b.st_dev && a.st_ino == b.st_ino && a.st_size == b.st_size &&
+         am.tv_sec == bm.tv_sec && am.tv_nsec == bm.tv_nsec &&
+         ac.tv_sec == bc.tv_sec && ac.tv_nsec == bc.tv_nsec;
+}
+
+// The sink owns an unpublished destination. Discard its bytes on any failure.
+template<typename Sink>
+inline long long capture(const char *directory, std::string_view name, std::string_view prefix,
+                         long long budget, Sink sink) {
   if (name.substr(0, prefix.size()) != prefix) return unsupported;
   auto leaf = name.substr(prefix.size());
   auto dot = leaf.find('.');
@@ -46,24 +60,29 @@ inline long long inspect(const char *directory, std::string_view name, std::stri
   struct stat before{}, after{};
   if (fstat(file.fd, &before) || !S_ISREG(before.st_mode) || before.st_size <= 0) return unreadable;
   if (before.st_size > std::min(budget, 512LL * 1024 * 1024)) return tooLarge;
-  unsigned char magic[8];
-  ssize_t got;
-  do { got = pread(file.fd, magic, sizeof(magic), 0); } while (got < 0 && errno == EINTR);
-  if (got < 0) return unreadable;
-  const unsigned char png[] = {137,80,78,71,13,10,26,10};
-  const bool signature = jpeg ? got >= 3 && magic[0] == 255 && magic[1] == 216 && magic[2] == 255
-                              : got == 8 && std::memcmp(magic, png, 8) == 0;
-  if (!signature) return unsupported;
   std::array<unsigned char, 32768> chunk;
   long long total = 0;
+  std::array<unsigned char, 8> header{};
   while (total < before.st_size) {
     const size_t size = static_cast<size_t>(std::min<long long>(chunk.size(), before.st_size - total));
     const auto n = read(file.fd, chunk.data(), size);
     if (n < 0 && errno == EINTR) continue;
     if (n <= 0) return unreadable;
+    if (total < 8) std::memcpy(header.data() + total, chunk.data(), std::min<long long>(8 - total, n));
+    sink(chunk.data(), static_cast<size_t>(n));
     total += n;
   }
-  if (fstat(file.fd, &after) || after.st_size != before.st_size) return unreadable;
+  struct stat named{};
+  if (fstat(file.fd, &after) || !sameVersion(before, after) ||
+      fstatat(dir.fd, std::string(name).c_str(), &named, AT_SYMLINK_NOFOLLOW) || !sameVersion(after, named)) return unreadable;
+  const unsigned char png[] = {137,80,78,71,13,10,26,10};
+  const bool signature = jpeg ? total >= 3 && header[0] == 255 && header[1] == 216 && header[2] == 255
+                              : total >= 8 && std::memcmp(header.data(), png, 8) == 0;
+  if (!signature) return unsupported;
   return total;
+}
+
+inline long long inspect(const char *directory, std::string_view name, std::string_view prefix, long long budget) {
+  return capture(directory, name, prefix, budget, [](const unsigned char *, size_t) {});
 }
 }
