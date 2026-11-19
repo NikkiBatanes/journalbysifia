@@ -1,3 +1,4 @@
+#include "../../../../../native/journal-archive/LocalSnapshotCheck.hpp"
 #include "../../../../../native/journal-archive/PickerPhotoDigest.hpp"
 #include "../../../../../native/journal-archive/SyntheticSharedTransfer.hpp"
 #include "../../../../../native/journal-archive/SyntheticFilePhoto.hpp"
@@ -606,4 +607,33 @@ Java_app_journal_sifia_archivecrypto_JournalArchiveCryptoModule_nativeInspectPic
   }
   env->ReleaseStringUTFChars(directory, dir);
   return env->ExceptionCheck() ? nullptr : env->NewStringUTF(result.c_str());
+}
+
+extern "C" JNIEXPORT jboolean JNICALL
+Java_app_journal_sifia_archivecrypto_JournalArchiveCryptoModule_nativeVerifyLocalSnapshot(
+    JNIEnv *env, jobject, jstring directory, jstring base, jbyteArray manifest, jstring sources) {
+  const auto size = env->GetArrayLength(manifest);
+  if (size <= 0 || static_cast<size_t>(size) > journal_snapshot::maxManifest) return JNI_FALSE;
+  const char *dir = env->GetStringUTFChars(directory, nullptr);
+  const char *root = dir ? env->GetStringUTFChars(base, nullptr) : nullptr;
+  const char *rows = root ? env->GetStringUTFChars(sources, nullptr) : nullptr;
+  bool verified = false;
+  if (rows) {
+    try {
+      auto files = journal_snapshot::sourcesFrom(rows, root);
+      std::string bytes(size, '\0');
+      env->GetByteArrayRegion(manifest, 0, size, reinterpret_cast<jbyte *>(bytes.data()));
+      try {
+        if (!env->ExceptionCheck()) {
+          journal_snapshot::roundTrip(dir, "rn_image_picker_lib_temp_", bytes, files);
+          verified = true;
+        }
+      } catch (const std::exception &) { /* Return failure without exposing user data. */ }
+      sodium_memzero(bytes.data(), bytes.size());
+    } catch (const std::exception &) { /* Invalid descriptors or insufficient memory. */ }
+    env->ReleaseStringUTFChars(sources, rows);
+  }
+  if (root) env->ReleaseStringUTFChars(base, root);
+  if (dir) env->ReleaseStringUTFChars(directory, dir);
+  return verified ? JNI_TRUE : JNI_FALSE;
 }

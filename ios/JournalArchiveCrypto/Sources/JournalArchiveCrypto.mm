@@ -1,6 +1,7 @@
 #include "../../../native/journal-archive/SyntheticSharedTransfer.hpp"
 #if DEBUG
 #include "../../../native/journal-archive/PickerPhotoDigest.hpp"
+#include "../../../native/journal-archive/LocalSnapshotCheck.hpp"
 #include "../../../native/journal-archive/SyntheticFilePhoto.hpp"
 #endif
 #import "JournalArchiveCrypto.h"
@@ -515,6 +516,28 @@ RCT_EXPORT_MODULE(JournalArchiveCrypto)
 - (void)chooseSampleBackupFile:(BOOL)exporting recoveryCode:(NSString *)recoveryCode
                        resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject {
   [self pickSampleFile:exporting recoveryCode:recoveryCode entryCount:-1 resolve:resolve reject:reject];
+}
+
+- (void)verifyLocalSnapshot:(NSString *)manifest sources:(NSString *)sources
+                    resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject {
+#if DEBUG
+  dispatch_async(JournalArchiveCryptoQueue(), ^{
+    try {
+      NSString *directory = [NSTemporaryDirectory() stringByStandardizingPath];
+      NSString *base = [NSURL fileURLWithPath:directory isDirectory:YES].absoluteString;
+      NSData *bytes = [manifest dataUsingEncoding:NSUTF8StringEncoding];
+      journal_snapshot::check(bytes.length > 0 && bytes.length <= journal_snapshot::maxManifest);
+      auto files = journal_snapshot::sourcesFrom(sources.UTF8String, base.UTF8String);
+      journal_snapshot::roundTrip(directory.fileSystemRepresentation, "",
+        std::string_view(static_cast<const char *>(bytes.bytes), bytes.length), files);
+      resolve(@YES);
+    } catch (const std::exception &) {
+      reject(@"LOCAL_SNAPSHOT_FAILED", @"Could not verify the encrypted snapshot.", nil);
+    }
+  });
+#else
+  reject(@"LOCAL_CHECK_DISABLED", @"A development build is required.", nil);
+#endif
 }
 
 - (void)checkPickerPhoto:(NSString *)uri remainingBytes:(double)remainingBytes describe:(BOOL)describe

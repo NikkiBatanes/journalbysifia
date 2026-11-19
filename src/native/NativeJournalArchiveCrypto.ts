@@ -2,8 +2,8 @@ import type {TurboModule} from 'react-native';
 import {TurboModuleRegistry} from 'react-native';
 
 /**
- * Development archive operations use synthetic data. The picker-photo check
- * reads local files and returns only a byte count or status.
+ * Practice exports and restores use fixtures. Development-only local checks
+ * inspect picker photos and verify an encrypted snapshot in private scratch space.
  */
 export type JournalArchiveCryptoProviderEvidence = {
   libsodiumVersion: string;
@@ -69,6 +69,7 @@ export type JournalArchiveCryptoMediaPackagingEvidence = {
 };
 
 export interface Spec extends TurboModule {
+  verifyLocalSnapshot(manifest: string, sources: string): Promise<boolean>;
   describeLocalPickerPhoto(uri: string, remainingBytes: number): Promise<string>;
   inspectLocalPickerPhoto(uri: string, remainingBytes: number): Promise<number>;
   interruptSyntheticPhoto(afterPublication: boolean): Promise<void>;

@@ -9,7 +9,7 @@ type Fingerprint = (uri: string, remaining: number) => Promise<string>;
 
 // Prepares the canonical journal, reflection and prayer photo blocks in a local
 // snapshot. Device paths for these blocks stay outside the serializable manifest.
-export async function prepareJournalPhotoManifest(backup: JournalBackupEnvelopeV1, describe: Fingerprint) {
+export async function prepareJournalPhotoExport(backup: JournalBackupEnvelopeV1, describe: Fingerprint) {
   const byUri = new Map<string, JournalBackupArchiveAssetV1>();
   let assetBytes = 0;
 
@@ -80,5 +80,13 @@ export async function prepareJournalPhotoManifest(backup: JournalBackupEnvelopeV
     totals: {records: countJournalBackupRecords(backup), assets: byUri.size, assetBytes},
   };
   if (!validateJournalBackupArchiveManifest(manifest).valid) {throw new Error('Invalid archive manifest');}
-  return manifest;
+  const sources = Array.from(byUri, ([uri, asset]) => {
+    if (/[\r\n\t]/.test(uri)) {throw new Error('Invalid picker URI');}
+    return [asset.byteLength, asset.sha256, uri].join('\t');
+  }).join('\n');
+  return {manifest, sources};
+}
+
+export async function prepareJournalPhotoManifest(backup: JournalBackupEnvelopeV1, describe: Fingerprint) {
+  return (await prepareJournalPhotoExport(backup, describe)).manifest;
 }

@@ -9,7 +9,7 @@ import archive from '../../native/NativeJournalArchiveCrypto';
 import {beginSampleComparison, restoreSharedPhotoTransfer} from '../journalSharedPhotoTransferProbe';
 
 jest.mock('uuid', () => ({v4: require('node:crypto').randomUUID}));
-jest.mock('../../native/NativeJournalArchiveCrypto', () => ({__esModule: true, default: {describeLocalPickerPhoto: jest.fn(), inspectLocalPickerPhoto: jest.fn(), saveInventorySample: jest.fn(), chooseSampleBackupFile: jest.fn(), finishSampleRestorePreview: jest.fn()}}));
+jest.mock('../../native/NativeJournalArchiveCrypto', () => ({__esModule: true, default: {verifyLocalSnapshot: jest.fn(), describeLocalPickerPhoto: jest.fn(), inspectLocalPickerPhoto: jest.fn(), saveInventorySample: jest.fn(), chooseSampleBackupFile: jest.fn(), finishSampleRestorePreview: jest.fn()}}));
 jest.mock('../journalSharedPhotoTransferProbe', () => ({restoreSharedPhotoTransfer: jest.fn(), beginSampleComparison: jest.fn()}));
 jest.mock('../journalStagedBackup', () => ({planInventorySample: jest.fn()}));
 jest.mock('../../theme/ThemeContext', () => ({useTheme: () => ({colors: {text: 'black'}})}));
@@ -291,4 +291,30 @@ it('fingerprints a shared photo once and reports when it disappears', async () =
   expect(await screen.findByText(/Could not prepare photo links/)).toBeOnTheScreen();
   expect(screen.queryByText(/private writing|51ebc779/)).toBeNull();
   expect(archive.saveInventorySample).not.toHaveBeenCalled();
+});
+
+it('verifies the encrypted snapshot privately and reports a failed readback', async () => {
+  const uri = 'file:///example/12345678-1234-1234-1234-123456789abc.jpg';
+  const rows: [string, string][] = ['r1', 'r2'].map(id => ['reflection_local:free:2026-09-17:' + id,
+    JSON.stringify({id, type: 'free', selected_date: '2026-09-17', created_at: '2026-09-17T12:00:00Z',
+      updated_at: '2026-09-17T12:00:00Z', content: 'private writing 🙏',
+      metadata: {journalBlocks: [{id: 'picture', kind: 'photo', uri}]}})]);
+  jest.mocked(AsyncStorage.getAllKeys).mockResolvedValue(rows.map(([key]) => key));
+  jest.mocked(AsyncStorage.multiGet).mockResolvedValue(rows);
+  const sha = 'b'.repeat(64);
+  jest.mocked(archive.describeLocalPickerPhoto).mockResolvedValue('42:' + sha);
+  jest.mocked(archive.verifyLocalSnapshot).mockResolvedValueOnce(true).mockResolvedValueOnce(false);
+  render(<SampleLocalBackup />);
+  fireEvent.press(screen.getByText('Verify encrypted local snapshot'));
+  await screen.findByText(/Encrypted and read back .* records and 1 photo\./);
+  const [manifest, sources] = jest.mocked(archive.verifyLocalSnapshot).mock.calls[0];
+  expect(manifest).toContain('private writing 🙏');
+  expect(manifest).not.toContain(uri);
+  expect(sources).toBe(['42', sha, uri].join('\t'));
+  expect(archive.describeLocalPickerPhoto).toHaveBeenCalledTimes(1);
+  fireEvent.press(screen.getByText('Verify encrypted local snapshot'));
+  await screen.findByText(/Could not verify the encrypted snapshot/);
+  expect(screen.queryByText(/private writing|12345678/)).toBeNull();
+  expect(AsyncStorage.setItem).not.toHaveBeenCalled();
+  expect(archive.chooseSampleBackupFile).not.toHaveBeenCalled();
 });

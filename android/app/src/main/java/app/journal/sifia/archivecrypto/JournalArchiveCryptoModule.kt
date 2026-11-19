@@ -110,6 +110,27 @@ class JournalArchiveCryptoModule(reactContext: ReactApplicationContext) :
   override fun chooseSampleBackupFile(exporting: Boolean, recoveryCode: String, promise: Promise) =
     pickSample(exporting, recoveryCode, -1, promise)
 
+  private external fun nativeVerifyLocalSnapshot(directory: String, base: String, manifest: ByteArray, sources: String): Boolean
+
+  override fun verifyLocalSnapshot(manifest: String, sources: String, promise: Promise) {
+    cryptoExecutor.execute {
+      try {
+        check(app.journal.sifia.BuildConfig.DEBUG)
+        val directory = reactApplicationContext.cacheDir
+        val base = android.net.Uri.fromFile(directory).toString().trimEnd('/') + "/"
+        val utf8 = manifest.toByteArray(Charsets.UTF_8)
+        try {
+          check(nativeVerifyLocalSnapshot(directory.absolutePath, base, utf8, sources))
+        } finally {
+          utf8.fill(0)
+        }
+        promise.resolve(true)
+      } catch (_: Exception) {
+        promise.reject("LOCAL_SNAPSHOT_FAILED", "Could not verify the encrypted snapshot.")
+      }
+    }
+  }
+
   private external fun nativeInspectPickerPhoto(directory: String, name: String, remaining: Long, describe: Boolean): String
 
   override fun inspectLocalPickerPhoto(uri: String, remainingBytes: Double, promise: Promise) =
