@@ -1,8 +1,8 @@
 import {open} from '@op-engineering/op-sqlite';
 import {v4 as uuid} from 'uuid';
 import archive from '../native/NativeJournalArchiveCrypto';
-import {preflightJournalBackupArchiveRestore, utf8ByteLength} from '../services/journalBackupArchiveContract';
-import {isStagedPhotoName, resolveJournalBackupPhotoBlocks} from '../services/journalBackupPhotoBlocks';
+import {JOURNAL_BACKUP_ARCHIVE_LIMITS, preflightJournalBackupArchiveRestore, utf8ByteLength} from '../services/journalBackupArchiveContract';
+import {resolveJournalBackupPhotoBlocks} from '../services/journalBackupPhotoBlocks';
 import {planJournalBackupRestore} from '../services/journalBackupRestorePlan';
 import {generateSpikeEncryptionKey} from '../services/journalEncryptedStorageSpike';
 import {openRestoreSession, type RestoreDatabase} from './journalRestoreDatabase';
@@ -41,20 +41,41 @@ export async function prepareSampleComparison(db: RestoreDatabase, backupText: s
   return {deviceEntries, backupText};
 }
 
-export async function applySharedPhotoTransfer(session: Session, document?: string, comparison?: SampleComparison) {
-  const received = JSON.parse(document ?? await archive.importSharedPhotoTransfer());
-  const {manifest, sharedFile, otherFile, token} = received;
-  if (!/^[a-f0-9]{32}$/.test(token)) {
-    throw new Error('Unexpected transferred photo identifiers');
+type NativeStagedPhoto = {assetId: string; file: string; byteLength: number; sha256: string};
+
+// Native returns this document only after authenticating the archive and reopening
+// each staged image. Use the stable asset ID to match its evidence to the manifest.
+function readStagedSample(document: string) {
+  const {manifest, token, containerByteLength, stagedPhotos, archiveDigest} = JSON.parse(document);
+  if (typeof token !== 'string' || !/^[a-f0-9]{32}$/.test(token) ||
+      typeof archiveDigest !== 'string' || !/^[a-f0-9]{64}$/.test(archiveDigest) ||
+      !Array.isArray(stagedPhotos) || stagedPhotos.length > JOURNAL_BACKUP_ARCHIVE_LIMITS.maxAssetCount) {
+    throw new Error('Invalid staged photo inventory');
+  }
+  const byId = new Map<string, NativeStagedPhoto>();
+  const lengths: Record<string, number> = Object.create(null);
+  for (const photo of stagedPhotos) {
+    if (!photo || typeof photo.assetId !== 'string' || byId.has(photo.assetId)) {
+      throw new Error('Invalid staged photo identity');
+    }
+    byId.set(photo.assetId, photo);
+    lengths[photo.assetId] = photo.byteLength;
   }
   const validated = preflightJournalBackupArchiveRestore(manifest, {
-    containerByteLength: received.containerByteLength,
-    manifestByteLength: utf8ByteLength(JSON.stringify(manifest)),
-    authenticatedFinalMarkerVerified: true,
-    assetByteLengths: {[sharedId]: received.sharedBytes, [otherId]: received.otherBytes},
+    containerByteLength, manifestByteLength: utf8ByteLength(JSON.stringify(manifest)),
+    authenticatedFinalMarkerVerified: true, assetByteLengths: lengths,
   });
-  if (!validated.valid || !validated.manifest) {throw new Error('Two-photo manifest failed validation');}
+  if (!validated.valid || !validated.manifest) {throw new Error('Staged photo manifest failed validation');}
   const {assets, backup} = validated.manifest;
+  if (assets.some(asset => byId.get(asset.assetId)?.sha256 !== asset.sha256)) {
+    throw new Error('Staged photo digest mismatch');
+  }
+  const entries = resolveJournalBackupPhotoBlocks(backup.inventory.journalRecords, assets, stagedPhotos);
+  return {assets, backup, entries, token: token as string, archiveDigest: archiveDigest as string};
+}
+
+export async function applySharedPhotoTransfer(session: Session, document?: string, comparison?: SampleComparison) {
+  const {assets, backup, entries, token, archiveDigest} = readStagedSample(document ?? await archive.importSharedPhotoTransfer());
   const [shared, other] = assets;
   if (assets.length !== 2 || shared.assetId !== sharedId || other.assetId !== otherId ||
       assets.some(asset => asset.ownerRecordId !== 'first' || asset.mediaType !== 'image/png')) {
@@ -80,9 +101,6 @@ export async function applySharedPhotoTransfer(session: Session, document?: stri
       }
     });
   });
-  const entries = resolveJournalBackupPhotoBlocks(archiveEntries, assets, [
-    {assetId: sharedId, file: sharedFile}, {assetId: otherId, file: otherFile},
-  ]);
   backup.inventory.journalRecords = entries;
   const deviceEntries = comparison?.deviceEntries ?? [];
   if (comparison) {
@@ -117,7 +135,7 @@ export async function applySharedPhotoTransfer(session: Session, document?: stri
         counts.newKeys !== entries.length) {throw new Error('Unexpected sample journal contents');}
   }
   await session.restore(plan, uuid());
-  return {entries, deviceEntries, token, archiveDigest: received.archiveDigest as string | undefined, sharedDigest: shared.sha256, otherDigest: other.sha256};
+  return {entries, deviceEntries, token, archiveDigest, sharedDigest: shared.sha256, otherDigest: other.sha256};
 }
 
 export async function verifySharedPhotoTransfer(session: Session, expected: Awaited<ReturnType<typeof applySharedPhotoTransfer>>) {
@@ -235,16 +253,13 @@ export async function previewSampleRevision(
         if (ids.includes(copy.id)) {throw new Error('Sample copy ID collision');}
         if (revision.photoChange) {
           if (!stagePhoto) {throw new Error('Missing revised photo snapshot');}
-          const staged = JSON.parse(await stagePhoto());
-          if (staged?.archiveDigest !== digest || staged.assetId !== '792d9c99-72e2-4054-a211-1900c54801a4' ||
-              !isStagedPhotoName(staged.file) || staged.file === shared || staged.file === other ||
-              staged.photoDigest !== '2761c10bfda1b80b82c2200d6791c35f6936e79bd89efa40fdddb0772af0d174' ||
-              !await archive.checkRestoredPhotos(shared, original.sharedDigest, staged.file, staged.photoDigest)) {
-            throw new Error('Revised photo could not be verified');
+          const staged = readStagedSample(await stagePhoto());
+          const revisedEntry = staged.entries.find(entry => entry.id === device.id);
+          if (staged.archiveDigest !== digest || revisedEntry?.content !== firstContent ||
+              revisedEntry.updated_at !== updatedAt || !revisedEntry.metadata) {
+            throw new Error('Revised photo snapshot no longer matches preview');
           }
-          const block = {id: staged.assetId, kind: 'photo' as const, uri: 'objects/' + staged.file};
-          copy.metadata = {...source.metadata, journalBlocks: revision.photoChange === 'added'
-            ? [...photos, block] : [photos[0], block]};
+          copy.metadata = revisedEntry.metadata;
         }
         await tx.execute('INSERT INTO restore_kv (k,v) VALUES (?,?)', [prefix + copy.id, JSON.stringify(copy)]);
         await tx.execute('UPDATE restore_kv SET v=? WHERE k=?', [JSON.stringify([...ids, copy.id].sort()), indexKey]);

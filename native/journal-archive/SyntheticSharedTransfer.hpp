@@ -29,8 +29,21 @@ inline bool changedPhoto(SampleVersion v) {
   return v == SampleVersion::photoAdded || v == SampleVersion::photoReplaced;
 }
 
-inline std::string fixturePhoto() {
-  return {reinterpret_cast<const char *>(journal_fixture::photo), sizeof(journal_fixture::photo)};
+inline const std::string &fixturePhoto() {
+  static const std::string image{reinterpret_cast<const char *>(journal_fixture::photo), sizeof(journal_fixture::photo)};
+  return image;
+}
+
+struct SamplePhoto {
+  const char *assetId;
+  const std::string &bytes;
+};
+
+inline std::vector<SamplePhoto> samplePhotos(const Images &images, SampleVersion version) {
+  std::vector<SamplePhoto> result{{sharedId, images.shared}};
+  if (version != SampleVersion::photoReplaced) result.push_back({otherId, images.other});
+  if (changedPhoto(version)) result.push_back({newPhotoId, fixturePhoto()});
+  return result;
 }
 
 constexpr auto revisedText = "Call Mom on Sunday.";
@@ -56,26 +69,19 @@ inline std::string manifest(const std::string &token, const Images &images, Samp
       + (id == "first" && (version == SampleVersion::revised || changedPhoto(version)) ? revisedDate : "2026-11-19T00:00:00Z") + R"(","content":")"
       + entryText(id, token, version) + R"(","metadata":{"journalBlocks":[)" + blocks + "]}}";
   };
-  auto blocks = block(sharedId);
-  auto inventory = asset(sharedId, images.shared);
-  auto bytes = images.shared.size();
-  size_t count = 1;
-  if (version != SampleVersion::photoReplaced) {
-    blocks += "," + block(otherId);
-    inventory += "," + asset(otherId, images.other);
-    bytes += images.other.size();
-    ++count;
-  }
-  if (changedPhoto(version)) {
-    blocks += "," + block(newPhotoId);
-    inventory += "," + asset(newPhotoId, fixturePhoto());
-    bytes += sizeof(journal_fixture::photo);
-    ++count;
+  std::string blocks, inventory;
+  size_t bytes = 0;
+  const auto list = samplePhotos(images, version);
+  for (const auto &photo : list) {
+    if (!blocks.empty()) {blocks += ","; inventory += ",";}
+    blocks += block(photo.assetId);
+    inventory += asset(photo.assetId, photo.bytes);
+    bytes += photo.bytes.size();
   }
   return journal_fixture::manifestDocument(
     entry("first", blocks) + "," + entry("second", block(sharedId)),
     R"({"id":"first","key":"journal_local:todo:2026-11-19:first"},{"id":"second","key":"journal_local:todo:2026-11-19:second"})",
-    inventory, 2, count, bytes);
+    inventory, 2, list.size(), bytes);
 }
 
 inline std::string exportToFile(const std::string &path, const char *code,
@@ -159,29 +165,29 @@ inline VerifiedSample inspect(const journal_fixture::Bytes &sealed, const char *
 }
 
 inline std::string stageVerified(const std::string &directory, const VerifiedSample &sample, size_t sealedSize) {
-  const auto &[token, document, firstContent, baseDigest, images, version] = sample;
+  // stageImage uses a shared scratch filename within this practice directory.
+  static std::mutex stagingMutex;
+  const std::lock_guard<std::mutex> lock(stagingMutex);
   const auto dir = imageDirectory(directory);
-  if (changedPhoto(version)) {
-    // Use one immutable encrypted object across retries, including after a DB rollback.
-    const auto id = digest(token + journal_fixture::photoDigest).substr(0, 32);
+  std::string list;
+  for (const auto &photo : samplePhotos(sample.images, sample.version)) {
+    const auto hash = digest(photo.bytes);
+    const auto id = digest(sample.token + photo.assetId + hash).substr(0, 32);
     const auto name = "photo-" + id;
     struct stat info{};
     if (lstat((dir + "/" + name).c_str(), &info) != 0) {
       require(errno == ENOENT);
-      require(photos::stageImage(dir, fixturePhoto(), photos::Interruption::none, id) == name);
+      require(photos::stageImage(dir, photo.bytes, photos::Interruption::none, id) == name);
     }
-    const auto sealed = journal_fixture::readArchive(dir + "/" + name, sizeof(journal_fixture::photo) + journal_fixture::overhead);
-    require(journal_fixture::openAuthenticatedFrame(sealed, journal_fixture::password) == fixturePhoto());
-    return R"({"archiveDigest":")" + digest(document) + R"(","file":")" + name
-      + R"(","assetId":")" + newPhotoId + R"(","photoDigest":")" + journal_fixture::photoDigest + R"("})";
+    const auto sealed = journal_fixture::readArchive(dir + "/" + name, photo.bytes.size() + journal_fixture::overhead);
+    require(journal_fixture::openAuthenticatedFrame(sealed, journal_fixture::password) == photo.bytes);
+    if (!list.empty()) list += ",";
+    list += R"({"assetId":")" + std::string(photo.assetId) + R"(","file":")" + name
+      + R"(","sha256":")" + hash + R"(","byteLength":)" + std::to_string(photo.bytes.size()) + "}";
   }
-  const auto shared = photos::stageImage(dir, images.shared, photos::Interruption::none);
-  const auto other = photos::stageImage(dir, images.other, photos::Interruption::none);
-  return R"({"token":")" + token + R"(","manifest":)" + document
+  return R"({"token":")" + sample.token + R"(","manifest":)" + sample.document
     + R"(,"containerByteLength":)" + std::to_string(sealedSize)
-    + R"(,"sharedBytes":)" + std::to_string(images.shared.size()) + R"(,"otherBytes":)" + std::to_string(images.other.size())
-    + R"(,"sharedFile":")" + shared + R"(","otherFile":")" + other
-    + R"(","archiveDigest":")" + digest(document) + R"("})";
+    + R"(,"stagedPhotos":[)" + list + R"(],"archiveDigest":")" + digest(sample.document) + R"("})";
 }
 
 inline std::string importFromFile(const std::string &directory, const std::string &path, const char *code) {
@@ -206,11 +212,12 @@ public:
     // inspect() authenticates the exact two-entry sample manifest before returning.
     const bool added = sample.version == SampleVersion::photoAdded;
     const bool replaced = sample.version == SampleVersion::photoReplaced;
-    size_t bytes = sample.images.shared.size() + (replaced ? 0 : sample.images.other.size());
-    if (added || replaced) bytes += sizeof(journal_fixture::photo);
+    const auto list = samplePhotos(sample.images, sample.version);
+    size_t bytes = 0;
+    for (const auto &photo : list) bytes += photo.bytes.size();
     const auto json = R"({"previewId":")" + id
       + (added ? R"(","photoChange":"added)" : replaced ? R"(","photoChange":"replaced)" : "")
-      + R"(","entries":2,"photos":)" + (added ? "3" : "2") + R"(,"photoBytes":)" + std::to_string(bytes)
+      + R"(","entries":2,"photos":)" + std::to_string(list.size()) + R"(,"photoBytes":)" + std::to_string(bytes)
       + R"(,"firstContent":")" + sample.firstContent
       + (sample.baseDigest.empty() ? "" : R"(","updatedAt":")" + std::string(revisedDate) + R"(","baseDigest":")" + sample.baseDigest)
       + R"(","archiveDigest":")" + digest(sample.document) + R"("})";

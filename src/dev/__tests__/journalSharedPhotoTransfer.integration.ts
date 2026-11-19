@@ -51,7 +51,16 @@ it('restores both entries from one encrypted file and rejects a damaged second p
       const existingSession = await openRestoreSession(existing);
       const snapshot = () => existing.execute('SELECT k,v FROM restore_kv ORDER BY k');
       const original = await snapshot();
-      const document = run(['--read-shared', compareTarget]).toString();
+      const transfer = JSON.parse(run(['--read-shared', compareTarget]).toString());
+      const [one, two] = transfer.stagedPhotos;
+      expect(transfer.stagedPhotos).toHaveLength(2);
+      for (const invalid of [[one], [one, one], [one, {...two, file: one.file}],
+        [one, {...two, byteLength: 0}], [one, {...two, sha256: '0'.repeat(64)}]]) {
+        await expect(applySharedPhotoTransfer(existingSession,
+          JSON.stringify({...transfer, stagedPhotos: invalid}), comparison)).rejects.toThrow();
+        expect(await snapshot()).toEqual(original);
+      }
+      const document = JSON.stringify({...transfer, stagedPhotos: [two, one]});
       await expect(applySharedPhotoTransfer(existingSession, document, {...comparison, backupText: 'Older preview'}))
         .rejects.toThrow('no longer matches');
       expect(await snapshot()).toEqual(original);
@@ -100,7 +109,7 @@ it('restores both entries from one encrypted file and rejects a damaged second p
       expect(revision.firstContent).toBe('Call Mom on Sunday.');
       const imageDir = join(compareTarget, 'journal-shared-transfer-images');
       const savedPhotos = readdirSync(imageDir).sort();
-      const files = kept.entries[0].metadata!.journalBlocks!.map(block => block.kind === 'photo' && block.uri.slice(8));
+      const files = kept.entries[0].metadata!.journalBlocks!.map((block: {kind: string; uri: string}) => block.kind === 'photo' && block.uri.slice(8));
       jest.mocked(archive.checkRestoredPhotos).mockImplementation(async (...args) => {
         run(['--check-pair', compareTarget, ...args]);
         return true;
@@ -150,7 +159,14 @@ it('restores both entries from one encrypted file and rejects a damaged second p
         const reviewPhoto = await previewSampleRevision(existing, photoRevision, kept);
         expect(readdirSync(imageDir).sort()).toEqual(previousFiles);
         expect(await snapshot()).toEqual(previous);
-        const stage = jest.fn(async () => run(['--confirm-photo-revision', compareTarget, path]).toString());
+        const stage = jest.fn(async () => {
+          const staged = JSON.parse(run(['--confirm-photo-revision', compareTarget, path]).toString());
+          expect(staged.stagedPhotos).toHaveLength(change === 'added' ? 3 : 2);
+          expect(staged.stagedPhotos).toContainEqual(one);
+          if (change === 'added') {expect(staged.stagedPhotos).toContainEqual(two);}
+          else {expect(staged.stagedPhotos).not.toContainEqual(two);}
+          return JSON.stringify({...staged, stagedPhotos: staged.stagedPhotos.reverse()});
+        });
         await existing.execute("CREATE TEMP TRIGGER fail_photo BEFORE INSERT ON sample_restore_receipts BEGIN SELECT RAISE(ABORT, 'interrupted photo restore'); END");
         await expect(reviewPhoto.keepBoth(stage)).rejects.toThrow('interrupted photo restore');
         expect(await snapshot()).toEqual(previous);
