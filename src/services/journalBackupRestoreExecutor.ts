@@ -455,12 +455,10 @@ const recoverInterruptedJournalBackupRestoreExclusive = async (
   }
 };
 
-const executeJournalBackupRestoreExclusive = async (
+async function inspectRestoreDestination(
   storage: JournalBackupRestoreStorage,
   plan: JournalBackupRestorePlan,
-  transactionId: string,
-): Promise<JournalBackupRestoreExecutionResult> => {
-  assertSafeTransactionId(transactionId);
+) {
   assertPlanIsExecutable(plan);
 
   const existingArtifacts = await readExact(storage, [
@@ -491,6 +489,44 @@ const executeJournalBackupRestoreExclusive = async (
     );
   }
   const before = await readExact(storage, snapshotKeys);
+  return {ownedKeys, snapshotKeys, before};
+}
+
+/** Count the effects of full replacement under the same lease used for writes.
+ * Counts refer to stored keys (including preferences and rebuilt indexes).
+ * A preview describes the current snapshot only and authorizes no writes.
+ */
+export const previewJournalBackupRestore = (
+  storage: JournalBackupRestoreStorage,
+  coordinator: JournalBackupRestoreMutationCoordinator,
+  plan: JournalBackupRestorePlan,
+) => coordinator.runExclusive(async () => {
+  const {before, ownedKeys} = await inspectRestoreDestination(storage, plan);
+  let newKeys = 0;
+  let matchingKeys = 0;
+  let changedKeys = 0;
+  for (const {key, value} of plan.operations) {
+    const current = before.get(key);
+    if (current === null) {
+      newKeys++;
+    } else if (current === value) {
+      matchingKeys++;
+    } else {
+      changedKeys++;
+    }
+  }
+  const targets = new Set(plan.operations.map(operation => operation.key));
+  const localOnlyKeys = ownedKeys.filter(key => !targets.has(key)).length;
+  return {newKeys, matchingKeys, changedKeys, localOnlyKeys};
+});
+
+const executeJournalBackupRestoreExclusive = async (
+  storage: JournalBackupRestoreStorage,
+  plan: JournalBackupRestorePlan,
+  transactionId: string,
+): Promise<JournalBackupRestoreExecutionResult> => {
+  assertSafeTransactionId(transactionId);
+  const {ownedKeys, snapshotKeys, before} = await inspectRestoreDestination(storage, plan);
   const snapshot: RollbackSnapshotV1 = {
     version: RESTORE_EXECUTOR_VERSION,
     transactionId,

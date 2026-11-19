@@ -1,5 +1,6 @@
 import {
   executeJournalBackupRestore,
+  previewJournalBackupRestore,
   JournalBackupRestoreExecutionError,
   JOURNAL_RESTORE_RECOVERY_MARKER_KEY,
   JOURNAL_RESTORE_ROLLBACK_SNAPSHOT_KEY,
@@ -340,5 +341,31 @@ it('rejects a plan whose ownership policy differs from the canonical policy', as
     'owned_namespace_policy_mismatch',
     false,
   );
+  expect(storage.mutationCalls).toBe(0);
+});
+
+it('previews full replacement without changing or disclosing existing values', async () => {
+  const plan = makePlan();
+  const storage = new MemoryRestoreStorage([
+    ['review_settings_v1', '{"weekEndsOn":0}'],
+    ['journal_local:heart:2026-11-18:old', 'keep this entry'],
+    ['supabase.auth.token', 'outside backup scope'],
+  ]);
+  const original = [...storage.values];
+  await expect(previewJournalBackupRestore(storage, coordinator, plan)).resolves.toEqual({
+    newKeys: 1, matchingKeys: 1, changedKeys: 0, localOnlyKeys: 1,
+  });
+  expect([...storage.values]).toEqual(original);
+  storage.values.set(plan.operations[0].key, '');
+  await expect(previewJournalBackupRestore(storage, coordinator, plan)).resolves.toEqual({
+    newKeys: 0, matchingKeys: 1, changedKeys: 1, localOnlyKeys: 1,
+  });
+  expect(storage.mutationCalls).toBe(0);
+});
+
+it('blocks a preview when recovery is pending without clearing the evidence', async () => {
+  const storage = new MemoryRestoreStorage([[JOURNAL_RESTORE_RECOVERY_MARKER_KEY, 'pending']]);
+  await expectExecutionError(previewJournalBackupRestore(storage, coordinator, makePlan()),
+    'unfinished_restore_present', true);
   expect(storage.mutationCalls).toBe(0);
 });

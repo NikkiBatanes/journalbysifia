@@ -68,6 +68,11 @@ export async function verifyRestoreReopen(connect: () => RestoreDatabase & {clos
   try {
     const session = await openRestoreSession(first);
     await session.restore(plan(original), id);
+    const matching = await session.preview(plan(original));
+    const changed = await session.preview(plan(replacement));
+    if (matching.matchingKeys !== 1 || changed.changedKeys !== 1 || await session.read(key) !== original) {
+      throw new Error('Restore preview did not preserve the existing test journal');
+    }
     await first.transaction(async tx => {
       for (const [k, v] of [
         [snapshot, JSON.stringify({version: 1, transactionId: id, entries: [{key, value: original}]})],

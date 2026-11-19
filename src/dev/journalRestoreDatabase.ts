@@ -1,5 +1,6 @@
 import {
   executeJournalBackupRestore,
+  previewJournalBackupRestore,
   recoverInterruptedJournalBackupRestore,
   type JournalBackupRestoreStorage,
 } from '../services/journalBackupRestoreExecutor';
@@ -76,6 +77,12 @@ export async function openRestoreSession(db: RestoreDatabase) {
       return coordinator.runExclusive(async () => {
         requireReady();
         return (await storage.multiGet([key]))[0][1];
+      });
+    },
+    preview(plan: JournalBackupRestorePlan) {
+      return coordinator.runExclusive(() => {
+        requireReady();
+        return previewJournalBackupRestore(storage, {runExclusive: work => work()}, plan);
       });
     },
     restore(plan: JournalBackupRestorePlan, transactionId: string) {
