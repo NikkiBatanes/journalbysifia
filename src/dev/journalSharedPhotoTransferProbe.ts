@@ -89,6 +89,10 @@ export async function applySharedPhotoTransfer(session: Session, document?: stri
         throw new Error('The sample journal changed during preview');
       }
     }
+    const previewedIndex = JSON.stringify(deviceEntries.map(entry => entry.id).sort());
+    if (await session.read(indexKey) !== previewedIndex) {
+      throw new Error('The sample journal changed during preview');
+    }
     // Only the two validated fixture records may enter this path. Re-key the
     // backup copy; its photo blocks still point to the same verified objects.
     const copyId = uuid();

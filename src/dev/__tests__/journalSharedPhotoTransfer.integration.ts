@@ -55,6 +55,14 @@ it('restores both entries from one encrypted file and rejects a damaged second p
       await expect(applySharedPhotoTransfer(existingSession, document, {...comparison, backupText: 'Older preview'}))
         .rejects.toThrow('no longer matches');
       expect(await snapshot()).toEqual(original);
+      const indexKey = 'journal_local_index:todo:2026-11-19';
+      const originalIndex = await existingSession.read(indexKey);
+      if (originalIndex === null) {throw new Error('Expected the seeded sample index');}
+      await existing.execute('UPDATE restore_kv SET v=? WHERE k=?', ['["device-only","first","unexpected"]', indexKey]);
+      const changedIndex = await snapshot();
+      await expect(applySharedPhotoTransfer(existingSession, document, comparison)).rejects.toThrow('changed during preview');
+      expect(await snapshot()).toEqual(changedIndex);
+      await existing.execute('UPDATE restore_kv SET v=? WHERE k=?', [originalIndex, indexKey]);
       await existing.execute('INSERT INTO restore_kv (k,v) VALUES (?,?)', ['journal:local-profile', '{}']);
       const withProfile = await snapshot();
       await expect(applySharedPhotoTransfer(existingSession, document, comparison)).rejects.toThrow('Unexpected sample journal');

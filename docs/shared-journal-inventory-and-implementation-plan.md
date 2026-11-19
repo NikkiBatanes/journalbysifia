@@ -1458,6 +1458,8 @@ In **More → Account & Data → Local backup test**, open an encrypted sample f
 
 The exercise uses a separate database. After reopening, Journal checks both versions, an unrelated device entry, the second backup entry, the date index and both photo digests. Automated tests cover cancellation, a stale comparison and refusal to proceed if an unexpected device record would be removed. Both mobile debug builds compiled. A backup created by the previous Android fixture remained readable. Phase 5 is estimated at **76%** and weighted overall delivery at **30.8%**.
 
+On the dedicated iPhone simulator, opening the sample in Files, comparing the two entries and choosing **Keep both** passed. After reopening the database, Journal verified all four entries and both photo digests. The comparison also checks the device's date index immediately before restore. A host regression test changes only that index after preview and verifies that **Keep both** refuses the restore and preserves every current database row. The equivalent Pixel 8 Files walkthrough is pending.
+
 For customer restore, the planned default is to skip identical entries, add backup-only entries and preserve device-only entries. An older backup should preserve a provably newer device edit. When the versions cannot be ordered reliably, present the choice before writing. General conflict detection, repeated imports and production storage integration still need implementation.
 
 ## Primary references checked on 2026-11-03
