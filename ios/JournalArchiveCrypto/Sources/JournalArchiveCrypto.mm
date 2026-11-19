@@ -417,6 +417,40 @@ RCT_EXPORT_MODULE(JournalArchiveCrypto)
   return NO;
 }
 
+- (void)interruptSyntheticPhoto:(BOOL)afterPublication resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject {
+#if DEBUG
+  dispatch_async(JournalArchiveCryptoQueue(), ^{
+    try {
+      using journal_photo_fixture::Interruption;
+      NSURL *base = [NSFileManager.defaultManager URLForDirectory:NSApplicationSupportDirectory inDomain:NSUserDomainMask appropriateForURL:nil create:NO error:nil];
+      journal_fixture::require(base != nil);
+      journal_photo_fixture::stage(base.fileSystemRepresentation, true,
+        afterPublication ? Interruption::afterPublication : Interruption::duringCopy);
+    } catch (const std::exception &) {}
+    reject(@"JOURNAL_PHOTO_INTERRUPTION_FAILED", @"Did not reach the interruption point", nil);
+  });
+#else
+  reject(@"JOURNAL_TRANSFER_DISABLED", @"Development build required", nil);
+#endif
+}
+
+- (void)checkSyntheticPhotoInterruption:(BOOL)afterPublication resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject {
+#if DEBUG
+  dispatch_async(JournalArchiveCryptoQueue(), ^{
+    try {
+      NSURL *base = [NSFileManager.defaultManager URLForDirectory:NSApplicationSupportDirectory inDomain:NSUserDomainMask appropriateForURL:nil create:NO error:nil];
+      journal_fixture::require(base != nil);
+      journal_photo_fixture::checkInterruption(base.fileSystemRepresentation, afterPublication);
+      resolve(@YES);
+    } catch (const std::exception &) {
+      reject(@"JOURNAL_PHOTO_VERIFY_FAILED", @"Expected photo interruption evidence was missing", nil);
+    }
+  });
+#else
+  reject(@"JOURNAL_TRANSFER_DISABLED", @"Development build required", nil);
+#endif
+}
+
 - (void)stageSyntheticPhoto:(BOOL)replacement resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject {
 #if DEBUG
   dispatch_async(JournalArchiveCryptoQueue(), ^{

@@ -1,5 +1,6 @@
 import {Alert, DevSettings, Platform} from 'react-native';
 import {markRestoreStartupPending, relaunchDatabase} from './journalRestoreStartup';
+import type {FilePhotoInterruption} from './journalFilePhotoReopenProbe';
 import {open} from '@op-engineering/op-sqlite';
 import {armRestoreInterruption, verifyRecoveredRestore, verifyRestoreReopen} from './journalRestoreReopenProbe';
 
@@ -49,16 +50,16 @@ export const installJournalEncryptedStorageSpikeMenu = (): void => {
   });
 
   let filePhotoBusy = false;
-  async function checkFilePhoto(arm: boolean) {
+  async function checkFilePhoto(arm: boolean, point: FilePhotoInterruption = 'database') {
     if (filePhotoBusy) {return;}
     filePhotoBusy = true;
     try {
       const probe = await import('./journalFilePhotoReopenProbe');
       if (arm) {
         await probe.armFilePhotoReopen(() => Alert.alert('Photo restore armed',
-          'Fully stop Journal now. Reopen it and choose Verify in the same test.'));
+          'Fully stop Journal now. Reopen it and choose Verify in the same test.'), point);
       } else {
-        await probe.verifyFilePhotoReopen();
+        await probe.verifyFilePhotoReopen(point);
         Alert.alert('Photo restore passed', 'Journal recovered the original entry and photo. The retry also survived reopening.');
       }
     } catch (error) {
@@ -66,6 +67,18 @@ export const installJournalEncryptedStorageSpikeMenu = (): void => {
     } finally {
       filePhotoBusy = false;
     }
+  }
+  for (const [label, point] of [
+    ['Test photo copy interruption', 'copy'],
+    ['Test published photo interruption', 'published'],
+  ] as const) {
+    DevSettings.addMenuItem(label, () => {
+      Alert.alert(label, 'Journal will close during this test. Reopen it and choose Verify here.', [
+        {text: 'Cancel', style: 'cancel'},
+        {text: 'Stop app', onPress: () => checkFilePhoto(true, point)},
+        {text: 'Verify', onPress: () => checkFilePhoto(false, point)},
+      ]);
+    });
   }
   DevSettings.addMenuItem('Test full-size photo recovery', () => {
     Alert.alert('Test full-size photo recovery', 'Use Arm first. Choose Verify after restarting Journal.', [

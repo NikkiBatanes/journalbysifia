@@ -65,6 +65,25 @@ class JournalArchiveCryptoModule(reactContext: ReactApplicationContext) :
     }
   }
 
+  private external fun nativePhotoInterruption(directory: String, afterPublication: Boolean, inspect: Boolean): Boolean
+
+  private fun photoInterruption(afterPublication: Boolean, inspect: Boolean, promise: Promise) {
+    cryptoExecutor.execute {
+      try {
+        check(app.journal.sifia.BuildConfig.DEBUG) { "Development build required" }
+        check(nativePhotoInterruption(reactApplicationContext.noBackupFilesDir.absolutePath, afterPublication, inspect)) {
+          "Expected photo interruption evidence was missing"
+        }
+        promise.resolve(true)
+      } catch (error: Exception) {
+        promise.reject("JOURNAL_FILE_PHOTO_FAILED", error)
+      }
+    }
+  }
+
+  override fun interruptSyntheticPhoto(afterPublication: Boolean, promise: Promise) = photoInterruption(afterPublication, false, promise)
+  override fun checkSyntheticPhotoInterruption(afterPublication: Boolean, promise: Promise) = photoInterruption(afterPublication, true, promise)
+
   override fun stageSyntheticPhoto(replacement: Boolean, promise: Promise) = fixturePhoto(null, replacement, promise)
   override fun verifySyntheticPhoto(name: String, replacement: Boolean, promise: Promise) = fixturePhoto(name, replacement, promise)
 

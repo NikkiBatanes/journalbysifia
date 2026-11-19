@@ -485,3 +485,25 @@ Java_app_journal_sifia_archivecrypto_JournalArchiveCryptoModule_nativeFixturePho
   env->ReleaseStringUTFChars(directory, path);
   return result;
 }
+
+extern "C" JNIEXPORT jboolean JNICALL
+Java_app_journal_sifia_archivecrypto_JournalArchiveCryptoModule_nativePhotoInterruption(
+    JNIEnv *env, jobject, jstring directory, jboolean afterPublication, jboolean inspect) {
+  const char *path = env->GetStringUTFChars(directory, nullptr);
+  if (!path) return JNI_FALSE;
+  bool verified = false;
+  try {
+    if (inspect) {
+      journal_photo_fixture::checkInterruption(path, afterPublication);
+      verified = true;
+    } else {
+      using journal_photo_fixture::Interruption;
+      journal_photo_fixture::stage(path, true, afterPublication
+        ? Interruption::afterPublication : Interruption::duringCopy);
+    }
+  } catch (const std::exception &) {
+    // Fail closed on an unexpected return or invalid fixture evidence.
+  }
+  env->ReleaseStringUTFChars(directory, path);
+  return verified;
+}

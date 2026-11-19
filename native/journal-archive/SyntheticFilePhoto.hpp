@@ -54,7 +54,12 @@ inline std::string directory(const std::string &base) {
   return dir;
 }
 
-inline std::string stage(const std::string &base, bool replacement) {
+enum class Interruption { none, duringCopy, afterPublication };
+
+// Explicit development test. Terminate without stack unwinding, just as an
+// external process stop would leave the staging files and database.
+inline std::string stage(const std::string &base, bool replacement,
+                         Interruption interruption = Interruption::none) {
   require(sodium_init() >= 0);
   const auto dir = directory(base);
   const auto source = dir + "/fixture.sealed";
@@ -70,12 +75,55 @@ inline std::string stage(const std::string &base, bool replacement) {
       require(n > 0);
       offset += static_cast<size_t>(n);
     }
-    auto name = journal_attachment::stage(source, dir, data.size(), digest, [](size_t) {});
+    auto name = journal_attachment::stage(source, dir, data.size(), digest, [&](size_t copied) {
+      if (interruption == Interruption::duringCopy && copied >= data.size() / 2 && copied < data.size())
+        _exit(0);
+    });
     require(unlink(source.c_str()) == 0);
+    if (interruption == Interruption::afterPublication) _exit(0);
     return name;
   } catch (...) {
     unlink(source.c_str());
     throw;
+  }
+}
+
+struct StagingFiles {
+  size_t published = 0, partial = 0;
+  off_t partialSize = 0, sourceSize = 0;
+};
+
+inline StagingFiles stagingFiles(const std::string &dir) {
+  journal_attachment::Descriptor fd(open(dir.c_str(), O_RDONLY | O_DIRECTORY | O_NOFOLLOW));
+  std::unique_ptr<DIR, decltype(&closedir)> entries(fdopendir(fd.fd), closedir);
+  require(entries != nullptr);
+  fd.fd = -1;
+  StagingFiles files;
+  for (;;) {
+    errno = 0;
+    const auto entry = readdir(entries.get());
+    if (!entry) { require(errno == 0); break; }
+    const std::string name(entry->d_name);
+    if (journal_attachment::generatedName(name, "photo-")) {
+      ++files.published;
+    } else if (name == "fixture.sealed" || journal_attachment::generatedName(name, "partial-")) {
+      struct stat info{};
+      require(fstatat(dirfd(entries.get()), name.c_str(), &info, AT_SYMLINK_NOFOLLOW) == 0 &&
+              S_ISREG(info.st_mode) && info.st_size > 0);
+      if (name == "fixture.sealed") files.sourceSize = info.st_size;
+      else { ++files.partial; files.partialSize = info.st_size; }
+    }
+  }
+  return files;
+}
+
+inline void checkInterruption(const std::string &base, bool afterPublication) {
+  const auto files = stagingFiles(directory(base));
+  if (afterPublication) {
+    require(files.published == 2 && files.partial == 0 && files.sourceSize == 0);
+  } else {
+    require(files.published == 1 && files.partial == 1 &&
+            files.partialSize >= files.sourceSize / 2 && files.partialSize < files.sourceSize);
   }
 }
 
@@ -96,5 +144,11 @@ inline void verifyAndCollect(const std::string &base, const std::string &name, b
   }
   require(journal_fixture::openAuthenticatedFrame(data, journal_fixture::password) == expected);
   journal_attachment::collect(dir, {name});
+  // This fixed ciphertext source is owned exclusively by this serial fixture.
+  require(unlink((dir + "/fixture.sealed").c_str()) == 0 || errno == ENOENT);
+  journal_attachment::Descriptor parent(open(dir.c_str(), O_RDONLY | O_DIRECTORY | O_NOFOLLOW));
+  require(fsync(parent.fd) == 0);
+  const auto files = stagingFiles(dir);
+  require(files.published == 1 && files.partial == 0 && files.sourceSize == 0);
 }
 } // namespace journal_photo_fixture

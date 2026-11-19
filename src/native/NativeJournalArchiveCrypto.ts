@@ -70,6 +70,8 @@ export type JournalArchiveCryptoMediaPackagingEvidence = {
 };
 
 export interface Spec extends TurboModule {
+  interruptSyntheticPhoto(afterPublication: boolean): Promise<void>;
+  checkSyntheticPhotoInterruption(afterPublication: boolean): Promise<boolean>;
   stageSyntheticPhoto(replacement: boolean): Promise<string>;
   verifySyntheticPhoto(name: string, replacement: boolean): Promise<boolean>;
   exportSyntheticTransfer(): Promise<string>;

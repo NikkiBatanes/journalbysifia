@@ -29,6 +29,8 @@ function inspectContract(packageJson, spec) {
 
   const requiredMarkers = [
     "TurboModuleRegistry.getEnforcing<Spec>('JournalArchiveCrypto')",
+    'interruptSyntheticPhoto(afterPublication: boolean): Promise<void>',
+    'checkSyntheticPhotoInterruption(afterPublication: boolean): Promise<boolean>',
     'stageSyntheticPhoto(replacement: boolean): Promise<string>',
     'verifySyntheticPhoto(name: string, replacement: boolean): Promise<boolean>',
     'exportSyntheticTransfer(): Promise<string>',

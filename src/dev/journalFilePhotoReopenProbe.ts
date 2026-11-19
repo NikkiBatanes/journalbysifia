@@ -72,7 +72,12 @@ async function verify(
   }
 }
 
-export async function armFilePhotoReopen(onArmed: () => void) {
+export type FilePhotoInterruption = 'database' | 'copy' | 'published';
+
+export async function armFilePhotoReopen(
+  onArmed: () => void,
+  point: FilePhotoInterruption = 'database',
+) {
   const encryptionKey = await getOrCreateSpikeEncryptionKey();
   const db = open({name, encryptionKey});
   try {
@@ -86,6 +91,10 @@ export async function armFilePhotoReopen(onArmed: () => void) {
       uuid(),
     );
     await verify(initial, false);
+    if (point !== 'database') {
+      await archive.interruptSyntheticPhoto(point === 'published');
+      throw new Error('Journal stayed open after the interruption');
+    }
     const next = plan(await archive.stageSyntheticPhoto(true), true);
     const interrupted = await openRestoreSession(
       pauseAfterValue(db, entryKey, next.operations[0].value, onArmed),
@@ -97,7 +106,7 @@ export async function armFilePhotoReopen(onArmed: () => void) {
   }
 }
 
-export async function verifyFilePhotoReopen() {
+export async function verifyFilePhotoReopen(point: FilePhotoInterruption = 'database') {
   const encryptionKey = await readSpikeEncryptionKey();
   if (!encryptionKey) {
     throw new Error('The test storage key is unavailable');
@@ -105,8 +114,11 @@ export async function verifyFilePhotoReopen() {
   const db = open({name, encryptionKey, failOnCreate: true});
   try {
     const session = await openRestoreSession(db);
-    if (!session.recovered) {
-      throw new Error('No interrupted restore was recovered');
+    if ((session.recovered !== null) !== (point === 'database')) {
+      throw new Error('Unexpected database recovery state');
+    }
+    if (point !== 'database' && !(await archive.checkSyntheticPhotoInterruption(point === 'published'))) {
+      throw new Error('The staged files did not match the interruption point');
     }
     await verify(session, false);
     await session.restore(
