@@ -23,13 +23,22 @@ struct Images {
   std::string shared, other;
 };
 
-enum class SampleVersion { legacy, original, revised };
+enum class SampleVersion { legacy, original, revised, photoAdded, photoReplaced };
+constexpr auto newPhotoId = "792d9c99-72e2-4054-a211-1900c54801a4";
+inline bool changedPhoto(SampleVersion v) {
+  return v == SampleVersion::photoAdded || v == SampleVersion::photoReplaced;
+}
+
+inline std::string fixturePhoto() {
+  return {reinterpret_cast<const char *>(journal_fixture::photo), sizeof(journal_fixture::photo)};
+}
+
 constexpr auto revisedText = "Call Mom on Sunday.";
 constexpr auto revisedDate = "2026-11-20T00:00:00Z";
 
 inline std::string entryText(const std::string &id, const std::string &token, SampleVersion version) {
   if (id == "first" && version != SampleVersion::legacy)
-    return version == SampleVersion::revised ? revisedText : "Call Mom.";
+    return (version == SampleVersion::revised || changedPhoto(version)) ? revisedText : "Call Mom.";
   return id + "-" + token;
 }
 
@@ -44,13 +53,29 @@ inline std::string manifest(const std::string &token, const Images &images, Samp
   };
   auto entry = [&](const std::string &id, const std::string &blocks) {
     return R"({"id":")" + id + R"(","content_type":"todo","selected_date":"2026-11-19","created_at":"2026-11-19T00:00:00Z","updated_at":")"
-      + (id == "first" && version == SampleVersion::revised ? revisedDate : "2026-11-19T00:00:00Z") + R"(","content":")"
+      + (id == "first" && (version == SampleVersion::revised || changedPhoto(version)) ? revisedDate : "2026-11-19T00:00:00Z") + R"(","content":")"
       + entryText(id, token, version) + R"(","metadata":{"journalBlocks":[)" + blocks + "]}}";
   };
+  auto blocks = block(sharedId);
+  auto inventory = asset(sharedId, images.shared);
+  auto bytes = images.shared.size();
+  size_t count = 1;
+  if (version != SampleVersion::photoReplaced) {
+    blocks += "," + block(otherId);
+    inventory += "," + asset(otherId, images.other);
+    bytes += images.other.size();
+    ++count;
+  }
+  if (changedPhoto(version)) {
+    blocks += "," + block(newPhotoId);
+    inventory += "," + asset(newPhotoId, fixturePhoto());
+    bytes += sizeof(journal_fixture::photo);
+    ++count;
+  }
   return journal_fixture::manifestDocument(
-    entry("first", block(sharedId) + "," + block(otherId)) + "," + entry("second", block(sharedId)),
+    entry("first", blocks) + "," + entry("second", block(sharedId)),
     R"({"id":"first","key":"journal_local:todo:2026-11-19:first"},{"id":"second","key":"journal_local:todo:2026-11-19:second"})",
-    asset(sharedId, images.shared) + "," + asset(otherId, images.other), 2, 2, images.shared.size() + images.other.size());
+    inventory, 2, count, bytes);
 }
 
 inline std::string exportToFile(const std::string &path, const char *code,
@@ -58,10 +83,13 @@ inline std::string exportToFile(const std::string &path, const char *code,
                                 SampleVersion version = SampleVersion::original) {
   const Images images{photos::png(false), photos::png(true)};
   const auto document = manifest(token, images, version);
-  std::string payload = "JSH1" + token;
+  const auto magic = version == SampleVersion::photoAdded ? "JSA1" :
+                     version == SampleVersion::photoReplaced ? "JSR1" : "JSH1";
+  std::string payload = magic + token;
   photos::append32(payload, document.size());
   photos::append32(payload, images.shared.size());
   payload += document + images.shared + images.other;
+  if (changedPhoto(version)) payload += fixturePhoto();
   journal_fixture::writeArchive(path, journal_fixture::encrypt(payload, code));
   return token;
 }
@@ -87,28 +115,36 @@ inline std::string imageDirectory(const std::string &directory) {
 struct VerifiedSample {
   std::string token, document, firstContent, baseDigest;
   Images images;
+  SampleVersion version;
 };
 
 inline journal_fixture::Bytes readSample(const std::string &path) {
-  return journal_fixture::readArchive(path, journal_fixture::overhead + 44 + maxManifest + 2 * maxImage);
+  return journal_fixture::readArchive(path, journal_fixture::overhead + 44 + maxManifest + 2 * maxImage + sizeof(journal_fixture::photo));
 }
 
 inline VerifiedSample inspect(const journal_fixture::Bytes &sealed, const char *code) {
   require(sodium_init() >= 0);
   constexpr size_t header = 44;
   const auto data = journal_fixture::openAuthenticatedFrame(sealed, code);
-  require(data.size() >= header && data.compare(0, 4, "JSH1") == 0);
+  require(data.size() >= header);
+  const auto magic = data.substr(0, 4);
+  auto version = SampleVersion::original;
+  if (magic == "JSA1") version = SampleVersion::photoAdded;
+  else if (magic == "JSR1") version = SampleVersion::photoReplaced;
+  else require(magic == "JSH1");
   const auto token = data.substr(4, 32);
   require(token.find_first_not_of("0123456789abcdef") == std::string::npos);
   const auto manifestSize = sizeAt(data, 36), sharedSize = sizeAt(data, 40);
   require(manifestSize > 0 && manifestSize <= maxManifest && sharedSize > 0 && sharedSize <= maxImage);
   const auto otherAt = header + manifestSize + sharedSize;
-  require(otherAt < data.size() && data.size() - otherAt <= maxImage);
-  Images images{data.substr(header + manifestSize, sharedSize), data.substr(otherAt)};
+  const size_t tail = changedPhoto(version) ? sizeof(journal_fixture::photo) : 0;
+  require(data.size() > otherAt + tail && data.size() - otherAt - tail <= maxImage);
+  if (tail) require(data.compare(data.size() - tail, tail, fixturePhoto()) == 0);
+  Images images{data.substr(header + manifestSize, sharedSize), data.substr(otherAt, data.size() - otherAt - tail)};
   const auto document = data.substr(header, manifestSize);
   const auto original = manifest(token, images);
-  auto version = SampleVersion::original;
-  if (document != original) {
+  if (changedPhoto(version)) require(document == manifest(token, images, version));
+  else if (document != original) {
     if (document == manifest(token, images, SampleVersion::revised)) version = SampleVersion::revised;
     else {
       require(document == manifest(token, images, SampleVersion::legacy));
@@ -119,12 +155,26 @@ inline VerifiedSample inspect(const journal_fixture::Bytes &sealed, const char *
           images.other.compare(0, 8, "\x89PNG\r\n\x1a\n", 8) == 0 && images.shared != images.other);
 
   return {token, document, entryText("first", token, version),
-          version == SampleVersion::revised ? digest(original) : "", std::move(images)};
+          version == SampleVersion::revised || changedPhoto(version) ? digest(original) : "", std::move(images), version};
 }
 
 inline std::string stageVerified(const std::string &directory, const VerifiedSample &sample, size_t sealedSize) {
-  const auto &[token, document, firstContent, baseDigest, images] = sample;
+  const auto &[token, document, firstContent, baseDigest, images, version] = sample;
   const auto dir = imageDirectory(directory);
+  if (changedPhoto(version)) {
+    // Use one immutable encrypted object across retries, including after a DB rollback.
+    const auto id = digest(token + journal_fixture::photoDigest).substr(0, 32);
+    const auto name = "photo-" + id;
+    struct stat info{};
+    if (lstat((dir + "/" + name).c_str(), &info) != 0) {
+      require(errno == ENOENT);
+      require(photos::stageImage(dir, fixturePhoto(), photos::Interruption::none, id) == name);
+    }
+    const auto sealed = journal_fixture::readArchive(dir + "/" + name, sizeof(journal_fixture::photo) + journal_fixture::overhead);
+    require(journal_fixture::openAuthenticatedFrame(sealed, journal_fixture::password) == fixturePhoto());
+    return R"({"archiveDigest":")" + digest(document) + R"(","file":")" + name
+      + R"(","assetId":")" + newPhotoId + R"(","photoDigest":")" + journal_fixture::photoDigest + R"("})";
+  }
   const auto shared = photos::stageImage(dir, images.shared, photos::Interruption::none);
   const auto other = photos::stageImage(dir, images.other, photos::Interruption::none);
   return R"({"token":")" + token + R"(","manifest":)" + document
@@ -153,9 +203,14 @@ public:
     auto sealed = readSample(path);
     const auto sample = inspect(sealed, code);
     const auto id = journal_fixture::freshToken();
-    // inspect() authenticates the exact two-entry, two-photo manifest before returning.
-    const auto json = R"({"previewId":")" + id + R"(","entries":2,"photos":2,"photoBytes":)"
-      + std::to_string(sample.images.shared.size() + sample.images.other.size())
+    // inspect() authenticates the exact two-entry sample manifest before returning.
+    const bool added = sample.version == SampleVersion::photoAdded;
+    const bool replaced = sample.version == SampleVersion::photoReplaced;
+    size_t bytes = sample.images.shared.size() + (replaced ? 0 : sample.images.other.size());
+    if (added || replaced) bytes += sizeof(journal_fixture::photo);
+    const auto json = R"({"previewId":")" + id
+      + (added ? R"(","photoChange":"added)" : replaced ? R"(","photoChange":"replaced)" : "")
+      + R"(","entries":2,"photos":)" + (added ? "3" : "2") + R"(,"photoBytes":)" + std::to_string(bytes)
       + R"(,"firstContent":")" + sample.firstContent
       + (sample.baseDigest.empty() ? "" : R"(","updatedAt":")" + std::string(revisedDate) + R"(","baseDigest":")" + sample.baseDigest)
       + R"(","archiveDigest":")" + digest(sample.document) + R"("})";

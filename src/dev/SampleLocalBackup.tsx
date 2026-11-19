@@ -12,10 +12,13 @@ const nativeArchive = (): typeof import('../native/NativeJournalArchiveCrypto').
 function readPreview(result: string): SamplePreview {
   const value = JSON.parse(result);
   if (typeof value?.previewId !== 'string' || !/^[a-f0-9]{32}$/.test(value.previewId) ||
-      value.entries !== 2 || value.photos !== 2 || !Number.isSafeInteger(value.photoBytes) || value.photoBytes <= 0) {
+      value.entries !== 2 || value.photos !== (value.photoChange === 'added' ? 3 : 2) || !Number.isSafeInteger(value.photoBytes) || value.photoBytes <= 0) {
     throw new Error('Invalid sample preview');
   }
-  const revised = value.baseDigest !== undefined || value.updatedAt !== undefined;
+  if (value.photoChange !== undefined && value.photoChange !== 'added' && value.photoChange !== 'replaced') {
+    throw new Error('Unknown sample photo revision');
+  }
+  const revised = value.photoChange !== undefined || value.baseDigest !== undefined || value.updatedAt !== undefined;
   if (revised && (value.firstContent !== 'Call Mom on Sunday.' || value.updatedAt !== '2026-11-20T00:00:00Z' ||
       typeof value.baseDigest !== 'string' || !/^[a-f0-9]{64}$/.test(value.baseDigest) ||
       typeof value.archiveDigest !== 'string' || value.baseDigest === value.archiveDigest)) {
@@ -29,6 +32,7 @@ function readPreview(result: string): SamplePreview {
     throw new Error('Invalid sample archive identity');
   }
   return {...value, revision: revised ? {
+    ...(value.photoChange && {photoChange: value.photoChange}),
     baseDigest: value.baseDigest, archiveDigest: value.archiveDigest, updatedAt: value.updatedAt, firstContent: value.firstContent,
   } : undefined};
 }
@@ -192,11 +196,18 @@ export default function SampleLocalBackup() {
     }
   }
   async function saveRevision() {
-    if (!revisionReview || running.current) {return;}
+    if (!revisionReview || !preview || pendingId.current !== preview.previewId || running.current) {return;}
     running.current = true;
     setBusy(true);
     try {
-      await revisionReview.keepBoth();
+      if (preview.revision?.photoChange) {
+        await revisionReview.keepBoth(() => {
+          pendingId.current = null;
+          return nativeArchive().finishSampleRestorePreview(preview.previewId, normalized, true);
+        });
+      } else {
+        await revisionReview.keepBoth();
+      }
       if (mounted.current) {
         reset();
         setMessage('Added the revised entry. Your device version and existing photos were kept.');
@@ -249,7 +260,11 @@ export default function SampleLocalBackup() {
           <Text style={text}>{revisionReview.deviceText}</Text>
           <Text style={[text, styles.buttonText]}>In the revised backup</Text>
           <Text style={text}>{preview.firstContent}</Text>
-          <Text style={text}>Keep both adds a separate entry using the two photos already restored.</Text>
+          <Text style={text}>{preview.revision?.photoChange === 'added'
+            ? 'Keep both adds a separate entry with one extra photo.'
+            : preview.revision?.photoChange === 'replaced'
+              ? 'Keep both adds a separate entry with a different second photo. Your original photo stays on this device.'
+              : 'Keep both adds a separate entry using the two photos already restored.'}</Text>
           {button('Keep my device version', () => {reset(); setMessage('Kept your device version.');}, busy)}
           {button('Keep both versions', saveRevision, busy)}
         </> : deviceText ? <>

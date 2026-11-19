@@ -147,11 +147,15 @@ it('recognizes a second verified selection before staging photos and still previ
   expect(sample.discard).toHaveBeenCalledTimes(1);
 });
 
-it.each(['keep device', 'keep both', 'missing original'])('reviews a related backup before a decision: %s', async choice => {
+it.each([
+  ['keep device', undefined], ['keep both', undefined], ['missing original', undefined],
+  ['keep device', 'added'], ['keep both', 'added'], ['keep device', 'replaced'], ['keep both', 'replaced'],
+])('reviews a related backup before a decision: %s, %s', async (choice, photoChange) => {
   const digest = '1'.repeat(64);
   const revised = {...JSON.parse(selectedPreview), baseDigest: digest, archiveDigest: '3'.repeat(64),
-    firstContent: 'Call Mom on Sunday.', updatedAt: '2026-11-20T00:00:00Z'};
-  const keepBoth = jest.fn();
+    firstContent: 'Call Mom on Sunday.', updatedAt: '2026-11-20T00:00:00Z',
+    photoChange, photos: photoChange === 'added' ? 3 : 2};
+  const keepBoth = jest.fn(async (stage?: () => Promise<string>) => {if (stage) {await stage();}});
   const sample = {deviceText: 'Call Mom after dinner.', discard: jest.fn(), keepBoth: jest.fn(),
     alreadyRestored: jest.fn().mockResolvedValue(false),
     reviewRevision: jest.fn().mockResolvedValue({deviceText: 'I called Mom today.', keepBoth})};
@@ -175,10 +179,13 @@ it.each(['keep device', 'keep both', 'missing original'])('reviews a related bac
   } else {
     await screen.findByText('I called Mom today.');
     expect(screen.getByText('Call Mom on Sunday.')).toBeOnTheScreen();
+    if (photoChange) {
+      expect(screen.getByText(photoChange === 'added' ? /with one extra photo/ : /with a different second photo/)).toBeOnTheScreen();
+    }
     expect(keepBoth).not.toHaveBeenCalled();
     fireEvent.press(screen.getByText(choice === 'keep both' ? 'Keep both versions' : 'Keep my device version'));
     await screen.findByText(choice === 'keep both' ? /Added the revised entry/ : 'Kept your device version.');
   }
   expect(keepBoth).toHaveBeenCalledTimes(choice === 'keep both' ? 1 : 0);
-  expect(archive.finishSampleRestorePreview).toHaveBeenLastCalledWith(previewId, '', false);
+  expect(archive.finishSampleRestorePreview).toHaveBeenLastCalledWith(previewId, photoChange && choice === 'keep both' ? 'b'.repeat(32) : '', Boolean(photoChange && choice === 'keep both'));
 });

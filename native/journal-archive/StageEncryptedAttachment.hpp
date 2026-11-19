@@ -33,7 +33,7 @@ struct Descriptor {
 template <typename Progress>
 std::string stage(const std::string &source, const std::string &directory,
                   size_t length, const std::array<unsigned char, crypto_hash_sha256_BYTES> &expected,
-                  Progress progress) {
+                  Progress progress, const std::string &immutableId = {}) {
   // Bound this development checkpoint to a single compressed image.
   check(length > 0 && length <= 16 * 1024 * 1024 && sodium_init() >= 0);
   Descriptor dir(open(directory.c_str(), O_RDONLY | O_DIRECTORY | O_NOFOLLOW));
@@ -46,7 +46,9 @@ std::string stage(const std::string &source, const std::string &directory,
   randombytes_buf(random, sizeof(random));
   sodium_bin2hex(id, sizeof(id), random, sizeof(random));
   const std::string partial = std::string("partial-") + id;
-  const std::string published = std::string("photo-") + id;
+  check(immutableId.empty() || (immutableId.size() == 32 &&
+    immutableId.find_first_not_of("0123456789abcdef") == std::string::npos));
+  const std::string published = std::string("photo-") + (immutableId.empty() ? id : immutableId);
   Descriptor out(openat(dir.fd, partial.c_str(), O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW, 0600));
   try {
     crypto_hash_sha256_state hash;

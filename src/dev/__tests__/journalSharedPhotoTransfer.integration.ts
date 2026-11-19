@@ -140,6 +140,54 @@ it('restores both entries from one encrypted file and rejects a damaged second p
       expect(copy.metadata.journalBlocks.map((b: {uri: string}) => b.uri.slice(8))).toEqual(files);
       expect(readdirSync(imageDir).sort()).toEqual(savedPhotos);
       expect((await existing.execute('SELECT digest FROM sample_restore_receipts')).rows).toHaveLength(2);
+      let revisedFile: string | undefined;
+      for (const change of ['added', 'replaced'] as const) {
+        const path = join(compareTarget, change + '.bin');
+        const photoRevision = JSON.parse(run(['--export-revision', destination, path, change]).toString());
+        expect(photoRevision).toMatchObject({baseDigest: archiveDigest, photoChange: change, photos: change === 'added' ? 3 : 2});
+        const previous = await snapshot();
+        const previousFiles = readdirSync(imageDir).sort();
+        const reviewPhoto = await previewSampleRevision(existing, photoRevision, kept);
+        expect(readdirSync(imageDir).sort()).toEqual(previousFiles);
+        expect(await snapshot()).toEqual(previous);
+        const stage = jest.fn(async () => run(['--confirm-photo-revision', compareTarget, path]).toString());
+        await existing.execute("CREATE TEMP TRIGGER fail_photo BEFORE INSERT ON sample_restore_receipts BEGIN SELECT RAISE(ABORT, 'interrupted photo restore'); END");
+        await expect(reviewPhoto.keepBoth(stage)).rejects.toThrow('interrupted photo restore');
+        expect(await snapshot()).toEqual(previous);
+        await existing.execute('DROP TRIGGER fail_photo');
+        const stagedFiles = readdirSync(imageDir).sort();
+        expect(stagedFiles).toHaveLength(3);
+        const newFile = stagedFiles.find(name => !savedPhotos.includes(name))!;
+        const sealedPhoto = readFileSync(join(imageDir, newFile));
+        if (change === 'added') {
+          const damaged = Buffer.from(sealedPhoto);
+          damaged[damaged.length - 1] ^= 1;
+          writeFileSync(join(imageDir, newFile), damaged);
+          await expect(reviewPhoto.keepBoth(stage)).rejects.toThrow();
+          expect(await snapshot()).toEqual(previous);
+          expect(readFileSync(join(imageDir, newFile)).equals(damaged)).toBe(true);
+          writeFileSync(join(imageDir, newFile), sealedPhoto);
+        }
+        if (revisedFile) {expect(newFile).toBe(revisedFile);}
+        revisedFile = newFile;
+        await reviewPhoto.keepBoth(stage);
+        stage.mockClear();
+        await reviewPhoto.keepBoth(stage);
+        expect(stage).not.toHaveBeenCalled();
+        existing.close();
+        existing = connect(join(compareTarget, 'existing.sqlite'));
+        const after = await snapshot();
+        for (const row of previous.rows.filter(r => r.k !== indexKey)) {expect(after.rows).toContainEqual(row);}
+        const added = after.rows.filter(row => !previous.rows.some(old => row.k === old.k));
+        expect(added).toHaveLength(1);
+        const entry = JSON.parse(added[0].v as string);
+        const index = JSON.parse(after.rows.find(row => row.k === indexKey)!.v as string);
+        expect(index).toContain(entry.id);
+        expect(entry.metadata.journalBlocks.map((b: {uri: string}) => b.uri.slice(8))).toEqual(
+          change === 'added' ? [...files, newFile] : [files[0], newFile]);
+        expect(readdirSync(imageDir).sort()).toEqual(stagedFiles);
+        expect(readFileSync(join(imageDir, newFile)).equals(sealedPhoto)).toBe(true);
+      }
     } finally {
       existing.close();
     }

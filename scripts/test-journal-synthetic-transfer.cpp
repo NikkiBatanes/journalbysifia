@@ -164,14 +164,34 @@ int main(int argc, char **argv) {
         const auto token = journal_shared_transfer::exportToFile((dir / "Original.bin").string(), code.c_str());
         journal_shared_transfer::exportToFile((dir / "Revised.bin").string(), code.c_str(), token,
                                              journal_shared_transfer::SampleVersion::revised);
+        journal_shared_transfer::exportToFile((dir / "Added.bin").string(), code.c_str(), token,
+                                             journal_shared_transfer::SampleVersion::photoAdded);
+        journal_shared_transfer::exportToFile((dir / "Replaced.bin").string(), code.c_str(), token,
+                                             journal_shared_transfer::SampleVersion::photoReplaced);
         std::cout << code << '\n';
         return 0;
       }
-      if (command == "--export-revision") {
+      if (command == "--confirm-photo-revision") {
         fixture::require(argc == 4);
+        auto &previews = journal_shared_transfer::samplePreviews();
+        const auto preview = previews.prepare(argv[3], fixture::password);
+        const std::string prefix = R"({"previewId":")";
+        fixture::require(preview.compare(0, prefix.size(), prefix) == 0);
+        std::cout << previews.finish(argv[2], preview.substr(prefix.size(), 32), fixture::password, true);
+        return 0;
+      }
+      if (command == "--export-revision") {
+        fixture::require(argc == 4 || argc == 5);
+        using Version = journal_shared_transfer::SampleVersion;
+        auto version = Version::revised;
+        if (argc == 5) {
+          const std::string change(argv[4]);
+          fixture::require(change == "added" || change == "replaced");
+          version = change == "added" ? Version::photoAdded : Version::photoReplaced;
+        }
         const auto base = journal_shared_transfer::inspect(journal_shared_transfer::readSample(argv[2]), fixture::password);
         fixture::require(base.firstContent == "Call Mom." && !std::filesystem::exists(std::filesystem::symlink_status(argv[3])));
-        journal_shared_transfer::exportToFile(argv[3], fixture::password, base.token, journal_shared_transfer::SampleVersion::revised);
+        journal_shared_transfer::exportToFile(argv[3], fixture::password, base.token, version);
         std::cout << journal_shared_transfer::samplePreviews().prepare(argv[3], fixture::password) << '\n';
         return 0;
       }

@@ -188,8 +188,8 @@ async function hasSampleReceipt(db: Pick<RestoreDatabase, 'execute'>, digest: st
 }
 
 // Native supplies the base digest only for a verified revision whose second entry
-// and both photo digests still match the original sample manifest.
-export type SampleRevision = {baseDigest: string; archiveDigest: string; firstContent: string; updatedAt: string};
+// and the authenticated source images identify the original sample manifest.
+export type SampleRevision = {baseDigest: string; archiveDigest: string; firstContent: string; updatedAt: string; photoChange?: 'added' | 'replaced'};
 
 export async function previewSampleRevision(
   db: RestoreDatabase, revision: SampleRevision,
@@ -208,7 +208,7 @@ export async function previewSampleRevision(
   const source = original.entries[0];
   return {
     deviceText: device.content,
-    async keepBoth() {
+    async keepBoth(stagePhoto?: () => Promise<string>) {
       const photos = source.metadata?.journalBlocks;
       if (!photos || photos.length !== 2 || photos[0].kind !== 'photo' || photos[1].kind !== 'photo') {
         throw new Error('Missing sample photos');
@@ -230,6 +230,19 @@ export async function previewSampleRevision(
         }
         const copy = {...source, id: uuid(), content: firstContent, updated_at: updatedAt};
         if (ids.includes(copy.id)) {throw new Error('Sample copy ID collision');}
+        if (revision.photoChange) {
+          if (!stagePhoto) {throw new Error('Missing revised photo snapshot');}
+          const staged = JSON.parse(await stagePhoto());
+          if (staged?.archiveDigest !== digest || staged.assetId !== '792d9c99-72e2-4054-a211-1900c54801a4' ||
+              typeof staged.file !== 'string' || !names.test(staged.file) || staged.file === shared || staged.file === other ||
+              staged.photoDigest !== '2761c10bfda1b80b82c2200d6791c35f6936e79bd89efa40fdddb0772af0d174' ||
+              !await archive.checkRestoredPhotos(shared, original.sharedDigest, staged.file, staged.photoDigest)) {
+            throw new Error('Revised photo could not be verified');
+          }
+          const block = {id: staged.assetId, kind: 'photo' as const, uri: 'objects/' + staged.file};
+          copy.metadata = {...source.metadata, journalBlocks: revision.photoChange === 'added'
+            ? [...photos, block] : [photos[0], block]};
+        }
         await tx.execute('INSERT INTO restore_kv (k,v) VALUES (?,?)', [prefix + copy.id, JSON.stringify(copy)]);
         await tx.execute('UPDATE restore_kv SET v=? WHERE k=?', [JSON.stringify([...ids, copy.id].sort()), indexKey]);
         await tx.execute('INSERT INTO sample_restore_receipts (digest) VALUES (?)', [digest]);
