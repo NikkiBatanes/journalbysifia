@@ -57,12 +57,10 @@ enum class Interruption { none, duringCopy, afterPublication };
 
 // Explicit development test. Terminate without stack unwinding, just as an
 // external process stop would leave the staging files and database.
-inline std::string stage(const std::string &base, bool replacement,
-                         Interruption interruption = Interruption::none) {
+inline std::string stageImage(const std::string &dir, const std::string &image, Interruption interruption) {
   require(sodium_init() >= 0);
-  const auto dir = directory(base);
   const auto source = dir + "/fixture.sealed";
-  const auto data = journal_fixture::encrypt(png(replacement));
+  const auto data = journal_fixture::encrypt(image);
   std::array<unsigned char, crypto_hash_sha256_BYTES> digest{};
   crypto_hash_sha256(digest.data(), data.data(), data.size());
   journal_attachment::Descriptor file(open(source.c_str(), O_WRONLY | O_TRUNC | O_CREAT | O_NOFOLLOW, 0600));
@@ -85,6 +83,11 @@ inline std::string stage(const std::string &base, bool replacement,
     unlink(source.c_str());
     throw;
   }
+}
+
+inline std::string stage(const std::string &base, bool replacement,
+                         Interruption interruption = Interruption::none) {
+  return stageImage(directory(base), png(replacement), interruption);
 }
 
 struct StagingFiles {

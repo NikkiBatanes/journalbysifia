@@ -33,13 +33,13 @@ class JournalArchiveCryptoModule(reactContext: ReactApplicationContext) :
 
   private external fun nativeRunMediaPackagingSelfTest(): BooleanArray
 
-  private external fun nativeSyntheticTransfer(directory: String, exporting: Boolean): String?
+  private external fun nativeSyntheticTransfer(directory: String, exporting: Boolean, sharedPhotos: Boolean): String?
 
-  private fun syntheticTransfer(exporting: Boolean, promise: Promise) {
+  private fun syntheticTransfer(exporting: Boolean, promise: Promise, sharedPhotos: Boolean = false) {
     cryptoExecutor.execute {
       try {
         check(app.journal.sifia.BuildConfig.DEBUG) { "Development build required" }
-        val result = nativeSyntheticTransfer(reactApplicationContext.cacheDir.absolutePath, exporting)
+        val result = nativeSyntheticTransfer(reactApplicationContext.cacheDir.absolutePath, exporting, sharedPhotos)
         requireNotNull(result) { "Synthetic archive verification failed" }
         promise.resolve(result)
       } catch (error: Exception) {
@@ -105,6 +105,25 @@ class JournalArchiveCryptoModule(reactContext: ReactApplicationContext) :
 
   override fun stageSyntheticPhoto(replacement: Boolean, promise: Promise) = fixturePhoto(null, replacement, promise)
   override fun verifySyntheticPhoto(name: String, replacement: Boolean, promise: Promise) = fixturePhoto(name, replacement, promise)
+
+  override fun exportSharedPhotoTransfer(promise: Promise) = syntheticTransfer(true, promise, sharedPhotos = true)
+  override fun importSharedPhotoTransfer(promise: Promise) = syntheticTransfer(false, promise, sharedPhotos = true)
+
+  private external fun nativeVerifyTransferredPhotos(
+    directory: String, shared: String, sharedDigest: String, other: String, otherDigest: String
+  ): Boolean
+
+  override fun verifyTransferredPhotos(shared: String, sharedDigest: String, other: String, otherDigest: String, promise: Promise) {
+    cryptoExecutor.execute {
+      try {
+        check(app.journal.sifia.BuildConfig.DEBUG) { "Development build required" }
+        promise.resolve(nativeVerifyTransferredPhotos(reactApplicationContext.cacheDir.absolutePath,
+          shared, sharedDigest, other, otherDigest))
+      } catch (error: Exception) {
+        promise.reject("JOURNAL_TRANSFER_TEST_FAILED", error)
+      }
+    }
+  }
 
   override fun exportSyntheticTransfer(promise: Promise) = syntheticTransfer(true, promise)
   override fun importSyntheticTransfer(promise: Promise) = syntheticTransfer(false, promise)

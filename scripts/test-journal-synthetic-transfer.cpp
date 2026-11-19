@@ -1,6 +1,6 @@
 // Build against the same libsodium used by the mobile diagnostic.
 #include "../native/journal-archive/SyntheticTransfer.hpp"
-#include "../native/journal-archive/SyntheticFilePhoto.hpp"
+#include "../native/journal-archive/SyntheticSharedTransfer.hpp"
 #include <csignal>
 #include <filesystem>
 #include <fstream>
@@ -107,6 +107,17 @@ int main(int argc, char **argv) {
   if (argc != 1) {
     try {
       const std::string command = argv[1];
+      if (command == "--export-shared" || command == "--read-shared") {
+        fixture::require(argc == 3);
+        std::cout << (command == "--export-shared" ? journal_shared_transfer::exportArchive(argv[2])
+                                                  : journal_shared_transfer::importArchive(argv[2])) << '\n';
+        return 0;
+      }
+      if (command == "--verify-pair") {
+        fixture::require(argc == 7);
+        journal_shared_transfer::verifyPair(argv[2], argv[3], argv[4], argv[5], argv[6]);
+        return 0;
+      }
       if (command == "--collect-photo") {
         fixture::require(argc == 4);
         journal_attachment::collect(argv[2], {argv[3]});

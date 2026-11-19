@@ -27,13 +27,19 @@ export const installJournalEncryptedStorageSpikeMenu = (): void => {
   installed = true;
 
   let transferBusy = false;
-  async function transferFixture(exporting: boolean) {
+  async function transferFixture(exporting: boolean, sharedPhotos = false) {
     if (transferBusy) {return;}
     transferBusy = true;
     try {
-      const token = exporting
-        ? await (await import('../native/NativeJournalArchiveCrypto')).default.exportSyntheticTransfer()
-        : await (await import('./journalArchiveTransferProbe')).restoreTransferredFixture();
+      let token: string;
+      if (exporting) {
+        const provider = (await import('../native/NativeJournalArchiveCrypto')).default;
+        token = sharedPhotos ? await provider.exportSharedPhotoTransfer() : await provider.exportSyntheticTransfer();
+      } else if (sharedPhotos) {
+        token = await (await import('./journalSharedPhotoTransferProbe')).restoreSharedPhotoTransfer();
+      } else {
+        token = await (await import('./journalArchiveTransferProbe')).restoreTransferredFixture();
+      }
       Alert.alert(exporting ? 'Test backup exported' : 'Transferred restore passed', token);
     } catch {
       Alert.alert('Test backup transfer failed');
@@ -41,6 +47,13 @@ export const installJournalEncryptedStorageSpikeMenu = (): void => {
       transferBusy = false;
     }
   }
+  DevSettings.addMenuItem('Transfer two photos', () => {
+    Alert.alert('Transfer two photos', 'Copy the single encrypted test file to a fresh installation.', [
+      {text: 'Cancel', style: 'cancel'},
+      {text: 'Export', onPress: () => transferFixture(true, true)},
+      {text: 'Restore', onPress: () => transferFixture(false, true)},
+    ]);
+  });
   DevSettings.addMenuItem('Test portable Journal backup', () => {
     Alert.alert('Test portable Journal backup', 'Transfer the encrypted test file between installations.', [
       {text: 'Cancel', style: 'cancel'},

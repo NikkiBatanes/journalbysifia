@@ -58,6 +58,18 @@ constexpr unsigned char photo[] = {
 constexpr auto photoDigest = "2761c10bfda1b80b82c2200d6791c35f6936e79bd89efa40fdddb0772af0d174";
 constexpr auto assetId = "cf890a91-410a-4526-9d47-8aa7085ec351";
 
+inline std::string manifestDocument(const std::string &records, const std::string &locations,
+                                    const std::string &assets, size_t recordCount, size_t assetCount, size_t assetBytes) {
+  const std::string integrity = R"({"counts":{},"tombstones":{"journalRecords":0,"reflectionRecords":0,"prayerRecords":0},"duplicateIds":[],"danglingReferences":[],"legacyOnlyRecords":{"reflectionLogs":0,"journalRecords":0}})";
+  return std::string(R"({"format":"journal-by-sifia-portable-archive","archiveVersion":1,"appIdentifier":"app.journal.sifia","createdAt":"2026-11-19T00:00:00Z","snapshotId":"11782d26-36db-4cb1-ac77-45c3bcff9f09",)")
+    + R"("backup":{"format":"journal-by-sifia-backup","appIdentifier":"app.journal.sifia","schemaVersion":1,"sensitive":true,"exportedAt":"2026-11-19T00:00:00Z",)"
+    + R"("inventory":{"journalRecords":[)" + records + R"(],"reflectionRecords":[],"prayerRecords":[],"bibleStudySessions":[],"routineStates":[],"reviews":[],"reviewSettings":null,"prayerDrafts":[],)"
+    + R"("recordLocations":{"journalRecords":[)" + locations + R"(],"reflectionRecords":[],"prayerRecords":[],"bibleStudySessions":[],"routineStates":[],"reviews":[]},)"
+    + R"("authoredDrafts":{"sessionNotes":[],"guidedReflections":[],"routines":[]},"gospelAuthoredContent":[],"preferences":[],"legacyAuthoredContent":{"reflectionLogs":[],"journalRecords":[]},"integrity":)"
+    + integrity + R"(},"integrity":)" + integrity + R"(},"assets":[)" + assets + R"(],"totals":{"records":)" + std::to_string(recordCount)
+    + R"(,"assets":)" + std::to_string(assetCount) + R"(,"assetBytes":)" + std::to_string(assetBytes) + "}}";
+}
+
 inline std::string manifest(const std::string &token, bool hasPhoto = false) {
   const auto photoPath = std::string("objects/") + assetId;
   std::string block, assets;
@@ -68,15 +80,9 @@ inline std::string manifest(const std::string &token, bool hasPhoto = false) {
       + R"(","kind":"image","mediaType":"image/png","byteLength":)" + std::to_string(sizeof(photo))
       + R"(,"sha256":")" + photoDigest + R"(","ownerRecordId":"fixture"})";
   }
-  const std::string integrity = R"({"counts":{},"tombstones":{"journalRecords":0,"reflectionRecords":0,"prayerRecords":0},"duplicateIds":[],"danglingReferences":[],"legacyOnlyRecords":{"reflectionLogs":0,"journalRecords":0}})";
-  return std::string(R"({"format":"journal-by-sifia-portable-archive","archiveVersion":1,"appIdentifier":"app.journal.sifia","createdAt":"2026-11-19T00:00:00Z","snapshotId":"11782d26-36db-4cb1-ac77-45c3bcff9f09",)")
-    + R"("backup":{"format":"journal-by-sifia-backup","appIdentifier":"app.journal.sifia","schemaVersion":1,"sensitive":true,"exportedAt":"2026-11-19T00:00:00Z",)"
-    + R"("inventory":{"journalRecords":[{"id":"fixture","content_type":"todo","selected_date":"2026-11-19","created_at":"2026-11-19T00:00:00Z","updated_at":"2026-11-19T00:00:00Z","content":"synthetic-)"
-    + token + "\"" + block + R"(}],"reflectionRecords":[],"prayerRecords":[],"bibleStudySessions":[],"routineStates":[],"reviews":[],"reviewSettings":null,"prayerDrafts":[],)"
-    + R"("recordLocations":{"journalRecords":[{"id":"fixture","key":"journal_local:todo:2026-11-19:fixture"}],"reflectionRecords":[],"prayerRecords":[],"bibleStudySessions":[],"routineStates":[],"reviews":[]},)"
-    + R"("authoredDrafts":{"sessionNotes":[],"guidedReflections":[],"routines":[]},"gospelAuthoredContent":[],"preferences":[],"legacyAuthoredContent":{"reflectionLogs":[],"journalRecords":[]},"integrity":)"
-    + integrity + R"(},"integrity":)" + integrity + R"(},"assets":[)" + assets + R"(],"totals":{"records":1,"assets":)"
-    + (hasPhoto ? "1" : "0") + R"(,"assetBytes":)" + std::to_string(hasPhoto ? sizeof(photo) : 0) + "}}";
+  const auto record = std::string(R"({"id":"fixture","content_type":"todo","selected_date":"2026-11-19","created_at":"2026-11-19T00:00:00Z","updated_at":"2026-11-19T00:00:00Z","content":"synthetic-)") + token + "\"" + block + "}";
+  return manifestDocument(record, R"({"id":"fixture","key":"journal_local:todo:2026-11-19:fixture"})",
+    assets, 1, hasPhoto ? 1 : 0, hasPhoto ? sizeof(photo) : 0);
 }
 
 inline Bytes encrypt(const std::string &plain) {
@@ -130,15 +136,7 @@ inline std::string decrypt(const Bytes &data, const char *code) {
   return plain;
 }
 
-inline std::string exportFixture(const std::string &directory) {
-  require(sodium_init() >= 0);
-  unsigned char random[16];
-  char token[33];
-  randombytes_buf(random, sizeof(random));
-  sodium_bin2hex(token, sizeof(token), random, sizeof(random));
-  const auto data = encrypt(manifest(token, true) +
-    std::string(reinterpret_cast<const char *>(photo), sizeof(photo)));
-  const auto target = directory + fileName;
+inline void writeArchive(const std::string &target, const Bytes &data) {
   auto temp = target + ".XXXXXX";
   const int fd = mkstemp(temp.data());
   require(fd >= 0);
@@ -155,14 +153,27 @@ inline std::string exportFixture(const std::string &directory) {
     unlink(temp.c_str());
     require(false);
   }
+}
+
+inline std::string freshToken() {
+  require(sodium_init() >= 0);
+  unsigned char random[16];
+  char token[33];
+  randombytes_buf(random, sizeof(random));
+  sodium_bin2hex(token, sizeof(token), random, sizeof(random));
   return token;
 }
 
-inline std::string importFixture(const std::string &directory) {
-  require(sodium_init() >= 0);
-  const size_t size = overhead + manifest(std::string(32, '0'), true).size() + sizeof(photo);
+inline std::string exportFixture(const std::string &directory) {
+  const auto token = freshToken();
+  writeArchive(directory + fileName, encrypt(manifest(token, true) +
+    std::string(reinterpret_cast<const char *>(photo), sizeof(photo))));
+  return token;
+}
+
+inline Bytes readArchive(const std::string &path, size_t size) {
   Bytes bytes(size + 1); // Extra byte also catches trailing data.
-  const int fd = open((directory + fileName).c_str(), O_RDONLY | O_NOFOLLOW | O_NONBLOCK);
+  const int fd = open(path.c_str(), O_RDONLY | O_NOFOLLOW | O_NONBLOCK);
   require(fd >= 0);
   struct stat st{};
   bool ok = fstat(fd, &st) == 0 && S_ISREG(st.st_mode) && st.st_size >= 0 && st.st_size <= static_cast<off_t>(size);
@@ -176,6 +187,14 @@ inline std::string importFixture(const std::string &directory) {
   close(fd);
   require(ok && offset == static_cast<size_t>(st.st_size));
   bytes.resize(offset);
+  return bytes;
+}
+
+inline std::string importFixture(const std::string &directory) {
+  require(sodium_init() >= 0);
+  const size_t size = overhead + manifest(std::string(32, '0'), true).size() + sizeof(photo);
+  const auto bytes = readArchive(directory + fileName, size);
+  const auto offset = bytes.size();
   auto plain = decrypt(bytes, password);
   std::string result = R"({"containerByteLength":)" + std::to_string(offset);
   if (offset == size) {

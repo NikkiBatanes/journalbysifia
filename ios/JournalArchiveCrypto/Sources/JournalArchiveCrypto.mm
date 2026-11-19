@@ -1,4 +1,4 @@
-#include "../../../native/journal-archive/SyntheticTransfer.hpp"
+#include "../../../native/journal-archive/SyntheticSharedTransfer.hpp"
 #if DEBUG
 #include "../../../native/journal-archive/SyntheticFilePhoto.hpp"
 #endif
@@ -534,6 +534,53 @@ RCT_EXPORT_MODULE(JournalArchiveCrypto)
       resolve([NSString stringWithUTF8String:result.c_str()]);
     } catch (const std::exception &) {
       reject(@"JOURNAL_TRANSFER_TEST_FAILED", @"Synthetic archive import failed", nil);
+    }
+  });
+#else
+  reject(@"JOURNAL_TRANSFER_DISABLED", @"Development build required", nil);
+#endif
+}
+
+- (void)exportSharedPhotoTransfer:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject {
+#if DEBUG
+  dispatch_async(JournalArchiveCryptoQueue(), ^{
+    try {
+      auto result = journal_shared_transfer::exportArchive([NSTemporaryDirectory() fileSystemRepresentation]);
+      resolve([NSString stringWithUTF8String:result.c_str()]);
+    } catch (const std::exception &) {
+      reject(@"JOURNAL_TRANSFER_TEST_FAILED", @"Synthetic archive export failed", nil);
+    }
+  });
+#else
+  reject(@"JOURNAL_TRANSFER_DISABLED", @"Development build required", nil);
+#endif
+}
+
+- (void)importSharedPhotoTransfer:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject {
+#if DEBUG
+  dispatch_async(JournalArchiveCryptoQueue(), ^{
+    try {
+      auto result = journal_shared_transfer::importArchive([NSTemporaryDirectory() fileSystemRepresentation]);
+      resolve([NSString stringWithUTF8String:result.c_str()]);
+    } catch (const std::exception &) {
+      reject(@"JOURNAL_TRANSFER_TEST_FAILED", @"Synthetic archive import failed", nil);
+    }
+  });
+#else
+  reject(@"JOURNAL_TRANSFER_DISABLED", @"Development build required", nil);
+#endif
+}
+
+- (void)verifyTransferredPhotos:(NSString *)shared sharedDigest:(NSString *)sharedDigest other:(NSString *)other
+                    otherDigest:(NSString *)otherDigest resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject {
+#if DEBUG
+  dispatch_async(JournalArchiveCryptoQueue(), ^{
+    try {
+      journal_shared_transfer::verifyPair([NSTemporaryDirectory() fileSystemRepresentation],
+        shared.UTF8String, sharedDigest.UTF8String, other.UTF8String, otherDigest.UTF8String);
+      resolve(@YES);
+    } catch (const std::exception &) {
+      resolve(@NO);
     }
   });
 #else

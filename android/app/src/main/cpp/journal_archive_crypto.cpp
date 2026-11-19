@@ -1,4 +1,4 @@
-#include "../../../../../native/journal-archive/SyntheticTransfer.hpp"
+#include "../../../../../native/journal-archive/SyntheticSharedTransfer.hpp"
 #include "../../../../../native/journal-archive/SyntheticFilePhoto.hpp"
 #include <jni.h>
 #include <sodium.h>
@@ -450,11 +450,16 @@ Java_app_journal_sifia_archivecrypto_JournalArchiveCryptoModule_nativeRunPortabl
 
 extern "C" JNIEXPORT jstring JNICALL
 Java_app_journal_sifia_archivecrypto_JournalArchiveCryptoModule_nativeSyntheticTransfer(
-    JNIEnv *env, jobject, jstring directory, jboolean exporting) {
+    JNIEnv *env, jobject, jstring directory, jboolean exporting, jboolean sharedPhotos) {
   const char *path = env->GetStringUTFChars(directory, nullptr);
   if (!path) return nullptr;
   try {
-    const auto result = exporting ? journal_fixture::exportFixture(path) : journal_fixture::importFixture(path);
+    std::string result;
+    if (sharedPhotos) {
+      result = exporting ? journal_shared_transfer::exportArchive(path) : journal_shared_transfer::importArchive(path);
+    } else {
+      result = exporting ? journal_fixture::exportFixture(path) : journal_fixture::importFixture(path);
+    }
     env->ReleaseStringUTFChars(directory, path);
     return env->NewStringUTF(result.c_str());
   } catch (const std::exception &) {
@@ -526,4 +531,23 @@ Java_app_journal_sifia_archivecrypto_JournalArchiveCryptoModule_nativeVerifyShar
   if (first) env->ReleaseStringUTFChars(shared, first);
   env->ReleaseStringUTFChars(directory, path);
   return verified;
+}
+
+extern "C" JNIEXPORT jboolean JNICALL
+Java_app_journal_sifia_archivecrypto_JournalArchiveCryptoModule_nativeVerifyTransferredPhotos(
+    JNIEnv *env, jobject, jstring directory, jstring shared, jstring sharedHash, jstring other, jstring otherHash) {
+  const std::array<jstring, 5> args{directory, shared, sharedHash, other, otherHash};
+  std::array<std::string, 5> values;
+  for (size_t i = 0; i < args.size(); ++i) {
+    const char *value = env->GetStringUTFChars(args[i], nullptr);
+    if (!value) return JNI_FALSE;
+    values[i] = value;
+    env->ReleaseStringUTFChars(args[i], value);
+  }
+  try {
+    journal_shared_transfer::verifyPair(values[0], values[1], values[2], values[3], values[4]);
+    return JNI_TRUE;
+  } catch (const std::exception &) {
+    return JNI_FALSE;
+  }
 }
