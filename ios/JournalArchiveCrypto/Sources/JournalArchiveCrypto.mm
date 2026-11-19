@@ -1,7 +1,7 @@
 #include "../../../native/journal-archive/SyntheticSharedTransfer.hpp"
 #if DEBUG
 #include "../../../native/journal-archive/PickerPhotoDigest.hpp"
-#include "../../../native/journal-archive/LocalSnapshotCheck.hpp"
+#include "../../../native/journal-archive/DeviceRestoreSample.hpp"
 #include "../../../native/journal-archive/SyntheticFilePhoto.hpp"
 #endif
 #import "JournalArchiveCrypto.h"
@@ -475,7 +475,7 @@ RCT_EXPORT_MODULE(JournalArchiveCrypto)
           NSError *error = nil;
           [coordinator coordinateReadingItemAtURL:selected options:0 error:&error byAccessor:^(NSURL *url) {
             try {
-              auto value = local ? journal_snapshot::inspectDocument(url.fileSystemRepresentation, recoveryCode.UTF8String)
+              auto value = local ? journal_snapshot::inspectDeviceSnapshot(url.fileSystemRepresentation, recoveryCode.UTF8String)
                                  : journal_shared_transfer::sampleDocument(url.fileSystemRepresentation, recoveryCode.UTF8String, false);
               document = [[NSString alloc] initWithBytes:value.data() length:value.size() encoding:NSUTF8StringEncoding];
               if (local) sodium_memzero(value.data(), value.size());

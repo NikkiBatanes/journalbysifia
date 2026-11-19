@@ -1,12 +1,13 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {execFileSync} from 'node:child_process';
 import {createHash, randomUUID} from 'node:crypto';
-import {existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
+import {copyFileSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {createJournalBackup} from '../../services/journalBackupContract';
 import {openRestoreSession} from '../journalRestoreDatabase';
 import {planStagedLocalSnapshot, prepareJournalPhotoExport} from '../prepareJournalPhotoManifest';
+import {hasDeviceRestoreSample, readDeviceSample, restoreDeviceSample} from '../journalDeviceSnapshotRestore';
 import {connect} from './restoreTestDatabase';
 
 jest.mock('uuid', () => ({v4: require('node:crypto').randomUUID}));
@@ -36,6 +37,7 @@ it('restores a saved snapshot with a shared photo and reopens it in fresh proces
     writeFileSync(join(root, 'sources'), sources);
     writeFileSync(join(root, leaf), bytes);
     run('save', root, code);
+    expect(hasDeviceRestoreSample(run('preview-sample', root, code).toString())).toBe(false);
     rmSync(join(root, leaf));
     const archive = join(root, 'archive');
     const original = readFileSync(archive);
@@ -76,5 +78,27 @@ it('restores a saved snapshot with a shared photo and reopens it in fresh proces
       expect(restored.metadata.journalBlocks[0].uri).toBe('objects/' + files[0].file);
     }
     expect(run('reopen', join(root, 'objects'), files[0].file)).toEqual(bytes);
+  } finally {rmSync(root, {recursive: true, force: true});}
+});
+
+it('confirms only the Files test sample and checks its linked photo after reopening', async () => {
+  const {env} = process;
+  const root = mkdtempSync(join(tmpdir(), 'journal-device-sample-'));
+  try {
+    copyFileSync(join(__dirname, '../../../scripts/fixtures/journal-backup/JournalRestoreSample.bin'), join(root, 'archive'));
+    const document = execFileSync(env.JOURNAL_SNAPSHOT_HOST!, ['preview-sample', root, '12233445566778899aabbccddeeff001'], {encoding: 'utf8'});
+    expect(hasDeviceRestoreSample(document)).toBe(true);
+    const path = join(root, 'sample.sqlite');
+    const db = connect(path);
+    try {
+      await restoreDeviceSample(db, document);
+      await restoreDeviceSample(db, document);
+    } finally {db.close();}
+    const reopened = connect(path);
+    try {
+      expect(await readDeviceSample(reopened)).toMatchObject({content: 'QA fixture', photoBytes: 85, photoUri: expect.stringMatching(/^data:image\/png;base64,/)});
+      await reopened.execute('DELETE FROM sample_photo');
+      await expect(readDeviceSample(reopened)).rejects.toThrow('photo differs');
+    } finally {reopened.close();}
   } finally {rmSync(root, {recursive: true, force: true});}
 });

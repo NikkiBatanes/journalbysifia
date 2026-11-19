@@ -1,8 +1,9 @@
 import React, {useEffect, useRef, useState} from 'react';
-import {Platform, Pressable, StyleSheet, Text, TextInput, View} from 'react-native';
+import {Image, Platform, Pressable, StyleSheet, Text, TextInput, View} from 'react-native';
 import 'react-native-get-random-values';
 import {createJournalBackup, validateJournalBackup} from '../services/journalBackupContract';
 import {inspectLocalSnapshotResult, prepareJournalPhotoExport} from './prepareJournalPhotoManifest';
+import {checkDeviceSnapshot, hasDeviceRestoreSample} from './journalDeviceSnapshotRestore';
 import {inspectJournalPhotoReferences} from './inspectJournalPhotoReferences';
 import {planInventorySample} from './journalStagedBackup';
 import type {SampleRevision} from './journalSharedPhotoTransferProbe';
@@ -65,6 +66,9 @@ export default function SampleLocalBackup() {
   const {colors, fontFamily} = useTheme();
   const [mode, setMode] = useState<BackupAction | null>(null);
   const [localPreview, setLocalPreview] = useState<ReturnType<typeof inspectLocalSnapshotResult> | null>(null);
+  const [restoredPhoto, setRestoredPhoto] = useState<string | null>(null);
+  const [photoLoaded, setPhotoLoaded] = useState(false);
+  const sampleDocument = useRef<string | null>(null);
   const [entryCount, setEntryCount] = useState('300');
   const exporting = mode === 'export' || mode === 'inventory' || mode === 'saveLocal';
   const validCount = /^\d{1,3}$/.test(entryCount) && Number(entryCount) <= 300;
@@ -104,6 +108,9 @@ export default function SampleLocalBackup() {
     if (pendingId.current) {discardPreview(pendingId.current);}
     pendingId.current = null;
     setPreview(null);
+    setRestoredPhoto(null);
+    setPhotoLoaded(false);
+    sampleDocument.current = null;
     setLocalPreview(null);
     setMode(null);
     setCode('');
@@ -187,6 +194,7 @@ export default function SampleLocalBackup() {
         if (!opened || !mounted.current) {return;}
         const contents = inspectLocalSnapshotResult(opened);
         reset();
+        if (hasDeviceRestoreSample(opened)) {sampleDocument.current = opened;}
         setLocalPreview(contents);
         return;
       }
@@ -314,6 +322,25 @@ export default function SampleLocalBackup() {
       if (mounted.current) {setBusy(false);}
     }
   }
+  async function checkIsolatedJournal(document?: string) {
+    if (running.current) {return;}
+    running.current = true;
+    setBusy(true);
+    try {
+      const sample = await checkDeviceSnapshot(document);
+      if (mounted.current) {
+        reset();
+        if (!document) {setRestoredPhoto(sample.photoUri);}
+        setMessage(document ? 'Sample restored. Restart Journal and choose Reopen restored sample.' :
+          `Restored reflection: ${sample.content}. Verified photo: ${sample.photoBytes} bytes.`);
+      }
+    } catch {
+      if (mounted.current) {setMessage('Could not verify the isolated journal. Open and restore the Files test sample first.');}
+    } finally {
+      running.current = false;
+      if (mounted.current) {setBusy(false);}
+    }
+  }
   const button = (label: string, onPress: () => void, disabled = false) => (
     <Pressable accessibilityRole="button" accessibilityState={{disabled}} disabled={disabled} onPress={onPress}
       style={[styles.button, disabled && styles.disabled]}>
@@ -331,11 +358,15 @@ export default function SampleLocalBackup() {
         {localPreview.sections.map(([label, count]) => <Text key={label} style={text}>{label} · {count}</Text>)}
         <Text style={text}>Attached photos · {localPreview.photos}{localPreview.photos > 0 ? ` (${localPreview.photoBytes.toLocaleString()} bytes)` : ''}</Text>
         {localPreview.legacyCount > 0 && <Text style={text}>Older records kept in the file and skipped during restore · {localPreview.legacyCount}</Text>}
+        {sampleDocument.current && button('Confirm restore to test journal', () => {
+          if (sampleDocument.current) {void checkIsolatedJournal(sampleDocument.current);}
+        }, busy)}
         {button('Close preview', reset, busy)}
       </>}
       {!mode && !localPreview && <>
         {button('Save encrypted journal backup', () => start('saveLocal'), busy)}
         {button('Check saved journal backup', () => start('openLocal'), busy)}
+        {button('Reopen restored sample', () => checkIsolatedJournal(), busy)}
         {button('Save sample backup', () => start('export'), busy)}
         {button('Save a custom sample', () => start('inventory'), busy)}
         {button('Restore sample backup', () => start('restore'), busy)}
@@ -402,6 +433,10 @@ export default function SampleLocalBackup() {
           busy || !canChooseFile)}
         {button('Cancel', () => {reset(); setMessage('');}, busy)}
       </>}
+      {restoredPhoto && <Image source={{uri: restoredPhoto}} style={{width: 64, height: 64}}
+        accessible accessibilityLabel="Restored practice photo"
+        onLoad={() => setPhotoLoaded(true)} onError={() => setMessage('The restored photo could not be displayed.')} />}
+      {photoLoaded && <Text style={text}>Restored photo displayed</Text>}
       {!!message && <Text accessibilityLiveRegion="polite" style={text}>{message}</Text>}
     </View>
   );

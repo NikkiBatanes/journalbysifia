@@ -1,4 +1,4 @@
-#include "../../../../../native/journal-archive/LocalSnapshotCheck.hpp"
+#include "../../../../../native/journal-archive/DeviceRestoreSample.hpp"
 #include "../../../../../native/journal-archive/PickerPhotoDigest.hpp"
 #include "../../../../../native/journal-archive/SyntheticSharedTransfer.hpp"
 #include "../../../../../native/journal-archive/SyntheticFilePhoto.hpp"
@@ -652,7 +652,7 @@ Java_app_journal_sifia_archivecrypto_JournalArchiveCryptoModule_nativeOpenLocalS
   jbyteArray result = nullptr;
   if (code) {
     try {
-      auto preview = journal_snapshot::inspectDocument(path, code);
+      auto preview = journal_snapshot::inspectDeviceSnapshot(path, code);
       result = env->NewByteArray(static_cast<jsize>(preview.size()));
       if (result) env->SetByteArrayRegion(result, 0, static_cast<jsize>(preview.size()),
                                           reinterpret_cast<const jbyte *>(preview.data()));

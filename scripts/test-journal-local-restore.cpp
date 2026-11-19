@@ -1,5 +1,5 @@
 // Host-only, synthetic data. The staged object uses the existing test fixture key.
-#include "../native/journal-archive/LocalSnapshotCheck.hpp"
+#include "../native/journal-archive/DeviceRestoreSample.hpp"
 #include "../native/journal-archive/SyntheticFilePhoto.hpp"
 #include <filesystem>
 #include <fstream>
@@ -27,6 +27,10 @@ int main(int argc, char **argv) {
       return 0;
     }
     const auto archive = (dir / "archive").string();
+    if (mode == "preview-sample") {
+      std::cout << js::inspectDeviceSnapshot(archive.c_str(), arg);
+      return 0;
+    }
     if (mode == "save") {
       const auto sources = js::sourcesFrom(contents(dir / "sources"), "file://" + root + "/");
       js::saveDocument(archive.c_str(), arg, contents(dir / "manifest"), sources, root.c_str(), "");

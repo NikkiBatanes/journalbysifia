@@ -364,6 +364,7 @@ it('saves only after code confirmation and verifies the selected document withou
   expect(screen.getByText('1 record in this backup')).toBeOnTheScreen();
   expect(screen.getByText('Reflections · 1')).toBeOnTheScreen();
   expect(screen.getByText('Attached photos · 1 (123 bytes)')).toBeOnTheScreen();
+  expect(screen.queryByText('Confirm restore to test journal')).toBeNull();
   expect(screen.queryByText('Confirm sample restore')).toBeNull();
   expect(screen.queryByLabelText('Backup recovery code')).toBeNull();
   fireEvent.press(screen.getByText('Close preview'));
