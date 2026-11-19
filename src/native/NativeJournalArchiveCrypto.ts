@@ -77,6 +77,7 @@ export interface Spec extends TurboModule {
   stageSyntheticPhoto(replacement: boolean): Promise<string>;
   verifySyntheticPhoto(name: string, replacement: boolean): Promise<boolean>;
   finishSampleRestorePreview(previewId: string, recoveryCode: string, confirm: boolean): Promise<string>;
+  saveInventorySample(recoveryCode: string, entryCount: number): Promise<string>;
   chooseSampleBackupFile(exporting: boolean, recoveryCode: string): Promise<string>;
   exportSharedPhotoTransfer(): Promise<string>;
   importSharedPhotoTransfer(): Promise<string>;

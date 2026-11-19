@@ -171,6 +171,17 @@ int main(int argc, char **argv) {
         std::cout << code << '\n';
         return 0;
       }
+      if (command == "--export-inventory") {
+        fixture::require(argc == 4);
+        const auto code = fixture::freshToken();
+        journal_shared_transfer::sampleDocument(argv[2], code.c_str(), true, std::stoi(argv[3]));
+        auto &previews = journal_shared_transfer::samplePreviews();
+        const auto preview = previews.prepare(argv[2], code.c_str());
+        expectRejection([&] { previews.prepare(argv[2], fixture::password); });
+        const auto id = preview.substr(std::string(R"({"previewId":")").size(), 32);
+        std::cout << previews.finish(std::filesystem::path(argv[2]).parent_path().string(), id, code.c_str(), true);
+        return 0;
+      }
       if (command == "--preview-inventory") {
         fixture::require(argc == 3);
         std::cout << journal_shared_transfer::samplePreviews().prepare(argv[2], fixture::password);

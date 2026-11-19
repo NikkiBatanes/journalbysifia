@@ -443,7 +443,7 @@ RCT_EXPORT_MODULE(JournalArchiveCrypto)
 #endif
 }
 
-- (void)chooseSampleBackupFile:(BOOL)exporting recoveryCode:(NSString *)recoveryCode
+- (void)pickSampleFile:(BOOL)exporting recoveryCode:(NSString *)recoveryCode entryCount:(int)entryCount
                        resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject {
 #if DEBUG
   dispatch_async(dispatch_get_main_queue(), ^{
@@ -487,7 +487,7 @@ RCT_EXPORT_MODULE(JournalArchiveCrypto)
         if (ready) {
           try {
             journal_shared_transfer::sampleDocument(sample.fileSystemRepresentation,
-              recoveryCode.UTF8String, true);
+              recoveryCode.UTF8String, true, entryCount);
           } catch (const std::exception &) { ready = NO; }
         }
       }
@@ -509,6 +509,20 @@ RCT_EXPORT_MODULE(JournalArchiveCrypto)
 #else
   reject(@"SAMPLE_DOCUMENT_DISABLED", @"Development build required", nil);
 #endif
+}
+
+- (void)chooseSampleBackupFile:(BOOL)exporting recoveryCode:(NSString *)recoveryCode
+                       resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject {
+  [self pickSampleFile:exporting recoveryCode:recoveryCode entryCount:-1 resolve:resolve reject:reject];
+}
+
+- (void)saveInventorySample:(NSString *)recoveryCode entryCount:(double)entryCount
+                    resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject {
+  if (!(entryCount >= 0 && entryCount <= 300) || (int)entryCount != entryCount) {
+    reject(@"INVALID_SAMPLE_SIZE", @"Choose between 0 and 300 sample entries.", nil);
+    return;
+  }
+  [self pickSampleFile:YES recoveryCode:recoveryCode entryCount:(int)entryCount resolve:resolve reject:reject];
 }
 
 #if DEBUG

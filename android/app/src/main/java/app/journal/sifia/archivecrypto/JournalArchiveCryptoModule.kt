@@ -37,9 +37,9 @@ class JournalArchiveCryptoModule(reactContext: ReactApplicationContext) :
 
   private external fun nativeRunMediaPackagingSelfTest(): BooleanArray
 
-  private data class Pick(val exporting: Boolean, val code: String, val promise: Promise)
+  private data class Pick(val exporting: Boolean, val code: String, val entryCount: Int, val promise: Promise)
   private val pendingPick = AtomicReference<Pick?>(null)
-  private external fun nativeSampleDocument(document: String, recoveryCode: String, exporting: Boolean): String?
+  private external fun nativeSampleDocument(document: String, recoveryCode: String, exporting: Boolean, entryCount: Int): String?
 
   private external fun nativeFinishSamplePreview(directory: String, previewId: String, recoveryCode: String, confirm: Boolean): String?
 
@@ -88,7 +88,7 @@ class JournalArchiveCryptoModule(reactContext: ReactApplicationContext) :
                 }
               }
             }
-            val result = requireNotNull(nativeSampleDocument(temp.absolutePath, pick.code, pick.exporting))
+            val result = requireNotNull(nativeSampleDocument(temp.absolutePath, pick.code, pick.exporting, pick.entryCount))
             if (pick.exporting) {
               requireNotNull(resolver.openOutputStream(uri, "wt")).use { output ->
                 temp.inputStream().use { it.copyTo(output) }
@@ -107,12 +107,23 @@ class JournalArchiveCryptoModule(reactContext: ReactApplicationContext) :
 
   init { reactContext.addActivityEventListener(fileResults) }
 
-  override fun chooseSampleBackupFile(exporting: Boolean, recoveryCode: String, promise: Promise) {
+  override fun chooseSampleBackupFile(exporting: Boolean, recoveryCode: String, promise: Promise) =
+    pickSample(exporting, recoveryCode, -1, promise)
+
+  override fun saveInventorySample(recoveryCode: String, entryCount: Double, promise: Promise) {
+    if (entryCount !in 0.0..300.0 || entryCount != entryCount.toInt().toDouble()) {
+      promise.reject("INVALID_SAMPLE_SIZE", "Choose between 0 and 300 sample entries.")
+      return
+    }
+    pickSample(true, recoveryCode, entryCount.toInt(), promise)
+  }
+
+  private fun pickSample(exporting: Boolean, recoveryCode: String, entryCount: Int, promise: Promise) {
     if (!app.journal.sifia.BuildConfig.DEBUG || !recoveryCode.matches(Regex("[0-9a-f]{32}"))) {
       promise.reject("SAMPLE_DOCUMENT_DISABLED", "A development build and valid recovery code are required.")
       return
     }
-    val pick = Pick(exporting, recoveryCode, promise)
+    val pick = Pick(exporting, recoveryCode, entryCount, promise)
     UiThreadUtil.runOnUiThread {
       if (!pendingPick.compareAndSet(null, pick)) {
         promise.reject("SAMPLE_DOCUMENT_BUSY", "A file picker is already open.")

@@ -311,3 +311,19 @@ it('previews and restores the contents declared by variable-size practice archiv
     }
   } finally {rmSync(root, {recursive: true, force: true});}
 }, 90000);
+
+it('round-trips the variable-size export used by the mobile Files pickers', () => {
+  const host = process.env.JOURNAL_TRANSFER_HOST;
+  if (!host) {throw new Error('Set JOURNAL_TRANSFER_HOST to the compiled transfer diagnostic');}
+  const root = mkdtempSync(join(tmpdir(), 'journal-picker-export-'));
+  try {
+    for (const entries of [0, 1, 2, 37, 300]) {
+      const path = join(root, String(entries) + '.bin');
+      const result = execFileSync(host, ['--export-inventory', path, String(entries)], {maxBuffer: 2 * 1024 * 1024});
+      const restored = planInventorySample(result.toString());
+      expect(restored.entries).toBe(entries);
+      expect(restored.photos).toBe(entries >= 2 ? 3 : 0);
+      expect(readFileSync(path).includes(Buffer.from('journalRecords'))).toBe(false);
+    }
+  } finally {rmSync(root, {recursive: true, force: true});}
+}, 90000);

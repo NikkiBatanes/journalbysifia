@@ -6,7 +6,7 @@ import {planInventorySample} from '../journalStagedBackup';
 import archive from '../../native/NativeJournalArchiveCrypto';
 import {beginSampleComparison, restoreSharedPhotoTransfer} from '../journalSharedPhotoTransferProbe';
 
-jest.mock('../../native/NativeJournalArchiveCrypto', () => ({__esModule: true, default: {chooseSampleBackupFile: jest.fn(), finishSampleRestorePreview: jest.fn()}}));
+jest.mock('../../native/NativeJournalArchiveCrypto', () => ({__esModule: true, default: {saveInventorySample: jest.fn(), chooseSampleBackupFile: jest.fn(), finishSampleRestorePreview: jest.fn()}}));
 jest.mock('../journalSharedPhotoTransferProbe', () => ({restoreSharedPhotoTransfer: jest.fn(), beginSampleComparison: jest.fn()}));
 jest.mock('../journalStagedBackup', () => ({planInventorySample: jest.fn()}));
 jest.mock('../../theme/ThemeContext', () => ({useTheme: () => ({colors: {text: 'black'}})}));
@@ -214,4 +214,23 @@ it.each([0, 300])('shows the verified count and handles confirmation for %i entr
     fireEvent.press(screen.getByText('Cancel'));
     expect(archive.finishSampleRestorePreview).toHaveBeenCalledWith(previewId, '', false);
   }
+});
+
+it('exports only a bounded custom entry count after the recovery code is acknowledged', async () => {
+  render(<SampleLocalBackup />);
+  fireEvent.press(screen.getByText('Save a custom sample'));
+  const choose = () => screen.getByRole('button', {name: 'Choose save location'});
+  const count = screen.getByLabelText('Number of sample entries');
+  expect(count.props.value).toBe('300');
+  expect(choose()).toBeDisabled();
+  fireEvent.press(screen.getByRole('checkbox'));
+  for (const invalid of ['', '301', '-1', '1.5']) {
+    fireEvent.changeText(count, invalid);
+    expect(choose()).toBeDisabled();
+  }
+  fireEvent.changeText(count, '0');
+  jest.mocked(archive.saveInventorySample).mockResolvedValueOnce('saved');
+  fireEvent.press(choose());
+  await screen.findByText('Sample backup saved.');
+  expect(archive.saveInventorySample).toHaveBeenCalledWith(expect.stringMatching(/^[0-9a-f]{32}$/), 0);
 });

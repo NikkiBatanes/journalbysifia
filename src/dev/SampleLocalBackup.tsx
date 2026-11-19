@@ -59,7 +59,10 @@ function newRecoveryCode() {
 
 export default function SampleLocalBackup() {
   const {colors, fontFamily} = useTheme();
-  const [mode, setMode] = useState<'export' | 'restore' | null>(null);
+  const [mode, setMode] = useState<'export' | 'inventory' | 'restore' | null>(null);
+  const [entryCount, setEntryCount] = useState('300');
+  const exporting = mode === 'export' || mode === 'inventory';
+  const validCount = /^\d{1,3}$/.test(entryCount) && Number(entryCount) <= 300;
   const [code, setCode] = useState('');
   const [acknowledged, setAcknowledged] = useState(false);
   const [message, setMessage] = useState('');
@@ -87,6 +90,7 @@ export default function SampleLocalBackup() {
   const text = {color: colors.text, fontFamily};
   const displayedCode = code.slice(0, 19) + '\n' + code.slice(20);
   const normalized = code.replace(/[-\s]/g, '').toLowerCase();
+  const canChooseFile = /^[a-f0-9]{32}$/.test(normalized) && (!exporting || acknowledged) && (mode !== 'inventory' || validCount);
   function reset() {
     setRevisionReview(null);
     comparison.current?.discard();
@@ -99,29 +103,31 @@ export default function SampleLocalBackup() {
     setCode('');
     setAcknowledged(false);
   }
-  function start(exporting: boolean) {
+  function start(operation: 'export' | 'inventory' | 'restore') {
     setMessage('');
     try {
-      setCode(exporting ? newRecoveryCode() : '');
+      setCode(operation === 'restore' ? '' : newRecoveryCode());
+      setEntryCount('300');
       setAcknowledged(false);
-      setMode(exporting ? 'export' : 'restore');
+      setMode(operation);
     } catch {
       setMessage('Journal could not generate a recovery code. Try again.');
     }
   }
   async function choose() {
-    if (running.current || !mode || !/^[a-f0-9]{32}$/.test(normalized) || (mode === 'export' && !acknowledged)) {return;}
+    if (running.current || !mode || !canChooseFile) {return;}
     running.current = true;
     setBusy(true);
     setMessage('');
     try {
       const archive = nativeArchive();
-      const exporting = mode === 'export';
       if (!exporting && typeof archive.finishSampleRestorePreview !== 'function') {
         setMessage('Rebuild the development app to preview a backup.');
         return;
       }
-      const result = await archive.chooseSampleBackupFile(exporting, normalized);
+      const result = mode === 'inventory'
+        ? await archive.saveInventorySample(normalized, Number(entryCount))
+        : await archive.chooseSampleBackupFile(exporting, normalized);
       if (!result) {return;}
       if (!exporting) {
         const selected = readPreview(result);
@@ -155,7 +161,7 @@ export default function SampleLocalBackup() {
       reset();
       setMessage('Sample backup saved.');
     } catch {
-      setMessage(mode === 'export' ? 'Could not save the sample backup. Try another location.' :
+      setMessage(exporting ? 'Could not save the sample backup. Try another location.' :
         'Could not preview the sample. Check the file and recovery code, then try again.');
     } finally {
       running.current = false;
@@ -243,12 +249,19 @@ export default function SampleLocalBackup() {
   return (
     <View style={styles.section}>
       <Text style={[text, styles.title]}>Local backup test</Text>
-      <Text style={text}>Practice with two sample entries and two photos. Your journal stays separate.</Text>
+      <Text style={text}>Practice saving and restoring generated journal entries.</Text>
       {!mode && <>
-        {button('Save sample backup', () => start(true))}
-        {button('Restore sample backup', () => start(false))}
+        {button('Save sample backup', () => start('export'))}
+        {button('Save a custom sample', () => start('inventory'))}
+        {button('Restore sample backup', () => start('restore'))}
       </>}
-      {mode === 'export' && <>
+      {exporting && <>
+        {mode === 'inventory' && <>
+          <Text style={text}>Choose 0 to 300 practice entries. Samples with two or more entries include three photos.</Text>
+          <TextInput accessibilityLabel="Number of sample entries" keyboardType="number-pad"
+            value={entryCount} onChangeText={setEntryCount} editable={!busy} maxLength={3}
+            style={[text, styles.input, {borderColor: colors.chevronColor}]} />
+        </>}
         <Text style={text}>Keep this recovery code somewhere separate from the backup. You’ll need it to open the file.</Text>
         <Text testID="sample-backup-recovery-code" selectable style={[text, styles.code]}>{displayedCode}</Text>
         <Pressable accessibilityRole="checkbox" accessibilityState={{checked: acknowledged, disabled: busy}}
@@ -296,8 +309,8 @@ export default function SampleLocalBackup() {
         </>}
       </>}
       {mode && <>
-        {!preview && button(busy ? 'Working…' : mode === 'export' ? 'Choose save location' : 'Choose backup file', choose,
-          busy || !/^[a-f0-9]{32}$/.test(normalized) || (mode === 'export' && !acknowledged))}
+        {!preview && button(busy ? 'Working…' : exporting ? 'Choose save location' : 'Choose backup file', choose,
+          busy || !canChooseFile)}
         {button('Cancel', () => {reset(); setMessage('');}, busy)}
       </>}
       {!!message && <Text accessibilityLiveRegion="polite" style={text}>{message}</Text>}

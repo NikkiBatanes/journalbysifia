@@ -55,31 +55,34 @@ inline std::string entryText(const std::string &id, const std::string &token, Sa
   return id + "-" + token;
 }
 
-inline std::string manifest(const std::string &token, const Images &images, SampleVersion version = SampleVersion::original) {
-  auto asset = [](const std::string &id, const std::string &image) {
-    return R"({"assetId":")" + id + R"(","path":"objects/)" + id
+inline std::string assetJson(const std::string &id, const std::string &image) {
+  return R"({"assetId":")" + id + R"(","path":"objects/)" + id
       + R"(","kind":"image","mediaType":"image/png","byteLength":)" + std::to_string(image.size())
       + R"(,"sha256":")" + digest(image) + R"(","ownerRecordId":"first"})";
-  };
-  auto block = [](const std::string &id) {
-    return R"({"id":")" + id + R"(","kind":"photo","uri":"objects/)" + id + R"("})";
-  };
-  auto entry = [&](const std::string &id, const std::string &blocks) {
-    return R"({"id":")" + id + R"(","content_type":"todo","selected_date":"2026-11-19","created_at":"2026-11-19T00:00:00Z","updated_at":")"
+}
+
+inline std::string photoBlock(const std::string &id) {
+  return R"({"id":")" + id + R"(","kind":"photo","uri":"objects/)" + id + R"("})";
+}
+
+inline std::string entryJson(const std::string &id, const std::string &blocks, const std::string &token, SampleVersion version) {
+  return R"({"id":")" + id + R"(","content_type":"todo","selected_date":"2026-11-19","created_at":"2026-11-19T00:00:00Z","updated_at":")"
       + (id == "first" && (version == SampleVersion::revised || changedPhoto(version)) ? revisedDate : "2026-11-19T00:00:00Z") + R"(","content":")"
       + entryText(id, token, version) + R"(","metadata":{"journalBlocks":[)" + blocks + "]}}";
-  };
+}
+
+inline std::string manifest(const std::string &token, const Images &images, SampleVersion version = SampleVersion::original) {
   std::string blocks, inventory;
   size_t bytes = 0;
   const auto list = samplePhotos(images, version);
   for (const auto &photo : list) {
     if (!blocks.empty()) {blocks += ","; inventory += ",";}
-    blocks += block(photo.assetId);
-    inventory += asset(photo.assetId, photo.bytes);
+    blocks += photoBlock(photo.assetId);
+    inventory += assetJson(photo.assetId, photo.bytes);
     bytes += photo.bytes.size();
   }
   return journal_fixture::manifestDocument(
-    entry("first", blocks) + "," + entry("second", block(sharedId)),
+    entryJson("first", blocks, token, version) + "," + entryJson("second", photoBlock(sharedId), token, version),
     R"({"id":"first","key":"journal_local:todo:2026-11-19:first"},{"id":"second","key":"journal_local:todo:2026-11-19:second"})",
     inventory, 2, list.size(), bytes);
 }
@@ -299,9 +302,49 @@ inline SampleRestorePreviews &samplePreviews() {
   return previews;
 }
 
-inline std::string sampleDocument(const std::string &path, const char *code, bool exporting) {
+// Files can export generated journals of different sizes without reading device data.
+inline std::string exportInventory(const std::string &path, const char *code, int entryCount) {
+  require(entryCount >= 0 && entryCount <= 300);
+  const auto token = journal_fixture::freshToken();
+  std::string assetList, ownerBlocks, frames;
+  size_t photoCount = 0, photoBytes = 0;
+  if (entryCount >= 2) {
+    const Images images{photos::png(false), photos::png(true)};
+    for (const auto &photo : samplePhotos(images, SampleVersion::photoAdded)) {
+      if (photoCount) { assetList += ","; ownerBlocks += ","; }
+      assetList += assetJson(photo.assetId, photo.bytes);
+      ownerBlocks += photoBlock(photo.assetId);
+      frames += photo.assetId;
+      photos::append32(frames, photo.bytes.size());
+      frames += photo.bytes;
+      photoBytes += photo.bytes.size();
+      ++photoCount;
+    }
+  }
+  std::string entries, locations;
+  for (int i = 0; i < entryCount; ++i) {
+    const auto id = i == 0 ? std::string("first") : "entry-" + std::to_string(i);
+    if (i) { entries += ","; locations += ","; }
+    entries += entryJson(id, i == 0 ? ownerBlocks : photoBlock(sharedId), token, SampleVersion::original);
+    locations += R"({"id":")" + id + R"(","key":"journal_local:todo:2026-11-19:)" + id + R"("})";
+  }
+  const auto document = journal_fixture::manifestDocument(entries, locations, assetList, entryCount, photoCount, photoBytes);
+  std::string payload = "JSV1" + token;
+  photos::append32(payload, document.size());
+  photos::append32(payload, photoCount);
+  payload += document;
+  payload += frames;
+  journal_fixture::writeArchive(path, journal_fixture::encrypt(payload, code));
+  return token;
+}
+
+inline std::string sampleDocument(const std::string &path, const char *code, bool exporting, int inventoryEntries = -1) {
   const std::string_view key(code);
   require(key.size() == 32 && key.find_first_not_of("0123456789abcdef") == std::string_view::npos);
+  if (inventoryEntries != -1) {
+    require(exporting);
+    return exportInventory(path, code, inventoryEntries);
+  }
   return exporting ? exportToFile(path, code) : samplePreviews().prepare(path, code);
 }
 

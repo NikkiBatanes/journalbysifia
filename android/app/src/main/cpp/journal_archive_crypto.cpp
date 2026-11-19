@@ -450,13 +450,13 @@ Java_app_journal_sifia_archivecrypto_JournalArchiveCryptoModule_nativeRunPortabl
 
 extern "C" JNIEXPORT jstring JNICALL
 Java_app_journal_sifia_archivecrypto_JournalArchiveCryptoModule_nativeSampleDocument(
-    JNIEnv *env, jobject, jstring document, jstring recoveryCode, jboolean exporting) {
+    JNIEnv *env, jobject, jstring document, jstring recoveryCode, jboolean exporting, jint entryCount) {
   const char *path = env->GetStringUTFChars(document, nullptr);
   const char *code = path ? env->GetStringUTFChars(recoveryCode, nullptr) : nullptr;
   jstring result = nullptr;
   if (code) {
     try {
-      const auto value = journal_shared_transfer::sampleDocument(path, code, exporting);
+      const auto value = journal_shared_transfer::sampleDocument(path, code, exporting, entryCount);
       result = env->NewStringUTF(value.c_str());
     } catch (const std::exception &) {}
     env->ReleaseStringUTFChars(recoveryCode, code);
