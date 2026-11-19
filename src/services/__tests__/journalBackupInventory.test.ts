@@ -2,7 +2,7 @@ const mockValues = new Map<string, string>();
 
 jest.mock('@react-native-async-storage/async-storage', () => ({
   getItem: jest.fn(async (key: string) => mockValues.get(key) ?? null),
-  getAllKeys: jest.fn(async () => [...mockValues.keys()]),
+  getAllKeys: jest.fn(async () => Array.from(mockValues.keys())),
   multiGet: jest.fn(async (keys: string[]) => keys.map(key => [key, mockValues.get(key) ?? null])),
   setItem: jest.fn(),
   removeItem: jest.fn(),
@@ -103,4 +103,61 @@ it('enumerates raw canonical records, tombstones, relationships, settings, and p
   expect(JSON.stringify(first)).not.toContain('access_token');
   expect(AsyncStorage.setItem).not.toHaveBeenCalled();
   expect(AsyncStorage.removeItem).not.toHaveBeenCalled();
+});
+
+it('retries an edited snapshot and preserves all 300 records from the matching reads', async () => {
+  const storageKey = (index: number) => 'journal_local:todo:2026-09-17:' + index;
+  for (let i = 0; i < 300; i++) {put(storageKey(i), {id: String(i), content: 'First draft'});}
+  put('journal_cloud_status', {unrelated: true});
+  put('journal_todos_legacy-user_2026-09-17', {id: 'older-key-order'});
+  const read = jest.mocked(AsyncStorage.multiGet);
+  read.mockImplementationOnce(async keys => {
+    const batch = keys.map((key): [string, string] => [key, mockValues.get(key)!]);
+    put(storageKey(0), {id: '0', content: 'Saved edit'});
+    return batch;
+  });
+  const snapshot = await getJournalBackupInventory();
+  expect(snapshot.journalRecords).toHaveLength(300);
+  expect(snapshot.journalRecords.find(item => item.id === '0')?.content).toBe('Saved edit');
+  expect(snapshot.legacyAuthoredContent.journalRecords).toHaveLength(1);
+  expect(AsyncStorage.getAllKeys).toHaveBeenCalledTimes(4);
+  expect(read.mock.calls.every(([keys]) => keys.length <= 128 && !keys.includes('journal_cloud_status'))).toBe(true);
+});
+
+it('refuses a snapshot when records change during every pass', async () => {
+  const key = 'prayer_local:2026-09-17:p1';
+  put(key, {id: 'p1'});
+  const read = jest.mocked(AsyncStorage.multiGet);
+  for (const revision of [1, 2, 3]) {
+    read.mockResolvedValueOnce([[key, JSON.stringify({id: 'p1', revision})]]);
+  }
+  await expect(getJournalBackupInventory()).rejects.toThrow('changed while being read');
+  expect(read).toHaveBeenCalledTimes(3);
+});
+
+it('re-enumerates when a listed key goes missing during a batch', async () => {
+  put('prayer_local:2026-09-17:p1', {id: 'p1'});
+  jest.mocked(AsyncStorage.multiGet).mockResolvedValueOnce([]);
+  expect((await getJournalBackupInventory()).prayerRecords).toHaveLength(1);
+  expect(AsyncStorage.getAllKeys).toHaveBeenCalledTimes(4);
+});
+
+it.each(['private writing that is not valid JSON', '{"content":"private writing"}'])(
+  'rejects unreadable canonical records without exposing their contents', async raw => {
+    mockValues.set('reflection_local:free:2026-09-17:r1', raw);
+    await expect(getJournalBackupInventory()).rejects.toThrow(/^Could not read a local journal record\.$|^Local record has no identifier\.$/);
+  },
+);
+
+it('detects a new entry inserted during the last batch of an otherwise matching read', async () => {
+  const key = 'prayer_local:2026-09-17:first';
+  put(key, {id: 'first'});
+  const read = jest.mocked(AsyncStorage.multiGet);
+  read.mockResolvedValueOnce([[key, mockValues.get(key)!]]);
+  read.mockImplementationOnce(async () => {
+    put('prayer_local:2026-09-17:second', {id: 'second'});
+    return [[key, mockValues.get(key)!]];
+  });
+  await expect(getJournalBackupInventory()).rejects.toThrow('changed while being read');
+  expect((await getJournalBackupInventory()).prayerRecords).toHaveLength(2);
 });

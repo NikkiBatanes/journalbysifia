@@ -83,38 +83,100 @@ export interface JournalBackupInventory {
   integrity: JournalBackupIntegrityReport;
 }
 
-const readLocatedRecords = async <T extends { id: string }>(predicate: (key: string) => boolean): Promise<{
-  records: T[];
-  locations: BackupRecordLocation[];
-}> => {
-  const keys = (await AsyncStorage.getAllKeys()).filter(predicate).sort();
-  if (!keys.length) {return { records: [], locations: [] };}
-  const rows = (await AsyncStorage.multiGet(keys))
-    .map(([key, raw]) => ({ key, value: safeJsonParse<T>(raw || '', { fallback: null }) }))
-    .filter((row): row is { key: string; value: T } => row.value !== null && typeof row.value.id === 'string');
-  return {
-    records: rows.map(row => row.value),
-    locations: rows.map(row => ({ id: row.value.id, key: row.key }))
-      .sort((a, b) => `${a.id}|${a.key}`.localeCompare(`${b.id}|${b.key}`)),
-  };
+// Both historical journal key orders contain a date and a content type.
+const legacyJournalTypes = [
+  'gratitude', 'weekly_gratitude', 'weekly_looking_forward', 'todo', 'todos',
+  'todays_focus', 'today_win', 'win', 'looking_forward', 'time_block', 'timeblock',
+  'morning_check_in', 'tomorrow_in_his_hands', 'morning_flow', 'evening_flow',
+  'prayer', 'people_to_pray_for', 'reflection',
+];
+const legacyJournalKey = new RegExp(
+  '^journal_(?:' + legacyJournalTypes.join('|') + ')_(?:[0-9]{4}-[0-9]{2}-[0-9]{2}_.+|.+_[0-9]{4}-[0-9]{2}-[0-9]{2})$',
+);
+const sections = {
+  journal: (key: string) => key.startsWith('journal_local:') || key.startsWith('journal_local_singleton:'),
+  reflections: (key: string) => key.startsWith('reflection_local:'),
+  prayers: (key: string) => key.startsWith('prayer_local:'),
+  sessions: (key: string) => key.startsWith('bible_study_session:'),
+  routines: (key: string) => key.startsWith('routine_state:'),
+  reviews: (key: string) => key.startsWith('review_local:'),
+  prayerDrafts: (key: string) => key.startsWith('prayer_draft:'),
+  sessionDrafts: (key: string) => key.startsWith('session_notes_draft_v1:'),
+  reflectionDrafts: (key: string) => key.startsWith('guided_reflection_draft_v1:'),
+  routineDrafts: (key: string) => key.startsWith('routine_draft:'),
+  gospel: (key: string) => GOSPEL_AUTHORED_KEYS.has(key),
+  preferences: (key: string) => MEANINGFUL_PREFERENCE_KEYS.has(key),
+  legacyReflections: (key: string) => key.startsWith('reflection_log_'),
+  legacyJournal: (key: string) => legacyJournalKey.test(key),
+  reviewSettings: (key: string) => key === 'review_settings_v1',
 };
 
-const readRecords = async <T>(predicate: (key: string) => boolean): Promise<T[]> => {
-  const keys = (await AsyncStorage.getAllKeys()).filter(predicate).sort();
-  if (!keys.length) {return [];}
-  return (await AsyncStorage.multiGet(keys))
-    .map(([, raw]) => safeJsonParse<T>(raw || '', { fallback: null }))
-    .filter((value): value is T => value !== null);
-};
+type RawRow = readonly [key: string, raw: string];
+const selectors = Object.values(sections);
+async function listBackupKeys() {
+  return (await AsyncStorage.getAllKeys()).filter(key => selectors.some(matches => matches(key))).sort();
+}
 
-const readKeyedRecords = async (predicate: (key: string) => boolean): Promise<KeyedBackupRecord[]> => {
-  const keys = (await AsyncStorage.getAllKeys()).filter(predicate).sort();
-  if (!keys.length) {return [];}
-  return (await AsyncStorage.multiGet(keys)).map(([key, raw]) => ({
-    key,
-    value: safeJsonParse<unknown>(raw || '', { fallback: raw }),
-  }));
-};
+async function readPass(): Promise<RawRow[] | null> {
+  const keys = await listBackupKeys();
+  const rows: RawRow[] = [];
+  for (let offset = 0; offset < keys.length; offset += 128) {
+    const batch = keys.slice(offset, offset + 128);
+    const pairs = await AsyncStorage.multiGet(batch);
+    const values = new Map(pairs);
+    if (pairs.length !== batch.length || values.size !== batch.length) {return null;}
+    for (const key of batch) {
+      const raw = values.get(key);
+      if (typeof raw !== 'string') {return null;}
+      rows.push([key, raw]);
+    }
+  }
+  return rows;
+}
+
+// AsyncStorage has no read transaction. Require two matching observations of
+// all selected keys and bytes before building an in-memory envelope.
+async function readStableRows(): Promise<RawRow[]> {
+  let current = await readPass();
+  for (let attempt = 1; attempt < 3; attempt++) {
+    const previous = current;
+    current = await readPass();
+    if (current && previous && current.length === previous.length &&
+        current.every(([key, raw], i) => previous[i][0] === key && previous[i][1] === raw)) {
+      // Detect additions that landed after the last enumeration but before
+      // its final batch returned. A subsequent edit still needs a write fence.
+      const keys = await listBackupKeys();
+      if (keys.length === current.length && current.every(([key], i) => key === keys[i])) {
+        return current;
+      }
+    }
+  }
+  throw new Error('Local journal changed while being read. Try again.');
+}
+
+function parseRecord<T extends object>(raw: string): T {
+  const record = safeJsonParse<T>(raw, {logError: false});
+  if (!record || typeof record !== 'object' || Array.isArray(record)) {
+    throw new Error('Could not read a local journal record.');
+  }
+  return record;
+}
+
+function located<T extends {id: string}>(rows: RawRow[]) {
+  const locations: BackupRecordLocation[] = [];
+  const records = rows.map(([key, raw]) => {
+    const record = parseRecord<T>(raw);
+    if (typeof record.id !== 'string' || !record.id) {throw new Error('Local record has no identifier.');}
+    locations.push({id: record.id, key});
+    return record;
+  });
+  locations.sort((a, b) => `${a.id}|${a.key}`.localeCompare(`${b.id}|${b.key}`));
+  return {records, locations};
+}
+
+const keyed = (rows: RawRow[]): KeyedBackupRecord[] => rows.map(([key, raw]) => ({
+  key, value: safeJsonParse<unknown>(raw, {fallback: raw, logError: false}),
+}));
 
 const sortRecords = <T extends { id: string }>(records: T[], date?: (record: T) => string, updated?: (record: T) => string): T[] =>
   [...records].sort((a, b) => `${date?.(a) || ''}|${updated?.(a) || ''}|${a.id}`.localeCompare(`${date?.(b) || ''}|${updated?.(b) || ''}|${b.id}`));
@@ -123,41 +185,28 @@ const collectRefs = (value: ContentRef | ContentRef[] | undefined): ContentRef[]
   !value ? [] : Array.isArray(value) ? value : [value];
 
 export const getJournalBackupInventory = async (): Promise<JournalBackupInventory> => {
-  // Prefix enumeration intentionally reads records, not indexes. Index updates are
-  // separate writes and must not determine backup completeness.
-  const [
-    journal,
-    reflections,
-    prayers,
-    bibleStudySessions,
-    routineStates,
-    reviews,
-    prayerDrafts,
-    sessionNoteDrafts,
-    guidedReflectionDrafts,
-    routineDrafts,
-    gospelAuthoredContent,
-    preferences,
-    legacyReflectionLogs,
-    legacyJournalRecords,
-    reviewSettingsRaw,
-  ] = await Promise.all([
-    readLocatedRecords<LocalJournalEntry>(key => key.startsWith('journal_local:') || key.startsWith('journal_local_singleton:')),
-    readLocatedRecords<LocalReflectionEntry>(key => key.startsWith('reflection_local:')),
-    readLocatedRecords<LocalPrayerEntry>(key => key.startsWith('prayer_local:')),
-    readLocatedRecords<BibleStudySession>(key => key.startsWith('bible_study_session:')),
-    readLocatedRecords<RoutineState>(key => key.startsWith('routine_state:')),
-    readLocatedRecords<LocalReviewEntry>(key => key.startsWith('review_local:')),
-    readRecords<PrayerDraft>(key => key.startsWith('prayer_draft:')),
-    readKeyedRecords(key => key.startsWith('session_notes_draft_v1:')),
-    readKeyedRecords(key => key.startsWith('guided_reflection_draft_v1:')),
-    readKeyedRecords(key => key.startsWith('routine_draft:')),
-    readKeyedRecords(key => GOSPEL_AUTHORED_KEYS.has(key)),
-    readKeyedRecords(key => MEANINGFUL_PREFERENCE_KEYS.has(key)),
-    readKeyedRecords(key => key.startsWith('reflection_log_')),
-    readKeyedRecords(key => key.startsWith('journal_') && !key.startsWith('journal_local') && !key.startsWith('journal_cache')),
-    AsyncStorage.getItem('review_settings_v1'),
-  ]);
+  const rows = await readStableRows();
+  const matching = (matches: (key: string) => boolean) => rows.filter(([key]) => matches(key));
+  const journal = located<LocalJournalEntry>(matching(sections.journal));
+  const reflections = located<LocalReflectionEntry>(matching(sections.reflections));
+  const prayers = located<LocalPrayerEntry>(matching(sections.prayers));
+  const bibleStudySessions = located<BibleStudySession>(matching(sections.sessions));
+  const routineStates = located<RoutineState>(matching(sections.routines));
+  const reviews = located<LocalReviewEntry>(matching(sections.reviews));
+  const prayerDrafts = matching(sections.prayerDrafts).map(([key, raw]) => {
+    const draft = parseRecord<PrayerDraft>(raw);
+    if (draft.key !== key) {throw new Error('Prayer draft identity is missing or inconsistent.');}
+    return draft;
+  });
+  const sessionNoteDrafts = keyed(matching(sections.sessionDrafts));
+  const guidedReflectionDrafts = keyed(matching(sections.reflectionDrafts));
+  const routineDrafts = keyed(matching(sections.routineDrafts));
+  const gospelAuthoredContent = keyed(matching(sections.gospel));
+  const preferences = keyed(matching(sections.preferences));
+  const legacyReflectionLogs = keyed(matching(sections.legacyReflections));
+  const legacyJournalRecords = keyed(matching(sections.legacyJournal));
+  const settings = matching(sections.reviewSettings)[0];
+  const reviewSettings = settings ? parseRecord<ReviewSettings>(settings[1]) : null;
 
   const journalRecords = sortRecords(journal.records, item => item.selected_date, item => item.updated_at);
   const reflectionRecords = sortRecords(reflections.records, item => item.selected_date, item => item.updated_at);
@@ -166,14 +215,18 @@ export const getJournalBackupInventory = async (): Promise<JournalBackupInventor
   const sortedRoutineStates = sortRecords(routineStates.records, item => item.selected_date, item => item.completed_at || item.started_at || '');
   const sortedReviews = sortRecords(reviews.records, item => item.periodStart, item => item.updatedAt);
   const sortedPrayerDrafts = [...prayerDrafts].sort((a, b) => `${a.key}|${a.updatedAt}`.localeCompare(`${b.key}|${b.updatedAt}`));
-  const reviewSettings = safeJsonParse<ReviewSettings>(reviewSettingsRaw || '', { fallback: null });
 
   const journalIds = new Set(journalRecords.filter(item => !item.deleted).map(item => item.id));
   const reflectionIds = new Set(reflectionRecords.filter(item => !item.deleted).map(item => item.id));
   const prayerIds = new Set(prayerRecords.filter(item => !item.deleted).map(item => item.id));
-  const allActiveIds = new Set([...journalIds, ...reflectionIds, ...prayerIds]);
+  const allActiveIds = new Set([...Array.from(journalIds), ...Array.from(reflectionIds), ...Array.from(prayerIds)]);
   const allIds = [...journalRecords, ...reflectionRecords, ...prayerRecords, ...sortedSessions, ...sortedRoutineStates, ...sortedReviews].map(item => item.id);
-  const duplicates = [...new Set(allIds.filter((id, index) => allIds.indexOf(id) !== index))].sort();
+  const seen = new Set<string>();
+  const duplicates = new Set<string>();
+  for (const id of allIds) {
+    if (seen.has(id)) {duplicates.add(id);}
+    seen.add(id);
+  }
 
   const danglingReferences: ReferenceIssue[] = [];
   sortedRoutineStates.forEach(state => Object.entries(state.content_refs || {}).flatMap(([, ref]) => collectRefs(ref)).forEach(ref => {
@@ -241,7 +294,7 @@ export const getJournalBackupInventory = async (): Promise<JournalBackupInventor
         reflectionRecords: reflectionRecords.filter(item => item.deleted).length,
         prayerRecords: prayerRecords.filter(item => item.deleted).length,
       },
-      duplicateIds: duplicates,
+      duplicateIds: Array.from(duplicates).sort(),
       danglingReferences: danglingReferences.sort((a, b) => `${a.owner}|${a.reference}`.localeCompare(`${b.owner}|${b.reference}`)),
       legacyOnlyRecords: { reflectionLogs: legacyReflectionLogs.length, journalRecords: legacyJournalRecords.length },
     },

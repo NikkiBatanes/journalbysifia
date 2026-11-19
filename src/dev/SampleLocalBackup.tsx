@@ -1,6 +1,7 @@
 import React, {useEffect, useRef, useState} from 'react';
 import {Platform, Pressable, StyleSheet, Text, TextInput, View} from 'react-native';
 import 'react-native-get-random-values';
+import {createJournalBackup, validateJournalBackup} from '../services/journalBackupContract';
 import {planInventorySample} from './journalStagedBackup';
 import type {SampleRevision} from './journalSharedPhotoTransferProbe';
 import {useTheme} from '../theme/ThemeContext';
@@ -104,6 +105,7 @@ export default function SampleLocalBackup() {
     setAcknowledged(false);
   }
   function start(operation: 'export' | 'inventory' | 'restore') {
+    if (running.current) {return;}
     setMessage('');
     try {
       setCode(operation === 'restore' ? '' : newRecoveryCode());
@@ -112,6 +114,34 @@ export default function SampleLocalBackup() {
       setMode(operation);
     } catch {
       setMessage('Journal could not generate a recovery code. Try again.');
+    }
+  }
+  async function checkLocalJournal() {
+    if (running.current) {return;}
+    running.current = true;
+    setBusy(true);
+    setMessage('');
+    try {
+      const backup = await createJournalBackup();
+      const result = validateJournalBackup(backup);
+      if (!result.valid) {throw new Error('Local backup validation failed');}
+      const {journalRecords, reflectionRecords, prayerRecords} = backup.inventory;
+      const entries = [...journalRecords, ...reflectionRecords, ...prayerRecords].filter(entry => !entry.deleted);
+      let photoReferences = 0;
+      for (const entry of entries) {
+        const blocks = entry.metadata?.journalBlocks;
+        if (Array.isArray(blocks)) {
+          photoReferences += blocks.filter(block => block?.kind === 'photo' && typeof block.uri === 'string' && block.uri.length > 0).length;
+        }
+      }
+      if (mounted.current) {
+        setMessage(`Local journal, reflection and prayer entries: ${entries.length}. Photo references in their journal blocks: ${photoReferences}. Validation warnings: ${result.warnings.length}. This check only reads records.`);
+      }
+    } catch {
+      if (mounted.current) {setMessage('Could not verify a complete local journal snapshot. Try again after saving your edits.');}
+    } finally {
+      running.current = false;
+      if (mounted.current) {setBusy(false);}
     }
   }
   async function choose() {
@@ -251,9 +281,10 @@ export default function SampleLocalBackup() {
       <Text style={[text, styles.title]}>Local backup test</Text>
       <Text style={text}>Practice saving and restoring generated journal entries.</Text>
       {!mode && <>
-        {button('Save sample backup', () => start('export'))}
-        {button('Save a custom sample', () => start('inventory'))}
-        {button('Restore sample backup', () => start('restore'))}
+        {button('Save sample backup', () => start('export'), busy)}
+        {button('Save a custom sample', () => start('inventory'), busy)}
+        {button('Restore sample backup', () => start('restore'), busy)}
+        {button(busy ? 'Checking…' : 'Check local journal counts', checkLocalJournal, busy)}
       </>}
       {exporting && <>
         {mode === 'inventory' && <>

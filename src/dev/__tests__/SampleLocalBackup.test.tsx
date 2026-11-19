@@ -1,4 +1,5 @@
 import React from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {fireEvent, render, screen, waitFor} from '@testing-library/react-native';
 import SampleLocalBackup from '../SampleLocalBackup';
 import {JOURNAL_BACKUP_RESTORE_POLICY} from '../../services/journalBackupContract';
@@ -233,4 +234,27 @@ it('exports only a bounded custom entry count after the recovery code is acknowl
   fireEvent.press(choose());
   await screen.findByText('Sample backup saved.');
   expect(archive.saveInventorySample).toHaveBeenCalledWith(expect.stringMatching(/^[0-9a-f]{32}$/), 0);
+});
+
+it('checks on-device counts only on request and keeps journal text and photo paths out of the screen', async () => {
+  const fixture = {id: 'r1', type: 'free', selected_date: '2026-09-17',
+    created_at: '2026-09-17T12:00:00Z', updated_at: '2026-09-17T12:00:00Z', content: 'private writing',
+    metadata: {journalBlocks: [{kind: 'photo', uri: 'file:///private-photo'}]}};
+  const rows: [string, string][] = [
+    ['reflection_local:free:2026-09-17:r1', JSON.stringify(fixture)],
+    ['reflection_local:free:2026-09-17:r2', JSON.stringify({...fixture, id: 'r2', deleted: true})],
+  ];
+  jest.mocked(AsyncStorage.getAllKeys).mockResolvedValue(rows.map(([key]) => key));
+  jest.mocked(AsyncStorage.multiGet).mockResolvedValue(rows);
+  render(<SampleLocalBackup />);
+  expect(AsyncStorage.getAllKeys).not.toHaveBeenCalled();
+  fireEvent.press(screen.getByText('Check local journal counts'));
+  expect(await screen.findByText(/entries: 1\. Photo references in their journal blocks: 1\. Validation warnings: 0/)).toBeOnTheScreen();
+  expect(screen.queryByText(/private writing|private-photo/)).toBeNull();
+  expect(archive.chooseSampleBackupFile).not.toHaveBeenCalled();
+  expect(AsyncStorage.setItem).not.toHaveBeenCalled();
+  jest.mocked(AsyncStorage.multiGet).mockRejectedValue(new Error('private writing'));
+  fireEvent.press(screen.getByText('Check local journal counts'));
+  expect(await screen.findByText(/Could not verify a complete local journal snapshot/)).toBeOnTheScreen();
+  expect(screen.queryByText(/private writing|private-photo|Photo references in/)).toBeNull();
 });
