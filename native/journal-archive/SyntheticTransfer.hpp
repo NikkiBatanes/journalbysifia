@@ -91,12 +91,8 @@ inline Bytes encrypt(const std::string &plain) {
   return data;
 }
 
-inline std::string decrypt(const Bytes &data, const char *code) {
-  const std::string placeholder(32, '0');
-  const auto textSize = manifest(placeholder).size();
-  const auto photoManifestSize = manifest(placeholder, true).size();
-  const auto hasPhoto = data.size() == overhead + photoManifestSize + sizeof(photo);
-  require(hasPhoto || data.size() == overhead + textSize);
+inline std::string openAuthenticatedFrame(const Bytes &data, const char *code) {
+  require(data.size() >= overhead);
   const auto expected = data.size() - overhead;
   require(std::equal(magic.begin(), magic.end(), data.begin()));
   Crypto c(data.data() + saltAt, code);
@@ -108,6 +104,16 @@ inline std::string decrypt(const Bytes &data, const char *code) {
     reinterpret_cast<unsigned char *>(plain.data()), &length, &tag, data.data() + cipherAt,
     data.size() - cipherAt, data.data(), headerAt) == 0);
   require(length == expected && tag == crypto_secretstream_xchacha20poly1305_TAG_FINAL);
+  return plain;
+}
+
+inline std::string decrypt(const Bytes &data, const char *code) {
+  const std::string placeholder(32, '0');
+  const auto textSize = manifest(placeholder).size();
+  const auto photoManifestSize = manifest(placeholder, true).size();
+  const auto hasPhoto = data.size() == overhead + photoManifestSize + sizeof(photo);
+  require(hasPhoto || data.size() == overhead + textSize);
+  auto plain = openAuthenticatedFrame(data, code);
   const auto start = manifest("").find("synthetic-") + std::strlen("synthetic-");
   auto token = plain.substr(start, 32);
   require(token.find_first_not_of("0123456789abcdef") == std::string::npos);

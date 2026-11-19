@@ -1,5 +1,7 @@
 // Build against the same libsodium used by the mobile diagnostic.
 #include "../native/journal-archive/SyntheticTransfer.hpp"
+#include "../native/journal-archive/StageEncryptedAttachment.hpp"
+#include <csignal>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -85,8 +87,47 @@ void writeSamples(const std::filesystem::path &root) {
 int main(int argc, char **argv) {
   if (argc != 1) {
     try {
-      fixture::require(argc == 3);
       const std::string command = argv[1];
+      if (command == "--collect-photo") {
+        fixture::require(argc == 4);
+        journal_attachment::collect(argv[2], {argv[3]});
+        return 0;
+      }
+      if (command == "--stage-photo") {
+        fixture::require(argc == 7);
+        std::array<unsigned char, crypto_hash_sha256_BYTES> digest{};
+        const std::string hex = argv[5];
+        fixture::require(hex.size() == digest.size() * 2 &&
+          sodium_hex2bin(digest.data(), digest.size(), hex.data(), hex.size(), nullptr, nullptr, nullptr) == 0);
+        const std::string stop = argv[6];
+        const size_t length = std::stoul(argv[4]);
+        const auto name = journal_attachment::stage(argv[2], argv[3], length, digest, [&](size_t count) {
+          if (stop == "halfway" && count >= length / 2) std::raise(SIGKILL);
+        });
+        if (stop == "published") std::raise(SIGKILL);
+        std::cout << name << '\n';
+        return 0;
+      }
+      if (command == "--seal-photo" || command == "--open-photo") {
+        fixture::require(argc == 2 && sodium_init() >= 0);
+        const size_t limit = command == "--seal-photo" ? 16 * 1024 * 1024 - fixture::overhead : 16 * 1024 * 1024;
+        std::string input;
+        char chunk[64 * 1024];
+        while (std::cin.read(chunk, sizeof(chunk)) || std::cin.gcount()) {
+          input.append(chunk, static_cast<size_t>(std::cin.gcount()));
+          fixture::require(input.size() <= limit);
+        }
+        fixture::require(std::cin.eof());
+        if (command == "--seal-photo") {
+          const auto bytes = fixture::encrypt(input);
+          std::cout.write(reinterpret_cast<const char *>(bytes.data()), bytes.size());
+        } else {
+          const auto bytes = fixture::openAuthenticatedFrame({input.begin(), input.end()}, fixture::password);
+          std::cout.write(bytes.data(), bytes.size());
+        }
+        return 0;
+      }
+      fixture::require(argc == 3);
       if (command == "--samples") writeSamples(argv[2]);
       else if (command == "--read") std::cout << fixture::importFixture(argv[2]) << '\n';
       else return 2;
