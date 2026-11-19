@@ -39,7 +39,20 @@ class JournalArchiveCryptoModule(reactContext: ReactApplicationContext) :
 
   private data class Pick(val exporting: Boolean, val code: String, val promise: Promise)
   private val pendingPick = AtomicReference<Pick?>(null)
-  private external fun nativeSampleDocument(directory: String, document: String, recoveryCode: String, exporting: Boolean): String?
+  private external fun nativeSampleDocument(document: String, recoveryCode: String, exporting: Boolean): String?
+
+  private external fun nativeFinishSamplePreview(directory: String, previewId: String, recoveryCode: String, confirm: Boolean): String?
+
+  override fun finishSampleRestorePreview(previewId: String, recoveryCode: String, confirm: Boolean, promise: Promise) {
+    cryptoExecutor.execute {
+      try {
+        check(app.journal.sifia.BuildConfig.DEBUG)
+        promise.resolve(requireNotNull(nativeFinishSamplePreview(reactApplicationContext.cacheDir.absolutePath, previewId, recoveryCode, confirm)))
+      } catch (_: Exception) {
+        promise.reject("SAMPLE_PREVIEW_FAILED", "Select the sample backup again.")
+      }
+    }
+  }
 
   private val fileResults = object : BaseActivityEventListener() {
     override fun onActivityResult(activity: Activity, requestCode: Int, resultCode: Int, data: Intent?) {
@@ -75,7 +88,7 @@ class JournalArchiveCryptoModule(reactContext: ReactApplicationContext) :
                 }
               }
             }
-            val result = requireNotNull(nativeSampleDocument(cache.absolutePath, temp.absolutePath, pick.code, pick.exporting))
+            val result = requireNotNull(nativeSampleDocument(temp.absolutePath, pick.code, pick.exporting))
             if (pick.exporting) {
               requireNotNull(resolver.openOutputStream(uri, "wt")).use { output ->
                 temp.inputStream().use { it.copyTo(output) }

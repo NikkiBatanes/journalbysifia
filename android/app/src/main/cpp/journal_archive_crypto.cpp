@@ -450,22 +450,39 @@ Java_app_journal_sifia_archivecrypto_JournalArchiveCryptoModule_nativeRunPortabl
 
 extern "C" JNIEXPORT jstring JNICALL
 Java_app_journal_sifia_archivecrypto_JournalArchiveCryptoModule_nativeSampleDocument(
-    JNIEnv *env, jobject, jstring directory, jstring document, jstring recoveryCode, jboolean exporting) {
-  const char *dir = env->GetStringUTFChars(directory, nullptr);
-  if (!dir) return nullptr;
+    JNIEnv *env, jobject, jstring document, jstring recoveryCode, jboolean exporting) {
   const char *path = env->GetStringUTFChars(document, nullptr);
   const char *code = path ? env->GetStringUTFChars(recoveryCode, nullptr) : nullptr;
   jstring result = nullptr;
   if (code) {
     try {
-      auto value = journal_shared_transfer::sampleDocument(dir, path, code, exporting);
+      const auto value = journal_shared_transfer::sampleDocument(path, code, exporting);
+      result = env->NewStringUTF(value.c_str());
+    } catch (const std::exception &) {}
+    env->ReleaseStringUTFChars(recoveryCode, code);
+  }
+  if (path) env->ReleaseStringUTFChars(document, path);
+  return result;
+}
+
+extern "C" JNIEXPORT jstring JNICALL
+Java_app_journal_sifia_archivecrypto_JournalArchiveCryptoModule_nativeFinishSamplePreview(
+    JNIEnv *env, jobject, jstring directory, jstring previewId, jstring recoveryCode, jboolean confirm) {
+  const char *dir = env->GetStringUTFChars(directory, nullptr);
+  if (!dir) return nullptr;
+  const char *id = env->GetStringUTFChars(previewId, nullptr);
+  const char *code = id ? env->GetStringUTFChars(recoveryCode, nullptr) : nullptr;
+  jstring result = nullptr;
+  if (code) {
+    try {
+      auto value = journal_shared_transfer::samplePreviews().finish(dir, id, code, confirm);
       result = env->NewStringUTF(value.c_str());
     } catch (const std::exception &) {
       // Kotlin reports a generic failure without exposing the selected file or code.
     }
     env->ReleaseStringUTFChars(recoveryCode, code);
   }
-  if (path) env->ReleaseStringUTFChars(document, path);
+  if (id) env->ReleaseStringUTFChars(previewId, id);
   env->ReleaseStringUTFChars(directory, dir);
   return result;
 }

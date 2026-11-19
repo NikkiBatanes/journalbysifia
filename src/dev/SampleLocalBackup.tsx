@@ -1,7 +1,25 @@
-import React, {useRef, useState} from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import {Platform, Pressable, StyleSheet, Text, TextInput, View} from 'react-native';
 import 'react-native-get-random-values';
 import {useTheme} from '../theme/ThemeContext';
+
+type SamplePreview = {previewId: string; entries: number; photos: number; photoBytes: number};
+const nativeArchive = (): typeof import('../native/NativeJournalArchiveCrypto').default =>
+  require('../native/NativeJournalArchiveCrypto').default;
+
+function readPreview(result: string): SamplePreview {
+  const value = JSON.parse(result);
+  if (typeof value?.previewId !== 'string' || !/^[a-f0-9]{32}$/.test(value.previewId) ||
+      value.entries !== 2 || value.photos !== 2 || !Number.isSafeInteger(value.photoBytes) || value.photoBytes <= 0) {
+    throw new Error('Invalid sample preview');
+  }
+  return value;
+}
+
+function discardPreview(id: string) {
+  // Native also releases the bounded ciphertext snapshot on replacement or process exit.
+  void nativeArchive().finishSampleRestorePreview(id, '', false).catch(() => {});
+}
 
 function newRecoveryCode() {
   const bytes = globalThis.crypto.getRandomValues(new Uint8Array(16));
@@ -16,10 +34,24 @@ export default function SampleLocalBackup() {
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
   const running = useRef(false);
+  const [preview, setPreview] = useState<SamplePreview | null>(null);
+  const pendingId = useRef<string | null>(null);
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      if (pendingId.current) {discardPreview(pendingId.current);}
+      pendingId.current = null;
+    };
+  }, []);
   const text = {color: colors.text, fontFamily};
   const displayedCode = code.slice(0, 19) + '\n' + code.slice(20);
   const normalized = code.replace(/[-\s]/g, '').toLowerCase();
   function reset() {
+    if (pendingId.current) {discardPreview(pendingId.current);}
+    pendingId.current = null;
+    setPreview(null);
     setMode(null);
     setCode('');
     setAcknowledged(false);
@@ -40,19 +72,45 @@ export default function SampleLocalBackup() {
     setBusy(true);
     setMessage('');
     try {
-      const archive: typeof import('../native/NativeJournalArchiveCrypto').default = require('../native/NativeJournalArchiveCrypto').default;
+      const archive = nativeArchive();
       const exporting = mode === 'export';
+      if (!exporting && typeof archive.finishSampleRestorePreview !== 'function') {
+        setMessage('Rebuild the development app to preview a backup.');
+        return;
+      }
       const result = await archive.chooseSampleBackupFile(exporting, normalized);
       if (!result) {return;}
       if (!exporting) {
-        const {restoreSharedPhotoTransfer}: typeof import('./journalSharedPhotoTransferProbe') = require('./journalSharedPhotoTransferProbe');
-        await restoreSharedPhotoTransfer(result);
+        const selected = readPreview(result);
+        if (!mounted.current) {discardPreview(selected.previewId); return;}
+        pendingId.current = selected.previewId;
+        setPreview(selected);
+        return;
       }
       reset();
-      setMessage(exporting ? 'Sample backup saved.' : 'Restored and verified 2 sample entries and 2 photos.');
+      setMessage('Sample backup saved.');
     } catch {
       setMessage(mode === 'export' ? 'Could not save the sample backup. Try another location.' :
-        'Could not restore the sample. Check the file and recovery code, then try again.');
+        'Could not preview the sample. Check the file and recovery code, then try again.');
+    } finally {
+      running.current = false;
+      setBusy(false);
+    }
+  }
+  async function confirmRestore() {
+    if (running.current || !preview || pendingId.current !== preview.previewId) {return;}
+    running.current = true;
+    setBusy(true);
+    pendingId.current = null;
+    try {
+      const document = await nativeArchive().finishSampleRestorePreview(preview.previewId, normalized, true);
+      const {restoreSharedPhotoTransfer}: typeof import('./journalSharedPhotoTransferProbe') = require('./journalSharedPhotoTransferProbe');
+      await restoreSharedPhotoTransfer(document);
+      reset();
+      setMessage(`Restored and verified ${preview.entries} sample entries and ${preview.photos} photos.`);
+    } catch {
+      setPreview(null);
+      setMessage('Could not finish the restore. Select the backup again to retry.');
     } finally {
       running.current = false;
       setBusy(false);
@@ -80,14 +138,21 @@ export default function SampleLocalBackup() {
           <Text style={text}>{acknowledged ? '☑' : '☐'}  I saved my recovery code</Text>
         </Pressable>
       </>}
-      {mode === 'restore' && <>
+      {mode === 'restore' && !preview && <>
         <Text style={text}>Enter the recovery code saved with this sample.</Text>
         <TextInput accessibilityLabel="Backup recovery code" placeholder="Recovery code" secureTextEntry
           autoCapitalize="none" autoCorrect={false} autoComplete="off" maxLength={96} value={code}
           editable={!busy} onChangeText={setCode} style={[text, styles.input, {borderColor: colors.chevronColor}]} />
       </>}
+      {preview && <>
+        <Text accessibilityRole="header" style={[text, styles.title]}>Restore preview</Text>
+        <Text style={text}>{preview.entries} sample entries · {preview.photos} photos</Text>
+        <Text style={text}>{(preview.photoBytes / 1_000_000).toFixed(1)} MB of photos</Text>
+        <Text style={text}>Journal will restore this backup into an empty test journal and check it after reopening. Your own entries stay in place.</Text>
+        {button(busy ? 'Restoring…' : 'Confirm sample restore', confirmRestore, busy)}
+      </>}
       {mode && <>
-        {button(busy ? 'Working…' : mode === 'export' ? 'Choose save location' : 'Choose backup file', choose,
+        {!preview && button(busy ? 'Working…' : mode === 'export' ? 'Choose save location' : 'Choose backup file', choose,
           busy || !/^[a-f0-9]{32}$/.test(normalized) || (mode === 'export' && !acknowledged))}
         {button('Cancel', () => {reset(); setMessage('');}, busy)}
       </>}

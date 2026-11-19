@@ -65,13 +65,33 @@ void checkSampleDocument(const std::filesystem::path &root) {
   auto file = (root / "Sample Backup.bin").string();
   const auto code = fixture::freshToken();
   const auto wrong = fixture::freshToken();
-  const auto token = journal_shared_transfer::sampleDocument(target.string(), file, code.c_str(), true);
-  expectRejection([&] { journal_shared_transfer::sampleDocument(target.string(), file, wrong.c_str(), false); });
-  expectRejection([&] { journal_shared_transfer::importFromFile(target.string(), file, fixture::password); });
-  expectRejection([&] { journal_shared_transfer::sampleDocument(target.string(), file, "1234", false); });
+  namespace transfer = journal_shared_transfer;
+  const auto token = transfer::sampleDocument(file, code.c_str(), true);
+  auto &previews = transfer::samplePreviews();
+  auto preview = [&] {
+    const auto result = transfer::sampleDocument(file, code.c_str(), false);
+    const std::string prefix = R"({"previewId":")";
+    fixture::require(result.compare(0, prefix.size(), prefix) == 0);
+    fixture::require(result.find(R"(","entries":2,"photos":2,"photoBytes":)") == prefix.size() + 32);
+    return result.substr(prefix.size(), 32);
+  };
+  expectRejection([&] { transfer::sampleDocument(file, wrong.c_str(), false); });
+  expectRejection([&] { transfer::sampleDocument(file, "1234", false); });
+  expectRejection([&] { transfer::importFromFile(target.string(), file, fixture::password); });
+  const auto cancelled = preview();
+  previews.finish(target.string(), cancelled, "", false);
+  expectRejection([&] { previews.finish(target.string(), cancelled, code.c_str(), true); });
+  const auto stale = preview();
+  const auto current = preview();
+  previews.finish(target.string(), stale, "", false);
+  expectRejection([&] { previews.finish(target.string(), stale, code.c_str(), true); });
+  expectRejection([&] { previews.finish(target.string(), current, wrong.c_str(), true); });
+  const auto selected = preview();
   fixture::require(std::filesystem::is_empty(target));
-  const auto opened = journal_shared_transfer::sampleDocument(target.string(), file, code.c_str(), false);
+  std::filesystem::remove(file);
+  const auto opened = previews.finish(target.string(), selected, code.c_str(), true);
   fixture::require(opened.find(token) != std::string::npos);
+  expectRejection([&] { previews.finish(target.string(), selected, code.c_str(), true); });
 }
 
 void checkSharedPhotoCleanup(const std::filesystem::path &root) {

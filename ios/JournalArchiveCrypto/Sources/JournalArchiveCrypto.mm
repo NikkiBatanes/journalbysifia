@@ -426,6 +426,23 @@ RCT_EXPORT_MODULE(JournalArchiveCrypto)
   return NO;
 }
 
+- (void)finishSampleRestorePreview:(NSString *)previewId recoveryCode:(NSString *)recoveryCode
+                           confirm:(BOOL)confirm resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject {
+#if DEBUG
+  dispatch_async(JournalArchiveCryptoQueue(), ^{
+    try {
+      auto result = journal_shared_transfer::samplePreviews().finish(NSTemporaryDirectory().fileSystemRepresentation,
+        previewId.UTF8String, recoveryCode.UTF8String, confirm);
+      resolve([NSString stringWithUTF8String:result.c_str()]);
+    } catch (const std::exception &) {
+      reject(@"SAMPLE_PREVIEW_FAILED", @"Select the sample backup again.", nil);
+    }
+  });
+#else
+  reject(@"SAMPLE_DOCUMENT_DISABLED", @"Development build required", nil);
+#endif
+}
+
 - (void)chooseSampleBackupFile:(BOOL)exporting recoveryCode:(NSString *)recoveryCode
                        resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject {
 #if DEBUG
@@ -449,8 +466,7 @@ RCT_EXPORT_MODULE(JournalArchiveCrypto)
           NSError *error = nil;
           [coordinator coordinateReadingItemAtURL:selected options:0 error:&error byAccessor:^(NSURL *url) {
             try {
-              auto value = journal_shared_transfer::sampleDocument(root.fileSystemRepresentation,
-                url.fileSystemRepresentation, recoveryCode.UTF8String, false);
+              auto value = journal_shared_transfer::sampleDocument(url.fileSystemRepresentation, recoveryCode.UTF8String, false);
               document = [NSString stringWithUTF8String:value.c_str()];
             } catch (const std::exception &) {}
           }];
@@ -470,7 +486,7 @@ RCT_EXPORT_MODULE(JournalArchiveCrypto)
                                                           attributes:nil error:nil];
         if (ready) {
           try {
-            journal_shared_transfer::sampleDocument(root.fileSystemRepresentation, sample.fileSystemRepresentation,
+            journal_shared_transfer::sampleDocument(sample.fileSystemRepresentation,
               recoveryCode.UTF8String, true);
           } catch (const std::exception &) { ready = NO; }
         }
