@@ -1,3 +1,4 @@
+#include "../../../../../native/journal-archive/PickerPhoto.hpp"
 #include "../../../../../native/journal-archive/SyntheticSharedTransfer.hpp"
 #include "../../../../../native/journal-archive/SyntheticFilePhoto.hpp"
 #include <jni.h>
@@ -589,4 +590,19 @@ Java_app_journal_sifia_archivecrypto_JournalArchiveCryptoModule_nativeVerifyTran
   } catch (const std::exception &) {
     return JNI_FALSE;
   }
+}
+
+extern "C" JNIEXPORT jlong JNICALL
+Java_app_journal_sifia_archivecrypto_JournalArchiveCryptoModule_nativeInspectPickerPhoto(
+    JNIEnv *env, jobject, jstring directory, jstring name, jlong remaining) {
+  const char *dir = env->GetStringUTFChars(directory, nullptr);
+  if (!dir) return journal_picker::unreadable;
+  const char *leaf = env->GetStringUTFChars(name, nullptr);
+  auto result = journal_picker::unreadable;
+  if (leaf) {
+    result = journal_picker::inspect(dir, leaf, "rn_image_picker_lib_temp_", remaining);
+    env->ReleaseStringUTFChars(name, leaf);
+  }
+  env->ReleaseStringUTFChars(directory, dir);
+  return result;
 }

@@ -7,7 +7,7 @@ import {planInventorySample} from '../journalStagedBackup';
 import archive from '../../native/NativeJournalArchiveCrypto';
 import {beginSampleComparison, restoreSharedPhotoTransfer} from '../journalSharedPhotoTransferProbe';
 
-jest.mock('../../native/NativeJournalArchiveCrypto', () => ({__esModule: true, default: {saveInventorySample: jest.fn(), chooseSampleBackupFile: jest.fn(), finishSampleRestorePreview: jest.fn()}}));
+jest.mock('../../native/NativeJournalArchiveCrypto', () => ({__esModule: true, default: {inspectLocalPickerPhoto: jest.fn(), saveInventorySample: jest.fn(), chooseSampleBackupFile: jest.fn(), finishSampleRestorePreview: jest.fn()}}));
 jest.mock('../journalSharedPhotoTransferProbe', () => ({restoreSharedPhotoTransfer: jest.fn(), beginSampleComparison: jest.fn()}));
 jest.mock('../journalStagedBackup', () => ({planInventorySample: jest.fn()}));
 jest.mock('../../theme/ThemeContext', () => ({useTheme: () => ({colors: {text: 'black'}})}));
@@ -237,6 +237,7 @@ it('exports only a bounded custom entry count after the recovery code is acknowl
 });
 
 it('checks on-device counts only on request and keeps journal text and photo paths out of the screen', async () => {
+  jest.mocked(archive.inspectLocalPickerPhoto).mockResolvedValue(-1);
   const fixture = {id: 'r1', type: 'free', selected_date: '2026-09-17',
     created_at: '2026-09-17T12:00:00Z', updated_at: '2026-09-17T12:00:00Z', content: 'private writing',
     metadata: {journalBlocks: [{kind: 'photo', uri: 'file:///private-photo'}]}};
@@ -249,7 +250,7 @@ it('checks on-device counts only on request and keeps journal text and photo pat
   render(<SampleLocalBackup />);
   expect(AsyncStorage.getAllKeys).not.toHaveBeenCalled();
   fireEvent.press(screen.getByText('Check local journal counts'));
-  expect(await screen.findByText(/entries: 1\. Photo references in their journal blocks: 1\. Validation warnings: 0/)).toBeOnTheScreen();
+  expect(await screen.findByText(/entries: 1\. Photo references in their journal blocks: 1\. Readable photo files: 0\. Missing: 1/)).toBeOnTheScreen();
   expect(screen.queryByText(/private writing|private-photo/)).toBeNull();
   expect(archive.chooseSampleBackupFile).not.toHaveBeenCalled();
   expect(AsyncStorage.setItem).not.toHaveBeenCalled();

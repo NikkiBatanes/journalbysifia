@@ -2,9 +2,8 @@ import type {TurboModule} from 'react-native';
 import {TurboModuleRegistry} from 'react-native';
 
 /**
- * Evidence returned by the native provider before any customer-data surface is
- * allowed. This bridge remains synthetic-only until the mobile provider and
- * device failure suites are approved.
+ * Development archive operations use synthetic data. The picker-photo check
+ * reads local files and returns only a byte count or status.
  */
 export type JournalArchiveCryptoProviderEvidence = {
   libsodiumVersion: string;
@@ -70,6 +69,7 @@ export type JournalArchiveCryptoMediaPackagingEvidence = {
 };
 
 export interface Spec extends TurboModule {
+  inspectLocalPickerPhoto(uri: string, remainingBytes: number): Promise<number>;
   interruptSyntheticPhoto(afterPublication: boolean): Promise<void>;
   checkSyntheticPhotoInterruption(afterPublication: boolean): Promise<boolean>;
   stageSharedFixturePhoto(replacement: boolean): Promise<string>;

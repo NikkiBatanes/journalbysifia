@@ -110,6 +110,25 @@ class JournalArchiveCryptoModule(reactContext: ReactApplicationContext) :
   override fun chooseSampleBackupFile(exporting: Boolean, recoveryCode: String, promise: Promise) =
     pickSample(exporting, recoveryCode, -1, promise)
 
+  private external fun nativeInspectPickerPhoto(directory: String, name: String, remaining: Long): Long
+
+  override fun inspectLocalPickerPhoto(uri: String, remainingBytes: Double, promise: Promise) {
+    cryptoExecutor.execute {
+      try {
+        check(app.journal.sifia.BuildConfig.DEBUG)
+        val directory = reactApplicationContext.cacheDir
+        val base = android.net.Uri.fromFile(directory).toString().trimEnd('/') + "/"
+        val result = if (uri.startsWith(base) && uri.length - base.length in 1..80 &&
+          remainingBytes in 0.0..5_000_000_000.0) {
+          nativeInspectPickerPhoto(directory.absolutePath, uri.substring(base.length), remainingBytes.toLong())
+        } else -2L
+        promise.resolve(result.toDouble())
+      } catch (_: Exception) {
+        promise.reject("PHOTO_CHECK_FAILED", "Could not check the local image.")
+      }
+    }
+  }
+
   override fun saveInventorySample(recoveryCode: String, entryCount: Double, promise: Promise) {
     if (entryCount !in 0.0..300.0 || entryCount != entryCount.toInt().toDouble()) {
       promise.reject("INVALID_SAMPLE_SIZE", "Choose between 0 and 300 sample entries.")

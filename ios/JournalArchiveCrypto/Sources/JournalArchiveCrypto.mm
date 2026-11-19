@@ -1,5 +1,6 @@
 #include "../../../native/journal-archive/SyntheticSharedTransfer.hpp"
 #if DEBUG
+#include "../../../native/journal-archive/PickerPhoto.hpp"
 #include "../../../native/journal-archive/SyntheticFilePhoto.hpp"
 #endif
 #import "JournalArchiveCrypto.h"
@@ -514,6 +515,27 @@ RCT_EXPORT_MODULE(JournalArchiveCrypto)
 - (void)chooseSampleBackupFile:(BOOL)exporting recoveryCode:(NSString *)recoveryCode
                        resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject {
   [self pickSampleFile:exporting recoveryCode:recoveryCode entryCount:-1 resolve:resolve reject:reject];
+}
+
+- (void)inspectLocalPickerPhoto:(NSString *)uri remainingBytes:(double)remainingBytes
+                        resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject {
+#if DEBUG
+  dispatch_async(JournalArchiveCryptoQueue(), ^{
+    NSString *directory = [NSTemporaryDirectory() stringByStandardizingPath];
+    NSString *base = [NSURL fileURLWithPath:directory isDirectory:YES].absoluteString;
+    if (![uri hasPrefix:base] || !(remainingBytes >= 0 && remainingBytes <= 5000000000.0)) {
+      resolve(@(journal_picker::unsupported));
+      return;
+    }
+    NSString *name = [uri substringFromIndex:base.length];
+    NSData *data = [name dataUsingEncoding:NSUTF8StringEncoding];
+    if (!data.length || data.length > 64) { resolve(@(journal_picker::unsupported)); return; }
+    resolve(@(journal_picker::inspect(directory.fileSystemRepresentation,
+      std::string_view(static_cast<const char *>(data.bytes), data.length), "", static_cast<long long>(remainingBytes))));
+  });
+#else
+  reject(@"LOCAL_CHECK_DISABLED", @"A development build is required.", nil);
+#endif
 }
 
 - (void)saveInventorySample:(NSString *)recoveryCode entryCount:(double)entryCount

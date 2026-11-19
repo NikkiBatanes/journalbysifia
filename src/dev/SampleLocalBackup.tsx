@@ -2,6 +2,7 @@ import React, {useEffect, useRef, useState} from 'react';
 import {Platform, Pressable, StyleSheet, Text, TextInput, View} from 'react-native';
 import 'react-native-get-random-values';
 import {createJournalBackup, validateJournalBackup} from '../services/journalBackupContract';
+import {inspectJournalPhotoReferences} from './inspectJournalPhotoReferences';
 import {planInventorySample} from './journalStagedBackup';
 import type {SampleRevision} from './journalSharedPhotoTransferProbe';
 import {useTheme} from '../theme/ThemeContext';
@@ -125,17 +126,10 @@ export default function SampleLocalBackup() {
       const backup = await createJournalBackup();
       const result = validateJournalBackup(backup);
       if (!result.valid) {throw new Error('Local backup validation failed');}
-      const {journalRecords, reflectionRecords, prayerRecords} = backup.inventory;
-      const entries = [...journalRecords, ...reflectionRecords, ...prayerRecords].filter(entry => !entry.deleted);
-      let photoReferences = 0;
-      for (const entry of entries) {
-        const blocks = entry.metadata?.journalBlocks;
-        if (Array.isArray(blocks)) {
-          photoReferences += blocks.filter(block => block?.kind === 'photo' && typeof block.uri === 'string' && block.uri.length > 0).length;
-        }
-      }
+      const photos = await inspectJournalPhotoReferences(backup.inventory, (uri, remaining) =>
+        nativeArchive().inspectLocalPickerPhoto(uri, remaining));
       if (mounted.current) {
-        setMessage(`Local journal, reflection and prayer entries: ${entries.length}. Photo references in their journal blocks: ${photoReferences}. Validation warnings: ${result.warnings.length}. This check only reads records.`);
+        setMessage(`Local journal, reflection and prayer entries: ${photos.entries}. Photo references in their journal blocks: ${photos.references}. Readable photo files: ${photos.readable}. Missing: ${photos.missing}. Unsupported: ${photos.unsupported}. Unreadable: ${photos.unreadable}. Over size limit: ${photos.overLimit}. Validation warnings: ${result.warnings.length}.`);
       }
     } catch {
       if (mounted.current) {setMessage('Could not verify a complete local journal snapshot. Try again after saving your edits.');}
