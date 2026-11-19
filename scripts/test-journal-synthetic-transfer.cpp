@@ -73,6 +73,7 @@ void checkSampleDocument(const std::filesystem::path &root) {
     const std::string prefix = R"({"previewId":")";
     fixture::require(result.compare(0, prefix.size(), prefix) == 0);
     fixture::require(result.find(R"(","entries":2,"photos":2,"photoBytes":)") == prefix.size() + 32);
+    fixture::require(result.find(R"("firstContent":"Call Mom.")") != std::string::npos);
     return result.substr(prefix.size(), 32);
   };
   expectRejection([&] { transfer::sampleDocument(file, wrong.c_str(), false); });

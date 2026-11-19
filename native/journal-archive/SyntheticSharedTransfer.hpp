@@ -23,7 +23,12 @@ struct Images {
   std::string shared, other;
 };
 
-inline std::string manifest(const std::string &token, const Images &images) {
+inline std::string entryText(const std::string &id, const std::string &token, bool legacy) {
+  if (!legacy && id == "first") return "Call Mom.";
+  return id + "-" + token;
+}
+
+inline std::string manifest(const std::string &token, const Images &images, bool legacy = false) {
   auto asset = [](const std::string &id, const std::string &image) {
     return R"({"assetId":")" + id + R"(","path":"objects/)" + id
       + R"(","kind":"image","mediaType":"image/png","byteLength":)" + std::to_string(image.size())
@@ -34,7 +39,7 @@ inline std::string manifest(const std::string &token, const Images &images) {
   };
   auto entry = [&](const std::string &id, const std::string &blocks) {
     return R"({"id":")" + id + R"(","content_type":"todo","selected_date":"2026-11-19","created_at":"2026-11-19T00:00:00Z","updated_at":"2026-11-19T00:00:00Z","content":")"
-      + id + "-" + token + R"(","metadata":{"journalBlocks":[)" + blocks + "]}}";
+      + entryText(id, token, legacy) + R"(","metadata":{"journalBlocks":[)" + blocks + "]}}";
   };
   return journal_fixture::manifestDocument(
     entry("first", block(sharedId) + "," + block(otherId)) + "," + entry("second", block(sharedId)),
@@ -73,7 +78,7 @@ inline std::string imageDirectory(const std::string &directory) {
 }
 
 struct VerifiedSample {
-  std::string token, document;
+  std::string token, document, firstContent;
   Images images;
 };
 
@@ -94,15 +99,16 @@ inline VerifiedSample inspect(const journal_fixture::Bytes &sealed, const char *
   require(otherAt < data.size() && data.size() - otherAt <= maxImage);
   Images images{data.substr(header + manifestSize, sharedSize), data.substr(otherAt)};
   const auto document = data.substr(header, manifestSize);
-  require(document == manifest(token, images));
+  const bool legacy = document != manifest(token, images);
+  if (legacy) require(document == manifest(token, images, true));
   require(images.shared.compare(0, 8, "\x89PNG\r\n\x1a\n", 8) == 0 &&
           images.other.compare(0, 8, "\x89PNG\r\n\x1a\n", 8) == 0 && images.shared != images.other);
 
-  return {token, document, std::move(images)};
+  return {token, document, entryText("first", token, legacy), std::move(images)};
 }
 
 inline std::string stageVerified(const std::string &directory, const VerifiedSample &sample, size_t sealedSize) {
-  const auto &[token, document, images] = sample;
+  const auto &[token, document, firstContent, images] = sample;
   const auto dir = imageDirectory(directory);
   const auto shared = photos::stageImage(dir, images.shared, photos::Interruption::none);
   const auto other = photos::stageImage(dir, images.other, photos::Interruption::none);
@@ -133,7 +139,8 @@ public:
     const auto id = journal_fixture::freshToken();
     // inspect() authenticates the exact two-entry, two-photo manifest before returning.
     const auto json = R"({"previewId":")" + id + R"(","entries":2,"photos":2,"photoBytes":)"
-      + std::to_string(sample.images.shared.size() + sample.images.other.size()) + "}";
+      + std::to_string(sample.images.shared.size() + sample.images.other.size())
+      + R"(,"firstContent":")" + sample.firstContent + R"("})";
     std::lock_guard<std::mutex> lock(mutex);
     currentId = id;
     snapshot = std::move(sealed);

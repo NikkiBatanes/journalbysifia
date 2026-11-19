@@ -3,7 +3,7 @@ import {mkdtempSync, mkdirSync, copyFileSync, readFileSync, rmSync, writeFileSyn
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import archive from '../../native/NativeJournalArchiveCrypto';
-import {applySharedPhotoTransfer, verifySharedPhotoTransfer} from '../journalSharedPhotoTransferProbe';
+import {applySharedPhotoTransfer, prepareSampleComparison, verifySharedPhotoTransfer} from '../journalSharedPhotoTransferProbe';
 import {openRestoreSession} from '../journalRestoreDatabase';
 import {connect} from './restoreTestDatabase';
 
@@ -42,6 +42,36 @@ it('restores both entries from one encrypted file and rejects a damaged second p
     expect(ciphertext.includes(token)).toBe(false);
     let session = await openRestoreSession(db);
     const expected = await applySharedPhotoTransfer(session);
+    const compareTarget = join(root, 'compare');
+    mkdirSync(compareTarget);
+    copyFileSync(destination, join(compareTarget, file));
+    let existing = connect(join(compareTarget, 'existing.sqlite'));
+    try {
+      const comparison = await prepareSampleComparison(existing, 'Call Mom.');
+      const existingSession = await openRestoreSession(existing);
+      const snapshot = () => existing.execute('SELECT k,v FROM restore_kv ORDER BY k');
+      const original = await snapshot();
+      const document = run(['--read-shared', compareTarget]).toString();
+      await expect(applySharedPhotoTransfer(existingSession, document, {...comparison, backupText: 'Older preview'}))
+        .rejects.toThrow('no longer matches');
+      expect(await snapshot()).toEqual(original);
+      await existing.execute('INSERT INTO restore_kv (k,v) VALUES (?,?)', ['journal:local-profile', '{}']);
+      const withProfile = await snapshot();
+      await expect(applySharedPhotoTransfer(existingSession, document, comparison)).rejects.toThrow('Unexpected sample journal');
+      expect(await snapshot()).toEqual(withProfile);
+      await existing.execute('DELETE FROM restore_kv WHERE k=?', ['journal:local-profile']);
+      const kept = await applySharedPhotoTransfer(existingSession, document, comparison);
+      expect(kept.entries[0].id).not.toBe('first');
+      existing.close();
+      existing = connect(join(compareTarget, 'existing.sqlite'));
+      jest.mocked(archive.verifyTransferredPhotos).mockImplementationOnce(async (...args) => {
+        run(['--verify-pair', compareTarget, ...args]);
+        return true;
+      });
+      expect(await verifySharedPhotoTransfer(await openRestoreSession(existing), kept)).toBe(token);
+    } finally {
+      existing.close();
+    }
     rmSync(destination);
     db.close();
     db = connect(dbFile);

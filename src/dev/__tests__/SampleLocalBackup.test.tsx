@@ -2,10 +2,10 @@ import React from 'react';
 import {fireEvent, render, screen, waitFor} from '@testing-library/react-native';
 import SampleLocalBackup from '../SampleLocalBackup';
 import archive from '../../native/NativeJournalArchiveCrypto';
-import {restoreSharedPhotoTransfer} from '../journalSharedPhotoTransferProbe';
+import {beginSampleComparison, restoreSharedPhotoTransfer} from '../journalSharedPhotoTransferProbe';
 
 jest.mock('../../native/NativeJournalArchiveCrypto', () => ({__esModule: true, default: {chooseSampleBackupFile: jest.fn(), finishSampleRestorePreview: jest.fn()}}));
-jest.mock('../journalSharedPhotoTransferProbe', () => ({restoreSharedPhotoTransfer: jest.fn()}));
+jest.mock('../journalSharedPhotoTransferProbe', () => ({restoreSharedPhotoTransfer: jest.fn(), beginSampleComparison: jest.fn()}));
 jest.mock('../../theme/ThemeContext', () => ({useTheme: () => ({colors: {text: 'black'}})}));
 jest.mock('react-native-get-random-values', () => {
   Object.defineProperty(globalThis, 'crypto', {configurable: true, value: require('node:crypto').webcrypto});
@@ -85,5 +85,32 @@ it('discards the verified selection if the picker returns after leaving the scre
   view.unmount();
   finishPicking(selectedPreview);
   await waitFor(() => expect(archive.finishSampleRestorePreview).toHaveBeenCalledWith(previewId, '', false));
+  expect(restoreSharedPhotoTransfer).not.toHaveBeenCalled();
+});
+
+it.each(['confirm', 'cancel'])('shows both sample texts before %s', async action => {
+  const sample = {deviceText: 'Call Mom after dinner.', discard: jest.fn(), keepBoth: jest.fn()};
+  jest.mocked(beginSampleComparison).mockResolvedValue(sample);
+  jest.mocked(archive.chooseSampleBackupFile).mockResolvedValue(JSON.stringify({
+    ...JSON.parse(selectedPreview), firstContent: 'Call Mom.',
+  }));
+  render(<SampleLocalBackup />);
+  fireEvent.press(screen.getByText('Restore sample backup'));
+  fireEvent.changeText(screen.getByLabelText('Backup recovery code'), 'b'.repeat(32));
+  fireEvent.press(screen.getByText('Choose backup file'));
+  fireEvent.press(await screen.findByText('Compare with an existing sample journal'));
+  expect(await screen.findByText('Call Mom after dinner.')).toBeOnTheScreen();
+  expect(screen.getByText('Call Mom.')).toBeOnTheScreen();
+  expect(archive.finishSampleRestorePreview).not.toHaveBeenCalled();
+  if (action === 'cancel') {
+    fireEvent.press(screen.getByText('Cancel'));
+    expect(sample.keepBoth).not.toHaveBeenCalled();
+    expect(archive.finishSampleRestorePreview).toHaveBeenCalledWith(previewId, '', false);
+  } else {
+    fireEvent.press(screen.getByText('Keep both and restore sample'));
+    expect(await screen.findByText(/All 4 sample entries/)).toBeOnTheScreen();
+    expect(sample.keepBoth).toHaveBeenCalledWith('fixture');
+  }
+  expect(sample.discard).toHaveBeenCalled();
   expect(restoreSharedPhotoTransfer).not.toHaveBeenCalled();
 });

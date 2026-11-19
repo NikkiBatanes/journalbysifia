@@ -4,7 +4,8 @@ import archive from '../native/NativeJournalArchiveCrypto';
 import {preflightJournalBackupArchiveRestore, utf8ByteLength} from '../services/journalBackupArchiveContract';
 import {planJournalBackupRestore} from '../services/journalBackupRestorePlan';
 import {generateSpikeEncryptionKey} from '../services/journalEncryptedStorageSpike';
-import {openRestoreSession} from './journalRestoreDatabase';
+import {openRestoreSession, type RestoreDatabase} from './journalRestoreDatabase';
+import type {LocalJournalEntry} from '../storage/journalStorage';
 
 type Session = Awaited<ReturnType<typeof openRestoreSession>>;
 const prefix = 'journal_local:todo:2026-11-19:';
@@ -13,7 +14,34 @@ const sharedId = 'cf890a91-410a-4526-9d47-8aa7085ec351';
 const otherId = '91470c9f-7d1d-49aa-9644-8961d590b5ab';
 const names = /^photo-[a-f0-9]{32}$/;
 
-export async function applySharedPhotoTransfer(session: Session, document?: string) {
+type SampleComparison = {deviceEntries: LocalJournalEntry[]; backupText: string};
+
+// This database belongs exclusively to the sample exercise. Seed a conflicting
+// entry and an unrelated entry so a replace-all restore cannot silently pass.
+export async function prepareSampleComparison(db: RestoreDatabase, backupText: string): Promise<SampleComparison> {
+  if (backupText !== 'Call Mom.' && !/^first-[a-f0-9]{32}$/.test(backupText)) {throw new Error('Invalid sample comparison');}
+  const session = await openRestoreSession(db);
+  const common = {content_type: 'todo' as const, selected_date: '2026-11-19',
+    created_at: '2026-11-19T00:00:00Z', updated_at: '2026-11-19T00:00:00Z'};
+  const seeds = [
+    {...common, id: 'first', content: 'Call Mom after dinner.'},
+    {...common, id: 'device-only', content: 'Bring her the journal.'},
+  ];
+  await db.transaction(async tx => {
+    for (const entry of seeds) {
+      await tx.execute('INSERT INTO restore_kv (k,v) VALUES (?,?)', [prefix + entry.id, JSON.stringify(entry)]);
+    }
+    await tx.execute('INSERT INTO restore_kv (k,v) VALUES (?,?)', [indexKey, JSON.stringify(seeds.map(e => e.id).sort())]);
+  });
+  const deviceEntries = await Promise.all(seeds.map(async entry => {
+    const stored = await session.read(prefix + entry.id);
+    if (stored !== JSON.stringify(entry)) {throw new Error('Sample journal could not be read');}
+    return JSON.parse(stored) as LocalJournalEntry;
+  }));
+  return {deviceEntries, backupText};
+}
+
+export async function applySharedPhotoTransfer(session: Session, document?: string, comparison?: SampleComparison) {
   const received = JSON.parse(document ?? await archive.importSharedPhotoTransfer());
   const {manifest, sharedFile, otherFile, token} = received;
   if (!/^[a-f0-9]{32}$/.test(token) || !names.test(sharedFile) || !names.test(otherFile) || sharedFile === otherFile) {
@@ -41,7 +69,8 @@ export async function applySharedPhotoTransfer(session: Session, document?: stri
   entries.forEach((entry, i) => {
     const row = expected[i];
     const blocks = entry.metadata?.journalBlocks;
-    if (entry.id !== row.id || entry.content !== row.id + '-' + token ||
+    const supportedText = entry.content === row.id + '-' + token || (row.id === 'first' && entry.content === 'Call Mom.');
+    if (entry.id !== row.id || !supportedText ||
         !Array.isArray(blocks) || blocks.length !== row.assets.length) {
       throw new Error('Unexpected transferred record');
     }
@@ -52,15 +81,45 @@ export async function applySharedPhotoTransfer(session: Session, document?: stri
       return {...block, uri: 'objects/' + row.files[j]};
     })};
   });
+  const deviceEntries = comparison?.deviceEntries ?? [];
+  if (comparison) {
+    if (entries[0].content !== comparison.backupText) {throw new Error('Sample no longer matches preview');}
+    for (const entry of deviceEntries) {
+      if (await session.read(prefix + entry.id) !== JSON.stringify(entry)) {
+        throw new Error('The sample journal changed during preview');
+      }
+    }
+    // Only the two validated fixture records may enter this path. Re-key the
+    // backup copy; its photo blocks still point to the same verified objects.
+    const copyId = uuid();
+    if ([...entries, ...deviceEntries].some(e => e.id === copyId)) {throw new Error('Sample copy ID collision');}
+    const location = backup.inventory.recordLocations.journalRecords.find(row => row.id === 'first');
+    if (location?.key !== prefix + 'first') {throw new Error('Invalid sample entry location');}
+    entries[0] = {...entries[0], id: copyId};
+    location.id = copyId;
+    location.key = prefix + copyId;
+    backup.inventory.journalRecords = [...entries, ...deviceEntries];
+    backup.inventory.recordLocations.journalRecords.push(...deviceEntries.map(e => ({id: e.id, key: prefix + e.id})));
+  }
   const plan = planJournalBackupRestore(backup);
   if (!plan.valid) {throw new Error('Two-photo restore plan failed validation');}
+  if (comparison) {
+    const counts = await session.preview(plan);
+    // Both device rows must match, and only the rebuilt date index may change.
+    if (counts.localOnlyKeys || counts.matchingKeys !== deviceEntries.length || counts.changedKeys !== 1 ||
+        counts.newKeys !== entries.length) {throw new Error('Unexpected sample journal contents');}
+  }
   await session.restore(plan, uuid());
-  return {entries, token, sharedDigest: shared.sha256, otherDigest: other.sha256};
+  return {entries, deviceEntries, token, sharedDigest: shared.sha256, otherDigest: other.sha256};
 }
 
 export async function verifySharedPhotoTransfer(session: Session, expected: Awaited<ReturnType<typeof applySharedPhotoTransfer>>) {
-  if (await session.read(indexKey) !== JSON.stringify(['first', 'second'])) {
-    throw new Error('The two-entry date index did not survive reopen');
+  const ids = [...expected.entries, ...expected.deviceEntries].map(e => e.id).sort();
+  if (await session.read(indexKey) !== JSON.stringify(ids)) {
+    throw new Error('The sample entry index did not survive reopen');
+  }
+  for (const entry of expected.deviceEntries) {
+    if (await session.read(prefix + entry.id) !== JSON.stringify(entry)) {throw new Error('A device entry changed');}
   }
   const files: string[][] = [];
   for (const entry of expected.entries) {
@@ -94,5 +153,41 @@ export async function restoreSharedPhotoTransfer(document?: string) {
     return await verifySharedPhotoTransfer(await openRestoreSession(reopened), expected);
   } finally {
     reopened.delete();
+  }
+}
+
+export async function beginSampleComparison(backupText: string) {
+  const options = {name: 'compare-sample-' + uuid() + '.sqlite', encryptionKey: generateSpikeEncryptionKey()};
+  const db = open(options);
+  let closed = false;
+  const discard = () => {
+    if (!closed) {closed = true; db.delete();}
+  };
+  try {
+    const {rows} = await db.execute('PRAGMA cipher_version');
+    if (!rows[0]?.cipher_version) {throw new Error('Encrypted storage unavailable');}
+    const comparison = await prepareSampleComparison(db, backupText);
+    return {
+      deviceText: comparison.deviceEntries[0].content,
+      discard,
+      async keepBoth(document: string) {
+        try {
+          const expected = await applySharedPhotoTransfer(await openRestoreSession(db), document, comparison);
+          db.close();
+          closed = true;
+          const reopened = open({...options, failOnCreate: true});
+          try {
+            await verifySharedPhotoTransfer(await openRestoreSession(reopened), expected);
+          } finally {
+            reopened.delete();
+          }
+        } finally {
+          discard();
+        }
+      },
+    };
+  } catch (error) {
+    discard();
+    throw error;
   }
 }

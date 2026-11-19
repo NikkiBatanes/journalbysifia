@@ -3,7 +3,8 @@ import {Platform, Pressable, StyleSheet, Text, TextInput, View} from 'react-nati
 import 'react-native-get-random-values';
 import {useTheme} from '../theme/ThemeContext';
 
-type SamplePreview = {previewId: string; entries: number; photos: number; photoBytes: number};
+type SamplePreview = {previewId: string; entries: number; photos: number; photoBytes: number; firstContent?: string};
+type Comparison = Awaited<ReturnType<typeof import('./journalSharedPhotoTransferProbe').beginSampleComparison>>;
 const nativeArchive = (): typeof import('../native/NativeJournalArchiveCrypto').default =>
   require('../native/NativeJournalArchiveCrypto').default;
 
@@ -12,6 +13,10 @@ function readPreview(result: string): SamplePreview {
   if (typeof value?.previewId !== 'string' || !/^[a-f0-9]{32}$/.test(value.previewId) ||
       value.entries !== 2 || value.photos !== 2 || !Number.isSafeInteger(value.photoBytes) || value.photoBytes <= 0) {
     throw new Error('Invalid sample preview');
+  }
+  if (value.firstContent !== undefined && value.firstContent !== 'Call Mom.' &&
+      !(typeof value.firstContent === 'string' && /^first-[a-f0-9]{32}$/.test(value.firstContent))) {
+    throw new Error('Invalid sample comparison text');
   }
   return value;
 }
@@ -36,11 +41,15 @@ export default function SampleLocalBackup() {
   const running = useRef(false);
   const [preview, setPreview] = useState<SamplePreview | null>(null);
   const pendingId = useRef<string | null>(null);
+  const comparison = useRef<Comparison | null>(null);
+  const [deviceText, setDeviceText] = useState('');
   const mounted = useRef(true);
   useEffect(() => {
     mounted.current = true;
     return () => {
       mounted.current = false;
+      comparison.current?.discard();
+      comparison.current = null;
       if (pendingId.current) {discardPreview(pendingId.current);}
       pendingId.current = null;
     };
@@ -49,6 +58,9 @@ export default function SampleLocalBackup() {
   const displayedCode = code.slice(0, 19) + '\n' + code.slice(20);
   const normalized = code.replace(/[-\s]/g, '').toLowerCase();
   function reset() {
+    comparison.current?.discard();
+    comparison.current = null;
+    setDeviceText('');
     if (pendingId.current) {discardPreview(pendingId.current);}
     pendingId.current = null;
     setPreview(null);
@@ -97,21 +109,43 @@ export default function SampleLocalBackup() {
       setBusy(false);
     }
   }
+  async function compare() {
+    if (!preview?.firstContent || running.current) {return;}
+    running.current = true;
+    setBusy(true);
+    setMessage('');
+    try {
+      const {beginSampleComparison}: typeof import('./journalSharedPhotoTransferProbe') = require('./journalSharedPhotoTransferProbe');
+      const sample = await beginSampleComparison(preview.firstContent);
+      if (!mounted.current) {sample.discard(); return;}
+      comparison.current = sample;
+      setDeviceText(sample.deviceText);
+    } catch {
+      setMessage('Could not open the practice journal. Try again.');
+    } finally {
+      running.current = false;
+      setBusy(false);
+    }
+  }
   async function confirmRestore() {
     if (running.current || !preview || pendingId.current !== preview.previewId) {return;}
     running.current = true;
     setBusy(true);
     pendingId.current = null;
+    const sample = comparison.current;
+    comparison.current = null;
     try {
       const document = await nativeArchive().finishSampleRestorePreview(preview.previewId, normalized, true);
       const {restoreSharedPhotoTransfer}: typeof import('./journalSharedPhotoTransferProbe') = require('./journalSharedPhotoTransferProbe');
-      await restoreSharedPhotoTransfer(document);
+      if (sample) {await sample.keepBoth(document);} else {await restoreSharedPhotoTransfer(document);}
       reset();
-      setMessage(`Restored and verified ${preview.entries} sample entries and ${preview.photos} photos.`);
+      setMessage(sample ? 'Kept both versions. All 4 sample entries and 2 photos were verified after reopening.' : `Restored and verified ${preview.entries} sample entries and ${preview.photos} photos.`);
     } catch {
+      setDeviceText('');
       setPreview(null);
       setMessage('Could not finish the restore. Select the backup again to retry.');
     } finally {
+      sample?.discard();
       running.current = false;
       setBusy(false);
     }
@@ -148,8 +182,21 @@ export default function SampleLocalBackup() {
         <Text accessibilityRole="header" style={[text, styles.title]}>Restore preview</Text>
         <Text style={text}>{preview.entries} sample entries · {preview.photos} photos</Text>
         <Text style={text}>{(preview.photoBytes / 1_000_000).toFixed(1)} MB of photos</Text>
-        <Text style={text}>Journal will restore this backup into an empty test journal and check it after reopening. Your own entries stay in place.</Text>
-        {button(busy ? 'Restoring…' : 'Confirm sample restore', confirmRestore, busy)}
+        {deviceText ? <>
+          <Text accessibilityRole="header" style={[text, styles.title]}>Two versions of one sample entry</Text>
+          <Text style={[text, styles.buttonText]}>On this device</Text>
+          <Text style={text}>{deviceText}</Text>
+          <Text style={[text, styles.buttonText]}>In the backup</Text>
+          <Text style={text}>{preview.firstContent}</Text>
+          <Text style={text}>The backup version has two photos. Keep both adds it as a separate entry and preserves your device version.</Text>
+          {button(busy ? 'Restoring…' : 'Keep both and restore sample', confirmRestore, busy)}
+        </> : <>
+          <Text style={text}>{preview.firstContent
+            ? 'Restore to an empty test journal or compare with an edited sample entry.'
+            : 'Restore to an empty test journal.'}</Text>
+          {button(busy ? 'Working…' : 'Confirm sample restore', confirmRestore, busy)}
+          {!!preview.firstContent && button('Compare with an existing sample journal', compare, busy)}
+        </>}
       </>}
       {mode && <>
         {!preview && button(busy ? 'Working…' : mode === 'export' ? 'Choose save location' : 'Choose backup file', choose,
