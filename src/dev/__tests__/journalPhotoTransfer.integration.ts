@@ -14,7 +14,7 @@ jest.mock('uuid', () => ({v4: jest.requireActual('node:crypto').randomUUID}));
 jest.mock('@op-engineering/op-sqlite', () => ({}));
 
 it('restores the native photo, preserves prior contents on invalid imports, and accepts older text backups', async () => {
-  const executable = process.env.JOURNAL_TRANSFER_HOST;
+  const {JOURNAL_TRANSFER_HOST: executable} = process.env;
   if (!executable) {throw new Error('Set JOURNAL_TRANSFER_HOST to the compiled synthetic transfer test');}
   const root = mkdtempSync(join(tmpdir(), 'journal-photo-integration-'));
   const file = join(root, 'destination.sqlite');

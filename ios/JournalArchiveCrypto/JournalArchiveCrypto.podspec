@@ -14,6 +14,7 @@ Pod::Spec.new do |spec|
     'Vendor/INTEGRITY.json',
     'Vendor/LICENSE.libsodium',
   ]
+  spec.libraries = 'z'
   spec.dependency 'React-Core'
   spec.dependency 'ReactCodegen'
   spec.pod_target_xcconfig = {

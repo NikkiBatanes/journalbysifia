@@ -48,6 +48,26 @@ class JournalArchiveCryptoModule(reactContext: ReactApplicationContext) :
     }
   }
 
+  private external fun nativeFixturePhoto(directory: String, name: String?, replacement: Boolean): String?
+
+  private fun fixturePhoto(name: String?, replacement: Boolean, promise: Promise) {
+    cryptoExecutor.execute {
+      try {
+        check(app.journal.sifia.BuildConfig.DEBUG) { "Development build required" }
+        val directory = reactApplicationContext.noBackupFilesDir.absolutePath
+        val result = requireNotNull(nativeFixturePhoto(directory, name, replacement)) {
+          if (name == null) "Could not stage the encrypted test photo" else "Could not verify the restored test photo"
+        }
+        promise.resolve(if (name == null) result else result == "verified")
+      } catch (error: Exception) {
+        promise.reject("JOURNAL_FILE_PHOTO_FAILED", error)
+      }
+    }
+  }
+
+  override fun stageSyntheticPhoto(replacement: Boolean, promise: Promise) = fixturePhoto(null, replacement, promise)
+  override fun verifySyntheticPhoto(name: String, replacement: Boolean, promise: Promise) = fixturePhoto(name, replacement, promise)
+
   override fun exportSyntheticTransfer(promise: Promise) = syntheticTransfer(true, promise)
   override fun importSyntheticTransfer(promise: Promise) = syntheticTransfer(false, promise)
 

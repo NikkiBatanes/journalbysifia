@@ -18,24 +18,28 @@ const plan = (value: string): JournalBackupRestorePlan => ({
   interruptionHandling: policy.interruptionHandling,
 });
 
+export function pauseAfterValue(db: RestoreDatabase, key: string, committedValue: string,
+  onArmed: () => void): RestoreDatabase {
+  return {
+    execute: (sql, params) => db.execute(sql, params),
+    async transaction(work) {
+      await db.transaction(work);
+      const {rows} = await db.execute('SELECT v FROM restore_kv WHERE k=?', [key]);
+      if (rows[0]?.v === committedValue) {
+        onArmed();
+        await new Promise<never>(() => {});
+      }
+    },
+  };
+}
+
 // Suspend the actual executor after its changed value commits and before it
 // can verify the result or clear its rollback records. The OS ends the run.
 export async function armRestoreInterruption(db: RestoreDatabase, onArmed: () => void,
   beforeInterruption?: () => Promise<void>) {
   const initial = await openRestoreSession(db);
   await initial.restore(plan(original), id);
-  const interruptible: RestoreDatabase = {
-    execute: (sql, params) => db.execute(sql, params),
-    async transaction(work) {
-      await db.transaction(work);
-      const {rows} = await db.execute('SELECT v FROM restore_kv WHERE k=?', [key]);
-      if (rows[0]?.v === replacement) {
-        onArmed();
-        await new Promise<never>(() => {});
-      }
-    },
-  };
-  const session = await openRestoreSession(interruptible);
+  const session = await openRestoreSession(pauseAfterValue(db, key, replacement, onArmed));
   await beforeInterruption?.();
   await session.restore(plan(replacement), id);
   throw new Error('Restore finished without reaching the interruption point');

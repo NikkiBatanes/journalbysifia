@@ -150,7 +150,7 @@ function inspectAndroidProvider(sources) {
       'target_compile_features(journal_archive_crypto PRIVATE cxx_std_20)',
       '-Werror',
       '-fvisibility=hidden',
-      'target_link_libraries(journal_archive_crypto PRIVATE sodium::sodium)',
+      'target_link_libraries(journal_archive_crypto PRIVATE sodium::sodium z)',
     ],
     'Android CMake boundary',
     failures,

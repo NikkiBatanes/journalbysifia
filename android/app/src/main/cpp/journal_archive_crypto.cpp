@@ -1,4 +1,5 @@
 #include "../../../../../native/journal-archive/SyntheticTransfer.hpp"
+#include "../../../../../native/journal-archive/SyntheticFilePhoto.hpp"
 #include <jni.h>
 #include <sodium.h>
 
@@ -460,4 +461,27 @@ Java_app_journal_sifia_archivecrypto_JournalArchiveCryptoModule_nativeSyntheticT
     env->ReleaseStringUTFChars(directory, path);
     return nullptr;
   }
+}
+
+extern "C" JNIEXPORT jstring JNICALL
+Java_app_journal_sifia_archivecrypto_JournalArchiveCryptoModule_nativeFixturePhoto(
+    JNIEnv *env, jobject, jstring directory, jstring name, jboolean replacement) {
+  const char *path = env->GetStringUTFChars(directory, nullptr);
+  if (!path) return nullptr;
+  const char *filename = name ? env->GetStringUTFChars(name, nullptr) : nullptr;
+  jstring result = nullptr;
+  try {
+    if (!name) {
+      auto staged = journal_photo_fixture::stage(path, replacement);
+      result = env->NewStringUTF(staged.c_str());
+    } else if (filename) {
+      journal_photo_fixture::verifyAndCollect(path, filename, replacement);
+      result = env->NewStringUTF("verified");
+    }
+  } catch (const std::exception &) {
+    // Kotlin rejects the promise on null.
+  }
+  if (filename) env->ReleaseStringUTFChars(name, filename);
+  env->ReleaseStringUTFChars(directory, path);
+  return result;
 }

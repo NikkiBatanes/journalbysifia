@@ -13,6 +13,10 @@
 #include <string>
 #include <sys/stat.h>
 #include <unistd.h>
+#ifdef __ANDROID__
+#include <linux/fs.h>
+#include <sys/syscall.h>
+#endif
 
 namespace journal_attachment {
 inline void check(bool ok) {
@@ -69,10 +73,16 @@ std::string stage(const std::string &source, const std::string &directory,
     crypto_hash_sha256_final(&hash, actual.data());
     check(total == length && sodium_memcmp(actual.data(), expected.data(), actual.size()) == 0);
     check(fsync(out.fd) == 0);
-    // linkat fails on collision. A crash can leave an unreferenced file,
-    // but can never overwrite a photo still referenced by the old journal.
+    // Publish without replacing an existing photo. Android app storage can
+    // deny hard links, so use the kernel's no-replace rename there.
+#ifdef __ANDROID__
+    check(syscall(__NR_renameat2, dir.fd, partial.c_str(), dir.fd,
+                  published.c_str(), RENAME_NOREPLACE) == 0);
+#else
     check(linkat(dir.fd, partial.c_str(), dir.fd, published.c_str(), 0) == 0);
-    check(unlinkat(dir.fd, partial.c_str(), 0) == 0 && fsync(dir.fd) == 0);
+    check(unlinkat(dir.fd, partial.c_str(), 0) == 0);
+#endif
+    check(fsync(dir.fd) == 0);
   } catch (...) {
     unlinkat(dir.fd, partial.c_str(), 0);
     throw;

@@ -48,6 +48,33 @@ export const installJournalEncryptedStorageSpikeMenu = (): void => {
     ]);
   });
 
+  let filePhotoBusy = false;
+  async function checkFilePhoto(arm: boolean) {
+    if (filePhotoBusy) {return;}
+    filePhotoBusy = true;
+    try {
+      const probe = await import('./journalFilePhotoReopenProbe');
+      if (arm) {
+        await probe.armFilePhotoReopen(() => Alert.alert('Photo restore armed',
+          'Fully stop Journal now. Reopen it and choose Verify in the same test.'));
+      } else {
+        await probe.verifyFilePhotoReopen();
+        Alert.alert('Photo restore passed', 'Journal recovered the original entry and photo. The retry also survived reopening.');
+      }
+    } catch (error) {
+      Alert.alert('Photo restore failed', error instanceof Error ? error.message : 'Unknown diagnostic error');
+    } finally {
+      filePhotoBusy = false;
+    }
+  }
+  DevSettings.addMenuItem('Test full-size photo recovery', () => {
+    Alert.alert('Test full-size photo recovery', 'Use Arm first. Choose Verify after restarting Journal.', [
+      {text: 'Cancel', style: 'cancel'},
+      {text: 'Arm', onPress: () => checkFilePhoto(true)},
+      {text: 'Verify', onPress: () => checkFilePhoto(false)},
+    ]);
+  });
+
   let relaunchBusy = false;
   async function runRelaunchStep(arm: boolean) {
     if (relaunchBusy) {

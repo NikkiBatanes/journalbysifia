@@ -1,4 +1,7 @@
 #include "../../../native/journal-archive/SyntheticTransfer.hpp"
+#if DEBUG
+#include "../../../native/journal-archive/SyntheticFilePhoto.hpp"
+#endif
 #import "JournalArchiveCrypto.h"
 #include "JournalArchiveFileTransport.h"
 #include "JournalArchiveMediaPackaging.h"
@@ -412,6 +415,40 @@ RCT_EXPORT_MODULE(JournalArchiveCrypto)
 
 + (BOOL)requiresMainQueueSetup {
   return NO;
+}
+
+- (void)stageSyntheticPhoto:(BOOL)replacement resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject {
+#if DEBUG
+  dispatch_async(JournalArchiveCryptoQueue(), ^{
+    try {
+      NSURL *base = [NSFileManager.defaultManager URLForDirectory:NSApplicationSupportDirectory inDomain:NSUserDomainMask appropriateForURL:nil create:YES error:nil];
+      journal_fixture::require(base != nil);
+      auto name = journal_photo_fixture::stage(base.fileSystemRepresentation, replacement);
+      resolve([NSString stringWithUTF8String:name.c_str()]);
+    } catch (const std::exception &) {
+      reject(@"JOURNAL_PHOTO_STAGE_FAILED", @"Could not stage test photo", nil);
+    }
+  });
+#else
+  reject(@"JOURNAL_TRANSFER_DISABLED", @"Development build required", nil);
+#endif
+}
+
+- (void)verifySyntheticPhoto:(NSString *)name replacement:(BOOL)replacement resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject {
+#if DEBUG
+  dispatch_async(JournalArchiveCryptoQueue(), ^{
+    try {
+      NSURL *base = [NSFileManager.defaultManager URLForDirectory:NSApplicationSupportDirectory inDomain:NSUserDomainMask appropriateForURL:nil create:NO error:nil];
+      journal_fixture::require(base != nil && name.length == 38);
+      journal_photo_fixture::verifyAndCollect(base.fileSystemRepresentation, name.UTF8String, replacement);
+      resolve(@YES);
+    } catch (const std::exception &) {
+      reject(@"JOURNAL_PHOTO_VERIFY_FAILED", @"Could not verify test photo", nil);
+    }
+  });
+#else
+  reject(@"JOURNAL_TRANSFER_DISABLED", @"Development build required", nil);
+#endif
 }
 
 - (void)exportSyntheticTransfer:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject {

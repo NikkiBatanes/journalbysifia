@@ -8,10 +8,13 @@ import {planJournalBackupRestore} from '../../services/journalBackupRestorePlan'
 import {openRestoreSession} from '../journalRestoreDatabase';
 import {connect} from './restoreTestDatabase';
 
-const host = process.env.JOURNAL_TRANSFER_HOST!;
+// Read these at runtime. The mobile dotenv transform can otherwise cache a
+// previous worker's temporary directory in Jest's compiled test.
+const {env} = process;
+const host = env.JOURNAL_TRANSFER_HOST!;
 const entryKey = 'journal_local:todo:2026-11-19:fixture';
 const indexKey = 'journal_local_index:todo:2026-11-19';
-const workerRoot = process.env.JOURNAL_PHOTO_WORKER_DIR;
+const workerRoot = env.JOURNAL_PHOTO_WORKER_DIR;
 
 function run(args: string[], input?: Buffer) {
   return execFileSync(host, args, {input, maxBuffer: 8 * 1024 * 1024, stdio: ['pipe', 'pipe', 'pipe']});
