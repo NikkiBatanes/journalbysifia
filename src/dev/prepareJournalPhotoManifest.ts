@@ -6,7 +6,7 @@ import {
 } from '../services/journalBackupArchiveContract';
 
 import {planJournalBackupRestore} from '../services/journalBackupRestorePlan';
-import {validateArchivePhotoBlocks} from '../services/journalBackupPhotoBlocks';
+import {journalBackupPhotoResolver, validateArchivePhotoBlocks} from '../services/journalBackupPhotoBlocks';
 
 type Fingerprint = (uri: string, remaining: number) => Promise<string>;
 
@@ -95,8 +95,7 @@ export async function prepareJournalPhotoManifest(backup: JournalBackupEnvelopeV
 }
 
 // The platform returns one line of measured evidence followed by the exact decrypted JSON.
-// Only the date and aggregate counts leave this function. Opening a document does not change local storage.
-export function inspectLocalSnapshotResult(result: string) {
+function verifiedManifest(result: string) {
   const end = result.indexOf('\n');
   if (end <= 0) {throw new Error('Missing stream evidence');}
   const evidence = JSON.parse(result.slice(0, end));
@@ -117,7 +116,33 @@ export function inspectLocalSnapshotResult(result: string) {
     authenticatedFinalMarkerVerified: true, assetByteLengths,
   });
   if (!checked.valid || !checked.manifest) {throw new Error('Invalid snapshot');}
-  const {backup, assets, totals, createdAt} = checked.manifest;
+  return checked.manifest;
+}
+
+export function planStagedLocalSnapshot(result: string, staged: readonly {file: string; byteLength: number; sha256: string}[]) {
+  const {backup, assets} = verifiedManifest(result);
+  if (assets.length !== staged.length) {throw new Error('Staged photo count mismatch');}
+  const files = assets.map((asset, index) => {
+    const photo = staged[index];
+    if (photo.byteLength !== asset.byteLength || photo.sha256 !== asset.sha256) {
+      throw new Error('Staged photo content mismatch');
+    }
+    return {assetId: asset.assetId, file: photo.file};
+  });
+  const {inventory} = backup;
+  const resolve = journalBackupPhotoResolver([...inventory.journalRecords, ...inventory.reflectionRecords,
+    ...inventory.prayerRecords], assets, files);
+  const plan = planJournalBackupRestore({...backup, inventory: {...inventory,
+    journalRecords: inventory.journalRecords.map(resolve),
+    reflectionRecords: inventory.reflectionRecords.map(resolve),
+    prayerRecords: inventory.prayerRecords.map(resolve),
+  }});
+  if (!plan.valid) {throw new Error('Invalid restore mapping');}
+  return plan;
+}
+
+export function inspectLocalSnapshotResult(result: string) {
+  const {backup, assets, totals, createdAt} = verifiedManifest(result);
   const plan = planJournalBackupRestore(backup);
   if (!plan.valid) {throw new Error('Invalid restore mapping');}
   const inventory = backup.inventory;

@@ -14,6 +14,14 @@ export function resolveJournalBackupPhotoBlocks(
   assets: readonly JournalBackupArchiveAssetV1[],
   stagedPhotos: readonly StagedPhoto[],
 ): LocalJournalEntry[] {
+  return records.map(journalBackupPhotoResolver(records, assets, stagedPhotos));
+}
+
+export function journalBackupPhotoResolver(
+  records: readonly PhotoRecord[],
+  assets: readonly JournalBackupArchiveAssetV1[],
+  stagedPhotos: readonly StagedPhoto[],
+) {
   const stagedFiles = new Map<string, string>();
   const filenames = new Set<string>();
   for (const {assetId, file} of stagedPhotos) {
@@ -29,14 +37,14 @@ export function resolveJournalBackupPhotoBlocks(
   }
   validateArchivePhotoBlocks(records, assets);
   const byPath = new Map(assets.map(asset => [asset.path, stagedFiles.get(asset.assetId)!]));
-  return records.map(entry => {
+  return <T extends PhotoRecord>(entry: T): T => {
     const blocks = entry.metadata?.journalBlocks;
     if (!Array.isArray(blocks)) {return entry;}
     const journalBlocks = blocks.map(block => block.kind === 'photo' && block.uri
       ? {...block, uri: 'objects/' + byPath.get(block.uri)}
       : block);
     return {...entry, metadata: {...entry.metadata, journalBlocks}};
-  });
+  };
 }
 
 type PhotoRecord = {id: string; metadata?: Record<string, unknown>};

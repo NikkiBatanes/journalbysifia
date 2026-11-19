@@ -173,7 +173,9 @@ inline void verify(FILE *f, const std::string &code, std::string_view manifest, 
 
 // Read a selected archive using only its code. Report computed lengths and hashes
 // in manifest order so JS can validate the authenticated manifest before showing counts.
-inline std::string inspectDocument(const char *path, const std::string &code) {
+// Callbacks may write to private staging only. The entire archive is valid only after return.
+template <typename Chunk, typename EndPhoto>
+inline std::string readDocument(const char *path, const std::string &code, Chunk chunk, EndPhoto endPhoto) {
   std::unique_ptr<FILE, decltype(&fclose)> file(fopen(path, "rb"), fclose);
   check(bool(file));
   struct stat info{};
@@ -196,7 +198,9 @@ inline std::string inspectDocument(const char *path, const std::string &code) {
     if (tag == crypto_secretstream_xchacha20poly1305_TAG_PUSH) {
       check(reader.plain.empty() && length > 0 && count < 10000);
       if (count++) evidence += ",";
-      evidence += "[" + std::to_string(length) + ",\"" + hash.finish() + "\"]";
+      const auto digest = hash.finish();
+      endPhoto(length, digest);
+      evidence += "[" + std::to_string(length) + ",\"" + digest + "\"]";
       crypto_hash_sha256_init(&hash.state);
       length = 0;
       continue;
@@ -206,8 +210,13 @@ inline std::string inspectDocument(const char *path, const std::string &code) {
     total += static_cast<long long>(reader.plain.size());
     check(length <= 512LL * 1024 * 1024 && total <= maxPhotosBytes);
     hash.update(reader.plain.data(), reader.plain.size());
+    chunk(reader.plain.data(), reader.plain.size());
   }
   return evidence + "]}\n" + manifest;
+}
+
+inline std::string inspectDocument(const char *path, const std::string &code) {
+  return readDocument(path, code, [](const unsigned char *, size_t) {}, [](long long, const std::string &) {});
 }
 
 inline void saveDocument(const char *path, const std::string &code, std::string_view manifest,
