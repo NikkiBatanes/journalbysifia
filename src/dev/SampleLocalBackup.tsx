@@ -1,18 +1,28 @@
 import React, {useEffect, useRef, useState} from 'react';
 import {Platform, Pressable, StyleSheet, Text, TextInput, View} from 'react-native';
 import 'react-native-get-random-values';
+import {planInventorySample} from './journalStagedBackup';
 import type {SampleRevision} from './journalSharedPhotoTransferProbe';
 import {useTheme} from '../theme/ThemeContext';
 
-type SamplePreview = {previewId: string; entries: number; photos: number; photoBytes: number; firstContent?: string; archiveDigest?: string; revision?: SampleRevision};
+type SamplePreview = {previewId: string; inventory?: true; entries: number; photos: number; photoBytes: number; firstContent?: string; archiveDigest?: string; revision?: SampleRevision};
 type Comparison = Awaited<ReturnType<typeof import('./journalSharedPhotoTransferProbe').beginSampleComparison>>;
 const nativeArchive = (): typeof import('../native/NativeJournalArchiveCrypto').default =>
   require('../native/NativeJournalArchiveCrypto').default;
 
 function readPreview(result: string): SamplePreview {
   const value = JSON.parse(result);
-  if (typeof value?.previewId !== 'string' || !/^[a-f0-9]{32}$/.test(value.previewId) ||
-      value.entries !== 2 || value.photos !== (value.photoChange === 'added' ? 3 : 2) || !Number.isSafeInteger(value.photoBytes) || value.photoBytes <= 0) {
+  if (typeof value?.previewId !== 'string' || !/^[a-f0-9]{32}$/.test(value.previewId)) {throw new Error('Invalid preview identity');}
+  if (value.inventory !== undefined) {
+    try {
+      const {entries, photos, photoBytes, archiveDigest} = planInventorySample(JSON.stringify(value.inventory));
+      return {previewId: value.previewId, inventory: true, entries, photos, photoBytes, archiveDigest};
+    } catch (error) {
+      discardPreview(value.previewId);
+      throw error;
+    }
+  }
+  if (value.entries !== 2 || value.photos !== (value.photoChange === 'added' ? 3 : 2) || !Number.isSafeInteger(value.photoBytes) || value.photoBytes <= 0) {
     throw new Error('Invalid sample preview');
   }
   if (value.photoChange !== undefined && value.photoChange !== 'added' && value.photoChange !== 'replaced') {
@@ -117,7 +127,7 @@ export default function SampleLocalBackup() {
         const selected = readPreview(result);
         if (!mounted.current) {discardPreview(selected.previewId); return;}
         pendingId.current = selected.previewId;
-        if (selected.archiveDigest && lastRestore.current && await lastRestore.current.alreadyRestored(selected.archiveDigest)) {
+        if (!selected.inventory && selected.archiveDigest && lastRestore.current && await lastRestore.current.alreadyRestored(selected.archiveDigest)) {
           if (mounted.current) {
             reset();
             setMessage('You already restored this backup. Your entries and photos are unchanged.');
@@ -180,7 +190,9 @@ export default function SampleLocalBackup() {
     try {
       const document = await nativeArchive().finishSampleRestorePreview(preview.previewId, normalized, true);
       const {restoreSharedPhotoTransfer}: typeof import('./journalSharedPhotoTransferProbe') = require('./journalSharedPhotoTransferProbe');
-      if (sample) {await sample.keepBoth(document);} else {await restoreSharedPhotoTransfer(document);}
+      if (sample) {await sample.keepBoth(document);}
+      else if (preview.inventory) {await restoreSharedPhotoTransfer(document, preview.archiveDigest);}
+      else {await restoreSharedPhotoTransfer(document);}
       lastRestore.current?.discard();
       lastRestore.current = mounted.current && sample && preview.archiveDigest ? sample : null;
       reset();
@@ -267,7 +279,7 @@ export default function SampleLocalBackup() {
               : 'Keep both adds a separate entry using the two photos already restored.'}</Text>
           {button('Keep my device version', () => {reset(); setMessage('Kept your device version.');}, busy)}
           {button('Keep both versions', saveRevision, busy)}
-        </> : deviceText ? <>
+        </> : preview.entries === 0 ? <Text style={text}>This backup contains no journal entries to restore.</Text> : deviceText ? <>
           <Text accessibilityRole="header" style={[text, styles.title]}>Two versions of one sample entry</Text>
           <Text style={[text, styles.buttonText]}>On this device</Text>
           <Text style={text}>{deviceText}</Text>

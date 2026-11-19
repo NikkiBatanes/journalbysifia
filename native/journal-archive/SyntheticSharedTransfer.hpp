@@ -1,4 +1,4 @@
-// Bounded development fixture for transferring two entries and two unique images.
+// Bounded development fixture for transferring practice entries and images.
 #pragma once
 #include "SyntheticFilePhoto.hpp"
 #include <mutex>
@@ -23,7 +23,7 @@ struct Images {
   std::string shared, other;
 };
 
-enum class SampleVersion { legacy, original, revised, photoAdded, photoReplaced };
+enum class SampleVersion { legacy, original, revised, photoAdded, photoReplaced, inventory };
 constexpr auto newPhotoId = "792d9c99-72e2-4054-a211-1900c54801a4";
 inline bool changedPhoto(SampleVersion v) {
   return v == SampleVersion::photoAdded || v == SampleVersion::photoReplaced;
@@ -122,7 +122,42 @@ struct VerifiedSample {
   std::string token, document, firstContent, baseDigest;
   Images images;
   SampleVersion version;
+  std::vector<std::pair<std::string, std::string>> inventoryPhotos{};
 };
+
+inline std::vector<SamplePhoto> listedPhotos(const VerifiedSample &sample) {
+  if (sample.version != SampleVersion::inventory) return samplePhotos(sample.images, sample.version);
+  std::vector<SamplePhoto> result;
+  for (const auto &item : sample.inventoryPhotos) result.push_back({item.first.c_str(), item.second});
+  return result;
+}
+
+// The authenticated JSV1 payload starts with its magic, a token, two big-endian lengths
+// (manifest bytes, image count), compact UTF-8 JSON, then UUID/length/PNG tuples.
+inline VerifiedSample readInventory(const std::string &data, const std::string &token) {
+  const size_t manifestBytes = sizeAt(data, 36), count = sizeAt(data, 40);
+  require(manifestBytes > 0 && manifestBytes <= 1024 * 1024 && manifestBytes <= data.size() - 44 && count <= 64);
+  VerifiedSample result{token, data.substr(44, manifestBytes), "", "", {}, SampleVersion::inventory};
+  size_t offset = 44 + manifestBytes;
+  std::set<std::string> ids;
+  for (size_t i = 0; i < count; ++i) {
+    require(data.size() - offset >= 40);
+    const auto id = data.substr(offset, 36);
+    for (size_t j = 0; j < id.size(); ++j) {
+      const bool dash = j == 8 || j == 13 || j == 18 || j == 23;
+      require(dash ? id[j] == '-' : (id[j] >= '0' && id[j] <= '9') || (id[j] >= 'a' && id[j] <= 'f'));
+    }
+    require(ids.insert(id).second);
+    const size_t bytes = sizeAt(data, offset + 36);
+    offset += 40;
+    require(bytes >= 8 && bytes <= maxImage && bytes <= data.size() - offset);
+    require(data.compare(offset, 8, "\x89PNG\r\n\x1a\n", 8) == 0);
+    result.inventoryPhotos.emplace_back(id, data.substr(offset, bytes));
+    offset += bytes;
+  }
+  require(offset == data.size());
+  return result;
+}
 
 inline journal_fixture::Bytes readSample(const std::string &path) {
   return journal_fixture::readArchive(path, journal_fixture::overhead + 44 + maxManifest + 2 * maxImage + sizeof(journal_fixture::photo));
@@ -134,12 +169,13 @@ inline VerifiedSample inspect(const journal_fixture::Bytes &sealed, const char *
   const auto data = journal_fixture::openAuthenticatedFrame(sealed, code);
   require(data.size() >= header);
   const auto magic = data.substr(0, 4);
+  const auto token = data.substr(4, 32);
+  require(token.find_first_not_of("0123456789abcdef") == std::string::npos);
+  if (magic == "JSV1") return readInventory(data, token);
   auto version = SampleVersion::original;
   if (magic == "JSA1") version = SampleVersion::photoAdded;
   else if (magic == "JSR1") version = SampleVersion::photoReplaced;
   else require(magic == "JSH1");
-  const auto token = data.substr(4, 32);
-  require(token.find_first_not_of("0123456789abcdef") == std::string::npos);
   const auto manifestSize = sizeAt(data, 36), sharedSize = sizeAt(data, 40);
   require(manifestSize > 0 && manifestSize <= maxManifest && sharedSize > 0 && sharedSize <= maxImage);
   const auto otherAt = header + manifestSize + sharedSize;
@@ -164,28 +200,41 @@ inline VerifiedSample inspect(const journal_fixture::Bytes &sealed, const char *
           version == SampleVersion::revised || changedPhoto(version) ? digest(original) : "", std::move(images), version};
 }
 
-inline std::string stageVerified(const std::string &directory, const VerifiedSample &sample, size_t sealedSize) {
+inline std::string stageVerified(const std::string &directory, const VerifiedSample &sample, size_t sealedSize, bool publish = true) {
   // stageImage uses a shared scratch filename within this practice directory.
   static std::mutex stagingMutex;
   const std::lock_guard<std::mutex> lock(stagingMutex);
-  const auto dir = imageDirectory(directory);
+  const auto dir = publish ? imageDirectory(directory) : std::string{};
   std::string list;
-  for (const auto &photo : samplePhotos(sample.images, sample.version)) {
+  for (const auto &photo : listedPhotos(sample)) {
     const auto hash = digest(photo.bytes);
     const auto id = digest(sample.token + photo.assetId + hash).substr(0, 32);
     const auto name = "photo-" + id;
-    struct stat info{};
-    if (lstat((dir + "/" + name).c_str(), &info) != 0) {
-      require(errno == ENOENT);
-      require(photos::stageImage(dir, photo.bytes, photos::Interruption::none, id) == name);
+    if (publish) {
+      struct stat info{};
+      if (lstat((dir + "/" + name).c_str(), &info) != 0) {
+        require(errno == ENOENT);
+        require(photos::stageImage(dir, photo.bytes, photos::Interruption::none, id) == name);
+      }
+      const auto sealed = journal_fixture::readArchive(dir + "/" + name, photo.bytes.size() + journal_fixture::overhead);
+      require(journal_fixture::openAuthenticatedFrame(sealed, journal_fixture::password) == photo.bytes);
     }
-    const auto sealed = journal_fixture::readArchive(dir + "/" + name, photo.bytes.size() + journal_fixture::overhead);
-    require(journal_fixture::openAuthenticatedFrame(sealed, journal_fixture::password) == photo.bytes);
     if (!list.empty()) list += ",";
     list += R"({"assetId":")" + std::string(photo.assetId) + R"(","file":")" + name
       + R"(","sha256":")" + hash + R"(","byteLength":)" + std::to_string(photo.bytes.size()) + "}";
   }
-  return R"({"token":")" + sample.token + R"(","manifest":)" + sample.document
+  std::string manifestField;
+  if (sample.version == SampleVersion::inventory) {
+    // Encode opaque manifest bytes for JSON transport. The app validates and parses
+    // them separately so archive text can never supply native evidence fields.
+    std::string hex(sample.document.size() * 2 + 1, '\0');
+    sodium_bin2hex(hex.data(), hex.size(), reinterpret_cast<const unsigned char *>(sample.document.data()), sample.document.size());
+    hex.pop_back();
+    manifestField = R"("inventoryManifestHex":")" + hex + R"(")";
+  } else {
+    manifestField = R"("manifest":)" + sample.document;
+  }
+  return R"({"token":")" + sample.token + R"(",)" + manifestField
     + R"(,"containerByteLength":)" + std::to_string(sealedSize)
     + R"(,"stagedPhotos":[)" + list + R"(],"archiveDigest":")" + digest(sample.document) + R"("})";
 }
@@ -209,18 +258,22 @@ public:
     auto sealed = readSample(path);
     const auto sample = inspect(sealed, code);
     const auto id = journal_fixture::freshToken();
-    // inspect() authenticates the exact two-entry sample manifest before returning.
-    const bool added = sample.version == SampleVersion::photoAdded;
-    const bool replaced = sample.version == SampleVersion::photoReplaced;
-    const auto list = samplePhotos(sample.images, sample.version);
-    size_t bytes = 0;
-    for (const auto &photo : list) bytes += photo.bytes.size();
-    const auto json = R"({"previewId":")" + id
-      + (added ? R"(","photoChange":"added)" : replaced ? R"(","photoChange":"replaced)" : "")
-      + R"(","entries":2,"photos":)" + std::to_string(list.size()) + R"(,"photoBytes":)" + std::to_string(bytes)
-      + R"(,"firstContent":")" + sample.firstContent
-      + (sample.baseDigest.empty() ? "" : R"(","updatedAt":")" + std::string(revisedDate) + R"(","baseDigest":")" + sample.baseDigest)
-      + R"(","archiveDigest":")" + digest(sample.document) + R"("})";
+    std::string json;
+    if (sample.version == SampleVersion::inventory) {
+      json = R"({"previewId":")" + id + R"(","inventory":)" + stageVerified("", sample, sealed.size(), false) + "}";
+    } else {
+      const bool added = sample.version == SampleVersion::photoAdded;
+      const bool replaced = sample.version == SampleVersion::photoReplaced;
+      const auto list = samplePhotos(sample.images, sample.version);
+      size_t bytes = 0;
+      for (const auto &photo : list) bytes += photo.bytes.size();
+      json = R"({"previewId":")" + id
+        + (added ? R"(","photoChange":"added)" : replaced ? R"(","photoChange":"replaced)" : "")
+        + R"(","entries":2,"photos":)" + std::to_string(list.size()) + R"(,"photoBytes":)" + std::to_string(bytes)
+        + R"(,"firstContent":")" + sample.firstContent
+        + (sample.baseDigest.empty() ? "" : R"(","updatedAt":")" + std::string(revisedDate) + R"(","baseDigest":")" + sample.baseDigest)
+        + R"(","archiveDigest":")" + digest(sample.document) + R"("})";
+    }
     std::lock_guard<std::mutex> lock(mutex);
     currentId = id;
     snapshot = std::move(sealed);

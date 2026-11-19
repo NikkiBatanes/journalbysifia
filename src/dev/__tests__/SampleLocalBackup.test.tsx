@@ -1,11 +1,14 @@
 import React from 'react';
 import {fireEvent, render, screen, waitFor} from '@testing-library/react-native';
 import SampleLocalBackup from '../SampleLocalBackup';
+import {JOURNAL_BACKUP_RESTORE_POLICY} from '../../services/journalBackupContract';
+import {planInventorySample} from '../journalStagedBackup';
 import archive from '../../native/NativeJournalArchiveCrypto';
 import {beginSampleComparison, restoreSharedPhotoTransfer} from '../journalSharedPhotoTransferProbe';
 
 jest.mock('../../native/NativeJournalArchiveCrypto', () => ({__esModule: true, default: {chooseSampleBackupFile: jest.fn(), finishSampleRestorePreview: jest.fn()}}));
 jest.mock('../journalSharedPhotoTransferProbe', () => ({restoreSharedPhotoTransfer: jest.fn(), beginSampleComparison: jest.fn()}));
+jest.mock('../journalStagedBackup', () => ({planInventorySample: jest.fn()}));
 jest.mock('../../theme/ThemeContext', () => ({useTheme: () => ({colors: {text: 'black'}})}));
 jest.mock('react-native-get-random-values', () => {
   Object.defineProperty(globalThis, 'crypto', {configurable: true, value: require('node:crypto').webcrypto});
@@ -188,4 +191,27 @@ it.each([
   }
   expect(keepBoth).toHaveBeenCalledTimes(choice === 'keep both' ? 1 : 0);
   expect(archive.finishSampleRestorePreview).toHaveBeenLastCalledWith(previewId, photoChange && choice === 'keep both' ? 'b'.repeat(32) : '', Boolean(photoChange && choice === 'keep both'));
+});
+
+it.each([0, 300])('shows the verified count and handles confirmation for %i entries', async entries => {
+  const digest = 'b'.repeat(64);
+  jest.mocked(planInventorySample).mockReturnValue({
+    plan: {valid: true, fatal: [], warnings: [], operations: [], operationCounts: {},
+      clearOwnedKeysMatching: [], requiresRollbackSnapshot: true, interruptionHandling: JOURNAL_BACKUP_RESTORE_POLICY.interruptionHandling},
+    entries, photos: 0, photoBytes: 0, archiveDigest: digest,
+  });
+  jest.mocked(archive.chooseSampleBackupFile).mockResolvedValueOnce(JSON.stringify({previewId, inventory: {}}));
+  render(<SampleLocalBackup />);
+  fireEvent.press(screen.getByText('Restore sample backup'));
+  fireEvent.changeText(screen.getByLabelText('Backup recovery code'), 'b'.repeat(32));
+  fireEvent.press(screen.getByText('Choose backup file'));
+  await screen.findByText(entries + ' sample entries · 0 photos');
+  if (entries) {
+    fireEvent.press(screen.getByText('Confirm sample restore'));
+    await waitFor(() => expect(restoreSharedPhotoTransfer).toHaveBeenCalledWith('fixture', digest));
+  } else {
+    expect(screen.queryByText('Confirm sample restore')).toBeNull();
+    fireEvent.press(screen.getByText('Cancel'));
+    expect(archive.finishSampleRestorePreview).toHaveBeenCalledWith(previewId, '', false);
+  }
 });

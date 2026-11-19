@@ -1,9 +1,8 @@
 import {open} from '@op-engineering/op-sqlite';
 import {v4 as uuid} from 'uuid';
 import archive from '../native/NativeJournalArchiveCrypto';
-import {JOURNAL_BACKUP_ARCHIVE_LIMITS, preflightJournalBackupArchiveRestore, utf8ByteLength} from '../services/journalBackupArchiveContract';
-import {resolveJournalBackupPhotoBlocks} from '../services/journalBackupPhotoBlocks';
 import {planJournalBackupRestore} from '../services/journalBackupRestorePlan';
+import {readStagedSample, planInventorySample} from './journalStagedBackup';
 import {generateSpikeEncryptionKey} from '../services/journalEncryptedStorageSpike';
 import {openRestoreSession, type RestoreDatabase} from './journalRestoreDatabase';
 import type {LocalJournalEntry} from '../storage/journalStorage';
@@ -39,39 +38,6 @@ export async function prepareSampleComparison(db: RestoreDatabase, backupText: s
     return JSON.parse(stored) as LocalJournalEntry;
   }));
   return {deviceEntries, backupText};
-}
-
-type NativeStagedPhoto = {assetId: string; file: string; byteLength: number; sha256: string};
-
-// Native returns this document only after authenticating the archive and reopening
-// each staged image. Use the stable asset ID to match its evidence to the manifest.
-function readStagedSample(document: string) {
-  const {manifest, token, containerByteLength, stagedPhotos, archiveDigest} = JSON.parse(document);
-  if (typeof token !== 'string' || !/^[a-f0-9]{32}$/.test(token) ||
-      typeof archiveDigest !== 'string' || !/^[a-f0-9]{64}$/.test(archiveDigest) ||
-      !Array.isArray(stagedPhotos) || stagedPhotos.length > JOURNAL_BACKUP_ARCHIVE_LIMITS.maxAssetCount) {
-    throw new Error('Invalid staged photo inventory');
-  }
-  const byId = new Map<string, NativeStagedPhoto>();
-  const lengths: Record<string, number> = Object.create(null);
-  for (const photo of stagedPhotos) {
-    if (!photo || typeof photo.assetId !== 'string' || byId.has(photo.assetId)) {
-      throw new Error('Invalid staged photo identity');
-    }
-    byId.set(photo.assetId, photo);
-    lengths[photo.assetId] = photo.byteLength;
-  }
-  const validated = preflightJournalBackupArchiveRestore(manifest, {
-    containerByteLength, manifestByteLength: utf8ByteLength(JSON.stringify(manifest)),
-    authenticatedFinalMarkerVerified: true, assetByteLengths: lengths,
-  });
-  if (!validated.valid || !validated.manifest) {throw new Error('Staged photo manifest failed validation');}
-  const {assets, backup} = validated.manifest;
-  if (assets.some(asset => byId.get(asset.assetId)?.sha256 !== asset.sha256)) {
-    throw new Error('Staged photo digest mismatch');
-  }
-  const entries = resolveJournalBackupPhotoBlocks(backup.inventory.journalRecords, assets, stagedPhotos);
-  return {assets, backup, entries, token: token as string, archiveDigest: archiveDigest as string};
 }
 
 export async function applySharedPhotoTransfer(session: Session, document?: string, comparison?: SampleComparison) {
@@ -160,14 +126,23 @@ export async function verifySharedPhotoTransfer(session: Session, expected: Awai
   return expected.token;
 }
 
-export async function restoreSharedPhotoTransfer(document?: string) {
+export async function restoreSharedPhotoTransfer(document?: string, inventoryDigest?: string) {
   const options = {name: 'shared-transfer-' + uuid() + '.sqlite', encryptionKey: generateSpikeEncryptionKey()};
   const db = open(options);
-  let expected: Awaited<ReturnType<typeof applySharedPhotoTransfer>>;
+  let expected: Awaited<ReturnType<typeof applySharedPhotoTransfer>> | undefined;
+  let inventory: ReturnType<typeof planInventorySample> | undefined;
   try {
     const {rows} = await db.execute('PRAGMA cipher_version');
     if (!rows[0]?.cipher_version) {throw new Error('Encrypted storage unavailable');}
-    expected = await applySharedPhotoTransfer(await openRestoreSession(db), document);
+    const session = await openRestoreSession(db);
+    if (inventoryDigest !== undefined) {
+      if (!document) {throw new Error('Missing selected backup');}
+      inventory = planInventorySample(document);
+      if (inventory.archiveDigest !== inventoryDigest) {throw new Error('Selected backup changed');}
+      await session.restore(inventory.plan, uuid());
+    } else {
+      expected = await applySharedPhotoTransfer(session, document);
+    }
   } catch (error) {
     db.delete();
     throw error;
@@ -175,7 +150,14 @@ export async function restoreSharedPhotoTransfer(document?: string) {
   db.close();
   const reopened = open({...options, failOnCreate: true});
   try {
-    return await verifySharedPhotoTransfer(await openRestoreSession(reopened), expected);
+    const session = await openRestoreSession(reopened);
+    if (expected) {return await verifySharedPhotoTransfer(session, expected);}
+    if (!inventory) {throw new Error('Missing inventory restore plan');}
+    const counts = await session.preview(inventory.plan);
+    if (counts.newKeys || counts.changedKeys || counts.localOnlyKeys || counts.matchingKeys !== inventory.plan.operations.length) {
+      throw new Error('Reopened journal differs from the backup');
+    }
+    return inventory.archiveDigest;
   } finally {
     reopened.delete();
   }

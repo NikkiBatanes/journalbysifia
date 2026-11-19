@@ -171,7 +171,12 @@ int main(int argc, char **argv) {
         std::cout << code << '\n';
         return 0;
       }
-      if (command == "--confirm-photo-revision") {
+      if (command == "--preview-inventory") {
+        fixture::require(argc == 3);
+        std::cout << journal_shared_transfer::samplePreviews().prepare(argv[2], fixture::password);
+        return 0;
+      }
+      if (command == "--confirm-photo-revision" || command == "--confirm-inventory") {
         fixture::require(argc == 4);
         auto &previews = journal_shared_transfer::samplePreviews();
         const auto preview = previews.prepare(argv[3], fixture::password);
