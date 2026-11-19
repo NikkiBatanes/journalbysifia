@@ -2,12 +2,13 @@ import React, {useEffect, useRef, useState} from 'react';
 import {Platform, Pressable, StyleSheet, Text, TextInput, View} from 'react-native';
 import 'react-native-get-random-values';
 import {createJournalBackup, validateJournalBackup} from '../services/journalBackupContract';
-import {prepareJournalPhotoExport} from './prepareJournalPhotoManifest';
+import {inspectLocalSnapshotResult, prepareJournalPhotoExport} from './prepareJournalPhotoManifest';
 import {inspectJournalPhotoReferences} from './inspectJournalPhotoReferences';
 import {planInventorySample} from './journalStagedBackup';
 import type {SampleRevision} from './journalSharedPhotoTransferProbe';
 import {useTheme} from '../theme/ThemeContext';
 
+type BackupAction = 'export' | 'inventory' | 'restore' | 'saveLocal' | 'openLocal';
 type SamplePreview = {previewId: string; inventory?: true; entries: number; photos: number; photoBytes: number; firstContent?: string; archiveDigest?: string; revision?: SampleRevision};
 type Comparison = Awaited<ReturnType<typeof import('./journalSharedPhotoTransferProbe').beginSampleComparison>>;
 const nativeArchive = (): typeof import('../native/NativeJournalArchiveCrypto').default =>
@@ -62,9 +63,9 @@ function newRecoveryCode() {
 
 export default function SampleLocalBackup() {
   const {colors, fontFamily} = useTheme();
-  const [mode, setMode] = useState<'export' | 'inventory' | 'restore' | null>(null);
+  const [mode, setMode] = useState<BackupAction | null>(null);
   const [entryCount, setEntryCount] = useState('300');
-  const exporting = mode === 'export' || mode === 'inventory';
+  const exporting = mode === 'export' || mode === 'inventory' || mode === 'saveLocal';
   const validCount = /^\d{1,3}$/.test(entryCount) && Number(entryCount) <= 300;
   const [code, setCode] = useState('');
   const [acknowledged, setAcknowledged] = useState(false);
@@ -106,11 +107,11 @@ export default function SampleLocalBackup() {
     setCode('');
     setAcknowledged(false);
   }
-  function start(operation: 'export' | 'inventory' | 'restore') {
+  function start(operation: BackupAction) {
     if (running.current) {return;}
     setMessage('');
     try {
-      setCode(operation === 'restore' ? '' : newRecoveryCode());
+      setCode(operation === 'restore' || operation === 'openLocal' ? '' : newRecoveryCode());
       setEntryCount('300');
       setAcknowledged(false);
       setMode(operation);
@@ -166,6 +167,27 @@ export default function SampleLocalBackup() {
     setMessage('');
     try {
       const archive = nativeArchive();
+      if (mode === 'saveLocal') {
+        const backup = await createJournalBackup();
+        if (!validateJournalBackup(backup).valid) {throw new Error('Invalid snapshot');}
+        const {manifest, sources} = await prepareJournalPhotoExport(backup, (uri, remaining) =>
+          archive.describeLocalPickerPhoto(uri, remaining));
+        if (!mounted.current) {return;}
+        const saved = await archive.saveLocalSnapshot(normalized, JSON.stringify(manifest), sources);
+        if (saved === 'saved' && mounted.current) {
+          reset();
+          setMessage('Encrypted journal backup saved. Use Check saved journal backup to verify the file.');
+        }
+        return;
+      }
+      if (mode === 'openLocal') {
+        const opened = await archive.openLocalSnapshot(normalized);
+        if (!opened || !mounted.current) {return;}
+        const {records, assets} = inspectLocalSnapshotResult(opened);
+        reset();
+        setMessage(`Verified journal backup. Records: ${records}. Photos: ${assets}.`);
+        return;
+      }
       if (!exporting && typeof archive.finishSampleRestorePreview !== 'function') {
         setMessage('Rebuild the development app to preview a backup.');
         return;
@@ -206,6 +228,11 @@ export default function SampleLocalBackup() {
       reset();
       setMessage('Sample backup saved.');
     } catch {
+      if (mode === 'openLocal' || mode === 'saveLocal') {
+        setMessage(mode === 'saveLocal' ? 'Could not save the journal backup. Check photo availability and free space before retrying.' :
+          'Could not verify this journal backup. Check the file and recovery code.');
+        return;
+      }
       setMessage(exporting ? 'Could not save the sample backup. Try another location.' :
         'Could not preview the sample. Check the file and recovery code, then try again.');
     } finally {
@@ -294,8 +321,10 @@ export default function SampleLocalBackup() {
   return (
     <View style={styles.section}>
       <Text style={[text, styles.title]}>Local backup test</Text>
-      <Text style={text}>Practice saving and restoring generated journal entries.</Text>
+      <Text style={text}>Save or verify your local journal, or try restoring practice entries.</Text>
       {!mode && <>
+        {button('Save encrypted journal backup', () => start('saveLocal'), busy)}
+        {button('Check saved journal backup', () => start('openLocal'), busy)}
         {button('Save sample backup', () => start('export'), busy)}
         {button('Save a custom sample', () => start('inventory'), busy)}
         {button('Restore sample backup', () => start('restore'), busy)}
@@ -304,6 +333,7 @@ export default function SampleLocalBackup() {
         {button('Check photo links for export', () => checkLocalJournal('photos'), busy)}
       </>}
       {exporting && <>
+        {mode === 'saveLocal' && <Text style={text}>This development export includes local backup records and supported JPEG and PNG photos in journal, reflection and prayer blocks. Audio attachments are outside this check.</Text>}
         {mode === 'inventory' && <>
           <Text style={text}>Choose 0 to 300 practice entries. Samples with two or more entries include three photos.</Text>
           <TextInput accessibilityLabel="Number of sample entries" keyboardType="number-pad"
@@ -317,8 +347,8 @@ export default function SampleLocalBackup() {
           <Text style={text}>{acknowledged ? '☑' : '☐'}  I saved my recovery code</Text>
         </Pressable>
       </>}
-      {mode === 'restore' && !preview && <>
-        <Text style={text}>Enter the recovery code saved with this sample.</Text>
+      {(mode === 'restore' || mode === 'openLocal') && !preview && <>
+        <Text style={text}>{mode === 'openLocal' ? 'Enter the recovery code for this journal backup. Checking the file leaves your entries untouched.' : 'Enter the recovery code saved with this sample.'}</Text>
         <TextInput accessibilityLabel="Backup recovery code" placeholder="Recovery code" secureTextEntry
           autoCapitalize="none" autoCorrect={false} autoComplete="off" maxLength={96} value={code}
           editable={!busy} onChangeText={setCode} style={[text, styles.input, {borderColor: colors.chevronColor}]} />

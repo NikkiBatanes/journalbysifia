@@ -415,6 +415,12 @@ std::array<bool, kPortableAssertionCount> RunPortableVectorAssertions() {
 }  // namespace
 
 #if DEBUG
+// The NSString is retained by the calling block throughout native processing.
+static std::string_view JournalUTF8View(NSString *text) {
+  const char *bytes = text.UTF8String;
+  journal_snapshot::check(bytes != nullptr);
+  return {bytes, [text lengthOfBytesUsingEncoding:NSUTF8StringEncoding]};
+}
 @interface JournalArchiveCrypto () <UIDocumentPickerDelegate>
 @property(nonatomic, copy) void (^samplePickResult)(NSURL *url, BOOL cancelled);
 @end
@@ -445,7 +451,8 @@ RCT_EXPORT_MODULE(JournalArchiveCrypto)
 #endif
 }
 
-- (void)pickSampleFile:(BOOL)exporting recoveryCode:(NSString *)recoveryCode entryCount:(int)entryCount
+- (void)pickFile:(BOOL)exporting recoveryCode:(NSString *)recoveryCode entryCount:(int)entryCount
+           local:(BOOL)local manifest:(NSString *)manifest sources:(NSString *)sources
                        resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject {
 #if DEBUG
   dispatch_async(dispatch_get_main_queue(), ^{
@@ -455,7 +462,7 @@ RCT_EXPORT_MODULE(JournalArchiveCrypto)
     }
     NSURL *root = [NSURL fileURLWithPath:NSTemporaryDirectory() isDirectory:YES];
     NSURL *scratch = [root URLByAppendingPathComponent:[NSUUID UUID].UUIDString isDirectory:YES];
-    NSURL *sample = [scratch URLByAppendingPathComponent:@"Journal Sample Backup.bin"];
+    NSURL *sample = [scratch URLByAppendingPathComponent:(local ? @"Journal Backup.bin" : @"Journal Sample Backup.bin")];
     self.samplePickResult = ^(NSURL *selected, BOOL cancelled) {
       dispatch_async(JournalArchiveCryptoQueue(), ^{
         NSString *result = nil;
@@ -468,8 +475,10 @@ RCT_EXPORT_MODULE(JournalArchiveCrypto)
           NSError *error = nil;
           [coordinator coordinateReadingItemAtURL:selected options:0 error:&error byAccessor:^(NSURL *url) {
             try {
-              auto value = journal_shared_transfer::sampleDocument(url.fileSystemRepresentation, recoveryCode.UTF8String, false);
-              document = [NSString stringWithUTF8String:value.c_str()];
+              auto value = local ? journal_snapshot::inspectDocument(url.fileSystemRepresentation, recoveryCode.UTF8String)
+                                 : journal_shared_transfer::sampleDocument(url.fileSystemRepresentation, recoveryCode.UTF8String, false);
+              document = [[NSString alloc] initWithBytes:value.data() length:value.size() encoding:NSUTF8StringEncoding];
+              if (local) sodium_memzero(value.data(), value.size());
             } catch (const std::exception &) {}
           }];
           if (scoped) [selected stopAccessingSecurityScopedResource];
@@ -488,8 +497,17 @@ RCT_EXPORT_MODULE(JournalArchiveCrypto)
                                                           attributes:nil error:nil];
         if (ready) {
           try {
-            journal_shared_transfer::sampleDocument(sample.fileSystemRepresentation,
-              recoveryCode.UTF8String, true, entryCount);
+            if (local) {
+              NSString *directory = [NSTemporaryDirectory() stringByStandardizingPath];
+              NSString *base = [NSURL fileURLWithPath:directory isDirectory:YES].absoluteString;
+              auto bytes = JournalUTF8View(manifest);
+              auto files = journal_snapshot::sourcesFrom(sources.UTF8String, base.UTF8String);
+              journal_snapshot::saveDocument(sample.fileSystemRepresentation, recoveryCode.UTF8String,
+                bytes,
+                files, directory.fileSystemRepresentation, "");
+            } else {
+              journal_shared_transfer::sampleDocument(sample.fileSystemRepresentation, recoveryCode.UTF8String, true, entryCount);
+            }
           } catch (const std::exception &) { ready = NO; }
         }
       }
@@ -515,7 +533,16 @@ RCT_EXPORT_MODULE(JournalArchiveCrypto)
 
 - (void)chooseSampleBackupFile:(BOOL)exporting recoveryCode:(NSString *)recoveryCode
                        resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject {
-  [self pickSampleFile:exporting recoveryCode:recoveryCode entryCount:-1 resolve:resolve reject:reject];
+  [self pickFile:exporting recoveryCode:recoveryCode entryCount:-1 local:NO manifest:nil sources:nil resolve:resolve reject:reject];
+}
+
+- (void)openLocalSnapshot:(NSString *)recoveryCode resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject {
+  [self pickFile:NO recoveryCode:recoveryCode entryCount:-1 local:YES manifest:nil sources:nil resolve:resolve reject:reject];
+}
+
+- (void)saveLocalSnapshot:(NSString *)recoveryCode manifest:(NSString *)manifest sources:(NSString *)sources
+                  resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject {
+  [self pickFile:YES recoveryCode:recoveryCode entryCount:-1 local:YES manifest:manifest sources:sources resolve:resolve reject:reject];
 }
 
 - (void)verifyLocalSnapshot:(NSString *)manifest sources:(NSString *)sources
@@ -525,11 +552,10 @@ RCT_EXPORT_MODULE(JournalArchiveCrypto)
     try {
       NSString *directory = [NSTemporaryDirectory() stringByStandardizingPath];
       NSString *base = [NSURL fileURLWithPath:directory isDirectory:YES].absoluteString;
-      NSData *bytes = [manifest dataUsingEncoding:NSUTF8StringEncoding];
-      journal_snapshot::check(bytes.length > 0 && bytes.length <= journal_snapshot::maxManifest);
+      auto bytes = JournalUTF8View(manifest);
       auto files = journal_snapshot::sourcesFrom(sources.UTF8String, base.UTF8String);
       journal_snapshot::roundTrip(directory.fileSystemRepresentation, "",
-        std::string_view(static_cast<const char *>(bytes.bytes), bytes.length), files);
+        bytes, files);
       resolve(@YES);
     } catch (const std::exception &) {
       reject(@"LOCAL_SNAPSHOT_FAILED", @"Could not verify the encrypted snapshot.", nil);
@@ -551,9 +577,10 @@ RCT_EXPORT_MODULE(JournalArchiveCrypto)
       return;
     }
     NSString *name = [uri substringFromIndex:base.length];
-    NSData *data = [name dataUsingEncoding:NSUTF8StringEncoding];
-    if (!data.length || data.length > 64) { resolve(describe ? (id)@"-2" : @(journal_picker::unsupported)); return; }
-    std::string_view leaf(static_cast<const char *>(data.bytes), data.length);
+    auto count = [name lengthOfBytesUsingEncoding:NSUTF8StringEncoding];
+    const char *utf8 = name.UTF8String;
+    if (!utf8 || !count || count > 64) { resolve(describe ? (id)@"-2" : @(journal_picker::unsupported)); return; }
+    std::string_view leaf(utf8, count);
     if (describe) {
       auto value = journal_picker::fingerprint(directory.fileSystemRepresentation, leaf, "", static_cast<long long>(remainingBytes));
       resolve([NSString stringWithUTF8String:value.c_str()]);
@@ -582,7 +609,7 @@ RCT_EXPORT_MODULE(JournalArchiveCrypto)
     reject(@"INVALID_SAMPLE_SIZE", @"Choose between 0 and 300 sample entries.", nil);
     return;
   }
-  [self pickSampleFile:YES recoveryCode:recoveryCode entryCount:(int)entryCount resolve:resolve reject:reject];
+  [self pickFile:YES recoveryCode:recoveryCode entryCount:(int)entryCount local:NO manifest:nil sources:nil resolve:resolve reject:reject];
 }
 
 #if DEBUG

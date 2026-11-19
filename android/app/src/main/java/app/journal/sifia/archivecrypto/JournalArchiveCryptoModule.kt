@@ -37,7 +37,8 @@ class JournalArchiveCryptoModule(reactContext: ReactApplicationContext) :
 
   private external fun nativeRunMediaPackagingSelfTest(): BooleanArray
 
-  private data class Pick(val exporting: Boolean, val code: String, val entryCount: Int, val promise: Promise)
+  private data class Pick(val exporting: Boolean, val code: String, val entryCount: Int, val promise: Promise,
+                          val local: Boolean = false, val staged: File? = null)
   private val pendingPick = AtomicReference<Pick?>(null)
   private external fun nativeSampleDocument(document: String, recoveryCode: String, exporting: Boolean, entryCount: Int): String?
 
@@ -59,18 +60,20 @@ class JournalArchiveCryptoModule(reactContext: ReactApplicationContext) :
       if (requestCode != SAMPLE_DOCUMENT_REQUEST) return
       val pick = pendingPick.getAndSet(null) ?: return
       if (resultCode == Activity.RESULT_CANCELED) {
+        pick.staged?.delete()
         pick.promise.resolve("")
         return
       }
       val uri = data?.data
       if (resultCode != Activity.RESULT_OK || uri == null || uri.scheme != "content") {
+        pick.staged?.delete()
         pick.promise.reject("SAMPLE_DOCUMENT_FAILED", "The file picker could not open the document.")
         return
       }
       cryptoExecutor.execute {
         try {
           val cache = reactApplicationContext.cacheDir
-          val temp = File.createTempFile("journal-sample-", ".bin", cache)
+          val temp = pick.staged ?: File.createTempFile("journal-preview-", ".bin", cache)
           try {
             val resolver = reactApplicationContext.contentResolver
             if (!pick.exporting) {
@@ -82,13 +85,19 @@ class JournalArchiveCryptoModule(reactContext: ReactApplicationContext) :
                     val count = input.read(buffer)
                     if (count < 0) break
                     total += count
-                    check(count > 0 && total <= 7 * 1024 * 1024)
+                    check(count > 0 && total <= (if (pick.local) 5_100_000_000L else 7L * 1024 * 1024))
                     output.write(buffer, 0, count)
                   }
                 }
               }
             }
-            val result = requireNotNull(nativeSampleDocument(temp.absolutePath, pick.code, pick.exporting, pick.entryCount))
+            val result = when {
+              !pick.local -> requireNotNull(nativeSampleDocument(temp.absolutePath, pick.code, pick.exporting, pick.entryCount))
+              pick.exporting -> "saved"
+              else -> requireNotNull(nativeOpenLocalSnapshot(temp.absolutePath, pick.code)).let { bytes ->
+                try { bytes.decodeToString(throwOnInvalidSequence = true) } finally { bytes.fill(0) }
+              }
+            }
             if (pick.exporting) {
               requireNotNull(resolver.openOutputStream(uri, "wt")).use { output ->
                 temp.inputStream().use { it.copyTo(output) }
@@ -108,11 +117,22 @@ class JournalArchiveCryptoModule(reactContext: ReactApplicationContext) :
   init { reactContext.addActivityEventListener(fileResults) }
 
   override fun chooseSampleBackupFile(exporting: Boolean, recoveryCode: String, promise: Promise) =
-    pickSample(exporting, recoveryCode, -1, promise)
+    pickDocument(exporting, recoveryCode, -1, promise)
 
-  private external fun nativeVerifyLocalSnapshot(directory: String, base: String, manifest: ByteArray, sources: String): Boolean
+  private external fun nativeVerifyLocalSnapshot(directory: String, base: String, manifest: ByteArray, sources: String, stagingFile: String?, recoveryCode: String?): Boolean
 
-  override fun verifyLocalSnapshot(manifest: String, sources: String, promise: Promise) {
+  private external fun nativeOpenLocalSnapshot(stagingFile: String, recoveryCode: String): ByteArray?
+
+  override fun openLocalSnapshot(recoveryCode: String, promise: Promise) =
+    pickDocument(false, recoveryCode, -1, promise, local = true)
+
+  override fun saveLocalSnapshot(recoveryCode: String, manifest: String, sources: String, promise: Promise) =
+    prepareLocalSnapshot(manifest, sources, recoveryCode, promise)
+
+  override fun verifyLocalSnapshot(manifest: String, sources: String, promise: Promise) =
+    prepareLocalSnapshot(manifest, sources, null, promise)
+
+  private fun prepareLocalSnapshot(manifest: String, sources: String, code: String?, promise: Promise) {
     cryptoExecutor.execute {
       try {
         check(app.journal.sifia.BuildConfig.DEBUG)
@@ -120,11 +140,18 @@ class JournalArchiveCryptoModule(reactContext: ReactApplicationContext) :
         val base = android.net.Uri.fromFile(directory).toString().trimEnd('/') + "/"
         val utf8 = manifest.toByteArray(Charsets.UTF_8)
         try {
-          check(nativeVerifyLocalSnapshot(directory.absolutePath, base, utf8, sources))
+          val temp = code?.let { File.createTempFile("journal-local-", ".bin", directory) }
+          try {
+            check(nativeVerifyLocalSnapshot(directory.absolutePath, base, utf8, sources, temp?.absolutePath, code))
+            if (code != null) pickDocument(true, code, -1, promise, local = true, staged = temp)
+            else promise.resolve(true)
+          } catch (error: Exception) {
+            temp?.delete()
+            throw error
+          }
         } finally {
           utf8.fill(0)
         }
-        promise.resolve(true)
       } catch (_: Exception) {
         promise.reject("LOCAL_SNAPSHOT_FAILED", "Could not verify the encrypted snapshot.")
       }
@@ -161,17 +188,20 @@ class JournalArchiveCryptoModule(reactContext: ReactApplicationContext) :
       promise.reject("INVALID_SAMPLE_SIZE", "Choose between 0 and 300 sample entries.")
       return
     }
-    pickSample(true, recoveryCode, entryCount.toInt(), promise)
+    pickDocument(true, recoveryCode, entryCount.toInt(), promise)
   }
 
-  private fun pickSample(exporting: Boolean, recoveryCode: String, entryCount: Int, promise: Promise) {
+  private fun pickDocument(exporting: Boolean, recoveryCode: String, entryCount: Int, promise: Promise,
+                           local: Boolean = false, staged: File? = null) {
     if (!app.journal.sifia.BuildConfig.DEBUG || !recoveryCode.matches(Regex("[0-9a-f]{32}"))) {
+      staged?.delete()
       promise.reject("SAMPLE_DOCUMENT_DISABLED", "A development build and valid recovery code are required.")
       return
     }
-    val pick = Pick(exporting, recoveryCode, entryCount, promise)
+    val pick = Pick(exporting, recoveryCode, entryCount, promise, local, staged)
     UiThreadUtil.runOnUiThread {
       if (!pendingPick.compareAndSet(null, pick)) {
+        staged?.delete()
         promise.reject("SAMPLE_DOCUMENT_BUSY", "A file picker is already open.")
         return@runOnUiThread
       }
@@ -179,10 +209,11 @@ class JournalArchiveCryptoModule(reactContext: ReactApplicationContext) :
         val intent = Intent(if (exporting) Intent.ACTION_CREATE_DOCUMENT else Intent.ACTION_OPEN_DOCUMENT).apply {
           addCategory(Intent.CATEGORY_OPENABLE)
           type = if (exporting) "application/octet-stream" else "*/*"
-          if (exporting) putExtra(Intent.EXTRA_TITLE, "Journal Sample Backup.bin")
+          if (exporting) putExtra(Intent.EXTRA_TITLE, if (local) "Journal Backup.bin" else "Journal Sample Backup.bin")
         }
         requireNotNull(reactApplicationContext.currentActivity).startActivityForResult(intent, SAMPLE_DOCUMENT_REQUEST)
       } catch (_: Exception) {
+        staged?.delete()
         pendingPick.compareAndSet(pick, null)
         promise.reject("SAMPLE_DOCUMENT_FAILED", "Could not present the file picker.")
       }
@@ -420,7 +451,7 @@ class JournalArchiveCryptoModule(reactContext: ReactApplicationContext) :
 
   override fun invalidate() {
     reactApplicationContext.removeActivityEventListener(fileResults)
-    pendingPick.getAndSet(null)?.promise?.resolve("")
+    pendingPick.getAndSet(null)?.let { it.staged?.delete(); it.promise.resolve("") }
     cryptoExecutor.shutdownNow()
     super.invalidate()
   }

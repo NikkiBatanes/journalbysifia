@@ -69,6 +69,8 @@ export type JournalArchiveCryptoMediaPackagingEvidence = {
 };
 
 export interface Spec extends TurboModule {
+  saveLocalSnapshot(recoveryCode: string, manifest: string, sources: string): Promise<string>;
+  openLocalSnapshot(recoveryCode: string): Promise<string>;
   verifyLocalSnapshot(manifest: string, sources: string): Promise<boolean>;
   describeLocalPickerPhoto(uri: string, remainingBytes: number): Promise<string>;
   inspectLocalPickerPhoto(uri: string, remainingBytes: number): Promise<number>;

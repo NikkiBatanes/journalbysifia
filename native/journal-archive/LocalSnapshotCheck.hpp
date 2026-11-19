@@ -171,6 +171,56 @@ inline void verify(FILE *f, const std::string &code, std::string_view manifest, 
   check(reader.next(0) == crypto_secretstream_xchacha20poly1305_TAG_FINAL && fgetc(f) == EOF && !ferror(f));
 }
 
+// Read a selected archive using only its code. Report computed lengths and hashes
+// in manifest order so JS can validate the authenticated manifest before showing counts.
+inline std::string inspectDocument(const char *path, const std::string &code) {
+  std::unique_ptr<FILE, decltype(&fclose)> file(fopen(path, "rb"), fclose);
+  check(bool(file));
+  struct stat info{};
+  check(fstat(fileno(file.get()), &info) == 0 && S_ISREG(info.st_mode) &&
+        info.st_size > 0 && info.st_size <= 5100000000LL);
+  Reader reader(file.get(), code);
+  check(reader.next(maxManifest) == crypto_secretstream_xchacha20poly1305_TAG_PUSH && !reader.plain.empty());
+  std::string manifest(reader.plain.begin(), reader.plain.end());
+  std::string evidence = "{\"containerByteLength\":" + std::to_string(info.st_size) +
+    ",\"manifestByteLength\":" + std::to_string(manifest.size()) + ",\"photos\":[";
+  long long length = 0, total = 0;
+  size_t count = 0;
+  Hash hash;
+  while (true) {
+    const auto tag = reader.next(maxChunk);
+    if (tag == crypto_secretstream_xchacha20poly1305_TAG_FINAL) {
+      check(reader.plain.empty() && length == 0 && fgetc(file.get()) == EOF && !ferror(file.get()));
+      break;
+    }
+    if (tag == crypto_secretstream_xchacha20poly1305_TAG_PUSH) {
+      check(reader.plain.empty() && length > 0 && count < 10000);
+      if (count++) evidence += ",";
+      evidence += "[" + std::to_string(length) + ",\"" + hash.finish() + "\"]";
+      crypto_hash_sha256_init(&hash.state);
+      length = 0;
+      continue;
+    }
+    check(tag == crypto_secretstream_xchacha20poly1305_TAG_MESSAGE && !reader.plain.empty());
+    length += static_cast<long long>(reader.plain.size());
+    total += static_cast<long long>(reader.plain.size());
+    check(length <= 512LL * 1024 * 1024 && total <= maxPhotosBytes);
+    hash.update(reader.plain.data(), reader.plain.size());
+  }
+  return evidence + "]}\n" + manifest;
+}
+
+inline void saveDocument(const char *path, const std::string &code, std::string_view manifest,
+                         const std::vector<Source> &sources, const char *directory, const char *prefix) {
+  // path is a private staging file chosen by the platform.
+  std::unique_ptr<FILE, decltype(&fclose)> file(fopen(path, "w+b"), fclose);
+  check(bool(file));
+  write(file.get(), code, manifest, sources, directory, prefix);
+  check(fseek(file.get(), 0, SEEK_SET) == 0);
+  verify(file.get(), code, manifest, sources);
+  check(fclose(file.release()) == 0);
+}
+
 inline void roundTrip(const char *directory, const char *prefix, std::string_view manifest, const std::vector<Source> &sources) {
   // Unlink before the first write. A process exit releases even an interrupted file.
   std::string path = std::string(directory) + "/journal-export-check-XXXXXX";

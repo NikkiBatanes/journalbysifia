@@ -2,14 +2,14 @@ import React from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {fireEvent, render, screen, waitFor} from '@testing-library/react-native';
 import SampleLocalBackup from '../SampleLocalBackup';
-import {prepareJournalPhotoManifest} from '../prepareJournalPhotoManifest';
+import {inspectLocalSnapshotResult, prepareJournalPhotoManifest} from '../prepareJournalPhotoManifest';
 import {createJournalBackup, JOURNAL_BACKUP_RESTORE_POLICY} from '../../services/journalBackupContract';
 import {planInventorySample} from '../journalStagedBackup';
 import archive from '../../native/NativeJournalArchiveCrypto';
 import {beginSampleComparison, restoreSharedPhotoTransfer} from '../journalSharedPhotoTransferProbe';
 
 jest.mock('uuid', () => ({v4: require('node:crypto').randomUUID}));
-jest.mock('../../native/NativeJournalArchiveCrypto', () => ({__esModule: true, default: {verifyLocalSnapshot: jest.fn(), describeLocalPickerPhoto: jest.fn(), inspectLocalPickerPhoto: jest.fn(), saveInventorySample: jest.fn(), chooseSampleBackupFile: jest.fn(), finishSampleRestorePreview: jest.fn()}}));
+jest.mock('../../native/NativeJournalArchiveCrypto', () => ({__esModule: true, default: {saveLocalSnapshot: jest.fn(), openLocalSnapshot: jest.fn(), verifyLocalSnapshot: jest.fn(), describeLocalPickerPhoto: jest.fn(), inspectLocalPickerPhoto: jest.fn(), saveInventorySample: jest.fn(), chooseSampleBackupFile: jest.fn(), finishSampleRestorePreview: jest.fn()}}));
 jest.mock('../journalSharedPhotoTransferProbe', () => ({restoreSharedPhotoTransfer: jest.fn(), beginSampleComparison: jest.fn()}));
 jest.mock('../journalStagedBackup', () => ({planInventorySample: jest.fn()}));
 jest.mock('../../theme/ThemeContext', () => ({useTheme: () => ({colors: {text: 'black'}})}));
@@ -317,4 +317,46 @@ it('verifies the encrypted snapshot privately and reports a failed readback', as
   expect(screen.queryByText(/private writing|12345678/)).toBeNull();
   expect(AsyncStorage.setItem).not.toHaveBeenCalled();
   expect(archive.chooseSampleBackupFile).not.toHaveBeenCalled();
+});
+
+it('saves only after code confirmation and verifies the selected document without device records', async () => {
+  const uri = 'file:///test/12345678-1234-1234-1234-123456789abc.jpg';
+  const row: [string, string] = ['reflection_local:free:2026-09-17:r1', JSON.stringify({
+    id: 'r1', type: 'free', selected_date: '2026-09-17', created_at: '2026-09-17T12:00:00Z',
+    updated_at: '2026-09-17T12:00:00Z', content: 'Private 🙏', metadata: {journalBlocks: [{id: 'a', kind: 'photo', uri}]},
+  })];
+  jest.mocked(AsyncStorage.getAllKeys).mockResolvedValue([row[0]]);
+  jest.mocked(AsyncStorage.multiGet).mockResolvedValue([row]);
+  const sha = 'a'.repeat(64);
+  jest.mocked(archive.describeLocalPickerPhoto).mockResolvedValue('123:' + sha);
+  jest.mocked(archive.saveLocalSnapshot).mockResolvedValueOnce('').mockResolvedValueOnce('saved');
+  render(<SampleLocalBackup />);
+  fireEvent.press(screen.getByText('Save encrypted journal backup'));
+  expect(screen.getByRole('button', {name: 'Choose save location'})).toBeDisabled();
+  fireEvent.press(screen.getByRole('checkbox'));
+  fireEvent.press(screen.getByText('Choose save location'));
+  await waitFor(() => expect(archive.saveLocalSnapshot).toHaveBeenCalledTimes(1));
+  const code = jest.mocked(archive.saveLocalSnapshot).mock.calls[0][0];
+  fireEvent.press(await screen.findByText('Choose save location'));
+  await screen.findByText(/Encrypted journal backup saved/);
+  const [savedCode, manifest, files] = jest.mocked(archive.saveLocalSnapshot).mock.calls[1];
+  expect(savedCode).toBe(code);
+  expect(files).toBe('123\t' + sha + '\t' + uri);
+  expect(manifest).not.toContain(uri);
+  const evidence = {photos: [[123, sha]], manifestByteLength: Buffer.byteLength(manifest), containerByteLength: 50000};
+  const reply = (obj: object) => JSON.stringify(obj) + '\n' + manifest;
+  expect(() => inspectLocalSnapshotResult(reply({...evidence, photos: [[123, 'b'.repeat(64)]]}))).toThrow();
+  expect(() => inspectLocalSnapshotResult(reply({...evidence, photos: []}))).toThrow();
+  expect(() => inspectLocalSnapshotResult(reply({...evidence, manifestByteLength: 1}))).toThrow();
+  jest.mocked(AsyncStorage.getAllKeys).mockClear().mockRejectedValue(new Error('Fresh device'));
+  jest.mocked(archive.openLocalSnapshot).mockResolvedValueOnce('').mockResolvedValueOnce(reply(evidence));
+  fireEvent.press(screen.getByText('Check saved journal backup'));
+  fireEvent.changeText(screen.getByLabelText('Backup recovery code'), code);
+  fireEvent.press(screen.getByText('Choose backup file'));
+  await waitFor(() => expect(archive.openLocalSnapshot).toHaveBeenCalledWith(code));
+  fireEvent.press(await screen.findByText('Choose backup file'));
+  await screen.findByText(/Verified journal backup.*Photos: 1/);
+  expect(AsyncStorage.getAllKeys).not.toHaveBeenCalled();
+  expect(AsyncStorage.setItem).not.toHaveBeenCalled();
+  expect(screen.queryByText(/Private 🙏/)).toBeNull();
 });

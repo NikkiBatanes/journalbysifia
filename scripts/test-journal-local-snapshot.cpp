@@ -45,6 +45,15 @@ int main(int argc, char **argv) {
       auto file = openFile(archive, "rb");
       js::verify(file.get(), password, expected, sources);
     };
+    const auto inspect = [&] {
+      auto decoded = js::inspectDocument(archive.c_str(), code);
+      const auto end = decoded.find('\n');
+      js::check(end != std::string::npos && decoded.substr(end + 1) == manifest);
+      for (const auto &source : sources) {
+        js::check(decoded.substr(0, end).find(source.hash) != std::string::npos);
+      }
+    };
+    if (mode == "open") { inspect(); return 0; }
     if (mode == "read") {
       read(code, manifest);
       return 0;
@@ -52,11 +61,10 @@ int main(int argc, char **argv) {
     js::check(mode == "write" || mode == "test");
     std::ofstream(dir + "/" + sources[0].name, std::ios::binary).write(jpeg.data(), jpeg.size());
     std::ofstream(dir + "/" + sources[1].name, std::ios::binary).write(png.data(), png.size());
-    {
-      auto file = openFile(archive, "wb");
-      js::write(file.get(), code, manifest, sources, dir.c_str(), prefix.c_str());
-    }
+    js::saveDocument(archive.c_str(), code, manifest, sources, dir.c_str(), prefix.c_str());
     read(code, manifest);
+    inspect();
+    expectFailure([&] { js::inspectDocument(archive.c_str(), std::string(32, 'f')); });
     if (mode == "write") return 0;
     js::roundTrip(dir.c_str(), prefix.c_str(), manifest, sources);
     js::roundTrip(dir.c_str(), prefix.c_str(), manifest, {});
@@ -72,6 +80,7 @@ int main(int argc, char **argv) {
     for (const auto &invalid : {bytes + "!", bytes.substr(0, bytes.size()-1), corrupted}) {
       std::ofstream(archive, std::ios::binary).write(invalid.data(), invalid.size());
       expectFailure([&] { read(code, manifest); });
+      expectFailure(inspect);
     }
     jpeg.back() = 'B';
     std::ofstream(dir + "/" + sources[0].name, std::ios::binary).write(jpeg.data(), jpeg.size());

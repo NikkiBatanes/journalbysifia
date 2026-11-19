@@ -2,7 +2,7 @@ import {v4 as uuid} from 'uuid';
 import {JOURNAL_BACKUP_APP_IDENTIFIER, type JournalBackupEnvelopeV1} from '../services/journalBackupContract';
 import {
   countJournalBackupRecords, JOURNAL_BACKUP_ARCHIVE_FORMAT, JOURNAL_BACKUP_ARCHIVE_LIMITS as limits,
-  validateJournalBackupArchiveManifest, type JournalBackupArchiveAssetV1, type JournalBackupArchiveManifestV1,
+  preflightJournalBackupArchiveRestore, validateJournalBackupArchiveManifest, type JournalBackupArchiveAssetV1, type JournalBackupArchiveManifestV1,
 } from '../services/journalBackupArchiveContract';
 
 type Fingerprint = (uri: string, remaining: number) => Promise<string>;
@@ -89,4 +89,30 @@ export async function prepareJournalPhotoExport(backup: JournalBackupEnvelopeV1,
 
 export async function prepareJournalPhotoManifest(backup: JournalBackupEnvelopeV1, describe: Fingerprint) {
   return (await prepareJournalPhotoExport(backup, describe)).manifest;
+}
+
+// The platform returns one line of measured evidence followed by the exact decrypted JSON.
+// Only counts leave this function. Opening a document does not change local storage.
+export function inspectLocalSnapshotResult(result: string) {
+  const end = result.indexOf('\n');
+  if (end <= 0) {throw new Error('Missing stream evidence');}
+  const evidence = JSON.parse(result.slice(0, end));
+  const candidate = JSON.parse(result.slice(end + 1));
+  if (!Array.isArray(evidence?.photos) || !Array.isArray(candidate?.assets) ||
+      evidence.photos.length !== candidate.assets.length || evidence.photos.length > limits.maxAssetCount) {
+    throw new Error('Photo count mismatch');
+  }
+  const assetByteLengths: Record<string, number> = Object.create(null);
+  candidate.assets.forEach((asset: JournalBackupArchiveAssetV1, index: number) => {
+    const photo = evidence.photos[index];
+    if (!asset || !Array.isArray(photo) || photo.length !== 2 ||
+        photo[0] !== asset.byteLength || photo[1] !== asset.sha256) {throw new Error('Invalid photo evidence');}
+    assetByteLengths[asset.assetId] = photo[0];
+  });
+  const checked = preflightJournalBackupArchiveRestore(candidate, {
+    containerByteLength: evidence.containerByteLength, manifestByteLength: evidence.manifestByteLength,
+    authenticatedFinalMarkerVerified: true, assetByteLengths,
+  });
+  if (!checked.valid || !checked.manifest) {throw new Error('Invalid snapshot');}
+  return checked.manifest.totals;
 }
