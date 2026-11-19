@@ -1524,6 +1524,8 @@ Opening a saved journal with its recovery code now shows the date, record counts
 
 A fresh iPhone simulator opened a generated encrypted file in Files with its recovery code. The preview correctly showed one reflection and one 68-byte photo and closed successfully. Only the onboarding flag was preconfigured on this test installation.
 
+The Pixel 8 emulator opened the same encrypted file from Downloads through Android Files. The preview showed one reflection and one 68-byte photo, matching the iPhone result. Closing the preview returned to the backup controls.
+
 Next, stage the verified entries and photos in an isolated test journal. Verify that confirming the restore reproduces the entries and photos after a restart before enabling it for customers.
 
 ## Primary references checked on 2026-11-03
