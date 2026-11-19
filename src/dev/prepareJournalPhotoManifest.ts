@@ -5,6 +5,9 @@ import {
   preflightJournalBackupArchiveRestore, validateJournalBackupArchiveManifest, type JournalBackupArchiveAssetV1, type JournalBackupArchiveManifestV1,
 } from '../services/journalBackupArchiveContract';
 
+import {planJournalBackupRestore} from '../services/journalBackupRestorePlan';
+import {validateArchivePhotoBlocks} from '../services/journalBackupPhotoBlocks';
+
 type Fingerprint = (uri: string, remaining: number) => Promise<string>;
 
 // Prepares the canonical journal, reflection and prayer photo blocks in a local
@@ -92,7 +95,7 @@ export async function prepareJournalPhotoManifest(backup: JournalBackupEnvelopeV
 }
 
 // The platform returns one line of measured evidence followed by the exact decrypted JSON.
-// Only counts leave this function. Opening a document does not change local storage.
+// Only the date and aggregate counts leave this function. Opening a document does not change local storage.
 export function inspectLocalSnapshotResult(result: string) {
   const end = result.indexOf('\n');
   if (end <= 0) {throw new Error('Missing stream evidence');}
@@ -114,5 +117,24 @@ export function inspectLocalSnapshotResult(result: string) {
     authenticatedFinalMarkerVerified: true, assetByteLengths,
   });
   if (!checked.valid || !checked.manifest) {throw new Error('Invalid snapshot');}
-  return checked.manifest.totals;
+  const {backup, assets, totals, createdAt} = checked.manifest;
+  const plan = planJournalBackupRestore(backup);
+  if (!plan.valid) {throw new Error('Invalid restore mapping');}
+  const inventory = backup.inventory;
+  validateArchivePhotoBlocks([...inventory.journalRecords, ...inventory.reflectionRecords, ...inventory.prayerRecords], assets);
+  const sections: Record<string, number> = {
+    'Journal records': inventory.journalRecords.length,
+    'Reflections': inventory.reflectionRecords.length,
+    'Prayers': inventory.prayerRecords.length,
+    'Bible studies': inventory.bibleStudySessions.length,
+    'Routine records': inventory.routineStates.length,
+    'Reviews': inventory.reviews.length,
+    'Drafts': inventory.prayerDrafts.length + inventory.authoredDrafts.sessionNotes.length +
+      inventory.authoredDrafts.guidedReflections.length + inventory.authoredDrafts.routines.length,
+    'Gospel records': inventory.gospelAuthoredContent.length,
+    'Settings': inventory.preferences.length + (inventory.reviewSettings === null ? 0 : 1),
+  };
+  const legacyCount = inventory.legacyAuthoredContent.journalRecords.length + inventory.legacyAuthoredContent.reflectionLogs.length;
+  return {createdAt, sections: Object.entries(sections).filter(([, count]) => count > 0),
+    legacyCount, photos: totals.assets, photoBytes: totals.assetBytes, records: totals.records};
 }

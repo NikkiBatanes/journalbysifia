@@ -348,6 +348,11 @@ it('saves only after code confirmation and verifies the selected document withou
   expect(() => inspectLocalSnapshotResult(reply({...evidence, photos: [[123, 'b'.repeat(64)]]}))).toThrow();
   expect(() => inspectLocalSnapshotResult(reply({...evidence, photos: []}))).toThrow();
   expect(() => inspectLocalSnapshotResult(reply({...evidence, manifestByteLength: 1}))).toThrow();
+  const broken = JSON.parse(manifest);
+  broken.backup.inventory.reflectionRecords[0].metadata.journalBlocks[0].uri = 'objects/00000000-0000-4000-8000-000000000000';
+  const invalidManifest = JSON.stringify(broken);
+  expect(() => inspectLocalSnapshotResult(JSON.stringify({...evidence, manifestByteLength: Buffer.byteLength(invalidManifest)}) +
+    '\n' + invalidManifest)).toThrow('Unrecognized archive photo reference');
   jest.mocked(AsyncStorage.getAllKeys).mockClear().mockRejectedValue(new Error('Fresh device'));
   jest.mocked(archive.openLocalSnapshot).mockResolvedValueOnce('').mockResolvedValueOnce(reply(evidence));
   fireEvent.press(screen.getByText('Check saved journal backup'));
@@ -355,8 +360,29 @@ it('saves only after code confirmation and verifies the selected document withou
   fireEvent.press(screen.getByText('Choose backup file'));
   await waitFor(() => expect(archive.openLocalSnapshot).toHaveBeenCalledWith(code));
   fireEvent.press(await screen.findByText('Choose backup file'));
-  await screen.findByText(/Verified journal backup.*Photos: 1/);
+  await screen.findByRole('header', {name: 'Backup contents'});
+  expect(screen.getByText('1 record in this backup')).toBeOnTheScreen();
+  expect(screen.getByText('Reflections · 1')).toBeOnTheScreen();
+  expect(screen.getByText('Attached photos · 1 (123 bytes)')).toBeOnTheScreen();
+  expect(screen.queryByText('Confirm sample restore')).toBeNull();
+  expect(screen.queryByLabelText('Backup recovery code')).toBeNull();
+  fireEvent.press(screen.getByText('Close preview'));
+  expect(screen.queryByText('Backup contents')).toBeNull();
   expect(AsyncStorage.getAllKeys).not.toHaveBeenCalled();
   expect(AsyncStorage.setItem).not.toHaveBeenCalled();
   expect(screen.queryByText(/Private 🙏/)).toBeNull();
+});
+
+it('distinguishes an empty backup from settings and older records held out of restore', async () => {
+  jest.mocked(AsyncStorage.getAllKeys).mockResolvedValue([]);
+  const backup = await createJournalBackup('2026-11-19T00:00:00Z');
+  const preview = async () => {
+    const manifest = JSON.stringify(await prepareJournalPhotoManifest(backup, jest.fn()));
+    return inspectLocalSnapshotResult(JSON.stringify({photos: [], manifestByteLength: Buffer.byteLength(manifest),
+      containerByteLength: Buffer.byteLength(manifest) + 1000}) + '\n' + manifest);
+  };
+  expect(await preview()).toMatchObject({records: 0, sections: [], legacyCount: 0, photos: 0});
+  backup.inventory.preferences.push({key: 'prefs:hapticsEnabled', value: true});
+  backup.inventory.legacyAuthoredContent.reflectionLogs.push({key: 'reflection_log_old', value: {}});
+  expect(await preview()).toMatchObject({records: 2, sections: [['Settings', 1]], legacyCount: 1});
 });

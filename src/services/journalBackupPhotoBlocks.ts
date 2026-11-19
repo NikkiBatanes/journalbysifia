@@ -24,33 +24,45 @@ export function resolveJournalBackupPhotoBlocks(
     filenames.add(file);
   }
 
-  const byPath = new Map<string, {file: string; owner: string}>();
-  for (const asset of assets) {
-    const file = stagedFiles.get(asset.assetId);
-    if (asset.kind !== 'image' || !file || byPath.has(asset.path) || asset.path !== 'objects/' + asset.assetId) {
-      throw new Error('Photo inventory does not match staged files');
-    }
-    byPath.set(asset.path, {file, owner: asset.ownerRecordId});
+  if (assets.length !== stagedFiles.size || assets.some(asset => !stagedFiles.has(asset.assetId))) {
+    throw new Error('Photo inventory does not match staged files');
   }
-  if (byPath.size !== stagedFiles.size) {throw new Error('Unexpected staged photo');}
+  validateArchivePhotoBlocks(records, assets);
+  const byPath = new Map(assets.map(asset => [asset.path, stagedFiles.get(asset.assetId)!]));
+  return records.map(entry => {
+    const blocks = entry.metadata?.journalBlocks;
+    if (!Array.isArray(blocks)) {return entry;}
+    const journalBlocks = blocks.map(block => block.kind === 'photo' && block.uri
+      ? {...block, uri: 'objects/' + byPath.get(block.uri)}
+      : block);
+    return {...entry, metadata: {...entry.metadata, journalBlocks}};
+  });
+}
 
+type PhotoRecord = {id: string; metadata?: Record<string, unknown>};
+
+export function validateArchivePhotoBlocks(records: readonly PhotoRecord[], assets: readonly JournalBackupArchiveAssetV1[]) {
+  const byPath = new Map<string, JournalBackupArchiveAssetV1>();
+  for (const asset of assets) {
+    if (asset.kind !== 'image' || byPath.has(asset.path) || asset.path !== 'objects/' + asset.assetId) {
+      throw new Error('Invalid archive photo inventory');
+    }
+    byPath.set(asset.path, asset);
+  }
   const ownedPaths = new Set<string>();
-  const resolved = records.map(entry => {
+  for (const entry of records) {
     const blocks: unknown = entry.metadata?.journalBlocks;
-    if (blocks === undefined) {return entry;}
+    if (blocks === undefined) {continue;}
     if (!Array.isArray(blocks)) {throw new Error('Invalid journal blocks');}
-    const journalBlocks = blocks.map(block => {
+    for (const block of blocks) {
       if (!block || typeof block !== 'object' || typeof block.kind !== 'string') {
         throw new Error('Invalid journal block');
       }
-      if (block.kind !== 'photo' || block.uri == null || block.uri === '') {return block;}
+      if (block.kind !== 'photo' || block.uri == null || block.uri === '') {continue;}
       const photo = byPath.get(block.uri);
       if (!photo) {throw new Error('Unrecognized archive photo reference');}
-      if (entry.id === photo.owner) {ownedPaths.add(block.uri);}
-      return {...block, uri: 'objects/' + photo.file};
-    });
-    return {...entry, metadata: {...entry.metadata, journalBlocks}};
-  });
+      if (entry.id === photo.ownerRecordId) {ownedPaths.add(block.uri);}
+    }
+  }
   if (ownedPaths.size !== byPath.size) {throw new Error('Photo missing from its owning entry');}
-  return resolved;
 }

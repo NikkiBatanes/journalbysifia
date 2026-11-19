@@ -64,6 +64,7 @@ function newRecoveryCode() {
 export default function SampleLocalBackup() {
   const {colors, fontFamily} = useTheme();
   const [mode, setMode] = useState<BackupAction | null>(null);
+  const [localPreview, setLocalPreview] = useState<ReturnType<typeof inspectLocalSnapshotResult> | null>(null);
   const [entryCount, setEntryCount] = useState('300');
   const exporting = mode === 'export' || mode === 'inventory' || mode === 'saveLocal';
   const validCount = /^\d{1,3}$/.test(entryCount) && Number(entryCount) <= 300;
@@ -103,6 +104,7 @@ export default function SampleLocalBackup() {
     if (pendingId.current) {discardPreview(pendingId.current);}
     pendingId.current = null;
     setPreview(null);
+    setLocalPreview(null);
     setMode(null);
     setCode('');
     setAcknowledged(false);
@@ -183,9 +185,9 @@ export default function SampleLocalBackup() {
       if (mode === 'openLocal') {
         const opened = await archive.openLocalSnapshot(normalized);
         if (!opened || !mounted.current) {return;}
-        const {records, assets} = inspectLocalSnapshotResult(opened);
+        const contents = inspectLocalSnapshotResult(opened);
         reset();
-        setMessage(`Verified journal backup. Records: ${records}. Photos: ${assets}.`);
+        setLocalPreview(contents);
         return;
       }
       if (!exporting && typeof archive.finishSampleRestorePreview !== 'function') {
@@ -322,7 +324,16 @@ export default function SampleLocalBackup() {
     <View style={styles.section}>
       <Text style={[text, styles.title]}>Local backup test</Text>
       <Text style={text}>Save or verify your local journal, or try restoring practice entries.</Text>
-      {!mode && <>
+      {localPreview && <>
+        <Text accessibilityRole="header" style={[text, styles.title]}>Backup contents</Text>
+        <Text style={text}>Saved {new Date(localPreview.createdAt).toLocaleString()}</Text>
+        <Text style={text}>{localPreview.records} {localPreview.records === 1 ? 'record' : 'records'} in this backup</Text>
+        {localPreview.sections.map(([label, count]) => <Text key={label} style={text}>{label} · {count}</Text>)}
+        <Text style={text}>Attached photos · {localPreview.photos}{localPreview.photos > 0 ? ` (${localPreview.photoBytes.toLocaleString()} bytes)` : ''}</Text>
+        {localPreview.legacyCount > 0 && <Text style={text}>Older records kept in the file and skipped during restore · {localPreview.legacyCount}</Text>}
+        {button('Close preview', reset, busy)}
+      </>}
+      {!mode && !localPreview && <>
         {button('Save encrypted journal backup', () => start('saveLocal'), busy)}
         {button('Check saved journal backup', () => start('openLocal'), busy)}
         {button('Save sample backup', () => start('export'), busy)}
