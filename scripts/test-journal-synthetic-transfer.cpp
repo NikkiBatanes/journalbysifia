@@ -1,6 +1,6 @@
 // Build against the same libsodium used by the mobile diagnostic.
 #include "../native/journal-archive/SyntheticTransfer.hpp"
-#include "../native/journal-archive/StageEncryptedAttachment.hpp"
+#include "../native/journal-archive/SyntheticFilePhoto.hpp"
 #include <csignal>
 #include <filesystem>
 #include <fstream>
@@ -57,6 +57,25 @@ void checkTransfer(const std::filesystem::path &root) {
   expectRejection([&] { fixture::importFixture(destination.string()); });
   std::filesystem::create_symlink(linkTarget, received);
   expectRejection([&] { fixture::importFixture(destination.string()); });
+}
+
+void checkSharedPhotoCleanup(const std::filesystem::path &root) {
+  namespace photos = journal_photo_fixture;
+  const auto base = photos::sharedBase(root.string());
+  const std::filesystem::path dir = photos::directory(base);
+  const auto shared = photos::stage(base, false);
+  const auto other = photos::stage(base, true);
+  const auto unused = photos::stage(base, true);
+
+  // If any referenced file has the wrong contents, preserve even the orphan.
+  expectRejection([&] { photos::verifySharedPhotos(root.string(), other, other); });
+  fixture::require(std::filesystem::exists(dir / shared) && std::filesystem::exists(dir / unused));
+
+  photos::verifySharedPhotos(root.string(), shared, other);
+  fixture::require(!std::filesystem::exists(dir / unused));
+  photos::verifySharedPhotos(root.string(), "", other);
+  photos::verifySharedPhotos(root.string(), "", other);
+  fixture::require(!std::filesystem::exists(dir / shared) && std::filesystem::exists(dir / other));
 }
 
 // Integration tests use these files to exercise the mobile restore planner
@@ -141,8 +160,9 @@ int main(int argc, char **argv) {
   if (!mkdtemp(temp.data())) return 1;
   try {
     checkTransfer(temp);
+    checkSharedPhotoCleanup(temp);
     std::filesystem::remove_all(temp);
-    std::cout << "Portable fixture and invalid archive checks passed\n";
+    std::cout << "Portable fixture, invalid archive and shared photo cleanup checks passed\n";
   } catch (const std::exception &e) {
     std::filesystem::remove_all(temp);
     std::cerr << e.what() << '\n';

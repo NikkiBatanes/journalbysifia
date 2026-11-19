@@ -1,5 +1,4 @@
-// Development fixture. All file access is confined to a dedicated single-entry
-// directory under the native app's private storage.
+// Development fixtures use dedicated directories under the app's private storage.
 #pragma once
 #include "StageEncryptedAttachment.hpp"
 #include "SyntheticTransfer.hpp"
@@ -127,10 +126,8 @@ inline void checkInterruption(const std::string &base, bool afterPublication) {
   }
 }
 
-// Call after opening the recovered single-record database and validating its index.
-inline void verifyAndCollect(const std::string &base, const std::string &name, bool replacement) {
+inline void verifyPhoto(const std::string &dir, const std::string &name, bool replacement) {
   require(sodium_init() >= 0 && journal_attachment::generatedName(name, "photo-"));
-  const auto dir = directory(base);
   const auto expected = png(replacement);
   Bytes data(expected.size() + journal_fixture::overhead);
   journal_attachment::Descriptor file(open((dir + "/" + name).c_str(), O_RDONLY | O_NOFOLLOW | O_NONBLOCK));
@@ -143,12 +140,40 @@ inline void verifyAndCollect(const std::string &base, const std::string &name, b
     offset += static_cast<size_t>(n);
   }
   require(journal_fixture::openAuthenticatedFrame(data, journal_fixture::password) == expected);
-  journal_attachment::collect(dir, {name});
+}
+
+inline void collectVerified(const std::string &dir, const std::set<std::string> &live) {
+  journal_attachment::collect(dir, live);
   // This fixed ciphertext source is owned exclusively by this serial fixture.
   require(unlink((dir + "/fixture.sealed").c_str()) == 0 || errno == ENOENT);
   journal_attachment::Descriptor parent(open(dir.c_str(), O_RDONLY | O_DIRECTORY | O_NOFOLLOW));
   require(fsync(parent.fd) == 0);
   const auto files = stagingFiles(dir);
-  require(files.published == 1 && files.partial == 0 && files.sourceSize == 0);
+  require(files.published == live.size() && files.partial == 0 && files.sourceSize == 0);
+}
+
+inline void verifyAndCollect(const std::string &base, const std::string &name, bool replacement) {
+  const auto dir = directory(base);
+  verifyPhoto(dir, name, replacement);
+  collectVerified(dir, {name});
+}
+
+// The two-entry test has its own private store, separate from all single-photo tests.
+inline std::string sharedBase(const std::string &base) {
+  const auto path = base + "/journal-development-shared-photos-v1";
+  require(mkdir(path.c_str(), 0700) == 0 || errno == EEXIST);
+  journal_attachment::Descriptor dir(open(path.c_str(), O_DIRECTORY | O_RDONLY | O_NOFOLLOW));
+  return path;
+}
+
+inline void verifySharedPhotos(const std::string &base, const std::string &shared, const std::string &other) {
+  const auto dir = directory(sharedBase(base));
+  verifyPhoto(dir, other, true);
+  std::set<std::string> live{other};
+  if (!shared.empty()) {
+    verifyPhoto(dir, shared, false);
+    live.insert(shared);
+  }
+  collectVerified(dir, live);
 }
 } // namespace journal_photo_fixture

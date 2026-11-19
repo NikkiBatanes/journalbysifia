@@ -452,15 +452,41 @@ RCT_EXPORT_MODULE(JournalArchiveCrypto)
 }
 
 - (void)stageSyntheticPhoto:(BOOL)replacement resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject {
+  [self stageFixturePhoto:replacement sharedStore:NO resolve:resolve reject:reject];
+}
+
+- (void)stageSharedFixturePhoto:(BOOL)replacement resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject {
+  [self stageFixturePhoto:replacement sharedStore:YES resolve:resolve reject:reject];
+}
+
+- (void)stageFixturePhoto:(BOOL)replacement sharedStore:(BOOL)sharedStore resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject {
 #if DEBUG
   dispatch_async(JournalArchiveCryptoQueue(), ^{
     try {
       NSURL *base = [NSFileManager.defaultManager URLForDirectory:NSApplicationSupportDirectory inDomain:NSUserDomainMask appropriateForURL:nil create:YES error:nil];
       journal_fixture::require(base != nil);
-      auto name = journal_photo_fixture::stage(base.fileSystemRepresentation, replacement);
+      const std::string path = base.fileSystemRepresentation;
+      auto name = journal_photo_fixture::stage(sharedStore ? journal_photo_fixture::sharedBase(path) : path, replacement);
       resolve([NSString stringWithUTF8String:name.c_str()]);
     } catch (const std::exception &) {
       reject(@"JOURNAL_PHOTO_STAGE_FAILED", @"Could not stage test photo", nil);
+    }
+  });
+#else
+  reject(@"JOURNAL_TRANSFER_DISABLED", @"Development build required", nil);
+#endif
+}
+
+- (void)verifySharedFixturePhotos:(NSString *)shared other:(NSString *)other resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject {
+#if DEBUG
+  dispatch_async(JournalArchiveCryptoQueue(), ^{
+    try {
+      NSURL *base = [NSFileManager.defaultManager URLForDirectory:NSApplicationSupportDirectory inDomain:NSUserDomainMask appropriateForURL:nil create:NO error:nil];
+      journal_fixture::require(base != nil && (shared.length == 0 || shared.length == 38) && other.length == 38);
+      journal_photo_fixture::verifySharedPhotos(base.fileSystemRepresentation, shared.UTF8String, other.UTF8String);
+      resolve(@YES);
+    } catch (const std::exception &) {
+      reject(@"JOURNAL_PHOTO_VERIFY_FAILED", @"Could not verify the referenced test photos", nil);
     }
   });
 #else

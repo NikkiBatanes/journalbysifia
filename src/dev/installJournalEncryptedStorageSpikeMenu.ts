@@ -49,6 +49,33 @@ export const installJournalEncryptedStorageSpikeMenu = (): void => {
     ]);
   });
 
+  let sharedPhotoBusy = false;
+  async function checkSharedPhotos(arm: boolean) {
+    if (sharedPhotoBusy) {return;}
+    sharedPhotoBusy = true;
+    try {
+      const probe = await import('./journalSharedPhotoRestoreProbe');
+      if (arm) {
+        await probe.armSharedPhotoRestore(() => Alert.alert('Shared photo restore armed',
+          'Fully close Journal. Reopen it and choose Verify in this test.'));
+      } else {
+        await probe.verifySharedPhotoRestore();
+        Alert.alert('Shared photo restore passed');
+      }
+    } catch (error) {
+      Alert.alert('Shared photo restore failed', error instanceof Error ? error.message : 'Unknown diagnostic error');
+    } finally {
+      sharedPhotoBusy = false;
+    }
+  }
+  DevSettings.addMenuItem('Test shared photo recovery', () => {
+    Alert.alert('Test shared photo recovery', 'Use Arm first, then Verify after restarting Journal.', [
+      {text: 'Cancel', style: 'cancel'},
+      {text: 'Arm', onPress: () => checkSharedPhotos(true)},
+      {text: 'Verify', onPress: () => checkSharedPhotos(false)},
+    ]);
+  });
+
   let filePhotoBusy = false;
   async function checkFilePhoto(arm: boolean, point: FilePhotoInterruption = 'database') {
     if (filePhotoBusy) {return;}

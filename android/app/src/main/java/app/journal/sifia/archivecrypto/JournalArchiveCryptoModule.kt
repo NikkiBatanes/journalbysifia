@@ -48,14 +48,14 @@ class JournalArchiveCryptoModule(reactContext: ReactApplicationContext) :
     }
   }
 
-  private external fun nativeFixturePhoto(directory: String, name: String?, replacement: Boolean): String?
+  private external fun nativeFixturePhoto(directory: String, name: String?, replacement: Boolean, sharedStore: Boolean): String?
 
-  private fun fixturePhoto(name: String?, replacement: Boolean, promise: Promise) {
+  private fun fixturePhoto(name: String?, replacement: Boolean, promise: Promise, sharedStore: Boolean = false) {
     cryptoExecutor.execute {
       try {
         check(app.journal.sifia.BuildConfig.DEBUG) { "Development build required" }
         val directory = reactApplicationContext.noBackupFilesDir.absolutePath
-        val result = requireNotNull(nativeFixturePhoto(directory, name, replacement)) {
+        val result = requireNotNull(nativeFixturePhoto(directory, name, replacement, sharedStore)) {
           if (name == null) "Could not stage the encrypted test photo" else "Could not verify the restored test photo"
         }
         promise.resolve(if (name == null) result else result == "verified")
@@ -83,6 +83,25 @@ class JournalArchiveCryptoModule(reactContext: ReactApplicationContext) :
 
   override fun interruptSyntheticPhoto(afterPublication: Boolean, promise: Promise) = photoInterruption(afterPublication, false, promise)
   override fun checkSyntheticPhotoInterruption(afterPublication: Boolean, promise: Promise) = photoInterruption(afterPublication, true, promise)
+
+  override fun stageSharedFixturePhoto(replacement: Boolean, promise: Promise) =
+    fixturePhoto(null, replacement, promise, sharedStore = true)
+
+  private external fun nativeVerifySharedPhotos(directory: String, shared: String, other: String): Boolean
+
+  override fun verifySharedFixturePhotos(shared: String, other: String, promise: Promise) {
+    cryptoExecutor.execute {
+      try {
+        check(app.journal.sifia.BuildConfig.DEBUG) { "Development build required" }
+        check(nativeVerifySharedPhotos(reactApplicationContext.noBackupFilesDir.absolutePath, shared, other)) {
+          "Could not verify the referenced test photos"
+        }
+        promise.resolve(true)
+      } catch (error: Exception) {
+        promise.reject("JOURNAL_FILE_PHOTO_FAILED", error)
+      }
+    }
+  }
 
   override fun stageSyntheticPhoto(replacement: Boolean, promise: Promise) = fixturePhoto(null, replacement, promise)
   override fun verifySyntheticPhoto(name: String, replacement: Boolean, promise: Promise) = fixturePhoto(name, replacement, promise)

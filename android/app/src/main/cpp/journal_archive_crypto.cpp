@@ -465,14 +465,14 @@ Java_app_journal_sifia_archivecrypto_JournalArchiveCryptoModule_nativeSyntheticT
 
 extern "C" JNIEXPORT jstring JNICALL
 Java_app_journal_sifia_archivecrypto_JournalArchiveCryptoModule_nativeFixturePhoto(
-    JNIEnv *env, jobject, jstring directory, jstring name, jboolean replacement) {
+    JNIEnv *env, jobject, jstring directory, jstring name, jboolean replacement, jboolean sharedStore) {
   const char *path = env->GetStringUTFChars(directory, nullptr);
   if (!path) return nullptr;
   const char *filename = name ? env->GetStringUTFChars(name, nullptr) : nullptr;
   jstring result = nullptr;
   try {
     if (!name) {
-      auto staged = journal_photo_fixture::stage(path, replacement);
+      auto staged = journal_photo_fixture::stage(sharedStore ? journal_photo_fixture::sharedBase(path) : std::string(path), replacement);
       result = env->NewStringUTF(staged.c_str());
     } else if (filename) {
       journal_photo_fixture::verifyAndCollect(path, filename, replacement);
@@ -504,6 +504,26 @@ Java_app_journal_sifia_archivecrypto_JournalArchiveCryptoModule_nativePhotoInter
   } catch (const std::exception &) {
     // Fail closed on an unexpected return or invalid fixture evidence.
   }
+  env->ReleaseStringUTFChars(directory, path);
+  return verified;
+}
+
+extern "C" JNIEXPORT jboolean JNICALL
+Java_app_journal_sifia_archivecrypto_JournalArchiveCryptoModule_nativeVerifySharedPhotos(
+    JNIEnv *env, jobject, jstring directory, jstring shared, jstring other) {
+  const char *path = env->GetStringUTFChars(directory, nullptr);
+  if (!path) return JNI_FALSE;
+  const char *first = env->GetStringUTFChars(shared, nullptr);
+  const char *second = first ? env->GetStringUTFChars(other, nullptr) : nullptr;
+  bool verified = false;
+  if (second) {
+    try {
+      journal_photo_fixture::verifySharedPhotos(path, first, second);
+      verified = true;
+    } catch (const std::exception &) {}
+    env->ReleaseStringUTFChars(other, second);
+  }
+  if (first) env->ReleaseStringUTFChars(shared, first);
   env->ReleaseStringUTFChars(directory, path);
   return verified;
 }
