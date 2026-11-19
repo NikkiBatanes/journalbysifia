@@ -2,6 +2,7 @@ import {open} from '@op-engineering/op-sqlite';
 import {v4 as uuid} from 'uuid';
 import archive from '../native/NativeJournalArchiveCrypto';
 import {preflightJournalBackupArchiveRestore, utf8ByteLength} from '../services/journalBackupArchiveContract';
+import {isStagedPhotoName, resolveJournalBackupPhotoBlocks} from '../services/journalBackupPhotoBlocks';
 import {planJournalBackupRestore} from '../services/journalBackupRestorePlan';
 import {generateSpikeEncryptionKey} from '../services/journalEncryptedStorageSpike';
 import {openRestoreSession, type RestoreDatabase} from './journalRestoreDatabase';
@@ -12,7 +13,6 @@ const prefix = 'journal_local:todo:2026-11-19:';
 const indexKey = 'journal_local_index:todo:2026-11-19';
 const sharedId = 'cf890a91-410a-4526-9d47-8aa7085ec351';
 const otherId = '91470c9f-7d1d-49aa-9644-8961d590b5ab';
-const names = /^photo-[a-f0-9]{32}$/;
 
 type SampleComparison = {deviceEntries: LocalJournalEntry[]; backupText: string};
 
@@ -44,7 +44,7 @@ export async function prepareSampleComparison(db: RestoreDatabase, backupText: s
 export async function applySharedPhotoTransfer(session: Session, document?: string, comparison?: SampleComparison) {
   const received = JSON.parse(document ?? await archive.importSharedPhotoTransfer());
   const {manifest, sharedFile, otherFile, token} = received;
-  if (!/^[a-f0-9]{32}$/.test(token) || !names.test(sharedFile) || !names.test(otherFile) || sharedFile === otherFile) {
+  if (!/^[a-f0-9]{32}$/.test(token)) {
     throw new Error('Unexpected transferred photo identifiers');
   }
   const validated = preflightJournalBackupArchiveRestore(manifest, {
@@ -60,13 +60,13 @@ export async function applySharedPhotoTransfer(session: Session, document?: stri
       assets.some(asset => asset.ownerRecordId !== 'first' || asset.mediaType !== 'image/png')) {
     throw new Error('Unexpected photo inventory');
   }
-  const entries = backup.inventory.journalRecords;
+  const archiveEntries = backup.inventory.journalRecords;
   const expected = [
-    {id: 'first', assets: [shared, other], files: [sharedFile, otherFile]},
-    {id: 'second', assets: [shared], files: [sharedFile]},
+    {id: 'first', assets: [shared, other]},
+    {id: 'second', assets: [shared]},
   ];
-  if (entries.length !== expected.length) {throw new Error('Unexpected entry count');}
-  entries.forEach((entry, i) => {
+  if (archiveEntries.length !== expected.length) {throw new Error('Unexpected entry count');}
+  archiveEntries.forEach((entry, i) => {
     const row = expected[i];
     const blocks = entry.metadata?.journalBlocks;
     const supportedText = entry.content === row.id + '-' + token || (row.id === 'first' && entry.content === 'Call Mom.');
@@ -74,13 +74,16 @@ export async function applySharedPhotoTransfer(session: Session, document?: stri
         !Array.isArray(blocks) || blocks.length !== row.assets.length) {
       throw new Error('Unexpected transferred record');
     }
-    entry.metadata = {...entry.metadata, journalBlocks: blocks.map((block, j) => {
+    blocks.forEach((block, j) => {
       if (block.kind !== 'photo' || block.id !== row.assets[j].assetId || block.uri !== row.assets[j].path) {
         throw new Error('Transferred record references an unexpected photo');
       }
-      return {...block, uri: 'objects/' + row.files[j]};
-    })};
+    });
   });
+  const entries = resolveJournalBackupPhotoBlocks(archiveEntries, assets, [
+    {assetId: sharedId, file: sharedFile}, {assetId: otherId, file: otherFile},
+  ]);
+  backup.inventory.journalRecords = entries;
   const deviceEntries = comparison?.deviceEntries ?? [];
   if (comparison) {
     if (entries[0].content !== comparison.backupText) {throw new Error('Sample no longer matches preview');}
@@ -234,7 +237,7 @@ export async function previewSampleRevision(
           if (!stagePhoto) {throw new Error('Missing revised photo snapshot');}
           const staged = JSON.parse(await stagePhoto());
           if (staged?.archiveDigest !== digest || staged.assetId !== '792d9c99-72e2-4054-a211-1900c54801a4' ||
-              typeof staged.file !== 'string' || !names.test(staged.file) || staged.file === shared || staged.file === other ||
+              !isStagedPhotoName(staged.file) || staged.file === shared || staged.file === other ||
               staged.photoDigest !== '2761c10bfda1b80b82c2200d6791c35f6936e79bd89efa40fdddb0772af0d174' ||
               !await archive.checkRestoredPhotos(shared, original.sharedDigest, staged.file, staged.photoDigest)) {
             throw new Error('Revised photo could not be verified');
