@@ -1468,7 +1468,7 @@ While the local backup test screen is open, restore the sample using **Keep both
 
 The native preview authenticates the file and hashes the manifest, which includes both photo hashes. The practice database saves the hash and the restored entries in the same SQLite transaction. The host integration test reopened that database, edited the imported copy, repeated the import and checked that every row was preserved. A simulated failure to save the receipt rolled back the first import and allowed a retry. Tests also cover the picker skipping the second photo import and opening a different backup normally. Customer journal integration, comparing different backup revisions and the production restore flow remain open.
 
-The iPhone simulator also passed the Files walkthrough. After the first restore verified four entries and two photos, selecting the same encrypted file again displayed the duplicate-backup message.
+The iPhone simulator and an isolated Pixel 8 emulator running Android 15 passed the Files walkthrough. On both, the first restore verified four entries and two photos after reopening the practice database. Selecting the same encrypted file again displayed the duplicate-backup message. The usual Pixel 8 emulator's package service failed during installation, so Android verification used a fresh test installation with onboarding marked complete.
 
 ## Primary references checked on 2026-11-03
 
