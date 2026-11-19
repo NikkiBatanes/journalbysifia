@@ -89,7 +89,7 @@ it('discards the verified selection if the picker returns after leaving the scre
 });
 
 it.each(['confirm', 'cancel'])('shows both sample texts before %s', async action => {
-  const sample = {deviceText: 'Call Mom after dinner.', discard: jest.fn(), keepBoth: jest.fn()};
+  const sample = {deviceText: 'Call Mom after dinner.', discard: jest.fn(), keepBoth: jest.fn(), alreadyRestored: jest.fn()};
   jest.mocked(beginSampleComparison).mockResolvedValue(sample);
   jest.mocked(archive.chooseSampleBackupFile).mockResolvedValue(JSON.stringify({
     ...JSON.parse(selectedPreview), firstContent: 'Call Mom.',
@@ -113,4 +113,36 @@ it.each(['confirm', 'cancel'])('shows both sample texts before %s', async action
   }
   expect(sample.discard).toHaveBeenCalled();
   expect(restoreSharedPhotoTransfer).not.toHaveBeenCalled();
+});
+
+it('recognizes a second verified selection before staging photos and still previews a different backup', async () => {
+  const archiveDigest = '1'.repeat(64);
+  const sample = {
+    deviceText: 'Call Mom after dinner.', discard: jest.fn(), keepBoth: jest.fn(),
+    alreadyRestored: jest.fn(async (digest: string) => digest === archiveDigest),
+  };
+  jest.mocked(beginSampleComparison).mockResolvedValue(sample);
+  const view = render(<SampleLocalBackup />);
+  async function select(id: string, digest: string) {
+    jest.mocked(archive.chooseSampleBackupFile).mockResolvedValueOnce(JSON.stringify({
+      ...JSON.parse(selectedPreview), previewId: id, firstContent: 'Call Mom.', archiveDigest: digest,
+    }));
+    fireEvent.press(screen.getByText('Restore sample backup'));
+    fireEvent.changeText(screen.getByLabelText('Backup recovery code'), 'b'.repeat(32));
+    fireEvent.press(screen.getByText('Choose backup file'));
+  }
+  await select(previewId, archiveDigest);
+  fireEvent.press(await screen.findByText('Compare with an existing sample journal'));
+  fireEvent.press(await screen.findByText('Keep both and restore sample'));
+  await screen.findByText(/All 4 sample entries/);
+  const secondId = '2'.repeat(32);
+  await select(secondId, archiveDigest);
+  await screen.findByText(/You already restored this backup/);
+  expect(archive.finishSampleRestorePreview).toHaveBeenCalledTimes(2);
+  expect(archive.finishSampleRestorePreview).toHaveBeenLastCalledWith(secondId, '', false);
+  expect(sample.keepBoth).toHaveBeenCalledTimes(1);
+  await select('3'.repeat(32), '4'.repeat(64));
+  expect(await screen.findByText('Compare with an existing sample journal')).toBeOnTheScreen();
+  view.unmount();
+  expect(sample.discard).toHaveBeenCalledTimes(1);
 });

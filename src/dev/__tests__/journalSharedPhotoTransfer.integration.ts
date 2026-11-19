@@ -3,7 +3,7 @@ import {mkdtempSync, mkdirSync, copyFileSync, readFileSync, rmSync, writeFileSyn
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import archive from '../../native/NativeJournalArchiveCrypto';
-import {applySharedPhotoTransfer, prepareSampleComparison, verifySharedPhotoTransfer} from '../journalSharedPhotoTransferProbe';
+import {applySharedPhotoTransfer, prepareSampleComparison, restoreComparedSampleOnce, verifySharedPhotoTransfer} from '../journalSharedPhotoTransferProbe';
 import {openRestoreSession} from '../journalRestoreDatabase';
 import {connect} from './restoreTestDatabase';
 
@@ -68,7 +68,15 @@ it('restores both entries from one encrypted file and rejects a damaged second p
       await expect(applySharedPhotoTransfer(existingSession, document, comparison)).rejects.toThrow('Unexpected sample journal');
       expect(await snapshot()).toEqual(withProfile);
       await existing.execute('DELETE FROM restore_kv WHERE k=?', ['journal:local-profile']);
-      const kept = await applySharedPhotoTransfer(existingSession, document, comparison);
+      const {archiveDigest} = JSON.parse(document);
+      await existing.execute('CREATE TABLE sample_restore_receipts (digest TEXT PRIMARY KEY NOT NULL)');
+      await existing.execute("CREATE TEMP TRIGGER fail_receipt BEFORE INSERT ON sample_restore_receipts BEGIN SELECT RAISE(ABORT, 'simulated write failure'); END");
+      await expect(restoreComparedSampleOnce(existing, document, comparison, archiveDigest)).rejects.toThrow('simulated write failure');
+      expect(await snapshot()).toEqual(original);
+      expect((await existing.execute('SELECT * FROM sample_restore_receipts')).rows).toHaveLength(0);
+      await existing.execute('DROP TRIGGER fail_receipt');
+      const kept = await restoreComparedSampleOnce(existing, document, comparison, archiveDigest);
+      if (!kept) {throw new Error('Expected a first import');}
       expect(kept.entries[0].id).not.toBe('first');
       existing.close();
       existing = connect(join(compareTarget, 'existing.sqlite'));
@@ -77,6 +85,15 @@ it('restores both entries from one encrypted file and rejects a damaged second p
         return true;
       });
       expect(await verifySharedPhotoTransfer(await openRestoreSession(existing), kept)).toBe(token);
+      const restoredCopy = kept.entries[0];
+      await existing.execute('UPDATE restore_kv SET v=? WHERE k=?', [
+        JSON.stringify({...restoredCopy, content: 'Edited after the restore.'}),
+        'journal_local:todo:2026-11-19:' + restoredCopy.id,
+      ]);
+      const edited = await snapshot();
+      await expect(restoreComparedSampleOnce(existing, document, comparison, archiveDigest)).resolves.toBeNull();
+      expect(await snapshot()).toEqual(edited);
+      expect((await existing.execute('SELECT digest FROM sample_restore_receipts')).rows).toEqual([{digest: archiveDigest}]);
     } finally {
       existing.close();
     }

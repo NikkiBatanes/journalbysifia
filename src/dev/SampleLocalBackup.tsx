@@ -3,7 +3,7 @@ import {Platform, Pressable, StyleSheet, Text, TextInput, View} from 'react-nati
 import 'react-native-get-random-values';
 import {useTheme} from '../theme/ThemeContext';
 
-type SamplePreview = {previewId: string; entries: number; photos: number; photoBytes: number; firstContent?: string};
+type SamplePreview = {previewId: string; entries: number; photos: number; photoBytes: number; firstContent?: string; archiveDigest?: string};
 type Comparison = Awaited<ReturnType<typeof import('./journalSharedPhotoTransferProbe').beginSampleComparison>>;
 const nativeArchive = (): typeof import('../native/NativeJournalArchiveCrypto').default =>
   require('../native/NativeJournalArchiveCrypto').default;
@@ -17,6 +17,9 @@ function readPreview(result: string): SamplePreview {
   if (value.firstContent !== undefined && value.firstContent !== 'Call Mom.' &&
       !(typeof value.firstContent === 'string' && /^first-[a-f0-9]{32}$/.test(value.firstContent))) {
     throw new Error('Invalid sample comparison text');
+  }
+  if (value.archiveDigest !== undefined && (typeof value.archiveDigest !== 'string' || !/^[a-f0-9]{64}$/.test(value.archiveDigest))) {
+    throw new Error('Invalid sample archive identity');
   }
   return value;
 }
@@ -42,6 +45,7 @@ export default function SampleLocalBackup() {
   const [preview, setPreview] = useState<SamplePreview | null>(null);
   const pendingId = useRef<string | null>(null);
   const comparison = useRef<Comparison | null>(null);
+  const lastRestore = useRef<Comparison | null>(null);
   const [deviceText, setDeviceText] = useState('');
   const mounted = useRef(true);
   useEffect(() => {
@@ -50,6 +54,8 @@ export default function SampleLocalBackup() {
       mounted.current = false;
       comparison.current?.discard();
       comparison.current = null;
+      lastRestore.current?.discard();
+      lastRestore.current = null;
       if (pendingId.current) {discardPreview(pendingId.current);}
       pendingId.current = null;
     };
@@ -96,6 +102,14 @@ export default function SampleLocalBackup() {
         const selected = readPreview(result);
         if (!mounted.current) {discardPreview(selected.previewId); return;}
         pendingId.current = selected.previewId;
+        if (selected.archiveDigest && lastRestore.current && await lastRestore.current.alreadyRestored(selected.archiveDigest)) {
+          if (mounted.current) {
+            reset();
+            setMessage('You already restored this backup. Your entries and photos are unchanged.');
+          }
+          return;
+        }
+        if (!mounted.current) {return;}
         setPreview(selected);
         return;
       }
@@ -116,7 +130,7 @@ export default function SampleLocalBackup() {
     setMessage('');
     try {
       const {beginSampleComparison}: typeof import('./journalSharedPhotoTransferProbe') = require('./journalSharedPhotoTransferProbe');
-      const sample = await beginSampleComparison(preview.firstContent);
+      const sample = await beginSampleComparison(preview.firstContent, preview.archiveDigest);
       if (!mounted.current) {sample.discard(); return;}
       comparison.current = sample;
       setDeviceText(sample.deviceText);
@@ -138,6 +152,8 @@ export default function SampleLocalBackup() {
       const document = await nativeArchive().finishSampleRestorePreview(preview.previewId, normalized, true);
       const {restoreSharedPhotoTransfer}: typeof import('./journalSharedPhotoTransferProbe') = require('./journalSharedPhotoTransferProbe');
       if (sample) {await sample.keepBoth(document);} else {await restoreSharedPhotoTransfer(document);}
+      lastRestore.current?.discard();
+      lastRestore.current = mounted.current && sample && preview.archiveDigest ? sample : null;
       reset();
       setMessage(sample ? 'Kept both versions. All 4 sample entries and 2 photos were verified after reopening.' : `Restored and verified ${preview.entries} sample entries and ${preview.photos} photos.`);
     } catch {
@@ -145,7 +161,7 @@ export default function SampleLocalBackup() {
       setPreview(null);
       setMessage('Could not finish the restore. Select the backup again to retry.');
     } finally {
-      sample?.discard();
+      if (sample !== lastRestore.current) {sample?.discard();}
       running.current = false;
       setBusy(false);
     }

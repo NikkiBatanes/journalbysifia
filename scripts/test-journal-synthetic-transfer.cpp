@@ -67,6 +67,8 @@ void checkSampleDocument(const std::filesystem::path &root) {
   const auto wrong = fixture::freshToken();
   namespace transfer = journal_shared_transfer;
   const auto token = transfer::sampleDocument(file, code.c_str(), true);
+  const auto manifestDigest = transfer::digest(transfer::inspect(transfer::readSample(file), code.c_str()).document);
+  const auto digestField = std::string(R"("archiveDigest":")") + manifestDigest + "\"";
   auto &previews = transfer::samplePreviews();
   auto preview = [&] {
     const auto result = transfer::sampleDocument(file, code.c_str(), false);
@@ -74,6 +76,7 @@ void checkSampleDocument(const std::filesystem::path &root) {
     fixture::require(result.compare(0, prefix.size(), prefix) == 0);
     fixture::require(result.find(R"(","entries":2,"photos":2,"photoBytes":)") == prefix.size() + 32);
     fixture::require(result.find(R"("firstContent":"Call Mom.")") != std::string::npos);
+    fixture::require(result.find(digestField) != std::string::npos);
     return result.substr(prefix.size(), 32);
   };
   expectRejection([&] { transfer::sampleDocument(file, wrong.c_str(), false); });
@@ -82,6 +85,9 @@ void checkSampleDocument(const std::filesystem::path &root) {
   const auto cancelled = preview();
   previews.finish(target.string(), cancelled, "", false);
   expectRejection([&] { previews.finish(target.string(), cancelled, code.c_str(), true); });
+  const auto renamed = (root / "Renamed Sample.bin").string();
+  std::filesystem::rename(file, renamed);
+  file = renamed;
   const auto stale = preview();
   const auto current = preview();
   previews.finish(target.string(), stale, "", false);
@@ -91,6 +97,7 @@ void checkSampleDocument(const std::filesystem::path &root) {
   fixture::require(std::filesystem::is_empty(target));
   std::filesystem::remove(file);
   const auto opened = previews.finish(target.string(), selected, code.c_str(), true);
+  fixture::require(opened.find(digestField) != std::string::npos);
   fixture::require(opened.find(token) != std::string::npos);
   expectRejection([&] { previews.finish(target.string(), selected, code.c_str(), true); });
 }

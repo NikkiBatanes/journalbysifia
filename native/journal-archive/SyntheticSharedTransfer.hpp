@@ -115,7 +115,8 @@ inline std::string stageVerified(const std::string &directory, const VerifiedSam
   return R"({"token":")" + token + R"(","manifest":)" + document
     + R"(,"containerByteLength":)" + std::to_string(sealedSize)
     + R"(,"sharedBytes":)" + std::to_string(images.shared.size()) + R"(,"otherBytes":)" + std::to_string(images.other.size())
-    + R"(,"sharedFile":")" + shared + R"(","otherFile":")" + other + R"("})";
+    + R"(,"sharedFile":")" + shared + R"(","otherFile":")" + other
+    + R"(","archiveDigest":")" + digest(document) + R"("})";
 }
 
 inline std::string importFromFile(const std::string &directory, const std::string &path, const char *code) {
@@ -140,7 +141,8 @@ public:
     // inspect() authenticates the exact two-entry, two-photo manifest before returning.
     const auto json = R"({"previewId":")" + id + R"(","entries":2,"photos":2,"photoBytes":)"
       + std::to_string(sample.images.shared.size() + sample.images.other.size())
-      + R"(,"firstContent":")" + sample.firstContent + R"("})";
+      + R"(,"firstContent":")" + sample.firstContent
+      + R"(","archiveDigest":")" + digest(sample.document) + R"("})";
     std::lock_guard<std::mutex> lock(mutex);
     currentId = id;
     snapshot = std::move(sealed);

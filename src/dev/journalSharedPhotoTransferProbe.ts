@@ -160,9 +160,36 @@ export async function restoreSharedPhotoTransfer(document?: string) {
   }
 }
 
-export async function beginSampleComparison(backupText: string) {
+type ComparedRestoreResult = Awaited<ReturnType<typeof applySharedPhotoTransfer>> | null;
+
+// The native manifest identifies the entries and photos. Commit its receipt with the entries
+// and keep it outside the exported key/value namespace.
+export async function restoreComparedSampleOnce(
+  db: RestoreDatabase, document: string, comparison: SampleComparison, digest: string,
+): Promise<ComparedRestoreResult> {
+  if (!/^[a-f0-9]{64}$/.test(digest) || JSON.parse(document).archiveDigest !== digest) {
+    throw new Error('Sample no longer matches preview');
+  }
+  let restored: ComparedRestoreResult = null;
+  await db.transaction(async tx => {
+    await tx.execute('CREATE TABLE IF NOT EXISTS sample_restore_receipts (digest TEXT PRIMARY KEY NOT NULL)');
+    if (await hasSampleReceipt(tx, digest)) {return;}
+    // The executor's batches share this transaction so an interruption rolls back the receipt too.
+    const session = await openRestoreSession({execute: tx.execute.bind(tx), transaction: work => work(tx)});
+    restored = await applySharedPhotoTransfer(session, document, comparison);
+    await tx.execute('INSERT INTO sample_restore_receipts (digest) VALUES (?)', [digest]);
+  });
+  return restored;
+}
+
+async function hasSampleReceipt(db: Pick<RestoreDatabase, 'execute'>, digest: string) {
+  const {rows} = await db.execute('SELECT digest FROM sample_restore_receipts WHERE digest=?', [digest]);
+  return rows.length === 1;
+}
+
+export async function beginSampleComparison(backupText: string, digest?: string) {
   const options = {name: 'compare-sample-' + uuid() + '.sqlite', encryptionKey: generateSpikeEncryptionKey()};
-  const db = open(options);
+  let db = open(options);
   let closed = false;
   const discard = () => {
     if (!closed) {closed = true; db.delete();}
@@ -174,19 +201,21 @@ export async function beginSampleComparison(backupText: string) {
     return {
       deviceText: comparison.deviceEntries[0].content,
       discard,
+      alreadyRestored: (candidate: string) => hasSampleReceipt(db, candidate),
       async keepBoth(document: string) {
         try {
-          const expected = await applySharedPhotoTransfer(await openRestoreSession(db), document, comparison);
+          const expected = digest
+            ? await restoreComparedSampleOnce(db, document, comparison, digest)
+            : await applySharedPhotoTransfer(await openRestoreSession(db), document, comparison);
+          if (!expected) {throw new Error('Sample was already restored');}
           db.close();
           closed = true;
-          const reopened = open({...options, failOnCreate: true});
-          try {
-            await verifySharedPhotoTransfer(await openRestoreSession(reopened), expected);
-          } finally {
-            reopened.delete();
-          }
-        } finally {
+          db = open({...options, failOnCreate: true});
+          closed = false;
+          await verifySharedPhotoTransfer(await openRestoreSession(db), expected);
+        } catch (error) {
           discard();
+          throw error;
         }
       },
     };
