@@ -1,9 +1,10 @@
 import React, {useEffect, useRef, useState} from 'react';
 import {Platform, Pressable, StyleSheet, Text, TextInput, View} from 'react-native';
 import 'react-native-get-random-values';
+import type {SampleRevision} from './journalSharedPhotoTransferProbe';
 import {useTheme} from '../theme/ThemeContext';
 
-type SamplePreview = {previewId: string; entries: number; photos: number; photoBytes: number; firstContent?: string; archiveDigest?: string};
+type SamplePreview = {previewId: string; entries: number; photos: number; photoBytes: number; firstContent?: string; archiveDigest?: string; revision?: SampleRevision};
 type Comparison = Awaited<ReturnType<typeof import('./journalSharedPhotoTransferProbe').beginSampleComparison>>;
 const nativeArchive = (): typeof import('../native/NativeJournalArchiveCrypto').default =>
   require('../native/NativeJournalArchiveCrypto').default;
@@ -14,14 +15,22 @@ function readPreview(result: string): SamplePreview {
       value.entries !== 2 || value.photos !== 2 || !Number.isSafeInteger(value.photoBytes) || value.photoBytes <= 0) {
     throw new Error('Invalid sample preview');
   }
-  if (value.firstContent !== undefined && value.firstContent !== 'Call Mom.' &&
+  const revised = value.baseDigest !== undefined || value.updatedAt !== undefined;
+  if (revised && (value.firstContent !== 'Call Mom on Sunday.' || value.updatedAt !== '2026-11-20T00:00:00Z' ||
+      typeof value.baseDigest !== 'string' || !/^[a-f0-9]{64}$/.test(value.baseDigest) ||
+      typeof value.archiveDigest !== 'string' || value.baseDigest === value.archiveDigest)) {
+    throw new Error('Invalid revised sample');
+  }
+  if (!revised && value.firstContent !== undefined && value.firstContent !== 'Call Mom.' &&
       !(typeof value.firstContent === 'string' && /^first-[a-f0-9]{32}$/.test(value.firstContent))) {
     throw new Error('Invalid sample comparison text');
   }
   if (value.archiveDigest !== undefined && (typeof value.archiveDigest !== 'string' || !/^[a-f0-9]{64}$/.test(value.archiveDigest))) {
     throw new Error('Invalid sample archive identity');
   }
-  return value;
+  return {...value, revision: revised ? {
+    baseDigest: value.baseDigest, archiveDigest: value.archiveDigest, updatedAt: value.updatedAt, firstContent: value.firstContent,
+  } : undefined};
 }
 
 function discardPreview(id: string) {
@@ -46,6 +55,7 @@ export default function SampleLocalBackup() {
   const pendingId = useRef<string | null>(null);
   const comparison = useRef<Comparison | null>(null);
   const lastRestore = useRef<Comparison | null>(null);
+  const [revisionReview, setRevisionReview] = useState<Awaited<ReturnType<Comparison['reviewRevision']>> | null>(null);
   const [deviceText, setDeviceText] = useState('');
   const mounted = useRef(true);
   useEffect(() => {
@@ -64,6 +74,7 @@ export default function SampleLocalBackup() {
   const displayedCode = code.slice(0, 19) + '\n' + code.slice(20);
   const normalized = code.replace(/[-\s]/g, '').toLowerCase();
   function reset() {
+    setRevisionReview(null);
     comparison.current?.discard();
     comparison.current = null;
     setDeviceText('');
@@ -108,6 +119,20 @@ export default function SampleLocalBackup() {
             setMessage('You already restored this backup. Your entries and photos are unchanged.');
           }
           return;
+        }
+        if (selected.revision) {
+          try {
+            if (!lastRestore.current) {throw new Error('Missing original sample');}
+            const review = await lastRestore.current.reviewRevision(selected.revision);
+            if (!mounted.current) {return;}
+            setRevisionReview(review);
+          } catch {
+            if (mounted.current) {
+              reset();
+              setMessage('Open the original sample backup and choose Keep both before reviewing this revision.');
+            }
+            return;
+          }
         }
         if (!mounted.current) {return;}
         setPreview(selected);
@@ -166,6 +191,26 @@ export default function SampleLocalBackup() {
       setBusy(false);
     }
   }
+  async function saveRevision() {
+    if (!revisionReview || running.current) {return;}
+    running.current = true;
+    setBusy(true);
+    try {
+      await revisionReview.keepBoth();
+      if (mounted.current) {
+        reset();
+        setMessage('Added the revised entry. Your device version and existing photos were kept.');
+      }
+    } catch {
+      if (mounted.current) {
+        reset();
+        setMessage('Could not add the revised entry. Choose the file again to review the latest device version.');
+      }
+    } finally {
+      running.current = false;
+      if (mounted.current) {setBusy(false);}
+    }
+  }
   const button = (label: string, onPress: () => void, disabled = false) => (
     <Pressable accessibilityRole="button" accessibilityState={{disabled}} disabled={disabled} onPress={onPress}
       style={[styles.button, disabled && styles.disabled]}>
@@ -198,7 +243,16 @@ export default function SampleLocalBackup() {
         <Text accessibilityRole="header" style={[text, styles.title]}>Restore preview</Text>
         <Text style={text}>{preview.entries} sample entries · {preview.photos} photos</Text>
         <Text style={text}>{(preview.photoBytes / 1_000_000).toFixed(1)} MB of photos</Text>
-        {deviceText ? <>
+        {revisionReview ? <>
+          <Text accessibilityRole="header" style={[text, styles.title]}>One entry changed in this backup</Text>
+          <Text style={[text, styles.buttonText]}>On this device</Text>
+          <Text style={text}>{revisionReview.deviceText}</Text>
+          <Text style={[text, styles.buttonText]}>In the revised backup</Text>
+          <Text style={text}>{preview.firstContent}</Text>
+          <Text style={text}>Keep both adds a separate entry using the two photos already restored.</Text>
+          {button('Keep my device version', () => {reset(); setMessage('Kept your device version.');}, busy)}
+          {button('Keep both versions', saveRevision, busy)}
+        </> : deviceText ? <>
           <Text accessibilityRole="header" style={[text, styles.title]}>Two versions of one sample entry</Text>
           <Text style={[text, styles.buttonText]}>On this device</Text>
           <Text style={text}>{deviceText}</Text>

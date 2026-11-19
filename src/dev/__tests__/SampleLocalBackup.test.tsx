@@ -89,7 +89,7 @@ it('discards the verified selection if the picker returns after leaving the scre
 });
 
 it.each(['confirm', 'cancel'])('shows both sample texts before %s', async action => {
-  const sample = {deviceText: 'Call Mom after dinner.', discard: jest.fn(), keepBoth: jest.fn(), alreadyRestored: jest.fn()};
+  const sample = {deviceText: 'Call Mom after dinner.', discard: jest.fn(), keepBoth: jest.fn(), reviewRevision: jest.fn(), alreadyRestored: jest.fn()};
   jest.mocked(beginSampleComparison).mockResolvedValue(sample);
   jest.mocked(archive.chooseSampleBackupFile).mockResolvedValue(JSON.stringify({
     ...JSON.parse(selectedPreview), firstContent: 'Call Mom.',
@@ -118,7 +118,7 @@ it.each(['confirm', 'cancel'])('shows both sample texts before %s', async action
 it('recognizes a second verified selection before staging photos and still previews a different backup', async () => {
   const archiveDigest = '1'.repeat(64);
   const sample = {
-    deviceText: 'Call Mom after dinner.', discard: jest.fn(), keepBoth: jest.fn(),
+    deviceText: 'Call Mom after dinner.', discard: jest.fn(), keepBoth: jest.fn(), reviewRevision: jest.fn(),
     alreadyRestored: jest.fn(async (digest: string) => digest === archiveDigest),
   };
   jest.mocked(beginSampleComparison).mockResolvedValue(sample);
@@ -145,4 +145,40 @@ it('recognizes a second verified selection before staging photos and still previ
   expect(await screen.findByText('Compare with an existing sample journal')).toBeOnTheScreen();
   view.unmount();
   expect(sample.discard).toHaveBeenCalledTimes(1);
+});
+
+it.each(['keep device', 'keep both', 'missing original'])('reviews a related backup before a decision: %s', async choice => {
+  const digest = '1'.repeat(64);
+  const revised = {...JSON.parse(selectedPreview), baseDigest: digest, archiveDigest: '3'.repeat(64),
+    firstContent: 'Call Mom on Sunday.', updatedAt: '2026-11-20T00:00:00Z'};
+  const keepBoth = jest.fn();
+  const sample = {deviceText: 'Call Mom after dinner.', discard: jest.fn(), keepBoth: jest.fn(),
+    alreadyRestored: jest.fn().mockResolvedValue(false),
+    reviewRevision: jest.fn().mockResolvedValue({deviceText: 'I called Mom today.', keepBoth})};
+  jest.mocked(beginSampleComparison).mockResolvedValue(sample);
+  render(<SampleLocalBackup />);
+  async function pick(value: object) {
+    jest.mocked(archive.chooseSampleBackupFile).mockResolvedValueOnce(JSON.stringify(value));
+    fireEvent.press(screen.getByText('Restore sample backup'));
+    fireEvent.changeText(screen.getByLabelText('Backup recovery code'), 'b'.repeat(32));
+    fireEvent.press(screen.getByText('Choose backup file'));
+  }
+  if (choice !== 'missing original') {
+    await pick({...JSON.parse(selectedPreview), firstContent: 'Call Mom.', archiveDigest: digest});
+    fireEvent.press(await screen.findByText('Compare with an existing sample journal'));
+    fireEvent.press(await screen.findByText('Keep both and restore sample'));
+    await screen.findByText(/All 4 sample entries/);
+  }
+  await pick(revised);
+  if (choice === 'missing original') {
+    await screen.findByText(/Open the original sample backup/);
+  } else {
+    await screen.findByText('I called Mom today.');
+    expect(screen.getByText('Call Mom on Sunday.')).toBeOnTheScreen();
+    expect(keepBoth).not.toHaveBeenCalled();
+    fireEvent.press(screen.getByText(choice === 'keep both' ? 'Keep both versions' : 'Keep my device version'));
+    await screen.findByText(choice === 'keep both' ? /Added the revised entry/ : 'Kept your device version.');
+  }
+  expect(keepBoth).toHaveBeenCalledTimes(choice === 'keep both' ? 1 : 0);
+  expect(archive.finishSampleRestorePreview).toHaveBeenLastCalledWith(previewId, '', false);
 });

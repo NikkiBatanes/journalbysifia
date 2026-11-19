@@ -23,12 +23,17 @@ struct Images {
   std::string shared, other;
 };
 
-inline std::string entryText(const std::string &id, const std::string &token, bool legacy) {
-  if (!legacy && id == "first") return "Call Mom.";
+enum class SampleVersion { legacy, original, revised };
+constexpr auto revisedText = "Call Mom on Sunday.";
+constexpr auto revisedDate = "2026-11-20T00:00:00Z";
+
+inline std::string entryText(const std::string &id, const std::string &token, SampleVersion version) {
+  if (id == "first" && version != SampleVersion::legacy)
+    return version == SampleVersion::revised ? revisedText : "Call Mom.";
   return id + "-" + token;
 }
 
-inline std::string manifest(const std::string &token, const Images &images, bool legacy = false) {
+inline std::string manifest(const std::string &token, const Images &images, SampleVersion version = SampleVersion::original) {
   auto asset = [](const std::string &id, const std::string &image) {
     return R"({"assetId":")" + id + R"(","path":"objects/)" + id
       + R"(","kind":"image","mediaType":"image/png","byteLength":)" + std::to_string(image.size())
@@ -38,8 +43,9 @@ inline std::string manifest(const std::string &token, const Images &images, bool
     return R"({"id":")" + id + R"(","kind":"photo","uri":"objects/)" + id + R"("})";
   };
   auto entry = [&](const std::string &id, const std::string &blocks) {
-    return R"({"id":")" + id + R"(","content_type":"todo","selected_date":"2026-11-19","created_at":"2026-11-19T00:00:00Z","updated_at":"2026-11-19T00:00:00Z","content":")"
-      + entryText(id, token, legacy) + R"(","metadata":{"journalBlocks":[)" + blocks + "]}}";
+    return R"({"id":")" + id + R"(","content_type":"todo","selected_date":"2026-11-19","created_at":"2026-11-19T00:00:00Z","updated_at":")"
+      + (id == "first" && version == SampleVersion::revised ? revisedDate : "2026-11-19T00:00:00Z") + R"(","content":")"
+      + entryText(id, token, version) + R"(","metadata":{"journalBlocks":[)" + blocks + "]}}";
   };
   return journal_fixture::manifestDocument(
     entry("first", block(sharedId) + "," + block(otherId)) + "," + entry("second", block(sharedId)),
@@ -47,10 +53,11 @@ inline std::string manifest(const std::string &token, const Images &images, bool
     asset(sharedId, images.shared) + "," + asset(otherId, images.other), 2, 2, images.shared.size() + images.other.size());
 }
 
-inline std::string exportToFile(const std::string &path, const char *code) {
-  const auto token = journal_fixture::freshToken();
+inline std::string exportToFile(const std::string &path, const char *code,
+                                const std::string &token = journal_fixture::freshToken(),
+                                SampleVersion version = SampleVersion::original) {
   const Images images{photos::png(false), photos::png(true)};
-  const auto document = manifest(token, images);
+  const auto document = manifest(token, images, version);
   std::string payload = "JSH1" + token;
   photos::append32(payload, document.size());
   photos::append32(payload, images.shared.size());
@@ -78,7 +85,7 @@ inline std::string imageDirectory(const std::string &directory) {
 }
 
 struct VerifiedSample {
-  std::string token, document, firstContent;
+  std::string token, document, firstContent, baseDigest;
   Images images;
 };
 
@@ -99,16 +106,24 @@ inline VerifiedSample inspect(const journal_fixture::Bytes &sealed, const char *
   require(otherAt < data.size() && data.size() - otherAt <= maxImage);
   Images images{data.substr(header + manifestSize, sharedSize), data.substr(otherAt)};
   const auto document = data.substr(header, manifestSize);
-  const bool legacy = document != manifest(token, images);
-  if (legacy) require(document == manifest(token, images, true));
+  const auto original = manifest(token, images);
+  auto version = SampleVersion::original;
+  if (document != original) {
+    if (document == manifest(token, images, SampleVersion::revised)) version = SampleVersion::revised;
+    else {
+      require(document == manifest(token, images, SampleVersion::legacy));
+      version = SampleVersion::legacy;
+    }
+  }
   require(images.shared.compare(0, 8, "\x89PNG\r\n\x1a\n", 8) == 0 &&
           images.other.compare(0, 8, "\x89PNG\r\n\x1a\n", 8) == 0 && images.shared != images.other);
 
-  return {token, document, entryText("first", token, legacy), std::move(images)};
+  return {token, document, entryText("first", token, version),
+          version == SampleVersion::revised ? digest(original) : "", std::move(images)};
 }
 
 inline std::string stageVerified(const std::string &directory, const VerifiedSample &sample, size_t sealedSize) {
-  const auto &[token, document, firstContent, images] = sample;
+  const auto &[token, document, firstContent, baseDigest, images] = sample;
   const auto dir = imageDirectory(directory);
   const auto shared = photos::stageImage(dir, images.shared, photos::Interruption::none);
   const auto other = photos::stageImage(dir, images.other, photos::Interruption::none);
@@ -142,6 +157,7 @@ public:
     const auto json = R"({"previewId":")" + id + R"(","entries":2,"photos":2,"photoBytes":)"
       + std::to_string(sample.images.shared.size() + sample.images.other.size())
       + R"(,"firstContent":")" + sample.firstContent
+      + (sample.baseDigest.empty() ? "" : R"(","updatedAt":")" + std::string(revisedDate) + R"(","baseDigest":")" + sample.baseDigest)
       + R"(","archiveDigest":")" + digest(sample.document) + R"("})";
     std::lock_guard<std::mutex> lock(mutex);
     currentId = id;
@@ -181,10 +197,10 @@ inline void verifyFile(const std::string &directory, const std::string &name, co
   require(digest(journal_fixture::openAuthenticatedFrame(sealed, journal_fixture::password)) == expectedDigest);
 }
 inline void verifyPair(const std::string &directory, const std::string &shared, const std::string &sharedDigest,
-                       const std::string &other, const std::string &otherDigest) {
+                       const std::string &other, const std::string &otherDigest, bool collectUnused = true) {
   require(shared != other && sharedDigest != otherDigest);
   verifyFile(directory, shared, sharedDigest);
   verifyFile(directory, other, otherDigest);
-  photos::collectVerified(imageDirectory(directory), {shared, other});
+  if (collectUnused) photos::collectVerified(imageDirectory(directory), {shared, other});
 }
 } // namespace journal_shared_transfer

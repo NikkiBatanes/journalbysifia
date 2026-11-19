@@ -81,6 +81,7 @@ export interface Spec extends TurboModule {
   exportSharedPhotoTransfer(): Promise<string>;
   importSharedPhotoTransfer(): Promise<string>;
   verifyTransferredPhotos(shared: string, sharedDigest: string, other: string, otherDigest: string): Promise<boolean>;
+  checkRestoredPhotos(shared: string, sharedDigest: string, other: string, otherDigest: string): Promise<boolean>;
   exportSyntheticTransfer(): Promise<string>;
   importSyntheticTransfer(): Promise<string>;
   getProviderEvidence(): Promise<JournalArchiveCryptoProviderEvidence>;

@@ -114,7 +114,7 @@ export async function applySharedPhotoTransfer(session: Session, document?: stri
         counts.newKeys !== entries.length) {throw new Error('Unexpected sample journal contents');}
   }
   await session.restore(plan, uuid());
-  return {entries, deviceEntries, token, sharedDigest: shared.sha256, otherDigest: other.sha256};
+  return {entries, deviceEntries, token, archiveDigest: received.archiveDigest as string | undefined, sharedDigest: shared.sha256, otherDigest: other.sha256};
 }
 
 export async function verifySharedPhotoTransfer(session: Session, expected: Awaited<ReturnType<typeof applySharedPhotoTransfer>>) {
@@ -187,6 +187,57 @@ async function hasSampleReceipt(db: Pick<RestoreDatabase, 'execute'>, digest: st
   return rows.length === 1;
 }
 
+// Native supplies the base digest only for a verified revision whose second entry
+// and both photo digests still match the original sample manifest.
+export type SampleRevision = {baseDigest: string; archiveDigest: string; firstContent: string; updatedAt: string};
+
+export async function previewSampleRevision(
+  db: RestoreDatabase, revision: SampleRevision,
+  original: NonNullable<ComparedRestoreResult>,
+) {
+  const {baseDigest, archiveDigest: digest, firstContent, updatedAt} = revision;
+  if (baseDigest !== original.archiveDigest || !/^[a-f0-9]{64}$/.test(digest) || digest === baseDigest || !await hasSampleReceipt(db, baseDigest)) {
+    throw new Error('Restore the matching original sample first');
+  }
+  const deviceKey = prefix + 'first';
+  const {rows} = await db.execute('SELECT v FROM restore_kv WHERE k=?', [deviceKey]);
+  const before = rows[0]?.v;
+  if (typeof before !== 'string') {throw new Error('Sample device entry is missing');}
+  const device = JSON.parse(before) as LocalJournalEntry;
+  if (device.id !== 'first' || typeof device.content !== 'string') {throw new Error('Invalid device entry');}
+  const source = original.entries[0];
+  return {
+    deviceText: device.content,
+    async keepBoth() {
+      const photos = source.metadata?.journalBlocks;
+      if (!photos || photos.length !== 2 || photos[0].kind !== 'photo' || photos[1].kind !== 'photo') {
+        throw new Error('Missing sample photos');
+      }
+      const shared = photos[0].uri.slice('objects/'.length);
+      const other = photos[1].uri.slice('objects/'.length);
+      if (!await archive.checkRestoredPhotos(shared, original.sharedDigest, other, original.otherDigest)) {
+        throw new Error('The original sample photos could not be verified');
+      }
+      await db.transaction(async tx => {
+        if (await hasSampleReceipt(tx, digest)) {return;}
+        const {rows} = await tx.execute('SELECT k,v FROM restore_kv WHERE k IN (?,?)', [deviceKey, indexKey]);
+        if (rows.find(row => row.k === deviceKey)?.v !== before) {throw new Error('Device entry changed during preview');}
+        const index = rows.find(row => row.k === indexKey)?.v;
+        const ids: unknown = typeof index === 'string' && JSON.parse(index);
+        if (!Array.isArray(ids) || !ids.every(id => typeof id === 'string') ||
+            new Set(ids).size !== ids.length || !ids.includes(device.id) || !ids.includes(source.id)) {
+          throw new Error('Invalid practice journal index');
+        }
+        const copy = {...source, id: uuid(), content: firstContent, updated_at: updatedAt};
+        if (ids.includes(copy.id)) {throw new Error('Sample copy ID collision');}
+        await tx.execute('INSERT INTO restore_kv (k,v) VALUES (?,?)', [prefix + copy.id, JSON.stringify(copy)]);
+        await tx.execute('UPDATE restore_kv SET v=? WHERE k=?', [JSON.stringify([...ids, copy.id].sort()), indexKey]);
+        await tx.execute('INSERT INTO sample_restore_receipts (digest) VALUES (?)', [digest]);
+      });
+    },
+  };
+}
+
 export async function beginSampleComparison(backupText: string, digest?: string) {
   const options = {name: 'compare-sample-' + uuid() + '.sqlite', encryptionKey: generateSpikeEncryptionKey()};
   let db = open(options);
@@ -198,7 +249,12 @@ export async function beginSampleComparison(backupText: string, digest?: string)
     const {rows} = await db.execute('PRAGMA cipher_version');
     if (!rows[0]?.cipher_version) {throw new Error('Encrypted storage unavailable');}
     const comparison = await prepareSampleComparison(db, backupText);
+    let restored: ComparedRestoreResult = null;
     return {
+      async reviewRevision(revision: SampleRevision) {
+        if (!restored) {throw new Error('Original sample does not match');}
+        return previewSampleRevision(db, revision, restored);
+      },
       deviceText: comparison.deviceEntries[0].content,
       discard,
       alreadyRestored: (candidate: string) => hasSampleReceipt(db, candidate),
@@ -213,6 +269,7 @@ export async function beginSampleComparison(backupText: string, digest?: string)
           db = open({...options, failOnCreate: true});
           closed = false;
           await verifySharedPhotoTransfer(await openRestoreSession(db), expected);
+          restored = expected;
         } catch (error) {
           discard();
           throw error;

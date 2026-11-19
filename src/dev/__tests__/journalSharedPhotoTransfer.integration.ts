@@ -3,12 +3,12 @@ import {mkdtempSync, mkdirSync, copyFileSync, readFileSync, rmSync, writeFileSyn
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import archive from '../../native/NativeJournalArchiveCrypto';
-import {applySharedPhotoTransfer, prepareSampleComparison, restoreComparedSampleOnce, verifySharedPhotoTransfer} from '../journalSharedPhotoTransferProbe';
+import {applySharedPhotoTransfer, prepareSampleComparison, previewSampleRevision, restoreComparedSampleOnce, verifySharedPhotoTransfer} from '../journalSharedPhotoTransferProbe';
 import {openRestoreSession} from '../journalRestoreDatabase';
 import {connect} from './restoreTestDatabase';
 
 jest.mock('../../native/NativeJournalArchiveCrypto', () => ({
-  importSharedPhotoTransfer: jest.fn(), verifyTransferredPhotos: jest.fn(),
+  importSharedPhotoTransfer: jest.fn(), verifyTransferredPhotos: jest.fn(), checkRestoredPhotos: jest.fn(),
 }));
 jest.mock('../../services/journalEncryptedStorageSpike', () => ({}));
 jest.mock('uuid', () => ({v4: jest.requireActual('node:crypto').randomUUID}));
@@ -94,9 +94,59 @@ it('restores both entries from one encrypted file and rejects a damaged second p
       await expect(restoreComparedSampleOnce(existing, document, comparison, archiveDigest)).resolves.toBeNull();
       expect(await snapshot()).toEqual(edited);
       expect((await existing.execute('SELECT digest FROM sample_restore_receipts')).rows).toEqual([{digest: archiveDigest}]);
+      const revision = JSON.parse(run(['--export-revision', destination, join(compareTarget, 'newer.bin')]).toString());
+      expect(revision.baseDigest).toBe(archiveDigest);
+      expect(revision.archiveDigest).not.toBe(archiveDigest);
+      expect(revision.firstContent).toBe('Call Mom on Sunday.');
+      const imageDir = join(compareTarget, 'journal-shared-transfer-images');
+      const savedPhotos = readdirSync(imageDir).sort();
+      const files = kept.entries[0].metadata!.journalBlocks!.map(block => block.kind === 'photo' && block.uri.slice(8));
+      jest.mocked(archive.checkRestoredPhotos).mockImplementation(async (...args) => {
+        run(['--check-pair', compareTarget, ...args]);
+        return true;
+      });
+      await expect(previewSampleRevision(existing, {...revision, baseDigest: '0'.repeat(64)}, kept)).rejects.toThrow('matching original');
+      const review = await previewSampleRevision(existing, revision, kept);
+      expect(review.deviceText).toBe('Call Mom after dinner.');
+      expect(await snapshot()).toEqual(edited);
+      const deviceKey = 'journal_local:todo:2026-11-19:first';
+      const device = JSON.parse((await (await openRestoreSession(existing)).read(deviceKey))!);
+      const newDevice = JSON.stringify({...device, content: 'I called Mom today.'});
+      await existing.execute('UPDATE restore_kv SET v=? WHERE k=?', [newDevice, deviceKey]);
+      const afterEdit = await snapshot();
+      await expect(review.keepBoth()).rejects.toThrow('changed during preview');
+      expect(await snapshot()).toEqual(afterEdit);
+      const fresh = await previewSampleRevision(existing, revision, kept);
+      expect(fresh.deviceText).toBe('I called Mom today.');
+      const unrelatedPhoto = join(imageDir, 'photo-' + 'a'.repeat(32));
+      writeFileSync(unrelatedPhoto, 'another practice session', {flag: 'wx'});
+      await existing.execute("CREATE TEMP TRIGGER fail_revision BEFORE INSERT ON sample_restore_receipts BEGIN SELECT RAISE(ABORT, 'simulated revision failure'); END");
+      await expect(fresh.keepBoth()).rejects.toThrow('simulated revision failure');
+      expect(await snapshot()).toEqual(afterEdit);
+      await existing.execute('DROP TRIGGER fail_revision');
+      await fresh.keepBoth();
+      await fresh.keepBoth();
+      expect(readFileSync(unrelatedPhoto, 'utf8')).toBe('another practice session');
+      rmSync(unrelatedPhoto);
+      existing.close();
+      existing = connect(join(compareTarget, 'existing.sqlite'));
+      const final = await snapshot();
+      for (const row of afterEdit.rows.filter(r => r.k !== indexKey)) {expect(final.rows).toContainEqual(row);}
+      const ids: string[] = JSON.parse(final.rows.find(r => r.k === indexKey)!.v as string);
+      expect(ids).toHaveLength(5);
+      const copy = final.rows.map(r => JSON.parse(r.v as string)).find(e => e.content === revision.firstContent);
+      expect(ids).toContain(copy.id);
+      expect(copy.updated_at).toBe(revision.updatedAt);
+      expect(copy.metadata.journalBlocks.map((b: {uri: string}) => b.uri.slice(8))).toEqual(files);
+      expect(readdirSync(imageDir).sort()).toEqual(savedPhotos);
+      expect((await existing.execute('SELECT digest FROM sample_restore_receipts')).rows).toHaveLength(2);
     } finally {
       existing.close();
     }
+    jest.mocked(archive.verifyTransferredPhotos).mockImplementation(async (...args) => {
+      run(['--verify-pair', target, ...args]);
+      return true;
+    });
     rmSync(destination);
     db.close();
     db = connect(dbFile);

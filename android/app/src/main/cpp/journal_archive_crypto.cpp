@@ -574,7 +574,7 @@ Java_app_journal_sifia_archivecrypto_JournalArchiveCryptoModule_nativeVerifyShar
 
 extern "C" JNIEXPORT jboolean JNICALL
 Java_app_journal_sifia_archivecrypto_JournalArchiveCryptoModule_nativeVerifyTransferredPhotos(
-    JNIEnv *env, jobject, jstring directory, jstring shared, jstring sharedHash, jstring other, jstring otherHash) {
+    JNIEnv *env, jobject, jstring directory, jstring shared, jstring sharedHash, jstring other, jstring otherHash, jboolean collectUnused) {
   const std::array<jstring, 5> args{directory, shared, sharedHash, other, otherHash};
   std::array<std::string, 5> values;
   for (size_t i = 0; i < args.size(); ++i) {
@@ -584,7 +584,7 @@ Java_app_journal_sifia_archivecrypto_JournalArchiveCryptoModule_nativeVerifyTran
     env->ReleaseStringUTFChars(args[i], value);
   }
   try {
-    journal_shared_transfer::verifyPair(values[0], values[1], values[2], values[3], values[4]);
+    journal_shared_transfer::verifyPair(values[0], values[1], values[2], values[3], values[4], collectUnused == JNI_TRUE);
     return JNI_TRUE;
   } catch (const std::exception &) {
     return JNI_FALSE;

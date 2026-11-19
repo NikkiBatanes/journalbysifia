@@ -156,9 +156,28 @@ int main(int argc, char **argv) {
                                                   : journal_shared_transfer::importArchive(argv[2])) << '\n';
         return 0;
       }
-      if (command == "--verify-pair") {
+      if (command == "--write-mobile-revision-pair") {
+        fixture::require(argc == 3);
+        const std::filesystem::path dir(argv[2]);
+        fixture::require(std::filesystem::create_directory(dir));
+        const auto code = fixture::freshToken();
+        const auto token = journal_shared_transfer::exportToFile((dir / "Original.bin").string(), code.c_str());
+        journal_shared_transfer::exportToFile((dir / "Revised.bin").string(), code.c_str(), token,
+                                             journal_shared_transfer::SampleVersion::revised);
+        std::cout << code << '\n';
+        return 0;
+      }
+      if (command == "--export-revision") {
+        fixture::require(argc == 4);
+        const auto base = journal_shared_transfer::inspect(journal_shared_transfer::readSample(argv[2]), fixture::password);
+        fixture::require(base.firstContent == "Call Mom." && !std::filesystem::exists(std::filesystem::symlink_status(argv[3])));
+        journal_shared_transfer::exportToFile(argv[3], fixture::password, base.token, journal_shared_transfer::SampleVersion::revised);
+        std::cout << journal_shared_transfer::samplePreviews().prepare(argv[3], fixture::password) << '\n';
+        return 0;
+      }
+      if (command == "--verify-pair" || command == "--check-pair") {
         fixture::require(argc == 7);
-        journal_shared_transfer::verifyPair(argv[2], argv[3], argv[4], argv[5], argv[6]);
+        journal_shared_transfer::verifyPair(argv[2], argv[3], argv[4], argv[5], argv[6], command == "--verify-pair");
         return 0;
       }
       if (command == "--collect-photo") {

@@ -209,15 +209,21 @@ class JournalArchiveCryptoModule(reactContext: ReactApplicationContext) :
   override fun importSharedPhotoTransfer(promise: Promise) = syntheticTransfer(false, promise, sharedPhotos = true)
 
   private external fun nativeVerifyTransferredPhotos(
-    directory: String, shared: String, sharedDigest: String, other: String, otherDigest: String
+    directory: String, shared: String, sharedDigest: String, other: String, otherDigest: String, collectUnused: Boolean
   ): Boolean
 
-  override fun verifyTransferredPhotos(shared: String, sharedDigest: String, other: String, otherDigest: String, promise: Promise) {
+  override fun verifyTransferredPhotos(shared: String, sharedDigest: String, other: String, otherDigest: String, promise: Promise) =
+    checkPhotoPair(shared, sharedDigest, other, otherDigest, true, promise)
+
+  override fun checkRestoredPhotos(shared: String, sharedDigest: String, other: String, otherDigest: String, promise: Promise) =
+    checkPhotoPair(shared, sharedDigest, other, otherDigest, false, promise)
+
+  private fun checkPhotoPair(shared: String, sharedDigest: String, other: String, otherDigest: String, collectUnused: Boolean, promise: Promise) {
     cryptoExecutor.execute {
       try {
         check(app.journal.sifia.BuildConfig.DEBUG) { "Development build required" }
         promise.resolve(nativeVerifyTransferredPhotos(reactApplicationContext.cacheDir.absolutePath,
-          shared, sharedDigest, other, otherDigest))
+          shared, sharedDigest, other, otherDigest, collectUnused))
       } catch (error: Exception) {
         promise.reject("JOURNAL_TRANSFER_TEST_FAILED", error)
       }

@@ -683,11 +683,21 @@ RCT_EXPORT_MODULE(JournalArchiveCrypto)
 
 - (void)verifyTransferredPhotos:(NSString *)shared sharedDigest:(NSString *)sharedDigest other:(NSString *)other
                     otherDigest:(NSString *)otherDigest resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject {
+  [self checkPhotoPair:shared sharedDigest:sharedDigest other:other otherDigest:otherDigest collectUnused:YES resolve:resolve reject:reject];
+}
+
+- (void)checkRestoredPhotos:(NSString *)shared sharedDigest:(NSString *)sharedDigest other:(NSString *)other
+                    otherDigest:(NSString *)otherDigest resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject {
+  [self checkPhotoPair:shared sharedDigest:sharedDigest other:other otherDigest:otherDigest collectUnused:NO resolve:resolve reject:reject];
+}
+
+- (void)checkPhotoPair:(NSString *)shared sharedDigest:(NSString *)sharedDigest other:(NSString *)other
+                    otherDigest:(NSString *)otherDigest collectUnused:(BOOL)collectUnused resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject {
 #if DEBUG
   dispatch_async(JournalArchiveCryptoQueue(), ^{
     try {
       journal_shared_transfer::verifyPair([NSTemporaryDirectory() fileSystemRepresentation],
-        shared.UTF8String, sharedDigest.UTF8String, other.UTF8String, otherDigest.UTF8String);
+        shared.UTF8String, sharedDigest.UTF8String, other.UTF8String, otherDigest.UTF8String, collectUnused);
       resolve(@YES);
     } catch (const std::exception &) {
       resolve(@NO);
