@@ -13,8 +13,8 @@ const sharedId = 'cf890a91-410a-4526-9d47-8aa7085ec351';
 const otherId = '91470c9f-7d1d-49aa-9644-8961d590b5ab';
 const names = /^photo-[a-f0-9]{32}$/;
 
-export async function applySharedPhotoTransfer(session: Session) {
-  const received = JSON.parse(await archive.importSharedPhotoTransfer());
+export async function applySharedPhotoTransfer(session: Session, document?: string) {
+  const received = JSON.parse(document ?? await archive.importSharedPhotoTransfer());
   const {manifest, sharedFile, otherFile, token} = received;
   if (!/^[a-f0-9]{32}$/.test(token) || !names.test(sharedFile) || !names.test(otherFile) || sharedFile === otherFile) {
     throw new Error('Unexpected transferred photo identifiers');
@@ -76,14 +76,14 @@ export async function verifySharedPhotoTransfer(session: Session, expected: Awai
   return expected.token;
 }
 
-export async function restoreSharedPhotoTransfer() {
+export async function restoreSharedPhotoTransfer(document?: string) {
   const options = {name: 'shared-transfer-' + uuid() + '.sqlite', encryptionKey: generateSpikeEncryptionKey()};
   const db = open(options);
   let expected: Awaited<ReturnType<typeof applySharedPhotoTransfer>>;
   try {
     const {rows} = await db.execute('PRAGMA cipher_version');
     if (!rows[0]?.cipher_version) {throw new Error('Encrypted storage unavailable');}
-    expected = await applySharedPhotoTransfer(await openRestoreSession(db));
+    expected = await applySharedPhotoTransfer(await openRestoreSession(db), document);
   } catch (error) {
     db.delete();
     throw error;

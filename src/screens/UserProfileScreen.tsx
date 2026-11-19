@@ -91,6 +91,8 @@ interface Props {
   navigation: any;
 }
 
+const SampleLocalBackup = __DEV__ ? require('../dev/SampleLocalBackup').default : null;
+
 const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
   const noteBlockPreferenceSnapshot = useNoteBlockPreferences();
   const { user, signOut, updatePreferences, preferences: savedPreferences, profile: savedProfile, updateProfile } = useAuth();
@@ -1515,6 +1517,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           </View>
           <Ionicons name="chevron-forward" size={20} color={theme.colors.chevronColor} />
         </TouchableOpacity>
+        {SampleLocalBackup && <SampleLocalBackup />}
       </View>
     </View>
   );

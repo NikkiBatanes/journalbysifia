@@ -35,6 +35,7 @@ function inspectContract(packageJson, spec) {
     'verifySharedFixturePhotos(shared: string, other: string): Promise<boolean>',
     'stageSyntheticPhoto(replacement: boolean): Promise<string>',
     'verifySyntheticPhoto(name: string, replacement: boolean): Promise<boolean>',
+    'chooseSampleBackupFile(exporting: boolean, recoveryCode: string): Promise<string>',
     'exportSharedPhotoTransfer(): Promise<string>',
     'importSharedPhotoTransfer(): Promise<string>',
     'verifyTransferredPhotos(shared: string, sharedDigest: string, other: string, otherDigest: string): Promise<boolean>',

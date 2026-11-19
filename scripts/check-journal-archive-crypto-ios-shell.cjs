@@ -195,8 +195,8 @@ function inspectIosProvider(sources) {
     /sourcePath/i,
     /destinationPath/i,
     /customerData/i,
-    // The photo fixture resolves one fixed app-private storage root.
-    /NSFileManager(?!\.defaultManager URLForDirectory:NSApplicationSupportDirectory inDomain:NSUserDomainMask appropriateForURL:nil create:(?:YES|NO) error:nil\])/,
+    // Permit only the fixture storage root and the picker’s temporary scratch directory.
+    /NSFileManager(?!\.defaultManager URLForDirectory:NSApplicationSupportDirectory inDomain:NSUserDomainMask appropriateForURL:nil create:(?:YES|NO) error:nil\]| defaultManager\] (?:removeItemAtURL:scratch error:nil\]|createDirectoryAtURL:scratch withIntermediateDirectories:NO\s+attributes:nil error:nil\]))/,
     /putBoolean\("mobileProviderApproved",\s*true\)/,
     /@"mobileProviderApproved"\s*:\s*@YES/,
   ];

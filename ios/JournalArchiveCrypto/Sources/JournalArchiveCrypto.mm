@@ -7,6 +7,9 @@
 #include "JournalArchiveMediaPackaging.h"
 
 #import <React/RCTBridgeModule.h>
+#import <React/RCTUtils.h>
+#import <UniformTypeIdentifiers/UniformTypeIdentifiers.h>
+#import <UIKit/UIKit.h>
 #import <sodium.h>
 
 #include <TargetConditionals.h>
@@ -409,6 +412,12 @@ std::array<bool, kPortableAssertionCount> RunPortableVectorAssertions() {
 
 }  // namespace
 
+#if DEBUG
+@interface JournalArchiveCrypto () <UIDocumentPickerDelegate>
+@property(nonatomic, copy) void (^samplePickResult)(NSURL *url, BOOL cancelled);
+@end
+#endif
+
 @implementation JournalArchiveCrypto
 
 RCT_EXPORT_MODULE(JournalArchiveCrypto)
@@ -416,6 +425,91 @@ RCT_EXPORT_MODULE(JournalArchiveCrypto)
 + (BOOL)requiresMainQueueSetup {
   return NO;
 }
+
+- (void)chooseSampleBackupFile:(BOOL)exporting recoveryCode:(NSString *)recoveryCode
+                       resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject {
+#if DEBUG
+  dispatch_async(dispatch_get_main_queue(), ^{
+    if (self.samplePickResult || recoveryCode.length != 32) {
+      reject(@"SAMPLE_DOCUMENT_UNAVAILABLE", @"A valid code and an available picker are required.", nil);
+      return;
+    }
+    NSURL *root = [NSURL fileURLWithPath:NSTemporaryDirectory() isDirectory:YES];
+    NSURL *scratch = [root URLByAppendingPathComponent:[NSUUID UUID].UUIDString isDirectory:YES];
+    NSURL *sample = [scratch URLByAppendingPathComponent:@"Journal Sample Backup.bin"];
+    self.samplePickResult = ^(NSURL *selected, BOOL cancelled) {
+      dispatch_async(JournalArchiveCryptoQueue(), ^{
+        NSString *result = nil;
+        if (exporting && selected) {
+          result = @"saved";
+        } else if (selected.isFileURL && !cancelled) {
+          BOOL scoped = [selected startAccessingSecurityScopedResource];
+          NSFileCoordinator *coordinator = [[NSFileCoordinator alloc] initWithFilePresenter:nil];
+          __block NSString *document = nil;
+          NSError *error = nil;
+          [coordinator coordinateReadingItemAtURL:selected options:0 error:&error byAccessor:^(NSURL *url) {
+            try {
+              auto value = journal_shared_transfer::sampleDocument(root.fileSystemRepresentation,
+                url.fileSystemRepresentation, recoveryCode.UTF8String, false);
+              document = [NSString stringWithUTF8String:value.c_str()];
+            } catch (const std::exception &) {}
+          }];
+          if (scoped) [selected stopAccessingSecurityScopedResource];
+          if (!error) result = document;
+        }
+        if (exporting) [[NSFileManager defaultManager] removeItemAtURL:scratch error:nil];
+        if (cancelled) resolve(@"");
+        else if (result) resolve(result);
+        else reject(@"SAMPLE_DOCUMENT_FAILED", @"The sample backup could not be saved or opened.", nil);
+      });
+    };
+    dispatch_async(JournalArchiveCryptoQueue(), ^{
+      BOOL ready = YES;
+      if (exporting) {
+        ready = [[NSFileManager defaultManager] createDirectoryAtURL:scratch withIntermediateDirectories:NO
+                                                          attributes:nil error:nil];
+        if (ready) {
+          try {
+            journal_shared_transfer::sampleDocument(root.fileSystemRepresentation, sample.fileSystemRepresentation,
+              recoveryCode.UTF8String, true);
+          } catch (const std::exception &) { ready = NO; }
+        }
+      }
+      dispatch_async(dispatch_get_main_queue(), ^{
+        UIViewController *presenter = RCTPresentedViewController();
+        if (!ready || !presenter.view.window) {
+          [self finishSamplePick:nil cancelled:NO];
+          return;
+        }
+        UIDocumentPickerViewController *picker = exporting
+          ? [[UIDocumentPickerViewController alloc] initForExportingURLs:@[sample] asCopy:YES]
+          : [[UIDocumentPickerViewController alloc] initForOpeningContentTypes:@[UTTypeData] asCopy:NO];
+        picker.delegate = self;
+        picker.modalPresentationStyle = UIModalPresentationFullScreen;
+        [presenter presentViewController:picker animated:YES completion:nil];
+      });
+    });
+  });
+#else
+  reject(@"SAMPLE_DOCUMENT_DISABLED", @"Development build required", nil);
+#endif
+}
+
+#if DEBUG
+- (void)finishSamplePick:(NSURL *)url cancelled:(BOOL)cancelled {
+  void (^completion)(NSURL *, BOOL) = self.samplePickResult;
+  self.samplePickResult = nil;
+  if (completion) completion(url, cancelled);
+}
+
+- (void)documentPicker:(UIDocumentPickerViewController *)controller didPickDocumentsAtURLs:(NSArray<NSURL *> *)urls {
+  [self finishSamplePick:urls.firstObject cancelled:NO];
+}
+
+- (void)documentPickerWasCancelled:(UIDocumentPickerViewController *)controller {
+  [self finishSamplePick:nil cancelled:YES];
+}
+#endif
 
 - (void)interruptSyntheticPhoto:(BOOL)afterPublication resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject {
 #if DEBUG

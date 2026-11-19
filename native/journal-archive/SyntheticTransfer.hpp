@@ -85,11 +85,11 @@ inline std::string manifest(const std::string &token, bool hasPhoto = false) {
     assets, 1, hasPhoto ? 1 : 0, hasPhoto ? sizeof(photo) : 0);
 }
 
-inline Bytes encrypt(const std::string &plain) {
+inline Bytes encrypt(const std::string &plain, const char *code = password) {
   Bytes data(plain.size() + overhead);
   std::copy(magic.begin(), magic.end(), data.begin());
   randombytes_buf(data.data() + saltAt, crypto_pwhash_SALTBYTES);
-  Crypto c(data.data() + saltAt, password);
+  Crypto c(data.data() + saltAt, code);
   require(crypto_secretstream_xchacha20poly1305_init_push(&c.stream, data.data() + headerAt, c.key.data()) == 0);
   require(crypto_secretstream_xchacha20poly1305_push(&c.stream, data.data() + cipherAt, nullptr,
     reinterpret_cast<const unsigned char *>(plain.data()), plain.size(), data.data(), headerAt,

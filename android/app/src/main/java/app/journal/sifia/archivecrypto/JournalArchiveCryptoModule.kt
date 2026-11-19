@@ -1,6 +1,12 @@
 package app.journal.sifia.archivecrypto
 
+import android.app.Activity
+import android.content.Intent
 import android.os.Build
+import com.facebook.react.bridge.BaseActivityEventListener
+import com.facebook.react.bridge.UiThreadUtil
+import java.io.File
+import java.util.concurrent.atomic.AtomicReference
 import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.ReactApplicationContext
@@ -11,9 +17,7 @@ import java.util.concurrent.Executors
 /**
  * Fail-closed shell for the archive-crypto TurboModule.
  *
- * This module intentionally accepts no journal bytes, paths, passwords, or
- * keys. The linked provider is reachable only through fixed synthetic evidence
- * routines until the mobile provider gate has passed on physical devices.
+ * The development document picker uses a recovery code with generated entries only.
  */
 @ReactModule(name = JournalArchiveCryptoModule.NAME)
 class JournalArchiveCryptoModule(reactContext: ReactApplicationContext) :
@@ -32,6 +36,88 @@ class JournalArchiveCryptoModule(reactContext: ReactApplicationContext) :
   private external fun nativeRunFileTransportSelfTest(cacheDirectory: String): BooleanArray
 
   private external fun nativeRunMediaPackagingSelfTest(): BooleanArray
+
+  private data class Pick(val exporting: Boolean, val code: String, val promise: Promise)
+  private val pendingPick = AtomicReference<Pick?>(null)
+  private external fun nativeSampleDocument(directory: String, document: String, recoveryCode: String, exporting: Boolean): String?
+
+  private val fileResults = object : BaseActivityEventListener() {
+    override fun onActivityResult(activity: Activity, requestCode: Int, resultCode: Int, data: Intent?) {
+      if (requestCode != SAMPLE_DOCUMENT_REQUEST) return
+      val pick = pendingPick.getAndSet(null) ?: return
+      if (resultCode == Activity.RESULT_CANCELED) {
+        pick.promise.resolve("")
+        return
+      }
+      val uri = data?.data
+      if (resultCode != Activity.RESULT_OK || uri == null || uri.scheme != "content") {
+        pick.promise.reject("SAMPLE_DOCUMENT_FAILED", "The file picker could not open the document.")
+        return
+      }
+      cryptoExecutor.execute {
+        try {
+          val cache = reactApplicationContext.cacheDir
+          val temp = File.createTempFile("journal-sample-", ".bin", cache)
+          try {
+            val resolver = reactApplicationContext.contentResolver
+            if (!pick.exporting) {
+              requireNotNull(resolver.openInputStream(uri)).use { input ->
+                temp.outputStream().use { output ->
+                  val buffer = ByteArray(65536)
+                  var total = 0L
+                  while (true) {
+                    val count = input.read(buffer)
+                    if (count < 0) break
+                    total += count
+                    check(count > 0 && total <= 7 * 1024 * 1024)
+                    output.write(buffer, 0, count)
+                  }
+                }
+              }
+            }
+            val result = requireNotNull(nativeSampleDocument(cache.absolutePath, temp.absolutePath, pick.code, pick.exporting))
+            if (pick.exporting) {
+              requireNotNull(resolver.openOutputStream(uri, "wt")).use { output ->
+                temp.inputStream().use { it.copyTo(output) }
+              }
+            }
+            pick.promise.resolve(result)
+          } finally {
+            temp.delete()
+          }
+        } catch (_: Exception) {
+          pick.promise.reject("SAMPLE_DOCUMENT_FAILED", "The sample backup could not be saved or opened.")
+        }
+      }
+    }
+  }
+
+  init { reactContext.addActivityEventListener(fileResults) }
+
+  override fun chooseSampleBackupFile(exporting: Boolean, recoveryCode: String, promise: Promise) {
+    if (!app.journal.sifia.BuildConfig.DEBUG || !recoveryCode.matches(Regex("[0-9a-f]{32}"))) {
+      promise.reject("SAMPLE_DOCUMENT_DISABLED", "A development build and valid recovery code are required.")
+      return
+    }
+    val pick = Pick(exporting, recoveryCode, promise)
+    UiThreadUtil.runOnUiThread {
+      if (!pendingPick.compareAndSet(null, pick)) {
+        promise.reject("SAMPLE_DOCUMENT_BUSY", "A file picker is already open.")
+        return@runOnUiThread
+      }
+      try {
+        val intent = Intent(if (exporting) Intent.ACTION_CREATE_DOCUMENT else Intent.ACTION_OPEN_DOCUMENT).apply {
+          addCategory(Intent.CATEGORY_OPENABLE)
+          type = if (exporting) "application/octet-stream" else "*/*"
+          if (exporting) putExtra(Intent.EXTRA_TITLE, "Journal Sample Backup.bin")
+        }
+        requireNotNull(reactApplicationContext.currentActivity).startActivityForResult(intent, SAMPLE_DOCUMENT_REQUEST)
+      } catch (_: Exception) {
+        pendingPick.compareAndSet(pick, null)
+        promise.reject("SAMPLE_DOCUMENT_FAILED", "Could not present the file picker.")
+      }
+    }
+  }
 
   private external fun nativeSyntheticTransfer(directory: String, exporting: Boolean, sharedPhotos: Boolean): String?
 
@@ -257,11 +343,14 @@ class JournalArchiveCryptoModule(reactContext: ReactApplicationContext) :
   }
 
   override fun invalidate() {
+    reactApplicationContext.removeActivityEventListener(fileResults)
+    pendingPick.getAndSet(null)?.promise?.resolve("")
     cryptoExecutor.shutdownNow()
     super.invalidate()
   }
 
   companion object {
+    private const val SAMPLE_DOCUMENT_REQUEST = 32079
     const val NAME = "JournalArchiveCrypto"
     private const val NATIVE_ASSERTION_COUNT = 8
     private const val NATIVE_PORTABLE_ASSERTION_COUNT = 8

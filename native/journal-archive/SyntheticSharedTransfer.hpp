@@ -41,7 +41,7 @@ inline std::string manifest(const std::string &token, const Images &images) {
     asset(sharedId, images.shared) + "," + asset(otherId, images.other), 2, 2, images.shared.size() + images.other.size());
 }
 
-inline std::string exportArchive(const std::string &directory) {
+inline std::string exportToFile(const std::string &path, const char *code) {
   const auto token = journal_fixture::freshToken();
   const Images images{photos::png(false), photos::png(true)};
   const auto document = manifest(token, images);
@@ -49,8 +49,12 @@ inline std::string exportArchive(const std::string &directory) {
   photos::append32(payload, document.size());
   photos::append32(payload, images.shared.size());
   payload += document + images.shared + images.other;
-  journal_fixture::writeArchive(directory + fileName, journal_fixture::encrypt(payload));
+  journal_fixture::writeArchive(path, journal_fixture::encrypt(payload, code));
   return token;
+}
+
+inline std::string exportArchive(const std::string &directory) {
+  return exportToFile(directory + fileName, journal_fixture::password);
 }
 
 inline size_t sizeAt(const std::string &data, size_t offset) {
@@ -67,12 +71,12 @@ inline std::string imageDirectory(const std::string &directory) {
   return dir;
 }
 
-inline std::string importArchive(const std::string &directory) {
+inline std::string importFromFile(const std::string &directory, const std::string &path, const char *code) {
   require(sodium_init() >= 0);
   constexpr size_t header = 44;
-  const auto sealed = journal_fixture::readArchive(directory + fileName,
+  const auto sealed = journal_fixture::readArchive(path,
     journal_fixture::overhead + header + maxManifest + 2 * maxImage);
-  const auto data = journal_fixture::openAuthenticatedFrame(sealed, journal_fixture::password);
+  const auto data = journal_fixture::openAuthenticatedFrame(sealed, code);
   require(data.size() >= header && data.compare(0, 4, "JSH1") == 0);
   const auto token = data.substr(4, 32);
   require(token.find_first_not_of("0123456789abcdef") == std::string::npos);
@@ -93,6 +97,18 @@ inline std::string importArchive(const std::string &directory) {
     + R"(,"containerByteLength":)" + std::to_string(sealed.size())
     + R"(,"sharedBytes":)" + std::to_string(images.shared.size()) + R"(,"otherBytes":)" + std::to_string(images.other.size())
     + R"(,"sharedFile":")" + shared + R"(","otherFile":")" + other + R"("})";
+}
+
+inline std::string importArchive(const std::string &directory) {
+  return importFromFile(directory, directory + fileName, journal_fixture::password);
+}
+
+// The picker supplies the file path. This operation supports only the two generated entries.
+inline std::string sampleDocument(const std::string &directory, const std::string &path,
+                                  const char *code, bool exporting) {
+  const std::string_view key(code);
+  require(key.size() == 32 && key.find_first_not_of("0123456789abcdef") == std::string_view::npos);
+  return exporting ? exportToFile(path, code) : importFromFile(directory, path, code);
 }
 
 inline void verifyFile(const std::string &directory, const std::string &name, const std::string &expectedDigest) {

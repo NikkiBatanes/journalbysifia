@@ -449,6 +449,28 @@ Java_app_journal_sifia_archivecrypto_JournalArchiveCryptoModule_nativeRunPortabl
 }
 
 extern "C" JNIEXPORT jstring JNICALL
+Java_app_journal_sifia_archivecrypto_JournalArchiveCryptoModule_nativeSampleDocument(
+    JNIEnv *env, jobject, jstring directory, jstring document, jstring recoveryCode, jboolean exporting) {
+  const char *dir = env->GetStringUTFChars(directory, nullptr);
+  if (!dir) return nullptr;
+  const char *path = env->GetStringUTFChars(document, nullptr);
+  const char *code = path ? env->GetStringUTFChars(recoveryCode, nullptr) : nullptr;
+  jstring result = nullptr;
+  if (code) {
+    try {
+      auto value = journal_shared_transfer::sampleDocument(dir, path, code, exporting);
+      result = env->NewStringUTF(value.c_str());
+    } catch (const std::exception &) {
+      // Kotlin reports a generic failure without exposing the selected file or code.
+    }
+    env->ReleaseStringUTFChars(recoveryCode, code);
+  }
+  if (path) env->ReleaseStringUTFChars(document, path);
+  env->ReleaseStringUTFChars(directory, dir);
+  return result;
+}
+
+extern "C" JNIEXPORT jstring JNICALL
 Java_app_journal_sifia_archivecrypto_JournalArchiveCryptoModule_nativeSyntheticTransfer(
     JNIEnv *env, jobject, jstring directory, jboolean exporting, jboolean sharedPhotos) {
   const char *path = env->GetStringUTFChars(directory, nullptr);

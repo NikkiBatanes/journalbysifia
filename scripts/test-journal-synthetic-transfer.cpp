@@ -59,6 +59,21 @@ void checkTransfer(const std::filesystem::path &root) {
   expectRejection([&] { fixture::importFixture(destination.string()); });
 }
 
+void checkSampleDocument(const std::filesystem::path &root) {
+  auto target = root / "picker-test";
+  std::filesystem::create_directory(target);
+  auto file = (root / "Sample Backup.bin").string();
+  const auto code = fixture::freshToken();
+  const auto wrong = fixture::freshToken();
+  const auto token = journal_shared_transfer::sampleDocument(target.string(), file, code.c_str(), true);
+  expectRejection([&] { journal_shared_transfer::sampleDocument(target.string(), file, wrong.c_str(), false); });
+  expectRejection([&] { journal_shared_transfer::importFromFile(target.string(), file, fixture::password); });
+  expectRejection([&] { journal_shared_transfer::sampleDocument(target.string(), file, "1234", false); });
+  fixture::require(std::filesystem::is_empty(target));
+  const auto opened = journal_shared_transfer::sampleDocument(target.string(), file, code.c_str(), false);
+  fixture::require(opened.find(token) != std::string::npos);
+}
+
 void checkSharedPhotoCleanup(const std::filesystem::path &root) {
   namespace photos = journal_photo_fixture;
   const auto base = photos::sharedBase(root.string());
@@ -172,6 +187,7 @@ int main(int argc, char **argv) {
   try {
     checkTransfer(temp);
     checkSharedPhotoCleanup(temp);
+    checkSampleDocument(temp);
     std::filesystem::remove_all(temp);
     std::cout << "Portable fixture, invalid archive and shared photo cleanup checks passed\n";
   } catch (const std::exception &e) {
