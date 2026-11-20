@@ -1,6 +1,7 @@
 import React from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {fireEvent, render, screen, waitFor} from '@testing-library/react-native';
+import {reopenPracticePhotoReflection} from '../readPracticePhotoReflection';
 import {JournalBackupEntryReview} from '../JournalBackupEntryReview';
 import SampleLocalBackup from '../SampleLocalBackup';
 import {inspectLocalSnapshotResult, prepareJournalPhotoManifest} from '../prepareJournalPhotoManifest';
@@ -9,6 +10,7 @@ import {planInventorySample} from '../journalStagedBackup';
 import archive from '../../native/NativeJournalArchiveCrypto';
 import {beginSampleComparison, restoreSharedPhotoTransfer} from '../journalSharedPhotoTransferProbe';
 
+jest.mock('../readPracticePhotoReflection', () => ({reopenPracticePhotoReflection: jest.fn()}));
 jest.mock('uuid', () => ({v4: require('node:crypto').randomUUID}));
 jest.mock('../../native/NativeJournalArchiveCrypto', () => ({__esModule: true, default: {saveLocalSnapshot: jest.fn(), openLocalSnapshot: jest.fn(), verifyLocalSnapshot: jest.fn(), describeLocalPickerPhoto: jest.fn(), inspectLocalPickerPhoto: jest.fn(), saveInventorySample: jest.fn(), chooseSampleBackupFile: jest.fn(), finishSampleRestorePreview: jest.fn()}}));
 jest.mock('../journalSharedPhotoTransferProbe', () => ({restoreSharedPhotoTransfer: jest.fn(), beginSampleComparison: jest.fn()}));
@@ -549,4 +551,21 @@ it('adds only confirmed missing local entries, keeps edits, and rejects a stale 
   fireEvent.press(await screen.findByText('Compare with this device'));
   await screen.findByText('Matching · 2');
   expect(screen.queryByText(/Add \d+ missing/)).toBeNull();
+});
+
+it('opens both restored images with the journal photo viewer and clears them when closed', async () => {
+  jest.mocked(reopenPracticePhotoReflection).mockResolvedValue({
+    content: 'Recovered reflection',
+    photos: [{uri: 'data:image/png;base64,YQ==', caption: 'First caption'},
+      {uri: 'data:image/png;base64,Yg==', caption: ''}],
+  });
+  openPracticeTools();
+  fireEvent.press(screen.getByText('Open restored photo reflection'));
+  await screen.findByText('Recovered reflection');
+  expect(screen.getByText('First caption')).toBeOnTheScreen();
+  expect(screen.getByRole('button', {name: 'Expand restored photo 1'})).toBeOnTheScreen();
+  fireEvent.press(screen.getByRole('button', {name: 'Expand restored photo 2'}));
+  expect(screen.getByRole('button', {name: 'Collapse restored photo 2'})).toBeOnTheScreen();
+  fireEvent.press(screen.getByText('Development backup tools'));
+  expect(screen.queryByText('Recovered reflection')).toBeNull();
 });

@@ -8,6 +8,7 @@ import {createJournalBackup} from '../../services/journalBackupContract';
 import {openRestoreSession} from '../journalRestoreDatabase';
 import {planStagedLocalSnapshot, prepareJournalPhotoExport} from '../prepareJournalPhotoManifest';
 import {hasDeviceRestoreSample, readDeviceSample, restoreDeviceSample} from '../journalDeviceSnapshotRestore';
+import {readPracticePhotoReflection} from '../readPracticePhotoReflection';
 import {restoreStreamedSnapshot} from '../journalStreamingSnapshotRestore';
 import {connect} from './restoreTestDatabase';
 
@@ -238,12 +239,23 @@ it('adds a missing reflection and both photos atomically to an existing practice
       chunks.forEach(chunk => hash.update(Buffer.from(String(chunk.encoded), 'base64')));
       expect(hash.digest('hex')).toBe(assets[i].sha256);
     }
+    const reopened = connect(file);
+    try {
+      const view = await readPracticePhotoReflection(reopened);
+      expect(view.content).toBe(record.content);
+      expect(view.photos.map(photo => {
+        expect(photo.uri).toMatch(/^data:image\/png;base64,/);
+        return createHash('sha256').update(Buffer.from(photo.uri.split(',')[1], 'base64')).digest('hex');
+      })).toEqual(assets.map((asset: {sha256: string}) => asset.sha256));
+    } finally {reopened.close();}
     record.content = 'My newer edit';
     await db.execute('UPDATE restore_kv SET v=? WHERE k=?', [JSON.stringify(record), restoredKey]);
     await expect(apply()).resolves.toMatchObject({addedEntries: 0, photos: 0});
     expect((await db.execute('SELECT v FROM restore_kv WHERE k=?', [restoredKey])).rows[0].v).toBe(JSON.stringify(record));
     expect(JSON.parse(String((await db.execute('SELECT v FROM restore_kv WHERE k=?', [index])).rows[0].v))).toEqual(['device', id]);
     expect((await db.execute('SELECT v FROM restore_kv WHERE k=?', [originalKey])).rows[0].v).toBe(JSON.stringify(original));
+    await db.execute('DELETE FROM restore_photo_chunks WHERE file=? AND part=1', [refs[1].uri.slice(8)]);
+    await expect(readPracticePhotoReflection(db)).rejects.toThrow();
   } finally {
     db.close();
     rmSync(root, {recursive: true, force: true});

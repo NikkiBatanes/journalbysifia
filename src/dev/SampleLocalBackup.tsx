@@ -9,6 +9,8 @@ import {checkDeviceSnapshot, hasDeviceRestoreSample} from './journalDeviceSnapsh
 import {inspectJournalPhotoReferences} from './inspectJournalPhotoReferences';
 import {planInventorySample} from './journalStagedBackup';
 import type {SampleRevision} from './journalSharedPhotoTransferProbe';
+import ExpandableJournalPhoto from '../components/journal/shared/ExpandableJournalPhoto';
+import {reopenPracticePhotoReflection} from './readPracticePhotoReflection';
 import {JournalBackupEntryReview} from './JournalBackupEntryReview';
 import {useTheme} from '../theme/ThemeContext';
 
@@ -78,6 +80,7 @@ export default function SampleLocalBackup() {
   const [entryReview, setEntryReview] = useState<Awaited<ReturnType<typeof compareLocalSnapshotResult>> | null>(null);
   const [confirmAdditions, setConfirmAdditions] = useState(false);
   const [restoredPhoto, setRestoredPhoto] = useState<string | null>(null);
+  const [practiceReflection, setPracticeReflection] = useState<Awaited<ReturnType<typeof reopenPracticePhotoReflection>> | null>(null);
   const [photoLoaded, setPhotoLoaded] = useState(false);
   const selectedDocument = useRef<string | null>(null);
   const sampleDocument = useRef<string | null>(null);
@@ -125,6 +128,7 @@ export default function SampleLocalBackup() {
     pendingId.current = null;
     setPreview(null);
     setRestoredPhoto(null);
+    setPracticeReflection(null);
     setPhotoLoaded(false);
     sampleDocument.current = null;
     setLocalPreview(null);
@@ -137,6 +141,7 @@ export default function SampleLocalBackup() {
   function start(operation: BackupAction) {
     if (running.current) {return;}
     setMessage('');
+    setPracticeReflection(null);
     try {
       setCode(operation === 'restore' || operation === 'openLocal' ? '' : newRecoveryCode());
       setEntryCount('300');
@@ -408,6 +413,22 @@ export default function SampleLocalBackup() {
       if (mounted.current) {reset(); setBusy(false);}
     }
   }
+  async function showReopenedReflection() {
+    if (running.current) {return;}
+    running.current = true;
+    reset();
+    setMessage('');
+    setBusy(true);
+    try {
+      const reflection = await reopenPracticePhotoReflection();
+      if (mounted.current) {setPracticeReflection(reflection);}
+    } catch {
+      if (mounted.current) {setMessage('Open the two-photo practice backup and add its missing entries to the practice journal first.');}
+    } finally {
+      running.current = false;
+      if (mounted.current) {setBusy(false);}
+    }
+  }
   async function checkIsolatedJournal(document?: string) {
     if (running.current) {return;}
     running.current = true;
@@ -557,12 +578,22 @@ export default function SampleLocalBackup() {
       {!!message && <Text accessibilityLiveRegion="polite" style={text}>{message}</Text>}
       {!mode && !localPreview && <>
         <Pressable accessibilityRole="button" accessibilityState={{expanded: showPractice, disabled: busy}}
-          disabled={busy} onPress={() => setShowPractice(value => !value)} style={styles.button}>
+          disabled={busy} onPress={() => {setPracticeReflection(null); setShowPractice(value => !value);}} style={styles.button}>
           <Text style={text}>Development backup tools</Text>
         </Pressable>
         {showPractice && <>
           {button('Test interrupted restore with a practice edit', () => testLocalRestoreInterruption(), busy)}
           {button('Test large journal recovery', () => testLocalRestoreInterruption(true), busy)}
+          {button('Open restored photo reflection', showReopenedReflection, busy)}
+          {practiceReflection && <>
+            <Text accessibilityRole="header" style={text}>Restored practice reflection</Text>
+            <Text style={text}>{practiceReflection.content}</Text>
+            {practiceReflection.photos.map((photo, index) => <View key={index}>
+              <ExpandableJournalPhoto uri={photo.uri} imageStyle={styles.practicePhoto}
+                accessibilityLabel={`Restored photo ${index + 1}`} />
+              {!!photo.caption && <Text style={text}>{photo.caption}</Text>}
+            </View>)}
+          </>}
           {button('Reopen restored sample', () => checkIsolatedJournal(), busy)}
           {button('Save sample backup', () => start('export'), busy)}
           {button('Save a custom sample', () => start('inventory'), busy)}
@@ -577,6 +608,7 @@ export default function SampleLocalBackup() {
 }
 
 const styles = StyleSheet.create({
+  practicePhoto: {width: '100%', height: 160, borderRadius: 16},
   section: {padding: 16, gap: 8},
   title: {fontSize: 17, fontWeight: '600'},
   button: {minHeight: 44, justifyContent: 'center'},

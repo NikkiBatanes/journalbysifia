@@ -1,4 +1,5 @@
 import {v4 as uuid} from 'uuid';
+import {practiceAdditionsDatabase} from './readPracticePhotoReflection';
 import {openRestoreSession, type RestoreDatabase} from './journalRestoreDatabase';
 import {buildJournalBackupInventory} from '../services/journalBackupInventory';
 import {planMissingLocalEntries, planStagedLocalSnapshot} from './prepareJournalPhotoManifest';
@@ -127,7 +128,7 @@ export async function checkStreamedDeviceSnapshot(document: string, next: NextFr
   const {getOrCreateSpikeEncryptionKey} = require('../services/journalEncryptedStorageSpike') as typeof import('../services/journalEncryptedStorageSpike');
   const snapshotId = JSON.parse(document.slice(document.indexOf('\n') + 1)).snapshotId;
   if (!/^[0-9a-f-]{36}$/.test(snapshotId) || !localSnapshotToken(document)) {throw new Error('Invalid practice snapshot');}
-  const name = addMissing ? 'journal-files-practice-additions-v1.sqlite' : 'journal-files-practice-' + snapshotId + '.sqlite';
+  const name = addMissing ? practiceAdditionsDatabase : 'journal-files-practice-' + snapshotId + '.sqlite';
   const db = open({name, encryptionKey: await getOrCreateSpikeEncryptionKey()});
   try {
     if (!(await db.execute('PRAGMA cipher_version')).rows[0]?.cipher_version) {throw new Error('Encrypted test journal unavailable');}

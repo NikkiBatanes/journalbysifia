@@ -1673,6 +1673,14 @@ Both the iPhone simulator and the Pixel 8 emulator added the reflection and two 
 
 Phase 5 remains estimated at **96%**, with weighted delivery at **32.8%**. The encrypted practice journal is separate from the journal people write in. Customer photo entries remain held in the regular restore review. The next release dependency is a supported encrypted storage provider and a way for the normal journal editor to reopen restored photos.
 
+### 2026-11-20 · Reopen the two-photo reflection in Journal’s photo viewer
+
+After adding the two-photo Files practice backup, **Development backup tools → Open restored photo reflection** opens the existing encrypted practice database with its saved device key. It reads the reflection and both image references in one transaction and reconstructs each image in memory. A missing chunk stops the preview. The screen uses the same expandable photo component as the saved reflection and its editor. This checkpoint covers the two known practice images. Customer attachments still require durable storage, support for larger images, and a migration for existing journals.
+
+The iPhone simulator reopened the reflection after restarting Journal. Both photos appeared and expanded. On the Pixel, Android reported a startup timeout before the viewer opened. Verification of this new viewer on Android is pending. A host integration test opened a separate database connection, matched the displayed bytes of each photo to its original SHA-256 digest, and rejected a missing chunk. All five restore integration tests and 28 backup screen tests passed. The full Jest run passed 1,565 tests and reproduced 35 failures in 21 suites. The TypeScript diagnostics matched the preceding checkpoint.
+
+Phase 5 remains estimated at **96%**, with weighted delivery at **32.8%**. OP-SQLite 19.0.5 was still the latest published version when checked. Its bundled OpenSSL 3.6 has reached end of support on both platforms. Next, evaluate a supported encrypted storage build and verify durable image references through a real editor save and reopen before enabling customer photo restore. [OpenSSL end-of-life announcement](https://openssl-library.org/post/2026-11-01-eol34-36/)
+
 ## Primary references checked on 2026-11-03
 
 - [Apple App Review Guidelines, payments/subscriptions](https://developer.apple.com/app-store/review/guidelines/): mobile subscription checkout baseline and subscription disclosures. Regional alternative-payment programs require separate review if later used.
