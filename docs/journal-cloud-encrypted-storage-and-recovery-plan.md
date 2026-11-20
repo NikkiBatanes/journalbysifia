@@ -720,9 +720,22 @@ SQLCipher 4.19.0 community from OP-SQLite 19.0.5 successfully read and updated e
 
 Both platforms passed all four checks, including the runtime SQLCipher/provider versions and database integrity. Every update and reopen first rejected the wrong key. After both files closed, each platform’s candidate reopened the other’s file. Neither raw fixture showed the SQLite header or the known caption string. The five separate backup/restore integration tests and four dependency-gate unit tests passed.
 
+### Test the provider inside the Journal release package
+
+Use a disposable checkout and a clean simulator or emulator with the normal application ID, `app.journal.sifia`. In the checkout, copy [the release test entry](../scripts/fixtures/journalStorageReleaseProbe.js) to `index.js`. It registers the Journal React Native component, creates a synthetic encrypted database through OP-SQLite, and shows the observed versions and result on screen. Keep this entry out of store builds. The fixture uses a public test key.
+
+| Target | Isolated build configuration | Packaged evidence to inspect |
+| --- | --- | --- |
+| Android arm64 | In OP-SQLite’s temporary Gradle project remove the OpenSSL Maven dependency. In its CMake file replace the OpenSSL package lookup with an imported static `openssl::crypto` pointing to the tested arm64 archive and its generated and source headers. Link with `-Wl,--exclude-libs,libcrypto.a`. Build `:app:assemblePlayRelease` with both the ABI filter and `reactNativeArchitectures` set to `arm64-v8a`. Sign the test APK with the local debug key. | Extract `lib/arm64-v8a/libop-sqlite.so` from the APK. Use the NDK’s `llvm-readelf --needed-libs` to check its dynamic dependencies and check the binary for the candidate version. |
+| iOS arm64 simulator | In the temporary CocoaPods sandbox, link the tested simulator `libcrypto.a` into the simulator slice of `OpenSSL.framework/OpenSSL` using `xcrun --sdk iphonesimulator clang -target arm64-apple-ios15.1-simulator -dynamiclib -Wl,-install_name,@rpath/OpenSSL.framework/OpenSSL -Wl,-force_load,<archive> -framework Security`. Overlay the candidate’s public and generated headers. Build the Journal workspace and scheme in Release for the arm64 simulator. | Use `otool -L` on the packaged Journal executable and inspect the embedded framework. This simulator-only framework exercises SQLCipher’s crypto calls. The other XCFramework slices still need independent builds. |
+
+Install the package on an empty test device. On first launch, expect `created`, SQLCipher `4.19.0 community` and `OpenSSL 3.5.9 29 Sep 2026`. Terminate the app process and launch again. Expect `reopened` with the same versions. The second pass reads the value written on the first launch. An unexpected provider version or missing value fails the test.
+
+Both arm64 packages passed on 2026-11-20. A fresh iOS 26.3 simulator and Android API 35 emulator each returned `created` and then `reopened` with the pinned versions. The iOS app bundle linked its embedded OpenSSL framework. The Android APK carried the candidate version in `libop-sqlite.so` and its dependency list had no dynamic OpenSSL dependency. The normal app entry point and dependency locks still use the shipping configuration.
+
 ## Immediate next implementation step
 
-Link the candidate into isolated release builds of Journal. Inspect the native libraries packaged for each supported architecture and query the provider version through the app’s existing database interface. Repeat the synthetic save/reopen check on physical hardware before adopting the dependency or migrating customer photos. The current app still links the end-of-life 3.6 provider and the production dependency check correctly rejects it. No user action or manual Supabase SQL is required for the packaging test.
+Prepare reproducible provider artifacts for iOS devices and the remaining Android architectures. Inspect the distribution binaries and repeat the save/reopen test on physical hardware before adopting the dependency or migrating customer photos. The current shipping configuration still links the 3.6 provider and the production dependency check rejects it. No user action or manual Supabase SQL is required to prepare the artifacts.
 
 ## Primary references
 
