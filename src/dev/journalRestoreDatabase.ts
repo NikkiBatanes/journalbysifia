@@ -1,3 +1,4 @@
+import {createJournalMutationCoordinator} from '../storage/journalMutationCoordinator';
 import {
   executeJournalBackupRestore,
   previewJournalBackupRestore,
@@ -56,14 +57,7 @@ export async function openRestoreSession(db: RestoreDatabase) {
       });
     },
   };
-  let tail: Promise<void> = Promise.resolve();
-  const coordinator = {
-    runExclusive<T>(work: () => Promise<T>): Promise<T> {
-      const result = tail.then(work);
-      tail = result.then(() => {}, () => {});
-      return result;
-    },
-  };
+  const coordinator = createJournalMutationCoordinator();
   const recovered = await recoverInterruptedJournalBackupRestore(storage, coordinator);
   let blocked = false;
   const requireReady = () => {

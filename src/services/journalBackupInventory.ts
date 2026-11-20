@@ -1,3 +1,4 @@
+import {localJournalMutations} from '../storage/journalMutationCoordinator';
 /**
  * Read-only, local-only inventory for a future Journal backup/restore feature.
  * It deliberately returns persistence records unchanged and includes canonical
@@ -185,7 +186,7 @@ const collectRefs = (value: ContentRef | ContentRef[] | undefined): ContentRef[]
   !value ? [] : Array.isArray(value) ? value : [value];
 
 export const getJournalBackupInventory = async (): Promise<JournalBackupInventory> => {
-  const rows = await readStableRows();
+  const rows = await localJournalMutations.runExclusive(readStableRows);
   const matching = (matches: (key: string) => boolean) => rows.filter(([key]) => matches(key));
   const journal = located<LocalJournalEntry>(matching(sections.journal));
   const reflections = located<LocalReflectionEntry>(matching(sections.reflections));

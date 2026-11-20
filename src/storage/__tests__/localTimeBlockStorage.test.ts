@@ -56,3 +56,14 @@ it('creates, reads, moves, updates, and tombstones a Time Block locally', async 
   const storedRecord = JSON.parse([...mockValues.values()][0]);
   expect(storedRecord).toMatchObject({ deleted: true, sync_status: 'pending' });
 });
+
+it('retains both changes when the title and description are edited together', async () => {
+  const entry = await createLocalTimeBlock(input);
+  await Promise.all([
+    updateLocalTimeBlock(entry.id, {title: 'Changed title'}),
+    updateLocalTimeBlock(entry.id, {description: 'Changed description'}),
+  ]);
+  expect(await getAllLocalTimeBlocks()).toMatchObject([
+    {id: entry.id, title: 'Changed title', description: 'Changed description', version: 3},
+  ]);
+});

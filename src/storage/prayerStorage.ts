@@ -1,3 +1,4 @@
+import {localJournalMutations} from './journalMutationCoordinator';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { toLocalDateString } from '../utils/date';
 import { safeJsonParse } from '../utils/safeJsonParse';
@@ -82,9 +83,9 @@ const writePrayerIndex = async (date: string, ids: string[]): Promise<void> => {
   await AsyncStorage.setItem(getPrayerIndexKey(date), JSON.stringify(ids));
 };
 
-export const createLocalPrayer = async (
+export const createLocalPrayer = (
   data: Omit<LocalPrayerEntry, 'id' | 'created_at' | 'updated_at' | 'version' | 'sync_status'>
-): Promise<LocalPrayerEntry> => {
+): Promise<LocalPrayerEntry> => localJournalMutations.runExclusive(async () => {
   const now = new Date().toISOString();
   const selectedDate = formatLocalDate(data.selected_date);
   const id = generateLocalUUID();
@@ -112,7 +113,7 @@ export const createLocalPrayer = async (
   await queuePrayerCreatedImpact(entry).catch(() => {});
 
   return entry;
-};
+});
 
 export const getLocalPrayer = async (
   id: string,
@@ -170,9 +171,9 @@ export const getLocalPeoplePrayers = async (
   return prayers;
 };
 
-export const updateLocalPrayer = async (
+export const updateLocalPrayer = (
   entry: LocalPrayerEntry
-): Promise<LocalPrayerEntry> => {
+): Promise<LocalPrayerEntry> => localJournalMutations.runExclusive(async () => {
   const now = new Date().toISOString();
   const selectedDate = formatLocalDate(entry.selected_date);
   const updated: LocalPrayerEntry = {
@@ -192,12 +193,12 @@ export const updateLocalPrayer = async (
     await queuePrayerAnsweredImpact(updated).catch(() => {});
   }
   return updated;
-};
+});
 
-export const deleteLocalPrayer = async (
+export const deleteLocalPrayer = (
   id: string,
   date: string | Date
-): Promise<void> => {
+): Promise<void> => localJournalMutations.runExclusive(async () => {
   const selectedDate = formatLocalDate(date);
   const raw = await AsyncStorage.getItem(getPrayerKey(selectedDate, id));
   if (!raw) {return;}
@@ -216,4 +217,4 @@ export const deleteLocalPrayer = async (
   const nextIndex = index.filter(itemId => itemId !== id);
   await writePrayerIndex(selectedDate, nextIndex);
   await queuePrayerImpactRetraction(id).catch(() => {});
-};
+});

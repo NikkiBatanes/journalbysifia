@@ -1582,6 +1582,14 @@ On a clean Pixel 8 emulator running Android 15 (API 35), Journal opened the encr
 
 After force-stopping Journal, a direct check of the emulator’s persisted reflection records found exactly the original record, with the same key and identical contents. The backup reflection had not been inserted. All eight focused backup test suites passed (68 tests). This completes the comparison preview check on both mobile platforms. Phase 5 remains at **95%**, with weighted overall progress at **32.7%**. The next milestone is to protect edits made during a customer restore and verify recovery on startup using the production storage adapter.
 
+### 2026-11-20 — Preserve concurrent local saves while reading a backup
+
+The canonical journal, reflection, prayer and time-block storage methods now take turns with the backup inventory read in a single app process. An edit submitted while the inventory is being read can finish once the read completes or fails. Photo hashing and archive processing happen after that read releases the queue. The encrypted practice database has a separate queue for its own records.
+
+Regression tests reproduced three failures before the change: two reflections saved on the same day left only one visible in the date index, two saves to the same check-in created different IDs, and two updates could count one answered prayer twice. All three now pass. Tests also cover overlapping time-block edits, an edit during a successful or failed backup read, and an edit queued during rollback using the real recovery function with in-memory test storage. The rollback restored the original entry and its index before the queued edit saved its new content.
+
+All 134 focused tests and four host restore integration tests passed. The host tests reopen practice data in fresh processes. Real journal writes still use the existing device storage. An edit waiting in memory requires the app process to stay alive until the save completes. Before enabling customer restore, cover the other backed-up writers (including drafts, reviews and settings), check the destination again at confirmation, and verify startup recovery before accepting edits on each platform. Phase 5 remains at **95%** and weighted overall progress at **32.7%**.
+
 ## Primary references checked on 2026-11-03
 
 - [Apple App Review Guidelines, payments/subscriptions](https://developer.apple.com/app-store/review/guidelines/): mobile subscription checkout baseline and subscription disclosures. Regional alternative-payment programs require separate review if later used.

@@ -1,3 +1,4 @@
+import {localJournalMutations} from './journalMutationCoordinator';
 
 const generateUUID = (): string => {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
@@ -104,9 +105,9 @@ const writeIndex = async (contentType: string, date: string, ids: string[]): Pro
   await AsyncStorage.setItem(getIndexKey(contentType, date), JSON.stringify(ids));
 };
 
-export const createLocalJournalEntry = async (
+export const createLocalJournalEntry = (
   data: Omit<LocalJournalEntry, 'id' | 'created_at' | 'updated_at' | 'version' | 'sync_status'>
-): Promise<LocalJournalEntry> => {
+): Promise<LocalJournalEntry> => localJournalMutations.runExclusive(async () => {
   const now = new Date().toISOString();
   const selectedDate = formatLocalDate(data.selected_date);
   const id = generateUUID();
@@ -138,7 +139,7 @@ export const createLocalJournalEntry = async (
   }
 
   return entry;
-};
+});
 
 export const getLocalJournalEntry = async (
   id: string,
@@ -215,9 +216,9 @@ export const getAllLocalJournalEntries = async (): Promise<LocalJournalEntry[]> 
     .sort((a, b) => a.created_at.localeCompare(b.created_at));
 };
 
-export const updateLocalJournalEntry = async (
+export const updateLocalJournalEntry = (
   entry: LocalJournalEntry
-): Promise<LocalJournalEntry> => {
+): Promise<LocalJournalEntry> => localJournalMutations.runExclusive(async () => {
   const now = new Date().toISOString();
   const selectedDate = formatLocalDate(entry.selected_date);
   const updated: LocalJournalEntry = {
@@ -230,13 +231,13 @@ export const updateLocalJournalEntry = async (
   const key = getCollectionKey(updated.content_type, selectedDate, updated.id);
   await AsyncStorage.setItem(key, JSON.stringify(updated));
   return updated;
-};
+});
 
-export const deleteLocalJournalEntry = async (
+export const deleteLocalJournalEntry = (
   id: string,
   contentType: string,
   date: string | Date
-): Promise<void> => {
+): Promise<void> => localJournalMutations.runExclusive(async () => {
   const selectedDate = formatLocalDate(date);
   const raw = await AsyncStorage.getItem(getCollectionKey(contentType, selectedDate, id));
   if (!raw) {return;}
@@ -254,7 +255,7 @@ export const deleteLocalJournalEntry = async (
   const index = await readIndex(contentType, selectedDate);
   const nextIndex = index.filter(itemId => itemId !== id);
   await writeIndex(contentType, selectedDate, nextIndex);
-};
+});
 
 export const deleteLocalJournalEntriesForDate = async (
   contentType: string,
@@ -267,12 +268,12 @@ export const deleteLocalJournalEntriesForDate = async (
   }
 };
 
-export const saveLocalJournalSingleton = async (
+export const saveLocalJournalSingleton = (
   contentType: string,
   date: string | Date,
   content: string,
   metadata?: Record<string, any>
-): Promise<LocalJournalEntry> => {
+): Promise<LocalJournalEntry> => localJournalMutations.runExclusive(async () => {
   const selectedDate = formatLocalDate(date);
   const key = getSingletonKey(contentType, selectedDate);
   const raw = await AsyncStorage.getItem(key);
@@ -314,7 +315,7 @@ export const saveLocalJournalSingleton = async (
     await queueWinSavedImpact(entry).catch(() => {});
   }
   return entry;
-};
+});
 
 export const getLocalJournalSingleton = async (
   contentType: string,
@@ -346,10 +347,10 @@ export const getAllLocalJournalSingletons = async (
   return entries;
 };
 
-export const deleteLocalJournalSingleton = async (
+export const deleteLocalJournalSingleton = (
   contentType: string,
   date: string | Date
-): Promise<void> => {
+): Promise<void> => localJournalMutations.runExclusive(async () => {
   const selectedDate = formatLocalDate(date);
   const key = getSingletonKey(contentType, selectedDate);
   const raw = await AsyncStorage.getItem(key);
@@ -363,7 +364,7 @@ export const deleteLocalJournalSingleton = async (
     sync_status: 'pending',
   };
   await AsyncStorage.setItem(key, JSON.stringify(tombstone));
-};
+});
 
 // Storage keys for journal entries
 // const JOURNAL_ENTRIES_KEY = 'journal_entries';

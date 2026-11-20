@@ -73,3 +73,11 @@ it('counts Today’s Win once and does not count later edits again', async () =>
   expect(queueWinSavedImpact).toHaveBeenCalledTimes(1);
   expect(queueWinSavedImpact).toHaveBeenCalledWith(first);
 });
+
+it('keeps the identity and both revisions when two saves reach the same daily check-in', async () => {
+  const [first, second] = await Promise.all([
+    saveLocalJournalSingleton('morning_check_in', '2026-11-20', 'First'),
+    saveLocalJournalSingleton('morning_check_in', '2026-11-20', 'Second'),
+  ]);
+  expect(second).toMatchObject({id: first.id, content: 'Second', version: 2});
+});

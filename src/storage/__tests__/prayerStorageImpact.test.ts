@@ -72,3 +72,12 @@ it('retracts prayer counters when the canonical prayer is deleted', async () => 
 
   expect(queuePrayerImpactRetraction).toHaveBeenCalledWith(prayer.id);
 });
+
+it('counts one answered transition when two edits mark the same prayer answered', async () => {
+  const prayer = await createLocalPrayer({
+    prayer_type: 'people', content: 'Test prayer', selected_date: '2026-11-20', status: 'pending',
+  });
+  const answered = {...prayer, status: 'answered' as const};
+  await Promise.all([updateLocalPrayer(answered), updateLocalPrayer({...answered, notes: 'Later edit'})]);
+  expect(queuePrayerAnsweredImpact).toHaveBeenCalledTimes(1);
+});

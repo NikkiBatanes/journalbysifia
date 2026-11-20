@@ -1,3 +1,4 @@
+import {localJournalMutations} from './journalMutationCoordinator';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Logger } from '../utils/ProductionLogger';
 import { safeJsonParse } from '../utils/safeJsonParse';
@@ -82,9 +83,9 @@ const withoutGuidedClassification = (
   return guidedMetadata;
 };
 
-export const createLocalReflection = async (
+export const createLocalReflection = (
   data: Omit<LocalReflectionEntry, 'id' | 'created_at' | 'updated_at' | 'version' | 'sync_status'>
-): Promise<LocalReflectionEntry> => {
+): Promise<LocalReflectionEntry> => localJournalMutations.runExclusive(async () => {
   const now = new Date().toISOString();
   const selectedDate = formatLocalDate(data.selected_date);
   const id = generateLocalUUID();
@@ -111,7 +112,7 @@ export const createLocalReflection = async (
   }
 
   return entry;
-};
+});
 
 export const getLocalReflection = async (
   id: string,
@@ -144,9 +145,9 @@ export const getLocalReflections = async (
   return entries.sort((a, b) => a.created_at.localeCompare(b.created_at));
 };
 
-export const updateLocalReflection = async (
+export const updateLocalReflection = (
   entry: LocalReflectionEntry
-): Promise<LocalReflectionEntry> => {
+): Promise<LocalReflectionEntry> => localJournalMutations.runExclusive(async () => {
   const now = new Date().toISOString();
   const selectedDate = formatLocalDate(entry.selected_date);
   const updated: LocalReflectionEntry = {
@@ -160,13 +161,13 @@ export const updateLocalReflection = async (
   const key = getLocalReflectionKey(updated.type, selectedDate, updated.id);
   await AsyncStorage.setItem(key, JSON.stringify(updated));
   return updated;
-};
+});
 
-export const deleteLocalReflection = async (
+export const deleteLocalReflection = (
   id: string,
   type: string,
   date: string | Date
-): Promise<void> => {
+): Promise<void> => localJournalMutations.runExclusive(async () => {
   const selectedDate = formatLocalDate(date);
   const raw = await AsyncStorage.getItem(getLocalReflectionKey(type, selectedDate, id));
   if (!raw) {return;}
@@ -184,7 +185,7 @@ export const deleteLocalReflection = async (
   const index = await readReflectionIndex(type, selectedDate);
   const nextIndex = index.filter(itemId => itemId !== id);
   await writeReflectionIndex(type, selectedDate, nextIndex);
-};
+});
 
 export const getAllLocalReflectionsByType = async (
   type: string

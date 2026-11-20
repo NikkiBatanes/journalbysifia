@@ -8,11 +8,21 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   multiGet: jest.fn(async (keys: string[]) => keys.map(key => [key, mockValues.get(key) ?? null])),
 }));
 
+import {localJournalMutations} from '../journalMutationCoordinator';
+import {
+  JOURNAL_RESTORE_RECOVERY_MARKER_KEY,
+  JOURNAL_RESTORE_ROLLBACK_SNAPSHOT_KEY,
+  recoverInterruptedJournalBackupRestore,
+  type JournalBackupRestoreStorage,
+} from '../../services/journalBackupRestoreExecutor';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import {getJournalBackupInventory} from '../../services/journalBackupInventory';
 import {
   createLocalReflection,
   deleteLocalReflection,
   findLocalReflection,
   getLocalReflection,
+  getLocalReflections,
   updateLocalReflection,
 } from '../reflectionStorage';
 import { HEART_JOURNAL_CLASSIFICATIONS, heartJournalClassificationLabel } from '../../types/heartJournal';
@@ -130,4 +140,78 @@ describe('canonical local reflections', () => {
     expect(edited).toMatchObject({ id: created.id, created_at: created.created_at, selected_date: created.selected_date, type: 'guided', source: 'guided', version: 2, metadata: { prompt: journey.pathTitle, guidedJourney: editedJourney } });
     expect([...mockValues.keys()].filter(key => key.startsWith('reflection_local:guided:'))).toHaveLength(1);
   });
+});
+
+it('keeps both same-day reflections visible when two editors save together', async () => {
+  const data = {type: 'free', selected_date: '2026-11-20', content: 'First'};
+  const saved = await Promise.all([
+    createLocalReflection(data),
+    createLocalReflection({...data, content: 'Second'}),
+  ]);
+  const visible = await getLocalReflections('free', data.selected_date);
+  expect(visible.map(entry => entry.id).sort()).toEqual(saved.map(entry => entry.id).sort());
+});
+
+it.each([false, true])('preserves an edit queued during a backup read (read fails: %s)', async readFails => {
+  const original = await createLocalReflection({type: 'free', selected_date: '2026-11-20', content: 'Before backup'});
+  let resumeRead!: () => void;
+  let signalReadStarted!: () => void;
+  const paused = new Promise<void>(resolve => { resumeRead = resolve; });
+  const started = new Promise<void>(resolve => { signalReadStarted = resolve; });
+  jest.mocked(AsyncStorage.getAllKeys).mockImplementationOnce(async () => {
+    signalReadStarted();
+    await paused;
+    if (readFails) {throw new Error('Simulated read interruption');}
+    return Array.from(mockValues.keys());
+  });
+
+  const backup = getJournalBackupInventory();
+  await started;
+  const edit = updateLocalReflection({...original, content: 'Edited during backup'});
+  try {
+    expect((await getLocalReflection(original.id, original.type, original.selected_date))?.content).toBe('Before backup');
+  } finally {
+    resumeRead();
+  }
+  if (readFails) {
+    await expect(backup).rejects.toThrow('Simulated read interruption');
+  } else {
+    expect((await backup).reflectionRecords).toMatchObject([{id: original.id, content: 'Before backup'}]);
+  }
+  await edit;
+  expect(await findLocalReflection(original.id)).toMatchObject({content: 'Edited during backup', version: 2});
+});
+
+it('applies a queued reflection edit after interrupted-restore recovery finishes', async () => {
+  const entry = await createLocalReflection({type: 'free', selected_date: '2026-11-20', content: 'Original'});
+  const entries = Array.from(mockValues, ([key, value]) => ({key, value}));
+  const transactionId = '11111111-1111-4111-8111-111111111111';
+  mockValues.set(JOURNAL_RESTORE_ROLLBACK_SNAPSHOT_KEY, JSON.stringify({version: 1, transactionId, entries}));
+  mockValues.set(JOURNAL_RESTORE_RECOVERY_MARKER_KEY, JSON.stringify({version: 1, transactionId, stage: 'applying', operationCount: 2}));
+
+  let signalRestoring!: () => void;
+  let continueRecovery!: () => void;
+  const restoring = new Promise<void>(resolve => { signalRestoring = resolve; });
+  const paused = new Promise<void>(resolve => { continueRecovery = resolve; });
+  const storage: JournalBackupRestoreStorage = {
+    getAllKeys: async () => Array.from(mockValues.keys()),
+    multiGet: async keys => keys.map(key => [key, mockValues.get(key) ?? null] as const),
+    async multiRemove(keys) {keys.forEach(key => mockValues.delete(key));},
+    async multiSet(rows) {
+      signalRestoring();
+      await paused;
+      rows.forEach(([key, value]) => mockValues.set(key, value));
+    },
+  };
+  const recovery = recoverInterruptedJournalBackupRestore(storage, localJournalMutations);
+  await restoring;
+  const edit = updateLocalReflection({...entry, content: 'New edit'});
+  try {
+    expect(await getLocalReflection(entry.id, entry.type, entry.selected_date)).toBeNull();
+  } finally {
+    continueRecovery();
+  }
+  await expect(recovery).resolves.toMatchObject({transactionId, recoveryArtifactsRemoved: true});
+  await edit;
+  expect(await getLocalReflections(entry.type, entry.selected_date)).toMatchObject([{id: entry.id, content: 'New edit'}]);
 });

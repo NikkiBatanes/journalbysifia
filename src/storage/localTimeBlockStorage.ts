@@ -1,3 +1,4 @@
+import {localJournalMutations} from './journalMutationCoordinator';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { TimeBlockApiEntry } from '../services/api/timeBlockApi';
 import { safeJsonParse } from '../utils/safeJsonParse';
@@ -73,7 +74,7 @@ export const getAllLocalTimeBlocks = async (): Promise<TimeBlockApiEntry[]> => {
     .sort((a, b) => `${a.selected_date}|${a.start_time}|${a.id}`.localeCompare(`${b.selected_date}|${b.start_time}|${b.id}`));
 };
 
-export const createLocalTimeBlock = async (input: TimeBlockCreate): Promise<TimeBlockApiEntry> => {
+export const createLocalTimeBlock = (input: TimeBlockCreate): Promise<TimeBlockApiEntry> => localJournalMutations.runExclusive(async () => {
   const now = new Date().toISOString();
   const id = generateUUID();
   const {
@@ -97,12 +98,12 @@ export const createLocalTimeBlock = async (input: TimeBlockCreate): Promise<Time
 
   await AsyncStorage.setItem(recordKey(selected_date, id), JSON.stringify(record));
   return toApiEntry(record)!;
-};
+});
 
-export const updateLocalTimeBlock = async (
+export const updateLocalTimeBlock = (
   id: string,
   updates: TimeBlockUpdate,
-): Promise<TimeBlockApiEntry | null> => {
+): Promise<TimeBlockApiEntry | null> => localJournalMutations.runExclusive(async () => {
   const stored = await readStoredRecords();
   const match = stored.find(({ record }) => record.id === id && !record.deleted);
   if (!match) { return null; }
@@ -141,9 +142,9 @@ export const updateLocalTimeBlock = async (
   // selected_date, so moving a Time Block never creates duplicate records.
   await AsyncStorage.setItem(match.key, JSON.stringify(record));
   return toApiEntry(record);
-};
+});
 
-export const deleteLocalTimeBlock = async (id: string): Promise<boolean> => {
+export const deleteLocalTimeBlock = (id: string): Promise<boolean> => localJournalMutations.runExclusive(async () => {
   const stored = await readStoredRecords();
   const match = stored.find(({ record }) => record.id === id && !record.deleted);
   if (!match) { return false; }
@@ -157,4 +158,4 @@ export const deleteLocalTimeBlock = async (id: string): Promise<boolean> => {
   };
   await AsyncStorage.setItem(match.key, JSON.stringify(tombstone));
   return true;
-};
+});
