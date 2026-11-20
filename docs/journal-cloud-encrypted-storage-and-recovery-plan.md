@@ -700,22 +700,29 @@ The npm registry was rechecked on 2026-11-18. OP-SQLite 19.0.5 remains the
 latest published release, so there is no newer upstream candidate to install
 or re-test yet.
 
+## Native provider compatibility check on 2026-11-20
+
+SQLCipher 4.19.0 community from OP-SQLite 19.0.5 successfully read and updated encrypted fixtures on the arm64 iPhone simulator and Pixel 8 emulator using OpenSSL 3.5.9 LTS. The original provider also read the updated files. This establishes file compatibility for the tested configuration. Customer migration still requires evidence from release builds.
+
+### Reproduce the native test
+
+1. Use the locked OP-SQLite source at `node_modules/@op-engineering/op-sqlite/cpp/sqlcipher`. For the candidate, verify the OpenSSL 3.5.9 source tarball against SHA-256 `603f5602e2eef00d77fbd429d34dcd5822bb301757a1bc9cdb24c670f1eb859a`. [Official OpenSSL source releases](https://www.openssl-library.org/source/)
+2. Configure OpenSSL in a separate build directory per target. Use `iossimulator-arm64-xcrun -mios-simulator-version-min=15.1` or `android-arm64 -D__ANDROID_API__=24` with NDK 27.1.12297006. Use `no-shared no-tests no-module` for both. Build generated headers with `make build_generated`, then build `libcrypto.a`.
+3. Compile [the fixture program](../scripts/journal-storage-provider-compatibility.c) together with the pinned `sqlite3.c` for each target and provider. Define `SQLITE_HAS_CODEC`, `SQLITE_TEMP_STORE=3`, `SQLITE_EXTRA_INIT=sqlcipher_extra_init` and `SQLITE_EXTRA_SHUTDOWN=sqlcipher_extra_shutdown`. Also define `HAVE_FULLFSYNC=1` on iOS. Link the baseline against the installed OpenSSL-Universal 3.6.2000 simulator framework or the arm64 crypto library in the Android 3.6.2-3 AAR. For the candidate, include the generated and source OpenSSL headers and link its static crypto library, plus Security.framework on iOS or `-lm -ldl -llog` on Android.
+4. On each device, use a fresh test directory. Each invocation takes a mode, the expected runtime provider string and that directory. Run the four invocations below in sequence, launching a fresh process each time.
+
+| Executable | Mode | Expected runtime provider | Evidence |
+| --- | --- | --- | --- |
+| Baseline | `create` | `OpenSSL 3.6.2 7 Apr 2026` | New encrypted database with one synthetic caption |
+| Candidate | `update` | `OpenSSL 3.5.9 29 Sep 2026` | Original caption readable, rollback preserved it, committed edit saved |
+| Candidate | `reopen` | `OpenSSL 3.5.9 29 Sep 2026` | Saved edit survived process exit |
+| Baseline | `reopen` | `OpenSSL 3.6.2 7 Apr 2026` | Previous provider read the candidate’s edit |
+
+Both platforms passed all four checks, including the runtime SQLCipher/provider versions and database integrity. Every update and reopen first rejected the wrong key. After both files closed, each platform’s candidate reopened the other’s file. Neither raw fixture showed the SQLite header or the known caption string. The five separate backup/restore integration tests and four dependency-gate unit tests passed.
+
 ## Immediate next implementation step
 
-The controlled development diagnostic has passed on one iOS and one Android
-installation and never runs automatically. Forced-interruption recovery,
-deterministic disk-full rollback, and raw-file plaintext checks also passed for
-the synthetic fixture. The dependency review did not approve the current
-native graph for customer data because OpenSSL 3.6 is end-of-life. The Expo
-SQLite feasibility review found that this bare React Native app would require
-Expo Modules, so it is not the preferred narrow replacement. Next, monitor for
-a supported OP-SQLite build while the automated gate keeps customer migration
-blocked. Do not install another database stack or implement the production
-migration until its exact native graph has been inspected and the user
-approves the dependency change.
-
-No user action or manual SQL is required for the next local implementation
-increment. No key or journal content should be shared.
+Link the candidate into isolated release builds of Journal. Inspect the native libraries packaged for each supported architecture and query the provider version through the app’s existing database interface. Repeat the synthetic save/reopen check on physical hardware before adopting the dependency or migrating customer photos. The current app still links the end-of-life 3.6 provider and the production dependency check correctly rejects it. No user action or manual Supabase SQL is required for the packaging test.
 
 ## Primary references
 
