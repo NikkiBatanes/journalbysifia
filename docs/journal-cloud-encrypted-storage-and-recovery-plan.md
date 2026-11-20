@@ -759,6 +759,25 @@ On 2026-11-20, two independent builds on Xcode 26.4.1 (17E202), Apple SDK build 
 
 These checks cover provider inputs for mobile packaging. Store release validation still needs inspection of the final Journal app binaries and a save, process termination and reopen on physical devices.
 
+### Inspect the iPhone archive and full Play bundle
+
+Use a disposable copy of Journal for this packaging check. Build its normal JavaScript entry point with the example mobile configuration. Disable Sentry build uploads. Keep the store upload key outside the checkout.
+
+1. Verify the provider manifest and every file hash against the preceding checkpoint.
+2. For iOS, copy the installed Pods, generated React Native sources and the CocoaPods header facade directories (`ios/build/rncore-facades` and `ios/build/rndeps-facades`) into the checkout. Rebase any generated paths to this checkout. Build the device `OpenSSL.framework/OpenSSL` from the verified `ios-arm64/libcrypto.a` with the force-load command above, selecting `iphoneos` and `arm64-apple-ios15.1`. Copy that slice's matching OpenSSL headers into the framework. Archive the Journal workspace and scheme in Release for `generic/platform=iOS` with `CODE_SIGNING_ALLOWED=NO`.
+3. For Android, remove the Maven OpenSSL dependency in the disposable OP-SQLite Gradle project. Point its CMake `openssl::crypto` target to the verified `libcrypto.a` and matching include directory for `${ANDROID_ABI}`. Hide the static provider symbols with `-Wl,--exclude-libs,libcrypto.a` and set `-Wl,-z,max-page-size=16384`. Use the local debug signing configuration for this test bundle. Build `:app:bundlePlayRelease` with all four app ABIs.
+4. Run [the release package verifier](../scripts/verify-journal-storage-release.py) against the resulting archive and bundle.
+
+```sh
+python3 scripts/verify-journal-storage-release.py \
+  --ios-archive /path/to/Journal.xcarchive \
+  --android-bundle /path/to/app-play-release.aab
+```
+
+The iPhone check follows the Journal executable's dynamic-library reference to the embedded device framework and checks the SQLCipher and provider version markers. The Android check inspects each packaged OP-SQLite ELF, including its architecture, dynamic dependencies, version marker and load-segment alignment. A physical save and reopen tests the separate question of whether Journal can use the packaged provider at runtime.
+
+On 2026-11-20 this check passed for an unsigned arm64 iPhone archive and a debug-key-signed four-ABI Play Release bundle built from checkpoint `405fb517` with the isolated dependency substitutions. Both included the normal Journal JavaScript bundle. The embedded iPhone framework SHA-256 was `6598ab16f58a2443b86b97ae9888c0889c7a93163ce9af1be3392cb6b29ecffe`. All four Android OP-SQLite libraries had 16,384-byte minimum load alignment. The verifier also rejected an older Play bundle missing the database libraries. Physical runtime verification and production adoption remain open.
+
 ## Primary references
 
 - [Apple: restricting Keychain item accessibility](https://developer.apple.com/documentation/Security/restricting-keychain-item-accessibility)
