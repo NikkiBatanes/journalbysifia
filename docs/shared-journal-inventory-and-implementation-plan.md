@@ -1693,6 +1693,14 @@ The development backup screen now reports the native image result for each of th
 
 All 75 focused backup-screen and shared journal UI tests passed. The TypeScript check produced the same diagnostics as the preceding Git revision when both ran with the same configuration. The Pixel reached Journal’s home and More screens before Android’s System UI stopped responding to gestures. Its visual check is still open. The previous iPhone visual check passed. Phase 5 remains estimated at **96%** and weighted delivery at **32.8%**.
 
+### 2026-11-20 · Keep each restored photo’s caption independent
+
+Editing the first photo in an older two-photo reflection could also change the second caption because both blocks lacked an ID. The reflection editor now assigns distinct IDs when opening an entry or recovering a draft. Existing unique IDs and column references are preserved. Saving the entry persists the repaired IDs.
+
+The Pixel 8 reopened the encrypted practice reflection and reported that both images loaded after expansion. On the iPhone simulator and a separate Android test emulator, two verified copies of the fixture images were placed in each app’s local files and the original ID-less blocks were opened through Moments. After editing the first caption, saving, terminating Journal and reopening the same reflection, the first caption persisted, the second stayed blank, and both photo files matched their original SHA-256 hashes. The restore integration test also checks both captions and both image hashes after reopening the practice database.
+
+Phase 5 remains estimated at **96%**, with weighted delivery at **32.8%**. All 81 focused and integration tests passed. The TypeScript check reproduced the 736 existing diagnostics with no additions. The next release task is validating a supported encrypted storage build on both platforms. Migration of existing customer photo references is also pending.
+
 ## Primary references checked on 2026-11-03
 
 - [Apple App Review Guidelines, payments/subscriptions](https://developer.apple.com/app-store/review/guidelines/): mobile subscription checkout baseline and subscription disclosures. Regional alternative-payment programs require separate review if later used.

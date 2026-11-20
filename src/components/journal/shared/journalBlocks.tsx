@@ -114,6 +114,29 @@ export type JournalBlockContent = {
   columnSide?: 'left' | 'right';
 };
 
+// Older saved entries can contain blocks without unique editor IDs.
+export function ensureJournalBlockIds<T extends JournalBlockContent>(blocks: T[]) {
+  const reserved = new Set(blocks.flatMap(block => [block.id, block.parentColumnId]));
+  const columnIds = new Set(blocks.filter(block => block.kind === 'column').map(block => block.id));
+  const seen = new Set<string>();
+  let nextId = 1;
+
+  return blocks.map(block => {
+    // A child resolves its parent by ID, so a column keeps priority over other blocks.
+    const canKeepId = block.kind === 'column' || !columnIds.has(block.id);
+    if (canKeepId && typeof block.id === 'string' && block.id.trim() && !seen.has(block.id)) {
+      seen.add(block.id);
+      return block;
+    }
+
+    let id: string;
+    do {
+      id = `restored-block-${nextId++}`;
+    } while (reserved.has(id));
+    return {...block, id};
+  });
+}
+
 export const hasMeaningfulJournalBlock = (block: JournalBlockContent) =>
   Boolean(
     block.text?.trim() ||

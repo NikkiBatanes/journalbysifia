@@ -51,6 +51,7 @@ import {
   isBlockAllowedInContext,
   isJournalBlockKind,
   journalBlocksToPlainText,
+  ensureJournalBlockIds,
   prepareJournalBlocksForSave,
 } from '../journalBlocks';
 import {REFLECTION_NOTE_TYPES} from '../../../../types/guidedReflection';
@@ -654,6 +655,26 @@ describe('shared Journal UI extraction', () => {
         points: ['Remember this'],
       }),
     ).toBe(true);
+  });
+
+  it('gives legacy blocks stable edit targets without colliding with column references', () => {
+    const column = {kind: 'column', id: 'restored-block-1'};
+    const child = {kind: 'text', id: 'child', parentColumnId: column.id};
+    const missing = {kind: 'photo'};
+    const duplicate = {kind: 'photo', id: child.id};
+    const orphan = {kind: 'text', id: '  ', parentColumnId: 'restored-block-2'};
+    const collidingPhoto = {kind: 'photo', id: column.id};
+    const input = [missing, collidingPhoto, column, child, duplicate, orphan];
+    const result = ensureJournalBlockIds(input);
+    expect(result.map(block => 'id' in block && block.id)).toEqual([
+      'restored-block-3', 'restored-block-4', column.id, child.id, 'restored-block-5', 'restored-block-6',
+    ]);
+    expect(result[2]).toBe(column);
+    expect(result[3]).toBe(child);
+    expect(result[5]).toMatchObject({parentColumnId: orphan.parentColumnId});
+    expect(missing).not.toHaveProperty('id');
+    expect(duplicate.id).toBe(child.id);
+    expect(ensureJournalBlockIds(result)).toEqual(result);
   });
 
   it('removes empty list items before saving', () => {

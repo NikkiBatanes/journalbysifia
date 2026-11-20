@@ -12,7 +12,7 @@ import {readPracticePhotoReflection} from '../readPracticePhotoReflection';
 import {restoreStreamedSnapshot} from '../journalStreamingSnapshotRestore';
 import {connect} from './restoreTestDatabase';
 import {loadLocalReflectionData, saveLocalReflectionEdit} from '../../services/hooks/useReflectionData';
-import {journalBlocksToPlainText, prepareJournalBlocksForSave} from '../../components/journal/shared/journalBlocks';
+import {ensureJournalBlockIds, journalBlocksToPlainText, prepareJournalBlocksForSave} from '../../components/journal/shared/journalBlocks';
 
 jest.mock('../../context/IndustryStandardAuthContext', () => ({useAuth: () => ({user: null})}));
 
@@ -269,8 +269,11 @@ it('adds a missing reflection and both photos atomically to an existing practice
     });
     try {
       const [entry] = await loadLocalReflectionData(day, [id]);
-      const blocks = prepareJournalBlocksForSave(entry.journal_blocks!.map(block =>
-        block.id === refs[0].id ? {...block, text: 'Edited caption'} : block));
+      const editorBlocks = ensureJournalBlockIds(entry.journal_blocks!);
+      const photos = editorBlocks.filter(block => block.kind === 'photo');
+      expect(new Set(photos.map(photo => photo.id)).size).toBe(2);
+      const blocks = prepareJournalBlocksForSave(editorBlocks.map(block =>
+        block.id === photos[0].id ? {...block, text: 'Edited caption'} : block));
       const content = journalBlocksToPlainText(blocks);
       await Promise.all([
         saveLocalReflectionEdit({id, updates: {content, journal_blocks: blocks}}),
@@ -291,7 +294,7 @@ it('adds a missing reflection and both photos atomically to an existing practice
     try {
       expect((await afterEdit.execute('SELECT v FROM restore_kv WHERE k=?', [restoredKey])).rows[0].v).toBe(savedValue);
       const view = await readPracticePhotoReflection(afterEdit);
-      expect(view.photos[0].caption).toBe('Edited caption');
+      expect(view.photos.map(photo => photo.caption)).toEqual(['Edited caption', '']);
       expect(view.photos.map(photo =>
         createHash('sha256').update(Buffer.from(photo.uri.split(',')[1], 'base64')).digest('hex'),
       )).toEqual(assets.map((asset: {sha256: string}) => asset.sha256));

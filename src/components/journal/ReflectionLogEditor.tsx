@@ -63,6 +63,7 @@ import {
   JournalBlockIcon,
   createJournalBlock,
   journalBlocksToPlainText,
+  ensureJournalBlockIds,
   prepareJournalBlocksForSave,
   type JournalBlock,
 } from './shared/journalBlocks';
@@ -759,7 +760,7 @@ const ReflectionLogEditor = React.forwardRef<
     const [journalBlocks, setJournalBlocks] = React.useState<GuidedReflectionNote[]>(
       () =>
         initialEntry.journalBlocks?.length
-          ? initialEntry.journalBlocks
+          ? ensureJournalBlockIds(initialEntry.journalBlocks)
           : initialEntry.content
           ? [{id: createGuidedNoteId(), kind: 'text', text: normalizeIncoming(initialEntry.content)}]
           : [],
@@ -1286,7 +1287,7 @@ const ReflectionLogEditor = React.forwardRef<
                   title: title || prev.title,
                 }));
                 if (Array.isArray(draftBlocks) && draftBlocks.length) {
-                  setJournalBlocks(draftBlocks);
+                  setJournalBlocks(ensureJournalBlockIds<GuidedReflectionNote>(draftBlocks));
                 } else if (content) {
                   setJournalBlocks([
                     {id: createGuidedNoteId(), kind: 'text', text: content},
