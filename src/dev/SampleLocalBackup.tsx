@@ -390,11 +390,18 @@ export default function SampleLocalBackup() {
       if (mounted.current) {setBusy(false);}
     }
   }
-  async function testLocalRestoreInterruption() {
+  async function testLocalRestoreInterruption(large = false) {
     if (running.current) {return;}
     running.current = true;
     setBusy(true);
     try {
+      if (large) {
+        const {armLargeRestore} = await import('./journalLargeRestoreProbe');
+        const {markLargeRestorePending} = await import('./journalRestoreStartup');
+        await armLargeRestore(markLargeRestorePending);
+        Alert.alert('Large journal ready for recovery', 'Reopen Journal to verify recovery after a simulated storage failure.');
+        return;
+      }
       const {armLocalRestoreInterruption} = await import('./journalLocalRestoreInterruption');
       const {markLocalRestorePending} = await import('./journalRestoreStartup');
       await armLocalRestoreInterruption(markLocalRestorePending, () =>
@@ -441,7 +448,8 @@ export default function SampleLocalBackup() {
       {!mode && !localPreview && <>
         {button('Save encrypted journal backup', () => start('saveLocal'), busy)}
         {button('Check saved journal backup', () => start('openLocal'), busy)}
-        {button('Test interrupted restore with a practice edit', testLocalRestoreInterruption, busy)}
+        {button('Test interrupted restore with a practice edit', () => testLocalRestoreInterruption(), busy)}
+        {button('Test large journal recovery', () => testLocalRestoreInterruption(true), busy)}
         {button('Reopen restored sample', () => checkIsolatedJournal(), busy)}
         {button('Save sample backup', () => start('export'), busy)}
         {button('Save a custom sample', () => start('inventory'), busy)}

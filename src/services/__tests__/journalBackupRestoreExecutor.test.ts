@@ -417,3 +417,85 @@ it('checks after an edit already queued when the user confirms', async () => {
   expect(storage.mutationCalls).toBe(1);
   expect(storage.values.get(plan.operations[0].key)).toBe('new edit');
 });
+
+describe('multi-part rollback copies', () => {
+  const key = 'journal_local:heart:large';
+  const original = '🌿'.repeat(90000);
+  const part = JOURNAL_RESTORE_ROLLBACK_SNAPSHOT_KEY + ':part:';
+  const run = (store: JournalBackupRestoreStorage) =>
+    executeJournalBackupRestore(store, coordinator, makePlan(), TRANSACTION_ID);
+
+  it('abandons a partially staged copy without changing the journal', async () => {
+    const store = new MemoryRestoreStorage([[key, original]]);
+    const write = store.multiSet.bind(store);
+    store.multiSet = async rows => {
+      if (rows.some(([id]) => id === part + '1')) {throw new Error('storage full');}
+      return write(rows);
+    };
+    await expectExecutionError(run(store), 'restore_snapshot_stage_failed', false);
+    expect(Array.from(store.values)).toEqual([[key, original]]);
+  });
+
+  it('keeps the copy through a failed rollback and restores it on the next open', async () => {
+    const store = new MemoryRestoreStorage([[key, original]]);
+    const write = store.multiSet.bind(store);
+    let full = false;
+    store.multiSet = async rows => {
+      if (rows.some(([id]) => id === makePlan().operations[0].key)) {
+        await write(rows.slice(0, 1));
+        full = true;
+      }
+      if (full) {throw new Error('storage full');}
+      return write(rows);
+    };
+    await expectExecutionError(run(store), 'restore_rollback_failed', true);
+    expect(store.values.has(part + '1')).toBe(true);
+    store.multiSet = write;
+    const savedPart = store.values.get(part + '1')!;
+    store.values.delete(part + '1');
+    await expectExecutionError(recoverInterruptedJournalBackupRestore(store, coordinator), 'invalid_rollback_snapshot', true);
+    store.values.set(part + '1', savedPart.replace('🌿', '🌻'));
+    await expectExecutionError(recoverInterruptedJournalBackupRestore(store, coordinator), 'invalid_rollback_snapshot', true);
+    store.values.set(part + '1', savedPart);
+    await expect(recoverInterruptedJournalBackupRestore(store, coordinator)).resolves.toMatchObject({transactionId: TRANSACTION_ID});
+    expect(Array.from(store.values)).toEqual([[key, original]]);
+    await expect(run(store)).resolves.toMatchObject({verified: true});
+    expect(Array.from(store.values.keys()).some(id => id.startsWith(part))).toBe(false);
+  });
+
+  it('preserves existing rows when a full disk prevents the prepared marker write', async () => {
+    const store = new MemoryRestoreStorage([[key, original]]);
+    const remove = jest.spyOn(store, 'multiRemove');
+    const write = store.multiSet.bind(store);
+    store.multiSet = async rows => {
+      if (rows.some(([id]) => id === JOURNAL_RESTORE_RECOVERY_MARKER_KEY)) {throw new Error('storage full');}
+      return write(rows);
+    };
+    await expectExecutionError(run(store), 'restore_apply_failed_rolled_back', false);
+    expect(remove.mock.calls.every(([keys]) => !keys.includes(key))).toBe(true);
+    expect(Array.from(store.values)).toEqual([[key, original]]);
+  });
+
+  it('keeps the verified replacement if removing leftover parts fails after commit', async () => {
+    const store = new MemoryRestoreStorage([[key, original]]);
+    const remove = store.multiRemove.bind(store);
+    store.multiRemove = async keys => {
+      if (keys.some(id => id.startsWith(part))) {throw new Error('cleanup interrupted');}
+      await remove(keys);
+    };
+    await expectExecutionError(run(store), 'restore_cleanup_pending', true);
+    const replacement = makePlan().operations[0];
+    expect(store.values.get(replacement.key)).toBe(replacement.value);
+    store.multiRemove = remove;
+    await expect(recoverInterruptedJournalBackupRestore(store, coordinator)).resolves.toBeNull();
+    expect(store.values.has(key)).toBe(false);
+    expect(store.values.get(replacement.key)).toBe(replacement.value);
+    expect(store.values.has(part + '0')).toBe(false);
+  });
+
+  it('cleans abandoned parts on startup without clearing journal entries', async () => {
+    const store = new MemoryRestoreStorage([[key, original], [part + '0', 'interrupted']]);
+    await expect(recoverInterruptedJournalBackupRestore(store, coordinator)).resolves.toBeNull();
+    expect(Array.from(store.values)).toEqual([[key, original]]);
+  });
+});

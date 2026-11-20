@@ -11,7 +11,9 @@ export default function JournalRestoreStartupGate() {
       if (!active) {return;}
       setState('ready');
       if (result !== 'idle') {
-        Alert.alert('Journal startup restore check passed', result === 'recovered'
+        Alert.alert('Journal startup restore check passed', result === 'large-recovered'
+          ? 'Journal verified all 96 practice entries and their index after the storage failure.'
+          : result === 'recovered'
           ? 'Journal recovered the original test entry before opening.'
           : 'Journal verified the original test entry before opening.');
       }

@@ -1,4 +1,4 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import {practiceRestoreStorage} from './practiceRestoreStorage';
 import {JOURNAL_BACKUP_RESTORE_POLICY} from '../services/journalBackupContract';
 import {
   JournalBackupRestoreExecutionError, previewJournalBackupRestore,
@@ -15,22 +15,7 @@ const transaction = 'd3879b9a-3208-4d18-803f-ad8db677222b';
 const edited = JSON.stringify({id: 'practice', content: 'Saved after preview'});
 const incoming = JSON.stringify({id: 'practice', content: 'From backup'});
 const ids = JSON.stringify(['practice']);
-const storage: JournalBackupRestoreStorage = {
-  async getAllKeys() {
-    return (await AsyncStorage.getAllKeys()).filter(key => key.startsWith(prefix)).map(key => key.slice(prefix.length));
-  },
-  async multiGet(keys) {
-    return (await AsyncStorage.multiGet(keys.map(key => prefix + key)))
-      .map(([key, value]) => [key.slice(prefix.length), value] as const);
-  },
-  multiSet(rows) {
-    return AsyncStorage.multiSet(rows.map(([key, value]) => [prefix + key, value]));
-  },
-  async multiRemove(keys) {
-    // Preserve the executor's cleanup order on platforms without atomic multiRemove.
-    for (const key of keys) {await AsyncStorage.removeItem(prefix + key);}
-  },
-};
+const storage = practiceRestoreStorage(prefix);
 const plan: JournalBackupRestorePlan = {
   valid: true, fatal: [], warnings: [], requiresRollbackSnapshot: true,
   clearOwnedKeysMatching: JOURNAL_BACKUP_RESTORE_POLICY.ownedPrefixes,

@@ -7,10 +7,19 @@ export const markRestoreStartupPending = () => AsyncStorage.setItem(pendingKey, 
 
 export const markLocalRestorePending = () => AsyncStorage.setItem(pendingKey, 'local-entries');
 
+export const markLargeRestorePending = () => AsyncStorage.setItem(pendingKey, 'large-local-entries');
+
 async function checkStartup() {
   const pending = await AsyncStorage.getItem(pendingKey);
   if (pending === null) {
     return 'idle' as const;
+  }
+  if (pending === 'large-local-entries') {
+    const fixture = require('./journalLargeRestoreProbe') as typeof import('./journalLargeRestoreProbe');
+    await fixture.verifyLargeRestoreAfterReopen();
+    await AsyncStorage.removeItem(pendingKey);
+    await fixture.clearLargeRestoreFixture();
+    return 'large-recovered' as const;
   }
   if (pending === 'local-entries') {
     const fixture = require('./journalLocalRestoreInterruption') as typeof import('./journalLocalRestoreInterruption');

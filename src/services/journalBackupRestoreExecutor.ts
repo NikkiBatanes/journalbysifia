@@ -189,6 +189,91 @@ const readExact = async (
   return strictRows(keys, await storage.multiGet(keys));
 };
 
+// A large rollback copy must survive reopening on stores with a per-row read limit.
+// JSON-encoding each slice also preserves surrogate pairs split at a boundary.
+const PART_SIZE = 64 * 1024;
+const PART_KEY = JOURNAL_RESTORE_ROLLBACK_SNAPSHOT_KEY + ':part:';
+const PART_HEADER = 'journal-rollback-parts-v1/';
+
+// Detect accidental corruption or reordered parts when reopening device storage.
+function rollbackChecksum(value: string) {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < value.length; i++) {
+    hash = Math.imul(hash ^ value.charCodeAt(i), 0x01000193);
+  }
+  return (hash >>> 0).toString(16).padStart(8, '0');
+}
+
+async function readRollbackParts(storage: JournalBackupRestoreStorage, header: string) {
+  const [rawLength, checksum] = header.slice(PART_HEADER.length).split('/');
+  const length = Number(rawLength);
+  if (!Number.isSafeInteger(length) || length <= PART_SIZE || length > MAXIMUM_ROLLBACK_SNAPSHOT_BYTES ||
+      (!/^[0-9a-f]{8}$/.test(checksum) || header !== PART_HEADER + length + '/' + checksum)) {
+    throw fail('invalid_rollback_snapshot', 'The recovery copy has an invalid length.', true);
+  }
+  const parts: string[] = [];
+  for (let offset = 0; offset < length; offset += PART_SIZE) {
+    const key = PART_KEY + parts.length;
+    const raw = (await readExact(storage, [key])).get(key);
+    let value: unknown;
+    try { value = raw && JSON.parse(raw); } catch { /* Report incomplete recovery below. */ }
+    if (typeof value !== 'string' || value.length !== Math.min(PART_SIZE, length - offset)) {
+      throw fail('invalid_rollback_snapshot', 'The recovery copy is incomplete.', true);
+    }
+    parts.push(value);
+  }
+  const snapshot = parts.join('');
+  if (rollbackChecksum(snapshot) !== checksum) {
+    throw fail('invalid_rollback_snapshot', 'The recovery copy failed its integrity check.', true);
+  }
+  return snapshot;
+}
+
+async function persistRollback(storage: JournalBackupRestoreStorage, snapshot: string) {
+  if (snapshot.length <= PART_SIZE) {
+    await storage.multiSet([[JOURNAL_RESTORE_ROLLBACK_SNAPSHOT_KEY, snapshot]]);
+    return;
+  }
+  const header = PART_HEADER + snapshot.length + '/' + rollbackChecksum(snapshot);
+  for (let offset = 0; offset < snapshot.length; offset += PART_SIZE) {
+    const part = snapshot.slice(offset, offset + PART_SIZE);
+    await storage.multiSet([[PART_KEY + (offset / PART_SIZE), JSON.stringify(part)]]);
+  }
+  if (await readRollbackParts(storage, header) !== snapshot) {
+    throw fail('rollback_verification_failed', 'The recovery copy could not be verified.');
+  }
+  // Publish only after the whole copy is readable. No journal entries have changed yet.
+  await storage.multiSet([[JOURNAL_RESTORE_ROLLBACK_SNAPSHOT_KEY, header]]);
+}
+
+// Called under the restore lease. Parts without either recovery record are disposable,
+// including when the process stopped midway through saving or removing a snapshot.
+async function removeOrphanedParts(storage: JournalBackupRestoreStorage) {
+  const keys = await storage.getAllKeys();
+  if (keys.includes(JOURNAL_RESTORE_ROLLBACK_SNAPSHOT_KEY) || keys.includes(JOURNAL_RESTORE_RECOVERY_MARKER_KEY)) {return;}
+  const parts = keys.filter(key => key.startsWith(PART_KEY) && /^(0|[1-9][0-9]*)$/.test(key.slice(PART_KEY.length)));
+  if (parts.length) {await storage.multiRemove(parts);}
+}
+
+async function withPartCleanup<T>(storage: JournalBackupRestoreStorage, work: () => Promise<T>): Promise<T> {
+  await removeOrphanedParts(storage);
+  let result: T;
+  try {
+    result = await work();
+  } catch (error) {
+    // Preserve the original recovery-required error if storage is still unavailable.
+    try { await removeOrphanedParts(storage); } catch { /* Retry cleanup on reopen. */ }
+    throw error;
+  }
+  try {
+    await removeOrphanedParts(storage);
+  } catch {
+    // The apply/rollback decision is durable. Retry only the remaining cleanup.
+    throw fail('restore_cleanup_pending', 'Reopen Journal to finish recovery cleanup.', true);
+  }
+  return result;
+}
+
 const utf8ByteLength = (value: string): number => {
   let bytes = 0;
   for (let index = 0; index < value.length; index += 1) {
@@ -369,12 +454,14 @@ const rollbackSnapshot = async (
   const currentKeys = await storage.getAllKeys();
   const ownedNow = currentKeys.filter(key => isOwnedKey(key, ownedRules));
   const snapshotKeys = snapshot.entries.map(entry => entry.key);
-  const keysToRemove = uniqueSorted([...ownedNow, ...snapshotKeys]);
+  const originals = new Map(snapshot.entries.map(entry => [entry.key, entry.value]));
+  const currentValues = await readExact(storage, snapshotKeys);
+  const keysToRemove = ownedNow.filter(key => originals.get(key) == null);
   if (keysToRemove.length > 0) {
     await storage.multiRemove(keysToRemove);
   }
   const entriesToRestore = snapshot.entries.flatMap(entry =>
-    entry.value === null ? [] : [[entry.key, entry.value] as const],
+    entry.value === null || currentValues.get(entry.key) === entry.value ? [] : [[entry.key, entry.value] as const],
   );
   if (entriesToRestore.length > 0) {
     await storage.multiSet(entriesToRestore);
@@ -404,7 +491,7 @@ const rollbackSnapshot = async (
   ]);
   return {
     transactionId: snapshot.transactionId,
-    restoredEntries: entriesToRestore.length,
+    restoredEntries: expectedOwnedKeys.length,
     recoveryArtifactsRemoved: true,
   };
 };
@@ -423,7 +510,8 @@ const recoverInterruptedJournalBackupRestoreExclusive = async (
   if (snapshotRaw === null && marker === null) {
     return null;
   }
-  const snapshot = parseSnapshot(snapshotRaw);
+  const snapshot = parseSnapshot(snapshotRaw?.startsWith(PART_HEADER)
+    ? await readRollbackParts(storage, snapshotRaw) : snapshotRaw);
   if (snapshot.entries.some(entry => !isOwnedKey(entry.key, OWNED_RULES))) {
     throw fail(
       'rollback_snapshot_namespace_violation',
@@ -526,7 +614,7 @@ export const previewJournalBackupRestore = (
       available = false;
       try {
         return await coordinator.runExclusive(() =>
-          executeJournalBackupRestoreExclusive(storage, plan, transactionId, before));
+          withPartCleanup(storage, () => executeJournalBackupRestoreExclusive(storage, plan, transactionId, before)));
       } finally {
         before.clear();
       }
@@ -556,9 +644,7 @@ const executeJournalBackupRestoreExclusive = async (
   let snapshotPersisted = false;
 
   try {
-    await storage.multiSet([
-      [JOURNAL_RESTORE_ROLLBACK_SNAPSHOT_KEY, serializedSnapshot],
-    ]);
+    await persistRollback(storage, serializedSnapshot);
     snapshotPersisted = true;
     await storage.multiSet([
       [
@@ -628,7 +714,7 @@ export const recoverInterruptedJournalBackupRestore = (
   coordinator: JournalBackupRestoreMutationCoordinator,
 ): Promise<JournalBackupRestoreRecoveryResult | null> =>
   coordinator.runExclusive(() =>
-    recoverInterruptedJournalBackupRestoreExclusive(storage),
+    withPartCleanup(storage, () => recoverInterruptedJournalBackupRestoreExclusive(storage)),
   );
 
 /** Execute a previously validated plan with rollback and read-back verification. */
@@ -639,5 +725,5 @@ export const executeJournalBackupRestore = (
   transactionId: string,
 ): Promise<JournalBackupRestoreExecutionResult> =>
   coordinator.runExclusive(() =>
-    executeJournalBackupRestoreExclusive(storage, plan, transactionId),
+    withPartCleanup(storage, () => executeJournalBackupRestoreExclusive(storage, plan, transactionId)),
   );

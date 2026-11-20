@@ -189,6 +189,8 @@ it('applies a queued reflection edit after interrupted-restore recovery finishes
   mockValues.set(JOURNAL_RESTORE_ROLLBACK_SNAPSHOT_KEY, JSON.stringify({version: 1, transactionId, entries}));
   mockValues.set(JOURNAL_RESTORE_RECOVERY_MARKER_KEY, JSON.stringify({version: 1, transactionId, stage: 'applying', operationCount: 2}));
 
+  // A process stop after clearing the destination leaves actual entries to recover.
+  entries.forEach(({key}) => mockValues.delete(key));
   let signalRestoring!: () => void;
   let continueRecovery!: () => void;
   const restoring = new Promise<void>(resolve => { signalRestoring = resolve; });
