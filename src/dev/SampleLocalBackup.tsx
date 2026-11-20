@@ -3,6 +3,7 @@ import {Alert, Image, Platform, Pressable, StyleSheet, Text, TextInput, View} fr
 import 'react-native-get-random-values';
 import {createJournalBackup, validateJournalBackup} from '../services/journalBackupContract';
 import {compareLocalSnapshotResult, inspectLocalSnapshotResult, LinkedBackupPhotoError, prepareJournalPhotoExport} from './prepareJournalPhotoManifest';
+import {JournalBackupRestoreExecutionError} from '../services/journalBackupRestoreExecutor';
 import {checkStreamedDeviceSnapshot, localSnapshotToken} from './journalStreamingSnapshotRestore';
 import {checkDeviceSnapshot, hasDeviceRestoreSample} from './journalDeviceSnapshotRestore';
 import {inspectJournalPhotoReferences} from './inspectJournalPhotoReferences';
@@ -75,6 +76,7 @@ export default function SampleLocalBackup() {
   const [mode, setMode] = useState<BackupAction | null>(null);
   const [localPreview, setLocalPreview] = useState<ReturnType<typeof inspectLocalSnapshotResult> | null>(null);
   const [entryReview, setEntryReview] = useState<Awaited<ReturnType<typeof compareLocalSnapshotResult>> | null>(null);
+  const [confirmAdditions, setConfirmAdditions] = useState(false);
   const [restoredPhoto, setRestoredPhoto] = useState<string | null>(null);
   const [photoLoaded, setPhotoLoaded] = useState(false);
   const selectedDocument = useRef<string | null>(null);
@@ -127,6 +129,7 @@ export default function SampleLocalBackup() {
     sampleDocument.current = null;
     setLocalPreview(null);
     setEntryReview(null);
+    setConfirmAdditions(false);
     setMode(null);
     setCode('');
     setAcknowledged(false);
@@ -351,12 +354,38 @@ export default function SampleLocalBackup() {
     setBusy(true);
     setMessage('');
     setEntryReview(null);
+    setConfirmAdditions(false);
     try {
-      const review = await compareLocalSnapshotResult(document, await createJournalBackup(),
+      const review = await compareLocalSnapshotResult(document,
         (uri, remaining) => nativeArchive().describeLocalPickerPhoto(uri, remaining));
       if (mounted.current) {setEntryReview(review);}
     } catch {
       if (mounted.current) {setMessage('Could not compare entries. Check that device photos are available and try again after saving your edits.');}
+    } finally {
+      running.current = false;
+      if (mounted.current) {setBusy(false);}
+    }
+  }
+  async function addMissingEntries() {
+    if (!entryReview?.count || !confirmAdditions || running.current) {return;}
+    running.current = true;
+    setBusy(true);
+    try {
+      await entryReview.confirm();
+      if (mounted.current) {
+        reset();
+        setMessage(`Added ${entryReview.count} missing ${entryReview.count === 1 ? 'entry' : 'entries'} to this journal.`);
+      }
+    } catch (error) {
+      if (mounted.current) {
+        setConfirmAdditions(false);
+        setEntryReview(null);
+        setMessage(error instanceof JournalBackupRestoreExecutionError && error.recoveryRequired
+          ? 'Close and reopen Journal to recover the interrupted restore.'
+          : error instanceof JournalBackupRestoreExecutionError && error.code === 'restore_preview_stale'
+            ? 'Your journal changed after this comparison. Compare again before adding entries.'
+            : 'Could not finish adding entries. Compare the backup again.');
+      }
     } finally {
       running.current = false;
       if (mounted.current) {setBusy(false);}
@@ -438,7 +467,15 @@ export default function SampleLocalBackup() {
         <Text style={text}>Attached photos · {localPreview.photos}{localPreview.photos > 0 ? ` (${localPreview.photoBytes.toLocaleString()} bytes)` : ''}</Text>
         {localPreview.legacyCount > 0 && <Text style={text}>Older records kept in the file and skipped during restore · {localPreview.legacyCount}</Text>}
         {button('Compare with this device', compareWithDevice, busy)}
-        {entryReview && <JournalBackupEntryReview groups={entryReview} />}
+        {entryReview && <>
+          <JournalBackupEntryReview groups={entryReview.groups} />
+          {entryReview.held > 0 && <Text style={text}>Missing entries held for a later restore because they contain photos or account data · {entryReview.held}</Text>}
+          {entryReview.count > 0 && (confirmAdditions ? <>
+            <Text style={text}>Add {entryReview.count} {entryReview.count === 1 ? 'entry' : 'entries'} to this device? Your existing entries and edits will be kept.</Text>
+            {button('Confirm additions', addMissingEntries, busy)}
+            {button('Cancel additions', () => setConfirmAdditions(false), busy)}
+          </> : button(`Add ${entryReview.count} missing ${entryReview.count === 1 ? 'entry' : 'entries'}`, () => setConfirmAdditions(true), busy))}
+        </>}
         {showPractice && selectedDocument.current && localSnapshotToken(selectedDocument.current) && button('Restore and verify practice journal', confirmStreamedSnapshot, busy)}
         {showPractice && sampleDocument.current && button('Confirm restore to test journal', () => {
           if (sampleDocument.current) {void checkIsolatedJournal(sampleDocument.current);}

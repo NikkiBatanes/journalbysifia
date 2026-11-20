@@ -424,6 +424,7 @@ const markerValue = (
 const verifyOperations = async (
   storage: JournalBackupRestoreStorage,
   operations: readonly JournalBackupRestoreOperation[],
+  retainedKeys: readonly string[] = [],
 ): Promise<void> => {
   const values = await readExact(
     storage,
@@ -437,7 +438,7 @@ const verifyOperations = async (
   const observedOwnedKeys = uniqueSorted(
     (await storage.getAllKeys()).filter(key => isOwnedKey(key, OWNED_RULES)),
   );
-  const expectedOwnedKeys = uniqueSorted(operations.map(operation => operation.key));
+  const expectedOwnedKeys = uniqueSorted([...retainedKeys, ...operations.map(operation => operation.key)]);
   if (JSON.stringify(observedOwnedKeys) !== JSON.stringify(expectedOwnedKeys)) {
     throw fail(
       'restore_keyset_verification_failed',
@@ -580,6 +581,27 @@ async function inspectRestoreDestination(
   return {ownedKeys, snapshotKeys, before};
 }
 
+/** Read the exact device values used for both the comparison and the confirmation fence. */
+export function captureJournalForAdditions(storage: JournalBackupRestoreStorage, coordinator: JournalBackupRestoreMutationCoordinator) {
+  return coordinator.runExclusive(async () => {
+    const keys = uniqueSorted((await storage.getAllKeys()).filter(key => isOwnedKey(key, OWNED_RULES)));
+    if (keys.length > MAXIMUM_ROLLBACK_KEYS) {throw fail('rollback_key_limit_exceeded', 'Device journal exceeds the restore limit.');}
+    const values = await readExact(storage, keys);
+    const rows = new Map<string, string>();
+    values.forEach((value, key) => {
+      if (value === null) {throw fail('restore_preview_stale', 'Journal changed during review.');}
+      rows.set(key, value);
+    });
+    return rows;
+  });
+}
+
+export function addReviewedJournalEntries(storage: JournalBackupRestoreStorage, coordinator: JournalBackupRestoreMutationCoordinator,
+  plan: JournalBackupRestorePlan, reviewed: ReadonlyMap<string, string>, transactionId: string) {
+  return coordinator.runExclusive(() => withPartCleanup(storage, () =>
+    executeJournalBackupRestoreExclusive(storage, plan, transactionId, reviewed, 'add')));
+}
+
 /** Capture the reviewed values while holding the journal queue. Confirm reacquires
  * the same queue and compares the destination before the first restore write. */
 export const previewJournalBackupRestore = (
@@ -628,12 +650,27 @@ const executeJournalBackupRestoreExclusive = async (
   plan: JournalBackupRestorePlan,
   transactionId: string,
   reviewed?: ReadonlyMap<string, string | null>,
+  mode: 'replace' | 'add' = 'replace',
 ): Promise<JournalBackupRestoreExecutionResult> => {
   assertSafeTransactionId(transactionId);
   const {ownedKeys, snapshotKeys, before} = await inspectRestoreDestination(storage, plan);
-  if (reviewed && (reviewed.size !== before.size ||
-      snapshotKeys.some(key => before.get(key) !== reviewed.get(key)))) {
+  const reviewedKeys = mode === 'add' ? ownedKeys : snapshotKeys;
+  if (reviewed && (reviewed.size !== reviewedKeys.length ||
+      reviewedKeys.some(key => before.get(key) !== reviewed.get(key)))) {
     throw fail('restore_preview_stale', 'Your journal changed. Review the backup again before restoring.');
+  }
+  if (mode === 'add') {
+    for (const op of plan.operations) {
+      const current = before.get(op.key);
+      if (op.kind === 'record' && /^(journal_local(?:_singleton)?|reflection_local|prayer_local):/.test(op.key) && current === null) {continue;}
+      if (op.kind === 'index' && /^(journal|reflection|prayer)_local_index:/.test(op.key)) {
+        const prior: unknown = JSON.parse(current ?? '[]');
+        const next: unknown = JSON.parse(op.value);
+        if (Array.isArray(prior) && Array.isArray(next) && next.every(id => typeof id === 'string') &&
+            prior.every((id, i) => id === next[i])) {continue;}
+      }
+      throw fail('invalid_addition', 'Additions may only create missing entries and append to their indexes.');
+    }
   }
   const snapshot: RollbackSnapshotV1 = {
     version: RESTORE_EXECUTOR_VERSION,
@@ -652,7 +689,7 @@ const executeJournalBackupRestoreExclusive = async (
         markerValue(transactionId, 'prepared', plan.operations.length),
       ],
     ]);
-    if (ownedKeys.length > 0) {
+    if (mode === 'replace' && ownedKeys.length > 0) {
       await storage.multiRemove(ownedKeys);
     }
     await storage.multiSet([
@@ -664,7 +701,7 @@ const executeJournalBackupRestoreExclusive = async (
     await storage.multiSet(
       plan.operations.map(operation => [operation.key, operation.value] as const),
     );
-    await verifyOperations(storage, plan.operations);
+    await verifyOperations(storage, plan.operations, mode === 'add' ? ownedKeys : []);
     await storage.multiSet([
       [
         JOURNAL_RESTORE_RECOVERY_MARKER_KEY,
@@ -678,7 +715,7 @@ const executeJournalBackupRestoreExclusive = async (
     return {
       transactionId,
       restoredOperations: plan.operations.length,
-      removedOwnedKeys: ownedKeys.length,
+      removedOwnedKeys: mode === 'add' ? 0 : ownedKeys.length,
       verified: true,
       recoveryArtifactsRemoved: true,
     };

@@ -80,7 +80,10 @@ const isKeyedRecord = (value: unknown): value is { key: string; value: unknown }
 
 /** Creates an in-memory, serializable V1 envelope without writing data or files. */
 export const createJournalBackup = async (exportedAt = new Date().toISOString()): Promise<JournalBackupEnvelopeV1> => {
-  const inventory = await getJournalBackupInventory();
+  return journalBackupFromInventory(await getJournalBackupInventory(), exportedAt);
+};
+
+export const journalBackupFromInventory = (inventory: JournalBackupInventory, exportedAt = new Date().toISOString()): JournalBackupEnvelopeV1 => {
   return {
     format: JOURNAL_BACKUP_FORMAT,
     appIdentifier: JOURNAL_BACKUP_APP_IDENTIFIER,

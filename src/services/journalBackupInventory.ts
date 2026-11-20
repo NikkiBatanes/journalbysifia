@@ -187,6 +187,10 @@ const collectRefs = (value: ContentRef | ContentRef[] | undefined): ContentRef[]
 
 export const getJournalBackupInventory = async (): Promise<JournalBackupInventory> => {
   const rows = await localJournalMutations.runExclusive(readStableRows);
+  return buildJournalBackupInventory(rows);
+};
+
+export function buildJournalBackupInventory(rows: RawRow[]): JournalBackupInventory {
   const matching = (matches: (key: string) => boolean) => rows.filter(([key]) => matches(key));
   const journal = located<LocalJournalEntry>(matching(sections.journal));
   const reflections = located<LocalReflectionEntry>(matching(sections.reflections));
@@ -300,4 +304,4 @@ export const getJournalBackupInventory = async (): Promise<JournalBackupInventor
       legacyOnlyRecords: { reflectionLogs: legacyReflectionLogs.length, journalRecords: legacyJournalRecords.length },
     },
   };
-};
+}

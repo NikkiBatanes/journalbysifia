@@ -1,10 +1,14 @@
 import {v4 as uuid} from 'uuid';
-import {JOURNAL_BACKUP_APP_IDENTIFIER, type JournalBackupEnvelopeV1} from '../services/journalBackupContract';
+import {JOURNAL_BACKUP_APP_IDENTIFIER, journalBackupFromInventory, type JournalBackupEnvelopeV1} from '../services/journalBackupContract';
 import {
   countJournalBackupRecords, JOURNAL_BACKUP_ARCHIVE_FORMAT, JOURNAL_BACKUP_ARCHIVE_LIMITS as limits,
   preflightJournalBackupArchiveRestore, validateJournalBackupArchiveManifest, type JournalBackupArchiveAssetV1, type JournalBackupArchiveManifestV1,
 } from '../services/journalBackupArchiveContract';
 
+import {buildJournalBackupInventory} from '../services/journalBackupInventory';
+import {captureJournalForAdditions, addReviewedJournalEntries} from '../services/journalBackupRestoreExecutor';
+import {createJournalRestoreStorage} from '../storage/journalRestoreStorage';
+import {localJournalMutations} from '../storage/journalMutationCoordinator';
 import {reviewJournalBackupEntries} from '../services/compareJournalBackupEntries';
 import {planJournalBackupRestore} from '../services/journalBackupRestorePlan';
 import {journalBackupPhotoResolver, validateArchivePhotoBlocks} from '../services/journalBackupPhotoBlocks';
@@ -125,10 +129,57 @@ function verifiedManifest(result: string) {
   return checked.manifest;
 }
 
-export async function compareLocalSnapshotResult(document: string, device: JournalBackupEnvelopeV1, describe: Fingerprint) {
+export async function compareLocalSnapshotResult(document: string, describe: Fingerprint) {
   const saved = verifiedManifest(document);
+  const storage = createJournalRestoreStorage('');
+  const before = await captureJournalForAdditions(storage, localJournalMutations);
+  const device = journalBackupFromInventory(buildJournalBackupInventory(Array.from(before)));
   const current = await prepareJournalPhotoManifest(device, describe);
-  return reviewJournalBackupEntries(saved, current);
+  const groups = reviewJournalBackupEntries(saved, current);
+  const missing = new Map(groups.backupOnly.map(item => [item.id, item]));
+  const plan = planJournalBackupRestore(saved.backup);
+  const sections = new Set(['journalRecords', 'prayerRecords', 'reflectionRecords']);
+  const added = new Set<string>();
+  const records = plan.operations.filter(op => {
+    if (op.kind !== 'record' || !sections.has(op.section)) {return false;}
+    const entry = JSON.parse(op.value);
+    const item = missing.get(entry.id);
+    if (!item) {return false;}
+    if (before.has(op.key) || entry.deleted) {throw new Error('Comparison no longer matches the entry');}
+    if (item.backup?.photos) {
+      item.reason = 'Held for photo restore.';
+      return false;
+    }
+    if (entry.server_id != null || entry.linked_account_id != null || entry.user_id != null ||
+        (entry.sync_status != null && entry.sync_status !== 'local')) {
+      item.reason = 'Held for account verification.';
+      return false;
+    }
+    item.reason = 'Ready to add to this device.';
+    added.add(entry.id);
+    return true;
+  });
+  const indexes = plan.operations.flatMap(op => {
+    if (op.kind !== 'index' || op.key.startsWith('review_local_index:')) {return [];}
+    const ids = (JSON.parse(op.value) as string[]).filter(id => added.has(id));
+    if (!ids.length) {return [];}
+    const existing: unknown = JSON.parse(before.get(op.key) ?? '[]');
+    if (!Array.isArray(existing) || existing.some(id => typeof id !== 'string')) {throw new Error('Invalid device index');}
+    const included = new Set(existing);
+    return [{...op, value: JSON.stringify([...existing, ...ids.filter(id => !included.has(id))])}];
+  });
+  const additions = {...plan, operations: [...records, ...indexes],
+    operationCounts: {record: records.length, index: indexes.length}};
+  let available = added.size > 0;
+  return {groups, count: added.size, held: missing.size - added.size, async confirm() {
+    if (!available) {throw new Error('Compare this backup again.');}
+    available = false;
+    try {
+      return await addReviewedJournalEntries(storage, localJournalMutations, additions, before, uuid());
+    } finally {
+      before.clear();
+    }
+  }};
 }
 
 export function planStagedLocalSnapshot(result: string, staged: readonly {file: string; byteLength: number; sha256: string}[]) {

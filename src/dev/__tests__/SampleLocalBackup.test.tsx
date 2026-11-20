@@ -393,8 +393,14 @@ it('saves only after code confirmation and verifies the selected document withou
   expect(screen.queryByText('Confirm sample restore')).toBeNull();
   expect(screen.queryByLabelText('Backup recovery code')).toBeNull();
   expect(AsyncStorage.getAllKeys).not.toHaveBeenCalled();
-  jest.mocked(AsyncStorage.getAllKeys).mockResolvedValue([row[0]]);
   const compare = screen.getByText('Compare with this device');
+  jest.mocked(AsyncStorage.getAllKeys).mockResolvedValue([]);
+  fireEvent.press(compare);
+  fireEvent.press(await screen.findByText('Only in backup · 1'));
+  expect(screen.getByText('Held for photo restore.')).toBeOnTheScreen();
+  expect(screen.queryByText('Add 1 missing entry')).toBeNull();
+  fireEvent.press(screen.getByText('Back to summary'));
+  jest.mocked(AsyncStorage.getAllKeys).mockResolvedValue([row[0]]);
   fireEvent.press(compare);
   await screen.findByText('Matching · 1');
   jest.mocked(archive.describeLocalPickerPhoto).mockResolvedValue('123:' + 'b'.repeat(64));
@@ -466,4 +472,81 @@ it('pages through a large backup and returns to the first page when reopening a 
   fireEvent.press(screen.getByText('Back to summary'));
   fireEvent.press(screen.getByText('Only in backup · 12'));
   expect(screen.getByText('Entries 1–5 of 12')).toBeOnTheScreen();
+});
+
+it('adds only confirmed missing local entries, keeps edits, and rejects a stale or partially written restore', async () => {
+  const day = '2026-11-20';
+  const date = day + 'T00:00:00Z';
+  const base = {selected_date: day, created_at: date, updated_at: date, content: 'from backup'};
+  const journalKey = (id: string) => 'journal_local:todo:' + day + ':' + id;
+  const prayerKey = 'prayer_local:' + day + ':p';
+  const index = 'journal_local_index:todo:' + day;
+  const rows = new Map<string, string>([
+    [journalKey('edit'), JSON.stringify({...base, id: 'edit', content_type: 'todo', content: 'device edit'})],
+    [index, JSON.stringify(['edit'])],
+    ['prefs:hapticsEnabled', 'false'],
+  ]);
+  const initial = new Map(rows);
+  jest.mocked(AsyncStorage.getAllKeys).mockResolvedValue([]);
+  const backup = await createJournalBackup(date);
+  for (const id of ['edit', 'add', 'deleted', 'linked']) {
+    backup.inventory.journalRecords.push({...base, id, content_type: 'todo', deleted: id === 'deleted',
+      linked_account_id: id === 'linked' ? 'account' : null});
+    backup.inventory.recordLocations.journalRecords.push({id, key: journalKey(id)});
+  }
+  backup.inventory.prayerRecords.push({...base, id: 'p', prayer_type: 'journal'});
+  backup.inventory.recordLocations.prayerRecords.push({id: 'p', key: prayerKey});
+  backup.inventory.preferences.push({key: 'prefs:hapticsEnabled', value: true});
+  const manifest = JSON.stringify(await prepareJournalPhotoManifest(backup, jest.fn()));
+  jest.mocked(archive.openLocalSnapshot).mockResolvedValue(JSON.stringify({photos: [], manifestByteLength: Buffer.byteLength(manifest),
+    containerByteLength: Buffer.byteLength(manifest) + 1000}) + '\n' + manifest);
+  jest.mocked(AsyncStorage.getAllKeys).mockImplementation(async () => Array.from(rows.keys()));
+  jest.mocked(AsyncStorage.multiGet).mockImplementation(async keys => keys.map((k): [string, string | null] => [k, rows.get(k) ?? null]));
+  let interrupt = false;
+  jest.mocked(AsyncStorage.multiSet).mockImplementation(async pairs => {
+    for (const [k, v] of pairs) {
+      rows.set(k, v);
+      if (interrupt && k === journalKey('add')) {interrupt = false; throw new Error('Interrupted');}
+    }
+  });
+  jest.mocked(AsyncStorage.removeItem).mockImplementation(async k => {rows.delete(k);});
+  render(<SampleLocalBackup />);
+  fireEvent.press(screen.getByText('Check saved backup'));
+  fireEvent.changeText(screen.getByLabelText('Backup recovery code'), '1'.repeat(32));
+  fireEvent.press(screen.getByText('Choose backup file'));
+  const compare = await screen.findByText('Compare with this device');
+  async function review() {
+    fireEvent.press(compare);
+    fireEvent.press(await screen.findByText('Add 2 missing entries'));
+  }
+  await review();
+  fireEvent.press(screen.getByText('Cancel additions'));
+  expect(rows).toEqual(initial);
+  fireEvent.press(screen.getByText('Add 2 missing entries'));
+  rows.set(index, '["edit","later"]');
+  fireEvent.press(screen.getByText('Confirm additions'));
+  await screen.findByText(/Your journal changed after this comparison/);
+  expect(AsyncStorage.multiSet).not.toHaveBeenCalled();
+  const reviewed = new Map(rows);
+  await review();
+  interrupt = true;
+  fireEvent.press(screen.getByText('Confirm additions'));
+  await screen.findByText(/Could not finish adding entries/);
+  expect(rows).toEqual(reviewed);
+  await review();
+  fireEvent.press(screen.getByText('Confirm additions'));
+  await screen.findByText('Added 2 missing entries to this journal.');
+  expect(rows.get(prayerKey)).toContain('from backup');
+  expect(rows.get('prayer_local_index:' + day)).toBe('["p"]');
+  expect(rows.get(journalKey('add'))).toContain('from backup');
+  expect(rows.get(index)).toBe('["edit","later","add"]');
+  expect(rows.get(journalKey('edit'))).toBe(initial.get(journalKey('edit')));
+  expect(rows.get('prefs:hapticsEnabled')).toBe('false');
+  expect(rows.size).toBe(initial.size + 3);
+  fireEvent.press(screen.getByText('Check saved backup'));
+  fireEvent.changeText(screen.getByLabelText('Backup recovery code'), '1'.repeat(32));
+  fireEvent.press(screen.getByText('Choose backup file'));
+  fireEvent.press(await screen.findByText('Compare with this device'));
+  await screen.findByText('Matching · 2');
+  expect(screen.queryByText(/Add \d+ missing/)).toBeNull();
 });
