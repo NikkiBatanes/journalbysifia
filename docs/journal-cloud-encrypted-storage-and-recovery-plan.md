@@ -737,6 +737,28 @@ Both arm64 packages passed on 2026-11-20. A fresh iOS 26.3 simulator and Android
 
 Prepare reproducible provider artifacts for iOS devices and the remaining Android architectures. Inspect the distribution binaries and repeat the save/reopen test on physical hardware before adopting the dependency or migrating customer photos. The current shipping configuration still links the 3.6 provider and the production dependency check rejects it. No user action or manual Supabase SQL is required to prepare the artifacts.
 
+### Build the mobile OpenSSL provider archives
+
+Use [the provider builder](../scripts/build-journal-storage-provider.py) on macOS with Python 3.12 or newer, Perl, make, Xcode and Android NDK 27.1.12297006. Supply the official OpenSSL 3.5.9 release tarball from the compatibility check above. Choose a new output directory for each run. The script checks the source digest before extraction and publishes the directory once every target passes.
+
+```sh
+python3 scripts/build-journal-storage-provider.py /path/to/openssl-3.5.9.tar.gz /tmp/journal-provider-first
+python3 scripts/build-journal-storage-provider.py /path/to/openssl-3.5.9.tar.gz /tmp/journal-provider-second
+diff -qr /tmp/journal-provider-first /tmp/journal-provider-second
+```
+
+Each platform directory contains a static `libcrypto.a` and its matching `include/openssl` headers. Keep the headers with their target archive. The root contains the OpenSSL license and a manifest with the toolchain versions and SHA-256 checksums. Rebuild comparisons use the same Xcode, SDKs and NDK on the same host.
+
+| Target | What the builder verifies |
+| --- | --- |
+| iPhone arm64, iOS 15.1 minimum | Links the entire archive and checks the device platform, minimum OS, architecture and embedded version. |
+| iOS simulator arm64 and x86_64 | Runs the same inspection for each simulator architecture and verifies the simulator platform marker. |
+| Android API 24, armeabi-v7a, arm64-v8a, x86 and x86_64 | Links each complete archive with undefined symbols treated as errors. Checks ELF machine type, load segments aligned to at least 16 KB, embedded version and absence of a dynamic libcrypto dependency. |
+
+On 2026-11-20, two independent builds on Xcode 26.4.1 (17E202), Apple SDK build 23E252 and the pinned NDK produced byte-identical directories across all seven targets. The manifest SHA-256 was `a743e1cad052c6b051ca4c95ca3ab2d6b0d418910e1efce22060dbaa1cf253fa`. The locked OP-SQLite SQLCipher amalgamation and the native storage fixture also linked against each archive.
+
+These checks cover provider inputs for mobile packaging. Store release validation still needs inspection of the final Journal app binaries and a save, process termination and reopen on physical devices.
+
 ## Primary references
 
 - [Apple: restricting Keychain item accessibility](https://developer.apple.com/documentation/Security/restricting-keychain-item-accessibility)
