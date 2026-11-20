@@ -72,6 +72,24 @@ function newRecoveryCode() {
   return Array.from(bytes, byte => byte.toString(16).padStart(2, '0')).join('').match(/.{4}/g)!.join('-');
 }
 
+function RestoredPracticePhoto({photo, number}: {
+  photo: {uri: string; caption: string};
+  number: number;
+}) {
+  const {colors, fontFamily} = useTheme();
+  const text = {color: colors.text, fontFamily};
+  const [loaded, setLoaded] = useState<boolean | null>(null);
+  const label = `Restored photo ${number}`;
+  return (
+    <View>
+      <ExpandableJournalPhoto uri={photo.uri} imageStyle={styles.practicePhoto}
+        accessibilityLabel={label} onImageResult={setLoaded} />
+      {loaded !== null && <Text style={text}>{label}{loaded ? ' loaded' : ' could not be displayed'}</Text>}
+      {!!photo.caption && <Text style={text}>{photo.caption}</Text>}
+    </View>
+  );
+}
+
 export default function SampleLocalBackup() {
   const {colors, fontFamily} = useTheme();
   const [showPractice, setShowPractice] = useState(false);
@@ -588,11 +606,9 @@ export default function SampleLocalBackup() {
           {practiceReflection && <>
             <Text accessibilityRole="header" style={text}>Restored practice reflection</Text>
             <Text style={text}>{practiceReflection.content}</Text>
-            {practiceReflection.photos.map((photo, index) => <View key={index}>
-              <ExpandableJournalPhoto uri={photo.uri} imageStyle={styles.practicePhoto}
-                accessibilityLabel={`Restored photo ${index + 1}`} />
-              {!!photo.caption && <Text style={text}>{photo.caption}</Text>}
-            </View>)}
+            {practiceReflection.photos.map((photo, index) =>
+              <RestoredPracticePhoto key={index} photo={photo} number={index + 1} />
+            )}
           </>}
           {button('Reopen restored sample', () => checkIsolatedJournal(), busy)}
           {button('Save sample backup', () => start('export'), busy)}

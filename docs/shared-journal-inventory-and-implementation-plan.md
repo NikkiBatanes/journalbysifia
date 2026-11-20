@@ -1687,6 +1687,12 @@ The normal reflection editor now queues its lookup, merge and save together. Two
 
 All five restore integration tests and 49 focused tests passed. The full suite passed 1,565 tests and retained the previous 35 failures. The TypeScript output matched the preceding checkpoint. Phase 5 is estimated at **96%**, with **32.8%** weighted delivery. Remaining work includes device editor coverage, a supported encrypted storage build and migration for existing customer photos.
 
+### 2026-11-20 · Verify that each restored photo loads
+
+The development backup screen now reports the native image result for each of the two restored practice photos. A successful load requires positive image dimensions. Expanding a photo alone cannot mark it as loaded. Tests cover a successful load, a failed image, missing dimensions, expansion of both photos and clearing the results when the practice viewer closes.
+
+All 75 focused backup-screen and shared journal UI tests passed. The TypeScript check produced the same diagnostics as the preceding Git revision when both ran with the same configuration. The Pixel reached Journal’s home and More screens before Android’s System UI stopped responding to gestures. Its visual check is still open. The previous iPhone visual check passed. Phase 5 remains estimated at **96%** and weighted delivery at **32.8%**.
+
 ## Primary references checked on 2026-11-03
 
 - [Apple App Review Guidelines, payments/subscriptions](https://developer.apple.com/app-store/review/guidelines/): mobile subscription checkout baseline and subscription disclosures. Regional alternative-payment programs require separate review if later used.

@@ -14,10 +14,12 @@ export const ExpandableJournalPhoto = ({
   uri,
   imageStyle,
   accessibilityLabel = 'Journal photo',
+  onImageResult,
 }: {
   uri: string;
   imageStyle?: StyleProp<ImageStyle>;
   accessibilityLabel?: string;
+  onImageResult?: (loaded: boolean) => void;
 }) => {
   const [expanded, setExpanded] = useState(false);
   const [aspectRatio, setAspectRatio] = useState<number | null>(null);
@@ -62,10 +64,13 @@ export const ExpandableJournalPhoto = ({
             borderRadius: 16,
           },
         ]}
+        onError={onImageResult ? () => onImageResult(false) : undefined}
         resizeMode={expanded ? 'contain' : 'cover'}
         onLoad={({nativeEvent}) => {
           const {width, height} = nativeEvent.source;
-          if (width > 0 && height > 0) {
+          const loaded = width > 0 && height > 0;
+          onImageResult?.(loaded);
+          if (loaded) {
             setAspectRatio(width / height);
           }
         }}
