@@ -1590,6 +1590,14 @@ Regression tests reproduced three failures before the change: two reflections sa
 
 All 134 focused tests and four host restore integration tests passed. The host tests reopen practice data in fresh processes. Real journal writes still use the existing device storage. An edit waiting in memory requires the app process to stay alive until the save completes. Before enabling customer restore, cover the other backed-up writers (including drafts, reviews and settings), check the destination again at confirmation, and verify startup recovery before accepting edits on each platform. Phase 5 remains at **95%** and weighted overall progress at **32.7%**.
 
+### 2026-11-20 — Preserve drafts, reviews and preferences during a backup read
+
+Prayer, session-note, guided-reflection and routine draft saves and clears now share the backup reader’s queue. Review creation, updates, completion and deletion use the same queue, including changes to the list of reviews by period. Local profile and journal preferences, review settings, onboarding setup and the Scripture sequence start date also participate.
+
+Tests paused the backup read while a draft was cleared, a weekly review completed and a reminder time changed. A successful inventory captured all three earlier values. After either a successful or failed read, the next inventory reflected all three edits. Overlapping requests for the same review returned one ID, and requests for different weeks kept both weeks in the list. Routine autosave tests covered clearing before a pending timer fired, typing while a draft was loading, and reopening a different day after clearing a draft.
+
+Verification included 137 focused tests and four host restore tests using practice data. The repository-wide run reproduced the same 35 failing tests across 21 suites as the prior checkpoint. Phase 5 remains at **95%** and weighted overall progress at **32.7%**. Remaining work includes Bible study sessions, routine progress, Gospel content and older storage paths, followed by a destination check at confirmation and startup recovery tests on iOS and Android against the customer storage adapter. Queued edits are durable once their device save completes.
+
 ## Primary references checked on 2026-11-03
 
 - [Apple App Review Guidelines, payments/subscriptions](https://developer.apple.com/app-store/review/guidelines/): mobile subscription checkout baseline and subscription disclosures. Regional alternative-payment programs require separate review if later used.

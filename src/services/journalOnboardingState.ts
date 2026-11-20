@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {setLocalJournalItem} from '../storage/journalItemStorage';
 import {getOrCreateScriptureSequenceAnchor} from './scriptureSequenceAnchor';
 
 // Journal by siFia first-launch state.
@@ -135,7 +136,7 @@ export const saveJournalOnboardingSetup = async (
     rhythmBarrier: setup.rhythmBarrier,
   };
 
-  await AsyncStorage.setItem(
+  await setLocalJournalItem(
     JOURNAL_ONBOARDING_SETUP_KEY,
     JSON.stringify(normalized),
   );

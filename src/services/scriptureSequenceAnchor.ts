@@ -1,3 +1,4 @@
+import {localJournalMutations} from '../storage/journalMutationCoordinator';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {fromLocalDateString, toLocalDateString} from '../utils/date';
 
@@ -40,13 +41,13 @@ let pendingLocalStart: Promise<string> | null = null;
 export const getOrCreateScriptureSequenceAnchor = async (accountCreatedAt?: string | null): Promise<string> => {
   const accountDate = validSequenceDate(accountCreatedAt);
   if (!pendingLocalStart) {
-    pendingLocalStart = (async () => {
+    pendingLocalStart = localJournalMutations.runExclusive(async () => {
       const stored = validSequenceDate(await AsyncStorage.getItem(SCRIPTURE_SEQUENCE_START_KEY));
       if (stored) {return stored;}
       const start = accountDate || await findLocalStart() || toLocalDateString(new Date());
       await AsyncStorage.setItem(SCRIPTURE_SEQUENCE_START_KEY, start);
       return start;
-    })();
+    });
   }
   const pending = pendingLocalStart;
   try {

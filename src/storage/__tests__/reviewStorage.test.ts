@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { updateLocalReview, type LocalReviewEntry } from '../reviewStorage';
+import { getLocalReviewsByType, getOrCreateLocalReviewForPeriod, updateLocalReview, type LocalReviewEntry } from '../reviewStorage';
 
-jest.mock('@react-native-async-storage/async-storage', () => ({setItem: jest.fn()}));
+jest.mock('@react-native-async-storage/async-storage', () => ({getItem: jest.fn(), setItem: jest.fn()}));
 
 it('serializes writes so a newer autosave remains authoritative', async () => {
   let releaseFirst!: () => void;
@@ -23,4 +23,15 @@ it('serializes writes so a newer autosave remains authoritative', async () => {
   releaseFirst();
   await Promise.all([writeA, writeB]);
   expect(JSON.parse(writes[1]).answers.notice).toBe('B');
+});
+
+it('returns one weekly review per period and keeps both weeks in the index during overlapping saves', async () => {
+  const rows = new Map<string, string>();
+  jest.mocked(AsyncStorage.getItem).mockImplementation(async key => rows.get(key) ?? null);
+  jest.mocked(AsyncStorage.setItem).mockImplementation(async (key, value) => {rows.set(key, value);});
+  const first = {type: 'weekly' as const, periodStart: '2026-11-09', periodEnd: '2026-11-15'};
+  const second = {...first, periodStart: '2026-11-16', periodEnd: '2026-11-22'};
+  const [a, repeated, b] = await Promise.all([first, first, second].map(getOrCreateLocalReviewForPeriod));
+  expect(repeated.id).toBe(a.id);
+  expect((await getLocalReviewsByType('weekly')).map(review => review.id).sort()).toEqual([a.id, b.id].sort());
 });

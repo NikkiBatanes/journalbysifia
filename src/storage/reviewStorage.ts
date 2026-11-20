@@ -1,3 +1,4 @@
+import {localJournalMutations} from './journalMutationCoordinator';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {safeJsonParse} from '../utils/safeJsonParse';
 import {toLocalDateString} from '../utils/date';
@@ -111,30 +112,6 @@ const getReviewIndexKey = (type: ReviewType): string =>
 const getReviewKey = (type: ReviewType, id: string): string =>
   `${LOCAL_REVIEW_PREFIX}:${type}:${id}`;
 
-const reviewWriteQueues = new Map<string, Promise<void>>();
-
-const serializeReviewWrite = async <T>(
-  key: string,
-  operation: () => Promise<T>,
-): Promise<T> => {
-  const previous = reviewWriteQueues.get(key) ?? Promise.resolve();
-  let release!: () => void;
-  const current = new Promise<void>(resolve => {
-    release = resolve;
-  });
-  const tail = previous.catch(() => undefined).then(() => current);
-  reviewWriteQueues.set(key, tail);
-  await previous.catch(() => undefined);
-  try {
-    return await operation();
-  } finally {
-    release();
-    if (reviewWriteQueues.get(key) === tail) {
-      reviewWriteQueues.delete(key);
-    }
-  }
-};
-
 const readReviewIndex = async (type: ReviewType): Promise<string[]> => {
   const raw = await AsyncStorage.getItem(getReviewIndexKey(type));
   if (!raw) {
@@ -150,7 +127,7 @@ const writeReviewIndex = async (
   await AsyncStorage.setItem(getReviewIndexKey(type), JSON.stringify(ids));
 };
 
-export const createLocalReview = async (
+const insertLocalReview = async (
   data: CreateReviewData,
 ): Promise<LocalReviewEntry> => {
   const now = new Date().toISOString();
@@ -176,6 +153,9 @@ export const createLocalReview = async (
 
   return entry;
 };
+
+export const createLocalReview = (data: CreateReviewData): Promise<LocalReviewEntry> =>
+  localJournalMutations.runExclusive(() => insertLocalReview(data));
 
 export const getLocalReview = async (
   type: ReviewType,
@@ -240,27 +220,28 @@ export const getOrCreateLocalReviewForPeriod = async (
     memorableItems?: ReviewMemorableItem[];
     answers?: ReviewAnswers;
   },
-): Promise<LocalReviewEntry> => {
-  const start = formatLocalDate(data.periodStart);
-  const end = formatLocalDate(data.periodEnd);
-  const existing = await getLocalReviewForPeriod(data.type, start, end);
-  if (existing) {
-    return existing;
-  }
-  return createLocalReview({
-    ...data,
-    periodStart: start,
-    periodEnd: end,
-    memorableItems: data.memorableItems ?? [],
-    answers: data.answers ?? {},
+): Promise<LocalReviewEntry> =>
+  localJournalMutations.runExclusive(async () => {
+    const start = formatLocalDate(data.periodStart);
+    const end = formatLocalDate(data.periodEnd);
+    const existing = await getLocalReviewForPeriod(data.type, start, end);
+    if (existing) {
+      return existing;
+    }
+    return insertLocalReview({
+      ...data,
+      periodStart: start,
+      periodEnd: end,
+      memorableItems: data.memorableItems ?? [],
+      answers: data.answers ?? {},
+    });
   });
-};
 
 export const updateLocalReview = async (
   entry: LocalReviewEntry,
 ): Promise<LocalReviewEntry> => {
   const key = getReviewKey(entry.type, entry.id);
-  return serializeReviewWrite(key, async () => {
+  return localJournalMutations.runExclusive(async () => {
     const updated: LocalReviewEntry = {
       ...entry,
       updatedAt: new Date().toISOString(),
@@ -292,9 +273,10 @@ export const completeLocalReview = async (
 export const deleteLocalReview = async (
   type: ReviewType,
   id: string,
-): Promise<void> => {
-  await AsyncStorage.removeItem(getReviewKey(type, id));
-  const index = await readReviewIndex(type);
-  const nextIndex = index.filter(itemId => itemId !== id);
-  await writeReviewIndex(type, nextIndex);
-};
+): Promise<void> =>
+  localJournalMutations.runExclusive(async () => {
+    await AsyncStorage.removeItem(getReviewKey(type, id));
+    const index = await readReviewIndex(type);
+    const nextIndex = index.filter(itemId => itemId !== id);
+    await writeReviewIndex(type, nextIndex);
+  });

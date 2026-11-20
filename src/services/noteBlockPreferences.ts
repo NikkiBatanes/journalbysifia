@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {setLocalJournalItem} from '../storage/journalItemStorage';
 import {useEffect, useSyncExternalStore} from 'react';
 
 import {
@@ -79,7 +80,6 @@ export class NoteBlockPreferencesService {
   private listeners = new Set<() => void>();
   private preferences = sanitizePreferences(null);
   private snapshot: NoteBlockPreferencesSnapshot = this.createSnapshot();
-  private persistenceQueue: Promise<void> = Promise.resolve();
 
   private createSnapshot(): NoteBlockPreferencesSnapshot {
     return Object.freeze({
@@ -96,11 +96,7 @@ export class NoteBlockPreferencesService {
   }
 
   private persist() {
-    const payload = JSON.stringify(this.preferences);
-    this.persistenceQueue = this.persistenceQueue
-      .catch(() => undefined)
-      .then(() => AsyncStorage.setItem(STORAGE_KEY, payload));
-    return this.persistenceQueue;
+    return setLocalJournalItem(STORAGE_KEY, JSON.stringify(this.preferences));
   }
 
   loadOnce = async () => {

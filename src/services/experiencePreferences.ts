@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {setLocalJournalItem} from '../storage/journalItemStorage';
 
 // Centralized (in-memory + persisted) preferences controlling app haptics & sounds
 // Defaults: enabled
@@ -52,19 +53,19 @@ class ExperiencePreferences {
 
   async setHapticsEnabled(value: boolean) {
     this._hapticsEnabled = !!value;
-    try { await AsyncStorage.setItem(STORAGE_KEYS.haptics, String(this._hapticsEnabled)); } catch {}
+    try { await setLocalJournalItem(STORAGE_KEYS.haptics, String(this._hapticsEnabled)); } catch {}
     this._notify();
   }
 
   async setSoundsEnabled(value: boolean) {
     this._soundsEnabled = !!value;
-    try { await AsyncStorage.setItem(STORAGE_KEYS.sounds, String(this._soundsEnabled)); } catch {}
+    try { await setLocalJournalItem(STORAGE_KEYS.sounds, String(this._soundsEnabled)); } catch {}
     this._notify();
   }
 
   async setShowTabLabelsEnabled(value: boolean) {
     this._showTabLabelsEnabled = !!value;
-    try { await AsyncStorage.setItem(STORAGE_KEYS.showTabLabels, String(this._showTabLabelsEnabled)); } catch {}
+    try { await setLocalJournalItem(STORAGE_KEYS.showTabLabels, String(this._showTabLabelsEnabled)); } catch {}
     this._notify();
   }
 

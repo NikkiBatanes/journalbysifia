@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {removeLocalJournalItem, setLocalJournalItem} from './journalItemStorage';
 
 import { safeJsonParse } from '../utils/safeJsonParse';
 
@@ -19,7 +20,7 @@ export const getPrayerDraftKey = (type: PrayerDraftType, selectedDate: string, c
 
 export const savePrayerDraft = async (draft: Omit<PrayerDraft, 'updatedAt'>) => {
   const value: PrayerDraft = { ...draft, updatedAt: new Date().toISOString() };
-  await AsyncStorage.setItem(draft.key, JSON.stringify(value));
+  await setLocalJournalItem(draft.key, JSON.stringify(value));
   return value;
 };
 
@@ -29,7 +30,7 @@ export const getPrayerDraft = async (key: string) => {
 };
 
 export const clearPrayerDraft = async (key: string) => {
-  await AsyncStorage.removeItem(key);
+  await removeLocalJournalItem(key);
 };
 
 export const getLatestPrayerDraft = async () => {

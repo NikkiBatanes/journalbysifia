@@ -3,6 +3,7 @@ import React, { createContext, useContext, useEffect, useState, useMemo, ReactNo
 import { User, Session, AuthError as SupabaseAuthError } from '@supabase/supabase-js';
 import { supabase } from '../services/supabaseClient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {setLocalJournalItem} from '../storage/journalItemStorage';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import appleAuth from '@invertase/react-native-apple-authentication';
 import { Platform } from 'react-native';
@@ -126,7 +127,7 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
   const reviewWeekStart = (authState.user?.user_metadata?.preferences || localPreferences).weekStart || 'monday';
   useEffect(() => {
     // Make the Profile preference available to review services outside React.
-    void AsyncStorage.setItem('journal:review-week-start', reviewWeekStart)
+    void setLocalJournalItem('journal:review-week-start', reviewWeekStart)
       .catch(error => Logger.warn('Could not sync review week start', { reason: String(error) }));
   }, [reviewWeekStart]);
 
@@ -1021,7 +1022,7 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
     try {
       if (!authState.user) {
         const updated = { ...localProfile, ...profileData };
-        await AsyncStorage.setItem('journal:local-profile', JSON.stringify(updated));
+        await setLocalJournalItem('journal:local-profile', JSON.stringify(updated));
         localProfileEdited.current = true;
         setLocalProfile(updated);
         return { success: true };
@@ -1086,7 +1087,7 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
   const updatePreferences = React.useCallback(async (preferences: any) => {
     try {
       if (!authState.user) {
-        await AsyncStorage.setItem('journal:local-preferences', JSON.stringify(preferences));
+        await setLocalJournalItem('journal:local-preferences', JSON.stringify(preferences));
         localPreferencesEdited.current = true;
         setLocalPreferences(preferences);
         return { success: true };

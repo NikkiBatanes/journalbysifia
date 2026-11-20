@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {removeLocalJournalItem, setLocalJournalItem} from './journalItemStorage';
 
 import type {JournalBlock} from '../components/journal/shared/journalBlocks';
 import {
@@ -90,7 +91,7 @@ export const saveSessionNotesDraft = async (
     format: SESSION_NOTES_DRAFT_FORMAT,
     updatedAt: new Date().toISOString(),
   };
-  await AsyncStorage.setItem(
+  await setLocalJournalItem(
     sessionNotesDraftKey(
       input.selectedDate,
       input.sessionNoteType,
@@ -118,7 +119,7 @@ export const clearSessionNotesDraft = async (
   sessionNoteType: SessionNoteType,
   reflectionId?: string | null,
 ): Promise<void> => {
-  await AsyncStorage.removeItem(
+  await removeLocalJournalItem(
     sessionNotesDraftKey(selectedDate, sessionNoteType, reflectionId),
   );
 };

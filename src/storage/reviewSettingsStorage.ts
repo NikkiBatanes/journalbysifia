@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {setLocalJournalItem} from './journalItemStorage';
 import { safeJsonParse } from '../utils/safeJsonParse';
 import { type ReviewType } from './reviewStorage';
 
@@ -52,5 +53,5 @@ export const getReviewSettings = async (weekStart?: string): Promise<ReviewSetti
 export const setReviewSettings = async (
   settings: ReviewSettings,
 ): Promise<void> => {
-  await AsyncStorage.setItem(REVIEW_SETTINGS_KEY, JSON.stringify(settings));
+  await setLocalJournalItem(REVIEW_SETTINGS_KEY, JSON.stringify(settings));
 };

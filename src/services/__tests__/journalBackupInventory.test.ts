@@ -9,6 +9,9 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
 }));
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {clearPrayerDraft, getPrayerDraft, getPrayerDraftKey, savePrayerDraft} from '../../storage/prayerDraftStorage';
+import {completeLocalReview, getLocalReview, getOrCreateLocalReviewForPeriod} from '../../storage/reviewStorage';
+import {DEFAULT_REVIEW_SETTINGS, getReviewSettings, setReviewSettings} from '../../storage/reviewSettingsStorage';
 import { getJournalBackupInventory } from '../journalBackupInventory';
 
 const put = (key: string, value: unknown) => mockValues.set(key, JSON.stringify(value));
@@ -160,4 +163,53 @@ it('detects a new entry inserted during the last batch of an otherwise matching 
   });
   await expect(getJournalBackupInventory()).rejects.toThrow('changed while being read');
   expect((await getJournalBackupInventory()).prayerRecords).toHaveLength(2);
+});
+
+it.each([false, true])('finishes queued draft, review and settings changes after a backup read (failure: %s)', async fail => {
+  const date = '2026-11-20';
+  const key = getPrayerDraftKey('open', date);
+  jest.mocked(AsyncStorage.setItem).mockImplementation(async (k, value) => {mockValues.set(k, value);});
+  jest.mocked(AsyncStorage.removeItem).mockImplementation(async k => {mockValues.delete(k);});
+  await savePrayerDraft({key, type: 'open', selectedDate: date, data: {text: 'Before'}});
+  await setReviewSettings(DEFAULT_REVIEW_SETTINGS);
+  const period = {type: 'weekly' as const, periodStart: date, periodEnd: date};
+  const review = await getOrCreateLocalReviewForPeriod(period);
+
+  let release!: () => void;
+  let signal!: () => void;
+  const paused = new Promise<void>(resolve => {release = resolve;});
+  const started = new Promise<void>(resolve => {signal = resolve;});
+  jest.mocked(AsyncStorage.getAllKeys).mockImplementationOnce(async () => {
+    signal();
+    await paused;
+    if (fail) {throw new Error('Interrupted backup');}
+    return Array.from(mockValues.keys());
+  });
+  const backup = getJournalBackupInventory();
+  await started;
+  const edits = Promise.all([
+    clearPrayerDraft(key),
+    completeLocalReview(review),
+    setReviewSettings({...DEFAULT_REVIEW_SETTINGS, reminderTime: '08:00'}),
+  ]);
+  try {
+    expect(await getPrayerDraft(key)).toBeTruthy();
+    expect((await getLocalReview('weekly', review.id))?.status).toBe('draft');
+    expect((await getReviewSettings()).reminderTime).toBe(DEFAULT_REVIEW_SETTINGS.reminderTime);
+  } finally {
+    release();
+  }
+  if (fail) {
+    await expect(backup).rejects.toThrow('Interrupted backup');
+  } else {
+    expect(await backup).toMatchObject({
+      reviews: [{id: review.id, status: 'draft'}],
+      prayerDrafts: [{key}],
+      reviewSettings: DEFAULT_REVIEW_SETTINGS,
+    });
+  }
+  await edits;
+  expect(await getJournalBackupInventory()).toMatchObject({
+    prayerDrafts: [], reviews: [{id: review.id, status: 'completed'}], reviewSettings: {reminderTime: '08:00'},
+  });
 });
