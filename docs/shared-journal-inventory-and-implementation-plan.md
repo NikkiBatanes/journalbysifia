@@ -1560,6 +1560,14 @@ Four host integration tests and 31 focused regression tests passed. The host tes
 
 Customer restore remains gated on the production storage choice and integration with the live journal. The next recovery check is an app process interruption during a multi-chunk restore, followed by reopening and retrying on the device.
 
+### 2026-11-20 — Close Journal while restoring a practice photo
+
+The test used a dedicated encrypted database on each development device. Before the restore, each database contained a single test value. The Mac decoded the encrypted two-photo fixture with the native archive reader and supplied its frames to the app's restore function. The test paused the next read after the app had inserted and read back the first 32 KiB of the larger photo, while the transaction was still open.
+
+On the iPhone simulator, terminating and reopening Journal preserved the original test value. None of the restore tables survived the interruption. Retrying restored two photos (110,947 bytes in five chunks). After closing and reopening the database, replay verified the saved records and photo bytes against the fixture.
+
+On the Pixel 8 emulator the app reached the same pause. Android force-stopped the app and launched a new process. The development connection timed out during verification. Android recovery and retry remain unverified for this scenario.
+
 ## Primary references checked on 2026-11-03
 
 - [Apple App Review Guidelines, payments/subscriptions](https://developer.apple.com/app-store/review/guidelines/): mobile subscription checkout baseline and subscription disclosures. Regional alternative-payment programs require separate review if later used.
