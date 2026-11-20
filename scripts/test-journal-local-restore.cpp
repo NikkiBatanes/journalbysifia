@@ -1,5 +1,5 @@
 // Host-only, synthetic data. The staged object uses the existing test fixture key.
-#include "../native/journal-archive/DeviceRestoreSample.hpp"
+#include "../native/journal-archive/LocalRestoreCursor.hpp"
 #include "../native/journal-archive/SyntheticFilePhoto.hpp"
 #include <filesystem>
 #include <fstream>
@@ -27,6 +27,21 @@ int main(int argc, char **argv) {
       return 0;
     }
     const auto archive = (dir / "archive").string();
+    if (mode == "stream") {
+      auto &cursor = js::localRestoreCursor();
+      auto preview = cursor.preview(archive.c_str(), arg);
+      const std::string prefix = "\"restoreToken\":\"";
+      const auto tokenAt = preview.find(prefix);
+      js::check(tokenAt < preview.find('\n'));
+      const auto token = preview.substr(tokenAt + prefix.size(), 32);
+      std::cout << preview << '\n';
+      for (;;) {
+        auto frame = cursor.next(token, false);
+        std::cout << frame << '\n';
+        if (frame == "final") break;
+      }
+      return 0;
+    }
     if (mode == "preview-sample") {
       std::cout << js::inspectDeviceSnapshot(archive.c_str(), arg);
       return 0;

@@ -123,6 +123,19 @@ class JournalArchiveCryptoModule(reactContext: ReactApplicationContext) :
 
   private external fun nativeOpenLocalSnapshot(stagingFile: String, recoveryCode: String): ByteArray?
 
+  private external fun nativeReadLocalRestoreFrame(token: String, discard: Boolean): String?
+
+  override fun readLocalRestoreFrame(token: String, discard: Boolean, promise: Promise) {
+    cryptoExecutor.execute {
+      try {
+        check(app.journal.sifia.BuildConfig.DEBUG)
+        promise.resolve(requireNotNull(nativeReadLocalRestoreFrame(token, discard)))
+      } catch (_: Exception) {
+        promise.reject("RESTORE_FRAME_FAILED", "Reopen the test backup.")
+      }
+    }
+  }
+
   override fun openLocalSnapshot(recoveryCode: String, promise: Promise) =
     pickDocument(false, recoveryCode, -1, promise, local = true)
 

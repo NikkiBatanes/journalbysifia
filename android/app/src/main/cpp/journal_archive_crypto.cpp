@@ -1,4 +1,4 @@
-#include "../../../../../native/journal-archive/DeviceRestoreSample.hpp"
+#include "../../../../../native/journal-archive/LocalRestoreCursor.hpp"
 #include "../../../../../native/journal-archive/PickerPhotoDigest.hpp"
 #include "../../../../../native/journal-archive/SyntheticSharedTransfer.hpp"
 #include "../../../../../native/journal-archive/SyntheticFilePhoto.hpp"
@@ -652,7 +652,7 @@ Java_app_journal_sifia_archivecrypto_JournalArchiveCryptoModule_nativeOpenLocalS
   jbyteArray result = nullptr;
   if (code) {
     try {
-      auto preview = journal_snapshot::inspectDeviceSnapshot(path, code);
+      auto preview = journal_snapshot::localRestoreCursor().preview(path, code);
       result = env->NewByteArray(static_cast<jsize>(preview.size()));
       if (result) env->SetByteArrayRegion(result, 0, static_cast<jsize>(preview.size()),
                                           reinterpret_cast<const jbyte *>(preview.data()));
@@ -661,5 +661,19 @@ Java_app_journal_sifia_archivecrypto_JournalArchiveCryptoModule_nativeOpenLocalS
     env->ReleaseStringUTFChars(recoveryCode, code);
   }
   if (path) env->ReleaseStringUTFChars(stagingFile, path);
+  return result;
+}
+
+extern "C" JNIEXPORT jstring JNICALL
+Java_app_journal_sifia_archivecrypto_JournalArchiveCryptoModule_nativeReadLocalRestoreFrame(
+    JNIEnv *env, jobject, jstring token, jboolean discard) {
+  const char *id = env->GetStringUTFChars(token, nullptr);
+  if (!id) return nullptr;
+  jstring result = nullptr;
+  try {
+    const auto frame = journal_snapshot::localRestoreCursor().next(id, discard);
+    result = env->NewStringUTF(frame.c_str());
+  } catch (const std::exception &) {}
+  env->ReleaseStringUTFChars(token, id);
   return result;
 }

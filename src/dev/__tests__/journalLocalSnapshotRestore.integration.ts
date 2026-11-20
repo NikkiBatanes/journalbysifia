@@ -8,6 +8,7 @@ import {createJournalBackup} from '../../services/journalBackupContract';
 import {openRestoreSession} from '../journalRestoreDatabase';
 import {planStagedLocalSnapshot, prepareJournalPhotoExport} from '../prepareJournalPhotoManifest';
 import {hasDeviceRestoreSample, readDeviceSample, restoreDeviceSample} from '../journalDeviceSnapshotRestore';
+import {restoreStreamedSnapshot} from '../journalStreamingSnapshotRestore';
 import {connect} from './restoreTestDatabase';
 
 jest.mock('uuid', () => ({v4: require('node:crypto').randomUUID}));
@@ -100,5 +101,75 @@ it('confirms only the Files test sample and checks its linked photo after reopen
       await reopened.execute('DELETE FROM sample_photo');
       await expect(readDeviceSample(reopened)).rejects.toThrow('photo differs');
     } finally {reopened.close();}
+  } finally {rmSync(root, {recursive: true, force: true});}
+});
+
+it.each([
+  ['Text', 0, 0], ['Photos', 2, 110947],
+] as const)('streams and reopens the %s practice backup', async (fixture, photos, bytes) => {
+  const root = mkdtempSync(join(tmpdir(), 'journal-streamed-restore-'));
+  const dbFile = join(root, 'restored.sqlite');
+  const input = join(root, 'archive');
+  const readFrames = () => {
+    const [evidence, manifest, ...frames] = execFileSync(process.env.JOURNAL_SNAPSHOT_HOST!,
+      ['stream', root, '12233445566778899aabbccddeeff001'], {encoding: 'utf8'}).trimEnd().split('\n');
+    return {document: evidence + '\n' + manifest, frames};
+  };
+  try {
+    copyFileSync(join(__dirname, '../../../scripts/fixtures/journal-backup/JournalRestore' + fixture + '.bin'), input);
+    const {document, frames} = readFrames();
+    const apply = (db: ReturnType<typeof connect>, messages: string[]) =>
+      restoreStreamedSnapshot(db, document, async (_token, discard) => {
+        if (discard) {return '';}
+        const frame = messages.shift();
+        if (!frame) {throw new Error('Interrupted read');}
+        return frame;
+      });
+    const db = connect(dbFile);
+    try {
+      const interruptions = [frames.slice(0, -1)];
+      if (photos) {
+        interruptions.push(frames.slice(0, frames.findIndex(frame => frame.startsWith('end:')) + 1));
+        interruptions.push(frames.map(frame => frame.startsWith('end:') ? frame + 'x' : frame));
+      }
+      for (const incomplete of interruptions) {
+        await expect(apply(db, incomplete)).rejects.toThrow();
+        expect((await db.execute("SELECT name FROM sqlite_master WHERE type='table'")).rows).toEqual([]);
+      }
+      await db.execute('CREATE TABLE restore_kv (k TEXT PRIMARY KEY NOT NULL, v TEXT NOT NULL)');
+      await db.execute('INSERT INTO restore_kv VALUES (?,?)', ['existing', 'keep this entry']);
+      await expect(apply(db, [...frames])).rejects.toThrow('empty test journal');
+      expect((await db.execute('SELECT v FROM restore_kv')).rows).toEqual([{v: 'keep this entry'}]);
+      await db.execute('DELETE FROM restore_kv WHERE k=?', ['existing']);
+      const result = await apply(db, [...frames]);
+      expect(result).toMatchObject({photos, bytes});
+      if (photos) {expect(result.chunks).toBeGreaterThan(photos);}
+    } finally {db.close();}
+    const reopened = connect(dbFile);
+    try {
+      await expect(apply(reopened, [...frames])).resolves.toMatchObject({photos, bytes});
+      if (photos) {
+        const chunks = (await reopened.execute('SELECT file,encoded FROM restore_photo_chunks ORDER BY file,part')).rows;
+        const hashByFile = new Map<string, ReturnType<typeof createHash>>();
+        for (const chunk of chunks) {
+          const file = String(chunk.file);
+          const hash = hashByFile.get(file) ?? createHash('sha256');
+          const decoded = Buffer.from(String(chunk.encoded), 'base64');
+          expect(decoded.length).toBeLessThanOrEqual(32768);
+          hash.update(decoded);
+          hashByFile.set(file, hash);
+        }
+        const manifest = JSON.parse(document.split('\n')[1]);
+        for (const asset of manifest.assets) {
+          expect(hashByFile.get('photo-' + asset.assetId.replace(/-/g, ''))?.digest('hex')).toBe(asset.sha256);
+        }
+      }
+      await expect(apply(reopened, frames.slice(0, -1))).rejects.toThrow();
+      await expect(apply(reopened, [...frames])).resolves.toMatchObject({photos, bytes});
+    } finally {reopened.close();}
+    const corrupted = readFileSync(input);
+    corrupted[corrupted.length - 1] ^= 1;
+    writeFileSync(input, corrupted);
+    expect(readFrames).toThrow();
   } finally {rmSync(root, {recursive: true, force: true});}
 });
