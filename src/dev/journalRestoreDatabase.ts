@@ -1,6 +1,8 @@
 import {createJournalMutationCoordinator} from '../storage/journalMutationCoordinator';
 import {
   JournalBackupRestoreExecutionError,
+  captureJournalForAdditions,
+  addReviewedJournalEntries,
   executeJournalBackupRestore,
   previewJournalBackupRestore,
   recoverInterruptedJournalBackupRestore,
@@ -83,6 +85,9 @@ export async function openRestoreSession(db: RestoreDatabase) {
   };
   return {
     recovered,
+    captureEntries: () => captureJournalForAdditions(storage, readyCoordinator),
+    addEntries: (plan: JournalBackupRestorePlan, before: ReadonlyMap<string, string>, transactionId: string) =>
+      addReviewedJournalEntries(storage, readyCoordinator, plan, before, transactionId),
     read(key: string) {
       return coordinator.runExclusive(async () => {
         requireReady();

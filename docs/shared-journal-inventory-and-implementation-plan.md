@@ -1663,6 +1663,16 @@ The automated screen test covers cancellation, an edit between review and confir
 
 Phase 5 is estimated at **96%**, with weighted overall delivery at **32.8%**. The next step is to restore a missing entry and its attached photos together, with recovery covering the files and the entry.
 
+### 2026-11-20 · Add a missing reflection and its photos together
+
+The development Files preview now offers **Add missing entries to practice journal** for supported practice backups. It checks the destination for existing records, copies the photos used by eligible missing entries, and appends those entries to the journal index. The encrypted database commits the entries, index and photo chunks together. Reusing an existing photo requires its stored chunks to match the backup.
+
+On the development Mac, the restore process was terminated after its first photo write and again after writing the reflection. In both cases the original reflection and index survived, and the incomplete addition was absent. Retrying added one reflection and two photos. Both restored photos matched the backup byte for byte by SHA-256. A later edit to the reflection survived a second restore.
+
+Both the iPhone simulator and the Pixel 8 emulator added the reflection and two photos through their Files pickers. After closing and reopening Journal on the iPhone, the same backup added zero entries and zero photos. All five restore integration tests and all 27 backup screen tests passed. The full Jest suite passed 1,564 tests and reproduced the same 35 failures in 21 suites as the previous checkpoint. The local TypeScript check reported the same 336 diagnostics against this change and a clean copy of the preceding commit using the installed dependencies.
+
+Phase 5 remains estimated at **96%**, with weighted delivery at **32.8%**. The encrypted practice journal is separate from the journal people write in. Customer photo entries remain held in the regular restore review. The next release dependency is a supported encrypted storage provider and a way for the normal journal editor to reopen restored photos.
+
 ## Primary references checked on 2026-11-03
 
 - [Apple App Review Guidelines, payments/subscriptions](https://developer.apple.com/app-store/review/guidelines/): mobile subscription checkout baseline and subscription disclosures. Regional alternative-payment programs require separate review if later used.

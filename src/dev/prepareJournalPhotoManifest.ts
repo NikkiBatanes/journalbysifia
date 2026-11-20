@@ -129,33 +129,19 @@ function verifiedManifest(result: string) {
   return checked.manifest;
 }
 
-export async function compareLocalSnapshotResult(document: string, describe: Fingerprint) {
-  const saved = verifiedManifest(document);
-  const storage = createJournalRestoreStorage('');
-  const before = await captureJournalForAdditions(storage, localJournalMutations);
-  const device = journalBackupFromInventory(buildJournalBackupInventory(Array.from(before)));
-  const current = await prepareJournalPhotoManifest(device, describe);
-  const groups = reviewJournalBackupEntries(saved, current);
-  const missing = new Map(groups.backupOnly.map(item => [item.id, item]));
-  const plan = planJournalBackupRestore(saved.backup);
+// Both destinations append to existing indexes in their original order. The caller
+// selects only absent records after applying the destination's media rules.
+export function planMissingLocalEntries(plan: ReturnType<typeof planJournalBackupRestore>,
+  before: ReadonlyMap<string, string>, include: (id: string) => boolean) {
+  if (!plan.valid) {throw new Error('Invalid entry restore plan');}
   const sections = new Set(['journalRecords', 'prayerRecords', 'reflectionRecords']);
   const added = new Set<string>();
   const records = plan.operations.filter(op => {
-    if (op.kind !== 'record' || !sections.has(op.section)) {return false;}
+    if (op.kind !== 'record' || !sections.has(op.section) || before.has(op.key)) {return false;}
     const entry = JSON.parse(op.value);
-    const item = missing.get(entry.id);
-    if (!item) {return false;}
-    if (before.has(op.key) || entry.deleted) {throw new Error('Comparison no longer matches the entry');}
-    if (item.backup?.photos) {
-      item.reason = 'Held for photo restore.';
-      return false;
-    }
-    if (entry.server_id != null || entry.linked_account_id != null || entry.user_id != null ||
-        (entry.sync_status != null && entry.sync_status !== 'local')) {
-      item.reason = 'Held for account verification.';
-      return false;
-    }
-    item.reason = 'Ready to add to this device.';
+    if (entry.deleted || entry.server_id != null || entry.linked_account_id != null || entry.user_id != null ||
+        (entry.sync_status != null && entry.sync_status !== 'local')) {return false;}
+    if (!include(entry.id)) {return false;}
     added.add(entry.id);
     return true;
   });
@@ -168,10 +154,28 @@ export async function compareLocalSnapshotResult(document: string, describe: Fin
     const included = new Set(existing);
     return [{...op, value: JSON.stringify([...existing, ...ids.filter(id => !included.has(id))])}];
   });
-  const additions = {...plan, operations: [...records, ...indexes],
-    operationCounts: {record: records.length, index: indexes.length}};
-  let available = added.size > 0;
-  return {groups, count: added.size, held: missing.size - added.size, async confirm() {
+  return {...plan, operations: [...records, ...indexes], operationCounts: {record: records.length, index: indexes.length}};
+}
+
+export async function compareLocalSnapshotResult(document: string, describe: Fingerprint) {
+  const saved = verifiedManifest(document);
+  const storage = createJournalRestoreStorage('');
+  const before = await captureJournalForAdditions(storage, localJournalMutations);
+  const device = journalBackupFromInventory(buildJournalBackupInventory(Array.from(before)));
+  const current = await prepareJournalPhotoManifest(device, describe);
+  const groups = reviewJournalBackupEntries(saved, current);
+  const missing = new Map(groups.backupOnly.map(item => [item.id, item]));
+  const plan = planJournalBackupRestore(saved.backup);
+  for (const item of missing.values()) {item.reason = 'Held for account verification.';}
+  const additions = planMissingLocalEntries(plan, before, id => {
+    const item = missing.get(id);
+    if (!item) {return false;}
+    item.reason = item.backup?.photos ? 'Held for photo restore.' : 'Ready to add to this device.';
+    return !item.backup?.photos;
+  });
+  const count = additions.operationCounts.record;
+  let available = count > 0;
+  return {groups, count, held: missing.size - count, async confirm() {
     if (!available) {throw new Error('Compare this backup again.');}
     available = false;
     try {

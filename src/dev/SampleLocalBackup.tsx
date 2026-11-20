@@ -391,14 +391,16 @@ export default function SampleLocalBackup() {
       if (mounted.current) {setBusy(false);}
     }
   }
-  async function confirmStreamedSnapshot() {
+  async function confirmStreamedSnapshot(addMissing = false) {
     const document = selectedDocument.current;
     if (!document || running.current) {return;}
     running.current = true;
     setBusy(true);
     try {
-      const result = await checkStreamedDeviceSnapshot(document, (token, discard) => nativeArchive().readLocalRestoreFrame(token, discard));
-      if (mounted.current) {setMessage(`Test journal verified. Photos: ${result.photos}. Photo bytes: ${result.bytes}.`);}
+      const result = await checkStreamedDeviceSnapshot(document, (token, discard) => nativeArchive().readLocalRestoreFrame(token, discard), addMissing);
+      if (mounted.current && addMissing) {
+        setMessage(`Practice journal added ${result.addedEntries} missing ${result.addedEntries === 1 ? 'entry' : 'entries'} with ${result.photos} ${result.photos === 1 ? 'photo' : 'photos'}.`);
+      } else if (mounted.current) {setMessage(`Test journal verified. Photos: ${result.photos}. Photo bytes: ${result.bytes}.`);}
     } catch {
       if (mounted.current) {setMessage('Could not verify the test journal. Open the practice backup again.');}
     } finally {
@@ -476,7 +478,10 @@ export default function SampleLocalBackup() {
             {button('Cancel additions', () => setConfirmAdditions(false), busy)}
           </> : button(`Add ${entryReview.count} missing ${entryReview.count === 1 ? 'entry' : 'entries'}`, () => setConfirmAdditions(true), busy))}
         </>}
-        {showPractice && selectedDocument.current && localSnapshotToken(selectedDocument.current) && button('Restore and verify practice journal', confirmStreamedSnapshot, busy)}
+        {showPractice && selectedDocument.current && localSnapshotToken(selectedDocument.current) && <>
+          {button('Add missing entries to practice journal', () => confirmStreamedSnapshot(true), busy)}
+          {button('Restore and verify practice journal', () => confirmStreamedSnapshot(), busy)}
+        </>}
         {showPractice && sampleDocument.current && button('Confirm restore to test journal', () => {
           if (sampleDocument.current) {void checkIsolatedJournal(sampleDocument.current);}
         }, busy)}

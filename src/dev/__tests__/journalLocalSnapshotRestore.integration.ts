@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import {execFileSync} from 'node:child_process';
+import {execFileSync, spawnSync} from 'node:child_process';
 import {createHash, randomUUID} from 'node:crypto';
 import {copyFileSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
@@ -173,3 +173,79 @@ it.each([
     expect(readFrames).toThrow();
   } finally {rmSync(root, {recursive: true, force: true});}
 });
+
+it('adds a missing reflection and both photos atomically to an existing practice journal', async () => {
+  const {env} = process;
+  const worker = env.JOURNAL_ADDITION_INTERRUPT;
+  const root = worker ? env.JOURNAL_ADDITION_ROOT : mkdtempSync(join(tmpdir(), 'journal-photo-add-'));
+  if (!root) {throw new Error('Missing test database directory');}
+  const file = join(root, 'device.sqlite');
+  const day = '2026-11-20';
+  const original = {id: 'device', selected_date: day, type: 'free', created_at: day + 'T12:00:00Z',
+    updated_at: day + 'T12:00:00Z', content: 'Keep my reflection'};
+  const originalKey = 'reflection_local:free:' + day + ':device';
+  if (!worker) {
+    copyFileSync(join(__dirname, '../../../scripts/fixtures/journal-backup/JournalRestorePhotos.bin'), join(root, 'archive'));
+  }
+  const [header, manifest, ...frames] = execFileSync(env.JOURNAL_SNAPSHOT_HOST!,
+    ['stream', root, '12233445566778899aabbccddeeff001'], {encoding: 'utf8'}).trimEnd().split('\n');
+  const document = header + '\n' + manifest;
+  const inventory = JSON.parse(manifest).backup.inventory;
+  const restoredKey = inventory.recordLocations.reflectionRecords[0].key;
+  const id = inventory.reflectionRecords[0].id;
+  const index = 'reflection_local_index:free:' + inventory.reflectionRecords[0].selected_date;
+  const db = connect(file);
+  const apply = async (cut?: string) => {
+    let cursor = 0;
+    return restoreStreamedSnapshot({
+      execute: db.execute,
+      transaction: work => db.transaction(tx => work({async execute(sql, params) {
+        const result = await tx.execute(sql, params);
+        if ((cut === 'photo' && sql.startsWith('INSERT INTO restore_photo_chunks')) ||
+            (cut === 'entry' && sql.startsWith('INSERT OR REPLACE INTO restore_kv') && params?.[0] === restoredKey)) {
+          process.kill(process.pid, 'SIGKILL');
+        }
+        return result;
+      }})),
+    }, document, async (_token, discard) => discard ? '' : frames[cursor++], true);
+  };
+  if (worker) {
+    await apply(worker);
+    throw new Error('Did not reach the interruption');
+  }
+  try {
+    await openRestoreSession(db);
+    await db.execute('INSERT INTO restore_kv VALUES (?,?)', [originalKey, JSON.stringify(original)]);
+    await db.execute('INSERT INTO restore_kv VALUES (?,?)', [index, JSON.stringify([original.id])]);
+    for (const cut of ['photo', 'entry']) {
+      const child = spawnSync(process.execPath, [require.resolve('jest/bin/jest'), '--runInBand', '--watchman=false',
+        '--testMatch', '**/journalLocalSnapshotRestore.integration.ts', '-t', 'adds a missing reflection'],
+        {env: {...env, JOURNAL_ADDITION_ROOT: root, JOURNAL_ADDITION_INTERRUPT: cut}, timeout: 45000});
+      if (child.signal !== 'SIGKILL') {throw new Error('Missing interruption: ' + String(child.error ?? child.stderr));}
+      expect((await db.execute('SELECT v FROM restore_kv WHERE k=?', [originalKey])).rows[0]?.v).toBe(JSON.stringify(original));
+      expect((await db.execute('SELECT v FROM restore_kv WHERE k=?', [index])).rows[0]?.v).toBe('["device"]');
+      expect((await db.execute('SELECT k FROM restore_kv WHERE k=?', [restoredKey])).rows).toHaveLength(0);
+      expect((await db.execute("SELECT name FROM sqlite_master WHERE name='restore_photo_chunks'")).rows).toHaveLength(0);
+    }
+    await expect(apply()).resolves.toMatchObject({addedEntries: 1, photos: 2, bytes: 110947});
+    const record = JSON.parse(String((await db.execute('SELECT v FROM restore_kv WHERE k=?', [restoredKey])).rows[0].v));
+    const assets = JSON.parse(manifest).assets;
+    const refs = record.metadata.journalBlocks.filter((block: {kind: string}) => block.kind === 'photo');
+    expect(refs).toHaveLength(2);
+    for (const [i, block] of refs.entries()) {
+      const chunks = (await db.execute('SELECT encoded FROM restore_photo_chunks WHERE file=? ORDER BY part', [block.uri.slice(8)])).rows;
+      const hash = createHash('sha256');
+      chunks.forEach(chunk => hash.update(Buffer.from(String(chunk.encoded), 'base64')));
+      expect(hash.digest('hex')).toBe(assets[i].sha256);
+    }
+    record.content = 'My newer edit';
+    await db.execute('UPDATE restore_kv SET v=? WHERE k=?', [JSON.stringify(record), restoredKey]);
+    await expect(apply()).resolves.toMatchObject({addedEntries: 0, photos: 0});
+    expect((await db.execute('SELECT v FROM restore_kv WHERE k=?', [restoredKey])).rows[0].v).toBe(JSON.stringify(record));
+    expect(JSON.parse(String((await db.execute('SELECT v FROM restore_kv WHERE k=?', [index])).rows[0].v))).toEqual(['device', id]);
+    expect((await db.execute('SELECT v FROM restore_kv WHERE k=?', [originalKey])).rows[0].v).toBe(JSON.stringify(original));
+  } finally {
+    db.close();
+    rmSync(root, {recursive: true, force: true});
+  }
+}, 120000);
