@@ -8,6 +8,7 @@ import {checkDeviceSnapshot, hasDeviceRestoreSample} from './journalDeviceSnapsh
 import {inspectJournalPhotoReferences} from './inspectJournalPhotoReferences';
 import {planInventorySample} from './journalStagedBackup';
 import type {SampleRevision} from './journalSharedPhotoTransferProbe';
+import {JournalBackupEntryReview} from './JournalBackupEntryReview';
 import {useTheme} from '../theme/ThemeContext';
 
 type BackupAction = 'export' | 'inventory' | 'restore' | 'saveLocal' | 'openLocal';
@@ -73,7 +74,7 @@ export default function SampleLocalBackup() {
   const [showPractice, setShowPractice] = useState(false);
   const [mode, setMode] = useState<BackupAction | null>(null);
   const [localPreview, setLocalPreview] = useState<ReturnType<typeof inspectLocalSnapshotResult> | null>(null);
-  const [entryCounts, setEntryCounts] = useState<Awaited<ReturnType<typeof compareLocalSnapshotResult>> | null>(null);
+  const [entryReview, setEntryReview] = useState<Awaited<ReturnType<typeof compareLocalSnapshotResult>> | null>(null);
   const [restoredPhoto, setRestoredPhoto] = useState<string | null>(null);
   const [photoLoaded, setPhotoLoaded] = useState(false);
   const selectedDocument = useRef<string | null>(null);
@@ -125,7 +126,7 @@ export default function SampleLocalBackup() {
     setPhotoLoaded(false);
     sampleDocument.current = null;
     setLocalPreview(null);
-    setEntryCounts(null);
+    setEntryReview(null);
     setMode(null);
     setCode('');
     setAcknowledged(false);
@@ -349,11 +350,11 @@ export default function SampleLocalBackup() {
     running.current = true;
     setBusy(true);
     setMessage('');
-    setEntryCounts(null);
+    setEntryReview(null);
     try {
-      const counts = await compareLocalSnapshotResult(document, await createJournalBackup(),
+      const review = await compareLocalSnapshotResult(document, await createJournalBackup(),
         (uri, remaining) => nativeArchive().describeLocalPickerPhoto(uri, remaining));
-      if (mounted.current) {setEntryCounts(counts);}
+      if (mounted.current) {setEntryReview(review);}
     } catch {
       if (mounted.current) {setMessage('Could not compare entries. Check that device photos are available and try again after saving your edits.');}
     } finally {
@@ -437,14 +438,7 @@ export default function SampleLocalBackup() {
         <Text style={text}>Attached photos · {localPreview.photos}{localPreview.photos > 0 ? ` (${localPreview.photoBytes.toLocaleString()} bytes)` : ''}</Text>
         {localPreview.legacyCount > 0 && <Text style={text}>Older records kept in the file and skipped during restore · {localPreview.legacyCount}</Text>}
         {button('Compare with this device', compareWithDevice, busy)}
-        {entryCounts && <View accessibilityLiveRegion="polite">
-          <Text accessibilityRole="header" style={[text, styles.title]}>Journal, reflection and prayer records</Text>
-          <Text style={text}>Matching · {entryCounts.matching}</Text>
-          <Text style={text}>Only in backup · {entryCounts.backupOnly}</Text>
-          <Text style={text}>Only on device · {entryCounts.deviceOnly}</Text>
-          <Text style={text}>Need review · {entryCounts.review}</Text>
-          {entryCounts.backupOnlyDeletions > 0 && <Text style={text}>Deletion records only in backup · {entryCounts.backupOnlyDeletions}</Text>}
-        </View>}
+        {entryReview && <JournalBackupEntryReview groups={entryReview} />}
         {showPractice && selectedDocument.current && localSnapshotToken(selectedDocument.current) && button('Restore and verify practice journal', confirmStreamedSnapshot, busy)}
         {showPractice && sampleDocument.current && button('Confirm restore to test journal', () => {
           if (sampleDocument.current) {void checkIsolatedJournal(sampleDocument.current);}

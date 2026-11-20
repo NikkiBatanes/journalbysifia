@@ -1,6 +1,7 @@
 import React from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {fireEvent, render, screen, waitFor} from '@testing-library/react-native';
+import {JournalBackupEntryReview} from '../JournalBackupEntryReview';
 import SampleLocalBackup from '../SampleLocalBackup';
 import {inspectLocalSnapshotResult, prepareJournalPhotoManifest} from '../prepareJournalPhotoManifest';
 import {createJournalBackup, JOURNAL_BACKUP_RESTORE_POLICY} from '../../services/journalBackupContract';
@@ -398,7 +399,13 @@ it('saves only after code confirmation and verifies the selected document withou
   await screen.findByText('Matching · 1');
   jest.mocked(archive.describeLocalPickerPhoto).mockResolvedValue('123:' + 'b'.repeat(64));
   fireEvent.press(compare);
-  await screen.findByText('Need review · 1');
+  fireEvent.press(await screen.findByRole('button', {name: 'Need review · 1'}));
+  expect(screen.getByText('The attached photos differ.')).toBeOnTheScreen();
+  expect(screen.getByText('Backup · Reflection · 2026-09-17')).toBeOnTheScreen();
+  expect(screen.getByText('On device · Reflection · 2026-09-17')).toBeOnTheScreen();
+  expect(screen.getAllByText('Private 🙏')).toHaveLength(2);
+  fireEvent.press(screen.getByRole('button', {name: 'Back to summary'}));
+  expect(screen.queryByText('Private 🙏')).toBeNull();
   jest.mocked(archive.describeLocalPickerPhoto).mockRejectedValue(new Error('missing photo'));
   fireEvent.press(compare);
   await screen.findByText(/Could not compare entries/);
@@ -439,4 +446,24 @@ it('distinguishes an empty backup from settings and older records held out of re
   backup.inventory.preferences.push({key: 'prefs:hapticsEnabled', value: true});
   backup.inventory.legacyAuthoredContent.reflectionLogs.push({key: 'reflection_log_old', value: {}});
   expect(await preview()).toMatchObject({records: 2, sections: [['Settings', 1]], legacyCount: 1});
+});
+
+it('pages through a large backup and returns to the first page when reopening a group', () => {
+  const backupOnly = Array.from({length: 12}, (_, i) => ({
+    id: String(i), device: [], reason: '', backup: {kind: 'Prayer', date: '2026-11-20', title: '',
+      excerpt: 'Prayer number ' + (i + 1), photos: 0, deleted: false},
+  }));
+  render(<JournalBackupEntryReview groups={{backupOnly, review: [], matching: [], deviceOnly: [], backupOnlyDeletions: []}} />);
+  fireEvent.press(screen.getByRole('button', {name: 'Only in backup · 12'}));
+  expect(screen.getByText('Entries 1–5 of 12')).toBeOnTheScreen();
+  expect(screen.queryByText('Prayer number 6')).toBeNull();
+  fireEvent.press(screen.getByText('Next entries'));
+  fireEvent.press(screen.getByText('Next entries'));
+  expect(screen.getByText('Prayer number 12')).toBeOnTheScreen();
+  expect(screen.queryByText('Next entries')).toBeNull();
+  fireEvent.press(screen.getByText('Previous entries'));
+  expect(screen.getByText('Entries 6–10 of 12')).toBeOnTheScreen();
+  fireEvent.press(screen.getByText('Back to summary'));
+  fireEvent.press(screen.getByText('Only in backup · 12'));
+  expect(screen.getByText('Entries 1–5 of 12')).toBeOnTheScreen();
 });

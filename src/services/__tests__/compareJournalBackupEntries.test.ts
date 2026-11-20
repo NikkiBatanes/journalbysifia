@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {createJournalBackup} from '../journalBackupContract';
-import {compareJournalBackupEntries} from '../compareJournalBackupEntries';
+import {compareJournalBackupEntries, reviewJournalBackupEntries} from '../compareJournalBackupEntries';
 import {prepareJournalPhotoManifest} from '../../dev/prepareJournalPhotoManifest';
 
 jest.mock('uuid', () => ({v4: require('node:crypto').randomUUID}));
@@ -31,6 +31,17 @@ it('classifies overlapping records, occupied slots and deletion records without 
   expect(compareJournalBackupEntries(saved, current)).toEqual({
     matching: 1, backupOnly: 1, deviceOnly: 1, review: 4, backupOnlyDeletions: 1,
   });
+  const groups = reviewJournalBackupEntries(saved, current);
+  expect(groups.review.find(item => item.id === 'edited')).toMatchObject({
+    reason: 'The entry content differs.', backup: {excerpt: 'edited'}, device: [{excerpt: 'later'}],
+  });
+  expect(groups.review.find(item => item.id === 'slot-in')?.device[0].excerpt).toBe('slot-local');
+  expect(groups.backupOnlyDeletions[0].backup).toMatchObject({deleted: true, excerpt: ''});
+  // The backup ID now exists at a different key while its original slot has another occupant.
+  current.backup.inventory.journalRecords.push(entry('slot-in', '2026-11-21'));
+  current.backup.inventory.recordLocations.journalRecords.push({id: 'slot-in', key: 'journal_local:todo:2026-11-21:slot-in'});
+  const collision = reviewJournalBackupEntries(saved, current).review.find(item => item.id === 'slot-in');
+  expect(collision?.device.map(row => row.date)).toEqual(['2026-11-21', '2026-11-20']);
   current.backup.inventory.recordLocations.journalRecords[0].key = 'invalid';
   expect(() => compareJournalBackupEntries(saved, current)).toThrow('Invalid entry locations');
 });

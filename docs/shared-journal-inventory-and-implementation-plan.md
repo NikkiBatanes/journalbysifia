@@ -1645,6 +1645,14 @@ The iPhone simulator saved its backup in Files, and the Pixel 8 emulator saved i
 
 The 203 focused tests passed, including checks for a web-linked photo and an unreadable file. The full suite passed 1,562 tests and reproduced the previous 35 failures in 21 suites. Phase 5 remains at **96%** and weighted overall progress at **32.8%**. The next implementation step is a development-only restore review and explicit confirmation before applying a verified file to the journal. Before releasing export, resolve how users with existing web-linked photos can keep a usable backup.
 
+### 2026-11-20 · Review individual entries in a local backup
+
+In the development build, open **More → Account & Data → Check saved backup**, choose the encrypted file, and compare it with the device. Tap a group with entries to review five at a time. Each version shows its source, entry type, date, and available title or text excerpt. The review identifies changed photos, deletion marks, entries that moved, and another entry occupying the same journal slot. If two device records are involved, both appear. Closing the preview discards the comparison.
+
+Both the iPhone simulator and Pixel 8 emulator opened the encrypted two-photo fixture from Files, displayed the backup-only entry group and returned to the summary. The iPhone also passed the empty comparison. The 204 focused tests passed. The full suite passed 1,563 tests and reproduced the same 35 failures as the previous checkpoint. TypeScript reproduced the same 734 diagnostics.
+
+This checkpoint covers journal entries, prayers and reflections. The next step is explicit confirmation that adds missing entries while preserving device edits, including a fresh comparison if the journal changes after review. Phase 5 remains estimated at **96%**, with weighted overall delivery at **32.8%**.
+
 ## Primary references checked on 2026-11-03
 
 - [Apple App Review Guidelines, payments/subscriptions](https://developer.apple.com/app-store/review/guidelines/): mobile subscription checkout baseline and subscription disclosures. Regional alternative-payment programs require separate review if later used.
