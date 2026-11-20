@@ -6,9 +6,9 @@ import {
 } from '../services/journalBackupRestoreExecutor';
 import type {JournalBackupRestorePlan} from '../services/journalBackupRestorePlan';
 import {localJournalMutations} from '../storage/journalMutationCoordinator';
-import {practiceRestoreStorage} from './practiceRestoreStorage';
+import {createJournalRestoreStorage} from '../storage/journalRestoreStorage';
 
-const storage = practiceRestoreStorage('journal:dev:large-restore:v1:');
+const storage = createJournalRestoreStorage('journal:dev:large-restore:v1:');
 const transaction = '418493f6-2d2f-43cb-8c23-1fd0e40b7d44';
 const index = 'journal_local_index:heart:2026-11-20';
 const key = (i: number) => 'journal_local:heart:2026-11-20:large-' + i;
@@ -69,8 +69,21 @@ export async function armLargeRestore(markPending: () => Promise<void>) {
   }}, 'restore_rollback_failed');
 }
 
-export async function verifyLargeRestoreAfterReopen() {
-  await recoverInterruptedJournalBackupRestore(storage, localJournalMutations);
+export class PracticeStorageFullError extends Error {}
+
+export async function verifyLargeRestoreAfterReopen(simulateFull = false) {
+  let writeDenied = false;
+  async function denyWrite(): Promise<never> {
+    writeDenied = true;
+    throw new Error('Simulated device storage full');
+  }
+  const destination = simulateFull ? {...storage, multiSet: denyWrite, multiRemove: denyWrite} : storage;
+  try {
+    await recoverInterruptedJournalBackupRestore(destination, localJournalMutations);
+  } catch (error) {
+    if (writeDenied) {throw new PracticeStorageFullError('Practice storage is still full');}
+    throw error;
+  }
   await localJournalMutations.runExclusive(verifyOriginals);
 }
 

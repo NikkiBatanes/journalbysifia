@@ -1,22 +1,40 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+import {recoverInterruptedJournalBackupRestore} from '../services/journalBackupRestoreExecutor';
+import {localJournalMutations} from '../storage/journalMutationCoordinator';
+import {createJournalRestoreStorage} from '../storage/journalRestoreStorage';
+
+const deviceStorage = createJournalRestoreStorage('');
 export const relaunchDatabase = 'journal-restore-relaunch-probe-v1.sqlite';
+const fullPractice = 'large-local-entries-full';
 const pendingKey = 'journal:dev:restore-relaunch-pending:v1';
 
 export const markRestoreStartupPending = () => AsyncStorage.setItem(pendingKey, '1');
 
 export const markLocalRestorePending = () => AsyncStorage.setItem(pendingKey, 'local-entries');
 
-export const markLargeRestorePending = () => AsyncStorage.setItem(pendingKey, 'large-local-entries');
+export const markLargeRestorePending = () => AsyncStorage.setItem(pendingKey, fullPractice);
+
+export async function releasePracticeStorageLimit() {
+  if (await AsyncStorage.getItem(pendingKey) === fullPractice) {
+    await AsyncStorage.setItem(pendingKey, 'large-local-entries');
+  }
+}
 
 async function checkStartup() {
+  const recoveredDeviceJournal = await recoverInterruptedJournalBackupRestore(deviceStorage, localJournalMutations);
   const pending = await AsyncStorage.getItem(pendingKey);
   if (pending === null) {
-    return 'idle' as const;
+    return recoveredDeviceJournal ? 'device-recovered' as const : 'idle' as const;
   }
-  if (pending === 'large-local-entries') {
+  if (pending === 'large-local-entries' || pending === fullPractice) {
     const fixture = require('./journalLargeRestoreProbe') as typeof import('./journalLargeRestoreProbe');
-    await fixture.verifyLargeRestoreAfterReopen();
+    try {
+      await fixture.verifyLargeRestoreAfterReopen(pending === fullPractice);
+    } catch (error) {
+      if (error instanceof fixture.PracticeStorageFullError) {return 'practice-full' as const;}
+      throw error;
+    }
     await AsyncStorage.removeItem(pendingKey);
     await fixture.clearLargeRestoreFixture();
     return 'large-recovered' as const;

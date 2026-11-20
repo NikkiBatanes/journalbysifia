@@ -713,9 +713,15 @@ export const recoverInterruptedJournalBackupRestore = (
   storage: JournalBackupRestoreStorage,
   coordinator: JournalBackupRestoreMutationCoordinator,
 ): Promise<JournalBackupRestoreRecoveryResult | null> =>
-  coordinator.runExclusive(() =>
-    withPartCleanup(storage, () => recoverInterruptedJournalBackupRestoreExclusive(storage)),
-  );
+  coordinator.runExclusive(async () => {
+    // Most launches have no pending restore. Inspect key names before reading any values.
+    const keys = await storage.getAllKeys();
+    if (!keys.some(key => key === JOURNAL_RESTORE_RECOVERY_MARKER_KEY ||
+        key === JOURNAL_RESTORE_ROLLBACK_SNAPSHOT_KEY || key.startsWith(PART_KEY))) {
+      return null;
+    }
+    return withPartCleanup(storage, () => recoverInterruptedJournalBackupRestoreExclusive(storage));
+  });
 
 /** Execute a previously validated plan with rollback and read-back verification. */
 export const executeJournalBackupRestore = (

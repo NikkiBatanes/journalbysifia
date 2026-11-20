@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {checkDevelopmentRestoreAtStartup, relaunchDatabase} from '../journalRestoreStartup';
+import {JOURNAL_RESTORE_ROLLBACK_SNAPSHOT_KEY as snapshot} from '../../services/journalBackupRestoreExecutor';
 import {readSpikeEncryptionKey} from '../../services/journalEncryptedStorageSpike';
 import {open} from '@op-engineering/op-sqlite';
 import {checkRestoreBaseline} from '../journalRestoreReopenProbe';
@@ -17,10 +18,11 @@ beforeEach(() => {
   jest.mocked(checkRestoreBaseline).mockResolvedValue(true);
 });
 
-it('opens normally without accessing native test storage on an unarmed launch', async () => {
+it('opens normally without reading journal entries or opening a test database on an unarmed launch', async () => {
   jest.mocked(AsyncStorage.getItem).mockResolvedValue(null);
   await expect(checkDevelopmentRestoreAtStartup()).resolves.toBe('idle');
   expect(readSpikeEncryptionKey).not.toHaveBeenCalled();
+  expect(AsyncStorage.multiGet).not.toHaveBeenCalled();
   expect(open).not.toHaveBeenCalled();
 });
 
@@ -50,4 +52,24 @@ it('can finish cleanup after recovery has already committed', async () => {
   jest.mocked(checkRestoreBaseline).mockResolvedValue(false);
   await expect(checkDevelopmentRestoreAtStartup()).resolves.toBe('baseline');
   expect(db.delete).toHaveBeenCalledTimes(1);
+});
+
+it('recovers device entries at ordinary launch without a pending practice exercise', async () => {
+  const key = 'journal_local:heart:practice';
+  const values = new Map([[key, 'partial'], ['unrelated', 'keep'], [snapshot, JSON.stringify({
+    version: 1, transactionId: '418493f6-2d2f-43cb-8c23-1fd0e40b7d44', entries: [{key, value: 'saved'}],
+  })]]);
+  jest.mocked(AsyncStorage.getItem).mockResolvedValue(null);
+  jest.mocked(AsyncStorage.getAllKeys).mockImplementation(async () => Array.from(values.keys()));
+  jest.mocked(AsyncStorage.multiGet).mockImplementation(async keys => keys.map<[string, string | null]>(k => [k, values.get(k) ?? null]));
+  jest.mocked(AsyncStorage.removeItem).mockImplementation(async k => {values.delete(k);});
+  jest.mocked(AsyncStorage.multiSet).mockRejectedValueOnce(new Error('Storage full')).mockImplementation(async rows => {
+    rows.forEach(([k, value]) => values.set(k, value));
+  });
+  await expect(checkDevelopmentRestoreAtStartup()).rejects.toThrow();
+  expect(values.has(snapshot)).toBe(true);
+  expect(AsyncStorage.getItem).not.toHaveBeenCalled();
+  await expect(checkDevelopmentRestoreAtStartup()).resolves.toBe('device-recovered');
+  expect(Array.from(values.entries())).toEqual([[key, 'saved'], ['unrelated', 'keep']]);
+  await expect(checkDevelopmentRestoreAtStartup()).resolves.toBe('idle');
 });

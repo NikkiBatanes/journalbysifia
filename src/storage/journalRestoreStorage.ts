@@ -1,10 +1,12 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type {JournalBackupRestoreStorage} from '../services/journalBackupRestoreExecutor';
 
-export function practiceRestoreStorage(prefix: `journal:dev:${string}:`): JournalBackupRestoreStorage {
+export function createJournalRestoreStorage(prefix: '' | `journal:dev:${string}:`): JournalBackupRestoreStorage {
   return {
     async getAllKeys() {
-      return (await AsyncStorage.getAllKeys()).filter(key => key.startsWith(prefix)).map(key => key.slice(prefix.length));
+      const keys = await AsyncStorage.getAllKeys();
+      if (!prefix) {return keys;}
+      return keys.filter(key => key.startsWith(prefix)).map(key => key.slice(prefix.length));
     },
     async multiGet(keys) {
       return (await AsyncStorage.multiGet(keys.map(key => prefix + key)))

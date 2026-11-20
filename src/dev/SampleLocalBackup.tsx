@@ -399,7 +399,7 @@ export default function SampleLocalBackup() {
         const {armLargeRestore} = await import('./journalLargeRestoreProbe');
         const {markLargeRestorePending} = await import('./journalRestoreStartup');
         await armLargeRestore(markLargeRestorePending);
-        Alert.alert('Large journal ready for recovery', 'Reopen Journal to verify recovery after a simulated storage failure.');
+        Alert.alert('Large journal ready for recovery', 'Reopen Journal with practice storage still full. Try Retry, then Simulate freeing space.');
         return;
       }
       const {armLocalRestoreInterruption} = await import('./journalLocalRestoreInterruption');

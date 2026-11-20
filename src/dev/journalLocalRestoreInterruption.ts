@@ -1,4 +1,4 @@
-import {practiceRestoreStorage} from './practiceRestoreStorage';
+import {createJournalRestoreStorage} from '../storage/journalRestoreStorage';
 import {JOURNAL_BACKUP_RESTORE_POLICY} from '../services/journalBackupContract';
 import {
   JournalBackupRestoreExecutionError, previewJournalBackupRestore,
@@ -15,7 +15,7 @@ const transaction = 'd3879b9a-3208-4d18-803f-ad8db677222b';
 const edited = JSON.stringify({id: 'practice', content: 'Saved after preview'});
 const incoming = JSON.stringify({id: 'practice', content: 'From backup'});
 const ids = JSON.stringify(['practice']);
-const storage = practiceRestoreStorage(prefix);
+const storage = createJournalRestoreStorage(prefix);
 const plan: JournalBackupRestorePlan = {
   valid: true, fatal: [], warnings: [], requiresRollbackSnapshot: true,
   clearOwnedKeysMatching: JOURNAL_BACKUP_RESTORE_POLICY.ownedPrefixes,
