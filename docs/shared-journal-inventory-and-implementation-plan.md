@@ -1681,6 +1681,12 @@ The iPhone simulator reopened the reflection after restarting Journal. Both phot
 
 Phase 5 remains estimated at **96%**, with weighted delivery at **32.8%**. OP-SQLite 19.0.5 was still the latest published version when checked. Its bundled OpenSSL 3.6 has reached end of support on both platforms. Next, evaluate a supported encrypted storage build and verify durable image references through a real editor save and reopen before enabling customer photo restore. [OpenSSL end-of-life announcement](https://openssl-library.org/post/2026-11-01-eol34-36/)
 
+### 2026-11-20 · Preserve restored photos through reflection edits
+
+The normal reflection editor now queues its lookup, merge and save together. Two overlapping edits to different fields can now retain both changes. An integration test opens the real two-photo backup in a practice database, edits the first caption through the editor’s block preparation and save mutation, and submits a title change alongside it. It retries the restore, opens a fresh database connection and verifies the title, caption, version, both original image digests and the neighbouring reflection. The test substitutes the editor’s storage transport and does not exercise its on-device editing controls.
+
+All five restore integration tests and 49 focused tests passed. The full suite passed 1,565 tests and retained the previous 35 failures. The TypeScript output matched the preceding checkpoint. Phase 5 is estimated at **96%**, with **32.8%** weighted delivery. Remaining work includes device editor coverage, a supported encrypted storage build and migration for existing customer photos.
+
 ## Primary references checked on 2026-11-03
 
 - [Apple App Review Guidelines, payments/subscriptions](https://developer.apple.com/app-store/review/guidelines/): mobile subscription checkout baseline and subscription disclosures. Regional alternative-payment programs require separate review if later used.

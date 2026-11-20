@@ -12,9 +12,10 @@ import {
   deleteLocalReflection,
   findLocalReflection,
   getLocalReflections,
-  updateLocalReflection,
+  updateLocalReflectionWhileLocked,
   type LocalReflectionEntry,
 } from '../../storage/reflectionStorage';
+import {localJournalMutations} from '../../storage/journalMutationCoordinator';
 import {guidedQuestionTopicForPrompt} from '../../data/guidedReflectionQuestions';
 
 const toReflectionApiEntry = (entry: LocalReflectionEntry): ReflectionApiEntry => ({
@@ -355,29 +356,33 @@ export const useCreateReflection = () => {
   });
 };
 
+// Keep lookup, metadata merge, and write together so a queued restore or edit
+// cannot slip between reading the photo references and saving the reflection.
+export const saveLocalReflectionEdit = ({id, updates}: {
+  id: string;
+  updates: Partial<Omit<ReflectionApiEntry, 'id' | 'user_id' | 'created_at'>>;
+}) => localJournalMutations.runExclusive(async () => {
+  const existing = await findLocalReflection(id);
+  if (!existing) {throw new Error('Reflection not found locally');}
+  const local = await updateLocalReflectionWhileLocked({
+    ...existing,
+    title: updates.title ?? existing.title,
+    content: updates.content ?? existing.content,
+    type: updates.type ?? existing.type,
+    source: updates.source ?? existing.source,
+    tags: updates.tags ?? existing.tags,
+    selected_date: updates.selected_date ?? existing.selected_date,
+    metadata: {...existing.metadata, ...reflectionMetadata(updates)},
+  });
+  return toReflectionApiEntry(local);
+});
+
 // Hook for updating a reflection entry
 export const useUpdateReflection = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, updates }: { id: string; updates: Partial<Omit<ReflectionApiEntry, 'id' | 'user_id' | 'created_at'>> }) => {
-
-      return findLocalReflection(id).then(async existing => {
-        if (!existing) {throw new Error('Reflection not found locally');}
-        const local = await updateLocalReflection({
-          ...existing,
-          title: updates.title ?? existing.title,
-          content: updates.content ?? existing.content,
-          type: updates.type ?? existing.type,
-          source: updates.source ?? existing.source,
-          tags: updates.tags ?? existing.tags,
-          selected_date: updates.selected_date ?? existing.selected_date,
-          linked_account_id: existing.linked_account_id,
-          metadata: { ...existing.metadata, ...reflectionMetadata(updates) },
-        });
-        return toReflectionApiEntry(local);
-      });
-    },
+    mutationFn: saveLocalReflectionEdit,
     onMutate: async ({ id, updates }) => {
       // Skip optimistic updates for better performance - direct cache updates are sufficient
       return { id, updates };

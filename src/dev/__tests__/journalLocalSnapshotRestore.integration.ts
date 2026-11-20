@@ -11,6 +11,10 @@ import {hasDeviceRestoreSample, readDeviceSample, restoreDeviceSample} from '../
 import {readPracticePhotoReflection} from '../readPracticePhotoReflection';
 import {restoreStreamedSnapshot} from '../journalStreamingSnapshotRestore';
 import {connect} from './restoreTestDatabase';
+import {loadLocalReflectionData, saveLocalReflectionEdit} from '../../services/hooks/useReflectionData';
+import {journalBlocksToPlainText, prepareJournalBlocksForSave} from '../../components/journal/shared/journalBlocks';
+
+jest.mock('../../context/IndustryStandardAuthContext', () => ({useAuth: () => ({user: null})}));
 
 jest.mock('uuid', () => ({v4: require('node:crypto').randomUUID}));
 
@@ -248,10 +252,50 @@ it('adds a missing reflection and both photos atomically to an existing practice
         return createHash('sha256').update(Buffer.from(photo.uri.split(',')[1], 'base64')).digest('hex');
       })).toEqual(assets.map((asset: {sha256: string}) => asset.sha256));
     } finally {reopened.close();}
-    record.content = 'My newer edit';
-    await db.execute('UPDATE restore_kv SET v=? WHERE k=?', [JSON.stringify(record), restoredKey]);
+    // Back the normal reflection repository with the practice database for this edit.
+    // Only its AsyncStorage transport is substituted. Exercise the editor's block
+    // preparation, mutation, and subsequent read through a fresh SQLite connection.
+    const editorDb = connect(file);
+    let savedValue: string;
+    const getKeys = jest.spyOn(AsyncStorage, 'getAllKeys').mockImplementation(async () =>
+      (await editorDb.execute('SELECT k FROM restore_kv')).rows.map(row => String(row.k)));
+    const multiGet = jest.spyOn(AsyncStorage, 'multiGet').mockImplementation(async keys =>
+      Promise.all(keys.map(async (key): Promise<[string, string | null]> => {
+        const {rows} = await editorDb.execute('SELECT v FROM restore_kv WHERE k=?', [key]);
+        return [key, rows.length ? String(rows[0].v) : null];
+      })));
+    const setItem = jest.spyOn(AsyncStorage, 'setItem').mockImplementation(async (key, value) => {
+      await editorDb.execute('INSERT OR REPLACE INTO restore_kv(k,v) VALUES (?,?)', [key, value]);
+    });
+    try {
+      const [entry] = await loadLocalReflectionData(day, [id]);
+      const blocks = prepareJournalBlocksForSave(entry.journal_blocks!.map(block =>
+        block.id === refs[0].id ? {...block, text: 'Edited caption'} : block));
+      const content = journalBlocksToPlainText(blocks);
+      await Promise.all([
+        saveLocalReflectionEdit({id, updates: {content, journal_blocks: blocks}}),
+        saveLocalReflectionEdit({id, updates: {title: 'Edited title'}}),
+      ]);
+      savedValue = String((await editorDb.execute('SELECT v FROM restore_kv WHERE k=?', [restoredKey])).rows[0].v);
+      expect(savedValue).not.toContain('data:image');
+      expect(JSON.parse(savedValue)).toMatchObject({id, selected_date: day, title: 'Edited title', content,
+        version: (record.version || 1) + 2, metadata: {journalBlocks: blocks}});
+    } finally {
+      getKeys.mockRestore();
+      multiGet.mockRestore();
+      setItem.mockRestore();
+      editorDb.close();
+    }
     await expect(apply()).resolves.toMatchObject({addedEntries: 0, photos: 0});
-    expect((await db.execute('SELECT v FROM restore_kv WHERE k=?', [restoredKey])).rows[0].v).toBe(JSON.stringify(record));
+    const afterEdit = connect(file);
+    try {
+      expect((await afterEdit.execute('SELECT v FROM restore_kv WHERE k=?', [restoredKey])).rows[0].v).toBe(savedValue);
+      const view = await readPracticePhotoReflection(afterEdit);
+      expect(view.photos[0].caption).toBe('Edited caption');
+      expect(view.photos.map(photo =>
+        createHash('sha256').update(Buffer.from(photo.uri.split(',')[1], 'base64')).digest('hex'),
+      )).toEqual(assets.map((asset: {sha256: string}) => asset.sha256));
+    } finally {afterEdit.close();}
     expect(JSON.parse(String((await db.execute('SELECT v FROM restore_kv WHERE k=?', [index])).rows[0].v))).toEqual(['device', id]);
     expect((await db.execute('SELECT v FROM restore_kv WHERE k=?', [originalKey])).rows[0].v).toBe(JSON.stringify(original));
     await db.execute('DELETE FROM restore_photo_chunks WHERE file=? AND part=1', [refs[1].uri.slice(8)]);
