@@ -25,8 +25,14 @@ beforeEach(() => {
   jest.mocked(archive.finishSampleRestorePreview).mockResolvedValue('fixture');
 });
 
+function openPracticeTools() {
+  const view = render(<SampleLocalBackup />);
+  fireEvent.press(screen.getByRole('button', {name: 'Development backup tools'}));
+  return view;
+}
+
 it('requires a saved recovery code and preserves it if the save picker is cancelled', async () => {
-  render(<SampleLocalBackup />);
+  openPracticeTools();
   fireEvent.press(screen.getByText('Save sample backup'));
   const code = screen.getByTestId('sample-backup-recovery-code').props.children;
   expect(screen.getByRole('button', {name: 'Choose save location'})).toBeDisabled();
@@ -43,7 +49,7 @@ it('requires a saved recovery code and preserves it if the save picker is cancel
 });
 
 it('blocks malformed codes, handles cancelled or invalid files, and reports success only after restore', async () => {
-  render(<SampleLocalBackup />);
+  openPracticeTools();
   fireEvent.press(screen.getByText('Restore sample backup'));
   const input = screen.getByLabelText('Backup recovery code');
   fireEvent.changeText(input, 'bad');
@@ -67,7 +73,7 @@ it('blocks malformed codes, handles cancelled or invalid files, and reports succ
 });
 
 it.each(['cancel', 'unmount'])('discards a preview on %s without restoring journal data', async action => {
-  const view = render(<SampleLocalBackup />);
+  const view = openPracticeTools();
   fireEvent.press(screen.getByText('Restore sample backup'));
   fireEvent.changeText(screen.getByLabelText('Backup recovery code'), 'b'.repeat(32));
   jest.mocked(archive.chooseSampleBackupFile).mockResolvedValueOnce(selectedPreview);
@@ -84,7 +90,7 @@ it('discards the verified selection if the picker returns after leaving the scre
   jest.mocked(archive.chooseSampleBackupFile).mockReturnValueOnce(new Promise(resolve => {
     finishPicking = resolve;
   }));
-  const view = render(<SampleLocalBackup />);
+  const view = openPracticeTools();
   fireEvent.press(screen.getByText('Restore sample backup'));
   fireEvent.changeText(screen.getByLabelText('Backup recovery code'), 'b'.repeat(32));
   fireEvent.press(screen.getByText('Choose backup file'));
@@ -100,7 +106,7 @@ it.each(['confirm', 'cancel'])('shows both sample texts before %s', async action
   jest.mocked(archive.chooseSampleBackupFile).mockResolvedValue(JSON.stringify({
     ...JSON.parse(selectedPreview), firstContent: 'Call Mom.',
   }));
-  render(<SampleLocalBackup />);
+  openPracticeTools();
   fireEvent.press(screen.getByText('Restore sample backup'));
   fireEvent.changeText(screen.getByLabelText('Backup recovery code'), 'b'.repeat(32));
   fireEvent.press(screen.getByText('Choose backup file'));
@@ -128,7 +134,7 @@ it('recognizes a second verified selection before staging photos and still previ
     alreadyRestored: jest.fn(async (digest: string) => digest === archiveDigest),
   };
   jest.mocked(beginSampleComparison).mockResolvedValue(sample);
-  const view = render(<SampleLocalBackup />);
+  const view = openPracticeTools();
   async function select(id: string, digest: string) {
     jest.mocked(archive.chooseSampleBackupFile).mockResolvedValueOnce(JSON.stringify({
       ...JSON.parse(selectedPreview), previewId: id, firstContent: 'Call Mom.', archiveDigest: digest,
@@ -166,7 +172,7 @@ it.each([
     alreadyRestored: jest.fn().mockResolvedValue(false),
     reviewRevision: jest.fn().mockResolvedValue({deviceText: 'I called Mom today.', keepBoth})};
   jest.mocked(beginSampleComparison).mockResolvedValue(sample);
-  render(<SampleLocalBackup />);
+  openPracticeTools();
   async function pick(value: object) {
     jest.mocked(archive.chooseSampleBackupFile).mockResolvedValueOnce(JSON.stringify(value));
     fireEvent.press(screen.getByText('Restore sample backup'));
@@ -204,7 +210,7 @@ it.each([0, 300])('shows the verified count and handles confirmation for %i entr
     entries, photos: 0, photoBytes: 0, archiveDigest: digest,
   });
   jest.mocked(archive.chooseSampleBackupFile).mockResolvedValueOnce(JSON.stringify({previewId, inventory: {}}));
-  render(<SampleLocalBackup />);
+  openPracticeTools();
   fireEvent.press(screen.getByText('Restore sample backup'));
   fireEvent.changeText(screen.getByLabelText('Backup recovery code'), 'b'.repeat(32));
   fireEvent.press(screen.getByText('Choose backup file'));
@@ -220,7 +226,7 @@ it.each([0, 300])('shows the verified count and handles confirmation for %i entr
 });
 
 it('exports only a bounded custom entry count after the recovery code is acknowledged', async () => {
-  render(<SampleLocalBackup />);
+  openPracticeTools();
   fireEvent.press(screen.getByText('Save a custom sample'));
   const choose = () => screen.getByRole('button', {name: 'Choose save location'});
   const count = screen.getByLabelText('Number of sample entries');
@@ -249,7 +255,7 @@ it('checks on-device counts only on request and keeps journal text and photo pat
   ];
   jest.mocked(AsyncStorage.getAllKeys).mockResolvedValue(rows.map(([key]) => key));
   jest.mocked(AsyncStorage.multiGet).mockResolvedValue(rows);
-  render(<SampleLocalBackup />);
+  openPracticeTools();
   expect(AsyncStorage.getAllKeys).not.toHaveBeenCalled();
   fireEvent.press(screen.getByText('Check local journal counts'));
   expect(await screen.findByText(/entries: 1\. Photo references in their journal blocks: 1\. Readable photo files: 0\. Missing: 1/)).toBeOnTheScreen();
@@ -273,7 +279,7 @@ it('fingerprints a shared photo once and reports when it disappears', async () =
   jest.mocked(AsyncStorage.getAllKeys).mockResolvedValue(records.map(([key]) => key));
   jest.mocked(AsyncStorage.multiGet).mockResolvedValue(records);
   jest.mocked(archive.describeLocalPickerPhoto).mockResolvedValue('15:' + 'a'.repeat(64));
-  render(<SampleLocalBackup />);
+  openPracticeTools();
   fireEvent.press(screen.getByText('Check photo links for export'));
   expect(await screen.findByText(/Distinct photos: 1, 15 bytes/)).toBeOnTheScreen();
   expect(archive.describeLocalPickerPhoto).toHaveBeenCalledTimes(1);
@@ -304,7 +310,7 @@ it('verifies the encrypted snapshot privately and reports a failed readback', as
   const sha = 'b'.repeat(64);
   jest.mocked(archive.describeLocalPickerPhoto).mockResolvedValue('42:' + sha);
   jest.mocked(archive.verifyLocalSnapshot).mockResolvedValueOnce(true).mockResolvedValueOnce(false);
-  render(<SampleLocalBackup />);
+  openPracticeTools();
   fireEvent.press(screen.getByText('Verify encrypted local snapshot'));
   await screen.findByText(/Encrypted and read back .* records and 1 photo\./);
   const [manifest, sources] = jest.mocked(archive.verifyLocalSnapshot).mock.calls[0];
@@ -319,6 +325,22 @@ it('verifies the encrypted snapshot privately and reports a failed readback', as
   expect(archive.chooseSampleBackupFile).not.toHaveBeenCalled();
 });
 
+it('explains when a linked photo prevents a complete export', async () => {
+  const row: [string, string] = ['reflection_local:free:2026-09-17:r1', JSON.stringify({
+    id: 'r1', type: 'free', selected_date: '2026-09-17', created_at: '2026-09-17T12:00:00Z',
+    updated_at: '2026-09-17T12:00:00Z', content: 'Reflection',
+    metadata: {journalBlocks: [{id: 'a', kind: 'photo', uri: 'https://example.invalid/linked.jpg'}]},
+  })];
+  jest.mocked(AsyncStorage.getAllKeys).mockResolvedValue([row[0]]);
+  jest.mocked(AsyncStorage.multiGet).mockResolvedValue([row]);
+  render(<SampleLocalBackup />);
+  fireEvent.press(screen.getByText('Save encrypted backup'));
+  fireEvent.press(screen.getByRole('checkbox'));
+  fireEvent.press(screen.getByText('Choose save location'));
+  await screen.findByText(/An entry links to a web photo/);
+  expect(archive.saveLocalSnapshot).not.toHaveBeenCalled();
+});
+
 it('saves only after code confirmation and verifies the selected document without device records', async () => {
   const uri = 'file:///test/12345678-1234-1234-1234-123456789abc.jpg';
   const row: [string, string] = ['reflection_local:free:2026-09-17:r1', JSON.stringify({
@@ -331,14 +353,16 @@ it('saves only after code confirmation and verifies the selected document withou
   jest.mocked(archive.describeLocalPickerPhoto).mockResolvedValue('123:' + sha);
   jest.mocked(archive.saveLocalSnapshot).mockResolvedValueOnce('').mockResolvedValueOnce('saved');
   render(<SampleLocalBackup />);
-  fireEvent.press(screen.getByText('Save encrypted journal backup'));
+  expect(screen.getByRole('header', {name: 'Local backup'})).toBeOnTheScreen();
+  expect(screen.queryByText('Save sample backup')).toBeNull();
+  fireEvent.press(screen.getByText('Save encrypted backup'));
   expect(screen.getByRole('button', {name: 'Choose save location'})).toBeDisabled();
   fireEvent.press(screen.getByRole('checkbox'));
   fireEvent.press(screen.getByText('Choose save location'));
   await waitFor(() => expect(archive.saveLocalSnapshot).toHaveBeenCalledTimes(1));
   const code = jest.mocked(archive.saveLocalSnapshot).mock.calls[0][0];
   fireEvent.press(await screen.findByText('Choose save location'));
-  await screen.findByText(/Encrypted journal backup saved/);
+  await screen.findByText(/Backup file saved/);
   const [savedCode, manifest, files] = jest.mocked(archive.saveLocalSnapshot).mock.calls[1];
   expect(savedCode).toBe(code);
   expect(files).toBe('123\t' + sha + '\t' + uri);
@@ -355,7 +379,7 @@ it('saves only after code confirmation and verifies the selected document withou
     '\n' + invalidManifest)).toThrow('Unrecognized archive photo reference');
   jest.mocked(AsyncStorage.getAllKeys).mockClear().mockRejectedValue(new Error('Fresh device'));
   jest.mocked(archive.openLocalSnapshot).mockResolvedValueOnce('').mockResolvedValueOnce(reply(evidence));
-  fireEvent.press(screen.getByText('Check saved journal backup'));
+  fireEvent.press(screen.getByText('Check saved backup'));
   fireEvent.changeText(screen.getByLabelText('Backup recovery code'), code);
   fireEvent.press(screen.getByText('Choose backup file'));
   await waitFor(() => expect(archive.openLocalSnapshot).toHaveBeenCalledWith(code));
@@ -384,6 +408,23 @@ it('saves only after code confirmation and verifies the selected document withou
   expect(screen.queryByText('Backup contents')).toBeNull();
   expect(AsyncStorage.setItem).not.toHaveBeenCalled();
   expect(screen.queryByText(/Private 🙏/)).toBeNull();
+});
+
+it('keeps verification available after the file cannot be opened with the supplied code', async () => {
+  jest.mocked(archive.openLocalSnapshot).mockRejectedValueOnce(new Error('Authentication failed'));
+  render(<SampleLocalBackup />);
+  fireEvent.press(screen.getByRole('button', {name: 'Check saved backup'}));
+  const input = screen.getByLabelText('Backup recovery code');
+  fireEvent.changeText(input, 'abcd');
+  expect(screen.getByRole('button', {name: 'Choose backup file'})).toBeDisabled();
+  fireEvent.changeText(input, '1'.repeat(32));
+  fireEvent.press(screen.getByRole('button', {name: 'Choose backup file'}));
+  await screen.findByText('Could not verify this journal backup. Check the file and recovery code.');
+  expect(screen.queryByText('Your recovery code opened this backup.')).toBeNull();
+  expect(screen.getByRole('button', {name: 'Choose backup file'})).toBeEnabled();
+  fireEvent.press(screen.getByText('Cancel'));
+  expect(screen.queryByLabelText('Backup recovery code')).toBeNull();
+  expect(AsyncStorage.setItem).not.toHaveBeenCalled();
 });
 
 it('distinguishes an empty backup from settings and older records held out of restore', async () => {

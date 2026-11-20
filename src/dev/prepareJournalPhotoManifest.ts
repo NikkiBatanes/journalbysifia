@@ -9,6 +9,8 @@ import {compareJournalBackupEntries} from '../services/compareJournalBackupEntri
 import {planJournalBackupRestore} from '../services/journalBackupRestorePlan';
 import {journalBackupPhotoResolver, validateArchivePhotoBlocks} from '../services/journalBackupPhotoBlocks';
 
+export class LinkedBackupPhotoError extends Error {}
+
 type Fingerprint = (uri: string, remaining: number) => Promise<string>;
 
 // Prepares the canonical journal, reflection and prayer photo blocks in a local
@@ -34,6 +36,9 @@ export async function prepareJournalPhotoExport(backup: JournalBackupEnvelopeV1,
           continue;
         }
         const uri = block.uri;
+        if (typeof uri === 'string' && /^https?:\/\//i.test(uri)) {
+          throw new LinkedBackupPhotoError('Photo is linked from the web');
+        }
         if (typeof uri !== 'string' || uri.length > 4096 || !uri.startsWith('file:///')) {
           throw new Error('Unsupported photo reference');
         }

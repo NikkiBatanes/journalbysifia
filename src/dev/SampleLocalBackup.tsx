@@ -2,7 +2,7 @@ import React, {useEffect, useRef, useState} from 'react';
 import {Alert, Image, Platform, Pressable, StyleSheet, Text, TextInput, View} from 'react-native';
 import 'react-native-get-random-values';
 import {createJournalBackup, validateJournalBackup} from '../services/journalBackupContract';
-import {compareLocalSnapshotResult, inspectLocalSnapshotResult, prepareJournalPhotoExport} from './prepareJournalPhotoManifest';
+import {compareLocalSnapshotResult, inspectLocalSnapshotResult, LinkedBackupPhotoError, prepareJournalPhotoExport} from './prepareJournalPhotoManifest';
 import {checkStreamedDeviceSnapshot, localSnapshotToken} from './journalStreamingSnapshotRestore';
 import {checkDeviceSnapshot, hasDeviceRestoreSample} from './journalDeviceSnapshotRestore';
 import {inspectJournalPhotoReferences} from './inspectJournalPhotoReferences';
@@ -70,6 +70,7 @@ function newRecoveryCode() {
 
 export default function SampleLocalBackup() {
   const {colors, fontFamily} = useTheme();
+  const [showPractice, setShowPractice] = useState(false);
   const [mode, setMode] = useState<BackupAction | null>(null);
   const [localPreview, setLocalPreview] = useState<ReturnType<typeof inspectLocalSnapshotResult> | null>(null);
   const [entryCounts, setEntryCounts] = useState<Awaited<ReturnType<typeof compareLocalSnapshotResult>> | null>(null);
@@ -198,7 +199,7 @@ export default function SampleLocalBackup() {
         const saved = await archive.saveLocalSnapshot(normalized, JSON.stringify(manifest), sources);
         if (saved === 'saved' && mounted.current) {
           reset();
-          setMessage('Encrypted journal backup saved. Use Check saved journal backup to verify the file.');
+          setMessage('Backup file saved. Select Check saved backup to open it with your recovery code.');
         }
         return;
       }
@@ -253,7 +254,11 @@ export default function SampleLocalBackup() {
       }
       reset();
       setMessage('Sample backup saved.');
-    } catch {
+    } catch (error) {
+      if (mode === 'saveLocal' && error instanceof LinkedBackupPhotoError) {
+        setMessage('Backup could not be saved. An entry links to a web photo. This backup supports photos saved on the device.');
+        return;
+      }
       if (mode === 'openLocal' || mode === 'saveLocal') {
         setMessage(mode === 'saveLocal' ? 'Could not save the journal backup. Check photo availability and free space before retrying.' :
           'Could not verify this journal backup. Check the file and recovery code.');
@@ -421,10 +426,11 @@ export default function SampleLocalBackup() {
   );
   return (
     <View style={styles.section}>
-      <Text style={[text, styles.title]}>Local backup test</Text>
-      <Text style={text}>Save or verify your local journal, or try restoring practice entries.</Text>
+      <Text accessibilityRole="header" style={[text, styles.title]}>Local backup</Text>
+      {!mode && !localPreview && <Text style={text}>Save an encrypted copy of this journal to Files. You can do this without signing in or subscribing.</Text>}
       {localPreview && <>
         <Text accessibilityRole="header" style={[text, styles.title]}>Backup contents</Text>
+        <Text style={text}>Your recovery code opened this backup.</Text>
         <Text style={text}>Saved {new Date(localPreview.createdAt).toLocaleString()}</Text>
         <Text style={text}>{localPreview.records} {localPreview.records === 1 ? 'record' : 'records'} in this backup</Text>
         {localPreview.sections.map(([label, count]) => <Text key={label} style={text}>{label} · {count}</Text>)}
@@ -439,27 +445,18 @@ export default function SampleLocalBackup() {
           <Text style={text}>Need review · {entryCounts.review}</Text>
           {entryCounts.backupOnlyDeletions > 0 && <Text style={text}>Deletion records only in backup · {entryCounts.backupOnlyDeletions}</Text>}
         </View>}
-        {selectedDocument.current && localSnapshotToken(selectedDocument.current) && button('Restore and verify practice journal', confirmStreamedSnapshot, busy)}
-        {sampleDocument.current && button('Confirm restore to test journal', () => {
+        {showPractice && selectedDocument.current && localSnapshotToken(selectedDocument.current) && button('Restore and verify practice journal', confirmStreamedSnapshot, busy)}
+        {showPractice && sampleDocument.current && button('Confirm restore to test journal', () => {
           if (sampleDocument.current) {void checkIsolatedJournal(sampleDocument.current);}
         }, busy)}
         {button('Close preview', () => {reset(); setMessage('');}, busy)}
       </>}
       {!mode && !localPreview && <>
-        {button('Save encrypted journal backup', () => start('saveLocal'), busy)}
-        {button('Check saved journal backup', () => start('openLocal'), busy)}
-        {button('Test interrupted restore with a practice edit', () => testLocalRestoreInterruption(), busy)}
-        {button('Test large journal recovery', () => testLocalRestoreInterruption(true), busy)}
-        {button('Reopen restored sample', () => checkIsolatedJournal(), busy)}
-        {button('Save sample backup', () => start('export'), busy)}
-        {button('Save a custom sample', () => start('inventory'), busy)}
-        {button('Restore sample backup', () => start('restore'), busy)}
-        {button(busy ? 'Checking…' : 'Check local journal counts', () => checkLocalJournal(), busy)}
-        {button('Verify encrypted local snapshot', () => checkLocalJournal('snapshot'), busy)}
-        {button('Check photo links for export', () => checkLocalJournal('photos'), busy)}
+        {button('Save encrypted backup', () => start('saveLocal'), busy)}
+        {button('Check saved backup', () => start('openLocal'), busy)}
       </>}
       {exporting && <>
-        {mode === 'saveLocal' && <Text style={text}>This development export includes local backup records and supported JPEG and PNG photos in journal, reflection and prayer blocks. Audio attachments are outside this check.</Text>}
+        {mode === 'saveLocal' && <Text style={text}>This file includes local backup records and supported JPEG and PNG photos from journal, reflection and prayer entries. Audio attachments are excluded.</Text>}
         {mode === 'inventory' && <>
           <Text style={text}>Choose 0 to 300 practice entries. Samples with two or more entries include three photos.</Text>
           <TextInput accessibilityLabel="Number of sample entries" keyboardType="number-pad"
@@ -522,6 +519,23 @@ export default function SampleLocalBackup() {
         onLoad={() => setPhotoLoaded(true)} onError={() => setMessage('The restored photo could not be displayed.')} />}
       {photoLoaded && <Text style={text}>Restored photo displayed</Text>}
       {!!message && <Text accessibilityLiveRegion="polite" style={text}>{message}</Text>}
+      {!mode && !localPreview && <>
+        <Pressable accessibilityRole="button" accessibilityState={{expanded: showPractice, disabled: busy}}
+          disabled={busy} onPress={() => setShowPractice(value => !value)} style={styles.button}>
+          <Text style={text}>Development backup tools</Text>
+        </Pressable>
+        {showPractice && <>
+          {button('Test interrupted restore with a practice edit', () => testLocalRestoreInterruption(), busy)}
+          {button('Test large journal recovery', () => testLocalRestoreInterruption(true), busy)}
+          {button('Reopen restored sample', () => checkIsolatedJournal(), busy)}
+          {button('Save sample backup', () => start('export'), busy)}
+          {button('Save a custom sample', () => start('inventory'), busy)}
+          {button('Restore sample backup', () => start('restore'), busy)}
+          {button(busy ? 'Checking…' : 'Check local journal counts', () => checkLocalJournal(), busy)}
+          {button('Verify encrypted local snapshot', () => checkLocalJournal('snapshot'), busy)}
+          {button('Check photo links for export', () => checkLocalJournal('photos'), busy)}
+        </>}
+      </>}
     </View>
   );
 }

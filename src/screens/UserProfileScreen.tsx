@@ -1497,6 +1497,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
   const renderJournalCloudSection = () => (
     <View>
       <Text style={[styles.sectionLabel, styles.sectionLabelRight, font]}>ACCOUNT & DATA</Text>
+      {SampleLocalBackup && <View style={styles.menuContainer}><SampleLocalBackup /></View>}
       <View style={styles.menuContainer}>
         <TouchableOpacity
           style={[styles.menuItem, styles.menuItemSpaced]}
@@ -1517,7 +1518,6 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           </View>
           <Ionicons name="chevron-forward" size={20} color={theme.colors.chevronColor} />
         </TouchableOpacity>
-        {SampleLocalBackup && <SampleLocalBackup />}
       </View>
     </View>
   );
