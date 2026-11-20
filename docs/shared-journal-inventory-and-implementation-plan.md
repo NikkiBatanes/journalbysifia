@@ -1570,6 +1570,12 @@ On the Pixel 8 emulator, Android force-stopped Journal after the first 32 KiB of
 
 Both platforms have passed this interruption check. The next implementation decision is how a customer restore will write to the live journal and recover safely on startup.
 
+### 2026-11-20 — Compare a selected backup with this phone
+
+In the development Files preview, **Compare with this device** reads the local journal, reflection and prayer records and compares them with the verified backup. The preview shows counts for matching records, records found only in the backup or on the device, and incoming records that need review. Backup-only deletion records have their own count. Changed entries, moved entries and two IDs occupying the same journal slot require review. Matching photo blocks are compared by their file digest, length and media type so a new archive filename alone does not count as an edit. The comparison displays counts and leaves the live journal untouched.
+
+Eight automated backup suites passed 68 tests. Repeating the comparison after changing photo bytes moved the record from matching to review. An unreadable photo cleared the previous counts. The iPhone simulator opened the two-photo fixture through Files and displayed all four comparison counts. The Pixel device check is pending after its lock screen prevented navigation. The restore screen still writes only to an isolated practice journal. The next step toward customer restore is a production storage adapter that can protect concurrent edits and recover an interrupted write at startup. Phase 5 remains at **95%**, with weighted overall progress at **32.7%**.
+
 ## Primary references checked on 2026-11-03
 
 - [Apple App Review Guidelines, payments/subscriptions](https://developer.apple.com/app-store/review/guidelines/): mobile subscription checkout baseline and subscription disclosures. Regional alternative-payment programs require separate review if later used.

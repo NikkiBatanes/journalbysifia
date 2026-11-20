@@ -2,7 +2,7 @@ import React, {useEffect, useRef, useState} from 'react';
 import {Image, Platform, Pressable, StyleSheet, Text, TextInput, View} from 'react-native';
 import 'react-native-get-random-values';
 import {createJournalBackup, validateJournalBackup} from '../services/journalBackupContract';
-import {inspectLocalSnapshotResult, prepareJournalPhotoExport} from './prepareJournalPhotoManifest';
+import {compareLocalSnapshotResult, inspectLocalSnapshotResult, prepareJournalPhotoExport} from './prepareJournalPhotoManifest';
 import {checkStreamedDeviceSnapshot, localSnapshotToken} from './journalStreamingSnapshotRestore';
 import {checkDeviceSnapshot, hasDeviceRestoreSample} from './journalDeviceSnapshotRestore';
 import {inspectJournalPhotoReferences} from './inspectJournalPhotoReferences';
@@ -72,9 +72,10 @@ export default function SampleLocalBackup() {
   const {colors, fontFamily} = useTheme();
   const [mode, setMode] = useState<BackupAction | null>(null);
   const [localPreview, setLocalPreview] = useState<ReturnType<typeof inspectLocalSnapshotResult> | null>(null);
+  const [entryCounts, setEntryCounts] = useState<Awaited<ReturnType<typeof compareLocalSnapshotResult>> | null>(null);
   const [restoredPhoto, setRestoredPhoto] = useState<string | null>(null);
   const [photoLoaded, setPhotoLoaded] = useState(false);
-  const streamedDocument = useRef<string | null>(null);
+  const selectedDocument = useRef<string | null>(null);
   const sampleDocument = useRef<string | null>(null);
   const [entryCount, setEntryCount] = useState('300');
   const exporting = mode === 'export' || mode === 'inventory' || mode === 'saveLocal';
@@ -95,8 +96,8 @@ export default function SampleLocalBackup() {
     mounted.current = true;
     return () => {
       mounted.current = false;
-      releaseLocalStream(streamedDocument.current);
-      streamedDocument.current = null;
+      releaseLocalStream(selectedDocument.current);
+      selectedDocument.current = null;
       comparison.current?.discard();
       comparison.current = null;
       lastRestore.current?.discard();
@@ -110,8 +111,8 @@ export default function SampleLocalBackup() {
   const normalized = code.replace(/[-\s]/g, '').toLowerCase();
   const canChooseFile = /^[a-f0-9]{32}$/.test(normalized) && (!exporting || acknowledged) && (mode !== 'inventory' || validCount);
   function reset() {
-    releaseLocalStream(streamedDocument.current);
-    streamedDocument.current = null;
+    releaseLocalStream(selectedDocument.current);
+    selectedDocument.current = null;
     setRevisionReview(null);
     comparison.current?.discard();
     comparison.current = null;
@@ -123,6 +124,7 @@ export default function SampleLocalBackup() {
     setPhotoLoaded(false);
     sampleDocument.current = null;
     setLocalPreview(null);
+    setEntryCounts(null);
     setMode(null);
     setCode('');
     setAcknowledged(false);
@@ -207,7 +209,7 @@ export default function SampleLocalBackup() {
         let contents;
         try {contents = inspectLocalSnapshotResult(opened);} catch (error) {releaseLocalStream(opened); throw error;}
         reset();
-        if (localSnapshotToken(opened)) {streamedDocument.current = opened;}
+        selectedDocument.current = opened;
         if (hasDeviceRestoreSample(opened)) {sampleDocument.current = opened;}
         setLocalPreview(contents);
         return;
@@ -336,8 +338,26 @@ export default function SampleLocalBackup() {
       if (mounted.current) {setBusy(false);}
     }
   }
+  async function compareWithDevice() {
+    const document = selectedDocument.current;
+    if (!document || running.current) {return;}
+    running.current = true;
+    setBusy(true);
+    setMessage('');
+    setEntryCounts(null);
+    try {
+      const counts = await compareLocalSnapshotResult(document, await createJournalBackup(),
+        (uri, remaining) => nativeArchive().describeLocalPickerPhoto(uri, remaining));
+      if (mounted.current) {setEntryCounts(counts);}
+    } catch {
+      if (mounted.current) {setMessage('Could not compare entries. Check that device photos are available and try again after saving your edits.');}
+    } finally {
+      running.current = false;
+      if (mounted.current) {setBusy(false);}
+    }
+  }
   async function confirmStreamedSnapshot() {
-    const document = streamedDocument.current;
+    const document = selectedDocument.current;
     if (!document || running.current) {return;}
     running.current = true;
     setBusy(true);
@@ -387,11 +407,20 @@ export default function SampleLocalBackup() {
         {localPreview.sections.map(([label, count]) => <Text key={label} style={text}>{label} · {count}</Text>)}
         <Text style={text}>Attached photos · {localPreview.photos}{localPreview.photos > 0 ? ` (${localPreview.photoBytes.toLocaleString()} bytes)` : ''}</Text>
         {localPreview.legacyCount > 0 && <Text style={text}>Older records kept in the file and skipped during restore · {localPreview.legacyCount}</Text>}
-        {streamedDocument.current && button('Restore and verify practice journal', confirmStreamedSnapshot, busy)}
+        {button('Compare with this device', compareWithDevice, busy)}
+        {entryCounts && <View accessibilityLiveRegion="polite">
+          <Text accessibilityRole="header" style={[text, styles.title]}>Journal, reflection and prayer records</Text>
+          <Text style={text}>Matching · {entryCounts.matching}</Text>
+          <Text style={text}>Only in backup · {entryCounts.backupOnly}</Text>
+          <Text style={text}>Only on device · {entryCounts.deviceOnly}</Text>
+          <Text style={text}>Need review · {entryCounts.review}</Text>
+          {entryCounts.backupOnlyDeletions > 0 && <Text style={text}>Deletion records only in backup · {entryCounts.backupOnlyDeletions}</Text>}
+        </View>}
+        {selectedDocument.current && localSnapshotToken(selectedDocument.current) && button('Restore and verify practice journal', confirmStreamedSnapshot, busy)}
         {sampleDocument.current && button('Confirm restore to test journal', () => {
           if (sampleDocument.current) {void checkIsolatedJournal(sampleDocument.current);}
         }, busy)}
-        {button('Close preview', reset, busy)}
+        {button('Close preview', () => {reset(); setMessage('');}, busy)}
       </>}
       {!mode && !localPreview && <>
         {button('Save encrypted journal backup', () => start('saveLocal'), busy)}

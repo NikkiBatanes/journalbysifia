@@ -5,6 +5,7 @@ import {
   preflightJournalBackupArchiveRestore, validateJournalBackupArchiveManifest, type JournalBackupArchiveAssetV1, type JournalBackupArchiveManifestV1,
 } from '../services/journalBackupArchiveContract';
 
+import {compareJournalBackupEntries} from '../services/compareJournalBackupEntries';
 import {planJournalBackupRestore} from '../services/journalBackupRestorePlan';
 import {journalBackupPhotoResolver, validateArchivePhotoBlocks} from '../services/journalBackupPhotoBlocks';
 
@@ -117,6 +118,12 @@ function verifiedManifest(result: string) {
   });
   if (!checked.valid || !checked.manifest) {throw new Error('Invalid snapshot');}
   return checked.manifest;
+}
+
+export async function compareLocalSnapshotResult(document: string, device: JournalBackupEnvelopeV1, describe: Fingerprint) {
+  const saved = verifiedManifest(document);
+  const current = await prepareJournalPhotoManifest(device, describe);
+  return compareJournalBackupEntries(saved, current);
 }
 
 export function planStagedLocalSnapshot(result: string, staged: readonly {file: string; byteLength: number; sha256: string}[]) {
