@@ -46,7 +46,7 @@ import {
 } from '../services/scriptureReaderService';
 import {formatScripturePassage} from '../services/scripturePassageFormatting';
 import { BIBLE_STUDY_TOPICS, BibleStudyTopic } from '../data/bibleStudyTopics';
-import { deleteLocalReflection, getLocalReflection, LocalReflectionEntry } from '../storage/reflectionStorage';
+import { getLocalReflection, LocalReflectionEntry } from '../storage/reflectionStorage';
 import { parseSavedBibleStudy } from '../storage/bibleStudyMomentsStorage';
 import {
   BibleStudyContent,
@@ -54,7 +54,7 @@ import {
   BibleStudySession,
   BibleStudyStage,
   completeBibleStudySession,
-  deleteBibleStudySession,
+  deleteSavedBibleStudy,
   createBibleStudySession,
   createEmptyBibleStudyContent,
   getActiveBibleStudySession,
@@ -914,8 +914,8 @@ const BibleStudyScreen = () => {
           style: 'destructive',
           onPress: async () => {
             try {
-              await deleteLocalReflection(reflectionId, 'scripture', selectedDate);
-              if (session?.id) {await deleteBibleStudySession(session.id);}
+              if (debouncedSave.current) {clearTimeout(debouncedSave.current);}
+              await deleteSavedBibleStudy(reflectionId, selectedDate, session?.id);
               DeviceEventEmitter.emit('reflection_deleted', reflectionId);
               DeviceEventEmitter.emit('bible_study_saved', reflectionId);
               closeBibleStudy();

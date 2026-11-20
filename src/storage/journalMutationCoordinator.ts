@@ -14,3 +14,10 @@ export function createJournalMutationCoordinator(): JournalBackupRestoreMutation
 }
 
 export const localJournalMutations = createJournalMutationCoordinator();
+
+/** Wrap a storage operation for callers outside the local journal queue. */
+export function coordinatedJournalWrite<Args extends unknown[], Result>(
+  write: (...args: Args) => Promise<Result>,
+): (...args: Args) => Promise<Result> {
+  return (...args) => localJournalMutations.runExclusive(() => write(...args));
+}

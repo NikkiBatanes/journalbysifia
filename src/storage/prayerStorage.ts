@@ -1,4 +1,4 @@
-import {localJournalMutations} from './journalMutationCoordinator';
+import {coordinatedJournalWrite} from './journalMutationCoordinator';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { toLocalDateString } from '../utils/date';
 import { safeJsonParse } from '../utils/safeJsonParse';
@@ -83,9 +83,10 @@ const writePrayerIndex = async (date: string, ids: string[]): Promise<void> => {
   await AsyncStorage.setItem(getPrayerIndexKey(date), JSON.stringify(ids));
 };
 
-export const createLocalPrayer = (
+/** @internal Caller holds the local journal mutation queue. */
+export const createLocalPrayerWhileLocked = async (
   data: Omit<LocalPrayerEntry, 'id' | 'created_at' | 'updated_at' | 'version' | 'sync_status'>
-): Promise<LocalPrayerEntry> => localJournalMutations.runExclusive(async () => {
+): Promise<LocalPrayerEntry> => {
   const now = new Date().toISOString();
   const selectedDate = formatLocalDate(data.selected_date);
   const id = generateLocalUUID();
@@ -113,7 +114,9 @@ export const createLocalPrayer = (
   await queuePrayerCreatedImpact(entry).catch(() => {});
 
   return entry;
-});
+};
+
+export const createLocalPrayer = coordinatedJournalWrite(createLocalPrayerWhileLocked);
 
 export const getLocalPrayer = async (
   id: string,
@@ -171,9 +174,10 @@ export const getLocalPeoplePrayers = async (
   return prayers;
 };
 
-export const updateLocalPrayer = (
+/** @internal Caller holds the local journal mutation queue. */
+export const updateLocalPrayerWhileLocked = async (
   entry: LocalPrayerEntry
-): Promise<LocalPrayerEntry> => localJournalMutations.runExclusive(async () => {
+): Promise<LocalPrayerEntry> => {
   const now = new Date().toISOString();
   const selectedDate = formatLocalDate(entry.selected_date);
   const updated: LocalPrayerEntry = {
@@ -193,12 +197,15 @@ export const updateLocalPrayer = (
     await queuePrayerAnsweredImpact(updated).catch(() => {});
   }
   return updated;
-});
+};
 
-export const deleteLocalPrayer = (
+export const updateLocalPrayer = coordinatedJournalWrite(updateLocalPrayerWhileLocked);
+
+/** @internal Caller holds the local journal mutation queue. */
+export const deleteLocalPrayerWhileLocked = async (
   id: string,
   date: string | Date
-): Promise<void> => localJournalMutations.runExclusive(async () => {
+): Promise<void> => {
   const selectedDate = formatLocalDate(date);
   const raw = await AsyncStorage.getItem(getPrayerKey(selectedDate, id));
   if (!raw) {return;}
@@ -217,4 +224,6 @@ export const deleteLocalPrayer = (
   const nextIndex = index.filter(itemId => itemId !== id);
   await writePrayerIndex(selectedDate, nextIndex);
   await queuePrayerImpactRetraction(id).catch(() => {});
-});
+};
+
+export const deleteLocalPrayer = coordinatedJournalWrite(deleteLocalPrayerWhileLocked);

@@ -1,4 +1,4 @@
-import {localJournalMutations} from './journalMutationCoordinator';
+import {coordinatedJournalWrite, localJournalMutations} from './journalMutationCoordinator';
 
 const generateUUID = (): string => {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
@@ -516,7 +516,7 @@ export const getLocalTimeBlocksForDate = async (
 };
 
 // Save a time block entry to AsyncStorage with version checking
-export const saveLocalTimeBlock = async (
+export const saveLocalTimeBlock = coordinatedJournalWrite(async (
   key: string,
   entry: TimeBlockEntry,
   userId: string
@@ -535,7 +535,7 @@ export const saveLocalTimeBlock = async (
   };
   await AsyncStorage.setItem(key, JSON.stringify(entryToSave));
   return entryToSave;
-};
+});
 
 // Retrieve a time block entry from AsyncStorage
 export const getLocalTimeBlock = async (key: string): Promise<TimeBlockEntry | null> => {
@@ -544,7 +544,7 @@ export const getLocalTimeBlock = async (key: string): Promise<TimeBlockEntry | n
   return parseStorageValue<TimeBlockEntry | null>(raw, null);
 };
 
-export const saveLocalEntry = async (key: string, data: Omit<JournalEntryBase, 'id'|'created_at'|'updated_at'>, userId: string): Promise<JournalEntryBase> => {
+export const saveLocalEntry = coordinatedJournalWrite(async (key: string, data: Omit<JournalEntryBase, 'id'|'created_at'|'updated_at'>, userId: string): Promise<JournalEntryBase> => {
 
   if (!userId) {
     throw new Error('User ID is required to save entry');
@@ -579,9 +579,9 @@ export const saveLocalEntry = async (key: string, data: Omit<JournalEntryBase, '
     });
     throw error;
   }
-};
+});
 
-export const updateLocalEntry = async (key: string, updatedData: Partial<JournalEntryBase>): Promise<JournalEntryBase> => {
+export const updateLocalEntry = coordinatedJournalWrite(async (key: string, updatedData: Partial<JournalEntryBase>): Promise<JournalEntryBase> => {
 
   const existingEntry = await getLocalEntry(key);
   if (!existingEntry) {
@@ -619,7 +619,7 @@ export const updateLocalEntry = async (key: string, updatedData: Partial<Journal
     });
     throw error;
   }
-};
+});
 
 export const getLocalEntry = async (key: string): Promise<JournalEntryBase | null> => {
 
@@ -698,10 +698,10 @@ export const getLocalEntriesForDate = async (date: string, contentType: string, 
   return completeEntry;
 };
 
-export const deleteLocalEntry = async (key: string) => {
+export const deleteLocalEntry = coordinatedJournalWrite(async (key: string) => {
 
   await AsyncStorage.removeItem(key);
-};
+});
 
 // --- Supabase Operations ---
 // Supabase session handling
@@ -1621,13 +1621,14 @@ export const syncFromCloud = async (userId: string, date: string, contentType: s
 
     const key = getJournalKey(userId, contentType, date);
 
-    // Get the local entry first
-    const localEntry = await getLocalEntry(key);
+    // Compare the stored bytes again after the remote request so a local save wins.
+    const original = await AsyncStorage.getItem(key);
+    const localEntry = parseStorageValue<JournalEntryBase | null>(original, null);
 
     try {
       // If we have a local entry, try to get the specific cloud entry
       // Otherwise, try to find any cloud entry for this date and content type
-      let cloudEntry;
+      let cloudEntry: JournalEntryBase | null | undefined;
 
       if (localEntry?.id) {
 
@@ -1666,46 +1667,28 @@ export const syncFromCloud = async (userId: string, date: string, contentType: s
 
       }
 
-      // If we have a local entry but no cloud entry, delete the local entry
-      if (localEntry && !cloudEntry) {
-
-        await AsyncStorage.removeItem(key);
-        return null;
-      }
-
-      // If we have a cloud entry, verify it matches the requested date
-      if (cloudEntry) {
-        // Ensure the cloud entry has the correct selected_date
-        if (cloudEntry.selected_date !== date) {
-
-          await AsyncStorage.removeItem(key);
+      return await localJournalMutations.runExclusive(async () => {
+        const latest = await AsyncStorage.getItem(key);
+        if (latest !== original) {return parseStorageValue<JournalEntryBase | null>(latest, null);}
+        if (!cloudEntry || cloudEntry.selected_date !== date) {
+          if (localEntry) {await AsyncStorage.removeItem(key);}
           return null;
         }
-
-        if (!localEntry || new Date(cloudEntry.updated_at) > new Date(localEntry.updated_at || 0)) {
-
-          // Ensure the entry has all required fields and the correct date
-          const completeEntry: JournalEntryBase = {
-            id: cloudEntry.id || generateUUID(),
-            content_type: cloudEntry.content_type || contentType,
-            content: cloudEntry.content || {},
-            created_at: cloudEntry.created_at || new Date().toISOString(),
-            updated_at: cloudEntry.updated_at || new Date().toISOString(),
-            selected_date: date, // Always use the explicitly requested date
-            user_id: cloudEntry.user_id || userId,
-          };
-
-          await AsyncStorage.setItem(key, JSON.stringify(completeEntry));
-
-          return completeEntry;
-        } else {
-
+        if (localEntry && !(new Date(cloudEntry.updated_at) > new Date(localEntry.updated_at || 0))) {
+          return localEntry;
         }
-      } else {
-
-      }
-
-      return localEntry;
+        const completeEntry: JournalEntryBase = {
+          id: cloudEntry.id || generateUUID(),
+          content_type: cloudEntry.content_type || contentType,
+          content: cloudEntry.content || {},
+          created_at: cloudEntry.created_at || new Date().toISOString(),
+          updated_at: cloudEntry.updated_at || new Date().toISOString(),
+          selected_date: date,
+          user_id: cloudEntry.user_id || userId,
+        };
+        await AsyncStorage.setItem(key, JSON.stringify(completeEntry));
+        return completeEntry;
+      });
     } catch (error) {
       Logger.error('Error in syncFromCloud', error as Error, {
       component: 'journalStorage',
@@ -1878,7 +1861,7 @@ export const getCloudLookingForward = async (
 };
 
 // --- Cache Management Functions ---
-export const clearJournalCache = async (userId: string, contentType?: string, date?: string): Promise<void> => {
+export const clearJournalCache = coordinatedJournalWrite(async (userId: string, contentType?: string, date?: string): Promise<void> => {
 
   try {
     const allKeys = await AsyncStorage.getAllKeys();
@@ -1919,7 +1902,7 @@ export const clearJournalCache = async (userId: string, contentType?: string, da
     });
     throw error;
   }
-};
+});
 
 export const forceRefreshJournalData = async (
   userId: string,

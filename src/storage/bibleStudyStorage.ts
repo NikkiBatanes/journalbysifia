@@ -1,18 +1,20 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { toLocalDateString } from '../utils/date';
 import { safeJsonParse } from '../utils/safeJsonParse';
+import {coordinatedJournalWrite} from './journalMutationCoordinator';
 import { ContentRef } from './routineStateStorage';
 import {
-  createLocalReflection,
+  createLocalReflectionWhileLocked,
+  deleteLocalReflectionWhileLocked,
   getLocalReflection,
-  updateLocalReflection,
+  updateLocalReflectionWhileLocked,
   LocalReflectionEntry,
 } from './reflectionStorage';
 import {
-  createLocalPrayer,
+  createLocalPrayerWhileLocked,
   getLocalPrayer,
-  updateLocalPrayer,
-  deleteLocalPrayer,
+  updateLocalPrayerWhileLocked,
+  deleteLocalPrayerWhileLocked,
 } from './prayerStorage';
 import {
   queueBibleStudyCompletedImpact,
@@ -166,7 +168,7 @@ const createBibleStudyReflection = async (
   session: BibleStudySession,
 ): Promise<LocalReflectionEntry> => {
   const content = createEmptyBibleStudyContent();
-  return createLocalReflection({
+  return createLocalReflectionWhileLocked({
     server_id: null,
     title: session.passage.reference,
     content: JSON.stringify(content),
@@ -180,7 +182,7 @@ const createBibleStudyReflection = async (
   });
 };
 
-export const createBibleStudySession = async (
+export const createBibleStudySession = coordinatedJournalWrite(async (
   passage: BibleStudyPassage,
   date?: string | Date,
 ): Promise<BibleStudySession> => {
@@ -201,8 +203,6 @@ export const createBibleStudySession = async (
     version: 1,
   };
 
-  await AsyncStorage.setItem(getBibleStudySessionKey(id), JSON.stringify(session));
-
   const reflection = await createBibleStudyReflection(session);
   session.reflection_ref = {
     domain: 'reflection',
@@ -214,7 +214,7 @@ export const createBibleStudySession = async (
   await AsyncStorage.setItem(LATEST_BIBLE_STUDY_KEY, id);
   await queueBibleStudyCreatedImpact(session).catch(() => {});
   return session;
-};
+});
 
 export const getBibleStudySession = async (
   id: string,
@@ -281,13 +281,23 @@ export const getActiveBibleStudySession = async (
   return latest;
 };
 
-export const updateBibleStudySession = async (
+async function requireStoredSession(id: string): Promise<BibleStudySession> {
+  const session = await getBibleStudySession(id);
+  if (!session) {throw new Error('This Bible study session is no longer available.');}
+  return session;
+}
+
+const updateBibleStudySessionWhileLocked = async (
   session: BibleStudySession,
 ): Promise<BibleStudySession> => {
   const now = new Date().toISOString();
-  const existing = await getBibleStudySession(session.id);
+  const existing = await requireStoredSession(session.id);
   const updated: BibleStudySession = {
     ...session,
+    ...(existing.version > session.version ? {
+      prayer_ref: existing.prayer_ref,
+      reflection_ref: existing.reflection_ref,
+    } : {}),
     ...(existing?.completed ? {
       completed: true,
       completed_at: session.completed_at || existing.completed_at,
@@ -302,13 +312,17 @@ export const updateBibleStudySession = async (
   return updated;
 };
 
-export const deleteBibleStudySession = async (id: string): Promise<void> => {
+export const updateBibleStudySession = coordinatedJournalWrite(updateBibleStudySessionWhileLocked);
+
+const deleteBibleStudySessionWhileLocked = async (id: string): Promise<void> => {
   const existing = await getBibleStudySession(id);
   await AsyncStorage.removeItem(getBibleStudySessionKey(id));
   if (existing) {
     await queueBibleStudyImpactRetraction(id).catch(() => {});
   }
 };
+
+export const deleteBibleStudySession = coordinatedJournalWrite(deleteBibleStudySessionWhileLocked);
 
 export const loadBibleStudyContent = async (
   session: BibleStudySession,
@@ -325,10 +339,11 @@ export const loadBibleStudyContent = async (
   return createEmptyBibleStudyContent();
 };
 
-export const saveBibleStudyContent = async (
+const saveBibleStudyContentWhileLocked = async (
   session: BibleStudySession,
   content: BibleStudyContent,
 ): Promise<BibleStudySession> => {
+  session = await requireStoredSession(session.id);
   if (!session.reflection_ref) {return session;}
   const reflection = await getLocalReflection(
     session.reflection_ref.local_id,
@@ -337,7 +352,7 @@ export const saveBibleStudyContent = async (
   );
   if (!reflection) {return session;}
 
-  const updatedReflection = await updateLocalReflection({
+  const updatedReflection = await updateLocalReflectionWhileLocked({
     ...reflection,
     title: session.passage.reference,
     content: JSON.stringify(content),
@@ -348,7 +363,7 @@ export const saveBibleStudyContent = async (
     },
   });
 
-  return updateBibleStudySession({
+  return updateBibleStudySessionWhileLocked({
     ...session,
     reflection_ref: {
       domain: 'reflection',
@@ -358,12 +373,15 @@ export const saveBibleStudyContent = async (
   });
 };
 
-export const saveBibleStudyPrayer = async (
+export const saveBibleStudyContent = coordinatedJournalWrite(saveBibleStudyContentWhileLocked);
+
+const saveBibleStudyPrayerWhileLocked = async (
   session: BibleStudySession,
   prayerText: string,
   saveToJournal: boolean,
   trackAnswered = false,
 ): Promise<BibleStudySession> => {
+  session = await requireStoredSession(session.id);
   if (saveToJournal && prayerText.trim()) {
     if (session.prayer_ref) {
       const existing = await getLocalPrayer(
@@ -371,7 +389,7 @@ export const saveBibleStudyPrayer = async (
         session.selected_date,
       );
       if (existing) {
-        const updated = await updateLocalPrayer({
+        const updated = await updateLocalPrayerWhileLocked({
           ...existing,
           content: prayerText.trim(),
           metadata: {
@@ -383,7 +401,7 @@ export const saveBibleStudyPrayer = async (
             track_answered: trackAnswered,
           },
         });
-        return updateBibleStudySession({
+        return updateBibleStudySessionWhileLocked({
           ...session,
           prayer_ref: {
             domain: 'prayer',
@@ -394,7 +412,7 @@ export const saveBibleStudyPrayer = async (
       }
     }
 
-    const prayer = await createLocalPrayer({
+    const prayer = await createLocalPrayerWhileLocked({
       server_id: null,
       user_id: undefined,
       title: `Prayer from ${session.passage.reference}`,
@@ -412,7 +430,7 @@ export const saveBibleStudyPrayer = async (
       },
     });
 
-    return updateBibleStudySession({
+    return updateBibleStudySessionWhileLocked({
       ...session,
       prayer_ref: {
         domain: 'prayer',
@@ -428,21 +446,23 @@ export const saveBibleStudyPrayer = async (
       session.selected_date,
     );
     if (existing) {
-      await deleteLocalPrayer(existing.id, session.selected_date);
+      await deleteLocalPrayerWhileLocked(existing.id, session.selected_date);
     }
     const next = { ...session, prayer_ref: undefined };
-    return updateBibleStudySession(next);
+    return updateBibleStudySessionWhileLocked(next);
   }
 
   return session;
 };
 
-export const completeBibleStudySession = async (
+export const saveBibleStudyPrayer = coordinatedJournalWrite(saveBibleStudyPrayerWhileLocked);
+
+export const completeBibleStudySession = coordinatedJournalWrite(async (
   session: BibleStudySession,
   finalContent: BibleStudyContent,
 ): Promise<BibleStudySession> => {
-  let updated = await saveBibleStudyContent(session, finalContent);
-  updated = await saveBibleStudyPrayer(
+  let updated = await saveBibleStudyContentWhileLocked(session, finalContent);
+  updated = await saveBibleStudyPrayerWhileLocked(
     updated,
     finalContent.prayer.text,
     finalContent.prayer.saveToPrayerJournal,
@@ -458,15 +478,23 @@ export const completeBibleStudySession = async (
     completed: true,
     completed_at: now,
   };
-  const saved = await updateBibleStudySession(completed);
+  const saved = await updateBibleStudySessionWhileLocked(completed);
   if (saved.reflection_ref) {
     const reflection = await getLocalReflection(saved.reflection_ref.local_id, 'scripture', saved.selected_date);
     if (reflection) {
-      await updateLocalReflection({
+      await updateLocalReflectionWhileLocked({
         ...reflection,
         metadata: { ...reflection.metadata, bibleStudyCompleted: true, bibleStudyCompletedAt: now },
       });
     }
   }
   return saved;
-};
+});
+
+/** Remove the saved study and its flow state together. The linked prayer has its own lifecycle. */
+export const deleteSavedBibleStudy = coordinatedJournalWrite(async (
+  reflectionId: string, selectedDate: string, sessionId?: string,
+): Promise<void> => {
+  await deleteLocalReflectionWhileLocked(reflectionId, 'scripture', selectedDate);
+  if (sessionId) {await deleteBibleStudySessionWhileLocked(sessionId);}
+});

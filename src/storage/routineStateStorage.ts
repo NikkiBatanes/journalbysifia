@@ -10,6 +10,7 @@
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {localJournalMutations} from './journalMutationCoordinator';
 import { toLocalDateString } from '../utils/date';
 import { safeJsonParse } from '../utils/safeJsonParse';
 import {queueRoutineCompletedImpact} from '../services/journalImpactQueue';
@@ -60,26 +61,6 @@ export interface RoutineState {
 const getRoutineStateKey = (routine: RoutineType, date: string): string =>
   `${ROUTINE_STATE_PREFIX}:${routine}:${date}`;
 
-const writeQueues = new Map<string, Promise<void>>();
-
-const serializeWrite = async <T>(key: string, operation: () => Promise<T>): Promise<T> => {
-  const previous = writeQueues.get(key) ?? Promise.resolve();
-  let release!: () => void;
-  const current = new Promise<void>(resolve => { release = resolve; });
-  const tail = previous.catch(() => undefined).then(() => current);
-  writeQueues.set(key, tail);
-
-  await previous.catch(() => undefined);
-  try {
-    return await operation();
-  } finally {
-    release();
-    if (writeQueues.get(key) === tail) {
-      writeQueues.delete(key);
-    }
-  }
-};
-
 const buildRoutineState = (
   routine: RoutineType,
   selectedDate: string,
@@ -114,18 +95,7 @@ export const saveRoutineState = async (
   date: string | Date,
   updates: Partial<Omit<RoutineState, 'id' | 'routine' | 'selected_date'>>
 ): Promise<RoutineState> => {
-  const selectedDate = formatLocalDate(date);
-  const key = getRoutineStateKey(routine, selectedDate);
-  return serializeWrite(key, async () => {
-    const raw = await AsyncStorage.getItem(key);
-    const existing = raw ? safeJsonParse<RoutineState>(raw, { fallback: null }) : null;
-    const state = buildRoutineState(routine, selectedDate, existing, updates);
-    await AsyncStorage.setItem(key, JSON.stringify(state));
-    if (state.completed && !existing?.completed) {
-      await queueRoutineCompletedImpact(state).catch(() => {});
-    }
-    return state;
-  });
+  return updateRoutineState(routine, date, () => updates);
 };
 
 export const updateRoutineState = async (
@@ -135,7 +105,7 @@ export const updateRoutineState = async (
 ): Promise<RoutineState> => {
   const selectedDate = formatLocalDate(date);
   const key = getRoutineStateKey(routine, selectedDate);
-  return serializeWrite(key, async () => {
+  return localJournalMutations.runExclusive(async () => {
     const raw = await AsyncStorage.getItem(key);
     const existing = raw ? safeJsonParse<RoutineState>(raw, { fallback: null }) : null;
     const state = buildRoutineState(routine, selectedDate, existing, updater(existing));
@@ -189,5 +159,5 @@ export const deleteRoutineState = async (
 ): Promise<void> => {
   const selectedDate = formatLocalDate(date);
   const key = getRoutineStateKey(routine, selectedDate);
-  await serializeWrite(key, () => AsyncStorage.removeItem(key));
+  await localJournalMutations.runExclusive(() => AsyncStorage.removeItem(key));
 };

@@ -1598,6 +1598,14 @@ Tests paused the backup read while a draft was cleared, a weekly review complete
 
 Verification included 137 focused tests and four host restore tests using practice data. The repository-wide run reproduced the same 35 failing tests across 21 suites as the prior checkpoint. Phase 5 remains at **95%** and weighted overall progress at **32.7%**. Remaining work includes Bible study sessions, routine progress, Gospel content and older storage paths, followed by a destination check at confirmation and startup recovery tests on iOS and Android against the customer storage adapter. Queued edits are durable once their device save completes.
 
+### 2026-11-20 — Keep Bible studies and linked prayers consistent during backup
+
+The backup reader now takes turns with Bible study saves and deletions, routine progress updates, Gospel saves and writes to older journal and reflection records. If a cloud read returns after the user edits an older entry, the newer local save takes precedence. A failed cloud read also preserves the local reflection.
+
+A regression test paused a Bible study save after its prayer had been written and before the session recorded the link. The backup waited and captured the completed study, reflection and prayer together. Repeating the save from a stale screen produced one prayer. Deleting the study preserved that prayer, and a delayed save could not recreate the deleted study. Other tests verified that Gospel contacts, routine steps and older records survive an overlapping successful or failed backup read.
+
+Verification included 189 focused tests and four host restore tests in fresh processes. The full suite reproduced the previous 35 failing tests across 21 suites. TypeScript reported the same 734 diagnostics. This checkpoint covers concurrent operations while the app is running. The next milestone is to recheck the device journal when the user confirms a restore, then verify recovery after closing and reopening the app on both platforms with synthetic entries in the real storage path. Customer restore is still limited to the practice destination. Phase 5 remains at **95%** and weighted overall progress at **32.7%**.
+
 ## Primary references checked on 2026-11-03
 
 - [Apple App Review Guidelines, payments/subscriptions](https://developer.apple.com/app-store/review/guidelines/): mobile subscription checkout baseline and subscription disclosures. Regional alternative-payment programs require separate review if later used.

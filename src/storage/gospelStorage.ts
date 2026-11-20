@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {localJournalMutations} from './journalMutationCoordinator';
 import {DeviceEventEmitter} from 'react-native';
 import {GOSPEL_CONTENT_VERSION} from '../data/gospelContent';
 import {
@@ -148,47 +149,78 @@ const parseShareEvents = (value: string | null): GospelShareEvent[] => {
   }
 };
 
+async function writeForMeDaySettings(
+  settings: Omit<ForMeDaySettings, 'updatedAt'>,
+  current: ForMeDaySettings | null,
+): Promise<ForMeDaySettings> {
+  const nextTestimony = settings.originalStory?.trim() || '';
+  const currentTestimony = current?.originalStory?.trim() || '';
+  const now = new Date().toISOString();
+  const testimonyWrittenAt = nextTestimony
+    ? settings.testimonyWrittenAt || current?.testimonyWrittenAt || now
+    : undefined;
+  const testimonyUpdatedAt = !nextTestimony
+    ? undefined
+    : currentTestimony && nextTestimony !== currentTestimony
+      ? now
+      : settings.testimonyUpdatedAt || current?.testimonyUpdatedAt;
+  const saved = {
+    ...settings,
+    testimonyWrittenAt,
+    testimonyUpdatedAt,
+    updatedAt: now,
+  };
+  await AsyncStorage.setItem(FOR_ME_DAY_SETTINGS_KEY, JSON.stringify(saved));
+  return saved;
+}
+
 export const gospelStorage = {
   async getShareEvents(): Promise<GospelShareEvent[]> {
     return parseShareEvents(await AsyncStorage.getItem(GOSPEL_SHARE_EVENTS_KEY));
   },
 
   async recordShareEvent(input: GospelShareEventInput | string = {}): Promise<GospelShareEvent> {
-    const details = typeof input === 'string' ? {sharedAt: input} : input;
-    const event: GospelShareEvent = {
-      id: `gospel-share-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-      sharedAt: details.sharedAt || new Date().toISOString(),
-      method: details.method || 'link',
-      ...(details.personId ? {personId: details.personId} : {}),
-      ...(details.responderName?.trim() ? {responderName: details.responderName.trim()} : {}),
-      ...(details.response ? {response: details.response} : {}),
-      ...(details.spiritualBirthday ? {spiritualBirthday: details.spiritualBirthday} : {}),
-    };
-    const events = await this.getShareEvents();
-    await AsyncStorage.setItem(GOSPEL_SHARE_EVENTS_KEY, JSON.stringify([event, ...events]));
-    await queueGospelImpactForShare(event).catch(() => {});
-    DeviceEventEmitter.emit('gospelShareChanged', event);
-    return event;
+    return localJournalMutations.runExclusive(async () => {
+      const details = typeof input === 'string' ? {sharedAt: input} : input;
+      const event: GospelShareEvent = {
+        id: `gospel-share-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        sharedAt: details.sharedAt || new Date().toISOString(),
+        method: details.method || 'link',
+        ...(details.personId ? {personId: details.personId} : {}),
+        ...(details.responderName?.trim() ? {responderName: details.responderName.trim()} : {}),
+        ...(details.response ? {response: details.response} : {}),
+        ...(details.spiritualBirthday ? {spiritualBirthday: details.spiritualBirthday} : {}),
+      };
+      const events = await this.getShareEvents();
+      await AsyncStorage.setItem(GOSPEL_SHARE_EVENTS_KEY, JSON.stringify([event, ...events]));
+      await queueGospelImpactForShare(event).catch(() => {});
+      DeviceEventEmitter.emit('gospelShareChanged', event);
+      return event;
+    });
   },
 
   async removeShareEvent(eventId: string): Promise<void> {
-    const events = await this.getShareEvents();
-    const removed = events.find(event => event.id === eventId);
-    const remaining = events.filter(event => event.id !== eventId);
-    if (remaining.length === events.length) {return;}
-    await AsyncStorage.setItem(GOSPEL_SHARE_EVENTS_KEY, JSON.stringify(remaining));
-    if (removed) {await queueGospelImpactRetraction(removed).catch(() => {});}
-    DeviceEventEmitter.emit('gospelShareChanged', {id: eventId, removed: true});
+    return localJournalMutations.runExclusive(async () => {
+      const events = await this.getShareEvents();
+      const removed = events.find(event => event.id === eventId);
+      const remaining = events.filter(event => event.id !== eventId);
+      if (remaining.length === events.length) {return;}
+      await AsyncStorage.setItem(GOSPEL_SHARE_EVENTS_KEY, JSON.stringify(remaining));
+      if (removed) {await queueGospelImpactRetraction(removed).catch(() => {});}
+      DeviceEventEmitter.emit('gospelShareChanged', {id: eventId, removed: true});
+    });
   },
 
   async linkShareEventToPerson(eventId: string, personId: string): Promise<void> {
-    const events = await this.getShareEvents();
-    const index = events.findIndex(event => event.id === eventId);
-    if (index < 0) {return;}
-    const next = [...events];
-    next[index] = {...next[index], personId};
-    await AsyncStorage.setItem(GOSPEL_SHARE_EVENTS_KEY, JSON.stringify(next));
-    DeviceEventEmitter.emit('gospelShareChanged', next[index]);
+    return localJournalMutations.runExclusive(async () => {
+      const events = await this.getShareEvents();
+      const index = events.findIndex(event => event.id === eventId);
+      if (index < 0) {return;}
+      const next = [...events];
+      next[index] = {...next[index], personId};
+      await AsyncStorage.setItem(GOSPEL_SHARE_EVENTS_KEY, JSON.stringify(next));
+      DeviceEventEmitter.emit('gospelShareChanged', next[index]);
+    });
   },
 
   async getResponse(): Promise<SavedGospelResponse | null> {
@@ -233,46 +265,32 @@ export const gospelStorage = {
   async saveForMeDaySettings(
     settings: Omit<ForMeDaySettings, 'updatedAt'>,
   ): Promise<ForMeDaySettings> {
-    const current = await this.getForMeDaySettings();
-    const nextTestimony = settings.originalStory?.trim() || '';
-    const currentTestimony = current?.originalStory?.trim() || '';
-    const now = new Date().toISOString();
-    const testimonyWrittenAt = nextTestimony
-      ? settings.testimonyWrittenAt || current?.testimonyWrittenAt || now
-      : undefined;
-    const testimonyUpdatedAt = !nextTestimony
-      ? undefined
-      : currentTestimony && nextTestimony !== currentTestimony
-        ? now
-        : settings.testimonyUpdatedAt || current?.testimonyUpdatedAt;
-    const saved = {
-      ...settings,
-      testimonyWrittenAt,
-      testimonyUpdatedAt,
-      updatedAt: now,
-    };
-    await AsyncStorage.setItem(FOR_ME_DAY_SETTINGS_KEY, JSON.stringify(saved));
-    return saved;
+    return localJournalMutations.runExclusive(async () => {
+      const current = await this.getForMeDaySettings();
+      return writeForMeDaySettings(settings, current);
+    });
   },
   async getPeople(): Promise<GospelPerson[]> {
     return parseArray(await AsyncStorage.getItem(PEOPLE_KEY));
   },
 
   async addPerson(displayName: string, note?: string): Promise<GospelPerson> {
-    const now = new Date().toISOString();
-    const person: GospelPerson = {
-      id: `gospel-person-${Date.now()}-${Math.random()
-        .toString(36)
-        .slice(2, 8)}`,
-      displayName: displayName.trim() || 'Someone',
-      note: note?.trim() || undefined,
-      prayerStartedAt: now,
-      createdAt: now,
-      updatedAt: now,
-    };
-    const people = await this.getPeople();
-    await AsyncStorage.setItem(PEOPLE_KEY, JSON.stringify([person, ...people]));
-    return person;
+    return localJournalMutations.runExclusive(async () => {
+      const now = new Date().toISOString();
+      const person: GospelPerson = {
+        id: `gospel-person-${Date.now()}-${Math.random()
+          .toString(36)
+          .slice(2, 8)}`,
+        displayName: displayName.trim() || 'Someone',
+        note: note?.trim() || undefined,
+        prayerStartedAt: now,
+        createdAt: now,
+        updatedAt: now,
+      };
+      const people = await this.getPeople();
+      await AsyncStorage.setItem(PEOPLE_KEY, JSON.stringify([person, ...people]));
+      return person;
+    });
   },
 
   async saveResponse(
@@ -280,21 +298,23 @@ export const gospelStorage = {
     sourceMode: SavedGospelResponse['sourceMode'],
     spiritualBirthday?: string,
   ): Promise<SavedGospelResponse> {
-    const record: SavedGospelResponse = {
-      response,
-      sourceMode,
-      respondedAt: new Date().toISOString(),
-      spiritualBirthday,
-      contentVersion: GOSPEL_CONTENT_VERSION,
-    };
-    await AsyncStorage.setItem(RESPONSE_KEY, JSON.stringify(record));
-    if (spiritualBirthday) {
-      const current = await this.getForMeDaySettings();
-      await this.saveForMeDaySettings({
-        ...(current || defaultForMeDaySettings(spiritualBirthday)),
+    return localJournalMutations.runExclusive(async () => {
+      const record: SavedGospelResponse = {
+        response,
+        sourceMode,
+        respondedAt: new Date().toISOString(),
         spiritualBirthday,
-      });
-    }
-    return record;
+        contentVersion: GOSPEL_CONTENT_VERSION,
+      };
+      await AsyncStorage.setItem(RESPONSE_KEY, JSON.stringify(record));
+      if (spiritualBirthday) {
+        const current = await this.getForMeDaySettings();
+        await writeForMeDaySettings({
+          ...(current || defaultForMeDaySettings(spiritualBirthday)),
+          spiritualBirthday,
+        }, current);
+      }
+      return record;
+    });
   },
 };

@@ -1,4 +1,4 @@
-import {localJournalMutations} from './journalMutationCoordinator';
+import {coordinatedJournalWrite, localJournalMutations} from './journalMutationCoordinator';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Logger } from '../utils/ProductionLogger';
 import { safeJsonParse } from '../utils/safeJsonParse';
@@ -83,9 +83,10 @@ const withoutGuidedClassification = (
   return guidedMetadata;
 };
 
-export const createLocalReflection = (
+/** @internal Caller holds the local journal mutation queue. */
+export const createLocalReflectionWhileLocked = async (
   data: Omit<LocalReflectionEntry, 'id' | 'created_at' | 'updated_at' | 'version' | 'sync_status'>
-): Promise<LocalReflectionEntry> => localJournalMutations.runExclusive(async () => {
+): Promise<LocalReflectionEntry> => {
   const now = new Date().toISOString();
   const selectedDate = formatLocalDate(data.selected_date);
   const id = generateLocalUUID();
@@ -112,7 +113,9 @@ export const createLocalReflection = (
   }
 
   return entry;
-});
+};
+
+export const createLocalReflection = coordinatedJournalWrite(createLocalReflectionWhileLocked);
 
 export const getLocalReflection = async (
   id: string,
@@ -145,9 +148,10 @@ export const getLocalReflections = async (
   return entries.sort((a, b) => a.created_at.localeCompare(b.created_at));
 };
 
-export const updateLocalReflection = (
+/** @internal Caller holds the local journal mutation queue. */
+export const updateLocalReflectionWhileLocked = async (
   entry: LocalReflectionEntry
-): Promise<LocalReflectionEntry> => localJournalMutations.runExclusive(async () => {
+): Promise<LocalReflectionEntry> => {
   const now = new Date().toISOString();
   const selectedDate = formatLocalDate(entry.selected_date);
   const updated: LocalReflectionEntry = {
@@ -161,13 +165,16 @@ export const updateLocalReflection = (
   const key = getLocalReflectionKey(updated.type, selectedDate, updated.id);
   await AsyncStorage.setItem(key, JSON.stringify(updated));
   return updated;
-});
+};
 
-export const deleteLocalReflection = (
+export const updateLocalReflection = coordinatedJournalWrite(updateLocalReflectionWhileLocked);
+
+/** @internal Caller holds the local journal mutation queue. */
+export const deleteLocalReflectionWhileLocked = async (
   id: string,
   type: string,
   date: string | Date
-): Promise<void> => localJournalMutations.runExclusive(async () => {
+): Promise<void> => {
   const selectedDate = formatLocalDate(date);
   const raw = await AsyncStorage.getItem(getLocalReflectionKey(type, selectedDate, id));
   if (!raw) {return;}
@@ -185,7 +192,9 @@ export const deleteLocalReflection = (
   const index = await readReflectionIndex(type, selectedDate);
   const nextIndex = index.filter(itemId => itemId !== id);
   await writeReflectionIndex(type, selectedDate, nextIndex);
-});
+};
+
+export const deleteLocalReflection = coordinatedJournalWrite(deleteLocalReflectionWhileLocked);
 
 export const getAllLocalReflectionsByType = async (
   type: string
@@ -348,7 +357,7 @@ export const getLocalReflectionEntry = async (key: string): Promise<ReflectionSt
   }
 };
 
-export const saveLocalReflectionEntry = async (
+export const saveLocalReflectionEntry = coordinatedJournalWrite(async (
   key: string,
   entries: ReflectionLogEntry[],
   userId: string
@@ -383,9 +392,9 @@ export const saveLocalReflectionEntry = async (
     });
     throw error;
   }
-};
+});
 
-export const updateLocalReflectionEntry = async (
+const updateLocalReflectionEntryWhileLocked = async (
   key: string,
   updatedEntry: ReflectionStorageEntry
 ): Promise<void> => {
@@ -406,7 +415,9 @@ export const updateLocalReflectionEntry = async (
   }
 };
 
-export const deleteLocalReflectionEntry = async (key: string): Promise<void> => {
+export const updateLocalReflectionEntry = coordinatedJournalWrite(updateLocalReflectionEntryWhileLocked);
+
+const deleteLocalReflectionEntryWhileLocked = async (key: string): Promise<void> => {
   try {
     await AsyncStorage.removeItem(key);
 
@@ -418,6 +429,8 @@ export const deleteLocalReflectionEntry = async (key: string): Promise<void> => 
     throw error;
   }
 };
+
+export const deleteLocalReflectionEntry = coordinatedJournalWrite(deleteLocalReflectionEntryWhileLocked);
 
 // --- Cloud Storage Functions ---
 export const saveCloudReflectionEntry = async (
@@ -468,38 +481,39 @@ export const saveCloudReflectionEntry = async (
   }
 };
 
+const fetchCloudReflectionEntry = async (
+  userId: string,
+  date: string
+): Promise<ReflectionStorageEntry | null> => {
+  const { data, error } = await supabase
+    .from('reflection_entries')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('selected_date', date)
+    .eq('content_type', 'reflection_log')
+    .order('updated_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {throw error;}
+
+  if (data && data.content?.entries) {
+    // Convert date strings back to Date objects
+    data.content.entries = data.content.entries.map((entry: any) => ({
+      ...entry,
+      date: new Date(entry.date),
+    }));
+  }
+
+  return data;
+};
+
 export const getCloudReflectionEntry = async (
   userId: string,
   date: string
 ): Promise<ReflectionStorageEntry | null> => {
   try {
-    const { data, error } = await supabase
-      .from('reflection_entries')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('selected_date', date)
-      .eq('content_type', 'reflection_log')
-      .order('updated_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    if (error) {
-      Logger.error('Error fetching cloud reflection entry', error as Error, {
-      component: 'reflectionStorage',
-      action: 'error',
-    });
-      throw error;
-    }
-
-    if (data && data.content?.entries) {
-      // Convert date strings back to Date objects
-      data.content.entries = data.content.entries.map((entry: any) => ({
-        ...entry,
-        date: new Date(entry.date),
-      }));
-    }
-
-    return data;
+    return await fetchCloudReflectionEntry(userId, date);
   } catch (error) {
     Logger.error('Error in getCloudReflectionEntry', error as Error, {
       component: 'reflectionStorage',
@@ -515,30 +529,21 @@ export const syncReflectionFromCloud = async (
 ): Promise<void> => {
 
   try {
-    const cloudEntry = await getCloudReflectionEntry(userId, date);
     const key = getReflectionKey(userId, date);
-    const localEntry = await getLocalReflectionEntry(key);
-
-    if (!cloudEntry) {
-
-      // If there's no cloud entry but we have local data, clear the local cache
-      if (localEntry) {
-
-        await deleteLocalReflectionEntry(key);
+    const original = await AsyncStorage.getItem(key);
+    const cloudEntry = await fetchCloudReflectionEntry(userId, date);
+    await localJournalMutations.runExclusive(async () => {
+      if (await AsyncStorage.getItem(key) !== original) {return;}
+      const localEntry = await getLocalReflectionEntry(key);
+      if (!cloudEntry) {
+        if (localEntry) {await deleteLocalReflectionEntryWhileLocked(key);}
+        return;
       }
-      return;
-    }
-
-    // Compare timestamps to determine if we need to update local
-    const cloudUpdated = new Date(cloudEntry.updated_at).getTime();
-    const localUpdated = localEntry ? new Date(localEntry.updated_at).getTime() : 0;
-
-    if (cloudUpdated > localUpdated) {
-
-      await updateLocalReflectionEntry(key, cloudEntry);
-    } else {
-
-    }
+      const localUpdated = localEntry ? new Date(localEntry.updated_at).getTime() : 0;
+      if (new Date(cloudEntry.updated_at).getTime() > localUpdated) {
+        await updateLocalReflectionEntryWhileLocked(key, cloudEntry);
+      }
+    });
 
   } catch (error) {
     Logger.error('Error in syncReflectionFromCloud', error as Error, {
@@ -679,14 +684,14 @@ export const loadReflectionEntries = async (
 };
 
 // --- Utility Functions ---
-export const clearReflectionCache = async (userId: string, date?: string): Promise<void> => {
+export const clearReflectionCache = coordinatedJournalWrite(async (userId: string, date?: string): Promise<void> => {
 
   try {
     if (date) {
       // Clear specific date
       const dateStr = typeof date === 'string' ? date : toLocalDateString(date);
       const key = getReflectionKey(userId, dateStr);
-      await deleteLocalReflectionEntry(key);
+      await deleteLocalReflectionEntryWhileLocked(key);
 
     } else {
       // Clear all reflection entries for user
@@ -694,7 +699,7 @@ export const clearReflectionCache = async (userId: string, date?: string): Promi
       const reflectionKeys = allKeys.filter(key => key.startsWith(`reflection_log_${userId}_`));
 
       for (const key of reflectionKeys) {
-        await deleteLocalReflectionEntry(key);
+        await deleteLocalReflectionEntryWhileLocked(key);
       }
 
     }
@@ -706,7 +711,7 @@ export const clearReflectionCache = async (userId: string, date?: string): Promi
     });
     throw error;
   }
-};
+});
 
 export const forceRefreshReflectionEntries = async (
   userId: string,

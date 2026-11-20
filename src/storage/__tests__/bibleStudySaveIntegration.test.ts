@@ -1,7 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { completeBibleStudySession, createBibleStudySession, createEmptyBibleStudyContent, getActiveBibleStudySession, saveBibleStudyContent } from '../bibleStudyStorage';
+import { completeBibleStudySession, createBibleStudySession, createEmptyBibleStudyContent, deleteSavedBibleStudy, getActiveBibleStudySession, saveBibleStudyContent } from '../bibleStudyStorage';
 import { getSavedBibleStudyReflections, parseSavedBibleStudy } from '../bibleStudyMomentsStorage';
 import { getLocalReflection } from '../reflectionStorage';
+import {getJournalBackupInventory} from '../../services/journalBackupInventory';
 import { getLocalPrayer } from '../prayerStorage';
 import {
   queueBibleStudyCompletedImpact,
@@ -28,6 +29,7 @@ beforeEach(() => {
   storage.getItem.mockImplementation(async key => persisted.get(key) ?? null);
   storage.setItem.mockImplementation(async (key, value) => { persisted.set(key, value); });
   storage.getAllKeys.mockImplementation(async () => Array.from(persisted.keys()));
+  storage.multiGet.mockImplementation(async keys => keys.map((key): [string, string | null] => [key, persisted.get(key) ?? null]));
   storage.removeItem.mockImplementation(async key => { persisted.delete(key); });
 });
 
@@ -103,4 +105,50 @@ it('resumes only the latest selected unsaved study and never cycles through olde
   expect((await getActiveBibleStudySession())?.id).toBe(latest.id);
   await completeBibleStudySession(latest, createEmptyBibleStudyContent());
   expect(await getActiveBibleStudySession()).toBeNull();
+});
+
+it('backs up a completed study with its linked prayer, even when the inventory starts mid-save', async () => {
+  const session = await createBibleStudySession({reference: 'Psalm 23'}, '2026-09-15');
+  const content = createEmptyBibleStudyContent();
+  content.prayer.text = 'Synthetic prayer';
+  let release!: () => void;
+  let signal!: () => void;
+  const paused = new Promise<void>(resolve => {release = resolve;});
+  const started = new Promise<void>(resolve => {signal = resolve;});
+  storage.setItem.mockImplementation(async (key, value) => {
+    persisted.set(key, value);
+    if (key.startsWith('prayer_local:')) {
+      signal();
+      await paused;
+    }
+  });
+  const completion = completeBibleStudySession(session, content);
+  await started;
+  storage.getAllKeys.mockClear();
+  const snapshot = getJournalBackupInventory();
+  try {
+    await new Promise(resolve => setTimeout(resolve, 0));
+    expect(storage.getAllKeys).not.toHaveBeenCalled();
+  } finally {
+    release();
+  }
+  const saved = await completion;
+  expect(await snapshot).toMatchObject({
+    bibleStudySessions: [{completed: true, prayer_ref: saved.prayer_ref, reflection_ref: saved.reflection_ref}],
+    reflectionRecords: [{id: saved.reflection_ref!.local_id, metadata: {bibleStudyCompleted: true}}],
+    prayerRecords: [{id: saved.prayer_ref!.local_id, content: content.prayer.text}],
+    integrity: {danglingReferences: []},
+  });
+  const repeat = await completeBibleStudySession(session, content);
+  expect(repeat.prayer_ref).toEqual(saved.prayer_ref);
+  expect((await getJournalBackupInventory()).prayerRecords).toHaveLength(1);
+  expect(queueBibleStudyCompletedImpact).toHaveBeenCalledTimes(1);
+  await deleteSavedBibleStudy(saved.reflection_ref!.local_id, saved.selected_date, saved.id);
+  await expect(completeBibleStudySession(session, content)).rejects.toThrow('no longer available');
+  expect(await getJournalBackupInventory()).toMatchObject({
+    bibleStudySessions: [],
+    reflectionRecords: [{deleted: true}],
+    prayerRecords: [{id: saved.prayer_ref!.local_id, content: content.prayer.text}],
+    integrity: {danglingReferences: []},
+  });
 });
