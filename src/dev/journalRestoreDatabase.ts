@@ -1,8 +1,10 @@
 import {createJournalMutationCoordinator} from '../storage/journalMutationCoordinator';
 import {
+  JournalBackupRestoreExecutionError,
   executeJournalBackupRestore,
   previewJournalBackupRestore,
   recoverInterruptedJournalBackupRestore,
+  type JournalBackupRestoreMutationCoordinator,
   type JournalBackupRestoreStorage,
 } from '../services/journalBackupRestoreExecutor';
 import type {JournalBackupRestorePlan} from '../services/journalBackupRestorePlan';
@@ -65,6 +67,20 @@ export async function openRestoreSession(db: RestoreDatabase) {
       throw new Error('Reopen database for restore recovery');
     }
   };
+  // Both the initial preview and its later confirmation must acquire the session queue.
+  const readyCoordinator: JournalBackupRestoreMutationCoordinator = {
+    runExclusive: work => coordinator.runExclusive(async () => {
+      requireReady();
+      try {
+        return await work();
+      } catch (error) {
+        if (error instanceof JournalBackupRestoreExecutionError && error.recoveryRequired) {
+          blocked = true;
+        }
+        throw error;
+      }
+    }),
+  };
   return {
     recovered,
     read(key: string) {
@@ -74,10 +90,7 @@ export async function openRestoreSession(db: RestoreDatabase) {
       });
     },
     preview(plan: JournalBackupRestorePlan) {
-      return coordinator.runExclusive(() => {
-        requireReady();
-        return previewJournalBackupRestore(storage, {runExclusive: work => work()}, plan);
-      });
+      return previewJournalBackupRestore(storage, readyCoordinator, plan);
     },
     restore(plan: JournalBackupRestorePlan, transactionId: string) {
       return coordinator.runExclusive(async () => {

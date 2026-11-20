@@ -1606,6 +1606,14 @@ A regression test paused a Bible study save after its prayer had been written an
 
 Verification included 189 focused tests and four host restore tests in fresh processes. The full suite reproduced the previous 35 failing tests across 21 suites. TypeScript reported the same 734 diagnostics. This checkpoint covers concurrent operations while the app is running. The next milestone is to recheck the device journal when the user confirms a restore, then verify recovery after closing and reopening the app on both platforms with synthetic entries in the real storage path. Customer restore is still limited to the practice destination. Phase 5 remains at **95%** and weighted overall progress at **32.7%**.
 
+### 2026-11-20 — Protect edits made after a restore preview
+
+Confirmation now checks the exact keys and values reviewed under the same queue used to apply the restore. If a journal entry was edited, added or deleted, confirmation stops before the first write and requires another preview. A confirmation can be used once. The practice journal’s Keep both flow uses this check.
+
+On the iPhone 17 Pro Max simulator and Pixel 8 emulator, a development exercise used isolated practice keys in the same AsyncStorage implementation as local entries. On each device, an edit invalidated the first preview. After a fresh preview, the app was terminated after the replacement entry was saved and before restore verification. On relaunch, the startup check recovered the most recent saved edit, verified its date index, and checked that the rollback records were gone before opening Journal.
+
+The 194 focused tests and seven host restore and photo-transfer integration tests passed. The full suite passed 1,553 tests and reproduced the same 35 failures in 21 suites. TypeScript reported 734 diagnostics, matching the previous count. Phase 5 remains at **95%** and weighted overall progress at **32.7%**. Customer restore remains in development. The next checkpoint is to verify recovery for larger journals on device storage, including insufficient space, before connecting restore to customer entries. No manual Supabase or device action is needed for that work.
+
 ## Primary references checked on 2026-11-03
 
 - [Apple App Review Guidelines, payments/subscriptions](https://developer.apple.com/app-store/review/guidelines/): mobile subscription checkout baseline and subscription disclosures. Regional alternative-payment programs require separate review if later used.

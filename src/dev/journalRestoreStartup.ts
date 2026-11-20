@@ -5,10 +5,19 @@ const pendingKey = 'journal:dev:restore-relaunch-pending:v1';
 
 export const markRestoreStartupPending = () => AsyncStorage.setItem(pendingKey, '1');
 
+export const markLocalRestorePending = () => AsyncStorage.setItem(pendingKey, 'local-entries');
+
 async function checkStartup() {
   const pending = await AsyncStorage.getItem(pendingKey);
   if (pending === null) {
     return 'idle' as const;
+  }
+  if (pending === 'local-entries') {
+    const fixture = require('./journalLocalRestoreInterruption') as typeof import('./journalLocalRestoreInterruption');
+    const result = await fixture.verifyLocalRestoreAfterReopen();
+    await AsyncStorage.removeItem(pendingKey);
+    await fixture.clearLocalRestoreFixture();
+    return result;
   }
   if (pending !== '1') {
     throw new Error('Unknown development restore state');

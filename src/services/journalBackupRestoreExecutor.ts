@@ -492,41 +492,61 @@ async function inspectRestoreDestination(
   return {ownedKeys, snapshotKeys, before};
 }
 
-/** Count the effects of full replacement under the same lease used for writes.
- * Counts refer to stored keys (including preferences and rebuilt indexes).
- * A preview describes the current snapshot only and authorizes no writes.
- */
+/** Capture the reviewed values while holding the journal queue. Confirm reacquires
+ * the same queue and compares the destination before the first restore write. */
 export const previewJournalBackupRestore = (
   storage: JournalBackupRestoreStorage,
   coordinator: JournalBackupRestoreMutationCoordinator,
-  plan: JournalBackupRestorePlan,
-) => coordinator.runExclusive(async () => {
-  const {before, ownedKeys} = await inspectRestoreDestination(storage, plan);
-  let newKeys = 0;
-  let matchingKeys = 0;
-  let changedKeys = 0;
-  for (const {key, value} of plan.operations) {
-    const current = before.get(key);
-    if (current === null) {
-      newKeys++;
-    } else if (current === value) {
-      matchingKeys++;
-    } else {
-      changedKeys++;
+  input: JournalBackupRestorePlan,
+) => {
+  const plan = {...input, operations: input.operations.map(op => ({...op})),
+    clearOwnedKeysMatching: [...input.clearOwnedKeysMatching], fatal: [...input.fatal]};
+  return coordinator.runExclusive(async () => {
+    const {before, ownedKeys} = await inspectRestoreDestination(storage, plan);
+    let newKeys = 0;
+    let matchingKeys = 0;
+    let changedKeys = 0;
+    for (const {key, value} of plan.operations) {
+      const current = before.get(key);
+      if (current === null) {
+        newKeys++;
+      } else if (current === value) {
+        matchingKeys++;
+      } else {
+        changedKeys++;
+      }
     }
-  }
-  const targets = new Set(plan.operations.map(operation => operation.key));
-  const localOnlyKeys = ownedKeys.filter(key => !targets.has(key)).length;
-  return {newKeys, matchingKeys, changedKeys, localOnlyKeys};
-});
+    const targets = new Set(plan.operations.map(operation => operation.key));
+    const localOnlyKeys = ownedKeys.filter(key => !targets.has(key)).length;
+    let available = true;
+    const confirm = async (transactionId: string) => {
+      if (!available) {
+        throw fail('preview_consumed', 'Review the backup again before confirming.');
+      }
+      available = false;
+      try {
+        return await coordinator.runExclusive(() =>
+          executeJournalBackupRestoreExclusive(storage, plan, transactionId, before));
+      } finally {
+        before.clear();
+      }
+    };
+    return {newKeys, matchingKeys, changedKeys, localOnlyKeys, confirm};
+  });
+};
 
 const executeJournalBackupRestoreExclusive = async (
   storage: JournalBackupRestoreStorage,
   plan: JournalBackupRestorePlan,
   transactionId: string,
+  reviewed?: ReadonlyMap<string, string | null>,
 ): Promise<JournalBackupRestoreExecutionResult> => {
   assertSafeTransactionId(transactionId);
   const {ownedKeys, snapshotKeys, before} = await inspectRestoreDestination(storage, plan);
+  if (reviewed && (reviewed.size !== before.size ||
+      snapshotKeys.some(key => before.get(key) !== reviewed.get(key)))) {
+    throw fail('restore_preview_stale', 'Your journal changed. Review the backup again before restoring.');
+  }
   const snapshot: RollbackSnapshotV1 = {
     version: RESTORE_EXECUTOR_VERSION,
     transactionId,

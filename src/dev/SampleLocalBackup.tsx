@@ -1,5 +1,5 @@
 import React, {useEffect, useRef, useState} from 'react';
-import {Image, Platform, Pressable, StyleSheet, Text, TextInput, View} from 'react-native';
+import {Alert, Image, Platform, Pressable, StyleSheet, Text, TextInput, View} from 'react-native';
 import 'react-native-get-random-values';
 import {createJournalBackup, validateJournalBackup} from '../services/journalBackupContract';
 import {compareLocalSnapshotResult, inspectLocalSnapshotResult, prepareJournalPhotoExport} from './prepareJournalPhotoManifest';
@@ -390,6 +390,22 @@ export default function SampleLocalBackup() {
       if (mounted.current) {setBusy(false);}
     }
   }
+  async function testLocalRestoreInterruption() {
+    if (running.current) {return;}
+    running.current = true;
+    setBusy(true);
+    try {
+      const {armLocalRestoreInterruption} = await import('./journalLocalRestoreInterruption');
+      const {markLocalRestorePending} = await import('./journalRestoreStartup');
+      await armLocalRestoreInterruption(markLocalRestorePending, () =>
+        Alert.alert('Local restore interruption armed', 'Close and reopen Journal to verify the saved practice edit.'));
+    } catch {
+      if (mounted.current) {setMessage('Could not complete the practice interruption check.');}
+    } finally {
+      running.current = false;
+      if (mounted.current) {setBusy(false);}
+    }
+  }
   const button = (label: string, onPress: () => void, disabled = false) => (
     <Pressable accessibilityRole="button" accessibilityState={{disabled}} disabled={disabled} onPress={onPress}
       style={[styles.button, disabled && styles.disabled]}>
@@ -425,6 +441,7 @@ export default function SampleLocalBackup() {
       {!mode && !localPreview && <>
         {button('Save encrypted journal backup', () => start('saveLocal'), busy)}
         {button('Check saved journal backup', () => start('openLocal'), busy)}
+        {button('Test interrupted restore with a practice edit', testLocalRestoreInterruption, busy)}
         {button('Reopen restored sample', () => checkIsolatedJournal(), busy)}
         {button('Save sample backup', () => start('export'), busy)}
         {button('Save a custom sample', () => start('inventory'), busy)}

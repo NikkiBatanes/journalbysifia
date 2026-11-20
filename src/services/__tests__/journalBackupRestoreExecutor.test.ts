@@ -1,3 +1,4 @@
+import {createJournalMutationCoordinator} from '../../storage/journalMutationCoordinator';
 import {
   executeJournalBackupRestore,
   previewJournalBackupRestore,
@@ -352,12 +353,12 @@ it('previews full replacement without changing or disclosing existing values', a
     ['supabase.auth.token', 'outside backup scope'],
   ]);
   const original = [...storage.values];
-  await expect(previewJournalBackupRestore(storage, coordinator, plan)).resolves.toEqual({
+  await expect(previewJournalBackupRestore(storage, coordinator, plan)).resolves.toMatchObject({
     newKeys: 1, matchingKeys: 1, changedKeys: 0, localOnlyKeys: 1,
   });
   expect([...storage.values]).toEqual(original);
   storage.values.set(plan.operations[0].key, '');
-  await expect(previewJournalBackupRestore(storage, coordinator, plan)).resolves.toEqual({
+  await expect(previewJournalBackupRestore(storage, coordinator, plan)).resolves.toMatchObject({
     newKeys: 0, matchingKeys: 1, changedKeys: 1, localOnlyKeys: 1,
   });
   expect(storage.mutationCalls).toBe(0);
@@ -368,4 +369,51 @@ it('blocks a preview when recovery is pending without clearing the evidence', as
   await expectExecutionError(previewJournalBackupRestore(storage, coordinator, makePlan()),
     'unfinished_restore_present', true);
   expect(storage.mutationCalls).toBe(0);
+});
+
+it.each(['edit', 'add', 'delete'])('refuses a stale preview after a local %s without writing', async change => {
+  const key = 'journal_local:heart:2026-11-18:old';
+  const storage = new MemoryRestoreStorage([[key, 'earlier']]);
+  const preview = await previewJournalBackupRestore(storage, coordinator, makePlan());
+  if (change === 'edit') {storage.values.set(key, 'later');}
+  if (change === 'add') {storage.values.set(key + '2', 'newer');}
+  if (change === 'delete') {storage.values.delete(key);}
+  const expected = Array.from(storage.values);
+  await expectExecutionError(preview.confirm(TRANSACTION_ID), 'restore_preview_stale', false);
+  await expectExecutionError(preview.confirm(TRANSACTION_ID), 'preview_consumed', false);
+  expect(storage.mutationCalls).toBe(0);
+  expect(Array.from(storage.values)).toEqual(expected);
+});
+
+it('applies only the reviewed plan once and preserves unrelated writes', async () => {
+  const storage = new MemoryRestoreStorage();
+  const plan = makePlan();
+  const {key, value} = plan.operations[0];
+  const preview = await previewJournalBackupRestore(storage, coordinator, plan);
+  plan.operations[0].value = 'modified after review';
+  storage.values.set('unrelated', 'outside restore');
+  const first = preview.confirm(TRANSACTION_ID);
+  await expectExecutionError(preview.confirm(TRANSACTION_ID), 'preview_consumed', false);
+  await expect(first).resolves.toMatchObject({verified: true});
+  expect(storage.values.get(key)).toBe(value);
+  expect(storage.values.get('unrelated')).toBe('outside restore');
+});
+
+it('checks after an edit already queued when the user confirms', async () => {
+  const queue = createJournalMutationCoordinator();
+  const storage = new MemoryRestoreStorage();
+  const plan = makePlan();
+  const preview = await previewJournalBackupRestore(storage, queue, plan);
+  let release!: () => void;
+  const saving = new Promise<void>(resolve => {release = resolve;});
+  const edit = queue.runExclusive(async () => {
+    await saving;
+    await storage.multiSet([[plan.operations[0].key, 'new edit']]);
+  });
+  const confirmed = preview.confirm(TRANSACTION_ID);
+  release();
+  await edit;
+  await expectExecutionError(confirmed, 'restore_preview_stale', false);
+  expect(storage.mutationCalls).toBe(1);
+  expect(storage.values.get(plan.operations[0].key)).toBe('new edit');
 });

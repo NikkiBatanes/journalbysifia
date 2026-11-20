@@ -99,8 +99,10 @@ export async function applySharedPhotoTransfer(session: Session, document?: stri
     // Both device rows must match, and only the rebuilt date index may change.
     if (counts.localOnlyKeys || counts.matchingKeys !== deviceEntries.length || counts.changedKeys !== 1 ||
         counts.newKeys !== entries.length) {throw new Error('Unexpected sample journal contents');}
+    await counts.confirm(uuid());
+  } else {
+    await session.restore(plan, uuid());
   }
-  await session.restore(plan, uuid());
   return {entries, deviceEntries, token, archiveDigest, sharedDigest: shared.sha256, otherDigest: other.sha256};
 }
 
